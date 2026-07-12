@@ -109,33 +109,35 @@ export function CryptoPage() {
         }
       />
 
-      <div className={`grid grid-cols-1 sm:grid-cols-3 gap-px mb-px ${privacyClass(privacy)}`}>
-        <div className="surface p-6">
-          <p className="label-uppercase mb-2">Value</p>
-          <p className="text-2xl font-bold tabular-nums">{formatGBP(crypto.value)}</p>
+      <div className={`grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-px mb-6 ${privacyClass(privacy)}`}>
+        <div className="surface p-4 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
+          <p className="text-xs uppercase tracking-wider text-text-subtle mb-2 font-semibold">Value</p>
+          <p className="text-xl md:text-2xl font-bold tabular-nums">{formatGBP(crypto.value)}</p>
         </div>
-        <div className="surface p-6">
-          <p className="label-uppercase mb-2">Cost basis</p>
-          <p className="text-2xl font-bold tabular-nums">{formatGBP(crypto.cost)}</p>
+        <div className="surface p-4 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
+          <p className="text-xs uppercase tracking-wider text-text-subtle mb-2 font-semibold">Cost basis</p>
+          <p className="text-xl md:text-2xl font-bold tabular-nums">{formatGBP(crypto.cost)}</p>
         </div>
-        <div className="surface p-6">
-          <p className="label-uppercase mb-2">P&amp;L</p>
-          <p className={`text-2xl font-bold tabular-nums ${crypto.pnl >= 0 ? 'text-accent' : 'text-text-muted'}`}>
+        <div className="surface p-4 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none col-span-2 md:col-span-1">
+          <p className="text-xs uppercase tracking-wider text-text-subtle mb-2 font-semibold">P&amp;L</p>
+          <p className={`text-xl md:text-2xl font-bold tabular-nums ${crypto.pnl >= 0 ? 'text-accent' : 'text-text-muted'}`}>
             {formatGBP(crypto.pnl, { signed: true })}{' '}
             <span className="text-base font-semibold">({formatPct(crypto.pct)})</span>
           </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-px mb-6 mt-6">
-        <AllocationRing
-          data={pieSlices}
-          privacy={privacy}
-          eyebrow="Mix"
-          title="Holdings"
-          donut
-        />
-        <div className="lg:col-span-2">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-px mb-6">
+        <div className="surface p-5 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
+          <AllocationRing
+            data={pieSlices}
+            privacy={privacy}
+            eyebrow="Mix"
+            title="Holdings"
+            donut
+          />
+        </div>
+        <div className="lg:col-span-2 surface p-5 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
           <PortfolioSeriesChart
             history={data.history}
             privacy={privacy}
@@ -157,7 +159,7 @@ export function CryptoPage() {
           items={holdings}
           getId={(c) => String(c.id)}
           onReorder={(next) => setData((prev) => ({ ...prev, crypto: applySortOrder(next) }))}
-          className="flex flex-col gap-px"
+          className="flex flex-col gap-3 md:gap-px"
         >
           {(c) => {
             const value = c.qty * c.price
@@ -165,15 +167,15 @@ export function CryptoPage() {
             const included = c.includeInPortfolio !== false
             return (
               <div
-                className={`surface p-4 sm:p-5 flex flex-wrap sm:flex-nowrap items-center gap-3 ${
+                className={`surface p-4 md:p-5 flex flex-wrap md:flex-nowrap items-center gap-3 rounded-xl md:rounded-none shadow-sm md:shadow-none ${
                   included ? '' : 'opacity-50'
                 }`}
               >
                 <ReorderHandle label={`Reorder ${c.symbol}`} />
-                <div className="min-w-0 flex-1">
-                  <p className="font-semibold">{c.symbol}</p>
-                  <p className="text-xs text-text-subtle truncate">{c.name}</p>
-                </div>
+                <Link to={`/crypto/${c.id}`} className="min-w-0 flex-1 hover:text-accent transition-colors">
+                  <p className="font-semibold text-base">{c.symbol}</p>
+                  <p className="text-xs text-text-subtle truncate mt-0.5">{c.name}</p>
+                </Link>
                 <div className={`text-sm tabular-nums ${privacyClass(privacy)}`}>
                   <p className="font-semibold">{formatGBP(value)}</p>
                   <p className="text-xs text-text-subtle">
@@ -181,16 +183,16 @@ export function CryptoPage() {
                   </p>
                 </div>
                 <p
-                  className={`text-sm tabular-nums w-20 text-right ${
+                  className={`text-sm tabular-nums w-20 text-right font-semibold ${
                     pnl >= 0 ? 'text-accent' : 'text-text-muted'
                   }`}
                 >
                   {formatPct(c.cost > 0 ? (pnl / c.cost) * 100 : 0)}
                 </p>
-                <div className="flex flex-wrap gap-1 ml-auto sm:ml-0">
+                <div className="flex flex-wrap gap-2 ml-auto md:ml-0">
                   <button
                     type="button"
-                    className="btn-primary btn-sm"
+                    className="btn-primary btn-sm min-h-[44px] md:min-h-[36px]"
                     onClick={() => {
                       setTradeFor(c)
                       setTradeSide('buy')
@@ -200,7 +202,7 @@ export function CryptoPage() {
                   </button>
                   <button
                     type="button"
-                    className="btn-secondary btn-sm"
+                    className="btn-secondary btn-sm min-h-[44px] md:min-h-[36px]"
                     onClick={() => {
                       setTradeFor(c)
                       setTradeSide('sell')
@@ -211,19 +213,16 @@ export function CryptoPage() {
                   <button
                     type="button"
                     onClick={() => toggle(c.id)}
-                    className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 border ${
+                    className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 border min-h-[44px] md:min-h-[36px] ${
                       included ? 'border-accent text-accent' : 'border-border-strong text-text-subtle'
                     }`}
                   >
                     {included ? 'In NW' : 'Off'}
                   </button>
-                  <Link to={`/crypto/${c.id}`} className="btn-ghost btn-sm">
-                    Open
-                  </Link>
-                  <button type="button" className="btn-ghost btn-sm" onClick={() => openEdit(c)}>
+                  <button type="button" className="btn-ghost btn-sm min-h-[44px] md:min-h-[36px]" onClick={() => openEdit(c)}>
                     Edit
                   </button>
-                  <button type="button" className="btn-ghost btn-sm" onClick={() => setDeleteId(c.id)}>
+                  <button type="button" className="btn-ghost btn-sm min-h-[44px] md:min-h-[36px]" onClick={() => setDeleteId(c.id)}>
                     Delete
                   </button>
                 </div>
