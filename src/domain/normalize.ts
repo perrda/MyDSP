@@ -596,6 +596,8 @@ export function normalizePortfolio(raw: unknown): PortfolioData {
     settings: normalizeSettings(r.settings),
     customCategories: normalizeCustomCategories(r.customCategories ?? extras.customCategories),
     documents: normalizeDocuments(r.documents ?? extras.documents),
+    todoLists: Array.isArray(r.todoLists) ? r.todoLists : [],
+    todoItems: Array.isArray(r.todoItems) ? r.todoItems : [],
     extras: Object.fromEntries(
       Object.entries(extras).filter(
         ([k]) =>
@@ -609,6 +611,8 @@ export function normalizePortfolio(raw: unknown): PortfolioData {
             'stakingRewards',
             'customCategories',
             'documents',
+            'todoLists',
+            'todoItems',
           ].includes(k),
       ),
     ),

@@ -1,5 +1,7 @@
 /** Normalized MyDSP / FCC-compatible portfolio domain types. */
 
+import type { TodoItem, TodoList } from './todo-types'
+
 export type GoalType = 'debt' | 'networth' | 'investment'
 export type GoalMetric = 'cc' | 'networth' | 'debt' | 'equity' | 'crypto'
 
@@ -341,6 +343,9 @@ export interface PortfolioData {
   customCategories: string[]
   /** Lightweight document notes (no file upload) */
   documents: DocumentNote[]
+  /** TODO lists and items */
+  todoLists: TodoList[]
+  todoItems: TodoItem[]
   /** Raw passthrough for fields we have not modelled yet */
   extras: Record<string, unknown>
 }

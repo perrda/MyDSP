@@ -24,6 +24,7 @@ const titles: Record<string, { eyebrow: string; title: string }> = {
   '/family': { eyebrow: 'Household', title: 'Family' },
   '/history': { eyebrow: 'Insights', title: 'History' },
   '/documents': { eyebrow: 'Vault', title: 'Documents' },
+  '/todos': { eyebrow: 'Tasks', title: 'Todo Lists' },
   '/import': { eyebrow: 'Import', title: 'Bank CSV' },
   '/rules': { eyebrow: 'Import', title: 'Merchant rules' },
   '/optimizer': { eyebrow: 'Planning', title: 'Debt optimizer' },
