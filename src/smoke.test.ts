@@ -97,25 +97,29 @@ describe('equity FX (USD→GBP)', () => {
   })
 
   it('migrates livePrice once and sets equityPricesAreGbp', async () => {
-    const { migrateEquityLivePricesToGbp } = await import('../src/domain/migrateEquityGbp')
-    const { createSamplePortfolio } = await import('../src/domain/defaults')
-    const data = createSamplePortfolio()
-    data.equities = [
-      {
-        id: 1,
-        symbol: 'TSLA',
-        name: 'Tesla',
-        shares: 10,
-        avgCost: 37.87,
-        livePrice: 407.76,
+    const { migrateEquityLivePricesToGbp, livePriceLooksLikeUsd, repairEquityLivePricesToGbp } =
+      await import('../src/domain/migrateEquityGbp')
+    const data = {
+      equities: [
+        {
+          id: 1,
+          symbol: 'TSLA',
+          name: 'Tesla',
+          shares: 10,
+          avgCost: 37.87,
+          livePrice: 407.76,
+        },
+      ],
+      extras: {
+        holdingHistory: {
+          'equity:TSLA': [{ date: '2026-07-12', price: 407.76, source: 'auto' as const }],
+        },
       },
-    ]
-    data.extras = {
-      holdingHistory: {
-        'equity:TSLA': [{ date: '2026-07-12', price: 407.76, source: 'auto' }],
-      },
-    }
+    } as any
     const rates = { GBP: 1, USD: 1.27 }
+    expect(livePriceLooksLikeUsd(407.76, 320, rates)).toBe(true)
+    expect(livePriceLooksLikeUsd(320, 320, rates)).toBe(false)
+
     const once = migrateEquityLivePricesToGbp(data, rates)
     expect(once.migrated).toBe(true)
     expect(once.data.equities[0].livePrice).toBeCloseTo(407.76 / 1.27, 5)
@@ -125,6 +129,16 @@ describe('equity FX (USD→GBP)', () => {
     const twice = migrateEquityLivePricesToGbp(once.data, rates)
     expect(twice.migrated).toBe(false)
     expect(twice.data.equities[0].livePrice).toBeCloseTo(407.76 / 1.27, 5)
+
+    // Wrongly flagged USD still detected via static ref
+    const polluted = {
+      ...once.data,
+      equities: [{ ...once.data.equities[0], livePrice: 407.76 }],
+      extras: { ...once.data.extras, equityGbpVersion: 1, equityPricesAreGbp: true },
+    }
+    // Mock static via repair without network — unit test looksLike only here
+    expect(livePriceLooksLikeUsd(407.76, 321, rates)).toBe(true)
+    void repairEquityLivePricesToGbp
   })
 })
 

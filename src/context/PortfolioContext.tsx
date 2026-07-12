@@ -28,7 +28,8 @@ import {
 import { getSessionSyncPassphrase } from '../services/sync/sessionPassphrase'
 import { pushSync } from '../services/sync/syncService'
 import { setDisplayCurrency } from '../utils/format'
-import { migrateEquityLivePricesToGbp } from '../domain/migrateEquityGbp'
+import { migrateEquityLivePricesToGbp, repairEquityLivePricesToGbp, EQUITY_GBP_VERSION } from '../domain/migrateEquityGbp'
+import { equityNeedsUsdToGbp } from '../domain/equityCurrency'
 import {
   bootstrapFamilyPortfolios,
   canCreatePortfolio,
@@ -113,6 +114,24 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     setDisplayCurrency(data.settings.currency || 'GBP', fxRates)
   }, [data.settings.currency, fxRates])
+
+  // Async repair: catch USD livePrices wrongly flagged as GBP (compare to static GBP series)
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      const rates = loadCachedFxRates()
+      const { data: repaired, repaired: did } = await repairEquityLivePricesToGbp(
+        dataRef.current,
+        rates,
+      )
+      if (cancelled || !did) return
+      savePortfolioImmediate(repaired, activeIdRef.current)
+      setDataState(repaired)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [activeId])
 
   useEffect(() => {
     void fetchFxRates()
@@ -313,16 +332,26 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
           return c
         })
         const equities = prev.equities.map((e) => {
-          const p = equityMap[e.symbol]
+          const p = equityMap[e.symbol.toUpperCase()]
           if (p && p > 0) return { ...e, livePrice: p }
           return e
         })
+        // Only mark GBP-normalized when every US listing received a converted quote
+        const usSymbols = prev.equities
+          .map((e) => e.symbol.toUpperCase())
+          .filter((s) => equityNeedsUsdToGbp(s))
+        const allUsQuoted = usSymbols.every((s) => equityMap[s] > 0)
         let next: PortfolioData = {
           ...prev,
           crypto,
           equities,
           settings: { ...prev.settings, lastPriceUpdate: now },
-          extras: { ...prev.extras, equityPricesAreGbp: true },
+          extras: {
+            ...prev.extras,
+            ...(allUsQuoted
+              ? { equityPricesAreGbp: true, equityGbpVersion: EQUITY_GBP_VERSION }
+              : {}),
+          },
         }
         const holdingUpdates = [
           ...crypto

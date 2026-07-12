@@ -8,9 +8,19 @@ import { TradeModal } from '../components/ui/TradeModal'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
 import { usePortfolio } from '../context/PortfolioContext'
 import { applyTrade } from '../domain/trades'
+import { equityNeedsUsdToGbp } from '../domain/equityCurrency'
+import { equityUnitPriceGbp } from '../domain/migrateEquityGbp'
 import type { EquityHolding } from '../domain/types'
 import { applySortOrder, sortBySortOrder } from '../utils/reorder'
-import { formatGBP, formatGBPPrecise, formatPct, formatQty, privacyClass } from '../utils/format'
+import {
+  formatGBP,
+  formatGBPPrecise,
+  formatPct,
+  formatQty,
+  getDisplayCurrency,
+  privacyClass,
+} from '../utils/format'
+import { convertFromGbp } from '../services/fx'
 
 function nextId(items: { id: number }[]): number {
   return items.reduce((m, i) => Math.max(m, i.id), 0) + 1
@@ -19,7 +29,7 @@ function nextId(items: { id: number }[]): number {
 const emptyForm = { symbol: '', name: '', shares: '', avgCost: '', livePrice: '' }
 
 export function EquitiesPage() {
-  const { data, breakdown, privacy, setData } = usePortfolio()
+  const { data, breakdown, privacy, setData, fxRates } = usePortfolio()
   const { equity } = breakdown
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<EquityHolding | null>(null)
@@ -29,12 +39,13 @@ export function EquitiesPage() {
   const [tradeSide, setTradeSide] = useState<'buy' | 'sell'>('buy')
 
   const holdings = useMemo(() => sortBySortOrder(data.equities), [data.equities])
+  const displayCcy = getDisplayCurrency()
 
   const pieSlices = useMemo(
     () =>
       holdings
-        .filter((e) => e.includeInPortfolio !== false && e.shares * e.livePrice > 0)
-        .map((e) => ({ name: e.symbol, value: e.shares * e.livePrice }))
+        .filter((e) => e.includeInPortfolio !== false && e.shares * equityUnitPriceGbp(e) > 0)
+        .map((e) => ({ name: e.symbol, value: e.shares * equityUnitPriceGbp(e) }))
         .sort((a, b) => b.value - a.value),
     [holdings],
   )
@@ -154,11 +165,15 @@ export function EquitiesPage() {
           className="flex flex-col gap-px"
         >
           {(e) => {
-            const price = e.livePrice || e.avgCost
-            const value = e.shares * price
+            const priceGbp = equityUnitPriceGbp(e)
+            const value = e.shares * priceGbp
             const cost = e.shares * e.avgCost
             const pnl = value - cost
             const included = e.includeInPortfolio !== false
+            const usdSpot =
+              equityNeedsUsdToGbp(e.symbol) && priceGbp > 0
+                ? convertFromGbp(priceGbp, 'USD', fxRates)
+                : null
             return (
               <div
                 className={`surface p-4 sm:p-5 flex flex-wrap sm:flex-nowrap items-center gap-3 ${
@@ -168,13 +183,18 @@ export function EquitiesPage() {
                 <ReorderHandle label={`Reorder ${e.symbol}`} />
                 <div className="min-w-0 flex-1">
                   <p className="font-semibold">{e.symbol}</p>
-                  <p className="text-xs text-text-subtle truncate">{e.name}</p>
+                  <p className="text-xs text-text-muted truncate">{e.name}</p>
                 </div>
-                <div className={`text-sm tabular-nums ${privacyClass(privacy)}`}>
+                <div className={`text-sm tabular-nums min-w-[8.5rem] ${privacyClass(privacy)}`}>
                   <p className="font-semibold">{formatGBP(value)}</p>
-                  <p className="text-xs text-text-subtle">
-                    {formatQty(e.shares)} · {formatGBPPrecise(price)}
+                  <p className="text-xs text-text-muted">
+                    {formatQty(e.shares)} × {formatGBPPrecise(priceGbp)}
                   </p>
+                  {usdSpot != null && displayCcy === 'GBP' && (
+                    <p className="text-[10px] text-text-subtle tabular-nums">
+                      US ${usdSpot.toLocaleString('en-GB', { maximumFractionDigits: 2 })}
+                    </p>
+                  )}
                 </div>
                 <p
                   className={`text-sm tabular-nums w-20 text-right ${
@@ -301,7 +321,7 @@ export function EquitiesPage() {
         open={tradeFor !== null}
         kind="equity"
         symbol={tradeFor?.symbol ?? ''}
-        defaultPrice={tradeFor?.livePrice || tradeFor?.avgCost}
+        defaultPrice={tradeFor ? equityUnitPriceGbp(tradeFor) : 0}
         defaultSide={tradeSide}
         data={data}
         onClose={() => setTradeFor(null)}

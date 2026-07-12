@@ -83,7 +83,11 @@ export function HoldingDetailPage() {
   const crypto = isCrypto ? (item as CryptoHolding) : null
   const equity = !isCrypto ? (item as EquityHolding) : null
   const qty = crypto ? crypto.qty : equity!.shares
-  const price = crypto ? crypto.price : equity!.livePrice || equity!.avgCost
+  const price = crypto
+    ? crypto.price
+    : equity!.livePrice > 0
+      ? equity!.livePrice
+      : equity!.avgCost
   const cost = crypto ? crypto.cost : equity!.shares * equity!.avgCost
   const value = qty * price
   const pnl = value - cost
