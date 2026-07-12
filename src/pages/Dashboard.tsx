@@ -6,6 +6,7 @@ import { BudgetSparkline } from '../components/charts/BudgetSparkline'
 import { NetWorthChart } from '../components/charts/NetWorthChart'
 import { PageHeader, StatCard } from '../components/ui/PageHeader'
 import { RemindersPanel, useSmartReminders } from '../components/SmartReminders'
+import { PortfolioShareCard } from '../components/SocialShare'
 import { usePortfolio } from '../context/PortfolioContext'
 import { evaluateAchievements } from '../domain/achievements'
 import { buildAlerts } from '../domain/alerts'
@@ -227,6 +228,17 @@ export function Dashboard() {
             {formatPct(equity.pct)} P&amp;L
           </p>
         </Link>
+      </div>
+
+      {/* Share Card */}
+      <div className="mb-8">
+        <PortfolioShareCard
+          data={{
+            netWorth,
+            monthlyGrowth: crypto.pct + equity.pct,
+            portfolioSize: data.crypto.length + data.equities.length,
+          }}
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-px">
