@@ -49,7 +49,7 @@ export function ComparePage() {
 
       <div className="surface p-5 sm:p-6 mb-8">
         <p className="label-uppercase mb-4">Include</p>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Filter portfolios">
           {portfolios.map((p) => {
             const on = selected.includes(p.id)
             return (
@@ -59,6 +59,7 @@ export function ComparePage() {
                 className={`btn-sm ${on ? 'btn-primary' : 'btn-ghost'}`}
                 aria-pressed={on}
                 onClick={() => toggle(p.id)}
+                aria-label={`${on ? 'Hide' : 'Show'} ${p.name} portfolio`}
               >
                 {p.name}
               </button>
@@ -81,16 +82,16 @@ export function ComparePage() {
       </div>
 
       <div className="surface overflow-x-auto mb-8">
-        <table className="w-full text-sm min-w-[40rem]">
+        <table className="w-full text-sm min-w-[40rem]" role="table" aria-label="Portfolio comparison">
           <thead>
             <tr className="border-b border-border text-left">
-              <th className="p-4 label-uppercase font-bold">Portfolio</th>
-              <th className="p-4 label-uppercase font-bold text-right">Net worth</th>
-              <th className="p-4 label-uppercase font-bold text-right">Crypto</th>
-              <th className="p-4 label-uppercase font-bold text-right">Equities</th>
-              <th className="p-4 label-uppercase font-bold text-right">Debt</th>
-              <th className="p-4 label-uppercase font-bold text-right">P&amp;L</th>
-              <th className="p-4 label-uppercase font-bold">Flags</th>
+              <th className="p-4 label-uppercase font-bold" scope="col">Portfolio</th>
+              <th className="p-4 label-uppercase font-bold text-right" scope="col">Net worth</th>
+              <th className="p-4 label-uppercase font-bold text-right" scope="col">Crypto</th>
+              <th className="p-4 label-uppercase font-bold text-right" scope="col">Equities</th>
+              <th className="p-4 label-uppercase font-bold text-right" scope="col">Debt</th>
+              <th className="p-4 label-uppercase font-bold text-right" scope="col">P&amp;L</th>
+              <th className="p-4 label-uppercase font-bold" scope="col">Flags</th>
             </tr>
           </thead>
           <tbody className={privacyClass(privacy)}>
@@ -104,6 +105,7 @@ export function ComparePage() {
                     type="button"
                     className="font-semibold text-left hover:text-accent transition-colors"
                     onClick={() => switchPortfolio(r.id)}
+                    aria-label={`Switch to ${r.name} portfolio`}
                   >
                     {r.name}
                   </button>
@@ -152,9 +154,9 @@ export function ComparePage() {
       <div className="surface p-5 sm:p-6 mb-8">
         <div className="flex items-center gap-2 mb-5">
           <GitCompareArrows className="size-4 text-accent" aria-hidden />
-          <p className="label-uppercase">Net worth scale</p>
+          <h3 className="label-uppercase">Net worth scale</h3>
         </div>
-        <ul className={`space-y-4 ${privacyClass(privacy)}`}>
+        <ul className={`space-y-4 ${privacyClass(privacy)}`} role="list" aria-label="Net worth visualization by portfolio">
           {rows.map((r) => {
             const pct = Math.min(100, (Math.abs(r.netWorth) / maxNw) * 100)
             return (
@@ -165,10 +167,18 @@ export function ComparePage() {
                     {formatGBP(r.netWorth)}
                   </span>
                 </div>
-                <div className="h-2 bg-border/40 overflow-hidden">
+                <div
+                  className="h-2 bg-border/40 overflow-hidden"
+                  role="progressbar"
+                  aria-valuenow={Math.round(pct)}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-label={`${r.name} represents ${Math.round(pct)}% of maximum net worth`}
+                >
                   <div
                     className="h-full bg-accent transition-[width] duration-500 ease-out"
                     style={{ width: `${pct}%` }}
+                    aria-hidden="true"
                   />
                 </div>
               </li>
