@@ -996,7 +996,7 @@ export function SettingsPage() {
           <p className="eyebrow mb-3">Portfolios</p>
           <h3 className="text-lg font-bold tracking-tight mb-2">Family portfolios</h3>
           <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
-            Up to {maxPortfolios} workspaces — <strong className="text-text">David Portfolio</strong>{' '}
+            Up to {maxPortfolios} workspaces — <strong className="text-text">David</strong>{' '}
             plus {maxPortfolios - 1} others. New portfolios start empty (no loans, equities, or cash)
             so you can enter data manually. Switch anytime from the header or here.
           </p>

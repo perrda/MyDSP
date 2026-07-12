@@ -4,7 +4,7 @@ import type { PortfolioData, PortfolioMeta } from '../domain/types'
 import { STORAGE } from './keys'
 
 export const MAX_PORTFOLIOS = 6
-export const DAVID_PORTFOLIO_NAME = 'David Portfolio'
+export const DAVID_PORTFOLIO_NAME = 'David'
 export const FAMILY_PORTFOLIO_NAMES = [
   'Mum',
   'Andrew',
@@ -17,6 +17,11 @@ const DEFAULT_META: PortfolioMeta = {
   id: 'default',
   name: DAVID_PORTFOLIO_NAME,
   createdAt: new Date().toISOString(),
+}
+
+/** Unique id — Date.now() alone collides when creating several portfolios in one loop. */
+function newPortfolioId(): string {
+  return `p_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`
 }
 
 /** Per-portfolio debounce timers — avoids dropping edits across portfolios. */
@@ -138,13 +143,49 @@ export function createPortfolio(
   if (list.length >= MAX_PORTFOLIOS) {
     throw new Error(`Maximum of ${MAX_PORTFOLIOS} portfolios (David + up to 5 others).`)
   }
-  const id = `p_${Date.now()}`
+  const id = newPortfolioId()
   const meta: PortfolioMeta = { id, name: name.trim(), createdAt: new Date().toISOString() }
   list.push(meta)
   writeJson(STORAGE.PORTFOLIOS, list)
   const seed = opts?.empty === false ? createSamplePortfolio() : createEmptyPortfolio()
   savePortfolioImmediate(seed, id)
   return meta
+}
+
+/**
+ * Fix registries where several family portfolios share one id (same Date.now() ms).
+ * First occurrence keeps the shared blob; later duplicates get a new id + empty data.
+ */
+export function repairDuplicatePortfolioIds(): boolean {
+  const list = listPortfolios()
+  const seen = new Set<string>()
+  let changed = false
+  const next: PortfolioMeta[] = []
+
+  for (const p of list) {
+    if (!seen.has(p.id)) {
+      seen.add(p.id)
+      next.push(p)
+      continue
+    }
+    changed = true
+    let newId = newPortfolioId()
+    while (seen.has(newId) || next.some((x) => x.id === newId)) {
+      newId = newPortfolioId()
+    }
+    seen.add(newId)
+    savePortfolioImmediate(createEmptyPortfolio(), newId)
+    next.push({ ...p, id: newId })
+  }
+
+  if (changed) {
+    writeJson(STORAGE.PORTFOLIOS, next)
+    const active = getActivePortfolioId()
+    if (!next.some((p) => p.id === active)) {
+      setActivePortfolioId('default')
+    }
+  }
+  return changed
 }
 
 export function renamePortfolio(id: string, name: string): void {
@@ -173,15 +214,17 @@ export function duplicatePortfolio(id: string, name: string): PortfolioMeta {
 }
 
 /**
- * Idempotent: ensure default is “David Portfolio” and family portfolios exist (empty).
- * Respects MAX_PORTFOLIOS (David + up to 5).
+ * Idempotent: ensure default is “David” and family portfolios exist (empty).
+ * Respects MAX_PORTFOLIOS (David + up to 5). Also repairs duplicate portfolio ids.
  */
 export function bootstrapFamilyPortfolios(): { renamed: boolean; created: string[] } {
   ensurePortfolioRegistry()
+  repairDuplicatePortfolioIds()
   let list = listPortfolios()
   let renamed = false
 
   const david = list.find((p) => p.id === 'default')
+  // Migrate old “David Portfolio” label (and any other default name) to “David”.
   if (david && david.name !== DAVID_PORTFOLIO_NAME) {
     renamePortfolio('default', DAVID_PORTFOLIO_NAME)
     renamed = true
@@ -197,6 +240,9 @@ export function bootstrapFamilyPortfolios(): { renamed: boolean; created: string
     created.push(name)
     existingNames.add(name.toLowerCase())
   }
+
+  // Second pass in case createPortfolio somehow collided (shouldn't after unique ids).
+  repairDuplicatePortfolioIds()
 
   return { renamed, created }
 }

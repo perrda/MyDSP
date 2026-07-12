@@ -105,7 +105,7 @@ export function AppShell() {
                   title={portfolios.find((p) => p.id === activeId)?.name}
                 >
                   {portfolios.map((p) => (
-                    <option key={p.id} value={p.id}>
+                    <option key={`${p.id}:${p.name}`} value={p.id}>
                       {p.name}
                     </option>
                   ))}

@@ -1,5 +1,5 @@
 /* MyDSP offline shell — cache-first for static assets */
-const CACHE = 'mydsp-v0.5.31'
+const CACHE = 'mydsp-v0.5.32'
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

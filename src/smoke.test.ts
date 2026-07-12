@@ -527,17 +527,54 @@ describe('portfolios + full backup', () => {
     const boot = store.bootstrapFamilyPortfolios()
     expect(boot.created.length).toBe(5)
     const list = store.listPortfolios()
-    expect(list.some((p) => p.name === 'David Portfolio')).toBe(true)
+    expect(list.some((p) => p.name === 'David')).toBe(true)
     expect(list.map((p) => p.name)).toEqual(
       expect.arrayContaining(['Mum', 'Andrew', 'Thomas', 'Rebecca', 'James King']),
     )
     expect(list.length).toBe(6)
+    expect(new Set(list.map((p) => p.id)).size).toBe(6)
     expect(store.canCreatePortfolio()).toBe(false)
     const mum = list.find((p) => p.name === 'Mum')!
+    const andrew = list.find((p) => p.name === 'Andrew')!
+    expect(mum.id).not.toBe(andrew.id)
     const data = store.loadPortfolio(mum.id)
     expect(data.crypto).toHaveLength(0)
     expect(data.equities).toHaveLength(0)
     expect(data.loans).toHaveLength(0)
+  })
+
+  it('repairs duplicate portfolio ids from same-millisecond create', async () => {
+    const mem = new Map<string, string>()
+    const ls = {
+      getItem: (k: string) => mem.get(k) ?? null,
+      setItem: (k: string, v: string) => {
+        mem.set(k, v)
+      },
+      removeItem: (k: string) => {
+        mem.delete(k)
+      },
+      clear: () => mem.clear(),
+      key: (i: number) => [...mem.keys()][i] ?? null,
+    }
+    Object.defineProperty(globalThis, 'localStorage', { value: ls, configurable: true })
+
+    const store = await import('../src/storage/portfolioStore')
+    mem.clear()
+    const shared = 'p_dup_shared'
+    mem.set(
+      'fcc_portfolios',
+      JSON.stringify([
+        { id: 'default', name: 'David', createdAt: '2026-01-01' },
+        { id: shared, name: 'Mum', createdAt: '2026-01-01' },
+        { id: shared, name: 'Andrew', createdAt: '2026-01-01' },
+        { id: shared, name: 'Thomas', createdAt: '2026-01-01' },
+      ]),
+    )
+    expect(store.repairDuplicatePortfolioIds()).toBe(true)
+    const list = store.listPortfolios()
+    expect(new Set(list.map((p) => p.id)).size).toBe(list.length)
+    expect(list.find((p) => p.name === 'Mum')!.id).toBe(shared)
+    expect(list.find((p) => p.name === 'Andrew')!.id).not.toBe(shared)
   })
 
   it('parses full backup file envelope', async () => {
