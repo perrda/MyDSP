@@ -102,15 +102,15 @@ export function PortfolioSeriesChart({
   const primaryDef = SERIES.find((s) => s.key === primary) ?? SERIES[0]
 
   return (
-    <div className={`surface p-4 sm:p-6 lg:p-8 chart-panel ${className}`}>
-      <div className="flex flex-col gap-4 mb-5 sm:mb-6">
+    <div className={`surface p-0 chart-panel ${className}`}>
+      <div className="p-4 md:p-6 flex flex-col gap-3 md:gap-4 border-b border-border">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="label-uppercase mb-2">{eyebrow}</p>
-            <h3 className="text-base sm:text-lg font-bold tracking-tight">{title}</h3>
+            <p className="text-xs uppercase tracking-wider text-text-subtle mb-1 md:mb-2 font-semibold">{eyebrow}</p>
+            <h3 className="text-base md:text-lg font-bold tracking-tight">{title}</h3>
             {delta && (
               <p
-                className={`text-sm mt-2 tabular-nums ${
+                className={`text-xs md:text-sm mt-2 tabular-nums font-semibold ${
                   (invertDelta ? delta.change <= 0 : delta.change >= 0)
                     ? 'text-accent'
                     : 'text-text-muted'
@@ -121,7 +121,7 @@ export function PortfolioSeriesChart({
             )}
           </div>
           {onSnapshot && (
-            <button type="button" className="btn-secondary btn-sm shrink-0" onClick={onSnapshot}>
+            <button type="button" className="btn-secondary btn-sm shrink-0 min-h-[44px] md:min-h-[36px]" onClick={onSnapshot}>
               Snapshot
             </button>
           )}
@@ -142,11 +142,11 @@ export function PortfolioSeriesChart({
       </div>
 
       {chartData.length < 2 ? (
-        <p className="text-text-subtle font-light text-sm py-14 sm:py-16 text-center px-4">
+        <p className="text-text-subtle font-light text-sm py-14 md:py-16 text-center px-4">
           Need at least two snapshots in this range. Use Snapshot or keep using MyDSP daily.
         </p>
       ) : (
-        <div className={`${heightClass} w-full ${privacyClass(privacy)}`}>
+        <div className={`${heightClass} w-full p-4 md:p-6 ${privacyClass(privacy)}`}>
           <p className="sr-only">
             {title} for {range}
             {delta
@@ -161,7 +161,7 @@ export function PortfolioSeriesChart({
                   <stop offset="100%" stopColor={primaryDef.color} stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid stroke="var(--border)" vertical={false} />
+              <CartesianGrid stroke="var(--border)" vertical={false} strokeOpacity={0.5} />
               <XAxis
                 dataKey="tick"
                 tick={{ fill: 'var(--text-muted)', fontSize: 10, fontWeight: 500 }}
@@ -207,6 +207,8 @@ export function PortfolioSeriesChart({
                 stroke={primaryDef.color}
                 fill={`url(#${gradId})`}
                 strokeWidth={2}
+                animationDuration={800}
+                animationEasing="ease-in-out"
               />
               {activeLines.map((key) => {
                 const def = SERIES.find((s) => s.key === key)
@@ -221,6 +223,8 @@ export function PortfolioSeriesChart({
                     dot={false}
                     strokeWidth={1.5}
                     strokeDasharray={def.dashed ? '4 4' : undefined}
+                    animationDuration={800}
+                    animationEasing="ease-in-out"
                   />
                 )
               })}
