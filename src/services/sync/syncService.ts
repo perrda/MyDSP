@@ -2,6 +2,7 @@
 
 import { normalizePortfolio, toStorageShape } from '../../domain/normalize'
 import type { PortfolioData, PortfolioMeta } from '../../domain/types'
+import { captureFullWorkspace } from '../../storage/backupStore'
 import {
   getActivePortfolioId,
   listPortfolios,
@@ -10,6 +11,7 @@ import {
   setActivePortfolioId,
 } from '../../storage/portfolioStore'
 import { checksum, decryptJson, encryptJson, type EncryptedBlob } from './crypto'
+import { setSessionSyncPassphrase } from './sessionPassphrase'
 import {
   conflictKey,
   detectConflicts,
@@ -32,7 +34,8 @@ export interface SyncConfig {
 }
 
 export interface SyncEnvelope {
-  v: 1
+  /** v1 = portfolios only; v2 also carries encrypted full-workspace archive */
+  v: 1 | 2
   app: 'mydsp'
   exportedAt: string
   deviceId: string
@@ -40,6 +43,8 @@ export interface SyncEnvelope {
   activePortfolioId: string
   /** portfolioId → encrypted blob of storage shape */
   blobs: Record<string, EncryptedBlob>
+  /** Encrypted captureFullWorkspace() snapshot (all portfolios + registry). */
+  fullArchive?: EncryptedBlob
   checksum: string
 }
 
@@ -74,7 +79,11 @@ function deviceId(): string {
   return id
 }
 
-export async function buildEnvelope(passphrase: string): Promise<SyncEnvelope> {
+export async function buildEnvelope(
+  passphrase: string,
+  opts?: { includeFullArchive?: boolean },
+): Promise<SyncEnvelope> {
+  setSessionSyncPassphrase(passphrase)
   const portfolios = listPortfolios()
   const activePortfolioId = getActivePortfolioId()
   const plainMap: Record<string, Record<string, unknown>> = {}
@@ -87,21 +96,36 @@ export async function buildEnvelope(passphrase: string): Promise<SyncEnvelope> {
     blobs[p.id] = await encryptJson(shape, passphrase)
   }
 
-  const canonical = JSON.stringify({ portfolios, activePortfolioId, plainMap })
+  const includeFull = opts?.includeFullArchive !== false
+  let fullArchive: EncryptedBlob | undefined
+  let archivePlain: unknown
+  if (includeFull) {
+    archivePlain = captureFullWorkspace()
+    fullArchive = await encryptJson(archivePlain, passphrase)
+  }
+
+  const canonical = JSON.stringify({
+    portfolios,
+    activePortfolioId,
+    plainMap,
+    archive: archivePlain ?? null,
+  })
   return {
-    v: 1,
+    v: includeFull ? 2 : 1,
     app: 'mydsp',
     exportedAt: new Date().toISOString(),
     deviceId: deviceId(),
     portfolios,
     activePortfolioId,
     blobs,
+    fullArchive,
     checksum: await checksum(canonical),
   }
 }
 
 export async function pushSync(url: string, passphrase: string): Promise<void> {
-  const envelope = await buildEnvelope(passphrase)
+  setSessionSyncPassphrase(passphrase)
+  const envelope = await buildEnvelope(passphrase, { includeFullArchive: true })
   const res = await fetch(url, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
@@ -125,8 +149,11 @@ export async function pullAndMerge(
 ): Promise<{ merged: number; conflicts: SyncConflict[] }> {
   const res = await fetch(url)
   if (!res.ok) throw new Error(`Pull failed (${res.status})`)
+  setSessionSyncPassphrase(passphrase)
   const envelope = (await res.json()) as SyncEnvelope
-  if (envelope.app !== 'mydsp' || envelope.v !== 1) throw new Error('Invalid sync envelope')
+  if (envelope.app !== 'mydsp' || (envelope.v !== 1 && envelope.v !== 2)) {
+    throw new Error('Invalid sync envelope')
+  }
 
   const plainMap: Record<string, Record<string, unknown>> = {}
   const remoteByPortfolio = new Map<string, PortfolioData>()
@@ -138,11 +165,24 @@ export async function pullAndMerge(
     remoteByPortfolio.set(meta.id, normalizePortfolio(remoteShape))
   }
 
-  const canonical = JSON.stringify({
-    portfolios: envelope.portfolios,
-    activePortfolioId: envelope.activePortfolioId,
-    plainMap,
-  })
+  let archivePlain: unknown = null
+  if (envelope.fullArchive) {
+    archivePlain = await decryptJson(envelope.fullArchive, passphrase)
+  }
+
+  const canonical =
+    envelope.v === 2
+      ? JSON.stringify({
+          portfolios: envelope.portfolios,
+          activePortfolioId: envelope.activePortfolioId,
+          plainMap,
+          archive: archivePlain,
+        })
+      : JSON.stringify({
+          portfolios: envelope.portfolios,
+          activePortfolioId: envelope.activePortfolioId,
+          plainMap,
+        })
   const expected = await checksum(canonical)
   if (expected !== envelope.checksum) throw new Error('Checksum mismatch')
 

@@ -1,0 +1,3 @@
+date,side,qty,price,fees,notes,platform
+# Replace example rows with your real buys/sells (GBP unit price). Delete comment lines before import.
+# 2021-02-08,buy,5,450.00,1.00,Example — delete me,IBKR

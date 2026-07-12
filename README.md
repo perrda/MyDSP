@@ -13,11 +13,11 @@ npm test          # vitest
 npm run test:e2e  # Playwright (first time: npx playwright install chromium)
 ```
 
-## Status (v0.5.31)
+## Status (v0.6.0)
 
-David Portfolio + family workspaces (Mum, Andrew, Thomas, Rebecca, James King). Full daily backups (last 10) with restore. Trade history, historical prices, donuts.
+Live at **https://perrda.github.io/MyDSP/**. Family portfolios, compare view, opening-balance wizard, encrypted sync v2, trade CSV templates, BTC OTC overlay.
 
-Versioning: **+0.01** per release. Current: **0.5.31**.
+Versioning: **+0.01** per release (feature batches may jump). Current: **0.6.0**.
 
 ## Phone / iPad
 

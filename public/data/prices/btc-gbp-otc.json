@@ -1,7 +1,29 @@
 {
   "symbol": "BTC",
   "currency": "GBP",
-  "from": null,
-  "note": "Optional pre-2014 OTC overlay. Add [date, gbpPrice] pairs for dates before Yahoo liquid series. Empty series is ignored. Upload via Settings → Historical prices, or replace this file and rebuild.",
-  "series": []
+  "from": "2010-07-01",
+  "note": "Approximate pre-2014 BTC/GBP reference points for cost-basis lookup (not a broker feed). Override via Settings → Historical prices if you have better OTC records.",
+  "series": [
+    ["2010-07-18", 0.05],
+    ["2010-10-01", 0.06],
+    ["2011-01-01", 0.2],
+    ["2011-04-01", 0.5],
+    ["2011-06-08", 18],
+    ["2011-08-01", 8],
+    ["2011-11-01", 2],
+    ["2011-12-31", 3],
+    ["2012-01-01", 3.5],
+    ["2012-06-01", 4],
+    ["2012-09-01", 7],
+    ["2012-12-31", 8.5],
+    ["2013-01-01", 8.5],
+    ["2013-03-01", 22],
+    ["2013-04-10", 160],
+    ["2013-07-01", 60],
+    ["2013-10-01", 80],
+    ["2013-11-15", 280],
+    ["2013-11-30", 700],
+    ["2013-12-15", 550],
+    ["2013-12-31", 480]
+  ]
 }

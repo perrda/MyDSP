@@ -19,7 +19,7 @@ export function parseTradeCsv(
     .replace(/^\uFEFF/, '')
     .split(/\r?\n/)
     .map((l) => l.trim())
-    .filter(Boolean)
+    .filter((l) => l && !l.startsWith('#'))
   const errors: string[] = []
   if (lines.length === 0) return { trades: [], errors: ['Empty file'] }
 

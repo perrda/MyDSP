@@ -27,6 +27,7 @@ import {
   Users,
   History,
   FileText,
+  GitCompareArrows,
   type LucideIcon,
 } from 'lucide-react'
 import { BrandMark } from '../BrandMark'
@@ -54,6 +55,7 @@ const DEFAULT_LINKS: NavItem[] = [
   { to: '/review', label: 'Monthly review', icon: CalendarRange },
   { to: '/trips', label: 'Trips & splits', icon: Plane },
   { to: '/family', label: 'Family', icon: Users },
+  { to: '/compare', label: 'Compare', icon: GitCompareArrows },
   { to: '/history', label: 'History', icon: History },
   { to: '/documents', label: 'Documents', icon: FileText },
   { to: '/import', label: 'Import CSV', icon: Upload },

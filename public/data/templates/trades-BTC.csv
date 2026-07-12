@@ -1,0 +1,4 @@
+date,side,qty,price,fees,notes,platform
+# Replace with your BTC buys/sells. Price = GBP per BTC. Pre-2014 dates use OTC overlay in Settings.
+# 2013-11-15,buy,0.5,400.00,0,Example OTC era — delete me,OTC
+# 2020-03-16,buy,0.1,4500.00,5.00,Example — delete me,Coinbase

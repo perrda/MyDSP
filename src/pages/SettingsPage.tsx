@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { PageHeader } from '../components/ui/PageHeader'
 import { useSecurity } from '../components/SecurityProvider'
 import { usePortfolio } from '../context/PortfolioContext'
@@ -44,12 +45,34 @@ import {
   getFullBackup,
   listFullBackups,
   MAX_BACKUPS,
+  saveFullBackupToFolder,
   parseFullBackupFile,
   restoreFullWorkspace,
   type FullBackupMeta,
 } from '../storage/backupStore'
 import { STORAGE } from '../storage/keys'
 import { resetNavOrder } from '../storage/navOrder'
+import {
+  getSessionSyncPassphrase,
+  setSessionSyncPassphrase,
+} from '../services/sync/sessionPassphrase'
+
+const TRADE_TEMPLATES = [
+  { symbol: 'TSLA', kind: 'equity' as const, href: 'data/templates/trades-TSLA.csv' },
+  { symbol: 'MSTR', kind: 'equity' as const, href: 'data/templates/trades-MSTR.csv' },
+  { symbol: 'BTC', kind: 'crypto' as const, href: 'data/templates/trades-BTC.csv' },
+]
+
+const TAX_RESIDENCIES = [
+  { code: 'GB', label: 'United Kingdom' },
+  { code: 'US', label: 'United States' },
+  { code: 'TH', label: 'Thailand' },
+  { code: 'IE', label: 'Ireland' },
+  { code: 'AU', label: 'Australia' },
+  { code: 'CA', label: 'Canada' },
+  { code: 'SG', label: 'Singapore' },
+  { code: 'XX', label: 'Other' },
+]
 
 export function SettingsPage() {
   const {
@@ -91,7 +114,7 @@ export function SettingsPage() {
   const [queue, setQueue] = useState<OfflineJob[]>(() => loadOfflineQueue())
   const [sec, setSec] = useState<SecurityState>(() => loadSecurity())
   const [syncCfg, setSyncCfg] = useState(loadSyncConfig)
-  const [syncPass, setSyncPass] = useState('')
+  const [syncPass, setSyncPass] = useState(() => getSessionSyncPassphrase() ?? '')
   const syncFileRef = useRef<HTMLInputElement>(null)
   const [conflicts, setConflicts] = useState<SyncConflict[]>([])
   const [conflictChoices, setConflictChoices] = useState<Record<string, ConflictChoice>>({})
@@ -353,25 +376,91 @@ export function SettingsPage() {
 
         <section className="surface p-6 sm:p-8">
           <p className="eyebrow mb-3">Display</p>
-          <h3 className="text-lg font-bold tracking-tight mb-3">Currency</h3>
+          <h3 className="text-lg font-bold tracking-tight mb-3">Currency &amp; tax residency</h3>
           <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
-            Amounts are stored in GBP. Choose a display currency — FX from exchangerate-api, BTC
-            from CoinGecko (live).
+            Stored per active portfolio. Amounts stay in GBP internally; display currency uses FX.
+            Tax residency flags CGT / reporting context for this workspace.
           </p>
-          <select
-            className="max-w-xs"
-            value={data.settings.currency || 'GBP'}
-            onChange={(e) => {
-              setCurrency(e.target.value)
-              flash(`Display currency set to ${e.target.value}.`)
-            }}
-          >
-            {DISPLAY_CURRENCIES.map((c) => (
-              <option key={c.code} value={c.code}>
-                {c.label}
-              </option>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-2xl">
+            <label className="block">
+              <span className="label-uppercase block mb-2">Display currency</span>
+              <select
+                value={data.settings.currency || 'GBP'}
+                onChange={(e) => {
+                  setCurrency(e.target.value)
+                  flash(`Display currency set to ${e.target.value}.`)
+                }}
+              >
+                {DISPLAY_CURRENCIES.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block">
+              <span className="label-uppercase block mb-2">Tax residency</span>
+              <select
+                value={data.settings.taxResidency || 'GB'}
+                onChange={(e) => {
+                  const code = e.target.value
+                  setData((prev) => ({
+                    ...prev,
+                    settings: { ...prev.settings, taxResidency: code },
+                  }))
+                  flash(`Tax residency set to ${code}.`)
+                }}
+              >
+                {TAX_RESIDENCIES.map((t) => (
+                  <option key={t.code} value={t.code}>
+                    {t.label} ({t.code})
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <p className="text-xs text-text-muted mt-4 label-muted">
+            Active portfolio: {portfolios.find((p) => p.id === activeId)?.name ?? activeId}
+          </p>
+        </section>
+
+        <section className="surface p-6 sm:p-8" id="trade-history">
+          <p className="eyebrow mb-3">David · holdings</p>
+          <h3 className="text-lg font-bold tracking-tight mb-3">TSLA / MSTR / BTC trade history</h3>
+          <p className="text-sm text-text-muted font-light mb-4 max-w-2xl">
+            Download a CSV template, fill your dated buys/sells (GBP unit prices), then open the
+            holding → <strong className="text-text">Import history</strong>. Pre-2014 BTC dates use
+            the OTC overlay below. For positions without journal legs, use the{' '}
+            <Link to="/setup/opening" className="text-accent hover:underline">
+              opening-balance wizard
+            </Link>
+            .
+          </p>
+          <div className="flex flex-wrap gap-3 mb-4">
+            {TRADE_TEMPLATES.map((t) => (
+              <a
+                key={t.symbol}
+                className="btn-secondary btn-sm"
+                href={`${import.meta.env.BASE_URL}${t.href}`}
+                download={`trades-${t.symbol}.csv`}
+              >
+                {t.symbol} template
+              </a>
             ))}
-          </select>
+            <Link to="/setup/opening" className="btn-ghost btn-sm">
+              Opening wizard
+            </Link>
+            <Link to="/compare" className="btn-ghost btn-sm">
+              Compare portfolios
+            </Link>
+          </div>
+          <ol className="text-sm text-text-muted font-light space-y-2 list-decimal pl-5 max-w-2xl">
+            <li>
+              Switch header portfolio to <strong className="text-text">David</strong>
+            </li>
+            <li>Equities → TSLA / MSTR or Crypto → BTC → Import history</li>
+            <li>Paste CSV or use multi-row entry; journal rebuilds cost basis</li>
+          </ol>
         </section>
 
         <section className="surface p-6 sm:p-8" id="price-history">
@@ -657,8 +746,10 @@ export function SettingsPage() {
           <p className="eyebrow mb-3">Sync</p>
           <h3 className="text-lg font-bold tracking-tight mb-3">Encrypted cloud sync</h3>
           <p className="text-sm text-text-muted font-light mb-4 max-w-2xl">
-            Local-first: encrypt all portfolios with a passphrase, then push/pull to any HTTPS
-            endpoint that accepts JSON (S3, R2, NAS, gist raw URL). Passphrase is never stored.
+            Local-first: encrypt all portfolios <em>and</em> a full workspace archive with a
+            passphrase, then push/pull to any HTTPS endpoint that accepts JSON. Passphrase stays in
+            this tab&apos;s memory so offline queue can flush without re-typing. See{' '}
+            <code className="text-accent">sync-endpoint/</code> for a free Cloudflare Worker.
           </p>
           <div className="border border-border p-4 mb-6 max-w-2xl">
             <p className="text-[10px] font-bold uppercase tracking-widest text-text-subtle mb-3">
@@ -669,8 +760,11 @@ export function SettingsPage() {
                 <code className="text-accent">npm run build</code> → ship{' '}
                 <code className="text-accent">dist/</code>
               </li>
-              <li>Host on HTTPS (Cloudflare Pages / Netlify / Vercel — DEPLOY.md)</li>
-              <li>Open the HTTPS URL → Add to Home Screen</li>
+              <li>Host on HTTPS — already live at perrda.github.io/MyDSP (GitHub Pages)</li>
+              <li>
+                Deploy <code className="text-accent">sync-endpoint/worker.js</code> (Cloudflare KV)
+                or use S3/R2/NAS
+              </li>
               <li>Set remote URL + passphrase → Push from desktop, Pull on phone</li>
             </ol>
           </div>
@@ -695,9 +789,13 @@ export function SettingsPage() {
             type="password"
             className="mb-6 max-w-md"
             autoComplete="new-password"
-            placeholder="Sync passphrase (session only)"
+            placeholder="Sync passphrase (session only — min 8 chars)"
             value={syncPass}
-            onChange={(e) => setSyncPass(e.target.value)}
+            onChange={(e) => {
+              const v = e.target.value
+              setSyncPass(v)
+              setSessionSyncPassphrase(v)
+            }}
           />
           <div className="flex flex-wrap gap-3 mb-4">
             <button
@@ -716,7 +814,7 @@ export function SettingsPage() {
                   if (!isOnline()) {
                     enqueueOfflineJob('sync_push', {
                       remoteUrl: syncCfg.remoteUrl,
-                      note: 'Will push when online (re-enter passphrase then flush)',
+                      note: 'Will push when online using session passphrase',
                     })
                     setQueue(loadOfflineQueue())
                     flash('Offline — push queued. Come online and press Flush queue.')
@@ -876,12 +974,13 @@ export function SettingsPage() {
                             continue
                           }
                           if (job.type === 'sync_push' && job.remoteUrl) {
-                            if (!syncPass || syncPass.length < 8) {
-                              flash('Enter passphrase to flush sync pushes.')
+                            const pass = syncPass || getSessionSyncPassphrase() || ''
+                            if (!pass || pass.length < 8) {
+                              flash('Enter passphrase once this session, then flush.')
                               break
                             }
                             try {
-                              await pushSync(job.remoteUrl, syncPass)
+                              await pushSync(job.remoteUrl, pass)
                               removeOfflineJob(job.id)
                             } catch (e) {
                               flash(e instanceof Error ? e.message : 'Flush failed')
@@ -997,8 +1096,15 @@ export function SettingsPage() {
           <h3 className="text-lg font-bold tracking-tight mb-2">Family portfolios</h3>
           <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
             Up to {maxPortfolios} workspaces — <strong className="text-text">David</strong>{' '}
-            plus {maxPortfolios - 1} others. New portfolios start empty (no loans, equities, or cash)
-            so you can enter data manually. Switch anytime from the header or here.
+            plus {maxPortfolios - 1} others. New portfolios start empty so you can enter data
+            manually. Set currency / tax residency per active portfolio above.{' '}
+            <Link to="/setup/opening" className="text-accent hover:underline">
+              Opening wizard
+            </Link>
+            {' · '}
+            <Link to="/compare" className="text-accent hover:underline">
+              Compare
+            </Link>
           </p>
           <ul className="divide-y divide-border mb-6">
             {portfolios.map((p) => (
@@ -1163,7 +1269,40 @@ export function SettingsPage() {
                 })()
               }}
             >
-              Download full backup
+              Download JSON
+            </button>
+            <button
+              type="button"
+              className="btn-secondary"
+              disabled={backupBusy}
+              onClick={() => {
+                void (async () => {
+                  setBackupBusy(true)
+                  try {
+                    const meta = await createFullBackup('manual', 'Folder export')
+                    const full = await getFullBackup(meta.id)
+                    if (!full) {
+                      flash('Could not read backup.')
+                      return
+                    }
+                    const result = await saveFullBackupToFolder(full)
+                    refreshBackupList()
+                    if (result === 'saved') {
+                      flash('Saved to chosen folder (iCloud Drive / Google Drive / local).')
+                    } else if (result === 'fallback') {
+                      flash(
+                        'Folder picker unavailable — file downloaded instead (share to iCloud/Drive).',
+                      )
+                    }
+                  } catch {
+                    flash('Folder export failed.')
+                  } finally {
+                    setBackupBusy(false)
+                  }
+                })()
+              }}
+            >
+              Save to folder…
             </button>
             <button
               type="button"

@@ -14,13 +14,19 @@ export interface StaticPriceFile {
 const cache = new Map<string, HoldingPricePoint[]>()
 
 const STATIC_FILES: Record<string, string> = {
-  'equity:TSLA': '/data/prices/tsla-usd.json',
-  'equity:MSTR': '/data/prices/mstr-usd.json',
-  'crypto:BTC': '/data/prices/btc-gbp.json',
+  'equity:TSLA': 'data/prices/tsla-usd.json',
+  'equity:MSTR': 'data/prices/mstr-usd.json',
+  'crypto:BTC': 'data/prices/btc-gbp.json',
+}
+
+function assetUrl(rel: string): string {
+  const base = import.meta.env.BASE_URL || '/'
+  return `${base}${rel}`.replace(/([^:]\/)\/+/g, '$1')
 }
 
 export function staticPricePath(kind: 'crypto' | 'equity', symbol: string): string | null {
-  return STATIC_FILES[holdingHistoryKey(kind, symbol)] ?? null
+  const rel = STATIC_FILES[holdingHistoryKey(kind, symbol)]
+  return rel ? assetUrl(rel) : null
 }
 
 export async function loadStaticPriceSeries(
@@ -32,7 +38,7 @@ export async function loadStaticPriceSeries(
   const path = STATIC_FILES[key]
   if (!path) return []
   try {
-    const res = await fetch(path)
+    const res = await fetch(assetUrl(path))
     if (!res.ok) return []
     const json = (await res.json()) as StaticPriceFile
     let points: HoldingPricePoint[] = (json.series ?? []).map(([date, price]) => ({
@@ -43,7 +49,7 @@ export async function loadStaticPriceSeries(
     // Optional pre-liquid BTC OTC overlay (earlier dates win if not in Yahoo series)
     if (kind === 'crypto' && symbol.toUpperCase() === 'BTC') {
       try {
-        const otc = await fetch('/data/prices/btc-gbp-otc.json')
+        const otc = await fetch(assetUrl('data/prices/btc-gbp-otc.json'))
         if (otc.ok) {
           const otcJson = (await otc.json()) as StaticPriceFile
           const map = new Map(points.map((p) => [p.date, p]))

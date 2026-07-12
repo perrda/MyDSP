@@ -1,31 +1,42 @@
 # MyDSP Development Roadmap
 
-**Current version: 0.5.31**
+**Current version: 0.6.0**
 
-## Completed (through v0.5.31)
+## Completed (through v0.6.0)
+
+### v0.6.0 — Next 10
+1. TSLA / MSTR / BTC trade CSV templates + import guidance (David)
+2. Pre-2014 BTC OTC reference series populated
+3. HTTPS PWA live (GitHub Pages) + Cloudflare Worker sync endpoint scaffold
+4. Encrypted sync v2 includes full workspace archive
+5. Per-portfolio display currency + tax residency
+6. Opening-balance wizard across all family portfolios
+7. Backup “Save to folder…” (File System Access / download fallback)
+8. Contrast fine-tuning on muted labels
+9. Session passphrase for offline sync flush (no re-type in-tab)
+10. Portfolio comparison view (`/compare`)
+
+### v0.5.32 — portfolio switch fix
+Unique portfolio ids; David rename.
 
 ### v0.5.31 — family portfolios + full backups
-1. Default renamed to **David Portfolio**; seeded empty **Mum, Andrew, Thomas, Rebecca, James King** (max 6)
-2. Settings: add / rename / delete portfolios (David is primary, not deletable)
-3. Full MyDSP backup (all portfolios): daily auto, keep 10, manual, download, restore from list or file
-4. Versions & rollback guidance + clear SW cache
-5. New portfolios start empty (no sample clutter)
+David + Mum/Andrew/Thomas/Rebecca/James King; full backups; empty new portfolios.
 
-### v0.5.30 — trade history + next 10
-Dated trades, import history, §104, TWR/MWR, spend drill-downs, axe e2e.
+### v0.5.30 — trade history + polish
+Dated trades, §104, TWR/MWR, spend drill-downs, axe e2e.
 
 ## Next 10
 
-1. Enter full TSLA / MSTR / BTC buy–sell history on David Portfolio  
-2. Populate pre-2014 BTC OTC if needed  
-3. Deploy HTTPS PWA + sync endpoint  
-4. Encrypted cloud sync of full backup archive  
-5. Per-portfolio currency / tax residency flags  
-6. Opening-balance wizard across family portfolios  
-7. Backup export to iCloud/Drive folder picker  
-8. Contrast fine-tuning on remaining muted labels  
-9. Offline queue flush for sync pushes without re-entering passphrase  
-10. Portfolio comparison view (David vs family)
+1. Paste real David TSLA / MSTR / BTC trade CSVs into holdings  
+2. Deploy Cloudflare sync Worker + set Remote URL on phone & Mac  
+3. First cross-device encrypted pull test  
+4. Refine OTC prices against personal broker records  
+5. Tax page respect per-portfolio residency  
+6. Compare page: allocation donuts + history overlay  
+7. Auto-push sync on daily backup  
+8. iOS share-sheet polish for backups  
+9. Family member ↔ portfolio link shortcuts from Compare  
+10. Accessibility pass on wizard + compare tables  
 
 ## Parking lot
 

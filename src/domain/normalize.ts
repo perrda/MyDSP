@@ -485,6 +485,14 @@ function normalizeFireInputs(raw: unknown): FireInputsState {
   }
 }
 
+const TAX_RESIDENCY_RE = /^[A-Za-z]{2}$/
+
+function normalizeTaxResidency(raw: unknown): string {
+  const v = str(raw, 'GB').toUpperCase()
+  if (v === 'OTHER' || v === 'XX') return 'XX'
+  return TAX_RESIDENCY_RE.test(v) ? v : 'GB'
+}
+
 function normalizeSettings(raw: unknown): PortfolioSettings {
   const r = (raw ?? {}) as Record<string, unknown>
   const currency = str(r.currency, 'GBP').toUpperCase() || 'GBP'
@@ -492,6 +500,7 @@ function normalizeSettings(raw: unknown): PortfolioSettings {
     theme: r.theme === 'light' ? 'light' : 'dark',
     privacy: Boolean(r.privacy),
     currency,
+    taxResidency: normalizeTaxResidency(r.taxResidency),
     collapsed:
       r.collapsed && typeof r.collapsed === 'object'
         ? (r.collapsed as Record<string, boolean>)

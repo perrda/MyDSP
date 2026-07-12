@@ -212,9 +212,8 @@ export function restoreFullWorkspace(record: FullBackupRecord): void {
   setActivePortfolioId(active)
 }
 
-/** File download of a full backup (unencrypted JSON). */
-export function downloadFullBackupFile(record: FullBackupRecord): void {
-  const payload = {
+function fullBackupPayload(record: FullBackupRecord) {
+  return {
     kind: 'mydsp-full-backup',
     version: `mydsp-${record.appVersion}`,
     exportDate: record.createdAt,
@@ -225,13 +224,53 @@ export function downloadFullBackupFile(record: FullBackupRecord): void {
     portfolios: record.portfolios,
     blobs: record.blobs,
   }
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+}
+
+export function fullBackupFilename(record: FullBackupRecord): string {
+  return `mydsp-full-${record.createdAt.slice(0, 10)}.json`
+}
+
+/** File download of a full backup (unencrypted JSON). */
+export function downloadFullBackupFile(record: FullBackupRecord): void {
+  const blob = new Blob([JSON.stringify(fullBackupPayload(record), null, 2)], {
+    type: 'application/json',
+  })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `mydsp-full-${record.createdAt.slice(0, 10)}.json`
+  a.download = fullBackupFilename(record)
   a.click()
   URL.revokeObjectURL(url)
+}
+
+/**
+ * Save backup into a user-picked folder (Chrome/Edge File System Access API).
+ * Falls back to normal download when unsupported (Safari / iOS → Downloads / Files / iCloud).
+ */
+export async function saveFullBackupToFolder(
+  record: FullBackupRecord,
+): Promise<'saved' | 'fallback' | 'cancelled'> {
+  const payload = JSON.stringify(fullBackupPayload(record), null, 2)
+  const name = fullBackupFilename(record)
+  const w = window as Window & {
+    showDirectoryPicker?: (opts?: { mode?: string }) => Promise<FileSystemDirectoryHandle>
+  }
+  if (typeof w.showDirectoryPicker !== 'function') {
+    downloadFullBackupFile(record)
+    return 'fallback'
+  }
+  try {
+    const dir = await w.showDirectoryPicker({ mode: 'readwrite' })
+    const file = await dir.getFileHandle(name, { create: true })
+    const writable = await file.createWritable()
+    await writable.write(payload)
+    await writable.close()
+    return 'saved'
+  } catch (e) {
+    if (e instanceof DOMException && e.name === 'AbortError') return 'cancelled'
+    downloadFullBackupFile(record)
+    return 'fallback'
+  }
 }
 
 export function parseFullBackupFile(raw: unknown): FullBackupRecord | null {

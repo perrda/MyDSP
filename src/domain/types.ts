@@ -164,6 +164,11 @@ export interface PortfolioSettings {
   privacy: boolean
   /** Display currency. Internal amounts are always GBP. */
   currency: string
+  /**
+   * ISO 3166-1 alpha-2 tax residency (default GB).
+   * Stored per portfolio so family workspaces can differ.
+   */
+  taxResidency?: string
   collapsed: Record<string, boolean>
   finnhubKey?: string
   lastBackup?: string

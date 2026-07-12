@@ -24,6 +24,8 @@ import {
   loadCachedFxRates,
   type FxRates,
 } from '../services/fx'
+import { getSessionSyncPassphrase } from '../services/sync/sessionPassphrase'
+import { pushSync } from '../services/sync/syncService'
 import { setDisplayCurrency } from '../utils/format'
 import {
   bootstrapFamilyPortfolios,
@@ -348,13 +350,24 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('focus', onFocus)
   }, [refreshPrices])
 
-  // Flush offline quote jobs when connectivity returns
+  // Flush offline quote + sync jobs when connectivity returns
   useEffect(() => {
     const onOnline = () => {
       const queue = loadOfflineQueue()
       for (const job of queue) {
-        if (job.type !== 'quote_refresh') continue
-        void refreshPrices().then(() => removeOfflineJob(job.id))
+        if (job.type === 'quote_refresh') {
+          void refreshPrices().then(() => removeOfflineJob(job.id))
+          continue
+        }
+        if (job.type === 'sync_push' && job.remoteUrl) {
+          const pass = getSessionSyncPassphrase()
+          if (!pass) continue
+          void pushSync(job.remoteUrl, pass)
+            .then(() => removeOfflineJob(job.id))
+            .catch(() => {
+              /* keep queued */
+            })
+        }
       }
     }
     window.addEventListener('online', onOnline)

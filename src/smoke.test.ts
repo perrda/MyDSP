@@ -591,3 +591,67 @@ describe('portfolios + full backup', () => {
     expect(parseFullBackupFile({ kind: 'nope' })).toBeNull()
   })
 })
+
+describe('next-10 helpers', () => {
+  it('parses trade CSV ignoring # comments', async () => {
+    const { parseTradeCsv } = await import('../src/services/tradeCsvImport')
+    const csv = `date,side,qty,price,fees,notes,platform
+# ignore me
+2020-03-18,buy,10,100,1,note,IBKR
+`
+    const r = parseTradeCsv(csv, { kind: 'equity', symbol: 'TSLA' })
+    expect(r.errors).toEqual([])
+    expect(r.trades).toHaveLength(1)
+    expect(r.trades[0].qty).toBe(10)
+  })
+
+  it('normalizes tax residency per portfolio settings', async () => {
+    const { normalizePortfolio } = await import('../src/domain/normalize')
+    const data = normalizePortfolio({
+      settings: { currency: 'USD', taxResidency: 'th', privacy: false, theme: 'dark' },
+    })
+    expect(data.settings.taxResidency).toBe('TH')
+    expect(data.settings.currency).toBe('USD')
+  })
+
+  it('session passphrase stays in memory only', async () => {
+    const sp = await import('../src/services/sync/sessionPassphrase')
+    sp.clearSessionSyncPassphrase()
+    expect(sp.hasSessionSyncPassphrase()).toBe(false)
+    sp.setSessionSyncPassphrase('short')
+    expect(sp.hasSessionSyncPassphrase()).toBe(false)
+    sp.setSessionSyncPassphrase('long-enough-pass')
+    expect(sp.getSessionSyncPassphrase()).toBe('long-enough-pass')
+    sp.clearSessionSyncPassphrase()
+  })
+
+  it('builds portfolio comparison rows', async () => {
+    const mem = new Map<string, string>()
+    const ls = {
+      getItem: (k: string) => mem.get(k) ?? null,
+      setItem: (k: string, v: string) => {
+        mem.set(k, String(v))
+      },
+      removeItem: (k: string) => {
+        mem.delete(k)
+      },
+      clear: () => mem.clear(),
+      get length() {
+        return mem.size
+      },
+      key: (i: number) => [...mem.keys()][i] ?? null,
+    }
+    Object.defineProperty(globalThis, 'localStorage', { value: ls, configurable: true })
+    const store = await import('../src/storage/portfolioStore')
+    mem.clear()
+    store.bootstrapFamilyPortfolios()
+    const { buildPortfolioComparison, comparisonTotals } = await import(
+      '../src/domain/portfolioCompare'
+    )
+    const rows = buildPortfolioComparison()
+    expect(rows.length).toBe(6)
+    expect(rows.some((r) => r.name === 'David')).toBe(true)
+    const totals = comparisonTotals(rows)
+    expect(typeof totals.netWorth).toBe('number')
+  })
+})

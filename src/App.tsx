@@ -31,6 +31,8 @@ import { HistoryPage } from './pages/HistoryPage'
 import { DocumentsPage } from './pages/DocumentsPage'
 import { LiabilityDetailPage } from './pages/LiabilityDetailPage'
 import { HoldingDetailPage } from './pages/HoldingDetailPage'
+import { ComparePage } from './pages/ComparePage'
+import { OpeningBalanceWizardPage } from './pages/OpeningBalanceWizardPage'
 import { SettingsPage } from './pages/SettingsPage'
 
 export default function App() {
@@ -70,6 +72,8 @@ export default function App() {
                   <Route path="achievements" element={<AchievementsPage />} />
                   <Route path="tax" element={<TaxPage />} />
                   <Route path="analytics" element={<AnalyticsPage />} />
+                  <Route path="compare" element={<ComparePage />} />
+                  <Route path="setup/opening" element={<OpeningBalanceWizardPage />} />
                   <Route path="settings" element={<SettingsPage />} />
                   <Route path="accounts" element={<Navigate to="/crypto" replace />} />
                   <Route path="transactions" element={<Navigate to="/spending" replace />} />

@@ -60,8 +60,8 @@
   --border: rgba(255, 255, 255, 0.08);
   --border-strong: rgba(255, 255, 255, 0.18);
   --text: #ffffff;
-  --text-muted: #e5e7eb;
-  --text-subtle: #c4c9d1;
+  --text-muted: #f3f4f6;
+  --text-subtle: #d1d5db;
   --accent: #F7931A;
   --accent-bright: #f9a94b;
   --accent-dim: #c47210;
@@ -76,8 +76,8 @@
   --border: rgba(0, 0, 0, 0.08);
   --border-strong: rgba(0, 0, 0, 0.18);
   --text: #111111;
-  --text-muted: #374151;
-  --text-subtle: #4b5563;
+  --text-muted: #1f2937;
+  --text-subtle: #374151;
   --accent: #d97c0a;
   --accent-bright: #F7931A;
   --accent-dim: #b35e00;
@@ -87,13 +87,19 @@
 @media (prefers-contrast: more) {
   :root,
   .dark {
-    --text-muted: #f3f4f6;
-    --text-subtle: #e5e7eb;
+    --text-muted: #f9fafb;
+    --text-subtle: #f3f4f6;
   }
   .light {
-    --text-muted: #1f2937;
-    --text-subtle: #374151;
+    --text-muted: #111827;
+    --text-subtle: #1f2937;
   }
+}
+
+/* Explicit high-legibility muted copy (forms, table meta, hints) */
+.label-muted {
+  color: var(--text-muted);
+  font-weight: 500;
 }
 
 @layer base {
@@ -533,7 +539,7 @@ h1, h2, h3 {
   font-weight: 600;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: var(--text-subtle);
+  color: var(--text-muted);
 }
 
 .type-label {
