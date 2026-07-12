@@ -13,6 +13,7 @@ import {
 import {
   filterByRange,
   formatChartTick,
+  formatChartTooltipLabel,
   rangeChange,
   type ChartRange,
 } from '../../domain/history'
@@ -163,14 +164,15 @@ export function PortfolioSeriesChart({
               <CartesianGrid stroke="var(--border)" vertical={false} />
               <XAxis
                 dataKey="tick"
-                tick={{ fill: 'var(--text-subtle)', fontSize: 10 }}
+                tick={{ fill: 'var(--text-muted)', fontSize: 10, fontWeight: 500 }}
                 axisLine={{ stroke: 'var(--border)' }}
                 tickLine={false}
-                minTickGap={28}
+                minTickGap={32}
+                interval="preserveStartEnd"
               />
               <YAxis
                 tickFormatter={(v: number) => formatGBP(v, { compact: true })}
-                tick={{ fill: 'var(--text-subtle)', fontSize: 10 }}
+                tick={{ fill: 'var(--text-muted)', fontSize: 10, fontWeight: 500 }}
                 axisLine={false}
                 tickLine={false}
                 width={56}
@@ -179,16 +181,25 @@ export function PortfolioSeriesChart({
                 formatter={(v) => formatGBP(Number(v))}
                 labelFormatter={(_, payload) => {
                   const row = payload?.[0]?.payload as { fullDate?: string } | undefined
-                  return row?.fullDate ?? ''
+                  return formatChartTooltipLabel(row?.fullDate ?? '')
                 }}
                 contentStyle={{
                   background: 'var(--bg-elevated)',
                   border: '1px solid var(--border-strong)',
                   borderRadius: 0,
                   fontSize: 12,
+                  color: 'var(--text)',
                 }}
+                labelStyle={{ color: 'var(--text-muted)', fontWeight: 600, marginBottom: 4 }}
+                itemStyle={{ color: 'var(--text)' }}
               />
-              {(showLayers || activeLines.length > 0) && <Legend wrapperStyle={{ fontSize: 12 }} />}
+              {(showLayers || activeLines.length > 0) && (
+                <Legend
+                  wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
+                  iconType="plainline"
+                  iconSize={12}
+                />
+              )}
               <Area
                 type="monotone"
                 dataKey={primary}

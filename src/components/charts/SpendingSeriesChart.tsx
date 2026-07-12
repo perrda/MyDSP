@@ -9,7 +9,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { type ChartRange } from '../../domain/history'
+import { type ChartRange, formatChartTick, formatChartTooltipLabel } from '../../domain/history'
 import { buildDailySpendSeries } from '../../domain/spendingChart'
 import type { SpendingEntry } from '../../domain/types'
 import { formatGBP, privacyClass } from '../../utils/format'
@@ -34,9 +34,9 @@ export function SpendingSeriesChart({ spending, privacy }: Props) {
     () =>
       points.map((p) => ({
         ...p,
-        tick: p.date.slice(5),
+        tick: formatChartTick(p.date, range),
       })),
-    [points],
+    [points, range],
   )
 
   return (
@@ -73,28 +73,40 @@ export function SpendingSeriesChart({ spending, privacy }: Props) {
               <CartesianGrid stroke="var(--border)" vertical={false} />
               <XAxis
                 dataKey="tick"
-                tick={{ fill: 'var(--text-subtle)', fontSize: 10 }}
+                tick={{ fill: 'var(--text-muted)', fontSize: 10, fontWeight: 500 }}
                 axisLine={{ stroke: 'var(--border)' }}
                 tickLine={false}
-                minTickGap={28}
+                minTickGap={32}
+                interval="preserveStartEnd"
               />
               <YAxis
                 tickFormatter={(v: number) => formatGBP(v, { compact: true })}
-                tick={{ fill: 'var(--text-subtle)', fontSize: 10 }}
+                tick={{ fill: 'var(--text-muted)', fontSize: 10, fontWeight: 500 }}
                 axisLine={false}
                 tickLine={false}
                 width={56}
               />
               <Tooltip
                 formatter={(v) => formatGBP(Number(v))}
+                labelFormatter={(_, payload) => {
+                  const row = payload?.[0]?.payload as { date?: string } | undefined
+                  return formatChartTooltipLabel(row?.date ?? '')
+                }}
                 contentStyle={{
                   background: 'var(--bg-elevated)',
                   border: '1px solid var(--border-strong)',
                   borderRadius: 0,
                   fontSize: 12,
+                  color: 'var(--text)',
                 }}
+                labelStyle={{ color: 'var(--text-muted)', fontWeight: 600, marginBottom: 4 }}
+                itemStyle={{ color: 'var(--text)' }}
               />
-              <Legend wrapperStyle={{ fontSize: 12 }} />
+              <Legend
+                wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
+                iconType="square"
+                iconSize={10}
+              />
               <Area
                 type="monotone"
                 dataKey="cumulative"

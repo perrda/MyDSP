@@ -298,10 +298,10 @@ export function PlanningPage() {
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={mcResult.bands}>
                 <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
-                <XAxis dataKey="year" tick={{ fill: 'var(--text-subtle)', fontSize: 11 }} />
+                <XAxis dataKey="year" tick={{ fill: 'var(--text-muted)', fontSize: 11, fontWeight: 500 }} />
                 <YAxis
                   tickFormatter={(v: number) => formatGBP(v, { compact: true })}
-                  tick={{ fill: 'var(--text-subtle)', fontSize: 11 }}
+                  tick={{ fill: 'var(--text-muted)', fontSize: 11, fontWeight: 500 }}
                   width={64}
                 />
                 <Tooltip
@@ -311,7 +311,10 @@ export function PlanningPage() {
                     background: 'var(--bg-elevated)',
                     border: '1px solid var(--border-strong)',
                     borderRadius: 0,
+                    color: 'var(--text)',
                   }}
+                  labelStyle={{ color: 'var(--text-muted)', fontWeight: 600 }}
+                  itemStyle={{ color: 'var(--text)' }}
                 />
                 <Area type="monotone" dataKey="p95" stroke="transparent" fill="var(--accent)" fillOpacity={0.12} />
                 <Area type="monotone" dataKey="p5" stroke="transparent" fill="var(--bg)" fillOpacity={1} />

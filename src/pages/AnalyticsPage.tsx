@@ -113,27 +113,27 @@ export function AnalyticsPage() {
           </h3>
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
             <div>
-              <p className="text-[10px] uppercase tracking-widest text-text-subtle mb-1">NW Δ</p>
+              <p className="text-[10px] uppercase tracking-widest text-text-muted mb-1">NW Δ</p>
               <p className="text-lg font-bold tabular-nums">
                 {formatGBP(perf.netChange, { signed: true })}
               </p>
             </div>
             <div>
-              <p className="text-[10px] uppercase tracking-widest text-text-subtle mb-1">Simple %</p>
+              <p className="text-[10px] uppercase tracking-widest text-text-muted mb-1">Simple %</p>
               <p className="text-lg font-bold tabular-nums">{formatPct(perf.simplePct)}</p>
             </div>
             <div>
-              <p className="text-[10px] uppercase tracking-widest text-text-subtle mb-1">TWR</p>
+              <p className="text-[10px] uppercase tracking-widest text-text-muted mb-1">TWR</p>
               <p className="text-lg font-bold tabular-nums text-accent">{formatPct(perf.twrPct)}</p>
             </div>
             <div>
-              <p className="text-[10px] uppercase tracking-widest text-text-subtle mb-1">
+              <p className="text-[10px] uppercase tracking-widest text-text-muted mb-1">
                 Approx MWR
               </p>
               <p className="text-lg font-bold tabular-nums">{formatPct(perf.approxMwrPct)}</p>
             </div>
             <div>
-              <p className="text-[10px] uppercase tracking-widest text-text-subtle mb-1">
+              <p className="text-[10px] uppercase tracking-widest text-text-muted mb-1">
                 Net buys
               </p>
               <p className="text-lg font-bold tabular-nums">
@@ -141,7 +141,7 @@ export function AnalyticsPage() {
               </p>
             </div>
           </div>
-          <p className="text-xs text-text-subtle mt-3 font-light">
+          <p className="text-xs text-text-muted mt-3 font-light">
             TWR compounds sub-period returns at journal trade dates ({perf.subPeriods} periods). MWR
             is Modified Dietz.
           </p>

@@ -71,12 +71,12 @@ export function AllocationRing({
             </p>
           )}
           {linkForSlice && (
-            <p className="text-[11px] text-text-subtle mt-1">Tap a category to open the ledger</p>
+            <p className="text-[11px] text-text-muted mt-1">Tap a category to open the ledger</p>
           )}
         </div>
       )}
       {slices.length === 0 ? (
-        <p className="text-sm text-text-subtle text-center py-10">{emptyText}</p>
+        <p className="text-sm text-text-muted text-center py-10">{emptyText}</p>
       ) : (
         <div className={`${heightClass} w-full ${privacyClass(privacy)}`}>
           <p className="sr-only">
@@ -113,49 +113,52 @@ export function AllocationRing({
                   border: '1px solid var(--border-strong)',
                   borderRadius: 0,
                   fontSize: 12,
+                  color: 'var(--text)',
                 }}
+                labelStyle={{ color: 'var(--text-muted)', fontWeight: 600 }}
+                itemStyle={{ color: 'var(--text)' }}
               />
             </PieChart>
           </ResponsiveContainer>
         </div>
       )}
       {slices.length > 0 && (
-        <ul className="mt-3 space-y-1.5">
+        <ul className="chart-legend-list space-y-2">
           {slices.map((s, i) => (
             <li key={s.name}>
               {linkForSlice ? (
                 <button
                   type="button"
-                  className="flex w-full items-center justify-between gap-3 text-sm text-left hover:text-accent"
+                  className="flex w-full items-center justify-between gap-3 text-left hover:text-accent transition-colors"
                   onClick={() => go(s.name)}
                 >
-                  <span className="flex items-center gap-2 min-w-0">
+                  <span className="flex items-center gap-2.5 min-w-0">
                     <span
-                      className="w-2 h-2 shrink-0"
+                      className="w-2.5 h-2.5 shrink-0"
                       style={{ background: colors[i % colors.length] }}
                       aria-hidden
                     />
-                    <span className="truncate uppercase tracking-wider text-[10px] font-bold text-text-subtle">
-                      {s.name}
-                    </span>
+                    <span className="chart-legend-list__label truncate">{s.name}</span>
                   </span>
-                  <span className={`tabular-nums shrink-0 ${privacyClass(privacy)}`}>
+                  <span
+                    className={`chart-legend-list__value shrink-0 ${privacyClass(privacy)}`}
+                  >
                     {((s.value / total) * 100).toFixed(0)}% · {formatGBP(s.value)}
                   </span>
                 </button>
               ) : (
-                <div className="flex items-center justify-between gap-3 text-sm">
-                  <span className="flex items-center gap-2 min-w-0">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="flex items-center gap-2.5 min-w-0">
                     <span
-                      className="w-2 h-2 shrink-0"
+                      className="w-2.5 h-2.5 shrink-0"
                       style={{ background: colors[i % colors.length] }}
                       aria-hidden
                     />
-                    <span className="truncate uppercase tracking-wider text-[10px] font-bold text-text-subtle">
-                      {s.name}
-                    </span>
+                    <span className="chart-legend-list__label truncate">{s.name}</span>
                   </span>
-                  <span className={`tabular-nums shrink-0 ${privacyClass(privacy)}`}>
+                  <span
+                    className={`chart-legend-list__value shrink-0 ${privacyClass(privacy)}`}
+                  >
                     {((s.value / total) * 100).toFixed(0)}% · {formatGBP(s.value)}
                   </span>
                 </div>
