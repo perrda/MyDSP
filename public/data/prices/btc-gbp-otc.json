@@ -1,0 +1,7 @@
+{
+  "symbol": "BTC",
+  "currency": "GBP",
+  "from": null,
+  "note": "Optional pre-2014 OTC overlay. Add [date, gbpPrice] pairs for dates before Yahoo liquid series. Empty series is ignored. Upload via Settings → Historical prices, or replace this file and rebuild.",
+  "series": []
+}

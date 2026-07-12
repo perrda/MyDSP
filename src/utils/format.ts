@@ -1,0 +1,112 @@
+/** Currency formatting — amounts are GBP internally; display uses FX. */
+
+import { convertFromGbp, type FxRates } from '../services/fx'
+
+let displayCurrency = 'GBP'
+let displayRates: FxRates = { GBP: 1 }
+
+export function setDisplayCurrency(currency: string, rates: FxRates): void {
+  displayCurrency = currency || 'GBP'
+  displayRates = { GBP: 1, ...rates }
+}
+
+export function getDisplayCurrency(): string {
+  return displayCurrency
+}
+
+function formatBtc(converted: number, opts?: { signed?: boolean }): string {
+  const abs = Math.abs(converted)
+  const digits = abs >= 1 ? 4 : abs >= 0.01 ? 6 : 8
+  const body = `₿${abs.toLocaleString('en-GB', {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  })}`
+  if (opts?.signed) {
+    if (converted > 0) return `+${body}`
+    if (converted < 0) return `−${body}`
+  }
+  if (converted < 0) return `−${body}`
+  return body
+}
+
+function formatMoney(
+  n: number,
+  currency: string,
+  opts?: { signed?: boolean; compact?: boolean; digits?: number },
+): string {
+  const converted = convertFromGbp(n, currency, displayRates)
+  if (currency === 'BTC') return formatBtc(converted, opts)
+
+  const abs = Math.abs(converted)
+  const digits = opts?.digits
+  const formatted = new Intl.NumberFormat('en-GB', {
+    style: 'currency',
+    currency: currency.length === 3 ? currency : 'GBP',
+    notation: opts?.compact ? 'compact' : 'standard',
+    maximumFractionDigits: digits ?? (opts?.compact ? 2 : currency === 'JPY' ? 0 : 0),
+    minimumFractionDigits: digits ?? 0,
+  }).format(abs)
+
+  if (opts?.signed) {
+    if (n > 0) return `+${formatted}`
+    if (n < 0) return `−${formatted}`
+  }
+  if (n < 0) return `−${formatted}`
+  return formatted
+}
+
+/** Format GBP amount in the active display currency. */
+export function formatGBP(n: number, opts?: { signed?: boolean; compact?: boolean }): string {
+  return formatMoney(n, displayCurrency, opts)
+}
+
+export function formatGBPPrecise(n: number): string {
+  if (displayCurrency === 'BTC') return formatMoney(n, 'BTC')
+  return formatMoney(n, displayCurrency, { digits: 2 })
+}
+
+export function formatPct(n: number, digits = 1): string {
+  const sign = n > 0 ? '+' : n < 0 ? '' : ''
+  return `${sign}${n.toFixed(digits)}%`
+}
+
+export function formatDate(iso: string): string {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return iso
+  return new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(d)
+}
+
+export function formatDateTime(iso: string): string {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return iso
+  return new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(d)
+}
+
+export function formatQty(n: number): string {
+  if (Math.abs(n) >= 1000) {
+    return new Intl.NumberFormat('en-GB', { maximumFractionDigits: 2 }).format(n)
+  }
+  return new Intl.NumberFormat('en-GB', { maximumFractionDigits: 6 }).format(n)
+}
+
+export function pct(part: number, whole: number): number {
+  if (whole <= 0) return 0
+  return Math.min(100, Math.round((part / whole) * 100))
+}
+
+/** Privacy blur helper class when privacy mode on. */
+export function privacyClass(privacy: boolean): string {
+  return privacy ? 'blur-sm select-none' : ''
+}

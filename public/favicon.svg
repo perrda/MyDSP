@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <rect width="32" height="32" fill="#F7931A"/>
+  <!-- My — y nearly same size as M for readability -->
+  <text x="13.4" y="12.4" text-anchor="middle" font-family="Space Grotesk,Inter,Arial,sans-serif" font-size="8.5" font-weight="700" fill="#ffffff">M</text>
+  <text x="19.1" y="12.5" text-anchor="middle" font-family="Space Grotesk,Inter,Arial,sans-serif" font-size="8" font-weight="700" fill="#ffffff">y</text>
+  <text x="16" y="24" text-anchor="middle" font-family="Space Grotesk,Inter,Arial,sans-serif" font-size="10" font-weight="800" fill="#ffffff" letter-spacing="0.08em">DSP</text>
+</svg>

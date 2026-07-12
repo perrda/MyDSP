@@ -1,0 +1,13 @@
+{
+  "generatedAt": "2026-07-12T07:26:11.920Z",
+  "files": {
+    "equity:TSLA": "tsla-usd.json",
+    "equity:MSTR": "mstr-usd.json",
+    "crypto:BTC": "btc-gbp.json"
+  },
+  "counts": {
+    "TSLA": 1659,
+    "MSTR": 882,
+    "BTC": 4317
+  }
+}
