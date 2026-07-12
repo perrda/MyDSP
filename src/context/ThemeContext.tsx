@@ -29,6 +29,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const applyTheme = useCallback((next: Theme) => {
     const root = document.documentElement
+    
+    // Add transition class for smooth theme change
+    root.classList.add('theme-transitioning')
+    
     root.classList.remove('light', 'dark')
     root.classList.add(next)
     try {
@@ -37,6 +41,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       /* private mode */
     }
     setThemeState(next)
+    
+    // Remove transition class after animation
+    setTimeout(() => {
+      root.classList.remove('theme-transitioning')
+    }, 300)
   }, [])
 
   const toggle = useCallback(() => {
