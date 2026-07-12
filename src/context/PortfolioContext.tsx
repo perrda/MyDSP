@@ -20,6 +20,7 @@ import {
   removeOfflineJob,
 } from '../services/offlineQueue'
 import {
+  ensureFxRates,
   fetchFxRates,
   loadCachedFxRates,
   type FxRates,
@@ -27,6 +28,7 @@ import {
 import { getSessionSyncPassphrase } from '../services/sync/sessionPassphrase'
 import { pushSync } from '../services/sync/syncService'
 import { setDisplayCurrency } from '../utils/format'
+import { migrateEquityLivePricesToGbp } from '../domain/migrateEquityGbp'
 import {
   bootstrapFamilyPortfolios,
   canCreatePortfolio,
@@ -87,8 +89,13 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
   })
   const [data, setDataState] = useState<PortfolioData>(() => {
     const initial = loadPortfolio(getActivePortfolioId())
-    setDisplayCurrency(initial.settings.currency || 'GBP', loadCachedFxRates())
-    return initial
+    const rates = loadCachedFxRates()
+    const { data: migrated, migrated: didMigrate } = migrateEquityLivePricesToGbp(initial, rates)
+    if (didMigrate) {
+      savePortfolioImmediate(migrated, getActivePortfolioId())
+    }
+    setDisplayCurrency(migrated.settings.currency || 'GBP', rates)
+    return migrated
   })
   const [fccDataPresent, setFccDataPresent] = useState(() => hasFccData())
   const [refreshing, setRefreshing] = useState(false)
@@ -173,7 +180,12 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
       savePortfolioImmediate(dataRef.current, activeId)
       setActivePortfolioId(id)
       setActiveId(id)
-      setDataState(loadPortfolio(id))
+      const loaded = loadPortfolio(id)
+      const rates = loadCachedFxRates()
+      const { data: migrated, migrated: didMigrate } = migrateEquityLivePricesToGbp(loaded, rates)
+      if (didMigrate) savePortfolioImmediate(migrated, id)
+      setDataState(migrated)
+      setDisplayCurrency(migrated.settings.currency || 'GBP', rates)
     },
     [activeId],
   )
@@ -275,6 +287,10 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
     setRefreshing(true)
     setLastPriceError(null)
     try {
+      const rates = await ensureFxRates()
+      setFxRates(rates)
+      setDisplayCurrency(dataRef.current.settings.currency || 'GBP', rates)
+
       const cryptoUpdates = await fetchCryptoPricesGbp(
         snapshot.crypto.map((c) => c.symbol),
         snapshot.settings.manualCryptoPrices ?? {},
@@ -282,6 +298,7 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
       const equityMap = await fetchEquityPrices(
         snapshot.equities.map((e) => e.symbol),
         snapshot.settings.finnhubKey || localStorage.getItem('finnhub_key') || '',
+        rates,
       )
 
       if (activeIdRef.current !== startedOn) {
@@ -305,6 +322,7 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
           crypto,
           equities,
           settings: { ...prev.settings, lastPriceUpdate: now },
+          extras: { ...prev.extras, equityPricesAreGbp: true },
         }
         const holdingUpdates = [
           ...crypto

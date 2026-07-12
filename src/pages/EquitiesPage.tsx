@@ -282,6 +282,10 @@ export function EquitiesPage() {
               />
             </Field>
           </div>
+          <p className="text-xs text-text-muted -mt-1 mb-1">
+            US equities (TSLA, MSTR, …) are quoted in USD and converted to GBP with the daily
+            GBP/USD rate when you refresh prices. Enter costs and manual overrides in GBP.
+          </p>
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" className="btn-ghost" onClick={() => setOpen(false)}>
               Cancel

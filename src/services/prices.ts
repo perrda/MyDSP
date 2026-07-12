@@ -1,5 +1,13 @@
 /** CoinGecko + Finnhub live price refresh (ported from FCC, MyDSP-native). */
 
+import { equityNeedsUsdToGbp } from '../domain/equityCurrency'
+import {
+  ensureFxRates,
+  loadCachedFxRates,
+  usdToGbp,
+  type FxRates,
+} from './fx'
+
 const GECKO_IDS: Record<string, string> = {
   BTC: 'bitcoin',
   ADA: 'cardano',
@@ -71,6 +79,7 @@ export async function fetchCryptoPricesGbp(
   })
 }
 
+/** Raw market quote in the venue’s native currency (USD for US equities). */
 export async function fetchEquityQuote(
   symbol: string,
   finnhubKey: string,
@@ -82,7 +91,6 @@ export async function fetchEquityQuote(
     if (data?.c && data.c > 0) return data.c
   }
 
-  // Fallback: Yahoo chart API via CORS proxy
   const yahoo = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&range=1d`
   const proxies = [
     `https://corsproxy.io/?${encodeURIComponent(yahoo)}`,
@@ -98,15 +106,31 @@ export async function fetchEquityQuote(
   return null
 }
 
+/**
+ * Equity prices in GBP (US listings converted via daily GBPUSD).
+ */
 export async function fetchEquityPrices(
   symbols: string[],
   finnhubKey: string,
+  rates?: FxRates,
 ): Promise<Record<string, number>> {
+  const fx = rates ?? (await ensureFxRates())
   const out: Record<string, number> = {}
-  // Sequential to respect free-tier rate limits
   for (const symbol of symbols) {
-    const price = await fetchEquityQuote(symbol, finnhubKey)
-    if (price) out[symbol.toUpperCase()] = price
+    const raw = await fetchEquityQuote(symbol, finnhubKey)
+    if (!raw || !(raw > 0)) continue
+    const sym = symbol.toUpperCase()
+    out[sym] = equityNeedsUsdToGbp(sym) ? usdToGbp(raw, fx) : raw
   }
   return out
+}
+
+/** Convert a single native equity quote to GBP storage units. */
+export function equityQuoteToGbp(
+  symbol: string,
+  nativePrice: number,
+  rates: FxRates = loadCachedFxRates(),
+): number {
+  if (!(nativePrice > 0)) return 0
+  return equityNeedsUsdToGbp(symbol) ? usdToGbp(nativePrice, rates) : nativePrice
 }

@@ -3,6 +3,9 @@
 import type { HoldingPricePoint } from './holdingHistory'
 import { holdingHistoryKey, readHoldingHistory } from './holdingHistory'
 import type { PortfolioData } from './types'
+import { equityNeedsUsdToGbp } from './equityCurrency'
+import { convertUsdSeriesToGbp } from '../services/yahooHistory'
+import { loadCachedFxRates, usdToGbp } from '../services/fx'
 
 export interface StaticPriceFile {
   symbol: string
@@ -29,6 +32,14 @@ export function staticPricePath(kind: 'crypto' | 'equity', symbol: string): stri
   return rel ? assetUrl(rel) : null
 }
 
+export function clearStaticPriceCache(kind?: 'crypto' | 'equity', symbol?: string): void {
+  if (kind && symbol) {
+    cache.delete(holdingHistoryKey(kind, symbol))
+    return
+  }
+  cache.clear()
+}
+
 export async function loadStaticPriceSeries(
   kind: 'crypto' | 'equity',
   symbol: string,
@@ -46,6 +57,33 @@ export async function loadStaticPriceSeries(
       price,
       source: 'manual' as const,
     }))
+
+    // Bundled equity files are USD — convert to GBP (BTC files are already GBP).
+    const declared = (json.currency || '').toUpperCase()
+    if (declared === 'USD' || (kind === 'equity' && equityNeedsUsdToGbp(symbol) && declared !== 'GBP')) {
+      const from = json.from ?? points[0]?.date ?? '2010-01-01'
+      try {
+        const converted = await convertUsdSeriesToGbp(
+          points.map((p) => ({ date: p.date, price: p.price })),
+          from,
+        )
+        if (converted.length > 0) {
+          points = converted.map((p) => ({
+            date: p.date,
+            price: p.price,
+            source: 'manual' as const,
+          }))
+        } else {
+          // Offline fallback: spot FX
+          const rates = loadCachedFxRates()
+          points = points.map((p) => ({ ...p, price: usdToGbp(p.price, rates) }))
+        }
+      } catch {
+        const rates = loadCachedFxRates()
+        points = points.map((p) => ({ ...p, price: usdToGbp(p.price, rates) }))
+      }
+    }
+
     // Optional pre-liquid BTC OTC overlay (earlier dates win if not in Yahoo series)
     if (kind === 'crypto' && symbol.toUpperCase() === 'BTC') {
       try {
@@ -98,7 +136,16 @@ export async function resolveHoldingSeries(
   symbol: string,
 ): Promise<HoldingPricePoint[]> {
   const staticSeries = await loadStaticPriceSeries(kind, symbol)
-  const live = readHoldingHistory(data)[holdingHistoryKey(kind, symbol)] ?? []
+  let live = readHoldingHistory(data)[holdingHistoryKey(kind, symbol)] ?? []
+  // Live equity history written before the GBP fix may still be USD — prefer static when live looks like USD vs static GBP
+  if (kind === 'equity' && equityNeedsUsdToGbp(symbol) && staticSeries.length && live.length) {
+    const lastStatic = staticSeries[staticSeries.length - 1]?.price ?? 0
+    const lastLive = live[live.length - 1]?.price ?? 0
+    // If live is ~1.2–1.4× static, it was likely left in USD on top of GBP static
+    if (lastStatic > 0 && lastLive > lastStatic * 1.15 && lastLive < lastStatic * 1.5) {
+      live = live.map((p) => ({ ...p, price: usdToGbp(p.price, loadCachedFxRates()) }))
+    }
+  }
   return mergePriceSeries(staticSeries, live)
 }
 

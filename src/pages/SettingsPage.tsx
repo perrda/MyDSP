@@ -93,6 +93,7 @@ export function SettingsPage() {
     setCurrency,
     canAddPortfolio,
     maxPortfolios,
+    fxRates,
   } = usePortfolio()
   const { refreshSecurity, lock, pinEnabled } = useSecurity()
 
@@ -421,6 +422,9 @@ export function SettingsPage() {
           </div>
           <p className="text-xs text-text-muted mt-4 label-muted">
             Active portfolio: {portfolios.find((p) => p.id === activeId)?.name ?? activeId}
+            {fxRates.USD
+              ? ` · GBP/USD ${fxRates.USD.toFixed(4)} (1 GBP = ${fxRates.USD.toFixed(2)} USD)`
+              : ''}
           </p>
         </section>
 
@@ -467,10 +471,11 @@ export function SettingsPage() {
           <p className="eyebrow mb-3">Markets</p>
           <h3 className="text-lg font-bold tracking-tight mb-3">Historical prices &amp; OTC</h3>
           <p className="text-sm text-text-muted font-light mb-4 max-w-2xl">
-            Bundled daily closes: <strong className="text-text">TSLA</strong> (Dec 2019+),{' '}
-            <strong className="text-text">MSTR</strong> (Jan 2023+),{' '}
-            <strong className="text-text">BTC</strong> (liquid Yahoo ~2014+). Upload a JSON series
-            for any other symbol, or a pre-2014 BTC OTC overlay. Format:{' '}
+            Bundled daily closes: <strong className="text-text">TSLA</strong> /{' '}
+            <strong className="text-text">MSTR</strong> (USD→GBP via GBPUSD),{' '}
+            <strong className="text-text">BTC</strong> (GBP). Live equity refreshes convert USD
+            quotes to GBP with the daily FX rate. Upload a JSON series for any other symbol, or a
+            pre-2014 BTC OTC overlay. Format:{' '}
             <code className="text-accent">{`{ "series": [["2013-01-01", 12.5], ...] }`}</code>
           </p>
           <div className="flex flex-wrap gap-3 items-end mb-4">

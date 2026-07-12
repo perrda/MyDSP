@@ -6,6 +6,7 @@ export type FxRates = Record<string, number>
 export const DEFAULT_FX_RATES: FxRates = {
   GBP: 1,
   BTC: 1 / 85_000,
+  /** GBP→USD: how many USD one pound buys. */
   USD: 1.27,
   EUR: 1.17,
   THB: 46,
@@ -25,21 +26,39 @@ export const DISPLAY_CURRENCIES = [
 ] as const
 
 const CACHE_KEY = 'mydsp_fx_rates'
+/** Refresh FX about once per day (and on every price refresh via ensureFxRates). */
+export const FX_STALE_MS = 20 * 60 * 60 * 1000
 
 export function loadCachedFxRates(): FxRates {
   try {
     const raw = localStorage.getItem(CACHE_KEY)
     if (!raw) return { ...DEFAULT_FX_RATES }
-    const parsed = JSON.parse(raw) as FxRates
-    return { ...DEFAULT_FX_RATES, ...parsed, GBP: 1 }
+    const parsed = JSON.parse(raw) as FxRates & { updatedAt?: number }
+    const { updatedAt: _u, ...rest } = parsed
+    return { ...DEFAULT_FX_RATES, ...rest, GBP: 1 }
   } catch {
     return { ...DEFAULT_FX_RATES }
   }
 }
 
+export function fxCacheUpdatedAt(): number | null {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as { updatedAt?: number }
+    return typeof parsed.updatedAt === 'number' ? parsed.updatedAt : null
+  } catch {
+    return null
+  }
+}
+
 export function saveCachedFxRates(rates: FxRates): void {
   try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify({ ...rates, updatedAt: Date.now() }))
+    const { updatedAt: _drop, ...clean } = rates as FxRates & { updatedAt?: number }
+    localStorage.setItem(
+      CACHE_KEY,
+      JSON.stringify({ ...clean, GBP: 1, updatedAt: Date.now() }),
+    )
   } catch {
     /* ignore */
   }
@@ -51,6 +70,21 @@ export function convertFromGbp(amountGbp: number, currency: string, rates: FxRat
   if (!currency || currency === 'GBP') return amountGbp
   const rate = rates[currency] ?? DEFAULT_FX_RATES[currency] ?? 1
   return amountGbp * rate
+}
+
+/**
+ * Convert a USD market quote into GBP using GBP→USD rate.
+ * rates.USD = dollars per pound (e.g. 1.27), so GBP = USD / rates.USD.
+ */
+export function usdToGbp(amountUsd: number, rates: FxRates = loadCachedFxRates()): number {
+  if (!Number.isFinite(amountUsd) || amountUsd === 0) return 0
+  const gbpUsd = rates.USD > 0 ? rates.USD : DEFAULT_FX_RATES.USD
+  return amountUsd / gbpUsd
+}
+
+/** Dollars per one pound (GBPUSD). */
+export function gbpUsdRate(rates: FxRates = loadCachedFxRates()): number {
+  return rates.USD > 0 ? rates.USD : DEFAULT_FX_RATES.USD
 }
 
 async function fetchBtcPerGbp(): Promise<number | null> {
@@ -80,6 +114,8 @@ export async function fetchFxRates(): Promise<FxRates> {
         const r = json.rates?.[c.code]
         if (typeof r === 'number' && r > 0) rates[c.code] = r
       }
+      const usd = json.rates?.USD
+      if (typeof usd === 'number' && usd > 0) rates.USD = usd
     }
   } catch {
     /* keep defaults below */
@@ -91,4 +127,17 @@ export async function fetchFxRates(): Promise<FxRates> {
   const merged = { ...DEFAULT_FX_RATES, ...rates, GBP: 1 }
   saveCachedFxRates(merged)
   return merged
+}
+
+/** Return cached rates if fresh; otherwise fetch (falls back to cache on failure). */
+export async function ensureFxRates(maxAgeMs = FX_STALE_MS): Promise<FxRates> {
+  const cached = loadCachedFxRates()
+  const updatedAt = fxCacheUpdatedAt()
+  const age = updatedAt != null ? Date.now() - updatedAt : Number.POSITIVE_INFINITY
+  if (age < maxAgeMs && cached.USD > 0) return cached
+  try {
+    return await fetchFxRates()
+  } catch {
+    return cached
+  }
 }

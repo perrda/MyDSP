@@ -74,6 +74,60 @@ describe('history', () => {
   })
 })
 
+describe('equity FX (USD→GBP)', () => {
+  it('converts USD quotes using GBP→USD rate', async () => {
+    const { usdToGbp, convertFromGbp } = await import('../src/services/fx')
+    const rates = { GBP: 1, USD: 1.27, BTC: 0.00001, THB: 46 }
+    expect(usdToGbp(127, rates)).toBeCloseTo(100, 5)
+    expect(usdToGbp(407.76, rates)).toBeCloseTo(407.76 / 1.27, 5)
+    // Display USD from stored GBP should round-trip
+    const gbp = usdToGbp(407.76, rates)
+    expect(convertFromGbp(gbp, 'USD', rates)).toBeCloseTo(407.76, 4)
+  })
+
+  it('marks US equities as needing FX and London as GBP', async () => {
+    const { equityNeedsUsdToGbp, equityNativeCurrency } = await import(
+      '../src/domain/equityCurrency'
+    )
+    expect(equityNativeCurrency('TSLA')).toBe('USD')
+    expect(equityNativeCurrency('MSTR')).toBe('USD')
+    expect(equityNeedsUsdToGbp('TSLA')).toBe(true)
+    expect(equityNativeCurrency('VOD.L')).toBe('GBP')
+    expect(equityNeedsUsdToGbp('VOD.L')).toBe(false)
+  })
+
+  it('migrates livePrice once and sets equityPricesAreGbp', async () => {
+    const { migrateEquityLivePricesToGbp } = await import('../src/domain/migrateEquityGbp')
+    const { createSamplePortfolio } = await import('../src/domain/defaults')
+    const data = createSamplePortfolio()
+    data.equities = [
+      {
+        id: 1,
+        symbol: 'TSLA',
+        name: 'Tesla',
+        shares: 10,
+        avgCost: 37.87,
+        livePrice: 407.76,
+      },
+    ]
+    data.extras = {
+      holdingHistory: {
+        'equity:TSLA': [{ date: '2026-07-12', price: 407.76, source: 'auto' }],
+      },
+    }
+    const rates = { GBP: 1, USD: 1.27 }
+    const once = migrateEquityLivePricesToGbp(data, rates)
+    expect(once.migrated).toBe(true)
+    expect(once.data.equities[0].livePrice).toBeCloseTo(407.76 / 1.27, 5)
+    expect(once.data.equities[0].avgCost).toBe(37.87)
+    expect(once.data.extras.equityPricesAreGbp).toBe(true)
+    expect(once.data.extras.holdingHistory?.['equity:TSLA']).toBeUndefined()
+    const twice = migrateEquityLivePricesToGbp(once.data, rates)
+    expect(twice.migrated).toBe(false)
+    expect(twice.data.equities[0].livePrice).toBeCloseTo(407.76 / 1.27, 5)
+  })
+})
+
 describe('achievements', () => {
   it('unlocks millionaire on sample portfolio', () => {
     const data = createSamplePortfolio()

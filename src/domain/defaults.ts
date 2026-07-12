@@ -66,8 +66,8 @@ export function createSamplePortfolio(): PortfolioData {
       { id: 4, symbol: 'NIGHT', name: 'Midnight', qty: 260000, price: 0.0635, cost: 0 },
     ],
     equities: [
-      { id: 1, symbol: 'TSLA', name: 'Tesla Inc', shares: 3149, avgCost: 37.87, livePrice: 330 },
-      { id: 2, symbol: 'MSTR', name: 'Strategy Inc', shares: 2872, avgCost: 151.16, livePrice: 310.5 },
+      { id: 1, symbol: 'TSLA', name: 'Tesla Inc', shares: 3149, avgCost: 37.87, livePrice: 260 },
+      { id: 2, symbol: 'MSTR', name: 'Strategy Inc', shares: 2872, avgCost: 151.16, livePrice: 244 },
     ],
     creditCards: [
       { id: 1, name: 'Lloyds Bank (3353)', balance: 2386, apr: 33.9, minPay: 1580, limit: 5000 },

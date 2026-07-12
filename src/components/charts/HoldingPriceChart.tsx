@@ -80,11 +80,15 @@ export function HoldingPriceChart({ data, kind, symbol, seed = [], privacy, titl
         <div>
           <p className="label-uppercase mb-2">{symbol}</p>
           <h3 className="text-base font-bold tracking-tight">{title}</h3>
-          <p className="text-xs text-text-subtle mt-1">
+          <p className="text-xs text-text-muted mt-1">
             {series.length.toLocaleString()} daily points
-            {kind === 'crypto' && symbol === 'BTC' ? ' · GBP from 2014' : ''}
-            {symbol === 'TSLA' ? ' · USD from Dec 2019' : ''}
-            {symbol === 'MSTR' ? ' · USD from Jan 2023' : ''}
+            {kind === 'crypto' && symbol === 'BTC' ? ' · GBP' : ''}
+            {kind === 'equity' && (symbol === 'TSLA' || symbol === 'MSTR')
+              ? ' · GBP (converted from USD)'
+              : ''}
+            {kind === 'equity' && symbol !== 'TSLA' && symbol !== 'MSTR'
+              ? ' · GBP storage'
+              : ''}
           </p>
           {delta != null && (
             <p className={`text-sm mt-2 tabular-nums ${delta >= 0 ? 'text-accent' : 'text-text-muted'}`}>

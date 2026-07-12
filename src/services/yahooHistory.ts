@@ -112,9 +112,14 @@ export async function fetchSymbolHistory(
 ): Promise<{ points: YahooDailyPoint[]; currency: string; yahooSymbol: string }> {
   const yahooSymbol = yahooTickerFor(kind, symbol)
   const raw = await fetchYahooDailySeries(yahooSymbol, fromIso)
-  if (kind === 'crypto') {
+  // Crypto Yahoo pairs are *-USD; US equities are USD. Always store GBP in MyDSP.
+  // London listings (.L) are already GBP — leave unconverted.
+  const isLondonEquity =
+    kind === 'equity' &&
+    (symbol.toUpperCase().endsWith('.L') || symbol.toUpperCase().endsWith('.LON'))
+  if (kind === 'crypto' || (kind === 'equity' && !isLondonEquity)) {
     const gbp = await convertUsdSeriesToGbp(raw, fromIso)
     return { points: gbp, currency: 'GBP', yahooSymbol }
   }
-  return { points: raw, currency: 'USD', yahooSymbol }
+  return { points: raw, currency: 'GBP', yahooSymbol }
 }

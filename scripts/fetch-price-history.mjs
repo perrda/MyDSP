@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 /**
  * Regenerate bundled daily price series for TSLA / MSTR / BTC.
+ * TSLA/MSTR are stored as USD (app converts to GBP at runtime via GBPUSD).
+ * BTC is stored as GBP (BTC-USD / GBPUSD=X).
  * Usage: node scripts/fetch-price-history.mjs
  */
 import { writeFileSync, mkdirSync } from 'node:fs'
