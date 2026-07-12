@@ -1,7 +1,8 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import type { AchievementDef } from '../domain/achievements'
-import { Toast, ToastItem, ToastType } from './ui/Toast'
+import type { Toast } from './ui/Toast'
+import { ToastItem } from './ui/Toast'
 
 interface ToastAchievement {
   id: string

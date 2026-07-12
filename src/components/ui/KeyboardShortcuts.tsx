@@ -73,7 +73,7 @@ export function KeyboardShortcutsHelp() {
   // Vim-style navigation (G then X)
   useEffect(() => {
     let gPressed = false
-    let timeout: NodeJS.Timeout
+    let timeout: ReturnType<typeof setTimeout>
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'g' && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
