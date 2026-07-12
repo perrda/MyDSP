@@ -5,6 +5,7 @@ import { SecurityProvider } from './components/SecurityProvider'
 import { ToastProvider } from './components/ToastProvider'
 import { AchievementWatcher } from './components/AchievementWatcher'
 import { InstallPrompt } from './components/InstallPrompt'
+import { SkipToContent, ScreenReaderAnnouncer } from './components/Accessibility'
 import { AppShell } from './components/layout/AppShell'
 import { Dashboard } from './pages/Dashboard'
 import { CryptoPage } from './pages/CryptoPage'
@@ -44,6 +45,8 @@ export default function App() {
       <PortfolioProvider>
         <SecurityProvider>
           <BrowserRouter basename={__BASE_PATH__ === '/' ? undefined : __BASE_PATH__.replace(/\/$/, '')}>
+            <SkipToContent />
+            <ScreenReaderAnnouncer />
             <ToastProvider>
               <AchievementWatcher />
               <InstallPrompt />
