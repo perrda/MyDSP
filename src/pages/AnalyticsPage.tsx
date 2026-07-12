@@ -1,6 +1,13 @@
 import { useMemo } from 'react'
 import { AllocationRing } from '../components/charts/AllocationRing'
 import { PortfolioSeriesChart } from '../components/charts/PortfolioSeriesChart'
+import { 
+  MonthlySpendingTrend,
+  CategoryBreakdownChart,
+  SpendingDistributionPie,
+  WeekdaySpendingPattern,
+  FinancialHealthRadar,
+} from '../components/charts/AdvancedCharts'
 import { PageHeader, StatCard } from '../components/ui/PageHeader'
 import { usePortfolio } from '../context/PortfolioContext'
 import { performanceSummary } from '../domain/performance'
@@ -147,6 +154,31 @@ export function AnalyticsPage() {
           </p>
         </div>
       )}
+
+      {/* Advanced Charts Section */}
+      <div className="grid grid-cols-1 gap-6 mb-8">
+        <MonthlySpendingTrend spending={data.spending} privacy={privacy} />
+        
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <CategoryBreakdownChart spending={data.spending} privacy={privacy} />
+          <SpendingDistributionPie spending={data.spending} privacy={privacy} />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <WeekdaySpendingPattern spending={data.spending} privacy={privacy} />
+          <FinancialHealthRadar 
+            data={{
+              netWorth,
+              assets,
+              liabilities,
+              monthlyIncome: monthSpend * 1.2, // Estimate
+              monthlyExpenses: monthSpend,
+              savingsRate: assets > 0 ? Math.max(0, (1 - monthSpend / (assets * 0.05)) * 100) : 0,
+            }}
+            privacy={privacy}
+          />
+        </div>
+      </div>
 
       <div className="surface p-5 sm:p-6">
         <p className="label-uppercase mb-2">Liabilities</p>
