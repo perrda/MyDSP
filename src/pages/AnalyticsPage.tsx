@@ -8,6 +8,7 @@ import {
   WeekdaySpendingPattern,
   FinancialHealthRadar,
 } from '../components/charts/AdvancedCharts'
+import { ExportReportButton } from '../components/ExportReport'
 import { PageHeader, StatCard } from '../components/ui/PageHeader'
 import { usePortfolio } from '../context/PortfolioContext'
 import { performanceSummary } from '../domain/performance'
@@ -67,6 +68,21 @@ export function AnalyticsPage() {
         eyebrow="Insights"
         title="Analytics"
         description="KPI snapshot from live portfolio and spending data."
+        action={
+          <ExportReportButton
+            data={data}
+            breakdown={breakdown}
+            options={{
+              includeHoldings: true,
+              includeSpending: true,
+              includeBudgets: true,
+              includeGoals: true,
+              includeTodos: false,
+              includeJobs: false,
+            }}
+            label="Export Full Report"
+          />
+        }
       />
 
       <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px mb-8 ${privacyClass(privacy)}`}>
