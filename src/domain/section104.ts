@@ -257,6 +257,9 @@ export function exportCgtCsv(
   journal: JournalEntry[] = [],
 ): string {
   const matched = matchDisposalsSection104(disposals, taxYear, journal)
+  if (matched.length === 0) {
+    return 'date,symbol,type,qty,proceeds,cost,gain,rule,note\n# No disposals for this tax year\n'
+  }
   const header = 'date,symbol,type,qty,proceeds,cost,gain,rule,note\n'
   const body = matched
     .map((m) =>
@@ -264,16 +267,16 @@ export function exportCgtCsv(
         m.disposal.date,
         m.disposal.symbol,
         m.disposal.assetType,
-        m.disposal.qty,
-        m.disposal.proceeds,
-        m.allowableCost,
-        m.gain,
+        m.disposal.qty.toFixed(8).replace(/\.?0+$/, ''), // Trim trailing zeros
+        m.disposal.proceeds.toFixed(2),
+        m.allowableCost.toFixed(2),
+        m.gain.toFixed(2),
         m.matchedRule,
         `"${m.note.replace(/"/g, '""')}"`,
       ].join(','),
     )
     .join('\n')
-  return header + body
+  return header + body + '\n'
 }
 
 /** HMRC SA108-style tabular export (simplified Box 1–8 style columns). */
@@ -283,6 +286,9 @@ export function exportSa108Csv(
   journal: JournalEntry[] = [],
 ): string {
   const matched = matchDisposalsSection104(disposals, taxYear, journal)
+  if (matched.length === 0) {
+    return 'tax_year,box_description,disposal_date,asset,quantity,proceeds_box5,costs_box6,gains_box7,losses_box8,matching_rule\n# No disposals for this tax year\n'
+  }
   const header =
     'tax_year,box_description,disposal_date,asset,quantity,proceeds_box5,costs_box6,gains_box7,losses_box8,matching_rule\n'
   const body = matched
@@ -293,7 +299,7 @@ export function exportSa108Csv(
         `"${m.disposal.symbol} ${m.disposal.assetType}"`,
         m.disposal.date,
         m.disposal.symbol,
-        m.disposal.qty,
+        m.disposal.qty.toFixed(8).replace(/\.?0+$/, ''), // Trim trailing zeros
         m.disposal.proceeds.toFixed(2),
         m.allowableCost.toFixed(2),
         g >= 0 ? g.toFixed(2) : '0.00',
@@ -302,7 +308,15 @@ export function exportSa108Csv(
       ].join(',')
     })
     .join('\n')
-  return header + body
+  
+  // Add summary row
+  const totalProceeds = matched.reduce((s, m) => s + m.disposal.proceeds, 0)
+  const totalCosts = matched.reduce((s, m) => s + m.allowableCost, 0)
+  const totalGains = matched.reduce((s, m) => s + Math.max(0, m.gain), 0)
+  const totalLosses = matched.reduce((s, m) => s + Math.abs(Math.min(0, m.gain)), 0)
+  const summary = `# Summary,Total,,,${totalProceeds.toFixed(2)},${totalCosts.toFixed(2)},${totalGains.toFixed(2)},${totalLosses.toFixed(2)},\n`
+  
+  return header + body + '\n' + summary
 }
 
 /** Printable HTML CGT report (use with window.print / Save as PDF). */
@@ -318,6 +332,22 @@ export function buildCgtReportHtml(
   },
 ): string {
   const matched = matchDisposalsSection104(disposals, taxYear, journal)
+  if (matched.length === 0) {
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>MyDSP CGT ${taxYear}</title>
+<style>
+  body{font-family:ui-sans-serif,system-ui,sans-serif;color:#111;padding:2rem;max-width:900px;margin:0 auto}
+</style>
+</head>
+<body>
+  <h1>UK Capital Gains — ${taxYear}</h1>
+  <p>No disposals for this tax year.</p>
+</body>
+</html>`
+  }
   const rows = matched
     .map(
       (m) =>
@@ -346,13 +376,18 @@ export function buildCgtReportHtml(
   .sum{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin:1.5rem 0}
   .sum div{border:1px solid #e5e5e5;padding:1rem}
   .sum strong{display:block;font-size:1.25rem;margin-top:.35rem}
-  @media print{body{padding:0} .noprint{display:none}}
+  .warning{background:#fef3c7;border-left:4px solid #f59e0b;padding:1rem;margin:1.5rem 0}
+  @media print{body{padding:0} .noprint{display:none} .warning{border-color:#ccc}}
 </style>
 </head>
 <body>
   <p class="noprint"><button onclick="window.print()">Print / Save as PDF</button></p>
   <h1>UK Capital Gains — ${taxYear}</h1>
-  <p class="meta">MyDSP SA108-style summary · Not formal tax advice · Generated ${new Date().toISOString().slice(0, 10)}</p>
+  <p class="meta">MyDSP SA108-style summary · Generated ${new Date().toISOString().slice(0, 10)}</p>
+  <div class="warning">
+    <strong>⚠️ Important:</strong> This report uses UK HMRC rules (§104 pooling, same-day, B&amp;B). 
+    Not formal tax advice. Verify with a qualified tax advisor before filing SA108.
+  </div>
   <div class="sum">
     <div>Net gain<strong>£${summary.netGain.toFixed(2)}</strong></div>
     <div>Allowance<strong>£${summary.allowance.toFixed(2)}</strong></div>
@@ -361,8 +396,52 @@ export function buildCgtReportHtml(
   </div>
   <table>
     <thead><tr><th>Date</th><th>Asset</th><th>Rule</th><th>Proceeds</th><th>Cost</th><th>Gain</th></tr></thead>
-    <tbody>${rows || '<tr><td colspan="6">No disposals</td></tr>'}</tbody>
+    <tbody>${rows}</tbody>
   </table>
+  <p class="meta" style="margin-top:2rem">
+    Matching rules: Same-day = acquisitions on disposal date · B&amp;B = acquisitions within 30 days after disposal · 
+    §104 = pooled average cost from earlier acquisitions · Unpooled = manual disposal cost entry
+  </p>
 </body>
 </html>`
+}
+
+/**
+ * Export detailed transaction log with acquisition and disposal details.
+ * Useful for personal records and audit trail.
+ */
+export function exportTransactionLog(
+  disposals: Disposal[],
+  taxYear: string,
+  journal: JournalEntry[] = [],
+): string {
+  const matched = matchDisposalsSection104(disposals, taxYear, journal)
+  const header = 'disposal_date,symbol,type,qty_sold,unit_proceeds,total_proceeds,matching_rule,allowable_cost_per_unit,total_allowable_cost,gain_loss,notes\n'
+  
+  const body = matched
+    .map((m) => {
+      const unitProceeds = m.disposal.qty > 0 ? m.disposal.proceeds / m.disposal.qty : 0
+      const unitCost = m.disposal.qty > 0 ? m.allowableCost / m.disposal.qty : 0
+      
+      return [
+        m.disposal.date,
+        m.disposal.symbol,
+        m.disposal.assetType,
+        m.disposal.qty.toFixed(8).replace(/\.?0+$/, ''),
+        unitProceeds.toFixed(4),
+        m.disposal.proceeds.toFixed(2),
+        m.matchedRule,
+        unitCost.toFixed(4),
+        m.allowableCost.toFixed(2),
+        m.gain.toFixed(2),
+        `"${m.note.replace(/"/g, '""')}"`,
+      ].join(',')
+    })
+    .join('\n')
+  
+  if (matched.length === 0) {
+    return header + '# No disposals for this tax year\n'
+  }
+  
+  return header + body + '\n'
 }

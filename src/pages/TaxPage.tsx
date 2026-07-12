@@ -13,6 +13,7 @@ import {
   buildCgtReportHtml,
   exportCgtCsv,
   exportSa108Csv,
+  exportTransactionLog,
   section104Summary,
   suggestDisposalsFromJournal,
 } from '../domain/section104'
@@ -77,6 +78,17 @@ export function TaxPage() {
     w.document.close()
   }
 
+  const onExportTransactionLog = () => {
+    const csv = exportTransactionLog(data.disposals, taxYear, data.journal)
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `cgt-transactions-${taxYear}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   const importFromJournal = () => {
     const suggested = suggestDisposalsFromJournal(data.journal, data.disposals)
     if (suggested.length === 0) return
@@ -121,6 +133,9 @@ export function TaxPage() {
             </button>
             <button type="button" className="btn-ghost btn-sm" onClick={onExportSa108}>
               SA108 CSV
+            </button>
+            <button type="button" className="btn-ghost btn-sm" onClick={onExportTransactionLog}>
+              Transaction log
             </button>
             <button type="button" className="btn-ghost btn-sm" onClick={onPrintReport}>
               Print / PDF
