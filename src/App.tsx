@@ -35,6 +35,8 @@ import { ComparePage } from './pages/ComparePage'
 import { OpeningBalanceWizardPage } from './pages/OpeningBalanceWizardPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { TodosPage } from './pages/TodosPage'
+import { JobsPage } from './pages/JobsPage'
+import { JobDetailPage } from './pages/JobDetailPage'
 
 export default function App() {
   return (
@@ -76,6 +78,8 @@ export default function App() {
                   <Route path="compare" element={<ComparePage />} />
                   <Route path="setup/opening" element={<OpeningBalanceWizardPage />} />
                   <Route path="todos" element={<TodosPage />} />
+                  <Route path="jobs" element={<JobsPage />} />
+                  <Route path="jobs/:id" element={<JobDetailPage />} />
                   <Route path="settings" element={<SettingsPage />} />
                   <Route path="accounts" element={<Navigate to="/crypto" replace />} />
                   <Route path="transactions" element={<Navigate to="/spending" replace />} />

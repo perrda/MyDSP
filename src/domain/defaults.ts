@@ -50,6 +50,7 @@ export function createEmptyPortfolio(): PortfolioData {
     documents: [],
     todoLists: [],
     todoItems: [],
+    jobApplications: [],
     extras: {},
   }
 }
@@ -197,6 +198,7 @@ export function createSamplePortfolio(): PortfolioData {
     documents: [],
     todoLists: [],
     todoItems: [],
+    jobApplications: [],
     extras: {},
   }
 }

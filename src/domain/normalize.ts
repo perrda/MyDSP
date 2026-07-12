@@ -598,6 +598,7 @@ export function normalizePortfolio(raw: unknown): PortfolioData {
     documents: normalizeDocuments(r.documents ?? extras.documents),
     todoLists: Array.isArray(r.todoLists) ? r.todoLists : [],
     todoItems: Array.isArray(r.todoItems) ? r.todoItems : [],
+    jobApplications: Array.isArray(r.jobApplications) ? r.jobApplications : [],
     extras: Object.fromEntries(
       Object.entries(extras).filter(
         ([k]) =>
@@ -613,6 +614,7 @@ export function normalizePortfolio(raw: unknown): PortfolioData {
             'documents',
             'todoLists',
             'todoItems',
+            'jobApplications',
           ].includes(k),
       ),
     ),

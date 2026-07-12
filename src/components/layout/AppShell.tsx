@@ -25,6 +25,7 @@ const titles: Record<string, { eyebrow: string; title: string }> = {
   '/history': { eyebrow: 'Insights', title: 'History' },
   '/documents': { eyebrow: 'Vault', title: 'Documents' },
   '/todos': { eyebrow: 'Tasks', title: 'Todo Lists' },
+  '/jobs': { eyebrow: 'Career', title: 'Job Applications' },
   '/import': { eyebrow: 'Import', title: 'Bank CSV' },
   '/rules': { eyebrow: 'Import', title: 'Merchant rules' },
   '/optimizer': { eyebrow: 'Planning', title: 'Debt optimizer' },
@@ -47,7 +48,9 @@ export function AppShell() {
         ? { eyebrow: 'Holdings', title: 'Crypto detail' }
         : pathname.startsWith('/equities/')
           ? { eyebrow: 'Holdings', title: 'Equity detail' }
-          : { eyebrow: 'MyDSP', title: 'App' })
+          : pathname.startsWith('/jobs/')
+            ? { eyebrow: 'Career', title: 'Job Application' }
+            : { eyebrow: 'MyDSP', title: 'App' })
   const syncCfg = loadSyncConfig()
   const {
     portfolios,
