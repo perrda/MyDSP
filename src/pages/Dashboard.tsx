@@ -50,7 +50,7 @@ export function Dashboard() {
   }
 
   return (
-    <div>
+    <div className="pb-8 md:pb-0">
       <PageHeader
         eyebrow="Net worth"
         title="Financial overview"
@@ -60,57 +60,90 @@ export function Dashboard() {
             : 'Showing FCC sample portfolio. Import your live FCC backup in Settings anytime.'
         }
         action={
-          <Link to="/settings" className="btn-secondary btn-sm">
+          <Link to="/settings" className="btn-secondary btn-sm hidden sm:inline-flex">
             Data & settings <ArrowRight size={14} strokeWidth={1.5} />
           </Link>
         }
       />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-px mb-4">
-        {alerts.slice(0, 4).map((a) => (
-          <Link
-            key={a.id}
-            to={a.to}
-            className={`surface surface-interactive px-5 py-4 border-l-2 block ${ALERT_BORDER[a.severity] ?? 'border-l-border-strong'}`}
-          >
-            <p className="text-sm font-semibold uppercase tracking-wider">{a.title}</p>
-            <p className="text-sm text-text-muted mt-1 font-light">{a.detail}</p>
-          </Link>
-        ))}
+      {/* Mobile: Stacked stat cards with better spacing */}
+      <div className={`grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-px mb-6 ${privacyClass(privacy)}`}>
+        <div className="surface p-4 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
+          <p className="text-xs md:text-[10px] uppercase tracking-wider text-text-subtle mb-2 md:mb-1 font-semibold">Net worth</p>
+          <p className="text-xl md:text-2xl font-bold tabular-nums mb-1">{formatGBP(netWorth)}</p>
+          <p className="text-xs text-text-muted font-light leading-tight">Assets − debt</p>
+        </div>
+        <div className="surface p-4 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
+          <p className="text-xs md:text-[10px] uppercase tracking-wider text-text-subtle mb-2 md:mb-1 font-semibold">Assets</p>
+          <p className="text-xl md:text-2xl font-bold tabular-nums mb-1">{formatGBP(assets)}</p>
+          <p className="text-xs text-text-muted font-light leading-tight">Crypto + Equity</p>
+        </div>
+        <div className="surface p-4 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
+          <p className="text-xs md:text-[10px] uppercase tracking-wider text-text-subtle mb-2 md:mb-1 font-semibold">Debt</p>
+          <p className="text-xl md:text-2xl font-bold tabular-nums mb-1 text-text-muted">{formatGBP(liabilities)}</p>
+          <p className="text-xs text-text-muted font-light leading-tight">Total owed</p>
+        </div>
+        <div className="surface p-4 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
+          <p className="text-xs md:text-[10px] uppercase tracking-wider text-text-subtle mb-2 md:mb-1 font-semibold">Monthly</p>
+          <p className="text-xl md:text-2xl font-bold tabular-nums mb-1">{formatGBP(liability.monthly)}</p>
+          <p className="text-xs text-text-muted font-light leading-tight">Min payments</p>
+        </div>
       </div>
 
-      <div className="flex flex-wrap gap-2 mb-8">
+      {/* Alerts - mobile optimized */}
+      {alerts.length > 0 && (
+        <div className="grid grid-cols-1 gap-3 md:gap-px mb-6">
+          {alerts.slice(0, 3).map((a) => (
+            <Link
+              key={a.id}
+              to={a.to}
+              className={`surface surface-interactive p-4 md:px-5 md:py-4 border-l-4 md:border-l-2 block rounded-r-xl md:rounded-none shadow-sm md:shadow-none ${ALERT_BORDER[a.severity] ?? 'border-l-border-strong'}`}
+            >
+              <p className="text-sm font-semibold uppercase tracking-wider mb-1">{a.title}</p>
+              <p className="text-sm text-text-muted font-light leading-snug">{a.detail}</p>
+            </Link>
+          ))}
+        </div>
+      )}
+
+      {/* Quick links - horizontal scroll on mobile */}
+      <div className="flex gap-2 mb-6 overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 pb-2 md:pb-0 scrollbar-hide">
         {QUICK_LINKS.map((l) => (
-          <Link key={l.to} to={l.to} className="btn-ghost btn-sm inline-flex items-center gap-1.5">
-            <l.icon size={14} strokeWidth={1.5} /> {l.label}
+          <Link
+            key={l.to}
+            to={l.to}
+            className="btn-ghost btn-sm inline-flex items-center gap-2 whitespace-nowrap flex-shrink-0"
+          >
+            <l.icon size={16} strokeWidth={1.5} /> {l.label}
           </Link>
         ))}
       </div>
 
+      {/* Budget pulse - mobile optimized */}
       {budgetPulse.length > 0 && (
-        <div className="surface p-5 sm:p-6 mb-8">
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <div className="surface p-5 md:p-6 mb-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
+          <div className="flex items-start justify-between gap-3 mb-5">
             <div>
-              <p className="label-uppercase mb-1">Budget pulse</p>
-              <p className="text-sm text-text-muted font-light">
+              <p className="text-xs uppercase tracking-wider text-text-subtle mb-1 font-semibold">Budget pulse</p>
+              <p className="text-sm text-text-muted font-light leading-snug">
                 Worst category utilisation this month
               </p>
             </div>
-            <Link to="/budgets" className="btn-ghost btn-sm">
+            <Link to="/budgets" className="btn-ghost btn-sm flex-shrink-0">
               Budgets <ArrowRight size={14} strokeWidth={1.5} />
             </Link>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="space-y-4 md:space-y-0 md:grid md:grid-cols-3 md:gap-4">
             {budgetPulse.map((b) => (
-              <div key={b.category}>
-                <div className="flex justify-between text-sm mb-1">
+              <div key={b.category} className="pb-4 border-b border-border md:pb-0 md:border-0 last:pb-0 last:border-0">
+                <div className="flex justify-between text-sm mb-2">
                   <Link
                     to={`/spending?category=${encodeURIComponent(b.category)}`}
                     className="uppercase tracking-wider text-xs font-bold text-text-subtle hover:text-accent"
                   >
                     {b.category}
                   </Link>
-                  <span className={`tabular-nums ${privacyClass(privacy)}`}>
+                  <span className={`tabular-nums font-semibold ${privacyClass(privacy)}`}>
                     {Math.round(b.ratio * 100)}%
                   </span>
                 </div>
@@ -126,131 +159,116 @@ export function Dashboard() {
         </div>
       )}
 
-      <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px mb-8 ${privacyClass(privacy)}`}>
-        <StatCard label="Net worth" value={formatGBP(netWorth)} hint="Assets − liabilities" />
-        <StatCard
-          label="Total assets"
-          value={formatGBP(assets)}
-          hint={`Crypto ${formatGBP(crypto.value)} · Equity ${formatGBP(equity.value)}`}
-        />
-        <StatCard
-          label="Liabilities"
-          value={formatGBP(liabilities)}
-          hint={`CC ${formatGBP(liability.cc)} · Loans ${formatGBP(liability.loans)}`}
-          tone="negative"
-        />
-        <StatCard
-          label="Monthly debt service"
-          value={formatGBP(liability.monthly)}
-          hint="Min payments (CC + loans)"
-        />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-px mb-8">
-        <AllocationRing
-          className="lg:col-span-1"
-          data={[
-            { name: 'Crypto', value: crypto.value },
-            { name: 'Equities', value: equity.value },
-          ].filter((s) => s.value > 0)}
-          privacy={privacy}
-          eyebrow="Mix"
-          title="Assets"
-          donut
-        />
-        <div className="lg:col-span-2">
+      {/* Asset allocation and net worth chart */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-px mb-6">
+        <div className="surface p-5 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
+          <AllocationRing
+            data={[
+              { name: 'Crypto', value: crypto.value },
+              { name: 'Equities', value: equity.value },
+            ].filter((s) => s.value > 0)}
+            privacy={privacy}
+            eyebrow="Mix"
+            title="Assets"
+            donut
+          />
+        </div>
+        <div className="lg:col-span-2 surface p-5 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
           <NetWorthChart history={data.history} privacy={privacy} onSnapshot={onSnapshot} />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-px mb-8">
-        <Link to="/achievements" className="surface surface-interactive p-6 sm:p-8 block">
-          <p className="label-uppercase mb-2">Financial score</p>
-          <p className={`text-2xl font-bold tabular-nums ${privacyClass(privacy)}`}>
+      {/* Score, Level, Debt cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-px mb-6">
+        <Link to="/achievements" className="surface surface-interactive p-5 md:p-8 block rounded-xl md:rounded-none shadow-sm md:shadow-none">
+          <p className="text-xs uppercase tracking-wider text-text-subtle mb-2 font-semibold">Financial score</p>
+          <p className={`text-3xl md:text-2xl font-bold tabular-nums mb-1 ${privacyClass(privacy)}`}>
             {achievements.score}
           </p>
-          <p className="mt-2 text-sm text-text-subtle font-light">0–1000 composite</p>
+          <p className="text-xs text-text-subtle font-light">0–1000 composite</p>
         </Link>
-        <Link to="/achievements" className="surface surface-interactive p-6 sm:p-8 block">
-          <p className="label-uppercase mb-2">Level</p>
-          <p className={`text-2xl font-bold tabular-nums ${privacyClass(privacy)}`}>
+        <Link to="/achievements" className="surface surface-interactive p-5 md:p-8 block rounded-xl md:rounded-none shadow-sm md:shadow-none">
+          <p className="text-xs uppercase tracking-wider text-text-subtle mb-2 font-semibold">Level</p>
+          <p className={`text-3xl md:text-2xl font-bold tabular-nums mb-1 ${privacyClass(privacy)}`}>
             L{achievements.level}
           </p>
-          <p className="mt-2 text-sm text-accent font-light">
+          <p className="text-xs text-accent font-light">
             {achievements.xp} XP · {achievements.unlocked.length} unlocked
           </p>
         </Link>
-        <Link to="/liabilities" className="surface surface-interactive p-6 sm:p-8 block">
-          <p className="label-uppercase mb-2">Debt</p>
-          <p className={`text-2xl font-bold tabular-nums ${privacyClass(privacy)}`}>
+        <Link to="/liabilities" className="surface surface-interactive p-5 md:p-8 block rounded-xl md:rounded-none shadow-sm md:shadow-none">
+          <p className="text-xs uppercase tracking-wider text-text-subtle mb-2 font-semibold">Debt</p>
+          <p className={`text-3xl md:text-2xl font-bold tabular-nums mb-1 ${privacyClass(privacy)}`}>
             {formatGBP(liabilities)}
           </p>
-          <p className="mt-2 text-sm text-text-subtle font-light">
+          <p className="text-xs text-text-subtle font-light">
             {data.creditCards.length} cards · {data.loans.length} loans
           </p>
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-px mb-8">
-        <Link to="/crypto" className="surface surface-interactive p-6 sm:p-8 block">
-          <p className="label-uppercase mb-2">Crypto</p>
-          <p className={`text-2xl font-bold tabular-nums ${privacyClass(privacy)}`}>
+      {/* Crypto and Equities */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-px mb-6">
+        <Link to="/crypto" className="surface surface-interactive p-5 md:p-8 block rounded-xl md:rounded-none shadow-sm md:shadow-none">
+          <p className="text-xs uppercase tracking-wider text-text-subtle mb-2 font-semibold">Crypto</p>
+          <p className={`text-3xl md:text-2xl font-bold tabular-nums mb-1 ${privacyClass(privacy)}`}>
             {formatGBP(crypto.value)}
           </p>
-          <p className={`mt-2 text-sm font-light ${crypto.pnl >= 0 ? 'text-accent' : 'text-text-muted'}`}>
+          <p className={`text-sm font-light ${crypto.pnl >= 0 ? 'text-accent' : 'text-text-muted'}`}>
             {formatPct(crypto.pct)} P&amp;L
           </p>
         </Link>
-        <Link to="/equities" className="surface surface-interactive p-6 sm:p-8 block">
-          <p className="label-uppercase mb-2">Equities</p>
-          <p className={`text-2xl font-bold tabular-nums ${privacyClass(privacy)}`}>
+        <Link to="/equities" className="surface surface-interactive p-5 md:p-8 block rounded-xl md:rounded-none shadow-sm md:shadow-none">
+          <p className="text-xs uppercase tracking-wider text-text-subtle mb-2 font-semibold">Equities</p>
+          <p className={`text-3xl md:text-2xl font-bold tabular-nums mb-1 ${privacyClass(privacy)}`}>
             {formatGBP(equity.value)}
           </p>
-          <p className={`mt-2 text-sm font-light ${equity.pnl >= 0 ? 'text-accent' : 'text-text-muted'}`}>
+          <p className={`text-sm font-light ${equity.pnl >= 0 ? 'text-accent' : 'text-text-muted'}`}>
             {formatPct(equity.pct)} P&amp;L
           </p>
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-px">
-        <div className="surface p-6 sm:p-8 lg:col-span-2 lg:col-start-4">
-          <p className="label-uppercase mb-2">Recent</p>
-          <h3 className="text-lg font-bold tracking-tight mb-6">Activity</h3>
-          {recentJournal.length === 0 && recentSpend.length === 0 ? (
-            <p className="text-sm text-text-subtle font-light">
-              No journal or spending entries yet. Import from FCC or add data as features land.
-            </p>
-          ) : (
-            <ul className="divide-y divide-border">
-              {recentJournal.map((j) => (
-                <li key={`j-${j.id}`} className="py-3 flex justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">
-                      {j.type} {j.asset}
-                    </p>
-                    <p className="text-xs text-text-subtle mt-1">{formatDate(j.date)}</p>
-                  </div>
-                  <p className={`text-sm font-semibold tabular-nums ${privacyClass(privacy)}`}>
-                    {formatGBP(j.total)}
-                  </p>
-                </li>
-              ))}
-              {recentSpend.map((s) => (
-                <li key={`s-${s.id}`} className="py-3 flex justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">{s.description}</p>
-                    <p className="text-xs text-text-subtle mt-1">
-                      {formatDate(s.date)} · {s.category}
-                    </p>
-                  </div>
-                  <p className={`text-sm font-semibold tabular-nums ${privacyClass(privacy)}`}>
-                    {formatGBP(-Math.abs(s.amount))}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          )}
+      {/* Recent Activity */}
+      <div className="surface p-5 md:p-8 rounded-xl md:rounded-none shadow-sm md:shadow-none">
+        <div className="mb-4">
+          <p className="text-xs uppercase tracking-wider text-text-subtle mb-1 font-semibold">Recent</p>
+          <h3 className="text-lg font-bold tracking-tight">Activity</h3>
         </div>
+        {recentJournal.length === 0 && recentSpend.length === 0 ? (
+          <p className="text-sm text-text-muted font-light py-4">
+            No journal or spending entries yet. Import from FCC or add data as features land.
+          </p>
+        ) : (
+          <ul className="divide-y divide-border">
+            {recentJournal.map((j) => (
+              <li key={`j-${j.id}`} className="py-3.5 flex justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">
+                    {j.type} {j.asset}
+                  </p>
+                  <p className="text-xs text-text-subtle mt-1">{formatDate(j.date)}</p>
+                </div>
+                <p className={`text-sm font-semibold tabular-nums ${privacyClass(privacy)}`}>
+                  {formatGBP(j.total)}
+                </p>
+              </li>
+            ))}
+            {recentSpend.map((s) => (
+              <li key={`s-${s.id}`} className="py-3.5 flex justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">{s.description}</p>
+                  <p className="text-xs text-text-subtle mt-1">
+                    {formatDate(s.date)} · {s.category}
+                  </p>
+                </div>
+                <p className={`text-sm font-semibold tabular-nums ${privacyClass(privacy)}`}>
+                  {formatGBP(-Math.abs(s.amount))}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </div>
   )

@@ -9,10 +9,10 @@ interface PageHeaderProps {
 
 export function PageHeader({ eyebrow, title, description, action }: PageHeaderProps) {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
+    <div className="flex flex-col gap-3 md:gap-4 mb-6 md:mb-8">
       <div className="min-w-0 flex-1">
-        <p className="eyebrow mb-3">{eyebrow}</p>
-        <h2 className="headline-md">
+        <p className="eyebrow mb-2 md:mb-3 text-xs md:text-sm">{eyebrow}</p>
+        <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight leading-tight">
           {title.includes(' ') ? (
             <>
               {title.slice(0, title.lastIndexOf(' '))}{' '}
@@ -23,12 +23,12 @@ export function PageHeader({ eyebrow, title, description, action }: PageHeaderPr
           )}
         </h2>
         {description && (
-          <p className="mt-3 text-sm sm:text-base text-text-muted font-light leading-relaxed max-w-xl">
+          <p className="mt-2 md:mt-3 text-xs md:text-sm text-text-muted font-light leading-relaxed max-w-2xl">
             {description}
           </p>
         )}
       </div>
-      {action && <div className="shrink-0 self-start sm:self-end">{action}</div>}
+      {action && <div className="shrink-0 self-start md:self-end">{action}</div>}
     </div>
   )
 }
