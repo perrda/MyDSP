@@ -61,8 +61,15 @@ import { STORAGE } from '../storage/keys'
 import { resetNavOrder } from '../storage/navOrder'
 import {
   getSessionSyncPassphrase,
+  hasRememberedSyncPassphrase,
   setSessionSyncPassphrase,
 } from '../services/sync/sessionPassphrase'
+import {
+  getAutoSyncStatus,
+  subscribeAutoSync,
+  syncNow,
+  type AutoSyncStatus,
+} from '../services/sync/autoSyncService'
 
 const TRADE_TEMPLATES = [
   { symbol: 'TSLA', kind: 'equity' as const, href: 'data/templates/trades-TSLA.csv' },
@@ -124,6 +131,7 @@ export function SettingsPage() {
   const [sec, setSec] = useState<SecurityState>(() => loadSecurity())
   const [syncCfg, setSyncCfg] = useState(loadSyncConfig)
   const [syncPass, setSyncPass] = useState(() => getSessionSyncPassphrase() ?? '')
+  const [autoSyncStatus, setAutoSyncStatus] = useState<AutoSyncStatus>(() => getAutoSyncStatus())
   const syncFileRef = useRef<HTMLInputElement>(null)
   const [conflicts, setConflicts] = useState<SyncConflict[]>([])
   const [conflictChoices, setConflictChoices] = useState<Record<string, ConflictChoice>>({})
@@ -142,6 +150,8 @@ export function SettingsPage() {
     variant?: 'default' | 'danger'
     onConfirm: () => void
   } | null>(null)
+
+  useEffect(() => subscribeAutoSync(setAutoSyncStatus), [])
 
   const refreshBackupList = () => {
     void listFullBackups()
@@ -819,9 +829,10 @@ export function SettingsPage() {
           <p className="eyebrow mb-3">Sync</p>
           <h3 className="text-lg font-bold tracking-tight mb-3">Encrypted cloud sync</h3>
           <p className="text-sm text-text-muted font-light mb-4 max-w-2xl">
-            Encrypt your portfolios with a passphrase, then Push/Pull to a free Cloudflare Worker.
-            Same URL + same passphrase on every device. Full walkthrough:{' '}
-            <code className="text-accent">SYNC_SETUP.md</code> in the repo.
+            Keep every device in sync automatically via a free Cloudflare Worker. Data is encrypted
+            on your device before it leaves the browser — Cloudflare only stores a locked blob. Same
+            Remote URL + same passphrase on Mac, iPhone, and iPad. Setup guide:{' '}
+            <code className="text-accent">SYNC_SETUP.md</code>.
           </p>
           <div className="border border-border p-4 mb-6 max-w-2xl space-y-4">
             <div>
@@ -847,17 +858,17 @@ export function SettingsPage() {
             </div>
             <div>
               <p className="text-[10px] font-bold uppercase tracking-widest text-text-subtle mb-3">
-                Connect this device
+                Connect this device (once)
               </p>
               <ol className="text-sm text-text-muted font-light space-y-2 list-decimal pl-5">
-                <li>Paste Remote URL below + enter passphrase (min 8 characters)</li>
+                <li>Paste Remote URL + enter passphrase (min 8 characters)</li>
                 <li>
-                  <span className="text-text font-medium">Test endpoint</span> — 404 before first
-                  Push is OK
+                  Turn on <span className="text-text font-medium">Automatic sync</span> and{' '}
+                  <span className="text-text font-medium">Remember passphrase</span>
                 </li>
                 <li>
-                  Desktop: <span className="text-text font-medium">Push</span> · Phone:{' '}
-                  <span className="text-text font-medium">Pull &amp; merge</span>
+                  First device: <span className="text-text font-medium">Push</span> (or Sync now).
+                  Other devices: open the app — they pull automatically
                 </li>
               </ol>
             </div>
@@ -890,16 +901,119 @@ export function SettingsPage() {
           </label>
           <input
             type="password"
-            className="mb-6 w-full max-w-md"
+            className="mb-3 w-full max-w-md"
             autoComplete="new-password"
-            placeholder="Sync passphrase (session only — min 8 chars)"
+            placeholder="Sync passphrase (min 8 chars)"
             value={syncPass}
             onChange={(e) => {
               const v = e.target.value
               setSyncPass(v)
-              setSessionSyncPassphrase(v)
+              setSessionSyncPassphrase(v, { remember: Boolean(syncCfg.rememberPassphrase) })
             }}
           />
+          <div className="flex flex-col gap-3 mb-6 max-w-2xl">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                className="mt-1"
+                checked={Boolean(syncCfg.enabled)}
+                onChange={(e) => {
+                  const on = e.target.checked
+                  if (on) {
+                    if (!syncCfg.remoteUrl.trim()) {
+                      flash('Set Remote URL before enabling automatic sync.')
+                      return
+                    }
+                    if (!syncPass || syncPass.length < 8) {
+                      flash('Enter a passphrase (min 8 chars) before enabling automatic sync.')
+                      return
+                    }
+                    setSessionSyncPassphrase(syncPass, {
+                      remember: Boolean(syncCfg.rememberPassphrase),
+                    })
+                  }
+                  const next = { ...syncCfg, enabled: on }
+                  setSyncCfg(next)
+                  saveSyncConfig(next)
+                  if (on) {
+                    void syncNow().then(() => {
+                      setSyncCfg(loadSyncConfig())
+                      flash('Automatic sync on — devices will stay in sync.')
+                    })
+                  } else {
+                    flash('Automatic sync off — use Push / Pull manually.')
+                  }
+                }}
+              />
+              <span>
+                <span className="text-sm font-medium text-text">Automatic sync</span>
+                <span className="block text-xs text-text-muted font-light mt-0.5">
+                  Pull when you open the app or return to the tab; push a few seconds after you edit.
+                  No iCloud needed — uses your Cloudflare Worker.
+                </span>
+              </span>
+            </label>
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                className="mt-1"
+                checked={Boolean(syncCfg.rememberPassphrase) || hasRememberedSyncPassphrase()}
+                onChange={(e) => {
+                  const remember = e.target.checked
+                  const next = { ...syncCfg, rememberPassphrase: remember }
+                  setSyncCfg(next)
+                  saveSyncConfig(next)
+                  if (syncPass) {
+                    setSessionSyncPassphrase(syncPass, { remember })
+                  } else if (!remember) {
+                    setSessionSyncPassphrase('', { remember: false })
+                  }
+                  flash(
+                    remember
+                      ? 'Passphrase saved on this device for automatic sync.'
+                      : 'Passphrase cleared from this device.',
+                  )
+                }}
+              />
+              <span>
+                <span className="text-sm font-medium text-text">Remember passphrase on this device</span>
+                <span className="block text-xs text-text-muted font-light mt-0.5">
+                  Required so sync continues after you close the tab. Stored only in this browser —
+                  turn off on shared computers.
+                </span>
+              </span>
+            </label>
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                className="mt-1"
+                checked={syncCfg.autoResolveConflicts !== false}
+                onChange={(e) => {
+                  const next = { ...syncCfg, autoResolveConflicts: e.target.checked }
+                  setSyncCfg(next)
+                  saveSyncConfig(next)
+                }}
+              />
+              <span>
+                <span className="text-sm font-medium text-text">
+                  Auto-resolve conflicts (prefer cloud)
+                </span>
+                <span className="block text-xs text-text-muted font-light mt-0.5">
+                  If the same item was edited on two devices, keep the cloud version on pull. Turn off
+                  to review conflicts manually.
+                </span>
+              </span>
+            </label>
+          </div>
+          {(syncCfg.enabled || autoSyncStatus.state !== 'disabled') && (
+            <p className="text-xs text-text-subtle mb-4">
+              Auto-sync status:{' '}
+              <span className="text-text">
+                {autoSyncStatus.state}
+                {autoSyncStatus.message ? ` — ${autoSyncStatus.message}` : ''}
+              </span>
+            </p>
+          )}
           <div className="flex flex-wrap gap-3 mb-4">
             <button
               type="button"
@@ -914,6 +1028,9 @@ export function SettingsPage() {
                     flash('Set a remote URL first (or use encrypted file download).')
                     return
                   }
+                  setSessionSyncPassphrase(syncPass, {
+                    remember: Boolean(syncCfg.rememberPassphrase),
+                  })
                   if (!isOnline()) {
                     enqueueOfflineJob('sync_push', {
                       remoteUrl: syncCfg.remoteUrl,
@@ -994,6 +1111,34 @@ export function SettingsPage() {
               }}
             >
               Pull & merge
+            </button>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => {
+                void (async () => {
+                  if (!syncPass || syncPass.length < 8) {
+                    flash('Enter passphrase first.')
+                    return
+                  }
+                  if (!syncCfg.remoteUrl) {
+                    flash('Set Remote URL first.')
+                    return
+                  }
+                  setSessionSyncPassphrase(syncPass, {
+                    remember: Boolean(syncCfg.rememberPassphrase),
+                  })
+                  const next = { ...syncCfg, enabled: true }
+                  setSyncCfg(next)
+                  saveSyncConfig(next)
+                  await syncNow()
+                  setSyncCfg(loadSyncConfig())
+                  reload()
+                  flash('Sync now finished.')
+                })()
+              }}
+            >
+              Sync now
             </button>
             <button
               type="button"

@@ -699,7 +699,7 @@ describe('next-10 helpers', () => {
     expect(data.settings.currency).toBe('USD')
   })
 
-  it('session passphrase stays in memory only', async () => {
+  it('session passphrase lives in memory (optional remember on device)', async () => {
     const sp = await import('../src/services/sync/sessionPassphrase')
     sp.clearSessionSyncPassphrase()
     expect(sp.hasSessionSyncPassphrase()).toBe(false)
@@ -707,6 +707,7 @@ describe('next-10 helpers', () => {
     expect(sp.hasSessionSyncPassphrase()).toBe(false)
     sp.setSessionSyncPassphrase('long-enough-pass')
     expect(sp.getSessionSyncPassphrase()).toBe('long-enough-pass')
+    expect(sp.hasRememberedSyncPassphrase()).toBe(false)
     sp.clearSessionSyncPassphrase()
   })
 

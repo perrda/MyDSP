@@ -26,11 +26,24 @@ const DEVICE_KEY = 'mydsp_device_id'
 
 export interface SyncConfig {
   remoteUrl: string
+  /**
+   * When true, devices auto pull on resume/online and push after local edits.
+   * Requires passphrase (session or remembered on this device).
+   */
   enabled: boolean
+  /** Persist passphrase in localStorage on this device (needed for auto-sync after reload). */
+  rememberPassphrase?: boolean
+  /**
+   * When auto-pull finds same-id conflicts, prefer remote (other device).
+   * Default true. Set false to pause and review in Settings.
+   */
+  autoResolveConflicts?: boolean
   lastSyncAt?: string
   lastSyncError?: string
   /** Portfolios merged on the last successful pull */
   lastMergeCount?: number
+  /** Last applied remote envelope exportedAt (skip re-pull of same blob) */
+  lastRemoteExportedAt?: string
 }
 
 export interface SyncEnvelope {
@@ -77,10 +90,15 @@ export function loadSyncConfig(): SyncConfig {
     return {
       remoteUrl: typeof parsed.remoteUrl === 'string' ? parsed.remoteUrl : '',
       enabled: Boolean(parsed.enabled),
+      rememberPassphrase: Boolean(parsed.rememberPassphrase),
+      autoResolveConflicts:
+        parsed.autoResolveConflicts === undefined ? true : Boolean(parsed.autoResolveConflicts),
       lastSyncAt: parsed.lastSyncAt,
       lastSyncError: parsed.lastSyncError,
       lastMergeCount:
         typeof parsed.lastMergeCount === 'number' ? parsed.lastMergeCount : undefined,
+      lastRemoteExportedAt:
+        typeof parsed.lastRemoteExportedAt === 'string' ? parsed.lastRemoteExportedAt : undefined,
     }
   } catch {
     return { remoteUrl: '', enabled: false }
@@ -98,6 +116,44 @@ function deviceId(): string {
     localStorage.setItem(DEVICE_KEY, id)
   }
   return id
+}
+
+export function getLocalDeviceId(): string {
+  return deviceId()
+}
+
+/**
+ * Lightweight remote check — prefers Worker `?meta=1`, falls back to envelope top-level fields.
+ * Does not decrypt. Returns null when store is empty (404).
+ */
+export async function fetchRemoteMeta(
+  url: string,
+): Promise<{ exportedAt: string; deviceId: string; checksum?: string } | null> {
+  let metaUrl = url
+  try {
+    const u = new URL(url)
+    u.searchParams.set('meta', '1')
+    metaUrl = u.toString()
+  } catch {
+    metaUrl = url.includes('?') ? `${url}&meta=1` : `${url}?meta=1`
+  }
+
+  let res = await fetch(metaUrl)
+  // Older workers ignore ?meta=1 and return the full envelope — still usable
+  if (res.status === 404) return null
+  if (!res.ok && metaUrl !== url) {
+    res = await fetch(url)
+    if (res.status === 404) return null
+  }
+  if (!res.ok) throw new Error(`Remote check failed (${res.status})`)
+
+  const data = (await res.json()) as Record<string, unknown>
+  if (typeof data.exportedAt !== 'string') return null
+  return {
+    exportedAt: data.exportedAt,
+    deviceId: typeof data.deviceId === 'string' ? data.deviceId : '',
+    checksum: typeof data.checksum === 'string' ? data.checksum : undefined,
+  }
 }
 
 export function allConflictsResolved(

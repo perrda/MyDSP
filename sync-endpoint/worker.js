@@ -1,6 +1,7 @@
 /**
  * Minimal MyDSP sync store — Cloudflare Worker + KV binding `STORE`.
  * Optional env SYNC_KEY: require ?key= or header X-MyDSP-Key.
+ * GET ?meta=1 returns lightweight { exportedAt, deviceId, checksum } without the full blob body size win when possible.
  */
 export default {
   async fetch(request, env) {
@@ -24,6 +25,26 @@ export default {
     if (request.method === 'GET') {
       const raw = await env.STORE.get('envelope')
       if (!raw) return new Response('Not found', { status: 404, headers: cors })
+
+      if (url.searchParams.get('meta') === '1') {
+        try {
+          const envelope = JSON.parse(raw)
+          return new Response(
+            JSON.stringify({
+              exportedAt: envelope.exportedAt ?? null,
+              deviceId: envelope.deviceId ?? null,
+              checksum: envelope.checksum ?? null,
+            }),
+            {
+              status: 200,
+              headers: { ...cors, 'Content-Type': 'application/json' },
+            },
+          )
+        } catch {
+          return new Response('Bad store', { status: 500, headers: cors })
+        }
+      }
+
       return new Response(raw, {
         status: 200,
         headers: { ...cors, 'Content-Type': 'application/json' },

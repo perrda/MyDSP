@@ -27,6 +27,12 @@ import {
 } from '../services/fx'
 import { getSessionSyncPassphrase } from '../services/sync/sessionPassphrase'
 import { pushSync } from '../services/sync/syncService'
+import {
+  markLocalDataChanged,
+  runAutoSyncCycle,
+  startAutoSync,
+  stopAutoSync,
+} from '../services/sync/autoSyncService'
 import { setDisplayCurrency } from '../utils/format'
 import { migrateEquityLivePricesToGbp, repairEquityLivePricesToGbp, EQUITY_GBP_VERSION } from '../domain/migrateEquityGbp'
 import { equityNeedsUsdToGbp } from '../domain/equityCurrency'
@@ -46,6 +52,7 @@ import {
   savePortfolio,
   savePortfolioImmediate,
   setActivePortfolioId,
+  setOnPortfolioDataChanged,
 } from '../storage/portfolioStore'
 import { ensureDailyBackup } from '../storage/backupStore'
 
@@ -397,6 +404,19 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('focus', onFocus)
   }, [refreshPrices])
 
+  // Automatic Cloudflare sync: pull on resume, push after local edits
+  useEffect(() => {
+    setOnPortfolioDataChanged(() => markLocalDataChanged())
+    startAutoSync()
+    const onApplied = () => reload()
+    window.addEventListener('mydsp-sync-applied', onApplied)
+    return () => {
+      setOnPortfolioDataChanged(null)
+      stopAutoSync()
+      window.removeEventListener('mydsp-sync-applied', onApplied)
+    }
+  }, [reload])
+
   // Flush offline quote + sync jobs when connectivity returns
   useEffect(() => {
     const onOnline = () => {
@@ -416,6 +436,7 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
             })
         }
       }
+      void runAutoSyncCycle('online')
     }
     window.addEventListener('online', onOnline)
     return () => window.removeEventListener('online', onOnline)
