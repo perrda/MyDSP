@@ -7,19 +7,40 @@ interface PageHeaderProps {
   action?: ReactNode
 }
 
+/** Capitalise a single token for headers (e.g. portfolios → Portfolios). */
+export function titleCaseWord(word: string): string {
+  if (!word) return word
+  if (word === '&' || word === '/' || word === '-') return word
+  return word.charAt(0).toUpperCase() + word.slice(1)
+}
+
+/** Title-case each whitespace-separated word in a page header. */
+export function titleCaseHeader(title: string): string {
+  return title
+    .split(/(\s+)/)
+    .map((part) => (/^\s+$/.test(part) ? part : titleCaseWord(part)))
+    .join('')
+}
+
 export function PageHeader({ eyebrow, title, description, action }: PageHeaderProps) {
+  const display = titleCaseHeader(title)
+  const lastSpace = display.lastIndexOf(' ')
+  const hasAccentSplit = lastSpace > 0
+  const lead = hasAccentSplit ? display.slice(0, lastSpace) : ''
+  const accent = hasAccentSplit ? display.slice(lastSpace + 1) : display
+
   return (
     <div className="flex flex-col gap-3 md:gap-4 mb-6 md:mb-8">
       <div className="min-w-0 flex-1">
         <p className="eyebrow mb-2 md:mb-3 text-xs md:text-sm">{eyebrow}</p>
         <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight leading-tight">
-          {title.includes(' ') ? (
+          {hasAccentSplit ? (
             <>
-              {title.slice(0, title.lastIndexOf(' '))}{' '}
-              <span className="gradient-text">{title.slice(title.lastIndexOf(' ') + 1)}</span>
+              {lead}{' '}
+              <span className="gradient-text">{accent}</span>
             </>
           ) : (
-            <span className="gradient-text">{title}</span>
+            <span className="gradient-text">{accent}</span>
           )}
         </h2>
         {description && (
