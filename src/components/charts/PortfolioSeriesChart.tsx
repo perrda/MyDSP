@@ -166,9 +166,8 @@ export function PortfolioSeriesChart({
               data={chartData}
               margin={{ top: 8, right: 4, left: 0, bottom: 0 }}
               onMouseMove={(e) => {
-                if (e && e.activeTooltipIndex !== undefined) {
-                  setFocusedPoint(e.activeTooltipIndex)
-                }
+                const idx = e?.activeTooltipIndex
+                setFocusedPoint(typeof idx === 'number' ? idx : null)
               }}
               onMouseLeave={() => setFocusedPoint(null)}
             >
