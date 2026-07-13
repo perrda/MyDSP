@@ -6,7 +6,7 @@ Encrypted envelopes only — passphrase crypto stays in the browser.
 
 ## Quick deploy (Dashboard)
 
-1. Create Worker `mydsp-sync`.
+1. Workers & Pages → open **`mydsp-sync`** if it exists, else **Create application** → **Worker** → name `mydsp-sync`.
 2. Bind KV namespace as **`STORE`** (exact name).
 3. Paste [`worker.js`](./worker.js) → Deploy.
 4. Optional secret `SYNC_KEY` → append `?key=YOUR_SECRET` to the URL.
