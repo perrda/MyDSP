@@ -63,8 +63,8 @@ export function Dashboard() {
             : 'Showing FCC sample portfolio. Import your live FCC backup in Settings anytime.'
         }
         action={
-          <Link to="/settings" className="btn-secondary btn-sm hidden sm:inline-flex">
-            Data & settings <ArrowRight size={14} strokeWidth={1.5} />
+          <Link to="/settings#sync" className="btn-secondary btn-sm inline-flex">
+            Cloud Sync <ArrowRight size={14} strokeWidth={1.5} />
           </Link>
         }
       />

@@ -30,6 +30,7 @@ import {
   GitCompareArrows,
   ListChecks,
   Briefcase,
+  RefreshCw,
   type LucideIcon,
 } from 'lucide-react'
 import { BrandMark } from '../BrandMark'
@@ -102,6 +103,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
   const onReorder = (next: NavItem[]) => {
     const paths = next.map((l) => l.to)
+    if (!paths.includes('/settings')) paths.push('/settings')
     setOrder(paths)
     saveNavOrder(paths)
   }
@@ -151,13 +153,33 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           </button>
         </div>
 
+        <div className="px-3 pt-3 pb-1 space-y-1 border-b border-border">
+          <NavLink
+            to="/settings#sync"
+            onClick={onClose}
+            className={({ isActive }) => `nav-link nav-link-flex ${isActive ? 'active' : ''}`}
+          >
+            <RefreshCw size={16} strokeWidth={1.5} />
+            Cloud Sync
+          </NavLink>
+          <NavLink
+            to="/settings"
+            end
+            onClick={onClose}
+            className={({ isActive }) => `nav-link nav-link-flex ${isActive ? 'active' : ''}`}
+          >
+            <Settings size={16} strokeWidth={1.5} />
+            Settings
+          </NavLink>
+        </div>
+
         <p className="px-5 pt-3 text-[10px] font-bold uppercase tracking-widest text-text-subtle">
           Drag ⋮⋮ to reorder
         </p>
 
         <nav className="flex-1 py-2 overflow-y-auto" aria-label="Primary">
           <ReorderList
-            items={links}
+            items={links.filter((l) => l.to !== '/settings')}
             getId={(l) => l.to}
             onReorder={onReorder}
             className="flex flex-col"
