@@ -19,6 +19,7 @@ import { RecurringPage } from './pages/RecurringPage'
 import { MonthlyReviewPage } from './pages/MonthlyReviewPage'
 import { TripsPage } from './pages/TripsPage'
 import { ImportPage } from './pages/ImportPage'
+import { EnhancedImportPage } from './pages/EnhancedImportPage'
 import { RulesPage } from './pages/RulesPage'
 import { OptimizerPage } from './pages/OptimizerPage'
 import { FirePage } from './pages/FirePage'
@@ -70,7 +71,8 @@ export default function App() {
                   <Route path="family" element={<FamilyPage />} />
                   <Route path="history" element={<HistoryPage />} />
                   <Route path="documents" element={<DocumentsPage />} />
-                  <Route path="import" element={<ImportPage />} />
+                  <Route path="import" element={<EnhancedImportPage />} />
+                  <Route path="import/legacy" element={<ImportPage />} />
                   <Route path="rules" element={<RulesPage />} />
                   <Route path="optimizer" element={<OptimizerPage />} />
                   <Route path="fire" element={<FirePage />} />
