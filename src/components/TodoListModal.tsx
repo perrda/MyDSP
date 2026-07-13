@@ -12,6 +12,22 @@ const LIST_COLORS = [
   { value: '#64748B', label: 'Slate' },
 ]
 
+const LIST_ICON_OPTIONS = [
+  { value: 'list', glyph: '📋', label: 'List' },
+  { value: 'finance', glyph: '💷', label: 'Finance' },
+  { value: 'work', glyph: '💼', label: 'Work' },
+  { value: 'home', glyph: '🏠', label: 'Home' },
+  { value: 'health', glyph: '❤️', label: 'Health' },
+  { value: 'career', glyph: '🎯', label: 'Career' },
+]
+
+export function listIconGlyph(icon?: string): string {
+  if (!icon) return '📋'
+  const match = LIST_ICON_OPTIONS.find((o) => o.value === icon)
+  if (match) return match.glyph
+  return icon.length <= 2 ? icon : '📋'
+}
+
 interface TodoListModalProps {
   list?: TodoList
   onSave: (list: TodoList) => void
@@ -114,12 +130,11 @@ export function TodoListModal({ list, onSave, onClose }: TodoListModalProps) {
                   onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
                   className="w-full px-3 py-2 bg-surface-hover border border-border rounded text-sm"
                 >
-                  <option value="list">List</option>
-                  <option value="finance">Finance</option>
-                  <option value="work">Work</option>
-                  <option value="home">Home</option>
-                  <option value="health">Health</option>
-                  <option value="career">Career</option>
+                  {LIST_ICON_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.glyph} {opt.label}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>

@@ -22,13 +22,16 @@ Copy structure and classes from:
 
 ## Checklist
 
-1. Custom modal (not `window.prompt`)
-2. Sticky header with title + close
-3. Section headings + 1–2 column grid
-4. `text-xs text-text-subtle` labels above fields
-5. Shared input classes: `bg-surface-hover border border-border rounded text-sm`
-6. Cancel / primary save footer
-7. Empty states call the same modal opener (no alternate input path)
+1. Custom modal (not `window.prompt` / `window.confirm` / `window.alert`)
+2. Destructive actions use `ConfirmDialog` from `src/components/ui/Modal.tsx`
+3. Sticky header with title + close
+4. Section headings + 1–2 column grid
+5. `text-xs text-text-subtle` labels above fields
+6. Shared input classes: `bg-surface-hover border border-border rounded text-sm`
+7. Cancel / primary save footer
+8. Empty states call the same modal opener (no alternate input path)
+9. Todo screenshot import uses on-device OCR (`TodoScreenshotImportModal`) with a review step before save
+10. After OCR import, support bulk **Move to list** for regrouping
 
 ## Adding more Cursor skills later
 

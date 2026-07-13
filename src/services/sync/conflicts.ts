@@ -12,6 +12,16 @@ export type ConflictCollection =
   | 'goals'
   | 'journal'
   | 'disposals'
+  | 'todoItems'
+  | 'todoLists'
+  | 'jobApplications'
+  | 'documents'
+
+export interface FieldDiff {
+  field: string
+  local: string
+  remote: string
+}
 
 export interface SyncConflict {
   portfolioId: string
@@ -19,12 +29,14 @@ export interface SyncConflict {
   id: number
   localLabel: string
   remoteLabel: string
+  /** Changed fields for clearer resolution UX */
+  fieldDiffs?: FieldDiff[]
 }
 
 export type ConflictChoice = 'local' | 'remote'
 
 function stableHash(value: unknown): string {
-  const s = JSON.stringify(value)
+  const s = value === undefined ? 'undefined' : JSON.stringify(value) ?? 'null'
   let h = 2166136261
   for (let i = 0; i < s.length; i++) {
     h ^= s.charCodeAt(i)
@@ -33,12 +45,48 @@ function stableHash(value: unknown): string {
   return (h >>> 0).toString(16)
 }
 
-function labelOf(item: Record<string, unknown>): string {
+function labelOf(item: Record<string, unknown>, collection: ConflictCollection): string {
+  if (collection === 'jobApplications') {
+    const company = typeof item.companyName === 'string' ? item.companyName : ''
+    const title = typeof item.jobTitle === 'string' ? item.jobTitle : ''
+    return [company, title].filter(Boolean).join(' — ') || `#${item.id}`
+  }
+  if (collection === 'todoItems') {
+    return (typeof item.title === 'string' && item.title) || `#${item.id}`
+  }
+  if (collection === 'todoLists') {
+    return (typeof item.name === 'string' && item.name) || `#${item.id}`
+  }
   const symbol = typeof item.symbol === 'string' ? item.symbol : ''
   const name = typeof item.name === 'string' ? item.name : ''
   const desc = typeof item.description === 'string' ? item.description : ''
   const asset = typeof item.asset === 'string' ? item.asset : ''
   return symbol || name || desc || asset || `#${item.id}`
+}
+
+const SKIP_FIELDS = new Set(['updatedAt', 'createdAt', 'sortOrder'])
+
+export function diffFields(local: Record<string, unknown>, remote: Record<string, unknown>): FieldDiff[] {
+  const keys = new Set([...Object.keys(local), ...Object.keys(remote)])
+  const diffs: FieldDiff[] = []
+  for (const field of keys) {
+    if (SKIP_FIELDS.has(field)) continue
+    const lv = local[field]
+    const rv = remote[field]
+    if (stableHash(lv) === stableHash(rv)) continue
+    const fmt = (v: unknown) => {
+      if (v == null) return '—'
+      if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') return String(v)
+      try {
+        const s = JSON.stringify(v)
+        return s.length > 80 ? `${s.slice(0, 77)}…` : s
+      } catch {
+        return String(v)
+      }
+    }
+    diffs.push({ field, local: fmt(lv), remote: fmt(rv) })
+  }
+  return diffs.slice(0, 12)
 }
 
 const COLLECTIONS: ConflictCollection[] = [
@@ -50,6 +98,10 @@ const COLLECTIONS: ConflictCollection[] = [
   'goals',
   'journal',
   'disposals',
+  'todoItems',
+  'todoLists',
+  'jobApplications',
+  'documents',
 ]
 
 export function detectConflicts(
@@ -59,8 +111,8 @@ export function detectConflicts(
 ): SyncConflict[] {
   const out: SyncConflict[] = []
   for (const collection of COLLECTIONS) {
-    const localArr = local[collection] as { id: number }[]
-    const remoteArr = remote[collection] as { id: number }[]
+    const localArr = (local[collection] as { id: number }[] | undefined) ?? []
+    const remoteArr = (remote[collection] as { id: number }[] | undefined) ?? []
     const remoteMap = new Map(remoteArr.map((x) => [x.id, x]))
     for (const loc of localArr) {
       const rem = remoteMap.get(loc.id)
@@ -70,8 +122,12 @@ export function detectConflicts(
         portfolioId,
         collection,
         id: loc.id,
-        localLabel: labelOf(loc as unknown as Record<string, unknown>),
-        remoteLabel: labelOf(rem as unknown as Record<string, unknown>),
+        localLabel: labelOf(loc as unknown as Record<string, unknown>, collection),
+        remoteLabel: labelOf(rem as unknown as Record<string, unknown>, collection),
+        fieldDiffs: diffFields(
+          loc as unknown as Record<string, unknown>,
+          rem as unknown as Record<string, unknown>,
+        ),
       })
     }
   }
@@ -105,7 +161,6 @@ export function mergeWithResolutions(
       const key = `${collection}:${row.id}`
       const choice = resolutions[key]
       if (!choice) {
-        // Prefer local when both sides differ
         if (localMap.has(row.id) && remoteMap.has(row.id)) {
           const loc = localMap.get(row.id)!
           const rem = remoteMap.get(row.id)!
@@ -128,5 +183,14 @@ export function mergeWithResolutions(
     goals: apply('goals', base.goals, local.goals, remote.goals),
     journal: apply('journal', base.journal, local.journal, remote.journal),
     disposals: apply('disposals', base.disposals, local.disposals, remote.disposals),
+    todoItems: apply('todoItems', base.todoItems ?? [], local.todoItems ?? [], remote.todoItems ?? []),
+    todoLists: apply('todoLists', base.todoLists ?? [], local.todoLists ?? [], remote.todoLists ?? []),
+    jobApplications: apply(
+      'jobApplications',
+      base.jobApplications ?? [],
+      local.jobApplications ?? [],
+      remote.jobApplications ?? [],
+    ),
+    documents: apply('documents', base.documents ?? [], local.documents ?? [], remote.documents ?? []),
   }
 }

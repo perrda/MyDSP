@@ -43,32 +43,30 @@ export function TodoModal({ todo, listId, lists = [], onSave, onClose }: TodoMod
         ? todo?.completedAt || new Date().toISOString()
         : undefined
 
+    const cleaned = {
+      listId: formData.listId,
+      title: formData.title.trim(),
+      description: formData.description.trim() || undefined,
+      priority: formData.priority,
+      status: formData.status,
+      dueDate: formData.dueDate || undefined,
+      dueTime: formData.dueTime || undefined,
+      reminderDate: formData.reminderDate || undefined,
+      reminderTime: formData.reminderTime || undefined,
+      tags,
+      isFinanceRelated: formData.isFinanceRelated,
+      estimatedMinutes: Number.isFinite(estimatedMinutes) ? estimatedMinutes : undefined,
+      actualMinutes: Number.isFinite(actualMinutes) ? actualMinutes : undefined,
+      completedAt,
+    }
+
     const todoItem = todo
       ? {
           ...todo,
-          ...formData,
-          tags,
-          estimatedMinutes,
-          actualMinutes,
-          completedAt,
+          ...cleaned,
           updatedAt: new Date().toISOString(),
         }
-      : createTodoItem({
-          listId: formData.listId,
-          title: formData.title.trim(),
-          description: formData.description.trim() || undefined,
-          priority: formData.priority,
-          status: formData.status,
-          dueDate: formData.dueDate || undefined,
-          dueTime: formData.dueTime || undefined,
-          reminderDate: formData.reminderDate || undefined,
-          reminderTime: formData.reminderTime || undefined,
-          tags,
-          isFinanceRelated: formData.isFinanceRelated,
-          estimatedMinutes,
-          actualMinutes,
-          completedAt,
-        })
+      : createTodoItem(cleaned)
 
     onSave(todoItem as TodoItem)
   }

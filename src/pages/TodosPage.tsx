@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect, useRef } from 'react'
+import { Link } from 'react-router-dom'
 import {
   Plus,
   Download,
@@ -11,11 +12,20 @@ import {
   Archive,
   Trash2,
   Settings2,
+  ImagePlus,
+  CheckCircle2,
+  Circle,
+  FolderInput,
 } from 'lucide-react'
 import { PageHeader } from '../components/ui/PageHeader'
 import { EmptyState } from '../components/ui/EmptyState'
+import { ConfirmDialog } from '../components/ui/Modal'
 import { TodoModal } from '../components/TodoModal'
-import { TodoListModal } from '../components/TodoListModal'
+import { TodoListModal, listIconGlyph } from '../components/TodoListModal'
+import { ReorderList, ReorderHandle } from '../components/ui/Reorderable'
+import { applySortOrder, sortBySortOrder } from '../utils/reorder'
+import { checkTodoReminders, ensureDesktopNotificationPermission } from '../domain/todoReminders'
+import { TodoScreenshotImportModal } from '../components/TodoScreenshotImportModal'
 import { usePortfolio } from '../context/PortfolioContext'
 import { useToasts } from '../components/ToastProvider'
 import type { TodoFilterBy, TodoItem, TodoList, TodoSortBy } from '../domain/todo-types'
@@ -27,6 +37,7 @@ import {
   parseCsvToTodoItems,
   sortTodoItems,
 } from '../domain/todos'
+import { moveTodoItemsToList } from '../domain/todoOcr'
 import { privacyClass } from '../utils/format'
 
 const PRIORITY_COLORS = {
@@ -61,9 +72,44 @@ export function TodosPage() {
   const [editingTodo, setEditingTodo] = useState<TodoItem | undefined>()
   const [editingList, setEditingList] = useState<TodoList | undefined>()
   const [selectedTodos, setSelectedTodos] = useState<Set<number>>(new Set())
+  const [confirmState, setConfirmState] = useState<{
+    title: string
+    body: string
+    confirmLabel?: string
+    onConfirm: () => void
+  } | null>(null)
+  const [showScreenshotImport, setShowScreenshotImport] = useState(false)
+  const [bulkMoveListId, setBulkMoveListId] = useState<number | ''>('')
 
-  const lists = data.todoLists || []
+  const lists = sortBySortOrder(data.todoLists || [])
   const allItems = data.todoItems || []
+  const todoItemsRef = useRef(allItems)
+  todoItemsRef.current = allItems
+
+  useEffect(() => {
+    const run = () => {
+      checkTodoReminders(todoItemsRef.current, {
+        onToast: (title, message) => success(title, message),
+      })
+    }
+    run()
+    const id = window.setInterval(run, 60_000)
+    return () => window.clearInterval(id)
+  }, [success])
+
+  const enableDesktopReminders = async () => {
+    const perm = await ensureDesktopNotificationPermission()
+    if (perm === 'granted') success('Desktop reminders on', 'You will get system notifications for due reminders')
+    else if (perm === 'denied') showError('Permission denied', 'Enable notifications in browser settings')
+    else if (perm === 'unsupported') showError('Not supported', 'This browser does not support notifications')
+  }
+
+  const handleReorderLists = (next: TodoList[]) => {
+    setData((prev) => ({
+      ...prev,
+      todoLists: applySortOrder(next),
+    }))
+  }
 
   const currentList = selectedListId ? lists.find((l) => l.id === selectedListId) : null
   const listItems = selectedListId ? allItems.filter((i) => i.listId === selectedListId) : allItems
@@ -121,19 +167,23 @@ export function TodosPage() {
 
   const handleDeleteList = (list: TodoList) => {
     const count = allItems.filter((i) => i.listId === list.id).length
-    const msg =
-      count > 0
-        ? `Delete “${list.name}” and its ${count} task${count === 1 ? '' : 's'}?`
-        : `Delete “${list.name}”?`
-    if (!confirm(msg)) return
-
-    setData((prev) => ({
-      ...prev,
-      todoLists: (prev.todoLists ?? []).filter((l) => l.id !== list.id),
-      todoItems: (prev.todoItems ?? []).filter((i) => i.listId !== list.id),
-    }))
-    if (selectedListId === list.id) setSelectedListId(null)
-    success('List deleted', list.name)
+    setConfirmState({
+      title: 'Delete list',
+      body:
+        count > 0
+          ? `Delete “${list.name}” and its ${count} task${count === 1 ? '' : 's'}? This cannot be undone.`
+          : `Delete “${list.name}”? This cannot be undone.`,
+      confirmLabel: 'Delete list',
+      onConfirm: () => {
+        setData((prev) => ({
+          ...prev,
+          todoLists: (prev.todoLists ?? []).filter((l) => l.id !== list.id),
+          todoItems: (prev.todoItems ?? []).filter((i) => i.listId !== list.id),
+        }))
+        if (selectedListId === list.id) setSelectedListId(null)
+        success('List deleted', list.name)
+      },
+    })
   }
 
   const handleCreateItem = () => {
@@ -194,11 +244,12 @@ export function TodosPage() {
   }
 
   const handleBulkComplete = () => {
+    const now = new Date().toISOString()
     setData((prev) => ({
       ...prev,
       todoItems: (prev.todoItems ?? []).map((i) =>
         selectedTodos.has(i.id)
-          ? { ...i, status: 'done' as const, completedAt: new Date().toISOString() }
+          ? { ...i, status: 'done' as const, completedAt: now, updatedAt: now }
           : i,
       ),
     }))
@@ -207,33 +258,88 @@ export function TodosPage() {
   }
 
   const handleBulkArchive = () => {
+    const now = new Date().toISOString()
     setData((prev) => ({
       ...prev,
       todoItems: (prev.todoItems ?? []).map((i) =>
-        selectedTodos.has(i.id) ? { ...i, status: 'archived' as const } : i,
+        selectedTodos.has(i.id) ? { ...i, status: 'archived' as const, updatedAt: now } : i,
       ),
     }))
     success('Tasks archived', `${selectedTodos.size} tasks`)
     setSelectedTodos(new Set())
   }
 
-  const handleBulkDelete = () => {
-    if (!confirm(`Delete ${selectedTodos.size} tasks?`)) return
+  const handleBulkMove = () => {
+    if (bulkMoveListId === '' || selectedTodos.size === 0) return
+    const targetId = Number(bulkMoveListId)
+    const target = lists.find((l) => l.id === targetId)
     setData((prev) => ({
       ...prev,
-      todoItems: (prev.todoItems ?? []).filter((i) => !selectedTodos.has(i.id)),
+      todoItems: moveTodoItemsToList(prev.todoItems ?? [], selectedTodos, targetId),
     }))
-    success('Tasks deleted', `${selectedTodos.size} tasks`)
+    success('Tasks moved', `${selectedTodos.size} → ${target?.name ?? 'list'}`)
     setSelectedTodos(new Set())
+    setBulkMoveListId('')
+  }
+
+  const handleToggleComplete = (item: TodoItem) => {
+    const now = new Date().toISOString()
+    const done = item.status !== 'done'
+    setData((prev) => ({
+      ...prev,
+      todoItems: (prev.todoItems ?? []).map((i) =>
+        i.id === item.id
+          ? {
+              ...i,
+              status: done ? ('done' as const) : ('todo' as const),
+              completedAt: done ? now : undefined,
+              updatedAt: now,
+            }
+          : i,
+      ),
+    }))
+  }
+
+  const handleScreenshotImport = (items: TodoItem[]) => {
+    setData((prev) => ({
+      ...prev,
+      todoItems: [...(prev.todoItems ?? []), ...items],
+    }))
+    if (items[0]?.listId) setSelectedListId(items[0].listId)
+    setShowScreenshotImport(false)
+    success('Imported from screenshot', `${items.length} tasks`)
+  }
+
+  const handleBulkDelete = () => {
+    const count = selectedTodos.size
+    setConfirmState({
+      title: 'Delete tasks',
+      body: `Delete ${count} selected task${count === 1 ? '' : 's'}? This cannot be undone.`,
+      confirmLabel: 'Delete tasks',
+      onConfirm: () => {
+        setData((prev) => ({
+          ...prev,
+          todoItems: (prev.todoItems ?? []).filter((i) => !selectedTodos.has(i.id)),
+        }))
+        success('Tasks deleted', `${count} tasks`)
+        setSelectedTodos(new Set())
+      },
+    })
   }
 
   const handleDeleteItem = (id: number) => {
-    if (!confirm('Delete this todo?')) return
-    setData((prev) => ({
-      ...prev,
-      todoItems: (prev.todoItems ?? []).filter((i) => i.id !== id),
-    }))
-    success('Todo deleted')
+    setConfirmState({
+      title: 'Delete task',
+      body: 'Delete this task? This cannot be undone.',
+      confirmLabel: 'Delete task',
+      onConfirm: () => {
+        setData((prev) => ({
+          ...prev,
+          todoItems: (prev.todoItems ?? []).filter((i) => i.id !== id),
+        }))
+        success('Todo deleted')
+      },
+    })
   }
 
   const handleImportCsv = () => {
@@ -299,6 +405,22 @@ export function TodosPage() {
           }}
         />
       )}
+      <ConfirmDialog
+        open={confirmState !== null}
+        title={confirmState?.title ?? ''}
+        body={confirmState?.body ?? ''}
+        confirmLabel={confirmState?.confirmLabel}
+        onClose={() => setConfirmState(null)}
+        onConfirm={() => confirmState?.onConfirm()}
+      />
+      {showScreenshotImport && lists.length > 0 && (
+        <TodoScreenshotImportModal
+          lists={lists}
+          defaultListId={activeListIdForModal}
+          onImport={handleScreenshotImport}
+          onClose={() => setShowScreenshotImport(false)}
+        />
+      )}
 
       <PageHeader
         eyebrow="Tasks"
@@ -309,7 +431,22 @@ export function TodosPage() {
             : `${stats.total} tasks · ${stats.highPriority} high priority · ${stats.overdue} overdue`
         }
         action={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                if (lists.length === 0) {
+                  showError('Create a list first', 'You need a list before importing')
+                  openCreateList()
+                  return
+                }
+                setShowScreenshotImport(true)
+              }}
+              className="btn-secondary btn-sm"
+              disabled={lists.length === 0}
+            >
+              <ImagePlus size={16} /> From Screenshot
+            </button>
             <button type="button" onClick={handleCreateItem} className="btn-primary btn-sm" disabled={lists.length === 0}>
               <Plus size={16} /> New Task
             </button>
@@ -355,63 +492,83 @@ export function TodosPage() {
             </div>
           </div>
 
-          <div className="flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-hide items-center">
-            <button
-              type="button"
-              onClick={() => setSelectedListId(null)}
-              className={`px-3 py-2 text-xs font-semibold uppercase tracking-wider whitespace-nowrap rounded border ${
-                selectedListId === null
-                  ? 'bg-accent text-white border-accent'
-                  : 'bg-surface border-border hover:border-accent'
-              }`}
+          <div className="mb-4">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+              <p className="text-xs text-text-subtle">Drag lists to reorder · icons show on each tab</p>
+              <button type="button" className="btn-ghost btn-sm text-xs" onClick={() => void enableDesktopReminders()}>
+                Enable desktop reminders
+              </button>
+            </div>
+            <div className="flex gap-2 mb-2 overflow-x-auto pb-2 scrollbar-hide items-center">
+              <button
+                type="button"
+                onClick={() => setSelectedListId(null)}
+                className={`px-3 py-2 text-xs font-semibold uppercase tracking-wider whitespace-nowrap rounded border ${
+                  selectedListId === null
+                    ? 'bg-accent text-white border-accent'
+                    : 'bg-surface border-border hover:border-accent'
+                }`}
+              >
+                All Lists ({allItems.length})
+              </button>
+            </div>
+            <ReorderList
+              items={lists}
+              getId={(l) => String(l.id)}
+              onReorder={handleReorderLists}
+              className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide items-center"
+              itemClassName="shrink-0"
             >
-              All Lists ({allItems.length})
-            </button>
-            {lists.map((list) => {
-              const count = allItems.filter((i) => i.listId === list.id).length
-              const active = selectedListId === list.id
-              return (
-                <div key={list.id} className="flex items-center gap-1 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedListId(list.id)}
-                    className={`px-3 py-2 text-xs font-semibold uppercase tracking-wider whitespace-nowrap rounded border ${
-                      active
-                        ? 'bg-accent text-white border-accent'
-                        : 'bg-surface border-border hover:border-accent'
-                    }`}
-                  >
-                    <span
-                      className="inline-block w-2 h-2 rounded-full mr-2 align-middle"
-                      style={{ backgroundColor: list.color || '#F7931A' }}
-                    />
-                    {list.name} ({count})
-                  </button>
-                  {active && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => openEditList(list)}
-                        className="btn-ghost btn-sm p-2"
-                        title="Edit list"
-                        aria-label="Edit list"
-                      >
-                        <Settings2 size={14} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteList(list)}
-                        className="btn-ghost btn-sm p-2 text-red-500"
-                        title="Delete list"
-                        aria-label="Delete list"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </>
-                  )}
-                </div>
-              )
-            })}
+              {(list) => {
+                const count = allItems.filter((i) => i.listId === list.id).length
+                const active = selectedListId === list.id
+                return (
+                  <div className="flex items-center gap-1">
+                    <ReorderHandle />
+                    <button
+                      type="button"
+                      onClick={() => setSelectedListId(list.id)}
+                      className={`px-3 py-2 text-xs font-semibold uppercase tracking-wider whitespace-nowrap rounded border ${
+                        active
+                          ? 'bg-accent text-white border-accent'
+                          : 'bg-surface border-border hover:border-accent'
+                      }`}
+                    >
+                      <span className="mr-1.5" aria-hidden>
+                        {listIconGlyph(list.icon)}
+                      </span>
+                      <span
+                        className="inline-block w-2 h-2 rounded-full mr-2 align-middle"
+                        style={{ backgroundColor: list.color || '#F7931A' }}
+                      />
+                      {list.name} ({count})
+                    </button>
+                    {active && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => openEditList(list)}
+                          className="btn-ghost btn-sm p-2"
+                          title="Edit list"
+                          aria-label="Edit list"
+                        >
+                          <Settings2 size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteList(list)}
+                          className="btn-ghost btn-sm p-2 text-red-500"
+                          title="Delete list"
+                          aria-label="Delete list"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )
+              }}
+            </ReorderList>
           </div>
 
           {currentList?.description && (
@@ -470,7 +627,14 @@ export function TodosPage() {
                 Show Completed
               </label>
               <button type="button" onClick={handleImportCsv} className="btn-secondary btn-sm">
-                <Upload size={14} /> Import
+                <Upload size={14} /> Import CSV
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowScreenshotImport(true)}
+                className="btn-secondary btn-sm"
+              >
+                <ImagePlus size={14} /> Screenshot
               </button>
               <button type="button" onClick={handleExportCsv} className="btn-ghost btn-sm">
                 <Download size={14} /> Export
@@ -494,6 +658,30 @@ export function TodosPage() {
                 >
                   <Archive size={14} /> Archive
                 </button>
+                <div className="flex items-center gap-2">
+                  <FolderInput size={14} className="text-text-subtle" />
+                  <select
+                    value={bulkMoveListId}
+                    onChange={(e) => setBulkMoveListId(e.target.value ? Number(e.target.value) : '')}
+                    className="px-2 py-1.5 bg-surface-hover border border-border rounded text-sm"
+                    aria-label="Move to list"
+                  >
+                    <option value="">Move to list…</option>
+                    {lists.map((l) => (
+                      <option key={l.id} value={l.id}>
+                        {l.name}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={handleBulkMove}
+                    disabled={bulkMoveListId === ''}
+                    className="btn-sm btn-primary"
+                  >
+                    Move
+                  </button>
+                </div>
                 <button
                   type="button"
                   onClick={handleBulkDelete}
@@ -536,6 +724,19 @@ export function TodosPage() {
                       className="mt-1 w-4 h-4 flex-shrink-0"
                       aria-label={`Select ${item.title}`}
                     />
+                    <button
+                      type="button"
+                      onClick={() => handleToggleComplete(item)}
+                      className="mt-0.5 text-text-subtle hover:text-accent flex-shrink-0"
+                      title={item.status === 'done' ? 'Mark incomplete' : 'Mark complete'}
+                      aria-label={item.status === 'done' ? 'Mark incomplete' : 'Mark complete'}
+                    >
+                      {item.status === 'done' ? (
+                        <CheckCircle2 size={18} className="text-green-500" />
+                      ) : (
+                        <Circle size={18} />
+                      )}
+                    </button>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap mb-1">
                         <h3
@@ -543,6 +744,19 @@ export function TodosPage() {
                         >
                           {item.title}
                         </h3>
+                        {!selectedListId && (
+                          <span className="text-xs text-text-subtle">
+                            {lists.find((l) => l.id === item.listId)?.name ?? 'Unknown list'}
+                          </span>
+                        )}
+                        {item.linkedJobId != null && (
+                          <Link
+                            to={`/jobs/${item.linkedJobId}`}
+                            className="text-xs px-2 py-0.5 bg-accent/10 text-accent rounded"
+                          >
+                            Job linked
+                          </Link>
+                        )}
                         <span className={`text-xs font-bold uppercase ${PRIORITY_TEXT_COLORS[item.priority]}`}>
                           {item.priority}
                         </span>

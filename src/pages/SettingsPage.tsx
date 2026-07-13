@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { PageHeader } from '../components/ui/PageHeader'
+import { ConfirmDialog } from '../components/ui/Modal'
 import { useSecurity } from '../components/SecurityProvider'
 import { usePortfolio } from '../context/PortfolioContext'
 import { holdingHistoryKey, readHoldingHistory } from '../domain/holdingHistory'
@@ -128,6 +129,13 @@ export function SettingsPage() {
       return ''
     }
   })
+  const [confirmState, setConfirmState] = useState<{
+    title: string
+    body: string
+    confirmLabel?: string
+    variant?: 'default' | 'danger'
+    onConfirm: () => void
+  } | null>(null)
 
   const refreshBackupList = () => {
     void listFullBackups()
@@ -928,8 +936,9 @@ export function SettingsPage() {
                     return
                   }
                   try {
-                    const r = await importEncryptedFile(f, syncPass)
+                    const r = await importEncryptedFile(f, syncPass, conflictChoices)
                     reload()
+                    setConflicts(r.conflicts)
                     const next = {
                       ...syncCfg,
                       lastMergeCount: r.merged,
@@ -938,7 +947,11 @@ export function SettingsPage() {
                     }
                     setSyncCfg(next)
                     saveSyncConfig(next)
-                    flash(`Imported & merged ${r.merged} portfolios.`)
+                    flash(
+                      r.conflicts.length > 0
+                        ? `Imported ${r.merged} portfolios — ${r.conflicts.length} conflict(s) need a choice, then import again.`
+                        : `Imported & merged ${r.merged} portfolios.`,
+                    )
                   } catch (err) {
                     flash(err instanceof Error ? err.message : 'Import failed')
                   }
@@ -975,28 +988,41 @@ export function SettingsPage() {
                           flash('Still offline.')
                           return
                         }
+                        let flushed = 0
+                        let failed = false
+                        let quotesSkipped = 0
                         for (const job of loadOfflineQueue()) {
                           if (job.type === 'quote_refresh') {
+                            // Quote refresh is handled on reconnect by PortfolioContext;
+                            // drop stale queue entries rather than pretending we refreshed.
                             removeOfflineJob(job.id)
+                            quotesSkipped++
                             continue
                           }
                           if (job.type === 'sync_push' && job.remoteUrl) {
                             const pass = syncPass || getSessionSyncPassphrase() || ''
                             if (!pass || pass.length < 8) {
                               flash('Enter passphrase once this session, then flush.')
+                              failed = true
                               break
                             }
                             try {
                               await pushSync(job.remoteUrl, pass)
                               removeOfflineJob(job.id)
+                              flushed++
                             } catch (e) {
                               flash(e instanceof Error ? e.message : 'Flush failed')
+                              failed = true
                               break
                             }
                           }
                         }
                         setQueue(loadOfflineQueue())
-                        flash('Queue flushed.')
+                        if (!failed) {
+                          const bits = [`Flushed ${flushed} sync job(s)`]
+                          if (quotesSkipped) bits.push(`cleared ${quotesSkipped} quote job(s) (auto-refresh on reconnect)`)
+                          flash(bits.join(' · ') + '.')
+                        }
                       })()
                     }}
                   >
@@ -1029,41 +1055,66 @@ export function SettingsPage() {
             <div className="mt-6 border border-border p-4 space-y-3">
               <p className="text-sm font-semibold">Sync conflicts</p>
               <p className="text-xs text-text-muted font-light">
-                Same-id rows differ locally and remotely. Pick a side, then Pull &amp; merge again.
+                Same-id rows differ locally and remotely (now includes todos, jobs, documents). Review field
+                diffs, pick a side, then Pull &amp; merge again.
               </p>
               {conflicts.map((c) => {
                 const key = conflictKey(c)
                 return (
                   <div
                     key={`${c.portfolioId}-${key}`}
-                    className="flex flex-wrap items-center gap-2 text-sm border-b border-border/60 pb-3"
+                    className="text-sm border border-border/60 rounded-lg p-3 space-y-2"
                   >
-                    <span className="uppercase text-[10px] tracking-widest text-text-subtle font-bold">
-                      {c.collection}
-                    </span>
-                    <span className="font-medium">{c.localLabel}</span>
-                    <span className="text-text-subtle">vs</span>
-                    <span className="text-text-muted">{c.remoteLabel}</span>
-                    <div className="flex gap-1 ml-auto">
-                      <button
-                        type="button"
-                        className={`btn-sm ${conflictChoices[key] === 'local' ? 'btn-primary' : 'btn-ghost'}`}
-                        onClick={() =>
-                          setConflictChoices((prev) => ({ ...prev, [key]: 'local' }))
-                        }
-                      >
-                        Keep local
-                      </button>
-                      <button
-                        type="button"
-                        className={`btn-sm ${conflictChoices[key] === 'remote' ? 'btn-primary' : 'btn-ghost'}`}
-                        onClick={() =>
-                          setConflictChoices((prev) => ({ ...prev, [key]: 'remote' }))
-                        }
-                      >
-                        Keep remote
-                      </button>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="uppercase text-[10px] tracking-widest text-text-subtle font-bold">
+                        {c.collection}
+                      </span>
+                      <span className="font-medium">{c.localLabel}</span>
+                      <span className="text-text-subtle">vs</span>
+                      <span className="text-text-muted">{c.remoteLabel}</span>
+                      <div className="flex gap-1 ml-auto">
+                        <button
+                          type="button"
+                          className={`btn-sm ${conflictChoices[key] === 'local' ? 'btn-primary' : 'btn-ghost'}`}
+                          onClick={() =>
+                            setConflictChoices((prev) => ({ ...prev, [key]: 'local' }))
+                          }
+                        >
+                          Keep local
+                        </button>
+                        <button
+                          type="button"
+                          className={`btn-sm ${conflictChoices[key] === 'remote' ? 'btn-primary' : 'btn-ghost'}`}
+                          onClick={() =>
+                            setConflictChoices((prev) => ({ ...prev, [key]: 'remote' }))
+                          }
+                        >
+                          Keep remote
+                        </button>
+                      </div>
                     </div>
+                    {c.fieldDiffs && c.fieldDiffs.length > 0 && (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-xs text-left">
+                          <thead>
+                            <tr className="text-text-subtle">
+                              <th className="py-1 pr-3 font-semibold">Field</th>
+                              <th className="py-1 pr-3 font-semibold">Local</th>
+                              <th className="py-1 font-semibold">Remote</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {c.fieldDiffs.map((d) => (
+                              <tr key={d.field} className="border-t border-border/40 align-top">
+                                <td className="py-1 pr-3 font-mono text-text-subtle">{d.field}</td>
+                                <td className="py-1 pr-3 text-text-muted max-w-[12rem] break-words">{d.local}</td>
+                                <td className="py-1 text-text-muted max-w-[12rem] break-words">{d.remote}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
                   </div>
                 )
               })}
@@ -1174,14 +1225,15 @@ export function SettingsPage() {
                           type="button"
                           className="btn-ghost btn-sm"
                           onClick={() => {
-                            if (
-                              window.confirm(
-                                `Delete “${p.name}”? All holdings and history in that portfolio will be removed.`,
-                              )
-                            ) {
-                              deletePortfolio(p.id)
-                              flash(`Deleted ${p.name}.`)
-                            }
+                            setConfirmState({
+                              title: 'Delete portfolio',
+                              body: `Delete “${p.name}”? All holdings and history in that portfolio will be removed.`,
+                              confirmLabel: 'Delete portfolio',
+                              onConfirm: () => {
+                                deletePortfolio(p.id)
+                                flash(`Deleted ${p.name}.`)
+                              },
+                            })
                           }}
                         >
                           Delete
@@ -1365,16 +1417,16 @@ export function SettingsPage() {
                       flash('Not a MyDSP full backup file.')
                       return
                     }
-                    if (
-                      !window.confirm(
-                        `Replace ALL portfolios with backup from ${parsed.createdAt.slice(0, 10)} (v${parsed.appVersion})?`,
-                      )
-                    ) {
-                      return
-                    }
-                    restoreFullWorkspace(parsed)
-                    reload()
-                    flash('Full workspace restored.')
+                    setConfirmState({
+                      title: 'Restore full backup',
+                      body: `Replace ALL portfolios with backup from ${parsed.createdAt.slice(0, 10)} (v${parsed.appVersion})?`,
+                      confirmLabel: 'Restore backup',
+                      onConfirm: () => {
+                        restoreFullWorkspace(parsed)
+                        reload()
+                        flash('Full workspace restored.')
+                      },
+                    })
                   } catch {
                     flash('Could not restore that file.')
                   }
@@ -1405,16 +1457,16 @@ export function SettingsPage() {
                         void (async () => {
                           const full = await getFullBackup(b.id)
                           if (!full) return
-                          if (
-                            !window.confirm(
-                              `Restore “${b.label}”? This replaces all current portfolios.`,
-                            )
-                          ) {
-                            return
-                          }
-                          restoreFullWorkspace(full)
-                          reload()
-                          flash('Restored from local backup.')
+                          setConfirmState({
+                            title: 'Restore local backup',
+                            body: `Restore “${b.label}”? This replaces all current portfolios.`,
+                            confirmLabel: 'Restore backup',
+                            onConfirm: () => {
+                              restoreFullWorkspace(full)
+                              reload()
+                              flash('Restored from local backup.')
+                            },
+                          })
                         })()
                       }}
                     >
@@ -1513,10 +1565,16 @@ export function SettingsPage() {
               type="button"
               className="btn-secondary"
               onClick={() => {
-                if (window.confirm('Replace active portfolio with FCC sample data?')) {
-                  resetToSample()
-                  flash('Loaded FCC sample portfolio.')
-                }
+                setConfirmState({
+                  title: 'Load sample data',
+                  body: 'Replace active portfolio with FCC sample data?',
+                  confirmLabel: 'Load sample',
+                  variant: 'default',
+                  onConfirm: () => {
+                    resetToSample()
+                    flash('Loaded FCC sample portfolio.')
+                  },
+                })
               }}
             >
               Load sample data
@@ -1525,10 +1583,15 @@ export function SettingsPage() {
               type="button"
               className="btn-ghost"
               onClick={() => {
-                if (window.confirm('Clear all holdings and history on this portfolio?')) {
-                  clearAll()
-                  flash('Portfolio cleared.')
-                }
+                setConfirmState({
+                  title: 'Clear portfolio',
+                  body: 'Clear all holdings and history on this portfolio?',
+                  confirmLabel: 'Clear portfolio',
+                  onConfirm: () => {
+                    clearAll()
+                    flash('Portfolio cleared.')
+                  },
+                })
               }}
             >
               Clear portfolio
@@ -1536,6 +1599,16 @@ export function SettingsPage() {
           </div>
         </section>
       </div>
+
+      <ConfirmDialog
+        open={confirmState !== null}
+        title={confirmState?.title ?? ''}
+        body={confirmState?.body ?? ''}
+        confirmLabel={confirmState?.confirmLabel}
+        variant={confirmState?.variant}
+        onClose={() => setConfirmState(null)}
+        onConfirm={() => confirmState?.onConfirm()}
+      />
     </div>
   )
 }

@@ -16,6 +16,7 @@ import {
   X,
 } from 'lucide-react'
 import { PageHeader } from '../components/ui/PageHeader'
+import { ConfirmDialog } from '../components/ui/Modal'
 import { InterviewModal } from '../components/InterviewModal'
 import { NoteModal } from '../components/NoteModal'
 import { ContactModal } from '../components/ContactModal'
@@ -26,13 +27,16 @@ import { usePortfolio } from '../context/PortfolioContext'
 import { useToasts } from '../components/ToastProvider'
 import type { JobApplication, JobContact, JobInterview, JobNote, JobStatus } from '../domain/job-types'
 import { getDaysSinceApplied, STATUS_COLORS, STATUS_LABELS } from '../domain/jobs'
+import { createJobLinkedTodo } from '../domain/jobTodos'
+import { createTodoList } from '../domain/todos'
+import { downloadBlob, getDocumentBlob } from '../storage/documentBlobStore'
 import { formatGBP, privacyClass } from '../utils/format'
 
 export function JobDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { data, setData, privacy } = usePortfolio()
-  const { success } = useToasts()
+  const { success, error: showError } = useToasts()
   const [editMode, setEditMode] = useState(false)
   const [showInterviewModal, setShowInterviewModal] = useState(false)
   const [showNoteModal, setShowNoteModal] = useState(false)
@@ -43,10 +47,28 @@ export function JobDetailPage() {
   const [editingInterview, setEditingInterview] = useState<JobInterview | undefined>()
   const [editingNote, setEditingNote] = useState<JobNote | undefined>()
   const [editingContact, setEditingContact] = useState<JobContact | undefined>()
+  const [editingTask, setEditingTask] = useState<
+    { id: number; description: string; dueDate?: string; completed: boolean; completedAt?: string } | undefined
+  >()
+  const [editingDocumentIndex, setEditingDocumentIndex] = useState<number | null>(null)
+  const [confirmState, setConfirmState] = useState<{
+    title: string
+    body: string
+    confirmLabel?: string
+    onConfirm: () => void
+  } | null>(null)
 
   const application = useMemo(
     () => data.jobApplications?.find((app) => app.id === Number(id)),
     [data.jobApplications, id],
+  )
+
+  const linkedTodos = useMemo(
+    () =>
+      application
+        ? (data.todoItems ?? []).filter((t) => t.linkedJobId === application.id)
+        : [],
+    [data.todoItems, application],
   )
 
   if (!application) {
@@ -129,38 +151,86 @@ export function JobDetailPage() {
     setEditingContact(undefined)
   }
 
-  const handleAddTask = () => setShowTaskModal(true)
-
-  const handleSaveTask = (task: { id: number; description: string; dueDate?: string; completed: boolean }) => {
-    updateApplication({ tasks: [...(application.tasks ?? []), task] })
-    setShowTaskModal(false)
-    success('Task added')
+  const handleAddTask = () => {
+    setEditingTask(undefined)
+    setShowTaskModal(true)
   }
 
-  const handleAddDocument = () => setShowDocumentModal(true)
+  const handleSaveTask = (task: {
+    id: number
+    description: string
+    dueDate?: string
+    completed: boolean
+    completedAt?: string
+  }) => {
+    if (editingTask) {
+      updateApplication({
+        tasks: (application.tasks ?? []).map((t) => (t.id === task.id ? { ...t, ...task } : t)),
+      })
+      success('Task updated')
+    } else {
+      updateApplication({ tasks: [...(application.tasks ?? []), task] })
+      success('Task added')
+    }
+    setShowTaskModal(false)
+    setEditingTask(undefined)
+  }
+
+  const handleAddDocument = () => {
+    setEditingDocumentIndex(null)
+    setShowDocumentModal(true)
+  }
 
   const handleSaveDocument = (doc: { name: string; url?: string; notes?: string }) => {
-    updateApplication({ customDocuments: [...(application.customDocuments ?? []), doc] })
+    if (editingDocumentIndex != null) {
+      updateApplication({
+        customDocuments: (application.customDocuments ?? []).map((d, i) =>
+          i === editingDocumentIndex ? doc : d,
+        ),
+      })
+      success('Document updated')
+    } else {
+      updateApplication({ customDocuments: [...(application.customDocuments ?? []), doc] })
+      success('Document added')
+    }
     setShowDocumentModal(false)
-    success('Document added')
+    setEditingDocumentIndex(null)
   }
 
   const handleDeleteInterview = (interviewId: number) => {
-    if (!confirm('Delete this interview?')) return
-    updateApplication({ interviews: application.interviews.filter((i) => i.id !== interviewId) })
-    success('Interview deleted')
+    setConfirmState({
+      title: 'Delete interview',
+      body: 'Delete this interview? This cannot be undone.',
+      confirmLabel: 'Delete interview',
+      onConfirm: () => {
+        updateApplication({ interviews: application.interviews.filter((i) => i.id !== interviewId) })
+        success('Interview deleted')
+      },
+    })
   }
 
   const handleDeleteNote = (noteId: number) => {
-    if (!confirm('Delete this note?')) return
-    updateApplication({ notes: application.notes.filter((n) => n.id !== noteId) })
-    success('Note deleted')
+    setConfirmState({
+      title: 'Delete note',
+      body: 'Delete this note? This cannot be undone.',
+      confirmLabel: 'Delete note',
+      onConfirm: () => {
+        updateApplication({ notes: application.notes.filter((n) => n.id !== noteId) })
+        success('Note deleted')
+      },
+    })
   }
 
   const handleDeleteContact = (contactId: number) => {
-    if (!confirm('Delete this contact?')) return
-    updateApplication({ contacts: application.contacts.filter((c) => c.id !== contactId) })
-    success('Contact deleted')
+    setConfirmState({
+      title: 'Delete contact',
+      body: 'Delete this contact? This cannot be undone.',
+      confirmLabel: 'Delete contact',
+      onConfirm: () => {
+        updateApplication({ contacts: application.contacts.filter((c) => c.id !== contactId) })
+        success('Contact deleted')
+      },
+    })
   }
 
   const handleDeleteTask = (taskId: number) => {
@@ -186,13 +256,48 @@ export function JobDetailPage() {
   }
 
   const handleDeleteApplication = () => {
-    if (!confirm('Delete this job application? This cannot be undone.')) return
-    setData((prev) => ({
-      ...prev,
-      jobApplications: (prev.jobApplications ?? []).filter((app) => app.id !== application.id),
-    }))
-    success('Application deleted')
-    navigate('/jobs')
+    setConfirmState({
+      title: 'Delete application',
+      body: 'Delete this job application? This cannot be undone.',
+      confirmLabel: 'Delete application',
+      onConfirm: () => {
+        setData((prev) => ({
+          ...prev,
+          jobApplications: (prev.jobApplications ?? []).filter((app) => app.id !== application.id),
+        }))
+        success('Application deleted')
+        navigate('/jobs')
+      },
+    })
+  }
+
+  const handleCreateLinkedTodo = (interview?: JobInterview) => {
+    setData((prev) => {
+      let lists = prev.todoLists ?? []
+      let listId = lists[0]?.id
+      if (!listId) {
+        const list = createTodoList({ name: 'Career', icon: 'career', color: '#F7931A' })
+        lists = [...lists, list]
+        listId = list.id
+      }
+      const todo = createJobLinkedTodo({ listId, job: application, interview })
+      return {
+        ...prev,
+        todoLists: lists,
+        todoItems: [...(prev.todoItems ?? []), todo],
+      }
+    })
+    success('Todo created', interview ? 'Interview prep task' : 'Follow-up task')
+  }
+
+  const handleDownloadDoc = async (doc: { blobDocId?: number; fileName?: string; name: string }) => {
+    if (!doc.blobDocId) return
+    const blob = await getDocumentBlob(doc.blobDocId)
+    if (!blob) {
+      showError('File missing', 'Blob not found on this device')
+      return
+    }
+    downloadBlob(blob, doc.fileName || doc.name)
   }
 
   const daysSince = getDaysSinceApplied(application)
@@ -243,10 +348,28 @@ export function JobDetailPage() {
         />
       )}
       {showTaskModal && (
-        <TaskModal onSave={handleSaveTask} onClose={() => setShowTaskModal(false)} />
+        <TaskModal
+          task={editingTask}
+          onSave={handleSaveTask}
+          onClose={() => {
+            setShowTaskModal(false)
+            setEditingTask(undefined)
+          }}
+        />
       )}
       {showDocumentModal && (
-        <DocumentModal onSave={handleSaveDocument} onClose={() => setShowDocumentModal(false)} />
+        <DocumentModal
+          document={
+            editingDocumentIndex != null
+              ? application.customDocuments[editingDocumentIndex]
+              : undefined
+          }
+          onSave={handleSaveDocument}
+          onClose={() => {
+            setShowDocumentModal(false)
+            setEditingDocumentIndex(null)
+          }}
+        />
       )}
       {showJobForm && (
         <JobFormModal
@@ -273,6 +396,9 @@ export function JobDetailPage() {
           <div className="flex gap-2">
             <button type="button" onClick={() => setShowJobForm(true)} className="btn-ghost btn-sm">
               <Edit2 size={14} /> Edit Details
+            </button>
+            <button type="button" onClick={() => handleCreateLinkedTodo()} className="btn-secondary btn-sm">
+              <Plus size={14} /> Add Todo
             </button>
             <button type="button" onClick={() => setEditMode(!editMode)} className="btn-ghost btn-sm">
               {editMode ? <X size={14} /> : <Edit2 size={14} />} {editMode ? 'Done' : 'Quick Edit'}
@@ -480,9 +606,19 @@ export function JobDetailPage() {
                       onChange={() => handleToggleTask(task.id)}
                       className="mt-0.5"
                     />
-                    <span className={`flex-1 ${task.completed ? 'line-through text-text-subtle' : ''}`}>
+                    <button
+                      type="button"
+                      className={`flex-1 text-left ${task.completed ? 'line-through text-text-subtle' : ''}`}
+                      onClick={() => {
+                        setEditingTask(task)
+                        setShowTaskModal(true)
+                      }}
+                    >
                       {task.description}
-                    </span>
+                      {task.dueDate ? (
+                        <span className="block text-xs text-text-subtle mt-0.5">Due {task.dueDate}</span>
+                      ) : null}
+                    </button>
                     <button
                       type="button"
                       onClick={() => handleDeleteTask(task.id)}
@@ -530,6 +666,15 @@ export function JobDetailPage() {
                         aria-label="Delete interview"
                       >
                         <Trash2 size={12} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleCreateLinkedTodo(interview)}
+                        className="opacity-0 group-hover:opacity-100 text-accent p-0.5"
+                        aria-label="Create prep todo"
+                        title="Create prep todo"
+                      >
+                        <Plus size={12} />
                       </button>
                     </div>
                   </div>
@@ -579,6 +724,32 @@ export function JobDetailPage() {
             )}
           </div>
 
+          {/* Linked Todos */}
+          <div className="surface p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-bold text-sm">Linked Todos ({linkedTodos.length})</h3>
+              <button type="button" onClick={() => handleCreateLinkedTodo()} className="btn-ghost btn-sm">
+                <Plus size={12} />
+              </button>
+            </div>
+            {linkedTodos.length === 0 ? (
+              <p className="text-xs text-text-muted">No linked todos yet</p>
+            ) : (
+              <div className="space-y-2">
+                {linkedTodos.map((t) => (
+                  <Link
+                    key={t.id}
+                    to="/todos"
+                    className="block p-2 bg-surface-hover rounded text-xs hover:border-accent"
+                  >
+                    <p className="font-semibold">{t.title}</p>
+                    <p className="text-text-subtle uppercase mt-0.5">{t.status}</p>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Documents */}
           <div className="surface p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none">
             <div className="flex items-center justify-between mb-3">
@@ -592,25 +763,53 @@ export function JobDetailPage() {
             ) : (
               <div className="space-y-2">
                 {application.customDocuments.map((doc, idx) => (
-                  <div key={idx} className="p-2 bg-surface-hover rounded text-xs group">
+                  <div
+                    key={doc.blobDocId ?? `${doc.name}-${idx}`}
+                    className="p-2 bg-surface-hover rounded text-xs group"
+                  >
                     <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1">
-                        <p className="font-semibold">{doc.name}</p>
+                      <div className="flex-1 text-left min-w-0">
+                        <button
+                          type="button"
+                          className="font-semibold text-left hover:text-accent"
+                          onClick={() => {
+                            setEditingDocumentIndex(idx)
+                            setShowDocumentModal(true)
+                          }}
+                        >
+                          {doc.name}
+                        </button>
+                        {doc.hasBlob && (
+                          <button
+                            type="button"
+                            className="block text-accent text-xs underline mt-0.5"
+                            onClick={() => void handleDownloadDoc(doc)}
+                          >
+                            Download file
+                          </button>
+                        )}
                         {doc.url && (
-                          <a href={doc.url} target="_blank" rel="noopener noreferrer" className="text-accent hover:text-accent-bright text-xs inline-flex items-center gap-1">
-                            <ExternalLink size={10} /> View
+                          <a
+                            href={doc.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-accent text-xs inline-flex items-center gap-1 mt-0.5"
+                          >
+                            <ExternalLink size={10} /> Open link
                           </a>
                         )}
                         {doc.notes && <p className="text-text-muted mt-1">{doc.notes}</p>}
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteDocument(idx)}
-                        className="opacity-0 group-hover:opacity-100 text-red-500 p-0.5"
-                        aria-label="Delete document"
-                      >
-                        <Trash2 size={12} />
-                      </button>
+                      <div className="flex gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteDocument(idx)}
+                          className="opacity-0 group-hover:opacity-100 text-red-500 p-0.5"
+                          aria-label="Delete document"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -660,6 +859,15 @@ export function JobDetailPage() {
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmState !== null}
+        title={confirmState?.title ?? ''}
+        body={confirmState?.body ?? ''}
+        confirmLabel={confirmState?.confirmLabel}
+        onClose={() => setConfirmState(null)}
+        onConfirm={() => confirmState?.onConfirm()}
+      />
     </div>
   )
 }

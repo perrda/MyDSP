@@ -1,23 +1,34 @@
 import { useState } from 'react'
 import { X, CheckSquare } from 'lucide-react'
 
+export interface JobTaskDraft {
+  id: number
+  description: string
+  dueDate?: string
+  completed: boolean
+  completedAt?: string
+}
+
 interface TaskModalProps {
-  onSave: (task: { id: number; description: string; dueDate?: string; completed: boolean }) => void
+  task?: JobTaskDraft
+  onSave: (task: JobTaskDraft) => void
   onClose: () => void
 }
 
-export function TaskModal({ onSave, onClose }: TaskModalProps) {
-  const [description, setDescription] = useState('')
-  const [dueDate, setDueDate] = useState('')
+export function TaskModal({ task, onSave, onClose }: TaskModalProps) {
+  const [description, setDescription] = useState(task?.description || '')
+  const [dueDate, setDueDate] = useState(task?.dueDate || '')
+  const [completed, setCompleted] = useState(task?.completed || false)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!description.trim()) return
     onSave({
-      id: Date.now(),
+      id: task?.id ?? Date.now(),
       description: description.trim(),
       dueDate: dueDate || undefined,
-      completed: false,
+      completed,
+      completedAt: completed ? task?.completedAt || new Date().toISOString() : undefined,
     })
   }
 
@@ -27,7 +38,7 @@ export function TaskModal({ onSave, onClose }: TaskModalProps) {
         <div className="flex items-center justify-between p-4 border-b border-border">
           <div className="flex items-center gap-2">
             <CheckSquare size={18} className="text-accent" />
-            <h2 className="font-bold">Add Task</h2>
+            <h2 className="font-bold">{task ? 'Edit Task' : 'Add Task'}</h2>
           </div>
           <button type="button" onClick={onClose} className="p-2 hover:bg-bg rounded-lg" aria-label="Close">
             <X size={18} />
@@ -35,12 +46,10 @@ export function TaskModal({ onSave, onClose }: TaskModalProps) {
         </div>
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
           <div>
-            <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle mb-2">
-              Description *
-            </label>
+            <label className="block text-xs text-text-subtle mb-1">Description *</label>
             <input
               autoFocus
-              className="w-full"
+              className="w-full px-3 py-2 bg-surface-hover border border-border rounded text-sm"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="e.g. Prepare STAR stories"
@@ -48,17 +57,26 @@ export function TaskModal({ onSave, onClose }: TaskModalProps) {
             />
           </div>
           <div>
-            <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle mb-2">
-              Due date
-            </label>
-            <input type="date" className="w-full" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+            <label className="block text-xs text-text-subtle mb-1">Due date</label>
+            <input
+              type="date"
+              className="w-full px-3 py-2 bg-surface-hover border border-border rounded text-sm"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+            />
           </div>
-          <div className="flex gap-3 pt-2">
-            <button type="button" onClick={onClose} className="btn-secondary flex-1">
+          {task && (
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={completed} onChange={(e) => setCompleted(e.target.checked)} />
+              Completed
+            </label>
+          )}
+          <div className="flex gap-3 pt-2 border-t border-border">
+            <button type="button" onClick={onClose} className="btn-ghost flex-1">
               Cancel
             </button>
             <button type="submit" className="btn-primary flex-1" disabled={!description.trim()}>
-              Add Task
+              {task ? 'Save Changes' : 'Add Task'}
             </button>
           </div>
         </form>

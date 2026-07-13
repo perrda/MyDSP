@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import {
   Plus,
   Download,
+  Upload,
   Briefcase,
   DollarSign,
   MapPin,
@@ -14,9 +15,12 @@ import {
   CheckCircle,
   Clock,
   AlertCircle,
+  Archive,
+  GripVertical,
 } from 'lucide-react'
 import { PageHeader } from '../components/ui/PageHeader'
 import { EmptyState } from '../components/ui/EmptyState'
+import { ConfirmDialog } from '../components/ui/Modal'
 import { JobFormModal } from '../components/JobFormModal'
 import { JobAnalytics } from '../components/JobAnalytics'
 import { usePortfolio } from '../context/PortfolioContext'
@@ -25,10 +29,14 @@ import type { JobApplication, JobFilterBy, JobSortBy, JobStatus } from '../domai
 import {
   calculateJobStats,
   exportJobsToCsv,
+  exportJobsToJson,
   filterJobApplications,
   getDaysSinceApplied,
   getNextInterview,
   isDeadlineApproaching,
+  KANBAN_DROP_STATUS,
+  parseCsvToJobApplications,
+  parseJsonToJobApplications,
   sortJobApplications,
   STATUS_COLORS,
   STATUS_LABELS,
@@ -46,13 +54,23 @@ const KANBAN_COLUMNS: Array<{ status: JobStatus[]; title: string; color: string 
 
 export function JobsPage() {
   const { data, setData, privacy } = usePortfolio()
-  const { success } = useToasts()
+  const { success, error: showError } = useToasts()
   const [viewMode, setViewMode] = useState<'kanban' | 'list' | 'analytics'>('kanban')
   const [sortBy, setSortBy] = useState<JobSortBy>('updated-desc')
   const [filterBy, setFilterBy] = useState<JobFilterBy>('active')
   const [searchQuery, setSearchQuery] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [editingApp, setEditingApp] = useState<JobApplication | undefined>()
+  const [deleteAppId, setDeleteAppId] = useState<number | null>(null)
+  const [selectedJobs, setSelectedJobs] = useState<Set<number>>(new Set())
+  const [bulkStatus, setBulkStatus] = useState<JobStatus | ''>('')
+  const [dragOverColumn, setDragOverColumn] = useState<string | null>(null)
+  const [confirmState, setConfirmState] = useState<{
+    title: string
+    body: string
+    confirmLabel?: string
+    onConfirm: () => void
+  } | null>(null)
 
   const applications = data.jobApplications || []
 
@@ -121,12 +139,39 @@ export function JobsPage() {
   }
 
   const handleDeleteApplication = (id: number) => {
-    if (!confirm('Delete this job application?')) return
+    setDeleteAppId(id)
+  }
+
+  const confirmDeleteApplication = () => {
+    if (deleteAppId == null) return
     setData((prev) => ({
       ...prev,
-      jobApplications: (prev.jobApplications ?? []).filter((app) => app.id !== id),
+      jobApplications: (prev.jobApplications ?? []).filter((app) => app.id !== deleteAppId),
     }))
     success('Application deleted')
+  }
+
+  const handleDuplicateApplication = (app: JobApplication) => {
+    const now = new Date().toISOString()
+    const copy: JobApplication = {
+      ...app,
+      id: Date.now() + Math.floor(Math.random() * 1000),
+      jobTitle: `${app.jobTitle} (copy)`,
+      status: 'wishlist',
+      appliedDate: undefined,
+      interviews: [],
+      notes: [],
+      contacts: app.contacts.map((c) => ({ ...c, id: Date.now() + Math.floor(Math.random() * 1000) })),
+      tasks: [],
+      customDocuments: [...(app.customDocuments ?? [])],
+      createdAt: now,
+      updatedAt: now,
+    }
+    setData((prev) => ({
+      ...prev,
+      jobApplications: [...(prev.jobApplications ?? []), copy],
+    }))
+    success('Application duplicated', copy.companyName)
   }
 
   const handleExportCsv = () => {
@@ -139,6 +184,123 @@ export function JobsPage() {
     a.click()
     URL.revokeObjectURL(url)
     success('Exported', `${filteredApplications.length} applications`)
+  }
+
+  const handleExportJson = () => {
+    const json = exportJobsToJson(filteredApplications)
+    const blob = new Blob([json], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `job-applications-${new Date().toISOString().split('T')[0]}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+    success('Exported JSON', `${filteredApplications.length} applications`)
+  }
+
+  const handleImportFile = () => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.csv,.json,text/csv,application/json'
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0]
+      if (!file) return
+      try {
+        const text = await file.text()
+        const apps = file.name.toLowerCase().endsWith('.json')
+          ? parseJsonToJobApplications(text)
+          : parseCsvToJobApplications(text)
+        if (apps.length === 0) {
+          success('Nothing imported', 'No valid rows found')
+          return
+        }
+        setData((prev) => ({
+          ...prev,
+          jobApplications: [...(prev.jobApplications ?? []), ...apps],
+        }))
+        success('Imported applications', `${apps.length} added`)
+      } catch (err) {
+        showError('Import failed', err instanceof Error ? err.message : 'Could not parse file')
+      }
+    }
+    input.click()
+  }
+
+  const handleKanbanDrop = (columnTitle: string, appId: number) => {
+    const status = KANBAN_DROP_STATUS[columnTitle]
+    if (!status) return
+    const app = applications.find((a) => a.id === appId)
+    // Preserve rejected/withdrawn when dropping into Closed (don't force archived)
+    if (
+      columnTitle === 'Closed' &&
+      app &&
+      (app.status === 'rejected' || app.status === 'withdrawn' || app.status === 'archived')
+    ) {
+      setDragOverColumn(null)
+      return
+    }
+    handleStatusChange(appId, status)
+    setDragOverColumn(null)
+  }
+
+  const toggleJobSelect = (id: number) => {
+    setSelectedJobs((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const handleBulkStatus = () => {
+    if (!bulkStatus || selectedJobs.size === 0) return
+    const now = new Date().toISOString()
+    setData((prev) => ({
+      ...prev,
+      jobApplications: (prev.jobApplications ?? []).map((app) =>
+        selectedJobs.has(app.id) ? { ...app, status: bulkStatus, updatedAt: now } : app,
+      ),
+    }))
+    success('Status updated', `${selectedJobs.size} applications → ${STATUS_LABELS[bulkStatus]}`)
+    setSelectedJobs(new Set())
+    setBulkStatus('')
+  }
+
+  const handleBulkArchive = () => {
+    if (selectedJobs.size === 0) return
+    setConfirmState({
+      title: 'Archive applications',
+      body: `Archive ${selectedJobs.size} selected application${selectedJobs.size === 1 ? '' : 's'}?`,
+      confirmLabel: 'Archive',
+      onConfirm: () => {
+        const now = new Date().toISOString()
+        setData((prev) => ({
+          ...prev,
+          jobApplications: (prev.jobApplications ?? []).map((app) =>
+            selectedJobs.has(app.id) ? { ...app, status: 'archived' as const, updatedAt: now } : app,
+          ),
+        }))
+        success('Archived', `${selectedJobs.size} applications`)
+        setSelectedJobs(new Set())
+      },
+    })
+  }
+
+  const handleBulkDelete = () => {
+    if (selectedJobs.size === 0) return
+    setConfirmState({
+      title: 'Delete applications',
+      body: `Delete ${selectedJobs.size} selected application${selectedJobs.size === 1 ? '' : 's'}? This cannot be undone.`,
+      confirmLabel: 'Delete',
+      onConfirm: () => {
+        setData((prev) => ({
+          ...prev,
+          jobApplications: (prev.jobApplications ?? []).filter((app) => !selectedJobs.has(app.id)),
+        }))
+        success('Deleted', `${selectedJobs.size} applications`)
+        setSelectedJobs(new Set())
+      },
+    })
   }
 
   if (applications.length === 0) {
@@ -168,6 +330,11 @@ export function JobsPage() {
             onClick: handleCreateApplication,
           }}
         />
+        <div className="text-center mt-4">
+          <button type="button" onClick={handleImportFile} className="btn-secondary btn-sm">
+            <Upload size={14} /> Import CSV / JSON
+          </button>
+        </div>
       </div>
     )
   }
@@ -189,9 +356,14 @@ export function JobsPage() {
         title="Job Applications"
         description={`${stats.total} applications · ${stats.interviewing} interviewing · ${stats.offers} offers`}
         action={
-          <button type="button" onClick={handleCreateApplication} className="btn-primary btn-sm">
-            <Plus size={16} /> Add Application
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={handleImportFile} className="btn-secondary btn-sm">
+              <Upload size={16} /> Import
+            </button>
+            <button type="button" onClick={handleCreateApplication} className="btn-primary btn-sm">
+              <Plus size={16} /> Add Application
+            </button>
+          </div>
         }
       />
 
@@ -266,10 +438,54 @@ export function JobsPage() {
               <option value="rating-desc">Rating</option>
             </select>
           )}
+          <button type="button" onClick={handleImportFile} className="btn-ghost btn-sm">
+            <Upload size={14} /> Import
+          </button>
           <button type="button" onClick={handleExportCsv} className="btn-ghost btn-sm">
-            <Download size={14} /> Export
+            <Download size={14} /> CSV
+          </button>
+          <button type="button" onClick={handleExportJson} className="btn-ghost btn-sm">
+            <Download size={14} /> JSON
           </button>
         </div>
+
+        {selectedJobs.size > 0 && (
+          <div className="flex flex-wrap gap-2 items-center p-3 mt-3 bg-accent/10 rounded-lg border border-accent/20">
+            <span className="text-sm font-semibold">{selectedJobs.size} selected</span>
+            <select
+              value={bulkStatus}
+              onChange={(e) => setBulkStatus(e.target.value as JobStatus | '')}
+              className="px-2 py-1.5 bg-surface-hover border border-border rounded text-sm"
+            >
+              <option value="">Set status…</option>
+              {Object.entries(STATUS_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+            <button type="button" onClick={handleBulkStatus} disabled={!bulkStatus} className="btn-sm btn-primary">
+              Apply
+            </button>
+            <button
+              type="button"
+              onClick={handleBulkArchive}
+              className="btn-sm bg-amber-500/20 text-amber-500 hover:bg-amber-500/30"
+            >
+              <Archive size={14} /> Archive
+            </button>
+            <button
+              type="button"
+              onClick={handleBulkDelete}
+              className="btn-sm bg-red-500/20 text-red-500 hover:bg-red-500/30"
+            >
+              Delete
+            </button>
+            <button type="button" onClick={() => setSelectedJobs(new Set())} className="btn-ghost btn-sm ml-auto">
+              Clear
+            </button>
+          </div>
+        )}
       </div>
 
       {filteredApplications.length === 0 ? (
@@ -283,13 +499,29 @@ export function JobsPage() {
       ) : viewMode === 'kanban' ? (
         <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
           {kanbanData.map((column) => (
-            <div key={column.title} className="flex-shrink-0 w-80">
+            <div
+              key={column.title}
+              className={`flex-shrink-0 w-80 rounded-lg transition-colors ${
+                dragOverColumn === column.title ? 'bg-accent/10 ring-2 ring-accent' : ''
+              }`}
+              onDragOver={(e) => {
+                e.preventDefault()
+                setDragOverColumn(column.title)
+              }}
+              onDragLeave={() => setDragOverColumn((c) => (c === column.title ? null : c))}
+              onDrop={(e) => {
+                e.preventDefault()
+                const id = Number(e.dataTransfer.getData('text/job-id'))
+                if (Number.isFinite(id)) handleKanbanDrop(column.title, id)
+              }}
+            >
               <div className={`surface p-3 mb-3 border-t-4 ${column.color} rounded-t-xl md:rounded-t-none shadow-sm md:shadow-none`}>
                 <h3 className="font-bold uppercase text-xs tracking-wider">
                   {column.title} ({column.applications.length})
                 </h3>
+                <p className="text-[10px] text-text-subtle mt-1">Drop cards here</p>
               </div>
-              <div className="space-y-3">
+              <div className="space-y-3 min-h-[80px]">
                 {column.applications.map((app) => (
                   <JobCard
                     key={app.id}
@@ -297,7 +529,11 @@ export function JobsPage() {
                     onStatusChange={handleStatusChange}
                     onEdit={handleEditApplication}
                     onDelete={handleDeleteApplication}
+                    onDuplicate={handleDuplicateApplication}
+                    selected={selectedJobs.has(app.id)}
+                    onToggleSelect={toggleJobSelect}
                     privacy={privacy}
+                    draggable
                   />
                 ))}
               </div>
@@ -313,12 +549,32 @@ export function JobsPage() {
               onStatusChange={handleStatusChange}
               onEdit={handleEditApplication}
               onDelete={handleDeleteApplication}
+              onDuplicate={handleDuplicateApplication}
+              selected={selectedJobs.has(app.id)}
+              onToggleSelect={toggleJobSelect}
               privacy={privacy}
               expanded
             />
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        open={deleteAppId !== null}
+        title="Delete application"
+        body="Delete this job application? This cannot be undone."
+        confirmLabel="Delete application"
+        onClose={() => setDeleteAppId(null)}
+        onConfirm={confirmDeleteApplication}
+      />
+      <ConfirmDialog
+        open={confirmState !== null}
+        title={confirmState?.title ?? ''}
+        body={confirmState?.body ?? ''}
+        confirmLabel={confirmState?.confirmLabel}
+        onClose={() => setConfirmState(null)}
+        onConfirm={() => confirmState?.onConfirm()}
+      />
     </div>
   )
 }
@@ -328,28 +584,67 @@ function JobCard({
   onStatusChange,
   onEdit,
   onDelete,
+  onDuplicate,
+  selected,
+  onToggleSelect,
   privacy,
   expanded = false,
+  draggable = false,
 }: {
   application: JobApplication
   onStatusChange: (id: number, status: JobStatus) => void
   onEdit: (app: JobApplication) => void
   onDelete: (id: number) => void
+  onDuplicate: (app: JobApplication) => void
+  selected?: boolean
+  onToggleSelect?: (id: number) => void
   privacy: boolean
   expanded?: boolean
+  draggable?: boolean
 }) {
   const daysSince = getDaysSinceApplied(application)
   const nextInterview = getNextInterview(application)
   const deadlineApproaching = isDeadlineApproaching(application)
 
   return (
-    <div className="surface p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none hover:border-accent transition-colors">
+    <div
+      className={`surface p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none hover:border-accent transition-colors ${
+        selected ? 'ring-2 ring-accent' : ''
+      }`}
+    >
       <div className="flex items-start justify-between gap-3 mb-2">
-        <div className="flex-1 min-w-0">
-          <Link to={`/jobs/${application.id}`} className="font-bold text-base hover:text-accent transition-colors block truncate">
-            {application.jobTitle}
-          </Link>
-          <p className="text-sm text-text-muted truncate">{application.companyName}</p>
+        <div className="flex items-start gap-2 flex-1 min-w-0">
+          {draggable && (
+            <button
+              type="button"
+              className="mt-1 p-1 text-text-subtle hover:text-accent cursor-grab active:cursor-grabbing"
+              draggable
+              onDragStart={(e) => {
+                e.dataTransfer.setData('text/job-id', String(application.id))
+                e.dataTransfer.effectAllowed = 'move'
+              }}
+              aria-label="Drag to change status"
+              title="Drag to another column"
+            >
+              <GripVertical size={14} />
+            </button>
+          )}
+          {onToggleSelect && (
+            <input
+              type="checkbox"
+              checked={!!selected}
+              onChange={() => onToggleSelect(application.id)}
+              className="mt-1"
+              aria-label={`Select ${application.jobTitle}`}
+              onClick={(e) => e.stopPropagation()}
+            />
+          )}
+          <div className="flex-1 min-w-0">
+            <Link to={`/jobs/${application.id}`} className="font-bold text-base hover:text-accent transition-colors block truncate">
+              {application.jobTitle}
+            </Link>
+            <p className="text-sm text-text-muted truncate">{application.companyName}</p>
+          </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           {[...Array(5)].map((_, i) => (
@@ -442,6 +737,9 @@ function JobCard({
         </Link>
         <button type="button" onClick={() => onEdit(application)} className="btn-ghost btn-sm text-xs">
           Edit
+        </button>
+        <button type="button" onClick={() => onDuplicate(application)} className="btn-ghost btn-sm text-xs">
+          Duplicate
         </button>
         <button type="button" onClick={() => onDelete(application.id)} className="btn-ghost btn-sm text-xs text-red-500">
           Delete

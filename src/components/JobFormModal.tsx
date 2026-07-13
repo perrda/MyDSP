@@ -48,21 +48,51 @@ export function JobFormModal({ application, onSave, onClose }: JobFormModalProps
     e.preventDefault()
     if (!formData.companyName || !formData.jobTitle) return
 
+    const emptyToUndef = (v: string) => (v.trim() ? v.trim() : undefined)
+    const salaryMin = formData.salaryMin.trim() ? Number(formData.salaryMin) : undefined
+    const salaryMax = formData.salaryMax.trim() ? Number(formData.salaryMax) : undefined
+    const tags = formData.tags.split(',').map((t) => t.trim()).filter(Boolean)
+    const cleaned = {
+      companyName: formData.companyName.trim(),
+      jobTitle: formData.jobTitle.trim(),
+      status: formData.status,
+      priority: formData.priority as JobApplication['priority'],
+      jobUrl: emptyToUndef(formData.jobUrl),
+      companyWebsite: emptyToUndef(formData.companyWebsite),
+      linkedInUrl: emptyToUndef(formData.linkedInUrl),
+      applicationPortalUrl: emptyToUndef(formData.applicationPortalUrl),
+      appliedDate: emptyToUndef(formData.appliedDate),
+      deadline: emptyToUndef(formData.deadline),
+      source: formData.source.trim() || 'Direct',
+      referralContact: emptyToUndef(formData.referralContact),
+      salaryMin: Number.isFinite(salaryMin) ? salaryMin : undefined,
+      salaryMax: Number.isFinite(salaryMax) ? salaryMax : undefined,
+      salaryCurrency: formData.salaryCurrency || 'GBP',
+      salaryPeriod: formData.salaryPeriod,
+      equity: emptyToUndef(formData.equity),
+      benefits: emptyToUndef(formData.benefits),
+      location: formData.location.trim() || 'Unknown',
+      remote: formData.remote as JobApplication['remote'],
+      jobType: formData.jobType as JobApplication['jobType'],
+      description: emptyToUndef(formData.description),
+      requirements: emptyToUndef(formData.requirements),
+      responsibilities: emptyToUndef(formData.responsibilities),
+      cvVersion: emptyToUndef(formData.cvVersion),
+      coverLetterVersion: emptyToUndef(formData.coverLetterVersion),
+      portfolioUrl: emptyToUndef(formData.portfolioUrl),
+      rating: formData.rating || 0,
+      pros: emptyToUndef(formData.pros),
+      cons: emptyToUndef(formData.cons),
+      tags,
+    }
+
     const app = application
       ? {
           ...application,
-          ...formData,
-          salaryMin: formData.salaryMin ? Number(formData.salaryMin) : undefined,
-          salaryMax: formData.salaryMax ? Number(formData.salaryMax) : undefined,
-          tags: formData.tags.split(',').map((t) => t.trim()).filter(Boolean),
+          ...cleaned,
           updatedAt: new Date().toISOString(),
         }
-      : createJobApplication({
-          ...formData,
-          salaryMin: formData.salaryMin ? Number(formData.salaryMin) : undefined,
-          salaryMax: formData.salaryMax ? Number(formData.salaryMax) : undefined,
-          tags: formData.tags.split(',').map((t) => t.trim()).filter(Boolean),
-        })
+      : createJobApplication(cleaned)
 
     onSave(app as JobApplication)
   }
@@ -119,6 +149,7 @@ export function JobFormModal({ application, onSave, onClose }: JobFormModalProps
                   <option value="accepted">Accepted</option>
                   <option value="rejected">Rejected</option>
                   <option value="withdrawn">Withdrawn</option>
+                  <option value="archived">Archived</option>
                 </select>
               </div>
               <div>

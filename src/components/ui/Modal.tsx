@@ -9,9 +9,7 @@ interface FieldProps {
 export function Field({ label, children, hint }: FieldProps) {
   return (
     <label className="block">
-      <span className="block text-xs font-bold uppercase tracking-widest text-text-subtle mb-2">
-        {label}
-      </span>
+      <span className="block text-xs text-text-subtle mb-1">{label}</span>
       {children}
       {hint && <span className="mt-1.5 block text-[11px] text-text-subtle font-light">{hint}</span>}
     </label>
@@ -118,6 +116,8 @@ interface ConfirmProps {
   title: string
   body: string
   confirmLabel?: string
+  /** Use for destructive actions (delete, clear, overwrite). */
+  variant?: 'default' | 'danger'
   onConfirm: () => void
   onClose: () => void
 }
@@ -127,19 +127,24 @@ export function ConfirmDialog({
   title,
   body,
   confirmLabel = 'Delete',
+  variant = 'danger',
   onConfirm,
   onClose,
 }: ConfirmProps) {
   return (
     <Modal open={open} title={title} onClose={onClose}>
-      <p className="text-text-muted font-light mb-8">{body}</p>
-      <div className="flex flex-wrap gap-3 justify-end">
-        <button type="button" className="btn-ghost" onClick={onClose}>
+      <p className="text-sm text-text-muted mb-6">{body}</p>
+      <div className="flex gap-3 pt-4 border-t border-border">
+        <button type="button" className="btn-ghost flex-1" onClick={onClose}>
           Cancel
         </button>
         <button
           type="button"
-          className="btn-primary"
+          className={
+            variant === 'danger'
+              ? 'flex-1 px-4 py-2 rounded text-sm font-semibold bg-red-600 hover:bg-red-500 text-white'
+              : 'btn-primary flex-1'
+          }
           onClick={() => {
             onConfirm()
             onClose()
