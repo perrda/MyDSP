@@ -4,6 +4,7 @@ import { PageHeader } from '../components/ui/PageHeader'
 import { ConfirmDialog } from '../components/ui/Modal'
 import { useSecurity } from '../components/SecurityProvider'
 import { usePortfolio } from '../context/PortfolioContext'
+import { useTheme, type ThemePreference } from '../context/ThemeContext'
 import { holdingHistoryKey, readHoldingHistory } from '../domain/holdingHistory'
 import type { HoldingPricePoint } from '../domain/holdingHistory'
 import { registerStaticPriceFile } from '../domain/staticPrices'
@@ -102,6 +103,7 @@ export function SettingsPage() {
     fxRates,
   } = usePortfolio()
   const { refreshSecurity, lock, pinEnabled } = useSecurity()
+  const { theme, preference, setPreference } = useTheme()
 
   const fileRef = useRef<HTMLInputElement>(null)
   const priceFileRef = useRef<HTMLInputElement>(null)
@@ -339,6 +341,46 @@ export function SettingsPage() {
       )}
 
       <div className="grid grid-cols-1 gap-px">
+        <section className="surface p-6 sm:p-8">
+          <p className="eyebrow mb-3">Appearance</p>
+          <h3 className="text-lg font-bold tracking-tight mb-3">Light &amp; dark mode</h3>
+          <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
+            <span className="text-text font-medium">Auto</span> follows your computer clock —
+            light after approximate sunrise, dark after sunset (local time). Choose Light or Dark
+            to lock a theme. Header moon toggle also locks Light/Dark.
+          </p>
+          <div className="flex flex-wrap gap-2 mb-3" role="group" aria-label="Theme preference">
+            {(
+              [
+                { id: 'auto' as const, label: 'Auto (day / night)' },
+                { id: 'light' as const, label: 'Light' },
+                { id: 'dark' as const, label: 'Dark' },
+              ] as const
+            ).map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                className={preference === opt.id ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
+                aria-pressed={preference === opt.id}
+                onClick={() => {
+                  setPreference(opt.id as ThemePreference)
+                  flash(
+                    opt.id === 'auto'
+                      ? `Auto theme on — currently ${theme} mode for local daytime.`
+                      : `${opt.label} mode locked.`,
+                  )
+                }}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-text-subtle">
+            Now showing: <span className="text-text font-medium uppercase">{theme}</span>
+            {preference === 'auto' ? ' · Auto' : ' · Manual'}
+          </p>
+        </section>
+
         <section className="surface p-6 sm:p-8">
           <p className="eyebrow mb-3">Layout</p>
           <h3 className="text-lg font-bold tracking-tight mb-3">Sidebar menu order</h3>

@@ -6,70 +6,133 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-
-export type Theme = 'light' | 'dark'
+import {
+  msUntilNextDayNightSwitch,
+  parseThemePreference,
+  resolveTheme,
+  type Theme,
+  type ThemePreference,
+} from '../utils/dayNightTheme'
 
 interface ThemeContextValue {
+  /** Currently applied light/dark appearance */
   theme: Theme
+  /** Stored preference: auto follows local sunrise/sunset */
+  preference: ThemePreference
   toggle: () => void
   setTheme: (t: Theme) => void
+  setPreference: (p: ThemePreference) => void
 }
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined)
 
-const STORAGE_KEY = 'mydsp_theme'
+export const THEME_STORAGE_KEY = 'mydsp_theme'
 
 function readBootstrappedTheme(): Theme {
   if (typeof document === 'undefined') return 'dark'
   return document.documentElement.classList.contains('light') ? 'light' : 'dark'
 }
 
+function readStoredPreference(): ThemePreference {
+  try {
+    const parsed = parseThemePreference(localStorage.getItem(THEME_STORAGE_KEY))
+    if (parsed) return parsed
+  } catch {
+    /* private mode */
+  }
+  return 'auto'
+}
+
+function applyDomTheme(next: Theme, withTransition: boolean) {
+  const root = document.documentElement
+  if (withTransition) root.classList.add('theme-transitioning')
+  root.classList.remove('light', 'dark')
+  root.classList.add(next)
+  if (withTransition) {
+    window.setTimeout(() => root.classList.remove('theme-transitioning'), 300)
+  }
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
+  const [preference, setPreferenceState] = useState<ThemePreference>(readStoredPreference)
   const [theme, setThemeState] = useState<Theme>(readBootstrappedTheme)
 
-  const applyTheme = useCallback((next: Theme) => {
-    const root = document.documentElement
-    
-    // Add transition class for smooth theme change
-    root.classList.add('theme-transitioning')
-    
-    root.classList.remove('light', 'dark')
-    root.classList.add(next)
+  const persistPreference = useCallback((pref: ThemePreference) => {
     try {
-      localStorage.setItem(STORAGE_KEY, next)
+      localStorage.setItem(THEME_STORAGE_KEY, pref)
     } catch {
       /* private mode */
     }
-    setThemeState(next)
-    
-    // Remove transition class after animation
-    setTimeout(() => {
-      root.classList.remove('theme-transitioning')
-    }, 300)
   }, [])
 
-  const toggle = useCallback(() => {
-    applyTheme(theme === 'dark' ? 'light' : 'dark')
-  }, [theme, applyTheme])
+  const applyResolved = useCallback(
+    (pref: ThemePreference, withTransition = true) => {
+      const next = resolveTheme(pref)
+      applyDomTheme(next, withTransition)
+      setThemeState(next)
+      setPreferenceState(pref)
+      persistPreference(pref)
+    },
+    [persistPreference],
+  )
 
+  const setPreference = useCallback(
+    (pref: ThemePreference) => {
+      applyResolved(pref, true)
+    },
+    [applyResolved],
+  )
+
+  const setTheme = useCallback(
+    (t: Theme) => {
+      applyResolved(t, true)
+    },
+    [applyResolved],
+  )
+
+  const toggle = useCallback(() => {
+    // Manual override — leave Auto mode
+    applyResolved(theme === 'dark' ? 'light' : 'dark', true)
+  }, [theme, applyResolved])
+
+  // Re-apply when Auto crosses sunrise/sunset on the local clock
   useEffect(() => {
-    const mql = window.matchMedia('(prefers-color-scheme: light)')
-    const handler = (e: MediaQueryListEvent) => {
-      let stored: string | null = null
-      try {
-        stored = localStorage.getItem(STORAGE_KEY)
-      } catch {
-        /* ignore */
-      }
-      if (stored) return
-      applyTheme(e.matches ? 'light' : 'dark')
+    if (preference !== 'auto') return
+
+    let timer: number | undefined
+    const schedule = () => {
+      const delay = Math.min(msUntilNextDayNightSwitch(), 2_147_483_647)
+      timer = window.setTimeout(() => {
+        const next = resolveTheme('auto')
+        applyDomTheme(next, true)
+        setThemeState(next)
+        schedule()
+      }, delay)
     }
-    mql.addEventListener('change', handler)
-    return () => mql.removeEventListener('change', handler)
-  }, [applyTheme])
+    schedule()
+    return () => {
+      if (timer != null) window.clearTimeout(timer)
+    }
+  }, [preference])
+
+  // Keep applied theme in sync if preference is auto on mount / visibility
+  useEffect(() => {
+    if (preference !== 'auto') return
+    const sync = () => {
+      const next = resolveTheme('auto')
+      if (next !== theme) {
+        applyDomTheme(next, true)
+        setThemeState(next)
+      }
+    }
+    document.addEventListener('visibilitychange', sync)
+    return () => document.removeEventListener('visibilitychange', sync)
+  }, [preference, theme])
 
   return (
-    <ThemeContext.Provider value={{ theme, toggle, setTheme: applyTheme }}>
+    <ThemeContext.Provider
+      value={{ theme, preference, toggle, setTheme, setPreference }}
+    >
       {children}
     </ThemeContext.Provider>
   )
@@ -80,3 +143,5 @@ export function useTheme(): ThemeContextValue {
   if (!ctx) throw new Error('useTheme must be used within ThemeProvider')
   return ctx
 }
+
+export type { Theme, ThemePreference }

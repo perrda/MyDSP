@@ -29,11 +29,23 @@
       (function () {
         try {
           var stored = localStorage.getItem('mydsp_theme');
-          var prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
-          var theme = stored || (prefersLight ? 'light' : 'dark');
+          var theme;
+          if (stored === 'light' || stored === 'dark') {
+            theme = stored;
+          } else {
+            // Auto (default): light during local daytime, dark after approximate sunset
+            var now = new Date();
+            var start = new Date(now.getFullYear(), 0, 0);
+            var dayOfYear = Math.floor((now.getTime() - start.getTime()) / 86400000);
+            var rad = ((dayOfYear - 81) / 365) * 2 * Math.PI;
+            var sunrise = (6.5 - 0.75 * Math.sin(rad)) * 60;
+            var sunset = (18.5 + 0.75 * Math.sin(rad)) * 60;
+            var minutes = now.getHours() * 60 + now.getMinutes();
+            theme = minutes >= sunrise && minutes < sunset ? 'light' : 'dark';
+          }
           document.documentElement.classList.remove('dark', 'light');
           document.documentElement.classList.add(theme);
-        } catch (e) { /* private mode — dark default */ }
+        } catch (e) { /* private mode — keep html.dark */ }
       })();
     </script>
   </head>
