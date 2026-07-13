@@ -318,9 +318,21 @@ export function SettingsPage() {
       const t0 = performance.now()
       const res = await fetch(syncCfg.remoteUrl, { method: 'GET' })
       const ms = Math.round(performance.now() - t0)
-      flash(`Endpoint ${res.status} in ${ms}ms${res.ok ? '' : ' — check CORS / auth'}.`)
+      if (res.status === 404) {
+        flash(`Endpoint OK (${ms}ms) — empty store (404). Push from a device with data next.`)
+        return
+      }
+      if (res.status === 401) {
+        flash('Unauthorized (401) — check SYNC_KEY matches ?key= in the URL.')
+        return
+      }
+      if (res.ok) {
+        flash(`Endpoint ready (${res.status}) in ${ms}ms — you can Pull & merge.`)
+        return
+      }
+      flash(`Endpoint ${res.status} in ${ms}ms — check Worker deploy / CORS / auth.`)
     } catch {
-      flash('Endpoint unreachable (offline or CORS).')
+      flash('Endpoint unreachable (offline, wrong URL, or CORS).')
     }
   }
 
@@ -765,27 +777,48 @@ export function SettingsPage() {
           <p className="eyebrow mb-3">Sync</p>
           <h3 className="text-lg font-bold tracking-tight mb-3">Encrypted cloud sync</h3>
           <p className="text-sm text-text-muted font-light mb-4 max-w-2xl">
-            Local-first: encrypt all portfolios <em>and</em> a full workspace archive with a
-            passphrase, then push/pull to any HTTPS endpoint that accepts JSON. Passphrase stays in
-            this tab&apos;s memory so offline queue can flush without re-typing. See{' '}
-            <code className="text-accent">sync-endpoint/</code> for a free Cloudflare Worker.
+            Encrypt your portfolios with a passphrase, then Push/Pull to a free Cloudflare Worker.
+            Same URL + same passphrase on every device. Full walkthrough:{' '}
+            <code className="text-accent">SYNC_SETUP.md</code> in the repo.
           </p>
-          <div className="border border-border p-4 mb-6 max-w-2xl">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-text-subtle mb-3">
-              Deploy checklist
-            </p>
-            <ol className="text-sm text-text-muted font-light space-y-2 list-decimal pl-5">
-              <li>
-                <code className="text-accent">npm run build</code> → ship{' '}
-                <code className="text-accent">dist/</code>
-              </li>
-              <li>Host on HTTPS — already live at perrda.github.io/MyDSP (GitHub Pages)</li>
-              <li>
-                Deploy <code className="text-accent">sync-endpoint/worker.js</code> (Cloudflare KV)
-                or use S3/R2/NAS
-              </li>
-              <li>Set remote URL + passphrase → Push from desktop, Pull on phone</li>
-            </ol>
+          <div className="border border-border p-4 mb-6 max-w-2xl space-y-4">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-text-subtle mb-3">
+                First-time Cloudflare setup
+              </p>
+              <ol className="text-sm text-text-muted font-light space-y-2 list-decimal pl-5">
+                <li>
+                  Cloudflare Dashboard → <span className="text-text font-medium">Workers</span> →
+                  create <code className="text-accent">mydsp-sync</code>
+                </li>
+                <li>
+                  Bind KV as variable name <code className="text-accent">STORE</code> (exact)
+                </li>
+                <li>
+                  Paste <code className="text-accent">sync-endpoint/worker.js</code> → Deploy
+                </li>
+                <li>
+                  (Recommended) Add secret <code className="text-accent">SYNC_KEY</code>, then use
+                  URL with <code className="text-accent">?key=…</code>
+                </li>
+              </ol>
+            </div>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-text-subtle mb-3">
+                Connect this device
+              </p>
+              <ol className="text-sm text-text-muted font-light space-y-2 list-decimal pl-5">
+                <li>Paste Remote URL below + enter passphrase (min 8 characters)</li>
+                <li>
+                  <span className="text-text font-medium">Test endpoint</span> — 404 before first
+                  Push is OK
+                </li>
+                <li>
+                  Desktop: <span className="text-text font-medium">Push</span> · Phone:{' '}
+                  <span className="text-text font-medium">Pull &amp; merge</span>
+                </li>
+              </ol>
+            </div>
           </div>
           <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle mb-2">
             Remote URL
@@ -793,7 +826,7 @@ export function SettingsPage() {
           <input
             type="url"
             className="mb-4"
-            placeholder="https://example.com/mydsp-backup.json"
+            placeholder="https://mydsp-sync.YOUR_SUBDOMAIN.workers.dev?key=YOUR_SECRET"
             value={syncCfg.remoteUrl}
             onChange={(e) => {
               const next = { ...syncCfg, remoteUrl: e.target.value }

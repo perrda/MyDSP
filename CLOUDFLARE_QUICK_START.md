@@ -38,15 +38,18 @@ After deployment:
 ### Desktop:
 1. Click install icon in address bar (Chrome/Edge)
 
-## Data Storage
+## Data Storage & Sync
 
-Currently: **Local Storage** (device-only)
+- **Local:** portfolios live in the browser (localStorage + IndexedDB for file blobs).
+- **Cross-device:** encrypted sync via a small Cloudflare Worker + KV (not D1).
 
-To add cloud sync later:
-1. Set up Cloudflare Workers
-2. Add D1 database
-3. Implement sync API
-4. Update frontend to sync on changes
+**Setup guide:** [SYNC_SETUP.md](./SYNC_SETUP.md) (step-by-step, ~10 minutes).
+
+Quick version:
+
+1. Deploy `sync-endpoint/worker.js` with KV binding `STORE`.
+2. MyDSP → Settings → Encrypted cloud sync → Remote URL + passphrase.
+3. **Push** on desktop → **Pull & merge** on phone / iPad.
 
 ## Environment Variables
 
