@@ -1,7 +1,7 @@
 // Comprehensive logging and monitoring system with structured logging, performance tracking, and analytics
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'fatal'
-export type LogCategory = 'app' | 'api' | 'ui' | 'data' | 'performance' | 'security' | 'analytics' | 'other'
+export type LogCategory = 'app' | 'api' | 'ui' | 'data' | 'performance' | 'security' | 'analytics' | 'search' | 'other'
 
 export interface LogEntry {
   id: string
