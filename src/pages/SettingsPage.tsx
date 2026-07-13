@@ -830,8 +830,8 @@ export function SettingsPage() {
               </p>
               <ol className="text-sm text-text-muted font-light space-y-2 list-decimal pl-5">
                 <li>
-                  Cloudflare Dashboard → <span className="text-text font-medium">Workers</span> →
-                  create <code className="text-accent">mydsp-sync</code>
+                  Workers &amp; Pages → open existing <code className="text-accent">mydsp-sync</code>{' '}
+                  (or <span className="text-text font-medium">Create application</span> → Worker)
                 </li>
                 <li>
                   Bind KV as variable name <code className="text-accent">STORE</code> (exact)
