@@ -3,6 +3,7 @@ import { ThemeProvider } from './context/ThemeContext'
 import { PortfolioProvider } from './context/PortfolioContext'
 import { SecurityProvider } from './components/SecurityProvider'
 import { ToastProvider } from './components/ToastProvider'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { AchievementWatcher } from './components/AchievementWatcher'
 import { InstallPrompt } from './components/InstallPrompt'
 import { SkipToContent, ScreenReaderAnnouncer } from './components/Accessibility'
@@ -41,58 +42,62 @@ import { JobDetailPage } from './pages/JobDetailPage'
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <PortfolioProvider>
-        <SecurityProvider>
-          <BrowserRouter basename={__BASE_PATH__ === '/' ? undefined : __BASE_PATH__.replace(/\/$/, '')}>
-            <SkipToContent />
-            <ScreenReaderAnnouncer />
-            <ToastProvider>
-              <AchievementWatcher />
-              <InstallPrompt />
-              <Routes>
-                <Route element={<AppShell />}>
-                  <Route index element={<Dashboard />} />
-                  <Route path="crypto" element={<CryptoPage />} />
-                  <Route path="crypto/:id" element={<HoldingDetailPage />} />
-                  <Route path="equities" element={<EquitiesPage />} />
-                  <Route path="equities/:id" element={<HoldingDetailPage />} />
-                  <Route path="staking" element={<StakingPage />} />
-                  <Route path="liabilities" element={<LiabilitiesPage />} />
-                  <Route path="liabilities/:kind/:id" element={<LiabilityDetailPage />} />
-                  <Route path="goals" element={<GoalsPage />} />
-                  <Route path="spending" element={<SpendingPage />} />
-                  <Route path="journal" element={<JournalPage />} />
-                  <Route path="budgets" element={<BudgetsPage />} />
-                  <Route path="recurring" element={<RecurringPage />} />
-                  <Route path="review" element={<MonthlyReviewPage />} />
-                  <Route path="trips" element={<TripsPage />} />
-                  <Route path="family" element={<FamilyPage />} />
-                  <Route path="history" element={<HistoryPage />} />
-                  <Route path="documents" element={<DocumentsPage />} />
-                  <Route path="import" element={<ImportPage />} />
-                  <Route path="rules" element={<RulesPage />} />
-                  <Route path="optimizer" element={<OptimizerPage />} />
-                  <Route path="fire" element={<FirePage />} />
-                  <Route path="planning" element={<PlanningPage />} />
-                  <Route path="achievements" element={<AchievementsPage />} />
-                  <Route path="tax" element={<TaxPage />} />
-                  <Route path="analytics" element={<AnalyticsPage />} />
-                  <Route path="compare" element={<ComparePage />} />
-                  <Route path="setup/opening" element={<OpeningBalanceWizardPage />} />
-                  <Route path="todos" element={<TodosPage />} />
-                  <Route path="jobs" element={<JobsPage />} />
-                  <Route path="jobs/:id" element={<JobDetailPage />} />
-                  <Route path="settings" element={<SettingsPage />} />
-                  <Route path="accounts" element={<Navigate to="/crypto" replace />} />
-                  <Route path="transactions" element={<Navigate to="/spending" replace />} />
-                  <Route path="*" element={<Navigate to="/" replace />} />
-                </Route>
-              </Routes>
-            </ToastProvider>
-          </BrowserRouter>
-        </SecurityProvider>
-      </PortfolioProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <PortfolioProvider>
+          <SecurityProvider>
+            <BrowserRouter
+              basename={__BASE_PATH__ === '/' ? undefined : __BASE_PATH__.replace(/\/$/, '')}
+            >
+              <SkipToContent />
+              <ScreenReaderAnnouncer />
+              <ToastProvider>
+                <AchievementWatcher />
+                <InstallPrompt />
+                <Routes>
+                  <Route element={<AppShell />}>
+                    <Route index element={<Dashboard />} />
+                    <Route path="crypto" element={<CryptoPage />} />
+                    <Route path="crypto/:id" element={<HoldingDetailPage />} />
+                    <Route path="equities" element={<EquitiesPage />} />
+                    <Route path="equities/:id" element={<HoldingDetailPage />} />
+                    <Route path="staking" element={<StakingPage />} />
+                    <Route path="liabilities" element={<LiabilitiesPage />} />
+                    <Route path="liabilities/:kind/:id" element={<LiabilityDetailPage />} />
+                    <Route path="goals" element={<GoalsPage />} />
+                    <Route path="spending" element={<SpendingPage />} />
+                    <Route path="journal" element={<JournalPage />} />
+                    <Route path="budgets" element={<BudgetsPage />} />
+                    <Route path="recurring" element={<RecurringPage />} />
+                    <Route path="review" element={<MonthlyReviewPage />} />
+                    <Route path="trips" element={<TripsPage />} />
+                    <Route path="family" element={<FamilyPage />} />
+                    <Route path="history" element={<HistoryPage />} />
+                    <Route path="documents" element={<DocumentsPage />} />
+                    <Route path="import" element={<ImportPage />} />
+                    <Route path="rules" element={<RulesPage />} />
+                    <Route path="optimizer" element={<OptimizerPage />} />
+                    <Route path="fire" element={<FirePage />} />
+                    <Route path="planning" element={<PlanningPage />} />
+                    <Route path="achievements" element={<AchievementsPage />} />
+                    <Route path="tax" element={<TaxPage />} />
+                    <Route path="analytics" element={<AnalyticsPage />} />
+                    <Route path="compare" element={<ComparePage />} />
+                    <Route path="setup/opening" element={<OpeningBalanceWizardPage />} />
+                    <Route path="todos" element={<TodosPage />} />
+                    <Route path="jobs" element={<JobsPage />} />
+                    <Route path="jobs/:id" element={<JobDetailPage />} />
+                    <Route path="settings" element={<SettingsPage />} />
+                    <Route path="accounts" element={<Navigate to="/crypto" replace />} />
+                    <Route path="transactions" element={<Navigate to="/spending" replace />} />
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                  </Route>
+                </Routes>
+              </ToastProvider>
+            </BrowserRouter>
+          </SecurityProvider>
+        </PortfolioProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   )
 }
