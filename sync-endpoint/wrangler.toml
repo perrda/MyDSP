@@ -1,0 +1,11 @@
+# Deploy with: cd sync-endpoint && npx wrangler deploy
+name = "mydsp-sync"
+main = "worker.js"
+compatibility_date = "2026-07-01"
+
+# After: npx wrangler kv namespace create mydsp-sync-kv
+# paste the id below, then deploy.
+[[kv_namespaces]]
+binding = "STORE"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+# preview_id = "REPLACE_WITH_PREVIEW_KV_ID"  # optional for wrangler dev

@@ -1,12 +1,32 @@
 # MyDSP sync endpoint (Cloudflare Worker)
 
-GitHub Pages hosts the PWA. Sync needs a separate HTTPS URL that accepts JSON PUT/GET.
+Encrypted envelopes only — passphrase crypto stays in the browser.
 
-## Quick deploy (Cloudflare)
+**Full walkthrough:** [SYNC_SETUP.md](../SYNC_SETUP.md)
 
-1. Create a Worker named `mydsp-sync` and a KV namespace bound as `STORE`.
-2. Paste `worker.js` as the Worker script.
-3. Deploy, copy the `*.workers.dev` URL.
-4. In MyDSP → Settings → Sync, set Remote URL to that URL (optionally append `?key=YOUR_SECRET` and set the same secret in Worker env `SYNC_KEY`).
+## Quick deploy (Dashboard)
 
-The Worker stores one encrypted envelope under key `envelope`. Passphrase encryption stays in the browser — the Worker only sees ciphertext JSON.
+1. Create Worker `mydsp-sync`.
+2. Bind KV namespace as **`STORE`** (exact name).
+3. Paste [`worker.js`](./worker.js) → Deploy.
+4. Optional secret `SYNC_KEY` → append `?key=YOUR_SECRET` to the URL.
+5. MyDSP → Settings → Sync → paste URL + passphrase → **Push**.
+
+## Quick deploy (CLI)
+
+```bash
+cd sync-endpoint
+npx wrangler login
+npx wrangler kv namespace create mydsp-sync-kv
+# Edit wrangler.toml — set id under [[kv_namespaces]]
+npx wrangler secret put SYNC_KEY
+npx wrangler deploy
+```
+
+Remote URL example:
+
+```text
+https://mydsp-sync.<subdomain>.workers.dev?key=YOUR_SECRET
+```
+
+The Worker stores one JSON blob under KV key `envelope` (max ~25 MB).

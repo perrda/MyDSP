@@ -62,16 +62,16 @@ GitHub Actions rebuilds the live site automatically.
 
 ## Sync between devices
 
-Each browser has its own local data. Use **Settings → Encrypted cloud sync** (or full backup download/restore) to share between phone and Mac.
+Each browser has its own local data. Use **Settings → Encrypted cloud sync** (or full backup
+download/restore) to share between phone and Mac.
 
-### Sync endpoint (Cloudflare Worker)
+**Step-by-step:** [SYNC_SETUP.md](./SYNC_SETUP.md)
 
-GitHub Pages cannot store your encrypted backup. Deploy the Worker in `sync-endpoint/`:
+### Sync endpoint (Cloudflare Worker) — short version
 
 1. Cloudflare → Workers → create `mydsp-sync`
 2. Bind a KV namespace as `STORE`
 3. Paste `sync-endpoint/worker.js`
 4. Optional: set secret `SYNC_KEY` and append `?key=…` to the URL
-5. In MyDSP Settings → Sync, paste the Worker URL and your passphrase → **Push**
-
-Encrypted envelopes are now **v2** (all portfolios + full workspace archive).
+5. In MyDSP Settings → Sync, paste the Worker URL and your passphrase → **Push** on desktop,
+   **Pull & merge** on phone
