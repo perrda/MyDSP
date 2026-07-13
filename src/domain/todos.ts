@@ -7,6 +7,7 @@ import type {
   TodoStats,
   TodoStatus,
 } from './todo-types'
+import { sortBySortOrder } from '../utils/reorder'
 
 export function createTodoItem(partial: Partial<TodoItem> & Pick<TodoItem, 'title' | 'listId'>): TodoItem {
   const now = new Date().toISOString()
@@ -77,9 +78,14 @@ export function isDueThisWeek(item: TodoItem): boolean {
 
 export function sortTodoItems(items: TodoItem[], sortBy: TodoSortBy): TodoItem[] {
   const priorityOrder: Record<TodoPriority, number> = { high: 0, medium: 1, low: 2 }
+  const orderKey = (item: TodoItem) => item.sortOrder ?? 1_000_000 + item.id
 
   return [...items].sort((a, b) => {
     switch (sortBy) {
+      case 'order-asc':
+        return orderKey(a) - orderKey(b)
+      case 'order-desc':
+        return orderKey(b) - orderKey(a)
       case 'priority-desc':
         return priorityOrder[a.priority] - priorityOrder[b.priority]
       case 'priority-asc':
@@ -130,9 +136,23 @@ export function filterTodoItems(items: TodoItem[], filterBy: TodoFilterBy): Todo
       return items.filter((i) => i.isFinanceRelated && i.status !== 'archived')
     case 'no-due-date':
       return items.filter((i) => !i.dueDate && i.status !== 'archived')
+    case 'status-todo':
+      return items.filter((i) => i.status === 'todo')
+    case 'status-in-progress':
+      return items.filter((i) => i.status === 'in-progress')
     default:
       return items
   }
+}
+
+/** Next contiguous sortOrder for a new item at the end of a list. */
+export function nextSortOrderForList(items: TodoItem[], listId: number): number {
+  const siblings = sortBySortOrder(
+    items.filter((i) => i.listId === listId && i.status !== 'archived'),
+  )
+  if (siblings.length === 0) return 0
+  const last = siblings[siblings.length - 1]
+  return (last.sortOrder ?? siblings.length - 1) + 1
 }
 
 export function calculateTodoStats(items: TodoItem[]): TodoStats {

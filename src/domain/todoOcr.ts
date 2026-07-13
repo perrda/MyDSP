@@ -1,4 +1,4 @@
-import { createTodoItem } from './todos'
+import { createTodoItem, nextSortOrderForList } from './todos'
 import type { TodoItem, TodoPriority } from './todo-types'
 
 /** Noise / chrome lines commonly OCR'd from todo app screenshots. */
@@ -206,9 +206,10 @@ export function moveTodoItemsToList(
 ): TodoItem[] {
   const idSet = new Set(ids)
   const now = new Date().toISOString()
-  return items.map((item) =>
-    idSet.has(item.id)
-      ? { ...item, listId: targetListId, updatedAt: now }
-      : item,
-  )
+  let nextOrder = nextSortOrderForList(items, targetListId)
+  return items.map((item) => {
+    if (!idSet.has(item.id)) return item
+    const sortOrder = nextOrder++
+    return { ...item, listId: targetListId, sortOrder, updatedAt: now }
+  })
 }
