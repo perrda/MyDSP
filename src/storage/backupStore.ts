@@ -12,6 +12,24 @@ import {
 } from './portfolioStore'
 import { STORAGE } from './keys'
 
+// Lazy import to avoid circular deps - sync service imports backupStore
+let _pushSyncLazy: ((url: string, pass: string) => Promise<void>) | null = null
+let _loadSyncConfigLazy: (() => { remoteUrl: string; enabled: boolean } | null) | null = null
+let _getSessionPassphraseLazy: (() => string | null) | null = null
+
+async function lazyLoadSync() {
+  if (_pushSyncLazy && _loadSyncConfigLazy && _getSessionPassphraseLazy) return
+  try {
+    const mod = await import('../services/sync/syncService')
+    _pushSyncLazy = mod.pushSync
+    _loadSyncConfigLazy = mod.loadSyncConfig
+    const sessionMod = await import('../services/sync/sessionPassphrase')
+    _getSessionPassphraseLazy = sessionMod.getSessionSyncPassphrase
+  } catch {
+    /* sync modules may not be available */
+  }
+}
+
 const DB_NAME = 'mydsp_backups'
 const STORE = 'backups'
 const DB_VERSION = 1
@@ -107,6 +125,7 @@ async function pruneOldBackups(): Promise<void> {
 export async function createFullBackup(
   source: 'auto' | 'manual',
   label?: string,
+  opts?: { skipAutoSync?: boolean },
 ): Promise<FullBackupMeta> {
   const snap = captureFullWorkspace()
   const createdAt = new Date().toISOString()
@@ -129,6 +148,14 @@ export async function createFullBackup(
   } catch {
     /* ignore */
   }
+
+  // Auto-sync after backup if enabled (unless explicitly skipped)
+  if (!opts?.skipAutoSync && source === 'auto') {
+    void attemptAutoSync().catch(() => {
+      /* Sync errors should not fail the backup */
+    })
+  }
+
   return {
     id: record.id,
     createdAt: record.createdAt,
@@ -301,6 +328,27 @@ export async function ensureDailyBackup(): Promise<FullBackupMeta | null> {
     /* continue */
   }
   return createFullBackup('auto')
+}
+
+/**
+ * Attempt auto-sync push after daily backup.
+ * Silent — errors logged but not thrown.
+ */
+async function attemptAutoSync(): Promise<void> {
+  await lazyLoadSync()
+  if (!_loadSyncConfigLazy || !_pushSyncLazy || !_getSessionPassphraseLazy) return
+
+  const cfg = _loadSyncConfigLazy()
+  if (!cfg || !cfg.enabled || !cfg.remoteUrl) return
+
+  const pass = _getSessionPassphraseLazy()
+  if (!pass) return
+
+  try {
+    await _pushSyncLazy(cfg.remoteUrl, pass)
+  } catch (err) {
+    console.warn('[auto-sync] Push failed after daily backup:', err)
+  }
 }
 
 export async function clearServiceWorkerCaches(): Promise<void> {
