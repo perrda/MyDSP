@@ -28,6 +28,8 @@ import {
   History,
   FileText,
   GitCompareArrows,
+  ListChecks,
+  Briefcase,
   type LucideIcon,
 } from 'lucide-react'
 import { BrandMark } from '../BrandMark'
@@ -58,6 +60,8 @@ const DEFAULT_LINKS: NavItem[] = [
   { to: '/compare', label: 'Compare', icon: GitCompareArrows },
   { to: '/history', label: 'History', icon: History },
   { to: '/documents', label: 'Documents', icon: FileText },
+  { to: '/todos', label: 'Todo Lists', icon: ListChecks },
+  { to: '/jobs', label: 'Job Tracker', icon: Briefcase },
   { to: '/import', label: 'Import CSV', icon: Upload },
   { to: '/rules', label: 'Merchant rules', icon: Tags },
   { to: '/optimizer', label: 'Debt tools', icon: Scale },
