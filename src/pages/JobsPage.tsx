@@ -135,6 +135,29 @@ export function JobsPage() {
     success('Application deleted')
   }
 
+  const handleDuplicateApplication = (app: JobApplication) => {
+    const now = new Date().toISOString()
+    const copy: JobApplication = {
+      ...app,
+      id: Date.now() + Math.floor(Math.random() * 1000),
+      jobTitle: `${app.jobTitle} (copy)`,
+      status: 'wishlist',
+      appliedDate: undefined,
+      interviews: [],
+      notes: [],
+      contacts: app.contacts.map((c) => ({ ...c, id: Date.now() + Math.floor(Math.random() * 1000) })),
+      tasks: [],
+      customDocuments: [...(app.customDocuments ?? [])],
+      createdAt: now,
+      updatedAt: now,
+    }
+    setData((prev) => ({
+      ...prev,
+      jobApplications: [...(prev.jobApplications ?? []), copy],
+    }))
+    success('Application duplicated', copy.companyName)
+  }
+
   const handleExportCsv = () => {
     const csv = exportJobsToCsv(filteredApplications)
     const blob = new Blob([csv], { type: 'text/csv' })
@@ -303,6 +326,7 @@ export function JobsPage() {
                     onStatusChange={handleStatusChange}
                     onEdit={handleEditApplication}
                     onDelete={handleDeleteApplication}
+                    onDuplicate={handleDuplicateApplication}
                     privacy={privacy}
                   />
                 ))}
@@ -319,6 +343,7 @@ export function JobsPage() {
               onStatusChange={handleStatusChange}
               onEdit={handleEditApplication}
               onDelete={handleDeleteApplication}
+              onDuplicate={handleDuplicateApplication}
               privacy={privacy}
               expanded
             />
@@ -343,6 +368,7 @@ function JobCard({
   onStatusChange,
   onEdit,
   onDelete,
+  onDuplicate,
   privacy,
   expanded = false,
 }: {
@@ -350,6 +376,7 @@ function JobCard({
   onStatusChange: (id: number, status: JobStatus) => void
   onEdit: (app: JobApplication) => void
   onDelete: (id: number) => void
+  onDuplicate: (app: JobApplication) => void
   privacy: boolean
   expanded?: boolean
 }) {
@@ -457,6 +484,9 @@ function JobCard({
         </Link>
         <button type="button" onClick={() => onEdit(application)} className="btn-ghost btn-sm text-xs">
           Edit
+        </button>
+        <button type="button" onClick={() => onDuplicate(application)} className="btn-ghost btn-sm text-xs">
+          Duplicate
         </button>
         <button type="button" onClick={() => onDelete(application.id)} className="btn-ghost btn-sm text-xs text-red-500">
           Delete

@@ -11,7 +11,7 @@ import type {
 export function createTodoItem(partial: Partial<TodoItem> & Pick<TodoItem, 'title' | 'listId'>): TodoItem {
   const now = new Date().toISOString()
   return {
-    id: Date.now() + Math.floor(Math.random() * 1000),
+    id: partial.id ?? Date.now() + Math.floor(Math.random() * 1000),
     title: partial.title,
     listId: partial.listId,
     description: partial.description,
@@ -26,8 +26,8 @@ export function createTodoItem(partial: Partial<TodoItem> & Pick<TodoItem, 'titl
     estimatedMinutes: partial.estimatedMinutes,
     actualMinutes: partial.actualMinutes,
     completedAt: partial.completedAt,
-    createdAt: now,
-    updatedAt: now,
+    createdAt: partial.createdAt ?? now,
+    updatedAt: partial.updatedAt ?? now,
     sortOrder: partial.sortOrder,
   }
 }

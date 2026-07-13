@@ -30,6 +30,8 @@ Copy structure and classes from:
 6. Shared input classes: `bg-surface-hover border border-border rounded text-sm`
 7. Cancel / primary save footer
 8. Empty states call the same modal opener (no alternate input path)
+9. Todo screenshot import uses on-device OCR (`TodoScreenshotImportModal`) with a review step before save
+10. After OCR import, support bulk **Move to list** for regrouping
 
 ## Adding more Cursor skills later
 

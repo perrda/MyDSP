@@ -14,6 +14,14 @@ Match the Jobs section (`JobFormModal`) for all data-entry UI across MyDSP.
 - Use `ConfirmDialog` from `src/components/ui/Modal.tsx` for destructive confirms.
 - Do not invent one-off input styles per page.
 
+## Screenshot OCR import (Todos)
+
+- Button: **From Screenshot** / filter bar **Screenshot**
+- Implementation: `TodoScreenshotImportModal` + `tesseract.js` (on-device OCR)
+- Parser: `src/domain/todoOcr.ts` — review/edit rows before import
+- After import: select tasks → **Move to list…** for regrouping
+- Never send screenshots to a server for OCR.
+
 ## Modal shell
 
 ```tsx

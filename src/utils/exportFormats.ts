@@ -412,7 +412,7 @@ export function todosToExcel(todos: TodoItem[]): ExcelData {
   const rows: ExcelRow[] = todos.map(t => [
     { value: t.title, type: 'text' },
     { value: t.priority, type: 'text', color: t.priority === 'high' ? '#ef4444' : t.priority === 'medium' ? '#f59e0b' : '#6b7280' },
-    { value: t.completedAt ? 'Completed' : 'Pending', type: 'text' },
+    { value: t.status, type: 'text' },
     { value: t.isFinanceRelated ? 'Finance' : 'General', type: 'text' },
     { value: t.dueDate ? formatDate(new Date(t.dueDate)) : 'No due date', type: 'text' },
     { value: formatDate(new Date(t.createdAt)), type: 'date' },

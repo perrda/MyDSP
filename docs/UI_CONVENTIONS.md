@@ -12,6 +12,7 @@ Cursor agents (and future you) need a single source of truth for forms. The livi
 | Compact list modal | `src/components/TodoListModal.tsx` |
 | Task modal | `src/components/TodoModal.tsx` |
 | Destructive confirm | `ConfirmDialog` in `src/components/ui/Modal.tsx` |
+| Screenshot → todos | `TodoScreenshotImportModal` + `domain/todoOcr.ts` |
 
 ## Form recipe
 

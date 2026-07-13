@@ -209,8 +209,10 @@ export function calculateJobStats(applications: JobApplication[]): JobStats {
     .filter((a) => a.appliedDate && a.interviews.length > 0)
     .map((a) => {
       const applied = new Date(a.appliedDate!)
-      const firstInterview = new Date(a.interviews[0].scheduledDate)
-      return (firstInterview.getTime() - applied.getTime()) / (1000 * 60 * 60 * 24)
+      const firstInterview = [...a.interviews]
+        .map((i) => new Date(i.scheduledDate).getTime())
+        .sort((x, y) => x - y)[0]
+      return (firstInterview - applied.getTime()) / (1000 * 60 * 60 * 24)
     })
   const avgResponseTime = responseTimes.length > 0
     ? Math.round(responseTimes.reduce((sum, days) => sum + days, 0) / responseTimes.length)

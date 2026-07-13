@@ -44,6 +44,10 @@ export function JobDetailPage() {
   const [editingInterview, setEditingInterview] = useState<JobInterview | undefined>()
   const [editingNote, setEditingNote] = useState<JobNote | undefined>()
   const [editingContact, setEditingContact] = useState<JobContact | undefined>()
+  const [editingTask, setEditingTask] = useState<
+    { id: number; description: string; dueDate?: string; completed: boolean; completedAt?: string } | undefined
+  >()
+  const [editingDocumentIndex, setEditingDocumentIndex] = useState<number | null>(null)
   const [confirmState, setConfirmState] = useState<{
     title: string
     body: string
@@ -136,20 +140,50 @@ export function JobDetailPage() {
     setEditingContact(undefined)
   }
 
-  const handleAddTask = () => setShowTaskModal(true)
-
-  const handleSaveTask = (task: { id: number; description: string; dueDate?: string; completed: boolean }) => {
-    updateApplication({ tasks: [...(application.tasks ?? []), task] })
-    setShowTaskModal(false)
-    success('Task added')
+  const handleAddTask = () => {
+    setEditingTask(undefined)
+    setShowTaskModal(true)
   }
 
-  const handleAddDocument = () => setShowDocumentModal(true)
+  const handleSaveTask = (task: {
+    id: number
+    description: string
+    dueDate?: string
+    completed: boolean
+    completedAt?: string
+  }) => {
+    if (editingTask) {
+      updateApplication({
+        tasks: (application.tasks ?? []).map((t) => (t.id === task.id ? { ...t, ...task } : t)),
+      })
+      success('Task updated')
+    } else {
+      updateApplication({ tasks: [...(application.tasks ?? []), task] })
+      success('Task added')
+    }
+    setShowTaskModal(false)
+    setEditingTask(undefined)
+  }
+
+  const handleAddDocument = () => {
+    setEditingDocumentIndex(null)
+    setShowDocumentModal(true)
+  }
 
   const handleSaveDocument = (doc: { name: string; url?: string; notes?: string }) => {
-    updateApplication({ customDocuments: [...(application.customDocuments ?? []), doc] })
+    if (editingDocumentIndex != null) {
+      updateApplication({
+        customDocuments: (application.customDocuments ?? []).map((d, i) =>
+          i === editingDocumentIndex ? doc : d,
+        ),
+      })
+      success('Document updated')
+    } else {
+      updateApplication({ customDocuments: [...(application.customDocuments ?? []), doc] })
+      success('Document added')
+    }
     setShowDocumentModal(false)
-    success('Document added')
+    setEditingDocumentIndex(null)
   }
 
   const handleDeleteInterview = (interviewId: number) => {
@@ -274,10 +308,28 @@ export function JobDetailPage() {
         />
       )}
       {showTaskModal && (
-        <TaskModal onSave={handleSaveTask} onClose={() => setShowTaskModal(false)} />
+        <TaskModal
+          task={editingTask}
+          onSave={handleSaveTask}
+          onClose={() => {
+            setShowTaskModal(false)
+            setEditingTask(undefined)
+          }}
+        />
       )}
       {showDocumentModal && (
-        <DocumentModal onSave={handleSaveDocument} onClose={() => setShowDocumentModal(false)} />
+        <DocumentModal
+          document={
+            editingDocumentIndex != null
+              ? application.customDocuments[editingDocumentIndex]
+              : undefined
+          }
+          onSave={handleSaveDocument}
+          onClose={() => {
+            setShowDocumentModal(false)
+            setEditingDocumentIndex(null)
+          }}
+        />
       )}
       {showJobForm && (
         <JobFormModal
@@ -511,9 +563,19 @@ export function JobDetailPage() {
                       onChange={() => handleToggleTask(task.id)}
                       className="mt-0.5"
                     />
-                    <span className={`flex-1 ${task.completed ? 'line-through text-text-subtle' : ''}`}>
+                    <button
+                      type="button"
+                      className={`flex-1 text-left ${task.completed ? 'line-through text-text-subtle' : ''}`}
+                      onClick={() => {
+                        setEditingTask(task)
+                        setShowTaskModal(true)
+                      }}
+                    >
                       {task.description}
-                    </span>
+                      {task.dueDate ? (
+                        <span className="block text-xs text-text-subtle mt-0.5">Due {task.dueDate}</span>
+                      ) : null}
+                    </button>
                     <button
                       type="button"
                       onClick={() => handleDeleteTask(task.id)}
@@ -623,25 +685,46 @@ export function JobDetailPage() {
             ) : (
               <div className="space-y-2">
                 {application.customDocuments.map((doc, idx) => (
-                  <div key={idx} className="p-2 bg-surface-hover rounded text-xs group">
+                  <div key={`${doc.name}-${idx}`} className="p-2 bg-surface-hover rounded text-xs group">
                     <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1">
-                        <p className="font-semibold">{doc.name}</p>
-                        {doc.url && (
-                          <a href={doc.url} target="_blank" rel="noopener noreferrer" className="text-accent hover:text-accent-bright text-xs inline-flex items-center gap-1">
-                            <ExternalLink size={10} /> View
-                          </a>
-                        )}
-                        {doc.notes && <p className="text-text-muted mt-1">{doc.notes}</p>}
-                      </div>
                       <button
                         type="button"
-                        onClick={() => handleDeleteDocument(idx)}
-                        className="opacity-0 group-hover:opacity-100 text-red-500 p-0.5"
-                        aria-label="Delete document"
+                        className="flex-1 text-left"
+                        onClick={() => {
+                          setEditingDocumentIndex(idx)
+                          setShowDocumentModal(true)
+                        }}
                       >
-                        <Trash2 size={12} />
+                        <p className="font-semibold">{doc.name}</p>
+                        {doc.url && (
+                          <span className="text-accent text-xs inline-flex items-center gap-1">
+                            <ExternalLink size={10} /> Link attached
+                          </span>
+                        )}
+                        {doc.notes && <p className="text-text-muted mt-1">{doc.notes}</p>}
                       </button>
+                      <div className="flex gap-1">
+                        {doc.url && (
+                          <a
+                            href={doc.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-accent p-0.5"
+                            aria-label="Open document link"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <ExternalLink size={12} />
+                          </a>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteDocument(idx)}
+                          className="opacity-0 group-hover:opacity-100 text-red-500 p-0.5"
+                          aria-label="Delete document"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}

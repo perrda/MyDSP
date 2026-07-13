@@ -11,12 +11,17 @@ import {
   Archive,
   Trash2,
   Settings2,
+  ImagePlus,
+  CheckCircle2,
+  Circle,
+  FolderInput,
 } from 'lucide-react'
 import { PageHeader } from '../components/ui/PageHeader'
 import { EmptyState } from '../components/ui/EmptyState'
 import { ConfirmDialog } from '../components/ui/Modal'
 import { TodoModal } from '../components/TodoModal'
 import { TodoListModal } from '../components/TodoListModal'
+import { TodoScreenshotImportModal } from '../components/TodoScreenshotImportModal'
 import { usePortfolio } from '../context/PortfolioContext'
 import { useToasts } from '../components/ToastProvider'
 import type { TodoFilterBy, TodoItem, TodoList, TodoSortBy } from '../domain/todo-types'
@@ -28,6 +33,7 @@ import {
   parseCsvToTodoItems,
   sortTodoItems,
 } from '../domain/todos'
+import { moveTodoItemsToList } from '../domain/todoOcr'
 import { privacyClass } from '../utils/format'
 
 const PRIORITY_COLORS = {
@@ -68,6 +74,8 @@ export function TodosPage() {
     confirmLabel?: string
     onConfirm: () => void
   } | null>(null)
+  const [showScreenshotImport, setShowScreenshotImport] = useState(false)
+  const [bulkMoveListId, setBulkMoveListId] = useState<number | ''>('')
 
   const lists = data.todoLists || []
   const allItems = data.todoItems || []
@@ -205,11 +213,12 @@ export function TodosPage() {
   }
 
   const handleBulkComplete = () => {
+    const now = new Date().toISOString()
     setData((prev) => ({
       ...prev,
       todoItems: (prev.todoItems ?? []).map((i) =>
         selectedTodos.has(i.id)
-          ? { ...i, status: 'done' as const, completedAt: new Date().toISOString() }
+          ? { ...i, status: 'done' as const, completedAt: now, updatedAt: now }
           : i,
       ),
     }))
@@ -218,14 +227,57 @@ export function TodosPage() {
   }
 
   const handleBulkArchive = () => {
+    const now = new Date().toISOString()
     setData((prev) => ({
       ...prev,
       todoItems: (prev.todoItems ?? []).map((i) =>
-        selectedTodos.has(i.id) ? { ...i, status: 'archived' as const } : i,
+        selectedTodos.has(i.id) ? { ...i, status: 'archived' as const, updatedAt: now } : i,
       ),
     }))
     success('Tasks archived', `${selectedTodos.size} tasks`)
     setSelectedTodos(new Set())
+  }
+
+  const handleBulkMove = () => {
+    if (bulkMoveListId === '' || selectedTodos.size === 0) return
+    const targetId = Number(bulkMoveListId)
+    const target = lists.find((l) => l.id === targetId)
+    setData((prev) => ({
+      ...prev,
+      todoItems: moveTodoItemsToList(prev.todoItems ?? [], selectedTodos, targetId),
+    }))
+    success('Tasks moved', `${selectedTodos.size} → ${target?.name ?? 'list'}`)
+    setSelectedTodos(new Set())
+    setBulkMoveListId('')
+    setSelectedListId(targetId)
+  }
+
+  const handleToggleComplete = (item: TodoItem) => {
+    const now = new Date().toISOString()
+    const done = item.status !== 'done'
+    setData((prev) => ({
+      ...prev,
+      todoItems: (prev.todoItems ?? []).map((i) =>
+        i.id === item.id
+          ? {
+              ...i,
+              status: done ? ('done' as const) : ('todo' as const),
+              completedAt: done ? now : undefined,
+              updatedAt: now,
+            }
+          : i,
+      ),
+    }))
+  }
+
+  const handleScreenshotImport = (items: TodoItem[]) => {
+    setData((prev) => ({
+      ...prev,
+      todoItems: [...(prev.todoItems ?? []), ...items],
+    }))
+    if (items[0]?.listId) setSelectedListId(items[0].listId)
+    setShowScreenshotImport(false)
+    success('Imported from screenshot', `${items.length} tasks`)
   }
 
   const handleBulkDelete = () => {
@@ -331,6 +383,14 @@ export function TodosPage() {
         onClose={() => setConfirmState(null)}
         onConfirm={() => confirmState?.onConfirm()}
       />
+      {showScreenshotImport && lists.length > 0 && (
+        <TodoScreenshotImportModal
+          lists={lists}
+          defaultListId={activeListIdForModal}
+          onImport={handleScreenshotImport}
+          onClose={() => setShowScreenshotImport(false)}
+        />
+      )}
 
       <PageHeader
         eyebrow="Tasks"
@@ -341,7 +401,22 @@ export function TodosPage() {
             : `${stats.total} tasks · ${stats.highPriority} high priority · ${stats.overdue} overdue`
         }
         action={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                if (lists.length === 0) {
+                  showError('Create a list first', 'You need a list before importing')
+                  openCreateList()
+                  return
+                }
+                setShowScreenshotImport(true)
+              }}
+              className="btn-secondary btn-sm"
+              disabled={lists.length === 0}
+            >
+              <ImagePlus size={16} /> From Screenshot
+            </button>
             <button type="button" onClick={handleCreateItem} className="btn-primary btn-sm" disabled={lists.length === 0}>
               <Plus size={16} /> New Task
             </button>
@@ -502,7 +577,14 @@ export function TodosPage() {
                 Show Completed
               </label>
               <button type="button" onClick={handleImportCsv} className="btn-secondary btn-sm">
-                <Upload size={14} /> Import
+                <Upload size={14} /> Import CSV
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowScreenshotImport(true)}
+                className="btn-secondary btn-sm"
+              >
+                <ImagePlus size={14} /> Screenshot
               </button>
               <button type="button" onClick={handleExportCsv} className="btn-ghost btn-sm">
                 <Download size={14} /> Export
@@ -526,6 +608,30 @@ export function TodosPage() {
                 >
                   <Archive size={14} /> Archive
                 </button>
+                <div className="flex items-center gap-2">
+                  <FolderInput size={14} className="text-text-subtle" />
+                  <select
+                    value={bulkMoveListId}
+                    onChange={(e) => setBulkMoveListId(e.target.value ? Number(e.target.value) : '')}
+                    className="px-2 py-1.5 bg-surface-hover border border-border rounded text-sm"
+                    aria-label="Move to list"
+                  >
+                    <option value="">Move to list…</option>
+                    {lists.map((l) => (
+                      <option key={l.id} value={l.id}>
+                        {l.name}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={handleBulkMove}
+                    disabled={bulkMoveListId === ''}
+                    className="btn-sm btn-primary"
+                  >
+                    Move
+                  </button>
+                </div>
                 <button
                   type="button"
                   onClick={handleBulkDelete}
@@ -568,6 +674,19 @@ export function TodosPage() {
                       className="mt-1 w-4 h-4 flex-shrink-0"
                       aria-label={`Select ${item.title}`}
                     />
+                    <button
+                      type="button"
+                      onClick={() => handleToggleComplete(item)}
+                      className="mt-0.5 text-text-subtle hover:text-accent flex-shrink-0"
+                      title={item.status === 'done' ? 'Mark incomplete' : 'Mark complete'}
+                      aria-label={item.status === 'done' ? 'Mark incomplete' : 'Mark complete'}
+                    >
+                      {item.status === 'done' ? (
+                        <CheckCircle2 size={18} className="text-green-500" />
+                      ) : (
+                        <Circle size={18} />
+                      )}
+                    </button>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap mb-1">
                         <h3
@@ -575,6 +694,11 @@ export function TodosPage() {
                         >
                           {item.title}
                         </h3>
+                        {!selectedListId && (
+                          <span className="text-xs text-text-subtle">
+                            {lists.find((l) => l.id === item.listId)?.name ?? 'Unknown list'}
+                          </span>
+                        )}
                         <span className={`text-xs font-bold uppercase ${PRIORITY_TEXT_COLORS[item.priority]}`}>
                           {item.priority}
                         </span>

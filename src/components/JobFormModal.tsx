@@ -119,6 +119,7 @@ export function JobFormModal({ application, onSave, onClose }: JobFormModalProps
                   <option value="accepted">Accepted</option>
                   <option value="rejected">Rejected</option>
                   <option value="withdrawn">Withdrawn</option>
+                  <option value="archived">Archived</option>
                 </select>
               </div>
               <div>
