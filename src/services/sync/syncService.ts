@@ -88,7 +88,9 @@ export function loadSyncConfig(): SyncConfig {
     if (!raw) return { remoteUrl: '', enabled: false }
     const parsed = JSON.parse(raw) as Partial<SyncConfig>
     return {
-      remoteUrl: typeof parsed.remoteUrl === 'string' ? parsed.remoteUrl : '',
+      remoteUrl: normalizeSyncRemoteUrl(
+        typeof parsed.remoteUrl === 'string' ? parsed.remoteUrl : '',
+      ),
       enabled: Boolean(parsed.enabled),
       rememberPassphrase: Boolean(parsed.rememberPassphrase),
       autoResolveConflicts:
@@ -107,6 +109,86 @@ export function loadSyncConfig(): SyncConfig {
 
 export function saveSyncConfig(cfg: SyncConfig): void {
   localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg))
+}
+
+/**
+ * Ensure Remote URL is absolute https. Without a scheme, browsers treat it as a
+ * path on the app host → Push hits mydspv1…/mydsp-sync… and returns 405.
+ */
+export function normalizeSyncRemoteUrl(url: string): string {
+  let raw = url.trim()
+  if (!raw) return ''
+  // Common paste: "mydsp-sync….workers.dev" or "mydsp-sync….workers.dev?key=…"
+  if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(raw)) {
+    raw = `https://${raw.replace(/^\/\//, '')}`
+  }
+  try {
+    const u = new URL(raw)
+    if (u.protocol === 'http:') u.protocol = 'https:'
+    return u.toString()
+  } catch {
+    return raw
+  }
+}
+
+/**
+ * Detect common mistakes: Remote URL must be the sync Worker (mydsp-sync…),
+ * not the MyDSP app host (mydspv1… / GitHub Pages). Those return HTTP 405 on Push.
+ */
+export function getSyncRemoteUrlWarning(url: string): string | null {
+  const raw = normalizeSyncRemoteUrl(url)
+  if (!raw) return null
+  let host = ''
+  try {
+    host = new URL(raw).hostname.toLowerCase()
+  } catch {
+    return 'Remote URL must be a full https://… address (e.g. https://mydsp-sync.…workers.dev).'
+  }
+
+  const looksLikeApp =
+    host.includes('github.io') ||
+    /^mydspv?\d*\./.test(host) ||
+    host.startsWith('mydsp.') ||
+    host.includes('pages.dev')
+
+  if (looksLikeApp && !host.includes('sync')) {
+    return (
+      'This looks like the MyDSP app URL, not the sync Worker. ' +
+      'Use https://mydsp-sync.<your-subdomain>.workers.dev (optional ?key=…). ' +
+      'App hosts return Push failed (405/405).'
+    )
+  }
+
+  if (host.includes('workers.dev') && !host.includes('sync')) {
+    return (
+      'Remote URL should be your sync Worker (name usually contains “sync”), ' +
+      'not the app Worker. Example: https://mydsp-sync.dave-perry.workers.dev'
+    )
+  }
+
+  return null
+}
+
+function pushFailureMessage(url: string, putStatus: number, postStatus: number): string {
+  const normalized = normalizeSyncRemoteUrl(url)
+  const missingScheme = url.trim() && !/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(url.trim())
+  if (putStatus === 405 || postStatus === 405) {
+    if (missingScheme) {
+      return (
+        'Push failed (405) — Remote URL needs https:// at the start. ' +
+        `Use ${normalized || 'https://mydsp-sync.…workers.dev'}.`
+      )
+    }
+    return (
+      getSyncRemoteUrlWarning(url) ??
+      `Push failed (405) — this URL rejects PUT/POST. ` +
+        `Use the sync Worker URL (e.g. https://mydsp-sync.…workers.dev), not the app URL.`
+    )
+  }
+  if (putStatus === 401 || postStatus === 401) {
+    return 'Push unauthorized (401) — check SYNC_KEY matches ?key= in the Remote URL.'
+  }
+  return `Push failed (${putStatus}/${postStatus})`
 }
 
 function deviceId(): string {
@@ -129,20 +211,21 @@ export function getLocalDeviceId(): string {
 export async function fetchRemoteMeta(
   url: string,
 ): Promise<{ exportedAt: string; deviceId: string; checksum?: string } | null> {
-  let metaUrl = url
+  const remote = normalizeSyncRemoteUrl(url)
+  let metaUrl = remote
   try {
-    const u = new URL(url)
+    const u = new URL(remote)
     u.searchParams.set('meta', '1')
     metaUrl = u.toString()
   } catch {
-    metaUrl = url.includes('?') ? `${url}&meta=1` : `${url}?meta=1`
+    metaUrl = remote.includes('?') ? `${remote}&meta=1` : `${remote}?meta=1`
   }
 
   let res = await fetch(metaUrl)
   // Older workers ignore ?meta=1 and return the full envelope — still usable
   if (res.status === 404) return null
-  if (!res.ok && metaUrl !== url) {
-    res = await fetch(url)
+  if (!res.ok && metaUrl !== remote) {
+    res = await fetch(remote)
     if (res.status === 404) return null
   }
   if (!res.ok) throw new Error(`Remote check failed (${res.status})`)
@@ -238,20 +321,21 @@ export async function buildEnvelope(
 
 export async function pushSync(url: string, passphrase: string): Promise<void> {
   setSessionSyncPassphrase(passphrase)
+  const remote = normalizeSyncRemoteUrl(url)
   const envelope = await buildEnvelope(passphrase, { includeFullArchive: true })
-  const res = await fetch(url, {
+  const res = await fetch(remote, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(envelope),
   })
   if (!res.ok) {
     // Some hosts only allow POST
-    const res2 = await fetch(url, {
+    const res2 = await fetch(remote, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(envelope),
     })
-    if (!res2.ok) throw new Error(`Push failed (${res.status}/${res2.status})`)
+    if (!res2.ok) throw new Error(pushFailureMessage(url, res.status, res2.status))
   }
 }
 
@@ -377,7 +461,8 @@ function buildMergePreview(
 }
 
 export async function previewPull(url: string, passphrase: string): Promise<MergePreview> {
-  const res = await fetch(url)
+  const remote = normalizeSyncRemoteUrl(url)
+  const res = await fetch(remote)
   if (!res.ok) throw new Error(`Pull failed (${res.status})`)
   setSessionSyncPassphrase(passphrase)
   const envelope = (await res.json()) as SyncEnvelope

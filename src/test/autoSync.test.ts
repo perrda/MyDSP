@@ -8,6 +8,7 @@ import {
 } from '../services/sync/sessionPassphrase'
 import {
   fetchRemoteMeta,
+  getSyncRemoteUrlWarning,
   loadSyncConfig,
   saveSyncConfig,
 } from '../services/sync/syncService'
@@ -66,6 +67,24 @@ describe('sync config auto fields', () => {
     expect(cfg.enabled).toBe(true)
     expect(cfg.rememberPassphrase).toBe(true)
     expect(cfg.autoResolveConflicts).toBe(true)
+  })
+
+  it('warns when Remote URL is the app host (405 cause)', () => {
+    expect(getSyncRemoteUrlWarning('https://mydspv1.dave-perry.workers.dev')).toMatch(/405/)
+    expect(getSyncRemoteUrlWarning('https://mydsp-sync.dave-perry.workers.dev')).toBeNull()
+    expect(
+      getSyncRemoteUrlWarning('https://mydsp-sync.dave-perry.workers.dev?key=secret'),
+    ).toBeNull()
+  })
+
+  it('adds https:// when Remote URL is pasted without a scheme', async () => {
+    const { normalizeSyncRemoteUrl } = await import('../services/sync/syncService')
+    expect(normalizeSyncRemoteUrl('mydsp-sync.dave-perry.workers.dev')).toBe(
+      'https://mydsp-sync.dave-perry.workers.dev/',
+    )
+    expect(normalizeSyncRemoteUrl('mydsp-sync.dave-perry.workers.dev?key=abc')).toBe(
+      'https://mydsp-sync.dave-perry.workers.dev/?key=abc',
+    )
   })
 })
 
