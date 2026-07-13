@@ -20,7 +20,8 @@ import {
 } from 'lucide-react'
 import { PageHeader } from '../components/ui/PageHeader'
 import { EmptyState } from '../components/ui/EmptyState'
-import { ConfirmDialog } from '../components/ui/Modal'
+import { ConfirmDialog, Modal } from '../components/ui/Modal'
+import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
 import { JobFormModal } from '../components/JobFormModal'
 import { JobAnalytics } from '../components/JobAnalytics'
 import { usePortfolio } from '../context/PortfolioContext'
@@ -41,6 +42,7 @@ import {
   STATUS_COLORS,
   STATUS_LABELS,
 } from '../domain/jobs'
+import { applySortOrder, sortBySortOrder } from '../utils/reorder'
 import { formatGBP, privacyClass } from '../utils/format'
 
 const KANBAN_COLUMNS: Array<{ status: JobStatus[]; title: string; color: string }> = [
@@ -71,6 +73,11 @@ export function JobsPage() {
     confirmLabel?: string
     onConfirm: () => void
   } | null>(null)
+  const [closedDrop, setClosedDrop] = useState<{
+    appId: number
+    jobTitle: string
+    companyName: string
+  } | null>(null)
 
   const applications = data.jobApplications || []
 
@@ -96,7 +103,9 @@ export function JobsPage() {
   const kanbanData = useMemo(() => {
     return KANBAN_COLUMNS.map((col) => ({
       ...col,
-      applications: filteredApplications.filter((app) => col.status.includes(app.status)),
+      applications: sortBySortOrder(
+        filteredApplications.filter((app) => col.status.includes(app.status)),
+      ),
     }))
   }, [filteredApplications])
 
@@ -230,17 +239,49 @@ export function JobsPage() {
     const status = KANBAN_DROP_STATUS[columnTitle]
     if (!status) return
     const app = applications.find((a) => a.id === appId)
-    // Preserve rejected/withdrawn when dropping into Closed (don't force archived)
+    if (!app) return
+
+    // Already in Closed — within-column reorder handles order; ignore status DnD
     if (
       columnTitle === 'Closed' &&
-      app &&
       (app.status === 'rejected' || app.status === 'withdrawn' || app.status === 'archived')
     ) {
       setDragOverColumn(null)
       return
     }
+
+    if (columnTitle === 'Closed') {
+      setDragOverColumn(null)
+      setClosedDrop({
+        appId,
+        jobTitle: app.jobTitle,
+        companyName: app.companyName,
+      })
+      return
+    }
+
     handleStatusChange(appId, status)
     setDragOverColumn(null)
+  }
+
+  const handleClosedStatus = (status: 'rejected' | 'withdrawn' | 'archived') => {
+    if (!closedDrop) return
+    handleStatusChange(closedDrop.appId, status)
+    setClosedDrop(null)
+  }
+
+  const handleReorderInColumn = (columnStatuses: JobStatus[], reordered: JobApplication[]) => {
+    const withOrder = applySortOrder(reordered)
+    const idToOrder = new Map(withOrder.map((a) => [a.id, a.sortOrder!]))
+    const now = new Date().toISOString()
+    setData((prev) => ({
+      ...prev,
+      jobApplications: (prev.jobApplications ?? []).map((app) =>
+        columnStatuses.includes(app.status) && idToOrder.has(app.id)
+          ? { ...app, sortOrder: idToOrder.get(app.id), updatedAt: now }
+          : app,
+      ),
+    }))
   }
 
   const toggleJobSelect = (id: number) => {
@@ -519,12 +560,18 @@ export function JobsPage() {
                 <h3 className="font-bold uppercase text-xs tracking-wider">
                   {column.title} ({column.applications.length})
                 </h3>
-                <p className="text-[10px] text-text-subtle mt-1">Drop cards here</p>
+                <p className="text-[10px] text-text-subtle mt-1">
+                  Drag grip to move columns · reorder handle to sort
+                </p>
               </div>
-              <div className="space-y-3 min-h-[80px]">
-                {column.applications.map((app) => (
+              <ReorderList
+                items={column.applications}
+                getId={(app) => String(app.id)}
+                onReorder={(next) => handleReorderInColumn(column.status, next)}
+                className="space-y-3 min-h-[80px]"
+              >
+                {(app) => (
                   <JobCard
-                    key={app.id}
                     application={app}
                     onStatusChange={handleStatusChange}
                     onEdit={handleEditApplication}
@@ -534,9 +581,10 @@ export function JobsPage() {
                     onToggleSelect={toggleJobSelect}
                     privacy={privacy}
                     draggable
+                    showReorderHandle
                   />
-                ))}
-              </div>
+                )}
+              </ReorderList>
             </div>
           ))}
         </div>
@@ -575,6 +623,26 @@ export function JobsPage() {
         onClose={() => setConfirmState(null)}
         onConfirm={() => confirmState?.onConfirm()}
       />
+      <Modal
+        open={closedDrop !== null}
+        title="Close application"
+        onClose={() => setClosedDrop(null)}
+      >
+        <p className="text-sm text-text-muted mb-4">
+          How should “{closedDrop?.jobTitle}” at {closedDrop?.companyName} be closed?
+        </p>
+        <div className="flex flex-col gap-2">
+          <button type="button" className="btn-secondary" onClick={() => handleClosedStatus('rejected')}>
+            Rejected
+          </button>
+          <button type="button" className="btn-secondary" onClick={() => handleClosedStatus('withdrawn')}>
+            Withdrawn
+          </button>
+          <button type="button" className="btn-primary" onClick={() => handleClosedStatus('archived')}>
+            Archived
+          </button>
+        </div>
+      </Modal>
     </div>
   )
 }
@@ -590,6 +658,7 @@ function JobCard({
   privacy,
   expanded = false,
   draggable = false,
+  showReorderHandle = false,
 }: {
   application: JobApplication
   onStatusChange: (id: number, status: JobStatus) => void
@@ -601,6 +670,7 @@ function JobCard({
   privacy: boolean
   expanded?: boolean
   draggable?: boolean
+  showReorderHandle?: boolean
 }) {
   const daysSince = getDaysSinceApplied(application)
   const nextInterview = getNextInterview(application)
@@ -614,6 +684,7 @@ function JobCard({
     >
       <div className="flex items-start justify-between gap-3 mb-2">
         <div className="flex items-start gap-2 flex-1 min-w-0">
+          {showReorderHandle && <ReorderHandle label="Reorder within column" />}
           {draggable && (
             <button
               type="button"

@@ -4,6 +4,8 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { readFileSync } from 'node:fs'
 
+import { cloudflare } from "@cloudflare/vite-plugin";
+
 const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf-8'))
 
 // GitHub Pages project site lives at https://perrda.github.io/MyDSP/
@@ -15,7 +17,7 @@ export default defineConfig({
     __APP_VERSION__: JSON.stringify(pkg.version),
     __BASE_PATH__: JSON.stringify(pagesBase),
   },
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), cloudflare()],
   server: {
     host: true,
     port: 5173,

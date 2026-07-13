@@ -114,11 +114,12 @@ export function DocumentModal({ document, onSave, onClose }: DocumentModalProps)
             {(file || document?.fileName) && (
               <p className="text-xs text-text-subtle mt-1">
                 {file ? file.name : document?.fileName}
-                {document?.hasBlob && !file ? ' (stored on this device)' : ''}
+                {document?.hasBlob && !file ? ' (IndexedDB attachment)' : ''}
               </p>
             )}
             <p className="text-[11px] text-text-subtle mt-1">
-              Files stay in IndexedDB on this device — not included in cloud sync yet.
+              Files are included in full backup and encrypted sync when under 2&nbsp;MB each (20&nbsp;MB
+              total). Oversized files stay on this device only.
             </p>
           </div>
           <div>
