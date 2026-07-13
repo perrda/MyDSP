@@ -292,11 +292,14 @@ html.theme-transitioning *::after {
   max-width: none;
   height: 2.5rem;
   min-height: 2.5rem;
-  padding: 0 1.75rem 0 0.625rem !important;
+  /* Equal horizontal padding so label centres optically beside the chevron */
+  padding: 0 1.75rem !important;
   font-size: 0.625rem !important;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  text-align: center;
+  text-align-last: center;
   line-height: 1;
   border: 1px solid var(--border-strong);
   background-color: transparent !important;
@@ -337,8 +340,8 @@ html.theme-transitioning *::after {
 }
 .toolbar-select-currency {
   width: 4.25rem !important;
-  padding-right: 1.5rem !important;
-  text-align: left;
+  text-align: center;
+  text-align-last: center;
 }
 
 .toolbar-icon {
