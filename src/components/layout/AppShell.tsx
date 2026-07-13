@@ -4,6 +4,7 @@ import { RefreshCw } from 'lucide-react'
 import { usePortfolio } from '../../context/PortfolioContext'
 import { DISPLAY_CURRENCIES } from '../../services/fx'
 import { loadSyncConfig } from '../../services/sync/syncService'
+import { subscribeAutoSync } from '../../services/sync/autoSyncService'
 import {
   checkTodoReminders,
   markReminderFired,
@@ -63,7 +64,7 @@ export function AppShell() {
           : pathname.startsWith('/jobs/')
             ? { eyebrow: 'Career', title: 'Job Application' }
             : { eyebrow: 'MyDSP', title: 'App' })
-  const syncCfg = loadSyncConfig()
+  const [syncCfg, setSyncCfg] = useState(() => loadSyncConfig())
   const {
     portfolios,
     activeId,
@@ -78,6 +79,10 @@ export function AppShell() {
     refreshFx,
   } = usePortfolio()
   const [priceMsg, setPriceMsg] = useState<string | null>(null)
+
+  useEffect(() => {
+    return subscribeAutoSync(() => setSyncCfg(loadSyncConfig()))
+  }, [])
 
   // Keep SW reminder schedule in sync app-wide (not only while Todos is open)
   useEffect(() => {

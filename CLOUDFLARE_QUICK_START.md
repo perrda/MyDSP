@@ -49,7 +49,8 @@ Quick version:
 
 1. Deploy `sync-endpoint/worker.js` with KV binding `STORE`.
 2. MyDSP → Settings → Encrypted cloud sync → Remote URL + passphrase.
-3. **Push** on desktop → **Pull & merge** on phone / iPad.
+3. Enable **Automatic sync** + **Remember passphrase** on each device.
+4. First device: **Push** / **Sync now**. Others: open the app — they pull automatically.
 
 ## Environment Variables
 

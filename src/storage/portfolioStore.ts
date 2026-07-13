@@ -29,6 +29,21 @@ const saveTimers = new Map<string, ReturnType<typeof setTimeout>>()
 /** Latest unsaved snapshot per portfolio (written on flush). */
 const pendingWrites = new Map<string, PortfolioData>()
 
+/** Optional hook — auto-sync marks dirty after local writes. */
+let onPortfolioDataChanged: (() => void) | null = null
+
+export function setOnPortfolioDataChanged(cb: (() => void) | null): void {
+  onPortfolioDataChanged = cb
+}
+
+function notifyDataChanged(): void {
+  try {
+    onPortfolioDataChanged?.()
+  } catch {
+    /* ignore */
+  }
+}
+
 function readJson<T>(key: string): T | null {
   try {
     const raw = localStorage.getItem(key)
@@ -100,6 +115,7 @@ export function savePortfolioImmediate(
   pendingWrites.delete(portfolioId)
   const key = STORAGE.dataKey(portfolioId)
   writeJson(key, toStorageShape(data))
+  notifyDataChanged()
 }
 
 /** Flush any pending debounced save for a portfolio (writes immediately). */
@@ -114,6 +130,7 @@ export function flushSave(portfolioId = getActivePortfolioId()): void {
     pendingWrites.delete(portfolioId)
     const key = STORAGE.dataKey(portfolioId)
     writeJson(key, toStorageShape(pending))
+    notifyDataChanged()
   }
 }
 
