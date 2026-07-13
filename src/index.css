@@ -1081,7 +1081,6 @@ select:focus {
     border-radius: 0.5rem !important;
   }
 }
-
 /* Animations */
 @keyframes slide-in-right {
   from {
