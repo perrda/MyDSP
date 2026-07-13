@@ -70,6 +70,8 @@ const DEFAULT_LINKS: NavItem[] = [
   { to: '/achievements', label: 'Achievements', icon: Trophy },
   { to: '/tax', label: 'UK CGT', icon: Receipt },
   { to: '/analytics', label: 'Analytics', icon: BarChart3 },
+  { to: '/insights', label: 'Smart Insights', icon: LineChart },
+  { to: '/api', label: 'API & Automation', icon: Layers },
   { to: '/settings', label: 'Settings', icon: Settings },
 ]
 

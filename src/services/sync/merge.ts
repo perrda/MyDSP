@@ -69,6 +69,9 @@ export function mergePortfolio(local: PortfolioData, remote: PortfolioData): Por
     },
     budgetGoals: { ...local.budgetGoals, ...remote.budgetGoals },
     paidOff: [...local.paidOff, ...remote.paidOff.filter((p) => !local.paidOff.some((x) => x.name === p.name))],
+    todoLists: pickById(local.todoLists ?? [], remote.todoLists ?? []),
+    todoItems: pickById(local.todoItems ?? [], remote.todoItems ?? []),
+    jobApplications: pickById(local.jobApplications ?? [], remote.jobApplications ?? []),
     settings: {
       ...local.settings,
       ...remote.settings,

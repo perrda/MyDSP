@@ -548,7 +548,119 @@ const KNOWN_KEYS = new Set([
   'stakingRewards',
   'alerts',
   'versions',
+  'todoLists',
+  'todoItems',
+  'jobApplications',
 ])
+
+function normalizeTodoLists(raw: unknown): import('./todo-types').TodoList[] {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .filter((x): x is Record<string, unknown> => !!x && typeof x === 'object')
+    .map((x, i) => ({
+      id: num(x.id, Date.now() + i),
+      name: str(x.name, 'Untitled list'),
+      description: typeof x.description === 'string' ? x.description : undefined,
+      color: typeof x.color === 'string' ? x.color : undefined,
+      icon: typeof x.icon === 'string' ? x.icon : undefined,
+      sortOrder: typeof x.sortOrder === 'number' ? x.sortOrder : i,
+      createdAt: str(x.createdAt, new Date().toISOString()),
+      updatedAt: str(x.updatedAt, new Date().toISOString()),
+    }))
+}
+
+function normalizeTodoItems(raw: unknown): import('./todo-types').TodoItem[] {
+  if (!Array.isArray(raw)) return []
+  const priorities = new Set(['high', 'medium', 'low'])
+  const statuses = new Set(['todo', 'in-progress', 'done', 'archived'])
+  return raw
+    .filter((x): x is Record<string, unknown> => !!x && typeof x === 'object')
+    .map((x, i) => {
+      const priority = priorities.has(String(x.priority)) ? (x.priority as 'high' | 'medium' | 'low') : 'medium'
+      const status = statuses.has(String(x.status))
+        ? (x.status as 'todo' | 'in-progress' | 'done' | 'archived')
+        : 'todo'
+      return {
+        id: num(x.id, Date.now() + i),
+        listId: num(x.listId, 0),
+        title: str(x.title, 'Untitled'),
+        description: typeof x.description === 'string' ? x.description : undefined,
+        priority,
+        status,
+        dueDate: typeof x.dueDate === 'string' ? x.dueDate : undefined,
+        dueTime: typeof x.dueTime === 'string' ? x.dueTime : undefined,
+        reminderDate: typeof x.reminderDate === 'string' ? x.reminderDate : undefined,
+        reminderTime: typeof x.reminderTime === 'string' ? x.reminderTime : undefined,
+        tags: Array.isArray(x.tags) ? x.tags.map(String) : [],
+        isFinanceRelated: bool(x.isFinanceRelated, false),
+        estimatedMinutes: typeof x.estimatedMinutes === 'number' ? x.estimatedMinutes : undefined,
+        actualMinutes: typeof x.actualMinutes === 'number' ? x.actualMinutes : undefined,
+        completedAt: typeof x.completedAt === 'string' ? x.completedAt : undefined,
+        createdAt: str(x.createdAt, new Date().toISOString()),
+        updatedAt: str(x.updatedAt, new Date().toISOString()),
+        sortOrder: typeof x.sortOrder === 'number' ? x.sortOrder : undefined,
+      }
+    })
+}
+
+function normalizeJobApplications(raw: unknown): import('./job-types').JobApplication[] {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .filter((x): x is Record<string, unknown> => !!x && typeof x === 'object')
+    .map((x, i) => {
+      const base = {
+        id: num(x.id, Date.now() + i),
+        companyName: str(x.companyName, 'Unknown company'),
+        jobTitle: str(x.jobTitle, 'Untitled role'),
+        status: (typeof x.status === 'string' ? x.status : 'wishlist') as import('./job-types').JobStatus,
+        priority: (['high', 'medium', 'low'].includes(String(x.priority))
+          ? x.priority
+          : 'medium') as 'high' | 'medium' | 'low',
+        jobUrl: typeof x.jobUrl === 'string' ? x.jobUrl : undefined,
+        companyWebsite: typeof x.companyWebsite === 'string' ? x.companyWebsite : undefined,
+        linkedInUrl: typeof x.linkedInUrl === 'string' ? x.linkedInUrl : undefined,
+        applicationPortalUrl: typeof x.applicationPortalUrl === 'string' ? x.applicationPortalUrl : undefined,
+        appliedDate: typeof x.appliedDate === 'string' ? x.appliedDate : undefined,
+        deadline: typeof x.deadline === 'string' ? x.deadline : undefined,
+        source: str(x.source, 'Direct'),
+        referralContact: typeof x.referralContact === 'string' ? x.referralContact : undefined,
+        salaryMin: typeof x.salaryMin === 'number' ? x.salaryMin : undefined,
+        salaryMax: typeof x.salaryMax === 'number' ? x.salaryMax : undefined,
+        salaryCurrency: str(x.salaryCurrency, 'GBP'),
+        salaryPeriod: (typeof x.salaryPeriod === 'string' ? x.salaryPeriod : 'annual') as import('./job-types').SalaryPeriod,
+        equity: typeof x.equity === 'string' ? x.equity : undefined,
+        benefits: typeof x.benefits === 'string' ? x.benefits : undefined,
+        location: str(x.location, 'Unknown'),
+        remote: (['onsite', 'hybrid', 'remote'].includes(String(x.remote))
+          ? x.remote
+          : 'onsite') as 'onsite' | 'hybrid' | 'remote',
+        jobType: (['full-time', 'part-time', 'contract', 'internship'].includes(String(x.jobType))
+          ? x.jobType
+          : 'full-time') as 'full-time' | 'part-time' | 'contract' | 'internship',
+        description: typeof x.description === 'string' ? x.description : undefined,
+        requirements: typeof x.requirements === 'string' ? x.requirements : undefined,
+        responsibilities: typeof x.responsibilities === 'string' ? x.responsibilities : undefined,
+        cvVersion: typeof x.cvVersion === 'string' ? x.cvVersion : undefined,
+        coverLetterVersion: typeof x.coverLetterVersion === 'string' ? x.coverLetterVersion : undefined,
+        portfolioUrl: typeof x.portfolioUrl === 'string' ? x.portfolioUrl : undefined,
+        customDocuments: Array.isArray(x.customDocuments) ? (x.customDocuments as import('./job-types').JobApplication['customDocuments']) : [],
+        interviews: Array.isArray(x.interviews) ? (x.interviews as import('./job-types').JobApplication['interviews']) : [],
+        notes: Array.isArray(x.notes) ? (x.notes as import('./job-types').JobApplication['notes']) : [],
+        contacts: Array.isArray(x.contacts) ? (x.contacts as import('./job-types').JobApplication['contacts']) : [],
+        tasks: Array.isArray(x.tasks) ? (x.tasks as import('./job-types').JobApplication['tasks']) : [],
+        rating: num(x.rating, 0),
+        pros: typeof x.pros === 'string' ? x.pros : undefined,
+        cons: typeof x.cons === 'string' ? x.cons : undefined,
+        tags: Array.isArray(x.tags) ? x.tags.map(String) : [],
+        createdAt: str(x.createdAt, new Date().toISOString()),
+        updatedAt: str(x.updatedAt, new Date().toISOString()),
+        sortOrder: typeof x.sortOrder === 'number' ? x.sortOrder : undefined,
+        rejectionReason: typeof x.rejectionReason === 'string' ? x.rejectionReason : undefined,
+        offerDetails: typeof x.offerDetails === 'string' ? x.offerDetails : undefined,
+      }
+      return base
+    })
+}
 
 export function normalizePortfolio(raw: unknown): PortfolioData {
   const empty = createEmptyPortfolio()
@@ -596,9 +708,9 @@ export function normalizePortfolio(raw: unknown): PortfolioData {
     settings: normalizeSettings(r.settings),
     customCategories: normalizeCustomCategories(r.customCategories ?? extras.customCategories),
     documents: normalizeDocuments(r.documents ?? extras.documents),
-    todoLists: Array.isArray(r.todoLists) ? r.todoLists : [],
-    todoItems: Array.isArray(r.todoItems) ? r.todoItems : [],
-    jobApplications: Array.isArray(r.jobApplications) ? r.jobApplications : [],
+    todoLists: normalizeTodoLists(r.todoLists),
+    todoItems: normalizeTodoItems(r.todoItems),
+    jobApplications: normalizeJobApplications(r.jobApplications),
     extras: Object.fromEntries(
       Object.entries(extras).filter(
         ([k]) =>
@@ -659,6 +771,9 @@ export function toStorageShape(data: PortfolioData): Record<string, unknown> {
     monthlyExpenses: data.monthlyExpenses,
     customCategories: data.customCategories,
     documents: data.documents,
+    todoLists: data.todoLists ?? [],
+    todoItems: data.todoItems ?? [],
+    jobApplications: data.jobApplications ?? [],
     settings: {
       ...data.settings,
       _explicitCurrency: true,

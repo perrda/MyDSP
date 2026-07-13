@@ -19,6 +19,9 @@ import { PageHeader } from '../components/ui/PageHeader'
 import { InterviewModal } from '../components/InterviewModal'
 import { NoteModal } from '../components/NoteModal'
 import { ContactModal } from '../components/ContactModal'
+import { TaskModal } from '../components/TaskModal'
+import { DocumentModal } from '../components/DocumentModal'
+import { JobFormModal } from '../components/JobFormModal'
 import { usePortfolio } from '../context/PortfolioContext'
 import { useToasts } from '../components/ToastProvider'
 import type { JobApplication, JobContact, JobInterview, JobNote, JobStatus } from '../domain/job-types'
@@ -34,6 +37,9 @@ export function JobDetailPage() {
   const [showInterviewModal, setShowInterviewModal] = useState(false)
   const [showNoteModal, setShowNoteModal] = useState(false)
   const [showContactModal, setShowContactModal] = useState(false)
+  const [showTaskModal, setShowTaskModal] = useState(false)
+  const [showDocumentModal, setShowDocumentModal] = useState(false)
+  const [showJobForm, setShowJobForm] = useState(false)
   const [editingInterview, setEditingInterview] = useState<JobInterview | undefined>()
   const [editingNote, setEditingNote] = useState<JobNote | undefined>()
   const [editingContact, setEditingContact] = useState<JobContact | undefined>()
@@ -60,7 +66,7 @@ export function JobDetailPage() {
   const updateApplication = (updates: Partial<JobApplication>) => {
     setData((prev) => ({
       ...prev,
-      jobApplications: prev.jobApplications.map((app) =>
+      jobApplications: (prev.jobApplications ?? []).map((app) =>
         app.id === application.id ? { ...app, ...updates, updatedAt: new Date().toISOString() } : app,
       ),
     }))
@@ -123,22 +129,50 @@ export function JobDetailPage() {
     setEditingContact(undefined)
   }
 
-  const handleAddTask = () => {
-    const description = window.prompt('Task description:')
-    if (!description) return
-    const task = { id: Date.now(), description, completed: false }
-    updateApplication({ tasks: [...application.tasks, task] })
+  const handleAddTask = () => setShowTaskModal(true)
+
+  const handleSaveTask = (task: { id: number; description: string; dueDate?: string; completed: boolean }) => {
+    updateApplication({ tasks: [...(application.tasks ?? []), task] })
+    setShowTaskModal(false)
     success('Task added')
   }
 
-  const handleAddDocument = () => {
-    const name = window.prompt('Document name:')
-    if (!name) return
-    const url = window.prompt('Document URL (optional):')
-    const notes = window.prompt('Notes (optional):')
-    const doc = { name, url: url || undefined, notes: notes || undefined }
-    updateApplication({ customDocuments: [...application.customDocuments, doc] })
+  const handleAddDocument = () => setShowDocumentModal(true)
+
+  const handleSaveDocument = (doc: { name: string; url?: string; notes?: string }) => {
+    updateApplication({ customDocuments: [...(application.customDocuments ?? []), doc] })
+    setShowDocumentModal(false)
     success('Document added')
+  }
+
+  const handleDeleteInterview = (interviewId: number) => {
+    if (!confirm('Delete this interview?')) return
+    updateApplication({ interviews: application.interviews.filter((i) => i.id !== interviewId) })
+    success('Interview deleted')
+  }
+
+  const handleDeleteNote = (noteId: number) => {
+    if (!confirm('Delete this note?')) return
+    updateApplication({ notes: application.notes.filter((n) => n.id !== noteId) })
+    success('Note deleted')
+  }
+
+  const handleDeleteContact = (contactId: number) => {
+    if (!confirm('Delete this contact?')) return
+    updateApplication({ contacts: application.contacts.filter((c) => c.id !== contactId) })
+    success('Contact deleted')
+  }
+
+  const handleDeleteTask = (taskId: number) => {
+    updateApplication({ tasks: application.tasks.filter((t) => t.id !== taskId) })
+    success('Task deleted')
+  }
+
+  const handleDeleteDocument = (index: number) => {
+    updateApplication({
+      customDocuments: application.customDocuments.filter((_, i) => i !== index),
+    })
+    success('Document deleted')
   }
 
   const handleToggleTask = (taskId: number) => {
@@ -155,7 +189,7 @@ export function JobDetailPage() {
     if (!confirm('Delete this job application? This cannot be undone.')) return
     setData((prev) => ({
       ...prev,
-      jobApplications: prev.jobApplications.filter((app) => app.id !== application.id),
+      jobApplications: (prev.jobApplications ?? []).filter((app) => app.id !== application.id),
     }))
     success('Application deleted')
     navigate('/jobs')
@@ -208,6 +242,23 @@ export function JobDetailPage() {
           }}
         />
       )}
+      {showTaskModal && (
+        <TaskModal onSave={handleSaveTask} onClose={() => setShowTaskModal(false)} />
+      )}
+      {showDocumentModal && (
+        <DocumentModal onSave={handleSaveDocument} onClose={() => setShowDocumentModal(false)} />
+      )}
+      {showJobForm && (
+        <JobFormModal
+          application={application}
+          onSave={(app) => {
+            updateApplication(app)
+            setShowJobForm(false)
+            success('Application updated')
+          }}
+          onClose={() => setShowJobForm(false)}
+        />
+      )}
       <div className="mb-6">
         <Link to="/jobs" className="text-accent hover:text-accent-bright text-sm mb-2 inline-flex items-center gap-1">
           <ArrowLeft size={14} /> Back to Applications
@@ -220,8 +271,11 @@ export function JobDetailPage() {
         description={application.companyName}
         action={
           <div className="flex gap-2">
+            <button type="button" onClick={() => setShowJobForm(true)} className="btn-ghost btn-sm">
+              <Edit2 size={14} /> Edit Details
+            </button>
             <button type="button" onClick={() => setEditMode(!editMode)} className="btn-ghost btn-sm">
-              {editMode ? <X size={14} /> : <Edit2 size={14} />} {editMode ? 'Cancel' : 'Edit'}
+              {editMode ? <X size={14} /> : <Edit2 size={14} />} {editMode ? 'Done' : 'Quick Edit'}
             </button>
             <button type="button" onClick={handleDeleteApplication} className="btn-ghost btn-sm text-red-500">
               <Trash2 size={14} /> Delete
@@ -419,15 +473,25 @@ export function JobDetailPage() {
             ) : (
               <div className="space-y-2">
                 {application.tasks.map((task) => (
-                  <label key={task.id} className="flex items-start gap-2 text-sm cursor-pointer group">
+                  <div key={task.id} className="flex items-start gap-2 text-sm group">
                     <input
                       type="checkbox"
                       checked={task.completed}
                       onChange={() => handleToggleTask(task.id)}
                       className="mt-0.5"
                     />
-                    <span className={task.completed ? 'line-through text-text-subtle' : ''}>{task.description}</span>
-                  </label>
+                    <span className={`flex-1 ${task.completed ? 'line-through text-text-subtle' : ''}`}>
+                      {task.description}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteTask(task.id)}
+                      className="opacity-0 group-hover:opacity-100 text-red-500 p-0.5"
+                      aria-label="Delete task"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
                 ))}
               </div>
             )}
@@ -446,9 +510,28 @@ export function JobDetailPage() {
             ) : (
               <div className="space-y-2">
                 {application.interviews.map((interview) => (
-                  <div key={interview.id} className="p-2 bg-surface-hover rounded text-xs">
-                    <p className="font-semibold">{interview.type.replace('-', ' ')}</p>
-                    <p className="text-text-muted">{interview.scheduledDate}</p>
+                  <div key={interview.id} className="p-2 bg-surface-hover rounded text-xs group">
+                    <div className="flex items-start justify-between gap-2">
+                      <button
+                        type="button"
+                        className="text-left flex-1"
+                        onClick={() => {
+                          setEditingInterview(interview)
+                          setShowInterviewModal(true)
+                        }}
+                      >
+                        <p className="font-semibold">{interview.type.replace('-', ' ')}</p>
+                        <p className="text-text-muted">{interview.scheduledDate}</p>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteInterview(interview.id)}
+                        className="opacity-0 group-hover:opacity-100 text-red-500 p-0.5"
+                        aria-label="Delete interview"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -468,9 +551,28 @@ export function JobDetailPage() {
             ) : (
               <div className="space-y-2">
                 {application.contacts.map((contact) => (
-                  <div key={contact.id} className="p-2 bg-surface-hover rounded text-xs">
-                    <p className="font-semibold">{contact.name}</p>
-                    <p className="text-text-muted">{contact.role}</p>
+                  <div key={contact.id} className="p-2 bg-surface-hover rounded text-xs group">
+                    <div className="flex items-start justify-between gap-2">
+                      <button
+                        type="button"
+                        className="text-left flex-1"
+                        onClick={() => {
+                          setEditingContact(contact)
+                          setShowContactModal(true)
+                        }}
+                      >
+                        <p className="font-semibold">{contact.name}</p>
+                        <p className="text-text-muted">{contact.role}</p>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteContact(contact.id)}
+                        className="opacity-0 group-hover:opacity-100 text-red-500 p-0.5"
+                        aria-label="Delete contact"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -490,14 +592,26 @@ export function JobDetailPage() {
             ) : (
               <div className="space-y-2">
                 {application.customDocuments.map((doc, idx) => (
-                  <div key={idx} className="p-2 bg-surface-hover rounded text-xs">
-                    <p className="font-semibold">{doc.name}</p>
-                    {doc.url && (
-                      <a href={doc.url} target="_blank" rel="noopener noreferrer" className="text-accent hover:text-accent-bright text-xs flex items-center gap-1">
-                        <ExternalLink size={10} /> View
-                      </a>
-                    )}
-                    {doc.notes && <p className="text-text-muted mt-1">{doc.notes}</p>}
+                  <div key={idx} className="p-2 bg-surface-hover rounded text-xs group">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1">
+                        <p className="font-semibold">{doc.name}</p>
+                        {doc.url && (
+                          <a href={doc.url} target="_blank" rel="noopener noreferrer" className="text-accent hover:text-accent-bright text-xs inline-flex items-center gap-1">
+                            <ExternalLink size={10} /> View
+                          </a>
+                        )}
+                        {doc.notes && <p className="text-text-muted mt-1">{doc.notes}</p>}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteDocument(idx)}
+                        className="opacity-0 group-hover:opacity-100 text-red-500 p-0.5"
+                        aria-label="Delete document"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -516,10 +630,29 @@ export function JobDetailPage() {
               <p className="text-xs text-text-muted">No notes yet</p>
             ) : (
               <div className="space-y-2">
-                {application.notes.slice(0, 3).map((note) => (
-                  <div key={note.id} className="p-2 bg-surface-hover rounded text-xs">
-                    <p className="text-text-muted mb-1">{note.createdAt.split('T')[0]}</p>
-                    <p className="line-clamp-2">{note.content}</p>
+                {application.notes.map((note) => (
+                  <div key={note.id} className="p-2 bg-surface-hover rounded text-xs group">
+                    <div className="flex items-start justify-between gap-2">
+                      <button
+                        type="button"
+                        className="text-left flex-1"
+                        onClick={() => {
+                          setEditingNote(note)
+                          setShowNoteModal(true)
+                        }}
+                      >
+                        <p className="text-text-muted mb-1">{note.createdAt.split('T')[0]}</p>
+                        <p className="line-clamp-3">{note.content}</p>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteNote(note.id)}
+                        className="opacity-0 group-hover:opacity-100 text-red-500 p-0.5"
+                        aria-label="Delete note"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
