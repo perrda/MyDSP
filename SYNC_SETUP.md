@@ -22,22 +22,28 @@ Live app (either works):
 
 ## Part A — Deploy the sync Worker (once)
 
+### Already have `mydsp-sync`?
+
+If **Workers & Pages** already lists **`mydsp-sync`**, **do not create another one**.
+Open it and jump to step **4** (KV binding) below.
+
 ### Option 1 — Cloudflare Dashboard (no CLI)
 
 1. Open [Workers & Pages](https://dash.cloudflare.com/?to=/:account/workers-and-pages).
-2. Click **Create** → **Create application** → **Worker**.
-3. Name it `mydsp-sync` → **Deploy**.
-4. Open the Worker → **Settings** → **Bindings** → **Add** → **KV Namespace**.
-5. Variable name must be exactly: `STORE`  
+2. Click **Create application** (blue button top-right).  
+   Cloudflare no longer shows a separate “Create Worker” button.
+3. Choose **Worker** (not Pages) → start from the default “Hello World” template if asked → name it **`mydsp-sync`** → **Deploy**.
+4. Open **`mydsp-sync`** → **Settings** → **Bindings** → **Add** → **KV Namespace**.
+5. Variable / binding name must be exactly: **`STORE`**  
    Create a new KV namespace (e.g. `mydsp-sync-kv`) if asked → **Save**.
-6. Open **Edit code** (or **Quick edit**).
-7. Delete the default script. Paste the full contents of  
+6. Open **Edit code** / **Code** / **Quick edit**.
+7. Replace the default script with the full contents of  
    [`sync-endpoint/worker.js`](./sync-endpoint/worker.js) from this repo → **Deploy**.
 8. (Strongly recommended) **Settings** → **Variables and Secrets** → add secret:
    - Name: `SYNC_KEY`  
    - Value: a long random string (e.g. password manager)  
-9. Copy your Worker URL, e.g.  
-   `https://mydsp-sync.<your-subdomain>.workers.dev`  
+9. Copy your Worker URL from the overview (looks like  
+   `https://mydsp-sync.<your-subdomain>.workers.dev`).  
    If you set `SYNC_KEY`, append it:  
    `https://mydsp-sync.<your-subdomain>.workers.dev?key=YOUR_SECRET`
 
