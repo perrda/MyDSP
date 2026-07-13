@@ -29,6 +29,7 @@ import {
   downloadEncryptedBackup,
   getSyncRemoteUrlWarning,
   loadSyncConfig,
+  normalizeSyncRemoteUrl,
   previewImport,
   previewPull,
   pushSync,
@@ -439,6 +440,13 @@ export function SettingsPage() {
             value={syncCfg.remoteUrl}
             onChange={(e) => {
               const next = { ...syncCfg, remoteUrl: e.target.value }
+              setSyncCfg(next)
+              saveSyncConfig(next)
+            }}
+            onBlur={() => {
+              const normalized = normalizeSyncRemoteUrl(syncCfg.remoteUrl)
+              if (normalized === syncCfg.remoteUrl) return
+              const next = { ...syncCfg, remoteUrl: normalized }
               setSyncCfg(next)
               saveSyncConfig(next)
             }}

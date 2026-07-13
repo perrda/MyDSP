@@ -76,6 +76,16 @@ describe('sync config auto fields', () => {
       getSyncRemoteUrlWarning('https://mydsp-sync.dave-perry.workers.dev?key=secret'),
     ).toBeNull()
   })
+
+  it('adds https:// when Remote URL is pasted without a scheme', async () => {
+    const { normalizeSyncRemoteUrl } = await import('../services/sync/syncService')
+    expect(normalizeSyncRemoteUrl('mydsp-sync.dave-perry.workers.dev')).toBe(
+      'https://mydsp-sync.dave-perry.workers.dev/',
+    )
+    expect(normalizeSyncRemoteUrl('mydsp-sync.dave-perry.workers.dev?key=abc')).toBe(
+      'https://mydsp-sync.dave-perry.workers.dev/?key=abc',
+    )
+  })
 })
 
 describe('fetchRemoteMeta', () => {
