@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { Download, TrendingDown, TrendingUp, AlertCircle, CheckCircle } from 'lucide-react'
 import { BudgetSparkline } from '../components/charts/BudgetSparkline'
 import { PageHeader } from '../components/ui/PageHeader'
-import { Field, Modal, parseNum } from '../components/ui/Modal'
+import { Field, Modal, ConfirmDialog, parseNum } from '../components/ui/Modal'
 import { usePortfolio } from '../context/PortfolioContext'
 import { useToasts } from '../components/ToastProvider'
 import { formatMonthLabel, monthKey, parseMonthParam, shiftMonth } from '../domain/monthUtils'
@@ -15,6 +15,7 @@ export function BudgetsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState({ category: '', limit: '', rollover: false })
+  const [removeCategory, setRemoveCategory] = useState<string | null>(null)
   const ym = parseMonthParam(searchParams.get('month'))
 
   useEffect(() => {
@@ -367,16 +368,7 @@ export function BudgetsPage() {
                 <button
                   type="button"
                   className="btn-ghost btn-sm text-xs text-red-500"
-                  onClick={() => {
-                    if (!confirm(`Remove budget for ${r.category}?`)) return
-                    setData((prev) => {
-                      const next = { ...prev.budgetGoals }
-                      delete next[r.category]
-                      delete next[r.category.toLowerCase()]
-                      return { ...prev, budgetGoals: next }
-                    })
-                    success('Budget removed', r.category)
-                  }}
+                  onClick={() => setRemoveCategory(r.category)}
                 >
                   Remove
                 </button>
@@ -431,6 +423,29 @@ export function BudgetsPage() {
           </div>
         </form>
       </Modal>
+
+      <ConfirmDialog
+        open={removeCategory !== null}
+        title="Remove budget"
+        body={
+          removeCategory
+            ? `Remove budget for ${removeCategory}? Spending history is kept; only the limit is cleared.`
+            : ''
+        }
+        confirmLabel="Remove budget"
+        onClose={() => setRemoveCategory(null)}
+        onConfirm={() => {
+          if (!removeCategory) return
+          const category = removeCategory
+          setData((prev) => {
+            const next = { ...prev.budgetGoals }
+            delete next[category]
+            delete next[category.toLowerCase()]
+            return { ...prev, budgetGoals: next }
+          })
+          success('Budget removed', category)
+        }}
+      />
     </div>
   )
 }

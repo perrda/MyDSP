@@ -13,12 +13,14 @@ import {
 } from '../utils/exportFormats'
 import { Download, FileText, Table as TableIcon, Printer, CheckCircle } from 'lucide-react'
 import { logger } from '../utils/logger'
+import { useToasts } from './ToastProvider'
 
 type ExportFormat = 'pdf' | 'excel' | 'csv'
 type ExportType = 'transactions' | 'spending' | 'goals' | 'portfolio' | 'jobs' | 'todos' | 'full'
 
 export function DataExportPanel() {
   const { data } = usePortfolio()
+  const { error: showError } = useToasts()
   const [exporting, setExporting] = useState(false)
   const [lastExport, setLastExport] = useState<{ type: string; format: string } | null>(null)
 
@@ -43,7 +45,7 @@ export function DataExportPanel() {
       setTimeout(() => setLastExport(null), 3000)
     } catch (error) {
       logger.error('Export failed', error as Error, 'app')
-      alert('Export failed. Please try again.')
+      showError('Export failed', 'Please try again.')
     } finally {
       setExporting(false)
     }

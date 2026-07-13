@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { PageHeader } from '../components/ui/PageHeader'
 import { EmptyState } from '../components/ui/EmptyState'
+import { ConfirmDialog } from '../components/ui/Modal'
 import { JobFormModal } from '../components/JobFormModal'
 import { JobAnalytics } from '../components/JobAnalytics'
 import { usePortfolio } from '../context/PortfolioContext'
@@ -53,6 +54,7 @@ export function JobsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [editingApp, setEditingApp] = useState<JobApplication | undefined>()
+  const [deleteAppId, setDeleteAppId] = useState<number | null>(null)
 
   const applications = data.jobApplications || []
 
@@ -121,10 +123,14 @@ export function JobsPage() {
   }
 
   const handleDeleteApplication = (id: number) => {
-    if (!confirm('Delete this job application?')) return
+    setDeleteAppId(id)
+  }
+
+  const confirmDeleteApplication = () => {
+    if (deleteAppId == null) return
     setData((prev) => ({
       ...prev,
-      jobApplications: (prev.jobApplications ?? []).filter((app) => app.id !== id),
+      jobApplications: (prev.jobApplications ?? []).filter((app) => app.id !== deleteAppId),
     }))
     success('Application deleted')
   }
@@ -319,6 +325,15 @@ export function JobsPage() {
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        open={deleteAppId !== null}
+        title="Delete application"
+        body="Delete this job application? This cannot be undone."
+        confirmLabel="Delete application"
+        onClose={() => setDeleteAppId(null)}
+        onConfirm={confirmDeleteApplication}
+      />
     </div>
   )
 }

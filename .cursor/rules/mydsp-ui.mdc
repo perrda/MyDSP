@@ -10,7 +10,8 @@ Match the Jobs section (`JobFormModal`) for all data-entry UI across MyDSP.
 
 ## Never
 
-- Do not use `window.prompt()`, `window.alert()`, or native browser dialogs for create/edit flows.
+- Do not use `window.prompt()`, `window.confirm()`, `window.alert()`, or native browser dialogs for create/edit/delete flows.
+- Use `ConfirmDialog` from `src/components/ui/Modal.tsx` for destructive confirms.
 - Do not invent one-off input styles per page.
 
 ## Modal shell

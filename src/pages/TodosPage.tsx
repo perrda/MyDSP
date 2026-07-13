@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { PageHeader } from '../components/ui/PageHeader'
 import { EmptyState } from '../components/ui/EmptyState'
+import { ConfirmDialog } from '../components/ui/Modal'
 import { TodoModal } from '../components/TodoModal'
 import { TodoListModal } from '../components/TodoListModal'
 import { usePortfolio } from '../context/PortfolioContext'
@@ -61,6 +62,12 @@ export function TodosPage() {
   const [editingTodo, setEditingTodo] = useState<TodoItem | undefined>()
   const [editingList, setEditingList] = useState<TodoList | undefined>()
   const [selectedTodos, setSelectedTodos] = useState<Set<number>>(new Set())
+  const [confirmState, setConfirmState] = useState<{
+    title: string
+    body: string
+    confirmLabel?: string
+    onConfirm: () => void
+  } | null>(null)
 
   const lists = data.todoLists || []
   const allItems = data.todoItems || []
@@ -121,19 +128,23 @@ export function TodosPage() {
 
   const handleDeleteList = (list: TodoList) => {
     const count = allItems.filter((i) => i.listId === list.id).length
-    const msg =
-      count > 0
-        ? `Delete “${list.name}” and its ${count} task${count === 1 ? '' : 's'}?`
-        : `Delete “${list.name}”?`
-    if (!confirm(msg)) return
-
-    setData((prev) => ({
-      ...prev,
-      todoLists: (prev.todoLists ?? []).filter((l) => l.id !== list.id),
-      todoItems: (prev.todoItems ?? []).filter((i) => i.listId !== list.id),
-    }))
-    if (selectedListId === list.id) setSelectedListId(null)
-    success('List deleted', list.name)
+    setConfirmState({
+      title: 'Delete list',
+      body:
+        count > 0
+          ? `Delete “${list.name}” and its ${count} task${count === 1 ? '' : 's'}? This cannot be undone.`
+          : `Delete “${list.name}”? This cannot be undone.`,
+      confirmLabel: 'Delete list',
+      onConfirm: () => {
+        setData((prev) => ({
+          ...prev,
+          todoLists: (prev.todoLists ?? []).filter((l) => l.id !== list.id),
+          todoItems: (prev.todoItems ?? []).filter((i) => i.listId !== list.id),
+        }))
+        if (selectedListId === list.id) setSelectedListId(null)
+        success('List deleted', list.name)
+      },
+    })
   }
 
   const handleCreateItem = () => {
@@ -218,22 +229,35 @@ export function TodosPage() {
   }
 
   const handleBulkDelete = () => {
-    if (!confirm(`Delete ${selectedTodos.size} tasks?`)) return
-    setData((prev) => ({
-      ...prev,
-      todoItems: (prev.todoItems ?? []).filter((i) => !selectedTodos.has(i.id)),
-    }))
-    success('Tasks deleted', `${selectedTodos.size} tasks`)
-    setSelectedTodos(new Set())
+    const count = selectedTodos.size
+    setConfirmState({
+      title: 'Delete tasks',
+      body: `Delete ${count} selected task${count === 1 ? '' : 's'}? This cannot be undone.`,
+      confirmLabel: 'Delete tasks',
+      onConfirm: () => {
+        setData((prev) => ({
+          ...prev,
+          todoItems: (prev.todoItems ?? []).filter((i) => !selectedTodos.has(i.id)),
+        }))
+        success('Tasks deleted', `${count} tasks`)
+        setSelectedTodos(new Set())
+      },
+    })
   }
 
   const handleDeleteItem = (id: number) => {
-    if (!confirm('Delete this todo?')) return
-    setData((prev) => ({
-      ...prev,
-      todoItems: (prev.todoItems ?? []).filter((i) => i.id !== id),
-    }))
-    success('Todo deleted')
+    setConfirmState({
+      title: 'Delete task',
+      body: 'Delete this task? This cannot be undone.',
+      confirmLabel: 'Delete task',
+      onConfirm: () => {
+        setData((prev) => ({
+          ...prev,
+          todoItems: (prev.todoItems ?? []).filter((i) => i.id !== id),
+        }))
+        success('Todo deleted')
+      },
+    })
   }
 
   const handleImportCsv = () => {
@@ -299,6 +323,14 @@ export function TodosPage() {
           }}
         />
       )}
+      <ConfirmDialog
+        open={confirmState !== null}
+        title={confirmState?.title ?? ''}
+        body={confirmState?.body ?? ''}
+        confirmLabel={confirmState?.confirmLabel}
+        onClose={() => setConfirmState(null)}
+        onConfirm={() => confirmState?.onConfirm()}
+      />
 
       <PageHeader
         eyebrow="Tasks"

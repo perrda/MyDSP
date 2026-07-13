@@ -1,6 +1,6 @@
 # MyDSP UI conventions
 
-Data entry across MyDSP should match the **Jobs** section: dark surfaces, tight labeled fields, sectioned modals — never native browser prompts.
+Data entry across MyDSP should match the **Jobs** section: dark surfaces, tight labeled fields, sectioned modals — never native browser prompts or confirms.
 
 ## Why this exists
 
@@ -11,14 +11,16 @@ Cursor agents (and future you) need a single source of truth for forms. The livi
 | Multi-section modal | `src/components/JobFormModal.tsx` |
 | Compact list modal | `src/components/TodoListModal.tsx` |
 | Task modal | `src/components/TodoModal.tsx` |
+| Destructive confirm | `ConfirmDialog` in `src/components/ui/Modal.tsx` |
 
 ## Form recipe
 
-- **Shell:** `fixed inset-0 bg-black/50` overlay + `surface rounded-xl` panel
-- **Labels:** `text-xs text-text-subtle` above the control
+- **Shell:** `fixed inset-0 bg-black/50` overlay + `surface rounded-xl` panel (or shared `Modal`)
+- **Labels:** `text-xs text-text-subtle` above the control (`Field` helper uses the same)
 - **Controls:** `px-3 py-2 bg-surface-hover border border-border rounded text-sm`
 - **Layout:** `grid grid-cols-1 md:grid-cols-2 gap-4` under bold section titles
 - **Actions:** Cancel (`btn-ghost`) + Save (`btn-primary`)
+- **Deletes / danger:** always `ConfirmDialog` — never `window.confirm`
 
 ## Cursor rules & skills
 

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { PageHeader } from '../components/ui/PageHeader'
+import { ConfirmDialog } from '../components/ui/Modal'
 import { useSecurity } from '../components/SecurityProvider'
 import { usePortfolio } from '../context/PortfolioContext'
 import { holdingHistoryKey, readHoldingHistory } from '../domain/holdingHistory'
@@ -128,6 +129,13 @@ export function SettingsPage() {
       return ''
     }
   })
+  const [confirmState, setConfirmState] = useState<{
+    title: string
+    body: string
+    confirmLabel?: string
+    variant?: 'default' | 'danger'
+    onConfirm: () => void
+  } | null>(null)
 
   const refreshBackupList = () => {
     void listFullBackups()
@@ -1174,14 +1182,15 @@ export function SettingsPage() {
                           type="button"
                           className="btn-ghost btn-sm"
                           onClick={() => {
-                            if (
-                              window.confirm(
-                                `Delete “${p.name}”? All holdings and history in that portfolio will be removed.`,
-                              )
-                            ) {
-                              deletePortfolio(p.id)
-                              flash(`Deleted ${p.name}.`)
-                            }
+                            setConfirmState({
+                              title: 'Delete portfolio',
+                              body: `Delete “${p.name}”? All holdings and history in that portfolio will be removed.`,
+                              confirmLabel: 'Delete portfolio',
+                              onConfirm: () => {
+                                deletePortfolio(p.id)
+                                flash(`Deleted ${p.name}.`)
+                              },
+                            })
                           }}
                         >
                           Delete
@@ -1365,16 +1374,16 @@ export function SettingsPage() {
                       flash('Not a MyDSP full backup file.')
                       return
                     }
-                    if (
-                      !window.confirm(
-                        `Replace ALL portfolios with backup from ${parsed.createdAt.slice(0, 10)} (v${parsed.appVersion})?`,
-                      )
-                    ) {
-                      return
-                    }
-                    restoreFullWorkspace(parsed)
-                    reload()
-                    flash('Full workspace restored.')
+                    setConfirmState({
+                      title: 'Restore full backup',
+                      body: `Replace ALL portfolios with backup from ${parsed.createdAt.slice(0, 10)} (v${parsed.appVersion})?`,
+                      confirmLabel: 'Restore backup',
+                      onConfirm: () => {
+                        restoreFullWorkspace(parsed)
+                        reload()
+                        flash('Full workspace restored.')
+                      },
+                    })
                   } catch {
                     flash('Could not restore that file.')
                   }
@@ -1405,16 +1414,16 @@ export function SettingsPage() {
                         void (async () => {
                           const full = await getFullBackup(b.id)
                           if (!full) return
-                          if (
-                            !window.confirm(
-                              `Restore “${b.label}”? This replaces all current portfolios.`,
-                            )
-                          ) {
-                            return
-                          }
-                          restoreFullWorkspace(full)
-                          reload()
-                          flash('Restored from local backup.')
+                          setConfirmState({
+                            title: 'Restore local backup',
+                            body: `Restore “${b.label}”? This replaces all current portfolios.`,
+                            confirmLabel: 'Restore backup',
+                            onConfirm: () => {
+                              restoreFullWorkspace(full)
+                              reload()
+                              flash('Restored from local backup.')
+                            },
+                          })
                         })()
                       }}
                     >
@@ -1513,10 +1522,16 @@ export function SettingsPage() {
               type="button"
               className="btn-secondary"
               onClick={() => {
-                if (window.confirm('Replace active portfolio with FCC sample data?')) {
-                  resetToSample()
-                  flash('Loaded FCC sample portfolio.')
-                }
+                setConfirmState({
+                  title: 'Load sample data',
+                  body: 'Replace active portfolio with FCC sample data?',
+                  confirmLabel: 'Load sample',
+                  variant: 'default',
+                  onConfirm: () => {
+                    resetToSample()
+                    flash('Loaded FCC sample portfolio.')
+                  },
+                })
               }}
             >
               Load sample data
@@ -1525,10 +1540,15 @@ export function SettingsPage() {
               type="button"
               className="btn-ghost"
               onClick={() => {
-                if (window.confirm('Clear all holdings and history on this portfolio?')) {
-                  clearAll()
-                  flash('Portfolio cleared.')
-                }
+                setConfirmState({
+                  title: 'Clear portfolio',
+                  body: 'Clear all holdings and history on this portfolio?',
+                  confirmLabel: 'Clear portfolio',
+                  onConfirm: () => {
+                    clearAll()
+                    flash('Portfolio cleared.')
+                  },
+                })
               }}
             >
               Clear portfolio
@@ -1536,6 +1556,16 @@ export function SettingsPage() {
           </div>
         </section>
       </div>
+
+      <ConfirmDialog
+        open={confirmState !== null}
+        title={confirmState?.title ?? ''}
+        body={confirmState?.body ?? ''}
+        confirmLabel={confirmState?.confirmLabel}
+        variant={confirmState?.variant}
+        onClose={() => setConfirmState(null)}
+        onConfirm={() => confirmState?.onConfirm()}
+      />
     </div>
   )
 }

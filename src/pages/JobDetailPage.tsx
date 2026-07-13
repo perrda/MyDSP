@@ -16,6 +16,7 @@ import {
   X,
 } from 'lucide-react'
 import { PageHeader } from '../components/ui/PageHeader'
+import { ConfirmDialog } from '../components/ui/Modal'
 import { InterviewModal } from '../components/InterviewModal'
 import { NoteModal } from '../components/NoteModal'
 import { ContactModal } from '../components/ContactModal'
@@ -43,6 +44,12 @@ export function JobDetailPage() {
   const [editingInterview, setEditingInterview] = useState<JobInterview | undefined>()
   const [editingNote, setEditingNote] = useState<JobNote | undefined>()
   const [editingContact, setEditingContact] = useState<JobContact | undefined>()
+  const [confirmState, setConfirmState] = useState<{
+    title: string
+    body: string
+    confirmLabel?: string
+    onConfirm: () => void
+  } | null>(null)
 
   const application = useMemo(
     () => data.jobApplications?.find((app) => app.id === Number(id)),
@@ -146,21 +153,39 @@ export function JobDetailPage() {
   }
 
   const handleDeleteInterview = (interviewId: number) => {
-    if (!confirm('Delete this interview?')) return
-    updateApplication({ interviews: application.interviews.filter((i) => i.id !== interviewId) })
-    success('Interview deleted')
+    setConfirmState({
+      title: 'Delete interview',
+      body: 'Delete this interview? This cannot be undone.',
+      confirmLabel: 'Delete interview',
+      onConfirm: () => {
+        updateApplication({ interviews: application.interviews.filter((i) => i.id !== interviewId) })
+        success('Interview deleted')
+      },
+    })
   }
 
   const handleDeleteNote = (noteId: number) => {
-    if (!confirm('Delete this note?')) return
-    updateApplication({ notes: application.notes.filter((n) => n.id !== noteId) })
-    success('Note deleted')
+    setConfirmState({
+      title: 'Delete note',
+      body: 'Delete this note? This cannot be undone.',
+      confirmLabel: 'Delete note',
+      onConfirm: () => {
+        updateApplication({ notes: application.notes.filter((n) => n.id !== noteId) })
+        success('Note deleted')
+      },
+    })
   }
 
   const handleDeleteContact = (contactId: number) => {
-    if (!confirm('Delete this contact?')) return
-    updateApplication({ contacts: application.contacts.filter((c) => c.id !== contactId) })
-    success('Contact deleted')
+    setConfirmState({
+      title: 'Delete contact',
+      body: 'Delete this contact? This cannot be undone.',
+      confirmLabel: 'Delete contact',
+      onConfirm: () => {
+        updateApplication({ contacts: application.contacts.filter((c) => c.id !== contactId) })
+        success('Contact deleted')
+      },
+    })
   }
 
   const handleDeleteTask = (taskId: number) => {
@@ -186,13 +211,19 @@ export function JobDetailPage() {
   }
 
   const handleDeleteApplication = () => {
-    if (!confirm('Delete this job application? This cannot be undone.')) return
-    setData((prev) => ({
-      ...prev,
-      jobApplications: (prev.jobApplications ?? []).filter((app) => app.id !== application.id),
-    }))
-    success('Application deleted')
-    navigate('/jobs')
+    setConfirmState({
+      title: 'Delete application',
+      body: 'Delete this job application? This cannot be undone.',
+      confirmLabel: 'Delete application',
+      onConfirm: () => {
+        setData((prev) => ({
+          ...prev,
+          jobApplications: (prev.jobApplications ?? []).filter((app) => app.id !== application.id),
+        }))
+        success('Application deleted')
+        navigate('/jobs')
+      },
+    })
   }
 
   const daysSince = getDaysSinceApplied(application)
@@ -660,6 +691,15 @@ export function JobDetailPage() {
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmState !== null}
+        title={confirmState?.title ?? ''}
+        body={confirmState?.body ?? ''}
+        confirmLabel={confirmState?.confirmLabel}
+        onClose={() => setConfirmState(null)}
+        onConfirm={() => confirmState?.onConfirm()}
+      />
     </div>
   )
 }
