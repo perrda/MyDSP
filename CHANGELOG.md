@@ -1,5 +1,58 @@
 # MyDSP Changelog
 
+## [0.11.0] - 2026-07-13
+
+### Phase 6: Real-time Infrastructure, Advanced Caching, Logging & Testing
+
+#### WebSocket Client Library (`websocket.ts`)
+- **Real-time Communication**: Production-ready WebSocket client
+- Auto-reconnect with exponential backoff
+- Event subscription system
+- Message type handlers
+- Message queuing for offline scenarios
+- Heartbeat/ping-pong mechanism
+- Connection state management
+- React hook for easy integration
+
+#### Advanced Caching System (`advancedCache.ts`)
+- **Multi-tier Caching**: Memory, IndexedDB, and localStorage
+- Automatic cache promotion between tiers
+- LRU eviction with hit-count weighting
+- Tag-based cache invalidation
+- TTL (Time-To-Live) support
+- Automatic pruning of expired entries
+- Cache statistics and reporting
+- Size-based tier selection
+
+#### Logging & Monitoring System (`logger.ts`)
+- **Structured Logging**: Debug, info, warn, error, fatal levels
+- Category-based filtering (app, api, ui, data, performance, security, analytics)
+- Performance tracking with timers
+- Async operation measurement
+- Analytics event tracking
+- Page view and user action tracking
+- Query and retrieval with filters
+- Summary and reporting
+- Batch sending to server
+- Local persistence
+
+#### Testing Infrastructure
+- **Vitest Setup**: Modern testing framework
+- Unit tests for logger (22 tests, all passing)
+- Test configuration with coverage reporting
+- React Testing Library integration
+- Mock setup for global objects
+- Playwright tests excluded from unit tests
+
+### Technical Improvements
+- Zero TypeScript compilation errors
+- Clean production build
+- Comprehensive test suite
+- 62 tests passing
+- Production-ready utilities
+
+---
+
 ## [0.10.0] - 2026-07-13
 
 ### Phase 5: Backend Infrastructure & Comprehensive QA
