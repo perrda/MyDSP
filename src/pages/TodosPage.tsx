@@ -1,13 +1,13 @@
 import { useMemo, useState } from 'react'
-import { Plus, Download, Upload, ListChecks, Clock, AlertCircle } from 'lucide-react'
+import { Plus, Download, Upload, ListChecks, Clock, AlertCircle, Edit2, Copy, Archive } from 'lucide-react'
 import { PageHeader } from '../components/ui/PageHeader'
 import { EmptyState } from '../components/ui/EmptyState'
+import { TodoModal } from '../components/TodoModal'
 import { usePortfolio } from '../context/PortfolioContext'
 import { useToasts } from '../components/ToastProvider'
 import type { TodoFilterBy, TodoItem, TodoSortBy } from '../domain/todo-types'
 import {
   calculateTodoStats,
-  createTodoItem,
   createTodoList,
   exportTodosToCsv,
   filterTodoItems,
@@ -44,6 +44,9 @@ export function TodosPage() {
   const [filterBy, setFilterBy] = useState<TodoFilterBy>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [showCompleted, setShowCompleted] = useState(false)
+  const [showModal, setShowModal] = useState(false)
+  const [editingTodo, setEditingTodo] = useState<TodoItem | undefined>()
+  const [selectedTodos, setSelectedTodos] = useState<Set<number>>(new Set())
 
   const lists = data.todoLists || []
   const allItems = data.todoItems || []
@@ -74,7 +77,7 @@ export function TodosPage() {
   const stats = useMemo(() => calculateTodoStats(listItems), [listItems])
 
   const handleCreateList = () => {
-    const name = prompt('List name:')
+    const name = window.prompt('List name:')
     if (!name) return
 
     const newList = createTodoList({ name })
@@ -90,29 +93,92 @@ export function TodosPage() {
       showError('Create a list first', 'You need at least one list to add items')
       return
     }
-
-    const title = prompt('Todo title:')
-    if (!title) return
-
-    const listId = selectedListId || lists[0].id
-    const newItem = createTodoItem({ title, listId })
-    setData((prev) => ({
-      ...prev,
-      todoItems: [...(prev.todoItems || []), newItem],
-    }))
-    success('Todo added', title)
+    setEditingTodo(undefined)
+    setShowModal(true)
   }
 
-  const handleToggleStatus = (item: TodoItem) => {
-    const newStatus = item.status === 'done' ? 'todo' : 'done'
+  const handleEditItem = (item: TodoItem) => {
+    setEditingTodo(item)
+    setShowModal(true)
+  }
+
+  const handleSaveItem = (item: TodoItem) => {
+    if (editingTodo) {
+      setData((prev) => ({
+        ...prev,
+        todoItems: prev.todoItems.map((i) => (i.id === item.id ? item : i)),
+      }))
+      success('Task updated')
+    } else {
+      setData((prev) => ({
+        ...prev,
+        todoItems: [...(prev.todoItems || []), item],
+      }))
+      success('Task created', item.title)
+    }
+    setShowModal(false)
+    setEditingTodo(undefined)
+  }
+
+  const handleDuplicateItem = (item: TodoItem) => {
+    const duplicate = {
+      ...item,
+      id: Date.now() + Math.floor(Math.random() * 1000),
+      title: `${item.title} (copy)`,
+      status: 'todo' as const,
+      completedAt: undefined,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+    setData((prev) => ({
+      ...prev,
+      todoItems: [...(prev.todoItems || []), duplicate],
+    }))
+    success('Task duplicated')
+  }
+
+  const handleToggleSelect = (id: number) => {
+    const newSelected = new Set(selectedTodos)
+    if (newSelected.has(id)) {
+      newSelected.delete(id)
+    } else {
+      newSelected.add(id)
+    }
+    setSelectedTodos(newSelected)
+  }
+
+  const handleBulkComplete = () => {
     setData((prev) => ({
       ...prev,
       todoItems: prev.todoItems.map((i) =>
-        i.id === item.id
-          ? { ...i, status: newStatus, completedAt: newStatus === 'done' ? new Date().toISOString() : undefined }
+        selectedTodos.has(i.id)
+          ? { ...i, status: 'done' as const, completedAt: new Date().toISOString() }
           : i,
       ),
     }))
+    success('Tasks completed', `${selectedTodos.size} tasks`)
+    setSelectedTodos(new Set())
+  }
+
+  const handleBulkArchive = () => {
+    setData((prev) => ({
+      ...prev,
+      todoItems: prev.todoItems.map((i) =>
+        selectedTodos.has(i.id) ? { ...i, status: 'archived' as const } : i,
+      ),
+    }))
+    success('Tasks archived', `${selectedTodos.size} tasks`)
+    setSelectedTodos(new Set())
+  }
+
+  const handleBulkDelete = () => {
+    if (!confirm(`Delete ${selectedTodos.size} tasks?`)) return
+    setData((prev) => ({
+      ...prev,
+      todoItems: prev.todoItems.filter((i) => !selectedTodos.has(i.id)),
+    }))
+    success('Tasks deleted', `${selectedTodos.size} tasks`)
+    setSelectedTodos(new Set())
   }
 
   const handleDeleteItem = (id: number) => {
@@ -180,6 +246,17 @@ export function TodosPage() {
 
   return (
     <div className={privacyClass(privacy)}>
+      {showModal && (
+        <TodoModal
+          todo={editingTodo}
+          listId={selectedListId || lists[0]?.id}
+          onSave={handleSaveItem}
+          onClose={() => {
+            setShowModal(false)
+            setEditingTodo(undefined)
+          }}
+        />
+      )}
       <PageHeader
         eyebrow="Tasks"
         title="Todo Lists"
@@ -254,13 +331,13 @@ export function TodosPage() {
 
       {/* Toolbar */}
       <div className="surface p-4 mb-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
-        <div className="flex flex-wrap gap-3 items-center">
+        <div className="flex flex-wrap gap-3 items-center mb-3">
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search todos..."
-            className="flex-1 min-w-[200px] bg-transparent border border-border px-3 py-2 text-sm"
+            className="flex-1 min-w-[200px] bg-transparent border border-border px-3 py-2 text-sm rounded-lg"
           />
           <select value={sortBy} onChange={(e) => setSortBy(e.target.value as TodoSortBy)} className="btn-ghost btn-sm">
             <option value="priority-desc">Priority (High first)</option>
@@ -281,12 +358,29 @@ export function TodosPage() {
             Show Completed
           </label>
           <button type="button" onClick={handleImportCsv} className="btn-secondary btn-sm">
-            <Upload size={14} /> Import CSV
+            <Upload size={14} /> Import
           </button>
           <button type="button" onClick={handleExportCsv} className="btn-ghost btn-sm">
             <Download size={14} /> Export
           </button>
         </div>
+        {selectedTodos.size > 0 && (
+          <div className="flex gap-2 items-center p-3 bg-accent/10 rounded-lg border border-accent/20">
+            <span className="text-sm font-semibold">{selectedTodos.size} selected</span>
+            <button type="button" onClick={handleBulkComplete} className="btn-sm bg-green-500/20 text-green-500 hover:bg-green-500/30">
+              Complete All
+            </button>
+            <button type="button" onClick={handleBulkArchive} className="btn-sm bg-amber-500/20 text-amber-500 hover:bg-amber-500/30">
+              <Archive size={14} /> Archive
+            </button>
+            <button type="button" onClick={handleBulkDelete} className="btn-sm bg-red-500/20 text-red-500 hover:bg-red-500/30">
+              Delete All
+            </button>
+            <button type="button" onClick={() => setSelectedTodos(new Set())} className="btn-ghost btn-sm ml-auto">
+              Clear Selection
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Todo Items */}
@@ -301,14 +395,16 @@ export function TodosPage() {
           {filteredItems.map((item) => (
             <div
               key={item.id}
-              className={`surface p-4 border-l-4 rounded-r-xl md:rounded-none shadow-sm md:shadow-none ${PRIORITY_COLORS[item.priority]}`}
+              className={`surface p-4 border-l-4 rounded-r-xl md:rounded-none shadow-sm md:shadow-none ${PRIORITY_COLORS[item.priority]} ${
+                selectedTodos.has(item.id) ? 'ring-2 ring-accent' : ''
+              }`}
             >
               <div className="flex items-start gap-3">
                 <input
                   type="checkbox"
-                  checked={item.status === 'done'}
-                  onChange={() => handleToggleStatus(item)}
-                  className="mt-1 w-5 h-5 flex-shrink-0"
+                  checked={selectedTodos.has(item.id)}
+                  onChange={() => handleToggleSelect(item.id)}
+                  className="mt-1 w-5 h-5 flex-shrink-0 rounded border-2 border-border cursor-pointer"
                 />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -328,24 +424,44 @@ export function TodosPage() {
                     )}
                   </div>
                   {item.description && <p className="text-sm text-text-muted mb-2">{item.description}</p>}
-                  <div className="flex items-center gap-3 text-xs text-text-subtle">
+                  <div className="flex items-center gap-3 text-xs text-text-subtle flex-wrap">
                     {item.dueDate && (
                       <span className="flex items-center gap-1">
-                        <Clock size={12} /> Due: {item.dueDate}
+                        <Clock size={12} /> Due: {item.dueDate} {item.dueTime && `at ${item.dueTime}`}
                       </span>
                     )}
                     <span className="uppercase">{STATUS_LABELS[item.status]}</span>
+                    {item.estimatedMinutes && (
+                      <span>Est: {item.estimatedMinutes}m</span>
+                    )}
+                    {item.actualMinutes && (
+                      <span>Actual: {item.actualMinutes}m</span>
+                    )}
                     {item.tags.length > 0 && <span>Tags: {item.tags.join(', ')}</span>}
                   </div>
                 </div>
-                <div className="flex gap-2 flex-shrink-0">
-                  <button type="button" className="btn-ghost btn-sm text-xs">
-                    Edit
+                <div className="flex gap-1 flex-shrink-0">
+                  <button 
+                    type="button" 
+                    onClick={() => handleEditItem(item)}
+                    className="btn-ghost btn-sm text-xs p-2"
+                    title="Edit"
+                  >
+                    <Edit2 size={14} />
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => handleDuplicateItem(item)}
+                    className="btn-ghost btn-sm text-xs p-2"
+                    title="Duplicate"
+                  >
+                    <Copy size={14} />
                   </button>
                   <button
                     type="button"
                     onClick={() => handleDeleteItem(item.id)}
-                    className="btn-ghost btn-sm text-xs text-red-500 hover:text-red-400"
+                    className="btn-ghost btn-sm text-xs text-red-500 hover:text-red-400 p-2"
+                    title="Delete"
                   >
                     Delete
                   </button>

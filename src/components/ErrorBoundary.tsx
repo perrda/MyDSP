@@ -1,122 +1,119 @@
-import { Component, type ReactNode } from 'react'
-import { Link } from 'react-router-dom'
+// Error Boundary component for graceful error handling
+
+import { Component, type ErrorInfo, type ReactNode } from 'react'
+import { logger } from '../utils/logger'
+import { AlertTriangle, RefreshCw, Home } from 'lucide-react'
 
 interface Props {
   children: ReactNode
   fallback?: ReactNode
+  onError?: (error: Error, errorInfo: ErrorInfo) => void
 }
 
 interface State {
   hasError: boolean
   error: Error | null
-  errorInfo: string | null
+  errorInfo: ErrorInfo | null
 }
 
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props)
-    this.state = { hasError: false, error: null, errorInfo: null }
-  }
-
-  static getDerivedStateFromError(error: Error): Partial<State> {
-    return { hasError: true, error }
-  }
-
-  componentDidCatch(error: Error, errorInfo: { componentStack?: string }) {
-    console.error('ErrorBoundary caught:', error, errorInfo)
-    this.setState({
-      errorInfo: errorInfo.componentStack || 'No stack trace available',
-    })
-
-    // Log to external service if configured
-    try {
-      if (typeof window !== 'undefined' && 'localStorage' in window) {
-        const log = {
-          timestamp: new Date().toISOString(),
-          message: error.message,
-          stack: error.stack,
-          componentStack: errorInfo.componentStack,
-        }
-        const key = `mydsp_error_${Date.now()}`
-        localStorage.setItem(key, JSON.stringify(log))
-        
-        // Keep only last 5 errors
-        const errorKeys = Object.keys(localStorage).filter((k) => k.startsWith('mydsp_error_'))
-        if (errorKeys.length > 5) {
-          errorKeys
-            .sort()
-            .slice(0, -5)
-            .forEach((k) => localStorage.removeItem(k))
-        }
-      }
-    } catch {
-      // Ignore logging errors
+    this.state = {
+      hasError: false,
+      error: null,
+      errorInfo: null,
     }
   }
 
-  handleReset = () => {
-    this.setState({ hasError: false, error: null, errorInfo: null })
+  static getDerivedStateFromError(error: Error): Partial<State> {
+    return {
+      hasError: true,
+      error,
+    }
   }
 
-  handleReload = () => {
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    // Log error to our logging system
+    logger.error('React Error Boundary caught an error', error, 'ui')
+
+    // Call custom error handler if provided
+    this.props.onError?.(error, errorInfo)
+
+    this.setState({
+      errorInfo,
+    })
+  }
+
+  handleReset = () => {
+    this.setState({
+      hasError: false,
+      error: null,
+      errorInfo: null,
+    })
+  }
+
+  handleGoHome = () => {
     window.location.href = '/'
   }
 
   render() {
     if (this.state.hasError) {
+      // Custom fallback if provided
       if (this.props.fallback) {
         return this.props.fallback
       }
 
+      // Default error UI
       return (
-        <div className="min-h-screen flex items-center justify-center p-4 bg-bg">
-          <div className="max-w-2xl w-full">
-            <div className="surface p-8 border-l-4 border-l-red-500">
-              <h1 className="text-2xl font-bold mb-2">Something went wrong</h1>
-              <p className="text-text-muted mb-6">
-                MyDSP encountered an unexpected error. Your data is safe — portfolios are stored
-                locally and not affected.
-              </p>
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
+          <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8">
+            <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 bg-red-100 dark:bg-red-900/30 rounded-full">
+              <AlertTriangle className="w-8 h-8 text-red-600 dark:text-red-400" />
+            </div>
+            
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white text-center mb-2">
+              Oops! Something went wrong
+            </h1>
+            
+            <p className="text-gray-600 dark:text-gray-400 text-center mb-6">
+              We encountered an unexpected error. Don't worry, your data is safe.
+            </p>
 
-              {this.state.error && (
-                <div className="mb-6 p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded text-sm">
-                  <p className="font-mono text-red-800 dark:text-red-200 mb-2">
-                    {this.state.error.message}
-                  </p>
-                  {this.state.error.stack && (
-                    <details className="mt-2">
-                      <summary className="cursor-pointer text-red-700 dark:text-red-300 hover:underline">
-                        Stack trace
-                      </summary>
-                      <pre className="mt-2 text-xs text-red-600 dark:text-red-400 overflow-x-auto">
-                        {this.state.error.stack}
-                      </pre>
-                    </details>
-                  )}
-                </div>
-              )}
-
-              <div className="flex flex-wrap gap-3">
-                <button type="button" onClick={this.handleReset} className="btn-primary">
-                  Try again
-                </button>
-                <button type="button" onClick={this.handleReload} className="btn-secondary">
-                  Reload app
-                </button>
-                <Link to="/" className="btn-ghost">
-                  Go to dashboard
-                </Link>
-              </div>
-
-              <div className="mt-6 pt-6 border-t border-border">
-                <p className="text-xs text-text-subtle">
-                  If this error persists:{' '}
-                  <Link to="/settings" className="text-accent hover:underline">
-                    Export a backup
-                  </Link>
-                  , then try clearing browser data. Error logged locally for debugging.
+            {import.meta.env.DEV && this.state.error && (
+              <div className="mb-6 p-4 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                <p className="text-sm font-mono text-red-600 dark:text-red-400 mb-2">
+                  {this.state.error.toString()}
                 </p>
+                {this.state.errorInfo && (
+                  <details className="mt-2">
+                    <summary className="text-sm text-gray-600 dark:text-gray-400 cursor-pointer">
+                      Component Stack
+                    </summary>
+                    <pre className="mt-2 text-xs text-gray-600 dark:text-gray-400 overflow-auto max-h-40">
+                      {this.state.errorInfo.componentStack}
+                    </pre>
+                  </details>
+                )}
               </div>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                onClick={this.handleReset}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Try Again
+              </button>
+              
+              <button
+                onClick={this.handleGoHome}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
+              >
+                <Home className="w-4 h-4" />
+                Go Home
+              </button>
             </div>
           </div>
         </div>
@@ -124,5 +121,19 @@ export class ErrorBoundary extends Component<Props, State> {
     }
 
     return this.props.children
+  }
+}
+
+// Functional wrapper for easier use
+export function withErrorBoundary<P extends object>(
+  Component: React.ComponentType<P>,
+  fallback?: ReactNode
+) {
+  return function ErrorBoundaryWrapper(props: P) {
+    return (
+      <ErrorBoundary fallback={fallback}>
+        <Component {...props} />
+      </ErrorBoundary>
+    )
   }
 }

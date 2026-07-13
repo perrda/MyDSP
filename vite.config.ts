@@ -21,6 +21,47 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          // Vendor chunks
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
+              return 'react-vendor'
+            }
+            if (id.includes('recharts')) {
+              return 'chart-vendor'
+            }
+            if (id.includes('lucide-react')) {
+              return 'icon-vendor'
+            }
+            return 'vendor'
+          }
+          
+          // Page chunks
+          if (id.includes('/pages/')) {
+            if (id.includes('Dashboard') || id.includes('CryptoPage') || id.includes('EquitiesPage') || id.includes('LiabilitiesPage')) {
+              return 'portfolio-pages'
+            }
+            if (id.includes('SpendingPage') || id.includes('JournalPage') || id.includes('BudgetsPage') || id.includes('RecurringPage')) {
+              return 'transaction-pages'
+            }
+            if (id.includes('AnalyticsPage') || id.includes('PredictiveAnalyticsPage') || id.includes('SmartInsightsPage') || id.includes('TaxPage')) {
+              return 'analysis-pages'
+            }
+            if (id.includes('GoalsPage') || id.includes('FirePage') || id.includes('PlanningPage') || id.includes('OptimizerPage')) {
+              return 'planning-pages'
+            }
+            if (id.includes('TodosPage') || id.includes('JobsPage') || id.includes('ImportPage') || id.includes('EnhancedImportPage')) {
+              return 'tools-pages'
+            }
+          }
+        },
+      },
+    },
+    chunkSizeWarningLimit: 600,
+  },
   test: {
     environment: 'node',
     include: ['src/**/*.test.ts'],

@@ -7,6 +7,7 @@ import { loadSyncConfig } from '../../services/sync/syncService'
 import { PrivacyToggle } from '../PrivacyToggle'
 import { ThemeToggle } from '../ThemeToggle'
 import { MenuButton, Sidebar } from './Sidebar'
+import { BottomNav } from './BottomNav'
 
 const titles: Record<string, { eyebrow: string; title: string }> = {
   '/': { eyebrow: 'Portfolio', title: 'Overview' },
@@ -34,6 +35,10 @@ const titles: Record<string, { eyebrow: string; title: string }> = {
   '/achievements': { eyebrow: 'Progress', title: 'Achievements' },
   '/tax': { eyebrow: 'Tax', title: 'UK CGT' },
   '/analytics': { eyebrow: 'Insights', title: 'Analytics' },
+  '/analytics/predictive': { eyebrow: 'Insights', title: 'Predictive Analytics' },
+  '/compare': { eyebrow: 'Compare', title: 'Compare Portfolios' },
+  '/api': { eyebrow: 'Integration', title: 'API & Automation' },
+  '/insights': { eyebrow: 'Intelligence', title: 'Smart Insights' },
   '/settings': { eyebrow: 'System', title: 'Settings' },
 }
 
@@ -174,9 +179,11 @@ export function AppShell() {
           )}
         </header>
 
-        <main className="app-content">
+        <main className="app-content pb-16 lg:pb-0">
           <Outlet />
         </main>
+        
+        <BottomNav />
       </div>
     </div>
   )
