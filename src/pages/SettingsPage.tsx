@@ -867,7 +867,7 @@ export function SettingsPage() {
           </label>
           <input
             type="url"
-            className="mb-4"
+            className="mb-4 w-full max-w-4xl min-h-12 text-sm break-all"
             placeholder="https://mydsp-sync.YOUR_SUBDOMAIN.workers.dev?key=YOUR_SECRET"
             value={syncCfg.remoteUrl}
             onChange={(e) => {
@@ -875,13 +875,22 @@ export function SettingsPage() {
               setSyncCfg(next)
               saveSyncConfig(next)
             }}
+            spellCheck={false}
+            autoCapitalize="off"
+            autoCorrect="off"
+            title={syncCfg.remoteUrl || undefined}
           />
+          {syncCfg.remoteUrl ? (
+            <p className="text-xs text-text-subtle mb-4 -mt-2 max-w-4xl break-all font-mono">
+              {syncCfg.remoteUrl}
+            </p>
+          ) : null}
           <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle mb-2">
             Passphrase
           </label>
           <input
             type="password"
-            className="mb-6 max-w-md"
+            className="mb-6 w-full max-w-md"
             autoComplete="new-password"
             placeholder="Sync passphrase (session only — min 8 chars)"
             value={syncPass}
