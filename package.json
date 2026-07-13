@@ -7,9 +7,10 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview",
+    "preview": "npm run build && wrangler dev",
     "test": "vitest run",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
     "lucide-react": "^1.24.0",
@@ -22,6 +23,7 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.10.2",
+    "@cloudflare/vite-plugin": "^1.44.0",
     "@playwright/test": "^1.52.0",
     "@tailwindcss/vite": "^4.3.2",
     "@testing-library/jest-dom": "^6.9.1",
@@ -36,6 +38,7 @@
     "tailwindcss": "^4.3.2",
     "typescript": "~6.0.2",
     "vite": "^8.1.1",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.10",
+    "wrangler": "^4.110.0"
   }
 }
