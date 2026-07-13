@@ -114,33 +114,35 @@ export function EquitiesPage() {
         }
       />
 
-      <div className={`grid grid-cols-1 sm:grid-cols-3 gap-px mb-px ${privacyClass(privacy)}`}>
-        <div className="surface p-6">
-          <p className="label-uppercase mb-2">Value</p>
-          <p className="text-2xl font-bold tabular-nums">{formatGBP(equity.value)}</p>
+      <div className={`grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-px mb-6 ${privacyClass(privacy)}`}>
+        <div className="surface p-4 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
+          <p className="text-xs uppercase tracking-wider text-text-subtle mb-2 font-semibold">Value</p>
+          <p className="text-xl md:text-2xl font-bold tabular-nums">{formatGBP(equity.value)}</p>
         </div>
-        <div className="surface p-6">
-          <p className="label-uppercase mb-2">Cost basis</p>
-          <p className="text-2xl font-bold tabular-nums">{formatGBP(equity.cost)}</p>
+        <div className="surface p-4 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
+          <p className="text-xs uppercase tracking-wider text-text-subtle mb-2 font-semibold">Cost basis</p>
+          <p className="text-xl md:text-2xl font-bold tabular-nums">{formatGBP(equity.cost)}</p>
         </div>
-        <div className="surface p-6">
-          <p className="label-uppercase mb-2">P&amp;L</p>
-          <p className={`text-2xl font-bold tabular-nums ${equity.pnl >= 0 ? 'text-accent' : 'text-text-muted'}`}>
+        <div className="surface p-4 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none col-span-2 md:col-span-1">
+          <p className="text-xs uppercase tracking-wider text-text-subtle mb-2 font-semibold">P&amp;L</p>
+          <p className={`text-xl md:text-2xl font-bold tabular-nums ${equity.pnl >= 0 ? 'text-accent' : 'text-text-muted'}`}>
             {formatGBP(equity.pnl, { signed: true })}{' '}
             <span className="text-base font-semibold">({formatPct(equity.pct)})</span>
           </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-px mb-6 mt-6">
-        <AllocationRing
-          data={pieSlices}
-          privacy={privacy}
-          eyebrow="Mix"
-          title="Holdings"
-          donut
-        />
-        <div className="lg:col-span-2">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-px mb-6">
+        <div className="surface p-5 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
+          <AllocationRing
+            data={pieSlices}
+            privacy={privacy}
+            eyebrow="Mix"
+            title="Holdings"
+            donut
+          />
+        </div>
+        <div className="lg:col-span-2 surface p-5 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
           <PortfolioSeriesChart
             history={data.history}
             privacy={privacy}
@@ -154,7 +156,7 @@ export function EquitiesPage() {
       </div>
 
       {holdings.length === 0 ? (
-        <div className="surface p-12 text-center text-text-subtle">
+        <div className="surface p-12 text-center text-text-subtle rounded-xl md:rounded-none shadow-sm md:shadow-none">
           No equity holdings yet. Click Add equity.
         </div>
       ) : (
@@ -162,7 +164,7 @@ export function EquitiesPage() {
           items={holdings}
           getId={(e) => String(e.id)}
           onReorder={(next) => setData((prev) => ({ ...prev, equities: applySortOrder(next) }))}
-          className="flex flex-col gap-px"
+          className="flex flex-col gap-3 md:gap-px"
         >
           {(e) => {
             const priceGbp = equityUnitPriceGbp(e)
@@ -176,15 +178,15 @@ export function EquitiesPage() {
                 : null
             return (
               <div
-                className={`surface p-4 sm:p-5 flex flex-wrap sm:flex-nowrap items-center gap-3 ${
+                className={`surface p-4 md:p-5 flex flex-wrap md:flex-nowrap items-center gap-3 rounded-xl md:rounded-none shadow-sm md:shadow-none ${
                   included ? '' : 'opacity-50'
                 }`}
               >
                 <ReorderHandle label={`Reorder ${e.symbol}`} />
-                <div className="min-w-0 flex-1">
-                  <p className="font-semibold">{e.symbol}</p>
-                  <p className="text-xs text-text-muted truncate">{e.name}</p>
-                </div>
+                <Link to={`/equities/${e.id}`} className="min-w-0 flex-1 hover:text-accent transition-colors">
+                  <p className="font-semibold text-base">{e.symbol}</p>
+                  <p className="text-xs text-text-muted truncate mt-0.5">{e.name}</p>
+                </Link>
                 <div className={`text-sm tabular-nums min-w-[8.5rem] ${privacyClass(privacy)}`}>
                   <p className="font-semibold">{formatGBP(value)}</p>
                   <p className="text-xs text-text-muted">
@@ -197,16 +199,16 @@ export function EquitiesPage() {
                   )}
                 </div>
                 <p
-                  className={`text-sm tabular-nums w-20 text-right ${
+                  className={`text-sm tabular-nums w-20 text-right font-semibold ${
                     pnl >= 0 ? 'text-accent' : 'text-text-muted'
                   }`}
                 >
                   {formatPct(cost > 0 ? (pnl / cost) * 100 : 0)}
                 </p>
-                <div className="flex flex-wrap gap-1 ml-auto sm:ml-0">
+                <div className="flex flex-wrap gap-2 ml-auto md:ml-0">
                   <button
                     type="button"
-                    className="btn-primary btn-sm"
+                    className="btn-primary btn-sm min-h-[44px] md:min-h-[36px]"
                     onClick={() => {
                       setTradeFor(e)
                       setTradeSide('buy')
@@ -216,7 +218,7 @@ export function EquitiesPage() {
                   </button>
                   <button
                     type="button"
-                    className="btn-secondary btn-sm"
+                    className="btn-secondary btn-sm min-h-[44px] md:min-h-[36px]"
                     onClick={() => {
                       setTradeFor(e)
                       setTradeSide('sell')
@@ -227,19 +229,16 @@ export function EquitiesPage() {
                   <button
                     type="button"
                     onClick={() => toggle(e.id)}
-                    className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 border ${
+                    className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 border min-h-[44px] md:min-h-[36px] ${
                       included ? 'border-accent text-accent' : 'border-border-strong text-text-subtle'
                     }`}
                   >
                     {included ? 'In NW' : 'Off'}
                   </button>
-                  <Link to={`/equities/${e.id}`} className="btn-ghost btn-sm">
-                    Open
-                  </Link>
-                  <button type="button" className="btn-ghost btn-sm" onClick={() => openEdit(e)}>
+                  <button type="button" className="btn-ghost btn-sm min-h-[44px] md:min-h-[36px]" onClick={() => openEdit(e)}>
                     Edit
                   </button>
-                  <button type="button" className="btn-ghost btn-sm" onClick={() => setDeleteId(e.id)}>
+                  <button type="button" className="btn-ghost btn-sm min-h-[44px] md:min-h-[36px]" onClick={() => setDeleteId(e.id)}>
                     Delete
                   </button>
                 </div>

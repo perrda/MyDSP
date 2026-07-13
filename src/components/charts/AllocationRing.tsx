@@ -60,13 +60,13 @@ export function AllocationRing({
   }
 
   return (
-    <div className={`surface p-5 sm:p-6 chart-panel ${className}`}>
+    <div className={`surface p-0 chart-panel ${className}`}>
       {(eyebrow || title) && (
-        <div className="mb-4">
-          {eyebrow && <p className="label-uppercase mb-1">{eyebrow}</p>}
+        <div className="p-4 md:p-6 border-b border-border">
+          {eyebrow && <p className="text-xs uppercase tracking-wider text-text-subtle mb-1 font-semibold">{eyebrow}</p>}
           {title && <h3 className="text-base font-bold tracking-tight">{title}</h3>}
           {total > 0 && (
-            <p className={`text-sm text-text-muted mt-1 tabular-nums ${privacyClass(privacy)}`}>
+            <p className={`text-xs md:text-sm text-text-muted mt-1 tabular-nums font-semibold ${privacyClass(privacy)}`}>
               {formatGBP(total)} total
             </p>
           )}
@@ -76,9 +76,9 @@ export function AllocationRing({
         </div>
       )}
       {slices.length === 0 ? (
-        <p className="text-sm text-text-muted text-center py-10">{emptyText}</p>
+        <p className="text-sm text-text-muted text-center py-10 px-4">{emptyText}</p>
       ) : (
-        <div className={`${heightClass} w-full ${privacyClass(privacy)}`}>
+        <div className={`${heightClass} w-full p-4 md:p-6 ${privacyClass(privacy)}`}>
           <p className="sr-only">
             {title ?? 'Allocation'}:{' '}
             {slices.map((s) => `${s.name} ${((s.value / total) * 100).toFixed(0)}%`).join(', ')}
@@ -101,6 +101,8 @@ export function AllocationRing({
                   const s = slices[index]
                   if (s) go(s.name)
                 }}
+                animationDuration={800}
+                animationEasing="ease-in-out"
               >
                 {slices.map((_, i) => (
                   <Cell key={`${gradId}-${i}`} fill={colors[i % colors.length]} />
@@ -123,41 +125,41 @@ export function AllocationRing({
         </div>
       )}
       {slices.length > 0 && (
-        <ul className="chart-legend-list space-y-2">
+        <ul className="chart-legend-list space-y-2 p-4 md:p-6 pt-0 md:pt-0">
           {slices.map((s, i) => (
             <li key={s.name}>
               {linkForSlice ? (
                 <button
                   type="button"
-                  className="flex w-full items-center justify-between gap-3 text-left hover:text-accent transition-colors"
+                  className="flex w-full items-center justify-between gap-3 text-left hover:text-accent transition-colors min-h-[44px] md:min-h-0 py-2 md:py-0"
                   onClick={() => go(s.name)}
                 >
                   <span className="flex items-center gap-2.5 min-w-0">
                     <span
-                      className="w-2.5 h-2.5 shrink-0"
+                      className="w-3 h-3 md:w-2.5 md:h-2.5 shrink-0"
                       style={{ background: colors[i % colors.length] }}
                       aria-hidden
                     />
-                    <span className="chart-legend-list__label truncate">{s.name}</span>
+                    <span className="chart-legend-list__label truncate text-sm md:text-xs">{s.name}</span>
                   </span>
                   <span
-                    className={`chart-legend-list__value shrink-0 ${privacyClass(privacy)}`}
+                    className={`chart-legend-list__value shrink-0 text-sm md:text-xs ${privacyClass(privacy)}`}
                   >
                     {((s.value / total) * 100).toFixed(0)}% · {formatGBP(s.value)}
                   </span>
                 </button>
               ) : (
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center justify-between gap-3 py-2 md:py-0">
                   <span className="flex items-center gap-2.5 min-w-0">
                     <span
-                      className="w-2.5 h-2.5 shrink-0"
+                      className="w-3 h-3 md:w-2.5 md:h-2.5 shrink-0"
                       style={{ background: colors[i % colors.length] }}
                       aria-hidden
                     />
-                    <span className="chart-legend-list__label truncate">{s.name}</span>
+                    <span className="chart-legend-list__label truncate text-sm md:text-xs">{s.name}</span>
                   </span>
                   <span
-                    className={`chart-legend-list__value shrink-0 ${privacyClass(privacy)}`}
+                    className={`chart-legend-list__value shrink-0 text-sm md:text-xs ${privacyClass(privacy)}`}
                   >
                     {((s.value / total) * 100).toFixed(0)}% · {formatGBP(s.value)}
                   </span>

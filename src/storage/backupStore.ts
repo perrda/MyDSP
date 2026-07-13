@@ -12,6 +12,24 @@ import {
 } from './portfolioStore'
 import { STORAGE } from './keys'
 
+// Lazy import to avoid circular deps - sync service imports backupStore
+let _pushSyncLazy: ((url: string, pass: string) => Promise<void>) | null = null
+let _loadSyncConfigLazy: (() => { remoteUrl: string; enabled: boolean } | null) | null = null
+let _getSessionPassphraseLazy: (() => string | null) | null = null
+
+async function lazyLoadSync() {
+  if (_pushSyncLazy && _loadSyncConfigLazy && _getSessionPassphraseLazy) return
+  try {
+    const mod = await import('../services/sync/syncService')
+    _pushSyncLazy = mod.pushSync
+    _loadSyncConfigLazy = mod.loadSyncConfig
+    const sessionMod = await import('../services/sync/sessionPassphrase')
+    _getSessionPassphraseLazy = sessionMod.getSessionSyncPassphrase
+  } catch {
+    /* sync modules may not be available */
+  }
+}
+
 const DB_NAME = 'mydsp_backups'
 const STORE = 'backups'
 const DB_VERSION = 1
@@ -107,6 +125,7 @@ async function pruneOldBackups(): Promise<void> {
 export async function createFullBackup(
   source: 'auto' | 'manual',
   label?: string,
+  opts?: { skipAutoSync?: boolean },
 ): Promise<FullBackupMeta> {
   const snap = captureFullWorkspace()
   const createdAt = new Date().toISOString()
@@ -129,6 +148,14 @@ export async function createFullBackup(
   } catch {
     /* ignore */
   }
+
+  // Auto-sync after backup if enabled (unless explicitly skipped)
+  if (!opts?.skipAutoSync && source === 'auto') {
+    void attemptAutoSync().catch(() => {
+      /* Sync errors should not fail the backup */
+    })
+  }
+
   return {
     id: record.id,
     createdAt: record.createdAt,
@@ -239,8 +266,78 @@ export function downloadFullBackupFile(record: FullBackupRecord): void {
   const a = document.createElement('a')
   a.href = url
   a.download = fullBackupFilename(record)
-  a.click()
-  URL.revokeObjectURL(url)
+  
+  // iOS Safari requires the link to be in the DOM and explicitly clicked
+  if (isIOS()) {
+    a.style.display = 'none'
+    document.body.appendChild(a)
+    a.click()
+    // Clean up after a delay to ensure download starts
+    setTimeout(() => {
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    }, 100)
+  } else {
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+}
+
+/**
+ * Detect iOS devices (iPhone, iPad, iPod).
+ */
+function isIOS(): boolean {
+  if (typeof navigator === 'undefined') return false
+  const ua = navigator.userAgent
+  return /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+}
+
+/**
+ * Check if Web Share API is available (good indicator for mobile/native share support).
+ */
+export function canUseNativeShare(): boolean {
+  return typeof navigator !== 'undefined' && 'share' in navigator && 'canShare' in navigator
+}
+
+/**
+ * Share backup file using native share sheet (iOS, Android, etc).
+ * Falls back to download if not supported.
+ */
+export async function shareBackupFile(record: FullBackupRecord): Promise<'shared' | 'fallback' | 'cancelled'> {
+  if (!canUseNativeShare()) {
+    downloadFullBackupFile(record)
+    return 'fallback'
+  }
+
+  try {
+    const payload = JSON.stringify(fullBackupPayload(record), null, 2)
+    const name = fullBackupFilename(record)
+    const blob = new Blob([payload], { type: 'application/json' })
+    const file = new File([blob], name, { type: 'application/json' })
+    
+    const nav = navigator as Navigator & {
+      canShare?: (data: { files: File[] }) => boolean
+      share: (data: { files: File[]; title?: string; text?: string }) => Promise<void>
+    }
+
+    // Check if we can share files
+    if (nav.canShare && !nav.canShare({ files: [file] })) {
+      downloadFullBackupFile(record)
+      return 'fallback'
+    }
+
+    await nav.share({
+      files: [file],
+      title: 'MyDSP Backup',
+      text: `${record.label} - ${record.portfolioCount} portfolio${record.portfolioCount === 1 ? '' : 's'}`,
+    })
+    
+    return 'shared'
+  } catch (e) {
+    if (e instanceof Error && e.name === 'AbortError') return 'cancelled'
+    downloadFullBackupFile(record)
+    return 'fallback'
+  }
 }
 
 /**
@@ -301,6 +398,27 @@ export async function ensureDailyBackup(): Promise<FullBackupMeta | null> {
     /* continue */
   }
   return createFullBackup('auto')
+}
+
+/**
+ * Attempt auto-sync push after daily backup.
+ * Silent — errors logged but not thrown.
+ */
+async function attemptAutoSync(): Promise<void> {
+  await lazyLoadSync()
+  if (!_loadSyncConfigLazy || !_pushSyncLazy || !_getSessionPassphraseLazy) return
+
+  const cfg = _loadSyncConfigLazy()
+  if (!cfg || !cfg.enabled || !cfg.remoteUrl) return
+
+  const pass = _getSessionPassphraseLazy()
+  if (!pass) return
+
+  try {
+    await _pushSyncLazy(cfg.remoteUrl, pass)
+  } catch (err) {
+    console.warn('[auto-sync] Push failed after daily backup:', err)
+  }
 }
 
 export async function clearServiceWorkerCaches(): Promise<void> {
