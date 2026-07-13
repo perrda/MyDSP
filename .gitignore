@@ -13,7 +13,12 @@ dist-ssr
 *.local
 test-results
 playwright-report
-.cursor
+# Cursor local state — keep project rules/skills versioned for agents
+.cursor/*
+!.cursor/rules/
+!.cursor/rules/**
+!.cursor/skills/
+!.cursor/skills/**
 
 # Editor directories and files
 .vscode/*
