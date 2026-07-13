@@ -19,7 +19,6 @@ import {
   type ConflictChoice,
   type SyncConflict,
 } from './conflicts'
-import { mergePortfolio } from './merge'
 
 const CONFIG_KEY = 'mydsp_sync_config'
 const DEVICE_KEY = 'mydsp_device_id'
@@ -246,12 +245,14 @@ export async function downloadEncryptedBackup(passphrase: string): Promise<void>
 export async function importEncryptedFile(
   file: File,
   passphrase: string,
-): Promise<{ merged: number }> {
+  resolutions: Record<string, ConflictChoice> = {},
+): Promise<{ merged: number; conflicts: SyncConflict[] }> {
   const text = await file.text()
   const envelope = JSON.parse(text) as SyncEnvelope
   if (envelope.app !== 'mydsp') throw new Error('Not a MyDSP sync file')
 
   let merged = 0
+  const allConflicts: SyncConflict[] = []
   for (const meta of envelope.portfolios) {
     const blob = envelope.blobs[meta.id]
     if (!blob) continue
@@ -259,8 +260,15 @@ export async function importEncryptedFile(
     const remote = normalizePortfolio(remoteShape)
     const key = `dfc_data_v3${meta.id === 'default' ? '' : `_${meta.id}`}`
     const existed = localStorage.getItem(key) !== null
-    const local = existed ? loadPortfolio(meta.id) : remote
-    const next = existed ? mergePortfolio(local, remote) : remote
+    if (!existed) {
+      savePortfolioImmediate(remote, meta.id)
+      merged++
+      continue
+    }
+    const local = loadPortfolio(meta.id)
+    const conflicts = detectConflicts(meta.id, local, remote)
+    allConflicts.push(...conflicts)
+    const next = mergeWithResolutions(local, remote, resolutions)
     savePortfolioImmediate(next, meta.id)
     merged++
   }
@@ -271,5 +279,5 @@ export async function importEncryptedFile(
     if (!ids.has(p.id)) combined.push(p)
   }
   localStorage.setItem('fcc_portfolios', JSON.stringify(combined))
-  return { merged }
+  return { merged, conflicts: allConflicts }
 }

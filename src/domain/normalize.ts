@@ -427,9 +427,44 @@ function normalizeFamily(raw: unknown): FamilyState {
   }
 }
 
+function normalizeCustomDocuments(
+  raw: unknown,
+): import('./job-types').JobApplication['customDocuments'] {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .filter((x): x is Record<string, unknown> => !!x && typeof x === 'object')
+    .map((d, i) => ({
+      name: str(d.name, `Document ${i + 1}`),
+      url: typeof d.url === 'string' && d.url.trim() ? d.url.trim() : undefined,
+      notes: typeof d.notes === 'string' && d.notes.trim() ? d.notes.trim() : undefined,
+      blobDocId: typeof d.blobDocId === 'number' ? d.blobDocId : num(d.blobDocId) || undefined,
+      fileName: typeof d.fileName === 'string' ? d.fileName : undefined,
+      mimeType: typeof d.mimeType === 'string' ? d.mimeType : undefined,
+      size: typeof d.size === 'number' ? d.size : undefined,
+      hasBlob: Boolean(d.hasBlob),
+    }))
+    .filter((d) => d.name)
+}
+
+const DOC_LINKED_KINDS = new Set(['card', 'loan', 'crypto', 'equity', 'trip', 'goal', 'job'])
+const JOB_STATUSES = new Set([
+  'wishlist',
+  'researching',
+  'applying',
+  'applied',
+  'screening',
+  'interviewing',
+  'offer',
+  'accepted',
+  'rejected',
+  'withdrawn',
+  'archived',
+])
+
 function normalizeDocuments(raw: unknown): DocumentNote[] {
   return asArray(raw).map((item, i) => {
     const r = (item ?? {}) as Record<string, unknown>
+    const kindRaw = r.linkedKind !== undefined ? str(r.linkedKind) : ''
     return {
       id: num(r.id, i + 1),
       name: str(r.name, 'Document'),
@@ -440,7 +475,9 @@ function normalizeDocuments(raw: unknown): DocumentNote[] {
       mimeType: r.mimeType !== undefined ? str(r.mimeType) : undefined,
       size: r.size !== undefined ? num(r.size) : undefined,
       hasBlob: Boolean(r.hasBlob),
-      linkedKind: r.linkedKind !== undefined ? str(r.linkedKind) as DocumentNote['linkedKind'] : undefined,
+      linkedKind: DOC_LINKED_KINDS.has(kindRaw)
+        ? (kindRaw as DocumentNote['linkedKind'])
+        : undefined,
       linkedId: r.linkedId !== undefined ? num(r.linkedId) : undefined,
     }
   })
@@ -599,7 +636,10 @@ function normalizeTodoItems(raw: unknown): import('./todo-types').TodoItem[] {
         createdAt: str(x.createdAt, new Date().toISOString()),
         updatedAt: str(x.updatedAt, new Date().toISOString()),
         sortOrder: typeof x.sortOrder === 'number' ? x.sortOrder : undefined,
-        linkedJobId: typeof x.linkedJobId === 'number' ? x.linkedJobId : undefined,
+        linkedJobId: (() => {
+          const n = num(x.linkedJobId, NaN)
+          return Number.isFinite(n) && n > 0 ? n : undefined
+        })(),
       }
     })
 }
@@ -613,7 +653,9 @@ function normalizeJobApplications(raw: unknown): import('./job-types').JobApplic
         id: num(x.id, Date.now() + i),
         companyName: str(x.companyName, 'Unknown company'),
         jobTitle: str(x.jobTitle, 'Untitled role'),
-        status: (typeof x.status === 'string' ? x.status : 'wishlist') as import('./job-types').JobStatus,
+        status: (JOB_STATUSES.has(String(x.status))
+          ? String(x.status)
+          : 'wishlist') as import('./job-types').JobStatus,
         priority: (['high', 'medium', 'low'].includes(String(x.priority))
           ? x.priority
           : 'medium') as 'high' | 'medium' | 'low',
@@ -644,7 +686,7 @@ function normalizeJobApplications(raw: unknown): import('./job-types').JobApplic
         cvVersion: typeof x.cvVersion === 'string' ? x.cvVersion : undefined,
         coverLetterVersion: typeof x.coverLetterVersion === 'string' ? x.coverLetterVersion : undefined,
         portfolioUrl: typeof x.portfolioUrl === 'string' ? x.portfolioUrl : undefined,
-        customDocuments: Array.isArray(x.customDocuments) ? (x.customDocuments as import('./job-types').JobApplication['customDocuments']) : [],
+        customDocuments: normalizeCustomDocuments(x.customDocuments),
         interviews: Array.isArray(x.interviews) ? (x.interviews as import('./job-types').JobApplication['interviews']) : [],
         notes: Array.isArray(x.notes) ? (x.notes as import('./job-types').JobApplication['notes']) : [],
         contacts: Array.isArray(x.contacts) ? (x.contacts as import('./job-types').JobApplication['contacts']) : [],

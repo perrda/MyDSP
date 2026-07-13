@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState, useEffect, useRef } from 'react'
+import { Link } from 'react-router-dom'
 import {
   Plus,
   Download,
@@ -82,17 +83,19 @@ export function TodosPage() {
 
   const lists = sortBySortOrder(data.todoLists || [])
   const allItems = data.todoItems || []
+  const todoItemsRef = useRef(allItems)
+  todoItemsRef.current = allItems
 
   useEffect(() => {
     const run = () => {
-      checkTodoReminders(allItems, {
+      checkTodoReminders(todoItemsRef.current, {
         onToast: (title, message) => success(title, message),
       })
     }
     run()
     const id = window.setInterval(run, 60_000)
     return () => window.clearInterval(id)
-  }, [allItems, success])
+  }, [success])
 
   const enableDesktopReminders = async () => {
     const perm = await ensureDesktopNotificationPermission()
@@ -277,7 +280,6 @@ export function TodosPage() {
     success('Tasks moved', `${selectedTodos.size} → ${target?.name ?? 'list'}`)
     setSelectedTodos(new Set())
     setBulkMoveListId('')
-    setSelectedListId(targetId)
   }
 
   const handleToggleComplete = (item: TodoItem) => {
@@ -748,12 +750,12 @@ export function TodosPage() {
                           </span>
                         )}
                         {item.linkedJobId != null && (
-                          <a
-                            href={`/jobs/${item.linkedJobId}`}
+                          <Link
+                            to={`/jobs/${item.linkedJobId}`}
                             className="text-xs px-2 py-0.5 bg-accent/10 text-accent rounded"
                           >
                             Job linked
-                          </a>
+                          </Link>
                         )}
                         <span className={`text-xs font-bold uppercase ${PRIORITY_TEXT_COLORS[item.priority]}`}>
                           {item.priority}

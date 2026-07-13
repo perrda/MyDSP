@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { X, FileText } from 'lucide-react'
-import { putDocumentBlob } from '../storage/documentBlobStore'
+import { putDocumentBlob, deleteDocumentBlob } from '../storage/documentBlobStore'
 
 export interface JobDocumentDraft {
   name: string
@@ -36,6 +36,14 @@ export function DocumentModal({ document, onSave, onClose }: DocumentModalProps)
       let blobFields: Partial<JobDocumentDraft> = {}
       if (file) {
         const blobDocId = document?.blobDocId ?? Date.now() + Math.floor(Math.random() * 1000)
+        // If replacing with a new id, delete the previous blob
+        if (document?.blobDocId && document.blobDocId !== blobDocId) {
+          try {
+            await deleteDocumentBlob(document.blobDocId)
+          } catch {
+            /* ignore */
+          }
+        }
         await putDocumentBlob(blobDocId, file)
         blobFields = {
           blobDocId,

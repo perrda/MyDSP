@@ -77,4 +77,61 @@ describe('Portfolio persistence — jobs & todos', () => {
     expect(merged.jobApplications).toHaveLength(2)
     expect(merged.todoLists).toHaveLength(2)
   })
+
+  it('persists linkedJobId and job document blob metadata', () => {
+    const base = createEmptyPortfolio()
+    const list = createTodoList({ name: 'Career' })
+    const item = createTodoItem({
+      listId: list.id,
+      title: 'Prep interview',
+      linkedJobId: 99,
+    })
+    const job = createJobApplication({
+      id: 99,
+      companyName: 'Acme',
+      jobTitle: 'Dev',
+      customDocuments: [
+        {
+          name: 'CV',
+          blobDocId: 501,
+          fileName: 'cv.pdf',
+          mimeType: 'application/pdf',
+          size: 1234,
+          hasBlob: true,
+        },
+      ],
+    })
+    const stored = toStorageShape({
+      ...base,
+      todoLists: [list],
+      todoItems: [item],
+      jobApplications: [job],
+      documents: [
+        {
+          id: 1,
+          name: 'Offer letter',
+          createdAt: new Date().toISOString(),
+          linkedKind: 'job',
+          linkedId: 99,
+        },
+      ],
+    })
+    const restored = normalizePortfolio(stored)
+    expect(restored.todoItems[0].linkedJobId).toBe(99)
+    expect(restored.jobApplications[0].customDocuments[0].blobDocId).toBe(501)
+    expect(restored.jobApplications[0].customDocuments[0].hasBlob).toBe(true)
+    expect(restored.documents[0].linkedKind).toBe('job')
+  })
+
+  it('coerces string linkedJobId and invalid job status on normalize', () => {
+    const restored = normalizePortfolio({
+      version: 1,
+      todoItems: [{ id: 1, listId: 1, title: 'T', linkedJobId: '42' }],
+      jobApplications: [{ id: 2, companyName: 'C', jobTitle: 'R', status: 'not-a-status' }],
+      documents: [{ id: 3, name: 'D', linkedKind: 'jobs' }],
+    })
+    expect(restored.todoItems[0].linkedJobId).toBe(42)
+    expect(restored.jobApplications[0].status).toBe('wishlist')
+    expect(restored.documents[0].linkedKind).toBeUndefined()
+  })
 })

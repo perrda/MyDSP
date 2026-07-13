@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ImagePlus, Loader2, Trash2, X } from 'lucide-react'
 import type { TodoItem, TodoList, TodoPriority } from '../domain/todo-types'
 import {
@@ -51,6 +51,19 @@ export function TodoScreenshotImportModal({
   const [rawText, setRawText] = useState('')
   const [rows, setRows] = useState<DraftRow[]>([])
   const [step, setStep] = useState<'upload' | 'review'>('upload')
+  const aliveRef = useRef(true)
+  const previewUrlRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    aliveRef.current = true
+    return () => {
+      aliveRef.current = false
+      if (previewUrlRef.current) {
+        URL.revokeObjectURL(previewUrlRef.current)
+        previewUrlRef.current = null
+      }
+    }
+  }, [])
 
   const handleFile = useCallback(async (file: File | undefined) => {
     if (!file) return
@@ -66,7 +79,9 @@ export function TodoScreenshotImportModal({
     setError(null)
     setPreviewUrl((prev) => {
       if (prev) URL.revokeObjectURL(prev)
-      return URL.createObjectURL(file)
+      const next = URL.createObjectURL(file)
+      previewUrlRef.current = next
+      return next
     })
     setBusy(true)
     setProgress(0)
@@ -76,9 +91,11 @@ export function TodoScreenshotImportModal({
 
     try {
       const text = await runOcr(file, (pct, st) => {
+        if (!aliveRef.current) return
         setProgress(pct)
         setStatus(st)
       })
+      if (!aliveRef.current) return
       setRawText(text)
       const parsed = parseOcrTextToCandidates(text)
       if (parsed.length === 0) {
@@ -92,10 +109,13 @@ export function TodoScreenshotImportModal({
         setStep('review')
       }
     } catch (e) {
+      if (!aliveRef.current) return
       setError(e instanceof Error ? e.message : 'OCR failed. Try another image.')
     } finally {
-      setBusy(false)
-      setStatus('')
+      if (aliveRef.current) {
+        setBusy(false)
+        setStatus('')
+      }
     }
   }, [])
 

@@ -16,6 +16,7 @@ import {
   Clock,
   AlertCircle,
   Archive,
+  GripVertical,
 } from 'lucide-react'
 import { PageHeader } from '../components/ui/PageHeader'
 import { EmptyState } from '../components/ui/EmptyState'
@@ -53,7 +54,7 @@ const KANBAN_COLUMNS: Array<{ status: JobStatus[]; title: string; color: string 
 
 export function JobsPage() {
   const { data, setData, privacy } = usePortfolio()
-  const { success } = useToasts()
+  const { success, error: showError } = useToasts()
   const [viewMode, setViewMode] = useState<'kanban' | 'list' | 'analytics'>('kanban')
   const [sortBy, setSortBy] = useState<JobSortBy>('updated-desc')
   const [filterBy, setFilterBy] = useState<JobFilterBy>('active')
@@ -219,7 +220,7 @@ export function JobsPage() {
         }))
         success('Imported applications', `${apps.length} added`)
       } catch (err) {
-        success('Import failed', err instanceof Error ? err.message : 'Could not parse file')
+        showError('Import failed', err instanceof Error ? err.message : 'Could not parse file')
       }
     }
     input.click()
@@ -228,6 +229,16 @@ export function JobsPage() {
   const handleKanbanDrop = (columnTitle: string, appId: number) => {
     const status = KANBAN_DROP_STATUS[columnTitle]
     if (!status) return
+    const app = applications.find((a) => a.id === appId)
+    // Preserve rejected/withdrawn when dropping into Closed (don't force archived)
+    if (
+      columnTitle === 'Closed' &&
+      app &&
+      (app.status === 'rejected' || app.status === 'withdrawn' || app.status === 'archived')
+    ) {
+      setDragOverColumn(null)
+      return
+    }
     handleStatusChange(appId, status)
     setDragOverColumn(null)
   }
@@ -599,16 +610,25 @@ function JobCard({
     <div
       className={`surface p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none hover:border-accent transition-colors ${
         selected ? 'ring-2 ring-accent' : ''
-      } ${draggable ? 'cursor-grab active:cursor-grabbing' : ''}`}
-      draggable={draggable}
-      onDragStart={(e) => {
-        if (!draggable) return
-        e.dataTransfer.setData('text/job-id', String(application.id))
-        e.dataTransfer.effectAllowed = 'move'
-      }}
+      }`}
     >
       <div className="flex items-start justify-between gap-3 mb-2">
         <div className="flex items-start gap-2 flex-1 min-w-0">
+          {draggable && (
+            <button
+              type="button"
+              className="mt-1 p-1 text-text-subtle hover:text-accent cursor-grab active:cursor-grabbing"
+              draggable
+              onDragStart={(e) => {
+                e.dataTransfer.setData('text/job-id', String(application.id))
+                e.dataTransfer.effectAllowed = 'move'
+              }}
+              aria-label="Drag to change status"
+              title="Drag to another column"
+            >
+              <GripVertical size={14} />
+            </button>
+          )}
           {onToggleSelect && (
             <input
               type="checkbox"

@@ -36,7 +36,7 @@ export function JobDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { data, setData, privacy } = usePortfolio()
-  const { success } = useToasts()
+  const { success, error: showError } = useToasts()
   const [editMode, setEditMode] = useState(false)
   const [showInterviewModal, setShowInterviewModal] = useState(false)
   const [showNoteModal, setShowNoteModal] = useState(false)
@@ -61,6 +61,14 @@ export function JobDetailPage() {
   const application = useMemo(
     () => data.jobApplications?.find((app) => app.id === Number(id)),
     [data.jobApplications, id],
+  )
+
+  const linkedTodos = useMemo(
+    () =>
+      application
+        ? (data.todoItems ?? []).filter((t) => t.linkedJobId === application.id)
+        : [],
+    [data.todoItems, application],
   )
 
   if (!application) {
@@ -286,7 +294,7 @@ export function JobDetailPage() {
     if (!doc.blobDocId) return
     const blob = await getDocumentBlob(doc.blobDocId)
     if (!blob) {
-      success('File missing', 'Blob not found on this device')
+      showError('File missing', 'Blob not found on this device')
       return
     }
     downloadBlob(blob, doc.fileName || doc.name)
@@ -716,6 +724,32 @@ export function JobDetailPage() {
             )}
           </div>
 
+          {/* Linked Todos */}
+          <div className="surface p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-bold text-sm">Linked Todos ({linkedTodos.length})</h3>
+              <button type="button" onClick={() => handleCreateLinkedTodo()} className="btn-ghost btn-sm">
+                <Plus size={12} />
+              </button>
+            </div>
+            {linkedTodos.length === 0 ? (
+              <p className="text-xs text-text-muted">No linked todos yet</p>
+            ) : (
+              <div className="space-y-2">
+                {linkedTodos.map((t) => (
+                  <Link
+                    key={t.id}
+                    to="/todos"
+                    className="block p-2 bg-surface-hover rounded text-xs hover:border-accent"
+                  >
+                    <p className="font-semibold">{t.title}</p>
+                    <p className="text-text-subtle uppercase mt-0.5">{t.status}</p>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Documents */}
           <div className="surface p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none">
             <div className="flex items-center justify-between mb-3">
@@ -729,49 +763,44 @@ export function JobDetailPage() {
             ) : (
               <div className="space-y-2">
                 {application.customDocuments.map((doc, idx) => (
-                  <div key={`${doc.name}-${idx}`} className="p-2 bg-surface-hover rounded text-xs group">
+                  <div
+                    key={doc.blobDocId ?? `${doc.name}-${idx}`}
+                    className="p-2 bg-surface-hover rounded text-xs group"
+                  >
                     <div className="flex items-start justify-between gap-2">
-                      <button
-                        type="button"
-                        className="flex-1 text-left"
-                        onClick={() => {
-                          setEditingDocumentIndex(idx)
-                          setShowDocumentModal(true)
-                        }}
-                      >
-                        <p className="font-semibold">{doc.name}</p>
+                      <div className="flex-1 text-left min-w-0">
+                        <button
+                          type="button"
+                          className="font-semibold text-left hover:text-accent"
+                          onClick={() => {
+                            setEditingDocumentIndex(idx)
+                            setShowDocumentModal(true)
+                          }}
+                        >
+                          {doc.name}
+                        </button>
                         {doc.hasBlob && (
                           <button
                             type="button"
-                            className="text-accent text-xs underline"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              void handleDownloadDoc(doc)
-                            }}
+                            className="block text-accent text-xs underline mt-0.5"
+                            onClick={() => void handleDownloadDoc(doc)}
                           >
                             Download file
                           </button>
                         )}
                         {doc.url && (
-                          <span className="text-accent text-xs inline-flex items-center gap-1">
-                            <ExternalLink size={10} /> Link attached
-                          </span>
-                        )}
-                        {doc.notes && <p className="text-text-muted mt-1">{doc.notes}</p>}
-                      </button>
-                      <div className="flex gap-1">
-                        {doc.url && (
                           <a
                             href={doc.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-accent p-0.5"
-                            aria-label="Open document link"
-                            onClick={(e) => e.stopPropagation()}
+                            className="text-accent text-xs inline-flex items-center gap-1 mt-0.5"
                           >
-                            <ExternalLink size={12} />
+                            <ExternalLink size={10} /> Open link
                           </a>
                         )}
+                        {doc.notes && <p className="text-text-muted mt-1">{doc.notes}</p>}
+                      </div>
+                      <div className="flex gap-1">
                         <button
                           type="button"
                           onClick={() => handleDeleteDocument(idx)}

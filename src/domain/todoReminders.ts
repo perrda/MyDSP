@@ -23,14 +23,15 @@ function reminderKey(item: TodoItem): string {
   return `${item.id}:${item.reminderDate}:${item.reminderTime || '00:00'}`
 }
 
+/** Parse YYYY-MM-DD + HH:mm as local wall-clock time (avoids UTC midnight skew). */
 function parseReminderMs(item: TodoItem): number | null {
-  if (!item.reminderDate) return null
+  if (!item.reminderDate || !/^\d{4}-\d{2}-\d{2}$/.test(item.reminderDate)) return null
+  const [y, mo, d] = item.reminderDate.split('-').map(Number)
   const time = item.reminderTime && /^\d{1,2}:\d{2}/.test(item.reminderTime) ? item.reminderTime : '09:00'
   const [hh, mm] = time.split(':').map(Number)
-  const d = new Date(item.reminderDate)
-  if (Number.isNaN(d.getTime())) return null
-  d.setHours(hh || 9, mm || 0, 0, 0)
-  return d.getTime()
+  const dt = new Date(y, mo - 1, d, hh || 9, mm || 0, 0, 0)
+  if (Number.isNaN(dt.getTime())) return null
+  return dt.getTime()
 }
 
 export async function ensureDesktopNotificationPermission(): Promise<NotificationPermission | 'unsupported'> {
@@ -64,7 +65,6 @@ export function checkTodoReminders(
     const at = parseReminderMs(item)
     if (at == null) continue
     if (at > now) continue
-    // Only fire within a 24h window after due (avoid ancient backlog spam)
     if (now - at > 24 * 60 * 60 * 1000) continue
 
     const key = reminderKey(item)
@@ -82,7 +82,10 @@ export function checkTodoReminders(
       category: 'todos',
       dismissible: true,
     })
-    opts?.onToast?.(item.title, 'Reminder due')
+    // Toast only when desktop notifications unavailable (avoid duplicate UX)
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') {
+      opts?.onToast?.(item.title, 'Reminder due')
+    }
   }
 
   if (count > 0) saveFired(fired)

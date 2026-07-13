@@ -349,8 +349,14 @@ export function parseCsvToJobApplications(csv: string): JobApplication[] {
         remote: (['onsite', 'hybrid', 'remote'].includes(remoteRaw)
           ? remoteRaw
           : 'onsite') as JobApplication['remote'],
-        salaryMin: row['salary min'] || row.salarymin ? Number(row['salary min'] || row.salarymin) : undefined,
-        salaryMax: row['salary max'] || row.salarymax ? Number(row['salary max'] || row.salarymax) : undefined,
+        salaryMin: (() => {
+          const n = Number(row['salary min'] || row.salarymin)
+          return Number.isFinite(n) ? n : undefined
+        })(),
+        salaryMax: (() => {
+          const n = Number(row['salary max'] || row.salarymax)
+          return Number.isFinite(n) ? n : undefined
+        })(),
         salaryCurrency: row.currency || row.salarycurrency || 'GBP',
         jobUrl: row['job url'] || row.joburl || row.url || undefined,
         rating: row.rating ? Number(row.rating) || 0 : 0,
@@ -380,12 +386,38 @@ export function parseJsonToJobApplications(jsonText: string): JobApplication[] {
       const companyName = String(r.companyName ?? r.company ?? '').trim()
       const jobTitle = String(r.jobTitle ?? r.title ?? '').trim()
       if (!companyName || !jobTitle) return null
+      const statusRaw = String(r.status ?? 'wishlist').toLowerCase().replace(/\s+/g, '-') as JobStatus
+      const priorityRaw = String(r.priority ?? 'medium').toLowerCase()
+      const remoteRaw = String(r.remote ?? 'onsite').toLowerCase()
       return createJobApplication({
-        ...(r as Partial<JobApplication>),
         id: typeof r.id === 'number' ? r.id : base + idx,
         companyName,
         jobTitle,
-        tags: Array.isArray(r.tags) ? (r.tags as string[]) : ['imported'],
+        status: VALID_STATUSES.includes(statusRaw) ? statusRaw : 'wishlist',
+        priority: (['high', 'medium', 'low'].includes(priorityRaw)
+          ? priorityRaw
+          : 'medium') as JobApplication['priority'],
+        appliedDate: typeof r.appliedDate === 'string' ? r.appliedDate : undefined,
+        deadline: typeof r.deadline === 'string' ? r.deadline : undefined,
+        location: typeof r.location === 'string' ? r.location : 'Unknown',
+        remote: (['onsite', 'hybrid', 'remote'].includes(remoteRaw)
+          ? remoteRaw
+          : 'onsite') as JobApplication['remote'],
+        salaryMin: typeof r.salaryMin === 'number' && Number.isFinite(r.salaryMin) ? r.salaryMin : undefined,
+        salaryMax: typeof r.salaryMax === 'number' && Number.isFinite(r.salaryMax) ? r.salaryMax : undefined,
+        salaryCurrency: typeof r.salaryCurrency === 'string' ? r.salaryCurrency : 'GBP',
+        jobUrl: typeof r.jobUrl === 'string' ? r.jobUrl : undefined,
+        rating: typeof r.rating === 'number' ? r.rating : 0,
+        source: typeof r.source === 'string' ? r.source : 'Import',
+        description: typeof r.description === 'string' ? r.description : undefined,
+        tags: Array.isArray(r.tags) ? r.tags.map(String) : ['imported'],
+        interviews: Array.isArray(r.interviews) ? (r.interviews as JobApplication['interviews']) : [],
+        notes: Array.isArray(r.notes) ? (r.notes as JobApplication['notes']) : [],
+        contacts: Array.isArray(r.contacts) ? (r.contacts as JobApplication['contacts']) : [],
+        tasks: Array.isArray(r.tasks) ? (r.tasks as JobApplication['tasks']) : [],
+        customDocuments: Array.isArray(r.customDocuments)
+          ? (r.customDocuments as JobApplication['customDocuments'])
+          : [],
       })
     })
     .filter((x): x is JobApplication => x != null)

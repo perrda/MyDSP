@@ -936,8 +936,9 @@ export function SettingsPage() {
                     return
                   }
                   try {
-                    const r = await importEncryptedFile(f, syncPass)
+                    const r = await importEncryptedFile(f, syncPass, conflictChoices)
                     reload()
+                    setConflicts(r.conflicts)
                     const next = {
                       ...syncCfg,
                       lastMergeCount: r.merged,
@@ -946,7 +947,11 @@ export function SettingsPage() {
                     }
                     setSyncCfg(next)
                     saveSyncConfig(next)
-                    flash(`Imported & merged ${r.merged} portfolios.`)
+                    flash(
+                      r.conflicts.length > 0
+                        ? `Imported ${r.merged} portfolios — ${r.conflicts.length} conflict(s) need a choice, then import again.`
+                        : `Imported & merged ${r.merged} portfolios.`,
+                    )
                   } catch (err) {
                     flash(err instanceof Error ? err.message : 'Import failed')
                   }
@@ -983,28 +988,41 @@ export function SettingsPage() {
                           flash('Still offline.')
                           return
                         }
+                        let flushed = 0
+                        let failed = false
+                        let quotesSkipped = 0
                         for (const job of loadOfflineQueue()) {
                           if (job.type === 'quote_refresh') {
+                            // Quote refresh is handled on reconnect by PortfolioContext;
+                            // drop stale queue entries rather than pretending we refreshed.
                             removeOfflineJob(job.id)
+                            quotesSkipped++
                             continue
                           }
                           if (job.type === 'sync_push' && job.remoteUrl) {
                             const pass = syncPass || getSessionSyncPassphrase() || ''
                             if (!pass || pass.length < 8) {
                               flash('Enter passphrase once this session, then flush.')
+                              failed = true
                               break
                             }
                             try {
                               await pushSync(job.remoteUrl, pass)
                               removeOfflineJob(job.id)
+                              flushed++
                             } catch (e) {
                               flash(e instanceof Error ? e.message : 'Flush failed')
+                              failed = true
                               break
                             }
                           }
                         }
                         setQueue(loadOfflineQueue())
-                        flash('Queue flushed.')
+                        if (!failed) {
+                          const bits = [`Flushed ${flushed} sync job(s)`]
+                          if (quotesSkipped) bits.push(`cleared ${quotesSkipped} quote job(s) (auto-refresh on reconnect)`)
+                          flash(bits.join(' · ') + '.')
+                        }
                       })()
                     }}
                   >

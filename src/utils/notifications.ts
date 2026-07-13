@@ -143,8 +143,8 @@ class NotificationManager {
     // Check priority threshold
     if (!this.meetsThreshold(notification.priority)) return
     
-    // Check category settings
-    if (notification.category && !this.settings.categories[notification.category]) return
+    // Category opt-out: missing key = allowed; only block when explicitly false
+    if (notification.category && this.settings.categories[notification.category] === false) return
     
     // Show desktop notification
     if (this.settings.desktopEnabled && 'Notification' in window) {
@@ -165,11 +165,17 @@ class NotificationManager {
   
   private isQuietHours(): boolean {
     if (!this.settings.quietHoursStart || !this.settings.quietHoursEnd) return false
-    
+
     const now = new Date()
     const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
-    
-    return currentTime >= this.settings.quietHoursStart && currentTime <= this.settings.quietHoursEnd
+    const start = this.settings.quietHoursStart
+    const end = this.settings.quietHoursEnd
+
+    // Overnight range e.g. 22:00–07:00
+    if (start > end) {
+      return currentTime >= start || currentTime <= end
+    }
+    return currentTime >= start && currentTime <= end
   }
   
   private meetsThreshold(priority: NotificationPriority): boolean {
@@ -199,7 +205,13 @@ class NotificationManager {
   }
   
   updateSettings(settings: Partial<NotificationSettings>): void {
-    this.settings = { ...this.settings, ...settings }
+    this.settings = {
+      ...this.settings,
+      ...settings,
+      categories: settings.categories
+        ? { ...this.settings.categories, ...settings.categories }
+        : this.settings.categories,
+    }
   }
   
   getSettings(): NotificationSettings {
