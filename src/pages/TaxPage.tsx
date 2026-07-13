@@ -24,6 +24,8 @@ function nextId(items: { id: number }[]): number {
 
 export function TaxPage() {
   const { data, setData, privacy } = usePortfolio()
+  const residency = data.settings.taxResidency || 'GB'
+  const isUkTax = residency === 'GB'
   const years = Object.keys(CGT_ALLOWANCES)
   const [taxYear, setTaxYear] = useState(getCurrentTaxYear())
   const [open, setOpen] = useState(false)
@@ -101,8 +103,12 @@ export function TaxPage() {
     <div>
       <PageHeader
         eyebrow="Tax"
-        title="UK CGT"
-        description="Capital gains with §104 pooling from journal buys. Same-day / B&B heuristics when journal acquisitions exist."
+        title={isUkTax ? 'UK CGT' : `Capital gains (${residency})`}
+        description={
+          isUkTax
+            ? 'Capital gains with §104 pooling from journal buys. Same-day / B&B heuristics when journal acquisitions exist.'
+            : `Tax residency is ${residency}. Calculations below use UK CGT rules for reference only.`
+        }
         action={
           <div className="flex flex-wrap gap-2">
             <button
@@ -134,8 +140,21 @@ export function TaxPage() {
 
       <div className="surface border-l-2 border-l-accent px-5 py-4 mb-6">
         <p className="text-sm text-text-muted font-light">
-          Allowable cost prefers §104 pooled average from journal buys. Manual disposal cost is used
-          when no pool exists. Not formal tax advice.
+          {isUkTax ? (
+            <>
+              Allowable cost prefers §104 pooled average from journal buys. Manual disposal cost is
+              used when no pool exists. Not formal tax advice.
+            </>
+          ) : (
+            <>
+              <strong>Portfolio tax residency: {residency}</strong> — calculations below follow UK
+              CGT rules and may not reflect {residency} tax law. Update residency in{' '}
+              <Link to="/settings" className="text-accent hover:underline">
+                Settings
+              </Link>{' '}
+              if needed. Not formal tax advice.
+            </>
+          )}
         </p>
       </div>
       <div className="surface p-5 sm:p-6 mb-px">
