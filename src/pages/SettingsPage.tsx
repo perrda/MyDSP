@@ -48,6 +48,8 @@ import {
   saveFullBackupToFolder,
   parseFullBackupFile,
   restoreFullWorkspace,
+  shareBackupFile,
+  canUseNativeShare,
   type FullBackupMeta,
 } from '../storage/backupStore'
 import { STORAGE } from '../storage/keys'
@@ -1253,6 +1255,37 @@ export function SettingsPage() {
             >
               Backup now
             </button>
+            {canUseNativeShare() && (
+              <button
+                type="button"
+                className="btn-secondary"
+                disabled={backupBusy}
+                onClick={() => {
+                  void (async () => {
+                    setBackupBusy(true)
+                    try {
+                      const meta = await createFullBackup('manual', 'Share archive')
+                      const full = await getFullBackup(meta.id)
+                      if (full) {
+                        const result = await shareBackupFile(full)
+                        if (result === 'shared') {
+                          flash('Backup shared successfully.')
+                        } else if (result === 'cancelled') {
+                          flash('Share cancelled.')
+                        }
+                      }
+                      refreshBackupList()
+                    } catch {
+                      flash('Share failed.')
+                    } finally {
+                      setBackupBusy(false)
+                    }
+                  })()
+                }}
+              >
+                Share backup
+              </button>
+            )}
             <button
               type="button"
               className="btn-secondary"
