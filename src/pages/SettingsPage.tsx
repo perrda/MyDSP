@@ -27,6 +27,7 @@ import {
   allConflictsResolved,
   applyMergePreview,
   downloadEncryptedBackup,
+  getSyncRemoteUrlWarning,
   loadSyncConfig,
   previewImport,
   previewPull,
@@ -337,6 +338,11 @@ export function SettingsPage() {
       flash('Enter a remote URL first.')
       return
     }
+    const warn = getSyncRemoteUrlWarning(syncCfg.remoteUrl)
+    if (warn) {
+      flash(warn)
+      return
+    }
     try {
       const t0 = performance.now()
       const res = await fetch(syncCfg.remoteUrl, { method: 'GET' })
@@ -442,8 +448,13 @@ export function SettingsPage() {
             title={syncCfg.remoteUrl || undefined}
           />
           {syncCfg.remoteUrl ? (
-            <p className="text-xs text-text-subtle mb-4 -mt-2 max-w-4xl break-all font-mono">
+            <p className="text-xs text-text-subtle mb-2 -mt-2 max-w-4xl break-all font-mono">
               {syncCfg.remoteUrl}
+            </p>
+          ) : null}
+          {getSyncRemoteUrlWarning(syncCfg.remoteUrl) ? (
+            <p className="text-sm text-accent mb-4 max-w-4xl" role="alert">
+              {getSyncRemoteUrlWarning(syncCfg.remoteUrl)}
             </p>
           ) : null}
           <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle mb-2">

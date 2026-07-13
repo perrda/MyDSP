@@ -109,6 +109,64 @@ export function saveSyncConfig(cfg: SyncConfig): void {
   localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg))
 }
 
+/**
+ * Detect common mistakes: Remote URL must be the sync Worker (mydsp-sync…),
+ * not the MyDSP app host (mydspv1… / GitHub Pages). Those return HTTP 405 on Push.
+ */
+export function getSyncRemoteUrlWarning(url: string): string | null {
+  const raw = url.trim()
+  if (!raw) return null
+  let host = ''
+  try {
+    host = new URL(raw).hostname.toLowerCase()
+  } catch {
+    return 'Remote URL must be a full https://… address.'
+  }
+
+  const looksLikeApp =
+    host.includes('github.io') ||
+    /^mydspv?\d*\./.test(host) ||
+    host.startsWith('mydsp.') ||
+    host.includes('pages.dev')
+
+  const looksLikeSync =
+    host.includes('sync') ||
+    host.includes('mydsp-sync') ||
+    /workers\.dev$/i.test(host)
+
+  if (looksLikeApp && !host.includes('sync')) {
+    return (
+      'This looks like the MyDSP app URL, not the sync Worker. ' +
+      'Use https://mydsp-sync.<your-subdomain>.workers.dev (optional ?key=…). ' +
+      'App hosts return Push failed (405/405).'
+    )
+  }
+
+  if (!looksLikeSync && host.includes('workers.dev') && !host.includes('sync')) {
+    return (
+      'Remote URL should be your sync Worker (name usually contains “sync”), ' +
+      'not the app Worker. Example: https://mydsp-sync.dave-perry.workers.dev'
+    )
+  }
+
+  return null
+}
+
+function pushFailureMessage(url: string, putStatus: number, postStatus: number): string {
+  const hint = getSyncRemoteUrlWarning(url)
+  if (putStatus === 405 || postStatus === 405) {
+    return (
+      hint ??
+      `Push failed (405) — this URL rejects PUT/POST. ` +
+        `Use the sync Worker URL (e.g. https://mydsp-sync.…workers.dev), not the app URL.`
+    )
+  }
+  if (putStatus === 401 || postStatus === 401) {
+    return 'Push unauthorized (401) — check SYNC_KEY matches ?key= in the Remote URL.'
+  }
+  return `Push failed (${putStatus}/${postStatus})`
+}
+
 function deviceId(): string {
   let id = localStorage.getItem(DEVICE_KEY)
   if (!id) {
@@ -251,7 +309,7 @@ export async function pushSync(url: string, passphrase: string): Promise<void> {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(envelope),
     })
-    if (!res2.ok) throw new Error(`Push failed (${res.status}/${res2.status})`)
+    if (!res2.ok) throw new Error(pushFailureMessage(url, res.status, res2.status))
   }
 }
 
