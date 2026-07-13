@@ -63,7 +63,10 @@ const STATUS_LABELS = {
 export function TodosPage() {
   const { data, setData, privacy } = usePortfolio()
   const { success, error: showError } = useToasts()
-  const [selectedListId, setSelectedListId] = useState<number | null>(null)
+  const [selectedListId, setSelectedListId] = useState<number | null>(() => {
+    const sorted = sortBySortOrder(data.todoLists || [])
+    return sorted[0]?.id ?? null
+  })
   const [sortBy, setSortBy] = useState<TodoSortBy>('order-asc')
   const [filterBy, setFilterBy] = useState<TodoFilterBy>('all')
   const [searchQuery, setSearchQuery] = useState('')
@@ -115,6 +118,7 @@ export function TodosPage() {
   }
 
   const handleReorderItems = (listId: number, reorderedVisible: TodoItem[]) => {
+    if (sortBy !== 'order-asc') setSortBy('order-asc')
     const now = new Date().toISOString()
     setData((prev) => {
       const inList = (prev.todoItems ?? []).filter((i) => i.listId === listId)
@@ -154,12 +158,8 @@ export function TodosPage() {
     return map
   }, [allItems])
 
-  const canReorderItems =
-    selectedListId != null &&
-    sortBy === 'order-asc' &&
-    filterBy === 'all' &&
-    priorityChips.size === 0 &&
-    !searchQuery
+  /** Grip visible whenever a single list is open — drag also switches sort to Number order */
+  const canReorderItems = selectedListId != null
 
   const filteredItems = useMemo(() => {
     let items = filterTodoItems(listItems, filterBy)
@@ -657,20 +657,13 @@ export function TodosPage() {
             <p className="text-sm text-text-muted mb-4">{currentList.description}</p>
           )}
 
-          <div className="surface p-4 mb-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
-              <div className="lg:col-span-2">
-                <label className="block text-xs text-text-subtle mb-1">Search</label>
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search todos..."
-                  className="w-full px-3 py-2 bg-surface-hover border border-border rounded text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-text-subtle mb-1">Sort</label>
+          {/* Compact controls — stays above the task cards (mobile-first) */}
+          <div className="surface p-3 sm:p-4 mb-4 rounded-xl md:rounded-none shadow-sm md:shadow-none space-y-3">
+            <div className="flex flex-wrap items-end gap-2">
+              <div className="flex-1 min-w-[10rem]">
+                <label className="block text-[10px] uppercase tracking-wider text-text-subtle mb-1 font-semibold">
+                  Sort
+                </label>
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as TodoSortBy)}
@@ -688,8 +681,10 @@ export function TodosPage() {
                   <option value="title-desc">Title (Z-A)</option>
                 </select>
               </div>
-              <div>
-                <label className="block text-xs text-text-subtle mb-1">Filter</label>
+              <div className="flex-1 min-w-[10rem]">
+                <label className="block text-[10px] uppercase tracking-wider text-text-subtle mb-1 font-semibold">
+                  Filter
+                </label>
                 <select
                   value={filterBy}
                   onChange={(e) => setFilterBy(e.target.value as TodoFilterBy)}
@@ -708,17 +703,44 @@ export function TodosPage() {
                   <option value="finance-related">Finance Related</option>
                 </select>
               </div>
+              <div className="w-full sm:w-auto sm:flex-1 min-w-[12rem]">
+                <label className="block text-[10px] uppercase tracking-wider text-text-subtle mb-1 font-semibold">
+                  Search
+                </label>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search todos..."
+                  className="w-full px-3 py-2 bg-surface-hover border border-border rounded text-sm"
+                />
+              </div>
             </div>
 
-            <div className="flex flex-wrap gap-2 items-center mb-3">
-              <span className="text-xs text-text-subtle uppercase tracking-wider font-semibold mr-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[10px] uppercase tracking-wider text-text-subtle font-semibold">
                 Priority
               </span>
               {(
                 [
-                  { key: 'high' as const, label: 'H', active: 'bg-red-500/20 text-red-500 ring-red-500/40' },
-                  { key: 'medium' as const, label: 'M', active: 'bg-amber-500/20 text-amber-500 ring-amber-500/40' },
-                  { key: 'low' as const, label: 'L', active: 'bg-blue-500/20 text-blue-500 ring-blue-500/40' },
+                  {
+                    key: 'high' as const,
+                    label: 'H',
+                    title: 'High',
+                    active: 'bg-red-500/25 text-red-400 ring-red-500/50',
+                  },
+                  {
+                    key: 'medium' as const,
+                    label: 'M',
+                    title: 'Medium',
+                    active: 'bg-amber-500/25 text-amber-400 ring-amber-500/50',
+                  },
+                  {
+                    key: 'low' as const,
+                    label: 'L',
+                    title: 'Low',
+                    active: 'bg-blue-500/25 text-blue-400 ring-blue-500/50',
+                  },
                 ] as const
               ).map((chip) => {
                 const on = priorityChips.has(chip.key)
@@ -727,11 +749,13 @@ export function TodosPage() {
                     key={chip.key}
                     type="button"
                     onClick={() => togglePriorityChip(chip.key)}
-                    className={`btn-sm min-w-[2.25rem] font-bold ${
-                      on ? `${chip.active} ring-1` : 'btn-ghost'
+                    className={`h-9 min-w-[2.5rem] px-3 rounded border text-sm font-bold ${
+                      on
+                        ? `${chip.active} ring-1 border-transparent`
+                        : 'border-border bg-surface-hover text-text-muted hover:border-accent'
                     }`}
                     aria-pressed={on}
-                    title={`${chip.key} priority`}
+                    title={`${chip.title} priority`}
                   >
                     {chip.label}
                   </button>
@@ -743,13 +767,10 @@ export function TodosPage() {
                   className="btn-ghost btn-sm text-xs"
                   onClick={() => setPriorityChips(new Set())}
                 >
-                  Clear H/M/L
+                  Clear
                 </button>
               )}
-            </div>
-
-            <div className="flex flex-wrap gap-2 items-center">
-              <label className="flex items-center gap-2 text-sm px-3 py-2 bg-surface-hover border border-border rounded">
+              <label className="flex items-center gap-2 text-sm px-3 py-2 bg-surface-hover border border-border rounded ml-auto">
                 <input
                   type="checkbox"
                   checked={showCompleted}
@@ -757,11 +778,16 @@ export function TodosPage() {
                 />
                 Show Completed
               </label>
-              {selectedListId != null && (
-                <p className="text-xs text-text-subtle">
-                  {canReorderItems
-                    ? 'Drag the grip to reorder · #1 is top'
-                    : 'Open a list, sort by Number (#1 → n), clear filters to reorder'}
+            </div>
+
+            <div className="flex flex-wrap gap-2 items-center">
+              {selectedListId != null ? (
+                <p className="text-xs text-text-subtle flex-1">
+                  Drag the grip on each task to reorder · #1 is top
+                </p>
+              ) : (
+                <p className="text-xs text-amber-500/90 flex-1">
+                  Select a list tab above to drag-reorder tasks
                 </p>
               )}
               <button type="button" onClick={handleImportCsv} className="btn-secondary btn-sm">
@@ -780,7 +806,7 @@ export function TodosPage() {
             </div>
 
             {selectedTodos.size > 0 && (
-              <div className="flex flex-wrap gap-2 items-center p-3 mt-3 bg-accent/10 rounded-lg border border-accent/20">
+              <div className="flex flex-wrap gap-2 items-center p-3 bg-accent/10 rounded-lg border border-accent/20">
                 <span className="text-sm font-semibold">{selectedTodos.size} selected</span>
                 <button
                   type="button"
@@ -923,10 +949,10 @@ function TodoItemCard({
       <div className="flex items-start gap-3">
         {showReorderHandle && <ReorderHandle label="Reorder task" />}
         <span
-          className="mt-0.5 w-7 shrink-0 text-center text-xs font-bold tabular-nums text-text-subtle"
-          title="List position"
+          className="mt-0.5 w-8 shrink-0 text-center text-sm font-bold tabular-nums text-accent"
+          title="List position (#1 is top)"
         >
-          {orderNumber != null ? `#${orderNumber}` : '—'}
+          {orderNumber != null ? orderNumber : '—'}
         </span>
         <input
           type="checkbox"
@@ -963,7 +989,7 @@ function TodoItemCard({
               </Link>
             )}
             <span className={`text-xs font-bold uppercase ${PRIORITY_TEXT_COLORS[item.priority]}`}>
-              {item.priority === 'high' ? 'H' : item.priority === 'medium' ? 'M' : 'L'}
+              {item.priority}
             </span>
             {item.isFinanceRelated && (
               <span className="text-xs px-2 py-0.5 bg-accent/10 text-accent rounded">Finance</span>
