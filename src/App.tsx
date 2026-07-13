@@ -40,6 +40,7 @@ import { TodosPage } from './pages/TodosPage'
 import { JobsPage } from './pages/JobsPage'
 import { JobDetailPage } from './pages/JobDetailPage'
 import { PredictiveAnalyticsPage } from './pages/PredictiveAnalyticsPage'
+import { ApiAutomationPage } from './pages/ApiAutomationPage'
 
 export default function App() {
   return (
@@ -87,6 +88,7 @@ export default function App() {
                   <Route path="todos" element={<TodosPage />} />
                   <Route path="jobs" element={<JobsPage />} />
                   <Route path="jobs/:id" element={<JobDetailPage />} />
+                  <Route path="api" element={<ApiAutomationPage />} />
                   <Route path="settings" element={<SettingsPage />} />
                   <Route path="accounts" element={<Navigate to="/crypto" replace />} />
                   <Route path="transactions" element={<Navigate to="/spending" replace />} />
