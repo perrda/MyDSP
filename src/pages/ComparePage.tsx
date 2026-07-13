@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { GitCompareArrows } from 'lucide-react'
+import { GitCompareArrows, ArrowRight } from 'lucide-react'
 import { PageHeader, StatCard } from '../components/ui/PageHeader'
 import { usePortfolio } from '../context/PortfolioContext'
 import {
@@ -8,6 +8,7 @@ import {
   comparisonTotals,
 } from '../domain/portfolioCompare'
 import { formatGBP, privacyClass } from '../utils/format'
+import { AllocationRing, type SliceDatum } from '../components/charts/AllocationRing'
 
 export function ComparePage() {
   const { privacy, portfolios, activeId, switchPortfolio, reload } = usePortfolio()
@@ -22,6 +23,21 @@ export function ComparePage() {
 
   const totals = useMemo(() => comparisonTotals(rows), [rows])
   const maxNw = Math.max(1, ...rows.map((r) => Math.abs(r.netWorth)))
+
+  const allocationData = useMemo<SliceDatum[]>(() => {
+    const crypto = totals.crypto
+    const equity = totals.equity
+    const data: SliceDatum[] = []
+    if (crypto > 0) data.push({ name: 'Crypto', value: crypto })
+    if (equity > 0) data.push({ name: 'Equities', value: equity })
+    return data
+  }, [totals])
+
+  const portfolioAllocation = useMemo<SliceDatum[]>(() => {
+    return rows
+      .filter((r) => r.netWorth > 0)
+      .map((r) => ({ name: r.name, value: r.netWorth }))
+  }, [rows])
 
   const toggle = (id: string) => {
     setSelected((prev) =>
@@ -103,11 +119,17 @@ export function ComparePage() {
                 <td className="p-4">
                   <button
                     type="button"
-                    className="font-semibold text-left hover:text-accent transition-colors"
+                    className="font-semibold text-left hover:text-accent transition-colors inline-flex items-center gap-1.5 group"
                     onClick={() => switchPortfolio(r.id)}
                     aria-label={`Switch to ${r.name} portfolio`}
+                    title={`Switch to ${r.name} portfolio`}
                   >
                     {r.name}
+                    <ArrowRight
+                      size={14}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      strokeWidth={2}
+                    />
                   </button>
                   {r.isPrimary && (
                     <span className="ml-2 text-[10px] uppercase tracking-widest text-text-subtle">
@@ -149,6 +171,31 @@ export function ComparePage() {
             )}
           </tbody>
         </table>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-px mb-8">
+        <AllocationRing
+          data={allocationData}
+          privacy={privacy}
+          eyebrow="Family"
+          title="Combined asset allocation"
+          emptyText="No assets to display"
+        />
+        <AllocationRing
+          data={portfolioAllocation}
+          privacy={privacy}
+          eyebrow="Family"
+          title="Net worth by portfolio"
+          emptyText="No portfolios with positive net worth"
+          linkForSlice={(name) => {
+            const row = rows.find((r) => r.name === name)
+            if (row) {
+              switchPortfolio(row.id)
+              return '/'
+            }
+            return null
+          }}
+        />
       </div>
 
       <div className="surface p-5 sm:p-6 mb-8">
