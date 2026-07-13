@@ -1,0 +1,46 @@
+---
+description: MyDSP form and modal UI conventions (Jobs-style data entry)
+globs: src/components/**/*.tsx,src/pages/**/*.tsx
+alwaysApply: false
+---
+
+# MyDSP UI — form & modal conventions
+
+Match the Jobs section (`JobFormModal`) for all data-entry UI across MyDSP.
+
+## Never
+
+- Do not use `window.prompt()`, `window.alert()`, or native browser dialogs for create/edit flows.
+- Do not invent one-off input styles per page.
+
+## Modal shell
+
+```tsx
+<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+  <div className="surface rounded-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto my-8">
+    <div className="sticky top-0 surface border-b border-border p-4 flex items-center justify-between">
+      <h2 className="text-xl font-bold">Title</h2>
+      {/* close btn-ghost */}
+    </div>
+    <form className="p-6 space-y-6">…</form>
+  </div>
+</div>
+```
+
+Use `max-w-lg` for short forms (e.g. list name); `max-w-3xl` for multi-section forms.
+
+## Sections & fields
+
+- Group related fields under `<h3 className="font-bold mb-3">Section</h3>`.
+- Layout: `grid grid-cols-1 md:grid-cols-2 gap-4`.
+- Labels: `block text-xs text-text-subtle mb-1` with `*` for required.
+- Inputs/selects/textareas: `w-full px-3 py-2 bg-surface-hover border border-border rounded text-sm`.
+- Footer actions: Cancel `btn-ghost` + Submit `btn-primary` in a top-bordered row.
+
+## Page filters
+
+Reuse the same label + input classes for search/sort/filter bars (tight, labeled, grid — not floating unlabeled chips).
+
+## Theme tokens
+
+Prefer design tokens (`surface`, `surface-hover`, `border`, `text-subtle`, `accent`, `btn-primary`) over hard-coded colors.
