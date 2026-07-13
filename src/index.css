@@ -655,6 +655,8 @@ input[type="email"],
 input[type="tel"],
 input[type="number"],
 input[type="search"],
+input[type="url"],
+input[type="password"],
 textarea,
 select {
   background-color: rgba(0, 0, 0, 0.5);
