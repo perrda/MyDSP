@@ -10,7 +10,7 @@ import {
 import { detectConflicts, diffFields, conflictKey } from '../services/sync/conflicts'
 import { allConflictsResolved } from '../services/sync/syncService'
 import { createEmptyPortfolio } from '../domain/defaults'
-import { createTodoItem, createTodoList } from '../domain/todos'
+import { createTodoItem, createTodoList, filterTodoItems, nextSortOrderForList, sortTodoItems } from '../domain/todos'
 import { collectReferencedBlobIds } from '../storage/blobIds'
 import { applySortOrder, sortBySortOrder } from '../utils/reorder'
 
@@ -194,5 +194,48 @@ describe('todo reminder schedule', () => {
       reminderTime: '09:00',
     })
     expect(buildReminderSchedule([item])).toHaveLength(0)
+  })
+})
+
+describe('todo item order and priority filters', () => {
+  it('sorts by manual order asc and desc', () => {
+    const items = [
+      createTodoItem({ id: 1, listId: 1, title: 'Third', sortOrder: 2 }),
+      createTodoItem({ id: 2, listId: 1, title: 'First', sortOrder: 0 }),
+      createTodoItem({ id: 3, listId: 1, title: 'Second', sortOrder: 1 }),
+    ]
+    expect(sortTodoItems(items, 'order-asc').map((i) => i.id)).toEqual([2, 3, 1])
+    expect(sortTodoItems(items, 'order-desc').map((i) => i.id)).toEqual([1, 3, 2])
+  })
+
+  it('filters by medium and low priority and status', () => {
+    const items = [
+      createTodoItem({ id: 1, listId: 1, title: 'H', priority: 'high' }),
+      createTodoItem({ id: 2, listId: 1, title: 'M', priority: 'medium' }),
+      createTodoItem({ id: 3, listId: 1, title: 'L', priority: 'low' }),
+      createTodoItem({ id: 4, listId: 1, title: 'WIP', priority: 'medium', status: 'in-progress' }),
+    ]
+    expect(filterTodoItems(items, 'medium-priority').map((i) => i.id)).toEqual([2, 4])
+    expect(filterTodoItems(items, 'low-priority').map((i) => i.id)).toEqual([3])
+    expect(filterTodoItems(items, 'status-in-progress').map((i) => i.id)).toEqual([4])
+  })
+
+  it('assigns next sortOrder at end of list', () => {
+    const items = [
+      createTodoItem({ id: 1, listId: 1, title: 'A', sortOrder: 0 }),
+      createTodoItem({ id: 2, listId: 1, title: 'B', sortOrder: 1 }),
+      createTodoItem({ id: 3, listId: 2, title: 'Other', sortOrder: 9 }),
+    ]
+    expect(nextSortOrderForList(items, 1)).toBe(2)
+    expect(nextSortOrderForList(items, 99)).toBe(0)
+  })
+
+  it('renumbers after applySortOrder', () => {
+    const items = sortBySortOrder([
+      createTodoItem({ id: 1, listId: 1, title: 'A', sortOrder: 5 }),
+      createTodoItem({ id: 2, listId: 1, title: 'B', sortOrder: 1 }),
+    ])
+    const next = applySortOrder(items)
+    expect(next.map((i) => i.sortOrder)).toEqual([0, 1])
   })
 })

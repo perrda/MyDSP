@@ -34,6 +34,7 @@ import {
   exportTodosToCsv,
   filterTodoItems,
   isOverdue,
+  nextSortOrderForList,
   parseCsvToTodoItems,
   sortTodoItems,
 } from '../domain/todos'
@@ -62,11 +63,16 @@ const STATUS_LABELS = {
 export function TodosPage() {
   const { data, setData, privacy } = usePortfolio()
   const { success, error: showError } = useToasts()
-  const [selectedListId, setSelectedListId] = useState<number | null>(null)
-  const [sortBy, setSortBy] = useState<TodoSortBy>('priority-desc')
+  const [selectedListId, setSelectedListId] = useState<number | null>(() => {
+    const sorted = sortBySortOrder(data.todoLists || [])
+    return sorted[0]?.id ?? null
+  })
+  const [sortBy, setSortBy] = useState<TodoSortBy>('order-asc')
   const [filterBy, setFilterBy] = useState<TodoFilterBy>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [showCompleted, setShowCompleted] = useState(false)
+  /** Quick priority chips — empty = no extra priority constraint */
+  const [priorityChips, setPriorityChips] = useState<Set<'high' | 'medium' | 'low'>>(new Set())
   const [showTaskModal, setShowTaskModal] = useState(false)
   const [showListModal, setShowListModal] = useState(false)
   const [editingTodo, setEditingTodo] = useState<TodoItem | undefined>()
@@ -111,11 +117,56 @@ export function TodosPage() {
     }))
   }
 
+  const handleReorderItems = (listId: number, reorderedVisible: TodoItem[]) => {
+    if (sortBy !== 'order-asc') setSortBy('order-asc')
+    const now = new Date().toISOString()
+    setData((prev) => {
+      const inList = (prev.todoItems ?? []).filter((i) => i.listId === listId)
+      const visibleIds = new Set(reorderedVisible.map((i) => i.id))
+      const hidden = sortBySortOrder(inList.filter((i) => !visibleIds.has(i.id)))
+      const nextOrder = applySortOrder([...reorderedVisible, ...hidden])
+      const idToOrder = new Map(nextOrder.map((i) => [i.id, i.sortOrder!]))
+      return {
+        ...prev,
+        todoItems: (prev.todoItems ?? []).map((item) =>
+          item.listId === listId && idToOrder.has(item.id)
+            ? { ...item, sortOrder: idToOrder.get(item.id), updatedAt: now }
+            : item,
+        ),
+      }
+    })
+  }
+
   const currentList = selectedListId ? lists.find((l) => l.id === selectedListId) : null
   const listItems = selectedListId ? allItems.filter((i) => i.listId === selectedListId) : allItems
 
+  /** Stable #1..n per list (non-archived), based on sortOrder */
+  const orderNumbers = useMemo(() => {
+    const map = new Map<number, number>()
+    const byList = new Map<number, TodoItem[]>()
+    for (const item of allItems) {
+      if (item.status === 'archived') continue
+      const arr = byList.get(item.listId) ?? []
+      arr.push(item)
+      byList.set(item.listId, arr)
+    }
+    for (const [, arr] of byList) {
+      sortBySortOrder(arr).forEach((item, index) => {
+        map.set(item.id, index + 1)
+      })
+    }
+    return map
+  }, [allItems])
+
+  /** Grip visible whenever a single list is open — drag also switches sort to Number order */
+  const canReorderItems = selectedListId != null
+
   const filteredItems = useMemo(() => {
     let items = filterTodoItems(listItems, filterBy)
+
+    if (priorityChips.size > 0) {
+      items = items.filter((i) => priorityChips.has(i.priority))
+    }
 
     if (searchQuery) {
       const query = searchQuery.toLowerCase()
@@ -132,7 +183,16 @@ export function TodosPage() {
     }
 
     return sortTodoItems(items, sortBy)
-  }, [listItems, filterBy, searchQuery, showCompleted, sortBy])
+  }, [listItems, filterBy, priorityChips, searchQuery, showCompleted, sortBy])
+
+  const togglePriorityChip = (p: 'high' | 'medium' | 'low') => {
+    setPriorityChips((prev) => {
+      const next = new Set(prev)
+      if (next.has(p)) next.delete(p)
+      else next.add(p)
+      return next
+    })
+  }
 
   const stats = useMemo(() => calculateTodoStats(listItems), [listItems])
 
@@ -209,10 +269,16 @@ export function TodosPage() {
       }))
       success('Task updated')
     } else {
-      setData((prev) => ({
-        ...prev,
-        todoItems: [...(prev.todoItems ?? []), item],
-      }))
+      setData((prev) => {
+        const withOrder = {
+          ...item,
+          sortOrder: item.sortOrder ?? nextSortOrderForList(prev.todoItems ?? [], item.listId),
+        }
+        return {
+          ...prev,
+          todoItems: [...(prev.todoItems ?? []), withOrder],
+        }
+      })
       success('Task created', item.title)
     }
     setShowTaskModal(false)
@@ -220,19 +286,23 @@ export function TodosPage() {
   }
 
   const handleDuplicateItem = (item: TodoItem) => {
-    const duplicate = {
-      ...item,
-      id: Date.now() + Math.floor(Math.random() * 1000),
-      title: `${item.title} (copy)`,
-      status: 'todo' as const,
-      completedAt: undefined,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }
-    setData((prev) => ({
-      ...prev,
-      todoItems: [...(prev.todoItems ?? []), duplicate],
-    }))
+    setData((prev) => {
+      const sortOrder = nextSortOrderForList(prev.todoItems ?? [], item.listId)
+      const duplicate = {
+        ...item,
+        id: Date.now() + Math.floor(Math.random() * 1000),
+        title: `${item.title} (copy)`,
+        status: 'todo' as const,
+        completedAt: undefined,
+        sortOrder,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }
+      return {
+        ...prev,
+        todoItems: [...(prev.todoItems ?? []), duplicate],
+      }
+    })
     success('Task duplicated')
   }
 
@@ -301,10 +371,16 @@ export function TodosPage() {
   }
 
   const handleScreenshotImport = (items: TodoItem[]) => {
-    setData((prev) => ({
-      ...prev,
-      todoItems: [...(prev.todoItems ?? []), ...items],
-    }))
+    setData((prev) => {
+      let existing = prev.todoItems ?? []
+      const withOrders = items.map((item) => {
+        const sortOrder = nextSortOrderForList(existing, item.listId)
+        const next = { ...item, sortOrder }
+        existing = [...existing, next]
+        return next
+      })
+      return { ...prev, todoItems: [...(prev.todoItems ?? []), ...withOrders] }
+    })
     if (items[0]?.listId) setSelectedListId(items[0].listId)
     setShowScreenshotImport(false)
     success('Imported from screenshot', `${items.length} tasks`)
@@ -358,10 +434,16 @@ export function TodosPage() {
       }
 
       const items = parseCsvToTodoItems(text, listId)
-      setData((prev) => ({
-        ...prev,
-        todoItems: [...(prev.todoItems ?? []), ...items],
-      }))
+      setData((prev) => {
+        let existing = prev.todoItems ?? []
+        const withOrders = items.map((item) => {
+          const sortOrder = nextSortOrderForList(existing, item.listId)
+          const next = { ...item, sortOrder }
+          existing = [...existing, next]
+          return next
+        })
+        return { ...prev, todoItems: [...(prev.todoItems ?? []), ...withOrders] }
+      })
       success('Imported todos', `${items.length} items added`)
     }
     input.click()
@@ -575,10 +657,56 @@ export function TodosPage() {
             <p className="text-sm text-text-muted mb-4">{currentList.description}</p>
           )}
 
-          <div className="surface p-4 mb-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
-              <div className="lg:col-span-2">
-                <label className="block text-xs text-text-subtle mb-1">Search</label>
+          {/* Compact controls — stays above the task cards (mobile-first) */}
+          <div className="surface p-3 sm:p-4 mb-4 rounded-xl md:rounded-none shadow-sm md:shadow-none space-y-3">
+            <div className="flex flex-wrap items-end gap-2">
+              <div className="flex-1 min-w-[10rem]">
+                <label className="block text-[10px] uppercase tracking-wider text-text-subtle mb-1 font-semibold">
+                  Sort
+                </label>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as TodoSortBy)}
+                  className="w-full px-3 py-2 bg-surface-hover border border-border rounded text-sm"
+                >
+                  <option value="order-asc">Number (#1 → n)</option>
+                  <option value="order-desc">Number (#n → 1)</option>
+                  <option value="priority-desc">Priority (High first)</option>
+                  <option value="priority-asc">Priority (Low first)</option>
+                  <option value="due-date-asc">Due Date (Earliest)</option>
+                  <option value="due-date-desc">Due Date (Latest)</option>
+                  <option value="created-desc">Newest First</option>
+                  <option value="created-asc">Oldest First</option>
+                  <option value="title-asc">Title (A-Z)</option>
+                  <option value="title-desc">Title (Z-A)</option>
+                </select>
+              </div>
+              <div className="flex-1 min-w-[10rem]">
+                <label className="block text-[10px] uppercase tracking-wider text-text-subtle mb-1 font-semibold">
+                  Filter
+                </label>
+                <select
+                  value={filterBy}
+                  onChange={(e) => setFilterBy(e.target.value as TodoFilterBy)}
+                  className="w-full px-3 py-2 bg-surface-hover border border-border rounded text-sm"
+                >
+                  <option value="all">All Tasks</option>
+                  <option value="high-priority">High Priority</option>
+                  <option value="medium-priority">Medium Priority</option>
+                  <option value="low-priority">Low Priority</option>
+                  <option value="status-todo">Status: To Do</option>
+                  <option value="status-in-progress">Status: In Progress</option>
+                  <option value="overdue">Overdue</option>
+                  <option value="today">Due Today</option>
+                  <option value="this-week">This Week</option>
+                  <option value="no-due-date">No Due Date</option>
+                  <option value="finance-related">Finance Related</option>
+                </select>
+              </div>
+              <div className="w-full sm:w-auto sm:flex-1 min-w-[12rem]">
+                <label className="block text-[10px] uppercase tracking-wider text-text-subtle mb-1 font-semibold">
+                  Search
+                </label>
                 <input
                   type="text"
                   value={searchQuery}
@@ -587,38 +715,62 @@ export function TodosPage() {
                   className="w-full px-3 py-2 bg-surface-hover border border-border rounded text-sm"
                 />
               </div>
-              <div>
-                <label className="block text-xs text-text-subtle mb-1">Sort</label>
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as TodoSortBy)}
-                  className="w-full px-3 py-2 bg-surface-hover border border-border rounded text-sm"
-                >
-                  <option value="priority-desc">Priority (High first)</option>
-                  <option value="due-date-asc">Due Date (Earliest)</option>
-                  <option value="created-desc">Newest First</option>
-                  <option value="title-asc">Title (A-Z)</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs text-text-subtle mb-1">Filter</label>
-                <select
-                  value={filterBy}
-                  onChange={(e) => setFilterBy(e.target.value as TodoFilterBy)}
-                  className="w-full px-3 py-2 bg-surface-hover border border-border rounded text-sm"
-                >
-                  <option value="all">All Tasks</option>
-                  <option value="high-priority">High Priority</option>
-                  <option value="overdue">Overdue</option>
-                  <option value="today">Due Today</option>
-                  <option value="this-week">This Week</option>
-                  <option value="finance-related">Finance Related</option>
-                </select>
-              </div>
             </div>
 
-            <div className="flex flex-wrap gap-2 items-center">
-              <label className="flex items-center gap-2 text-sm px-3 py-2 bg-surface-hover border border-border rounded">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[10px] uppercase tracking-wider text-text-subtle font-semibold">
+                Priority
+              </span>
+              {(
+                [
+                  {
+                    key: 'high' as const,
+                    label: 'H',
+                    title: 'High',
+                    active: 'bg-red-500/25 text-red-400 ring-red-500/50',
+                  },
+                  {
+                    key: 'medium' as const,
+                    label: 'M',
+                    title: 'Medium',
+                    active: 'bg-amber-500/25 text-amber-400 ring-amber-500/50',
+                  },
+                  {
+                    key: 'low' as const,
+                    label: 'L',
+                    title: 'Low',
+                    active: 'bg-blue-500/25 text-blue-400 ring-blue-500/50',
+                  },
+                ] as const
+              ).map((chip) => {
+                const on = priorityChips.has(chip.key)
+                return (
+                  <button
+                    key={chip.key}
+                    type="button"
+                    onClick={() => togglePriorityChip(chip.key)}
+                    className={`h-9 min-w-[2.5rem] px-3 rounded border text-sm font-bold ${
+                      on
+                        ? `${chip.active} ring-1 border-transparent`
+                        : 'border-border bg-surface-hover text-text-muted hover:border-accent'
+                    }`}
+                    aria-pressed={on}
+                    title={`${chip.title} priority`}
+                  >
+                    {chip.label}
+                  </button>
+                )
+              })}
+              {priorityChips.size > 0 && (
+                <button
+                  type="button"
+                  className="btn-ghost btn-sm text-xs"
+                  onClick={() => setPriorityChips(new Set())}
+                >
+                  Clear
+                </button>
+              )}
+              <label className="flex items-center gap-2 text-sm px-3 py-2 bg-surface-hover border border-border rounded ml-auto">
                 <input
                   type="checkbox"
                   checked={showCompleted}
@@ -626,6 +778,18 @@ export function TodosPage() {
                 />
                 Show Completed
               </label>
+            </div>
+
+            <div className="flex flex-wrap gap-2 items-center">
+              {selectedListId != null ? (
+                <p className="text-xs text-text-subtle flex-1">
+                  Drag the grip on each task to reorder · #1 is top
+                </p>
+              ) : (
+                <p className="text-xs text-amber-500/90 flex-1">
+                  Select a list tab above to drag-reorder tasks
+                </p>
+              )}
               <button type="button" onClick={handleImportCsv} className="btn-secondary btn-sm">
                 <Upload size={14} /> Import CSV
               </button>
@@ -642,7 +806,7 @@ export function TodosPage() {
             </div>
 
             {selectedTodos.size > 0 && (
-              <div className="flex flex-wrap gap-2 items-center p-3 mt-3 bg-accent/10 rounded-lg border border-accent/20">
+              <div className="flex flex-wrap gap-2 items-center p-3 bg-accent/10 rounded-lg border border-accent/20">
                 <span className="text-sm font-semibold">{selectedTodos.size} selected</span>
                 <button
                   type="button"
@@ -707,114 +871,175 @@ export function TodosPage() {
               description="No tasks match your current filters. Try adjusting your search or create a new task."
               action={{ label: 'New Task', onClick: handleCreateItem }}
             />
+          ) : canReorderItems && selectedListId != null ? (
+            <ReorderList
+              items={filteredItems}
+              getId={(item) => String(item.id)}
+              onReorder={(next) => handleReorderItems(selectedListId, next)}
+              className="space-y-3"
+            >
+              {(item) => (
+                <TodoItemCard
+                  item={item}
+                  orderNumber={orderNumbers.get(item.id)}
+                  listName={!selectedListId ? lists.find((l) => l.id === item.listId)?.name : undefined}
+                  selected={selectedTodos.has(item.id)}
+                  showReorderHandle
+                  onToggleSelect={handleToggleSelect}
+                  onToggleComplete={handleToggleComplete}
+                  onEdit={handleEditItem}
+                  onDuplicate={handleDuplicateItem}
+                  onDelete={handleDeleteItem}
+                />
+              )}
+            </ReorderList>
           ) : (
             <div className="space-y-3">
               {filteredItems.map((item) => (
-                <div
+                <TodoItemCard
                   key={item.id}
-                  className={`surface p-4 border-l-4 rounded-r-xl md:rounded-none shadow-sm md:shadow-none ${PRIORITY_COLORS[item.priority]} ${
-                    selectedTodos.has(item.id) ? 'ring-2 ring-accent' : ''
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <input
-                      type="checkbox"
-                      checked={selectedTodos.has(item.id)}
-                      onChange={() => handleToggleSelect(item.id)}
-                      className="mt-1 w-4 h-4 flex-shrink-0"
-                      aria-label={`Select ${item.title}`}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleToggleComplete(item)}
-                      className="mt-0.5 text-text-subtle hover:text-accent flex-shrink-0"
-                      title={item.status === 'done' ? 'Mark incomplete' : 'Mark complete'}
-                      aria-label={item.status === 'done' ? 'Mark incomplete' : 'Mark complete'}
-                    >
-                      {item.status === 'done' ? (
-                        <CheckCircle2 size={18} className="text-green-500" />
-                      ) : (
-                        <Circle size={18} />
-                      )}
-                    </button>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <h3
-                          className={`font-semibold ${item.status === 'done' ? 'line-through text-text-muted' : ''}`}
-                        >
-                          {item.title}
-                        </h3>
-                        {!selectedListId && (
-                          <span className="text-xs text-text-subtle">
-                            {lists.find((l) => l.id === item.listId)?.name ?? 'Unknown list'}
-                          </span>
-                        )}
-                        {item.linkedJobId != null && (
-                          <Link
-                            to={`/jobs/${item.linkedJobId}`}
-                            className="text-xs px-2 py-0.5 bg-accent/10 text-accent rounded"
-                          >
-                            Job linked
-                          </Link>
-                        )}
-                        <span className={`text-xs font-bold uppercase ${PRIORITY_TEXT_COLORS[item.priority]}`}>
-                          {item.priority}
-                        </span>
-                        {item.isFinanceRelated && (
-                          <span className="text-xs px-2 py-0.5 bg-accent/10 text-accent rounded">Finance</span>
-                        )}
-                        {isOverdue(item) && (
-                          <span className="text-xs px-2 py-0.5 bg-red-500/10 text-red-500 rounded inline-flex items-center gap-1">
-                            <AlertCircle size={12} /> Overdue
-                          </span>
-                        )}
-                      </div>
-                      {item.description && <p className="text-sm text-text-muted mb-2">{item.description}</p>}
-                      <div className="flex items-center gap-3 text-xs text-text-subtle flex-wrap">
-                        {item.dueDate && (
-                          <span className="inline-flex items-center gap-1">
-                            <Clock size={12} /> Due: {item.dueDate}
-                            {item.dueTime ? ` at ${item.dueTime}` : ''}
-                          </span>
-                        )}
-                        <span className="uppercase">{STATUS_LABELS[item.status]}</span>
-                        {item.estimatedMinutes ? <span>Est: {item.estimatedMinutes}m</span> : null}
-                        {(item.tags ?? []).length > 0 && <span>Tags: {item.tags.join(', ')}</span>}
-                      </div>
-                    </div>
-                    <div className="flex gap-1 flex-shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => handleEditItem(item)}
-                        className="btn-ghost btn-sm text-xs p-2"
-                        title="Edit"
-                      >
-                        <Edit2 size={14} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDuplicateItem(item)}
-                        className="btn-ghost btn-sm text-xs p-2"
-                        title="Duplicate"
-                      >
-                        <Copy size={14} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteItem(item.id)}
-                        className="btn-ghost btn-sm text-xs text-red-500 hover:text-red-400 p-2"
-                        title="Delete"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                  item={item}
+                  orderNumber={orderNumbers.get(item.id)}
+                  listName={!selectedListId ? lists.find((l) => l.id === item.listId)?.name : undefined}
+                  selected={selectedTodos.has(item.id)}
+                  onToggleSelect={handleToggleSelect}
+                  onToggleComplete={handleToggleComplete}
+                  onEdit={handleEditItem}
+                  onDuplicate={handleDuplicateItem}
+                  onDelete={handleDeleteItem}
+                />
               ))}
             </div>
           )}
         </>
       )}
+    </div>
+  )
+}
+
+function TodoItemCard({
+  item,
+  orderNumber,
+  listName,
+  selected,
+  showReorderHandle = false,
+  onToggleSelect,
+  onToggleComplete,
+  onEdit,
+  onDuplicate,
+  onDelete,
+}: {
+  item: TodoItem
+  orderNumber?: number
+  listName?: string
+  selected: boolean
+  showReorderHandle?: boolean
+  onToggleSelect: (id: number) => void
+  onToggleComplete: (item: TodoItem) => void
+  onEdit: (item: TodoItem) => void
+  onDuplicate: (item: TodoItem) => void
+  onDelete: (id: number) => void
+}) {
+  return (
+    <div
+      className={`surface p-4 border-l-4 rounded-r-xl md:rounded-none shadow-sm md:shadow-none ${PRIORITY_COLORS[item.priority]} ${
+        selected ? 'ring-2 ring-accent' : ''
+      }`}
+    >
+      <div className="flex items-start gap-3">
+        {showReorderHandle && <ReorderHandle label="Reorder task" />}
+        <span
+          className="mt-0.5 w-8 shrink-0 text-center text-sm font-bold tabular-nums text-accent"
+          title="List position (#1 is top)"
+        >
+          {orderNumber != null ? orderNumber : '—'}
+        </span>
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={() => onToggleSelect(item.id)}
+          className="mt-1 w-4 h-4 flex-shrink-0"
+          aria-label={`Select ${item.title}`}
+        />
+        <button
+          type="button"
+          onClick={() => onToggleComplete(item)}
+          className="mt-0.5 text-text-subtle hover:text-accent flex-shrink-0"
+          title={item.status === 'done' ? 'Mark incomplete' : 'Mark complete'}
+          aria-label={item.status === 'done' ? 'Mark incomplete' : 'Mark complete'}
+        >
+          {item.status === 'done' ? (
+            <CheckCircle2 size={18} className="text-green-500" />
+          ) : (
+            <Circle size={18} />
+          )}
+        </button>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap mb-1">
+            <h3 className={`font-semibold ${item.status === 'done' ? 'line-through text-text-muted' : ''}`}>
+              {item.title}
+            </h3>
+            {listName && <span className="text-xs text-text-subtle">{listName}</span>}
+            {item.linkedJobId != null && (
+              <Link
+                to={`/jobs/${item.linkedJobId}`}
+                className="text-xs px-2 py-0.5 bg-accent/10 text-accent rounded"
+              >
+                Job linked
+              </Link>
+            )}
+            <span className={`text-xs font-bold uppercase ${PRIORITY_TEXT_COLORS[item.priority]}`}>
+              {item.priority}
+            </span>
+            {item.isFinanceRelated && (
+              <span className="text-xs px-2 py-0.5 bg-accent/10 text-accent rounded">Finance</span>
+            )}
+            {isOverdue(item) && (
+              <span className="text-xs px-2 py-0.5 bg-red-500/10 text-red-500 rounded inline-flex items-center gap-1">
+                <AlertCircle size={12} /> Overdue
+              </span>
+            )}
+          </div>
+          {item.description && <p className="text-sm text-text-muted mb-2">{item.description}</p>}
+          <div className="flex items-center gap-3 text-xs text-text-subtle flex-wrap">
+            {item.dueDate && (
+              <span className="inline-flex items-center gap-1">
+                <Clock size={12} /> Due: {item.dueDate}
+                {item.dueTime ? ` at ${item.dueTime}` : ''}
+              </span>
+            )}
+            <span className="uppercase">{STATUS_LABELS[item.status]}</span>
+            {item.estimatedMinutes ? <span>Est: {item.estimatedMinutes}m</span> : null}
+            {(item.tags ?? []).length > 0 && <span>Tags: {item.tags.join(', ')}</span>}
+          </div>
+        </div>
+        <div className="flex gap-1 flex-shrink-0">
+          <button
+            type="button"
+            onClick={() => onEdit(item)}
+            className="btn-ghost btn-sm text-xs p-2"
+            title="Edit"
+          >
+            <Edit2 size={14} />
+          </button>
+          <button
+            type="button"
+            onClick={() => onDuplicate(item)}
+            className="btn-ghost btn-sm text-xs p-2"
+            title="Duplicate"
+          >
+            <Copy size={14} />
+          </button>
+          <button
+            type="button"
+            onClick={() => onDelete(item.id)}
+            className="btn-ghost btn-sm text-xs text-red-500 hover:text-red-400 p-2"
+            title="Delete"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

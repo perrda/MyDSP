@@ -46,6 +46,8 @@ export interface TodoStats {
 }
 
 export type TodoSortBy = 
+  | 'order-asc'
+  | 'order-desc'
   | 'priority-desc'
   | 'priority-asc'
   | 'due-date-asc'
@@ -65,3 +67,6 @@ export type TodoFilterBy =
   | 'this-week'
   | 'finance-related'
   | 'no-due-date'
+  | 'status-todo'
+  | 'status-in-progress'
+
