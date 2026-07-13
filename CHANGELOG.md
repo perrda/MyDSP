@@ -1,5 +1,51 @@
 # MyDSP Changelog
 
+## [0.12.0] - 2026-07-13
+
+### Phase 7: Query Builder, Job Queue & Service Worker Enhancements
+
+#### IndexedDB Query Builder (`queryBuilder.ts`)
+- **SQL-like Interface**: Intuitive API for IndexedDB operations
+- Complex queries with where clauses (=, !=, >, >=, <, <=, in, between, like, startsWith)
+- Order by, limit, offset for pagination
+- Aggregation functions (sum, avg, min, max, groupBy)
+- Index optimization for performance
+- Insert, update, delete operations
+- Batch insert support
+- Migration system
+- Schema definitions with indexes
+
+#### Background Job Queue (`jobQueue.ts`)
+- **Priority-based Processing**: Critical, high, normal, low priorities
+- Concurrent job processing with configurable concurrency
+- Automatic retry with exponential backoff
+- Job status tracking (pending, running, completed, failed, cancelled)
+- Event system (created, started, completed, failed, cancelled)
+- Persistent queue (survives page reloads)
+- Job scheduling with delays
+- Tag-based job filtering
+- Queue statistics and reporting
+- Pause/resume functionality
+
+#### Service Worker Manager (`serviceWorkerManager.ts`)
+- **Registration & Updates**: Automatic update checks
+- Background sync for offline operations
+- Push notification support
+- Cache management utilities
+- Message passing between page and service worker
+- Status monitoring (installed, waiting, active)
+- Skip waiting for immediate updates
+- VAPID push subscription
+- Cache size calculation
+
+### Technical Improvements
+- Zero TypeScript compilation errors
+- Clean production build
+- All existing tests passing (62/62)
+- Production-ready implementations
+
+---
+
 ## [0.11.0] - 2026-07-13
 
 ### Phase 6: Real-time Infrastructure, Advanced Caching, Logging & Testing
