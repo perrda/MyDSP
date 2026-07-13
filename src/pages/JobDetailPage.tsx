@@ -16,10 +16,13 @@ import {
   X,
 } from 'lucide-react'
 import { PageHeader } from '../components/ui/PageHeader'
+import { InterviewModal } from '../components/InterviewModal'
+import { NoteModal } from '../components/NoteModal'
+import { ContactModal } from '../components/ContactModal'
 import { usePortfolio } from '../context/PortfolioContext'
 import { useToasts } from '../components/ToastProvider'
-import type { InterviewType, JobApplication, JobInterview, JobNote, JobStatus } from '../domain/job-types'
-import { createInterview, createJobContact, createJobNote, getDaysSinceApplied, STATUS_COLORS, STATUS_LABELS } from '../domain/jobs'
+import type { JobApplication, JobContact, JobInterview, JobNote, JobStatus } from '../domain/job-types'
+import { getDaysSinceApplied, STATUS_COLORS, STATUS_LABELS } from '../domain/jobs'
 import { formatGBP, privacyClass } from '../utils/format'
 
 export function JobDetailPage() {
@@ -28,6 +31,12 @@ export function JobDetailPage() {
   const { data, setData, privacy } = usePortfolio()
   const { success } = useToasts()
   const [editMode, setEditMode] = useState(false)
+  const [showInterviewModal, setShowInterviewModal] = useState(false)
+  const [showNoteModal, setShowNoteModal] = useState(false)
+  const [showContactModal, setShowContactModal] = useState(false)
+  const [editingInterview, setEditingInterview] = useState<JobInterview | undefined>()
+  const [editingNote, setEditingNote] = useState<JobNote | undefined>()
+  const [editingContact, setEditingContact] = useState<JobContact | undefined>()
 
   const application = useMemo(
     () => data.jobApplications?.find((app) => app.id === Number(id)),
@@ -58,36 +67,64 @@ export function JobDetailPage() {
   }
 
   const handleAddInterview = () => {
-    const date = prompt('Interview date (YYYY-MM-DD):')
-    if (!date) return
-    const typeInput = prompt('Type (phone-screen, technical, behavioral, onsite):')
-    const type = (typeInput as InterviewType) || 'other'
+    setEditingInterview(undefined)
+    setShowInterviewModal(true)
+  }
 
-    const interview = createInterview({ type, scheduledDate: date })
-    updateApplication({ interviews: [...application.interviews, interview] })
-    success('Interview added')
+  const handleSaveInterview = (interview: JobInterview) => {
+    if (editingInterview) {
+      updateApplication({
+        interviews: application.interviews.map((i) => (i.id === interview.id ? interview : i)),
+      })
+      success('Interview updated')
+    } else {
+      updateApplication({ interviews: [...application.interviews, interview] })
+      success('Interview added')
+    }
+    setShowInterviewModal(false)
+    setEditingInterview(undefined)
   }
 
   const handleAddNote = () => {
-    const content = prompt('Note:')
-    if (!content) return
-    const note = createJobNote(content)
-    updateApplication({ notes: [...application.notes, note] })
-    success('Note added')
+    setEditingNote(undefined)
+    setShowNoteModal(true)
+  }
+
+  const handleSaveNote = (note: JobNote) => {
+    if (editingNote) {
+      updateApplication({
+        notes: application.notes.map((n) => (n.id === note.id ? note : n)),
+      })
+      success('Note updated')
+    } else {
+      updateApplication({ notes: [...application.notes, note] })
+      success('Note added')
+    }
+    setShowNoteModal(false)
+    setEditingNote(undefined)
   }
 
   const handleAddContact = () => {
-    const name = prompt('Contact name:')
-    if (!name) return
-    const role = prompt('Role/title:')
-    if (!role) return
-    const contact = createJobContact({ name, role })
-    updateApplication({ contacts: [...application.contacts, contact] })
-    success('Contact added')
+    setEditingContact(undefined)
+    setShowContactModal(true)
+  }
+
+  const handleSaveContact = (contact: JobContact) => {
+    if (editingContact) {
+      updateApplication({
+        contacts: application.contacts.map((c) => (c.id === contact.id ? contact : c)),
+      })
+      success('Contact updated')
+    } else {
+      updateApplication({ contacts: [...application.contacts, contact] })
+      success('Contact added')
+    }
+    setShowContactModal(false)
+    setEditingContact(undefined)
   }
 
   const handleAddTask = () => {
-    const description = prompt('Task description:')
+    const description = window.prompt('Task description:')
     if (!description) return
     const task = { id: Date.now(), description, completed: false }
     updateApplication({ tasks: [...application.tasks, task] })
@@ -95,10 +132,10 @@ export function JobDetailPage() {
   }
 
   const handleAddDocument = () => {
-    const name = prompt('Document name:')
+    const name = window.prompt('Document name:')
     if (!name) return
-    const url = prompt('Document URL (optional):')
-    const notes = prompt('Notes (optional):')
+    const url = window.prompt('Document URL (optional):')
+    const notes = window.prompt('Notes (optional):')
     const doc = { name, url: url || undefined, notes: notes || undefined }
     updateApplication({ customDocuments: [...application.customDocuments, doc] })
     success('Document added')
@@ -141,6 +178,36 @@ export function JobDetailPage() {
 
   return (
     <div className={privacyClass(privacy)}>
+      {showInterviewModal && (
+        <InterviewModal
+          interview={editingInterview}
+          onSave={handleSaveInterview}
+          onClose={() => {
+            setShowInterviewModal(false)
+            setEditingInterview(undefined)
+          }}
+        />
+      )}
+      {showNoteModal && (
+        <NoteModal
+          note={editingNote}
+          onSave={handleSaveNote}
+          onClose={() => {
+            setShowNoteModal(false)
+            setEditingNote(undefined)
+          }}
+        />
+      )}
+      {showContactModal && (
+        <ContactModal
+          contact={editingContact}
+          onSave={handleSaveContact}
+          onClose={() => {
+            setShowContactModal(false)
+            setEditingContact(undefined)
+          }}
+        />
+      )}
       <div className="mb-6">
         <Link to="/jobs" className="text-accent hover:text-accent-bright text-sm mb-2 inline-flex items-center gap-1">
           <ArrowLeft size={14} /> Back to Applications

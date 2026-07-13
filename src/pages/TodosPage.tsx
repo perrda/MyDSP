@@ -77,7 +77,7 @@ export function TodosPage() {
   const stats = useMemo(() => calculateTodoStats(listItems), [listItems])
 
   const handleCreateList = () => {
-    const name = prompt('List name:')
+    const name = window.prompt('List name:')
     if (!name) return
 
     const newList = createTodoList({ name })

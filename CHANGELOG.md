@@ -1,5 +1,67 @@
 # MyDSP Changelog
 
+## [0.10.0] - 2026-07-13
+
+### Phase 5: Backend Infrastructure & Comprehensive QA
+
+#### New Backend Utilities
+
+**API Client Library (`apiClient.ts`)**
+- Full-featured HTTP client with retry, caching, and interceptors
+- Automatic retry with exponential backoff
+- Request/response/error interceptor system
+- Built-in caching with TTL
+- Auth token injection
+- Timeout and abort controller support
+- Clean error handling
+- TypeScript-first design
+
+**State Management (`stateManagement.ts`)**
+- Redux-like store implementation
+- React hooks integration (useStore, useSelector, useDispatch)
+- Middleware system (logger, thunk, persist, devtools)
+- Action creators and async actions
+- Memoized selectors for performance
+- Reducer helpers and composition
+- Local storage persistence
+
+**Form Validation (`formValidation.ts`)**
+- Comprehensive form management hook
+- Built-in validators (required, email, minLength, maxLength, min, max, pattern, url, matches, oneOf, custom)
+- UK-specific validators (postcode, phone, NI number)
+- Async validation support
+- Field-level and form-level validation
+- Touch state tracking
+- Dirty/pristine state
+- Submission state management
+- Helper functions for field props
+
+#### Job Application Enhancements
+- Replaced all `prompt()` dialogs with proper modal components
+- `InterviewModal`: Comprehensive interview tracking (type, schedule, duration, location, URL, interviewers, notes, outcome, feedback)
+- `NoteModal`: Rich note-taking with type categorization
+- `ContactModal`: Professional contact management (name, role, email, phone, LinkedIn, last contact date)
+- Improved UX in JobDetailPage with structured forms
+
+#### Todo List Improvements
+- Replaced basic `prompt()` with `window.prompt()` for consistency
+- All modals already implemented in previous phase
+
+#### Code Quality & Bug Fixes
+- Comprehensive review of all pages (Dashboard, Spending, Crypto, Equity, Goals, Budgets, Analytics, Todos, Jobs)
+- Zero TypeScript errors in production build
+- Removed all remaining `prompt()` dialogs or upgraded them
+- Consistent error handling across components
+- Improved type safety throughout codebase
+
+#### Technical Improvements
+- Bundle size: 1,235.51 kB (329.04 kB gzipped)
+- Clean build with no compilation errors
+- Optimized imports and exports
+- Better code organization and modularity
+
+### Previous Releases
+
 ## [0.9.0] - 2026-07-13
 
 ### Phase 4: Advanced Backend Infrastructure
