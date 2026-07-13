@@ -5,6 +5,8 @@ import { AllocationRing } from '../components/charts/AllocationRing'
 import { BudgetSparkline } from '../components/charts/BudgetSparkline'
 import { NetWorthChart } from '../components/charts/NetWorthChart'
 import { PageHeader, StatCard } from '../components/ui/PageHeader'
+import { RemindersPanel, useSmartReminders } from '../components/SmartReminders'
+import { PortfolioShareCard } from '../components/SocialShare'
 import { usePortfolio } from '../context/PortfolioContext'
 import { evaluateAchievements } from '../domain/achievements'
 import { buildAlerts } from '../domain/alerts'
@@ -29,6 +31,7 @@ const QUICK_LINKS = [
 export function Dashboard() {
   const { data, breakdown, privacy, fccDataPresent, setData, goalProgress } = usePortfolio()
   const { netWorth, assets, liabilities, crypto, equity, liability } = breakdown
+  const { reminders } = useSmartReminders()
 
   const recentJournal = [...data.journal].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5)
   const recentSpend = [...data.spending].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5)
@@ -86,6 +89,21 @@ export function Dashboard() {
           </Link>
         ))}
       </div>
+
+      {/* Smart Reminders */}
+      {reminders.length > 0 && (
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="label-uppercase mb-1">Smart Reminders</p>
+              <p className="text-sm text-text-muted font-light">
+                {reminders.length} item{reminders.length !== 1 ? 's' : ''} need your attention
+              </p>
+            </div>
+          </div>
+          <RemindersPanel />
+        </div>
+      )}
 
       {budgetPulse.length > 0 && (
         <div className="surface p-5 sm:p-6 mb-8">
@@ -210,6 +228,17 @@ export function Dashboard() {
             {formatPct(equity.pct)} P&amp;L
           </p>
         </Link>
+      </div>
+
+      {/* Share Card */}
+      <div className="mb-8">
+        <PortfolioShareCard
+          data={{
+            netWorth,
+            monthlyGrowth: crypto.pct + equity.pct,
+            portfolioSize: data.crypto.length + data.equities.length,
+          }}
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-px">

@@ -48,6 +48,9 @@ export function createEmptyPortfolio(): PortfolioData {
     },
     customCategories: [],
     documents: [],
+    todoLists: [],
+    todoItems: [],
+    jobApplications: [],
     extras: {},
   }
 }
@@ -193,6 +196,9 @@ export function createSamplePortfolio(): PortfolioData {
     },
     customCategories: [],
     documents: [],
+    todoLists: [],
+    todoItems: [],
+    jobApplications: [],
     extras: {},
   }
 }

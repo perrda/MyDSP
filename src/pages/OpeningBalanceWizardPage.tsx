@@ -115,7 +115,11 @@ export function OpeningBalanceWizardPage() {
       />
 
       {message && (
-        <p className="mb-6 text-sm text-accent border border-accent/30 bg-accent/5 px-4 py-3">
+        <p
+          className="mb-6 text-sm text-accent border border-accent/30 bg-accent/5 px-4 py-3"
+          role="status"
+          aria-live="polite"
+        >
           {message}
         </p>
       )}
@@ -139,15 +143,16 @@ export function OpeningBalanceWizardPage() {
       ) : (
         <>
           <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-            <p className="text-sm text-text-muted font-light">
+            <p className="text-sm text-text-muted font-light" role="status">
               {selectedCount} of {rows.length} selected · {byPortfolio.length} portfolio
               {byPortfolio.length === 1 ? '' : 's'} · {listPortfolios().length} total workspaces
             </p>
-            <div className="flex gap-2">
+            <div className="flex gap-2" role="group" aria-label="Bulk actions">
               <button
                 type="button"
                 className="btn-ghost btn-sm"
                 onClick={() => setRows((prev) => prev.map((r) => ({ ...r, included: true })))}
+                aria-label="Select all opening balances"
               >
                 Select all
               </button>
@@ -155,6 +160,7 @@ export function OpeningBalanceWizardPage() {
                 type="button"
                 className="btn-ghost btn-sm"
                 onClick={() => setRows((prev) => prev.map((r) => ({ ...r, included: false })))}
+                aria-label="Clear all selections"
               >
                 Clear
               </button>
@@ -163,6 +169,7 @@ export function OpeningBalanceWizardPage() {
                 className="btn-primary"
                 disabled={busy || selectedCount === 0}
                 onClick={applySelected}
+                aria-label={`Apply ${selectedCount} selected opening balance${selectedCount === 1 ? '' : 's'}`}
               >
                 {busy ? 'Applying…' : `Apply ${selectedCount}`}
               </button>
@@ -171,18 +178,25 @@ export function OpeningBalanceWizardPage() {
 
           <div className="space-y-6">
             {byPortfolio.map(([portfolioId, group]) => (
-              <section key={portfolioId} className="surface overflow-hidden">
+              <section
+                key={portfolioId}
+                className="surface overflow-hidden"
+                aria-labelledby={`portfolio-${portfolioId}`}
+              >
                 <div className="px-5 py-4 border-b border-border flex flex-wrap items-center justify-between gap-2">
-                  <h3 className="font-bold tracking-tight">{group[0].portfolioName}</h3>
+                  <h3 id={`portfolio-${portfolioId}`} className="font-bold tracking-tight">
+                    {group[0].portfolioName}
+                  </h3>
                   <button
                     type="button"
                     className="btn-ghost btn-sm"
                     onClick={() => switchPortfolio(portfolioId)}
+                    aria-label={`Switch to ${group[0].portfolioName} portfolio`}
                   >
                     Switch to this portfolio
                   </button>
                 </div>
-                <ul className="divide-y divide-border">
+                <ul className="divide-y divide-border" role="list">
                   {group.map((r) => {
                     const key = `${r.portfolioId}:${r.kind}:${r.symbol}`
                     return (
@@ -206,6 +220,7 @@ export function OpeningBalanceWizardPage() {
                                 ),
                               )
                             }
+                            aria-label={`Include ${r.symbol} ${r.name} opening balance`}
                           />
                           <span>
                             <span className="font-semibold block">{r.symbol}</span>
@@ -231,6 +246,7 @@ export function OpeningBalanceWizardPage() {
                                 ),
                               )
                             }
+                            aria-label={`Buy date for ${r.symbol}`}
                           />
                         </label>
                         <label className="flex-1 min-w-[8rem]">
@@ -254,11 +270,15 @@ export function OpeningBalanceWizardPage() {
                                 ),
                               )
                             }
+                            aria-label={`Unit price in GBP for ${r.symbol}`}
                           />
                         </label>
-                        <p className="text-xs text-text-subtle lg:w-36 lg:text-right">
+                        <p
+                          className="text-xs text-text-subtle lg:w-36 lg:text-right"
+                          aria-label={`Estimated cost ${formatGBP(r.draft.qty * (Number(r.price) || 0))}`}
+                        >
                           Est. cost{' '}
-                          <span className="tabular-nums text-text-muted">
+                          <span className="tabular-nums text-text-muted" aria-hidden="true">
                             {formatGBP(r.draft.qty * (Number(r.price) || 0))}
                           </span>
                         </p>
