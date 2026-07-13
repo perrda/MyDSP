@@ -14,6 +14,7 @@ import { ThemeToggle } from '../ThemeToggle'
 import { MenuButton, Sidebar } from './Sidebar'
 import { BottomNav } from './BottomNav'
 import { GlobalSearch } from '../GlobalSearch'
+import { formatDateTime } from '../../utils/format'
 
 const titles: Record<string, { eyebrow: string; title: string }> = {
   '/': { eyebrow: 'Portfolio', title: 'Overview' },
@@ -197,10 +198,10 @@ export function AppShell() {
                   lastPriceError ??
                   [
                     data.settings.lastPriceUpdate
-                      ? `Last price update ${new Date(data.settings.lastPriceUpdate).toLocaleString('en-GB')}`
+                      ? `Last price update ${formatDateTime(data.settings.lastPriceUpdate)}`
                       : null,
                     syncCfg.lastSyncAt
-                      ? `Last sync ${new Date(syncCfg.lastSyncAt).toLocaleString('en-GB')}`
+                      ? `Last sync ${formatDateTime(syncCfg.lastSyncAt)}`
                       : null,
                   ]
                     .filter(Boolean)
