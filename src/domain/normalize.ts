@@ -599,6 +599,7 @@ function normalizeTodoItems(raw: unknown): import('./todo-types').TodoItem[] {
         createdAt: str(x.createdAt, new Date().toISOString()),
         updatedAt: str(x.updatedAt, new Date().toISOString()),
         sortOrder: typeof x.sortOrder === 'number' ? x.sortOrder : undefined,
+        linkedJobId: typeof x.linkedJobId === 'number' ? x.linkedJobId : undefined,
       }
     })
 }

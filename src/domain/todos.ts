@@ -29,20 +29,21 @@ export function createTodoItem(partial: Partial<TodoItem> & Pick<TodoItem, 'titl
     createdAt: partial.createdAt ?? now,
     updatedAt: partial.updatedAt ?? now,
     sortOrder: partial.sortOrder,
+    linkedJobId: partial.linkedJobId,
   }
 }
 
 export function createTodoList(partial: Partial<TodoList> & Pick<TodoList, 'name'>): TodoList {
   const now = new Date().toISOString()
   return {
-    id: Date.now() + Math.floor(Math.random() * 1000),
+    id: partial.id ?? Date.now() + Math.floor(Math.random() * 1000),
     name: partial.name,
     description: partial.description,
     color: partial.color ?? '#F7931A',
-    icon: partial.icon ?? '📋',
+    icon: partial.icon ?? 'list',
     sortOrder: partial.sortOrder,
-    createdAt: now,
-    updatedAt: now,
+    createdAt: partial.createdAt ?? now,
+    updatedAt: partial.updatedAt ?? now,
   }
 }
 

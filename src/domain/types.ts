@@ -311,7 +311,7 @@ export interface DocumentNote {
   mimeType?: string
   size?: number
   hasBlob?: boolean
-  linkedKind?: 'card' | 'loan' | 'crypto' | 'equity' | 'trip' | 'goal'
+  linkedKind?: 'card' | 'loan' | 'crypto' | 'equity' | 'trip' | 'goal' | 'job'
   linkedId?: number
 }
 

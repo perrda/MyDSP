@@ -14,7 +14,7 @@ export function createJobApplication(
 ): JobApplication {
   const now = new Date().toISOString()
   return {
-    id: Date.now() + Math.floor(Math.random() * 1000),
+    id: partial.id ?? Date.now() + Math.floor(Math.random() * 1000),
     companyName: partial.companyName,
     jobTitle: partial.jobTitle,
     status: partial.status ?? 'wishlist',
@@ -259,6 +259,140 @@ export function exportJobsToCsv(applications: JobApplication[]): string {
   ])
 
   return [headers.join(','), ...rows.map((r) => r.map((c) => `"${c}"`).join(','))].join('\n')
+}
+
+function splitCsvLine(line: string): string[] {
+  const out: string[] = []
+  let cur = ''
+  let inQuotes = false
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i]
+    if (ch === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        cur += '"'
+        i++
+      } else {
+        inQuotes = !inQuotes
+      }
+      continue
+    }
+    if (ch === ',' && !inQuotes) {
+      out.push(cur.trim())
+      cur = ''
+      continue
+    }
+    cur += ch
+  }
+  out.push(cur.trim())
+  return out
+}
+
+const VALID_STATUSES: JobStatus[] = [
+  'wishlist',
+  'researching',
+  'applying',
+  'applied',
+  'screening',
+  'interviewing',
+  'offer',
+  'accepted',
+  'rejected',
+  'withdrawn',
+  'archived',
+]
+
+/** Primary status when dropping a card onto a kanban column. */
+export const KANBAN_DROP_STATUS: Record<string, JobStatus> = {
+  Wishlist: 'wishlist',
+  Applying: 'applying',
+  Applied: 'applied',
+  Interviewing: 'interviewing',
+  Offers: 'offer',
+  Closed: 'archived',
+}
+
+export function parseCsvToJobApplications(csv: string): JobApplication[] {
+  const lines = csv.trim().split(/\r?\n/).filter(Boolean)
+  if (lines.length < 2) return []
+
+  const headers = splitCsvLine(lines[0]).map((h) => h.trim().toLowerCase())
+  const apps: JobApplication[] = []
+  const base = Date.now()
+
+  for (let i = 1; i < lines.length; i++) {
+    const values = splitCsvLine(lines[i])
+    if (!values.length || values.every((v) => !v)) continue
+    const row: Record<string, string> = {}
+    headers.forEach((h, idx) => {
+      row[h] = values[idx] || ''
+    })
+
+    const companyName = row.company || row.companyname || row['company name'] || ''
+    const jobTitle = row['job title'] || row.jobtitle || row.title || row.role || ''
+    if (!companyName.trim() || !jobTitle.trim()) continue
+
+    const statusRaw = (row.status || 'wishlist').toLowerCase().replace(/\s+/g, '-') as JobStatus
+    const priorityRaw = (row.priority || 'medium').toLowerCase()
+    const remoteRaw = (row.remote || 'onsite').toLowerCase()
+
+    apps.push(
+      createJobApplication({
+        id: base + i,
+        companyName: companyName.trim(),
+        jobTitle: jobTitle.trim(),
+        status: VALID_STATUSES.includes(statusRaw) ? statusRaw : 'wishlist',
+        priority: (['high', 'medium', 'low'].includes(priorityRaw)
+          ? priorityRaw
+          : 'medium') as JobApplication['priority'],
+        appliedDate: row['applied date'] || row.applieddate || row.applied || undefined,
+        location: row.location || 'Unknown',
+        remote: (['onsite', 'hybrid', 'remote'].includes(remoteRaw)
+          ? remoteRaw
+          : 'onsite') as JobApplication['remote'],
+        salaryMin: row['salary min'] || row.salarymin ? Number(row['salary min'] || row.salarymin) : undefined,
+        salaryMax: row['salary max'] || row.salarymax ? Number(row['salary max'] || row.salarymax) : undefined,
+        salaryCurrency: row.currency || row.salarycurrency || 'GBP',
+        jobUrl: row['job url'] || row.joburl || row.url || undefined,
+        rating: row.rating ? Number(row.rating) || 0 : 0,
+        source: row.source || 'Import',
+        tags: ['imported'],
+      }),
+    )
+  }
+
+  return apps
+}
+
+export function parseJsonToJobApplications(jsonText: string): JobApplication[] {
+  const parsed = JSON.parse(jsonText) as unknown
+  const arr = Array.isArray(parsed)
+    ? parsed
+    : parsed && typeof parsed === 'object' && Array.isArray((parsed as { applications?: unknown }).applications)
+      ? ((parsed as { applications: unknown[] }).applications)
+      : null
+  if (!arr) throw new Error('JSON must be an array of applications or { applications: [...] }')
+
+  const base = Date.now()
+  return arr
+    .map((raw, idx) => {
+      if (!raw || typeof raw !== 'object') return null
+      const r = raw as Record<string, unknown>
+      const companyName = String(r.companyName ?? r.company ?? '').trim()
+      const jobTitle = String(r.jobTitle ?? r.title ?? '').trim()
+      if (!companyName || !jobTitle) return null
+      return createJobApplication({
+        ...(r as Partial<JobApplication>),
+        id: typeof r.id === 'number' ? r.id : base + idx,
+        companyName,
+        jobTitle,
+        tags: Array.isArray(r.tags) ? (r.tags as string[]) : ['imported'],
+      })
+    })
+    .filter((x): x is JobApplication => x != null)
+}
+
+export function exportJobsToJson(applications: JobApplication[]): string {
+  return JSON.stringify({ version: 1, exportedAt: new Date().toISOString(), applications }, null, 2)
 }
 
 export const STATUS_LABELS: Record<JobStatus, string> = {

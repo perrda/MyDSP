@@ -33,6 +33,7 @@ const LINKED_KINDS: { value: DocumentNote['linkedKind'] | ''; label: string }[] 
   { value: 'equity', label: 'Equity' },
   { value: 'trip', label: 'Trip' },
   { value: 'goal', label: 'Goal' },
+  { value: 'job', label: 'Job application' },
 ]
 
 const empty = { name: '', note: '', linkedKind: '' as DocumentNote['linkedKind'] | '', linkedId: '' }

@@ -27,6 +27,9 @@ import { usePortfolio } from '../context/PortfolioContext'
 import { useToasts } from '../components/ToastProvider'
 import type { JobApplication, JobContact, JobInterview, JobNote, JobStatus } from '../domain/job-types'
 import { getDaysSinceApplied, STATUS_COLORS, STATUS_LABELS } from '../domain/jobs'
+import { createJobLinkedTodo } from '../domain/jobTodos'
+import { createTodoList } from '../domain/todos'
+import { downloadBlob, getDocumentBlob } from '../storage/documentBlobStore'
 import { formatGBP, privacyClass } from '../utils/format'
 
 export function JobDetailPage() {
@@ -260,6 +263,35 @@ export function JobDetailPage() {
     })
   }
 
+  const handleCreateLinkedTodo = (interview?: JobInterview) => {
+    setData((prev) => {
+      let lists = prev.todoLists ?? []
+      let listId = lists[0]?.id
+      if (!listId) {
+        const list = createTodoList({ name: 'Career', icon: 'career', color: '#F7931A' })
+        lists = [...lists, list]
+        listId = list.id
+      }
+      const todo = createJobLinkedTodo({ listId, job: application, interview })
+      return {
+        ...prev,
+        todoLists: lists,
+        todoItems: [...(prev.todoItems ?? []), todo],
+      }
+    })
+    success('Todo created', interview ? 'Interview prep task' : 'Follow-up task')
+  }
+
+  const handleDownloadDoc = async (doc: { blobDocId?: number; fileName?: string; name: string }) => {
+    if (!doc.blobDocId) return
+    const blob = await getDocumentBlob(doc.blobDocId)
+    if (!blob) {
+      success('File missing', 'Blob not found on this device')
+      return
+    }
+    downloadBlob(blob, doc.fileName || doc.name)
+  }
+
   const daysSince = getDaysSinceApplied(application)
   const allEvents = [
     ...application.interviews.map((i) => ({
@@ -356,6 +388,9 @@ export function JobDetailPage() {
           <div className="flex gap-2">
             <button type="button" onClick={() => setShowJobForm(true)} className="btn-ghost btn-sm">
               <Edit2 size={14} /> Edit Details
+            </button>
+            <button type="button" onClick={() => handleCreateLinkedTodo()} className="btn-secondary btn-sm">
+              <Plus size={14} /> Add Todo
             </button>
             <button type="button" onClick={() => setEditMode(!editMode)} className="btn-ghost btn-sm">
               {editMode ? <X size={14} /> : <Edit2 size={14} />} {editMode ? 'Done' : 'Quick Edit'}
@@ -624,6 +659,15 @@ export function JobDetailPage() {
                       >
                         <Trash2 size={12} />
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => handleCreateLinkedTodo(interview)}
+                        className="opacity-0 group-hover:opacity-100 text-accent p-0.5"
+                        aria-label="Create prep todo"
+                        title="Create prep todo"
+                      >
+                        <Plus size={12} />
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -696,6 +740,18 @@ export function JobDetailPage() {
                         }}
                       >
                         <p className="font-semibold">{doc.name}</p>
+                        {doc.hasBlob && (
+                          <button
+                            type="button"
+                            className="text-accent text-xs underline"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              void handleDownloadDoc(doc)
+                            }}
+                          >
+                            Download file
+                          </button>
+                        )}
                         {doc.url && (
                           <span className="text-accent text-xs inline-flex items-center gap-1">
                             <ExternalLink size={10} /> Link attached

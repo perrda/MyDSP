@@ -1037,41 +1037,66 @@ export function SettingsPage() {
             <div className="mt-6 border border-border p-4 space-y-3">
               <p className="text-sm font-semibold">Sync conflicts</p>
               <p className="text-xs text-text-muted font-light">
-                Same-id rows differ locally and remotely. Pick a side, then Pull &amp; merge again.
+                Same-id rows differ locally and remotely (now includes todos, jobs, documents). Review field
+                diffs, pick a side, then Pull &amp; merge again.
               </p>
               {conflicts.map((c) => {
                 const key = conflictKey(c)
                 return (
                   <div
                     key={`${c.portfolioId}-${key}`}
-                    className="flex flex-wrap items-center gap-2 text-sm border-b border-border/60 pb-3"
+                    className="text-sm border border-border/60 rounded-lg p-3 space-y-2"
                   >
-                    <span className="uppercase text-[10px] tracking-widest text-text-subtle font-bold">
-                      {c.collection}
-                    </span>
-                    <span className="font-medium">{c.localLabel}</span>
-                    <span className="text-text-subtle">vs</span>
-                    <span className="text-text-muted">{c.remoteLabel}</span>
-                    <div className="flex gap-1 ml-auto">
-                      <button
-                        type="button"
-                        className={`btn-sm ${conflictChoices[key] === 'local' ? 'btn-primary' : 'btn-ghost'}`}
-                        onClick={() =>
-                          setConflictChoices((prev) => ({ ...prev, [key]: 'local' }))
-                        }
-                      >
-                        Keep local
-                      </button>
-                      <button
-                        type="button"
-                        className={`btn-sm ${conflictChoices[key] === 'remote' ? 'btn-primary' : 'btn-ghost'}`}
-                        onClick={() =>
-                          setConflictChoices((prev) => ({ ...prev, [key]: 'remote' }))
-                        }
-                      >
-                        Keep remote
-                      </button>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="uppercase text-[10px] tracking-widest text-text-subtle font-bold">
+                        {c.collection}
+                      </span>
+                      <span className="font-medium">{c.localLabel}</span>
+                      <span className="text-text-subtle">vs</span>
+                      <span className="text-text-muted">{c.remoteLabel}</span>
+                      <div className="flex gap-1 ml-auto">
+                        <button
+                          type="button"
+                          className={`btn-sm ${conflictChoices[key] === 'local' ? 'btn-primary' : 'btn-ghost'}`}
+                          onClick={() =>
+                            setConflictChoices((prev) => ({ ...prev, [key]: 'local' }))
+                          }
+                        >
+                          Keep local
+                        </button>
+                        <button
+                          type="button"
+                          className={`btn-sm ${conflictChoices[key] === 'remote' ? 'btn-primary' : 'btn-ghost'}`}
+                          onClick={() =>
+                            setConflictChoices((prev) => ({ ...prev, [key]: 'remote' }))
+                          }
+                        >
+                          Keep remote
+                        </button>
+                      </div>
                     </div>
+                    {c.fieldDiffs && c.fieldDiffs.length > 0 && (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-xs text-left">
+                          <thead>
+                            <tr className="text-text-subtle">
+                              <th className="py-1 pr-3 font-semibold">Field</th>
+                              <th className="py-1 pr-3 font-semibold">Local</th>
+                              <th className="py-1 font-semibold">Remote</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {c.fieldDiffs.map((d) => (
+                              <tr key={d.field} className="border-t border-border/40 align-top">
+                                <td className="py-1 pr-3 font-mono text-text-subtle">{d.field}</td>
+                                <td className="py-1 pr-3 text-text-muted max-w-[12rem] break-words">{d.local}</td>
+                                <td className="py-1 text-text-muted max-w-[12rem] break-words">{d.remote}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
                   </div>
                 )
               })}

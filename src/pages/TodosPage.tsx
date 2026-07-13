@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Plus,
   Download,
@@ -20,7 +20,10 @@ import { PageHeader } from '../components/ui/PageHeader'
 import { EmptyState } from '../components/ui/EmptyState'
 import { ConfirmDialog } from '../components/ui/Modal'
 import { TodoModal } from '../components/TodoModal'
-import { TodoListModal } from '../components/TodoListModal'
+import { TodoListModal, listIconGlyph } from '../components/TodoListModal'
+import { ReorderList, ReorderHandle } from '../components/ui/Reorderable'
+import { applySortOrder, sortBySortOrder } from '../utils/reorder'
+import { checkTodoReminders, ensureDesktopNotificationPermission } from '../domain/todoReminders'
 import { TodoScreenshotImportModal } from '../components/TodoScreenshotImportModal'
 import { usePortfolio } from '../context/PortfolioContext'
 import { useToasts } from '../components/ToastProvider'
@@ -77,8 +80,33 @@ export function TodosPage() {
   const [showScreenshotImport, setShowScreenshotImport] = useState(false)
   const [bulkMoveListId, setBulkMoveListId] = useState<number | ''>('')
 
-  const lists = data.todoLists || []
+  const lists = sortBySortOrder(data.todoLists || [])
   const allItems = data.todoItems || []
+
+  useEffect(() => {
+    const run = () => {
+      checkTodoReminders(allItems, {
+        onToast: (title, message) => success(title, message),
+      })
+    }
+    run()
+    const id = window.setInterval(run, 60_000)
+    return () => window.clearInterval(id)
+  }, [allItems, success])
+
+  const enableDesktopReminders = async () => {
+    const perm = await ensureDesktopNotificationPermission()
+    if (perm === 'granted') success('Desktop reminders on', 'You will get system notifications for due reminders')
+    else if (perm === 'denied') showError('Permission denied', 'Enable notifications in browser settings')
+    else if (perm === 'unsupported') showError('Not supported', 'This browser does not support notifications')
+  }
+
+  const handleReorderLists = (next: TodoList[]) => {
+    setData((prev) => ({
+      ...prev,
+      todoLists: applySortOrder(next),
+    }))
+  }
 
   const currentList = selectedListId ? lists.find((l) => l.id === selectedListId) : null
   const listItems = selectedListId ? allItems.filter((i) => i.listId === selectedListId) : allItems
@@ -462,63 +490,83 @@ export function TodosPage() {
             </div>
           </div>
 
-          <div className="flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-hide items-center">
-            <button
-              type="button"
-              onClick={() => setSelectedListId(null)}
-              className={`px-3 py-2 text-xs font-semibold uppercase tracking-wider whitespace-nowrap rounded border ${
-                selectedListId === null
-                  ? 'bg-accent text-white border-accent'
-                  : 'bg-surface border-border hover:border-accent'
-              }`}
+          <div className="mb-4">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+              <p className="text-xs text-text-subtle">Drag lists to reorder · icons show on each tab</p>
+              <button type="button" className="btn-ghost btn-sm text-xs" onClick={() => void enableDesktopReminders()}>
+                Enable desktop reminders
+              </button>
+            </div>
+            <div className="flex gap-2 mb-2 overflow-x-auto pb-2 scrollbar-hide items-center">
+              <button
+                type="button"
+                onClick={() => setSelectedListId(null)}
+                className={`px-3 py-2 text-xs font-semibold uppercase tracking-wider whitespace-nowrap rounded border ${
+                  selectedListId === null
+                    ? 'bg-accent text-white border-accent'
+                    : 'bg-surface border-border hover:border-accent'
+                }`}
+              >
+                All Lists ({allItems.length})
+              </button>
+            </div>
+            <ReorderList
+              items={lists}
+              getId={(l) => String(l.id)}
+              onReorder={handleReorderLists}
+              className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide items-center"
+              itemClassName="shrink-0"
             >
-              All Lists ({allItems.length})
-            </button>
-            {lists.map((list) => {
-              const count = allItems.filter((i) => i.listId === list.id).length
-              const active = selectedListId === list.id
-              return (
-                <div key={list.id} className="flex items-center gap-1 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedListId(list.id)}
-                    className={`px-3 py-2 text-xs font-semibold uppercase tracking-wider whitespace-nowrap rounded border ${
-                      active
-                        ? 'bg-accent text-white border-accent'
-                        : 'bg-surface border-border hover:border-accent'
-                    }`}
-                  >
-                    <span
-                      className="inline-block w-2 h-2 rounded-full mr-2 align-middle"
-                      style={{ backgroundColor: list.color || '#F7931A' }}
-                    />
-                    {list.name} ({count})
-                  </button>
-                  {active && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => openEditList(list)}
-                        className="btn-ghost btn-sm p-2"
-                        title="Edit list"
-                        aria-label="Edit list"
-                      >
-                        <Settings2 size={14} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteList(list)}
-                        className="btn-ghost btn-sm p-2 text-red-500"
-                        title="Delete list"
-                        aria-label="Delete list"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </>
-                  )}
-                </div>
-              )
-            })}
+              {(list) => {
+                const count = allItems.filter((i) => i.listId === list.id).length
+                const active = selectedListId === list.id
+                return (
+                  <div className="flex items-center gap-1">
+                    <ReorderHandle />
+                    <button
+                      type="button"
+                      onClick={() => setSelectedListId(list.id)}
+                      className={`px-3 py-2 text-xs font-semibold uppercase tracking-wider whitespace-nowrap rounded border ${
+                        active
+                          ? 'bg-accent text-white border-accent'
+                          : 'bg-surface border-border hover:border-accent'
+                      }`}
+                    >
+                      <span className="mr-1.5" aria-hidden>
+                        {listIconGlyph(list.icon)}
+                      </span>
+                      <span
+                        className="inline-block w-2 h-2 rounded-full mr-2 align-middle"
+                        style={{ backgroundColor: list.color || '#F7931A' }}
+                      />
+                      {list.name} ({count})
+                    </button>
+                    {active && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => openEditList(list)}
+                          className="btn-ghost btn-sm p-2"
+                          title="Edit list"
+                          aria-label="Edit list"
+                        >
+                          <Settings2 size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteList(list)}
+                          className="btn-ghost btn-sm p-2 text-red-500"
+                          title="Delete list"
+                          aria-label="Delete list"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )
+              }}
+            </ReorderList>
           </div>
 
           {currentList?.description && (
@@ -698,6 +746,14 @@ export function TodosPage() {
                           <span className="text-xs text-text-subtle">
                             {lists.find((l) => l.id === item.listId)?.name ?? 'Unknown list'}
                           </span>
+                        )}
+                        {item.linkedJobId != null && (
+                          <a
+                            href={`/jobs/${item.linkedJobId}`}
+                            className="text-xs px-2 py-0.5 bg-accent/10 text-accent rounded"
+                          >
+                            Job linked
+                          </a>
                         )}
                         <span className={`text-xs font-bold uppercase ${PRIORITY_TEXT_COLORS[item.priority]}`}>
                           {item.priority}

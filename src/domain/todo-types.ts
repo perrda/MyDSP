@@ -20,6 +20,8 @@ export interface TodoItem {
   createdAt: string
   updatedAt: string
   sortOrder?: number
+  /** Optional link to a job application (Jobs ↔ Todos) */
+  linkedJobId?: number
 }
 
 export interface TodoList {

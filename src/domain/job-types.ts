@@ -67,6 +67,12 @@ export interface JobApplication {
     name: string
     url?: string
     notes?: string
+    /** IndexedDB blob via documentBlobStore (local-only file bytes) */
+    blobDocId?: number
+    fileName?: string
+    mimeType?: string
+    size?: number
+    hasBlob?: boolean
   }>
   
   // Progress Tracking

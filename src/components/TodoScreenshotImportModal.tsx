@@ -210,39 +210,46 @@ export function TodoScreenshotImportModal({
                   <div className="space-y-3">
                     {rows.map((row, idx) => (
                       <div
-                        key={idx}
-                        className="grid grid-cols-1 md:grid-cols-[auto_1fr_auto_auto] gap-2 items-center p-3 bg-surface-hover border border-border rounded"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={row.include}
-                          onChange={(e) => updateRow(idx, { include: e.target.checked })}
-                          aria-label="Include task"
-                        />
-                        <input
-                          type="text"
-                          value={row.title}
-                          onChange={(e) => updateRow(idx, { title: e.target.value })}
-                          className="w-full px-3 py-2 bg-bg border border-border rounded text-sm"
-                          placeholder="Task title"
-                        />
-                        <select
-                          value={row.priority}
-                          onChange={(e) => updateRow(idx, { priority: e.target.value as TodoPriority })}
-                          className="px-2 py-2 bg-bg border border-border rounded text-sm"
-                        >
-                          <option value="high">High</option>
-                          <option value="medium">Medium</option>
-                          <option value="low">Low</option>
-                        </select>
-                        <button
-                          type="button"
-                          className="btn-ghost btn-sm text-red-500 p-2"
-                          onClick={() => removeRow(idx)}
-                          aria-label="Remove row"
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                    key={idx}
+                    className="grid grid-cols-1 md:grid-cols-[auto_1fr_auto_auto_auto] gap-2 items-center p-3 bg-surface-hover border border-border rounded"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={row.include}
+                      onChange={(e) => updateRow(idx, { include: e.target.checked })}
+                      aria-label="Include task"
+                    />
+                    <input
+                      type="text"
+                      value={row.title}
+                      onChange={(e) => updateRow(idx, { title: e.target.value })}
+                      className="w-full px-3 py-2 bg-bg border border-border rounded text-sm"
+                      placeholder="Task title"
+                    />
+                    <input
+                      type="date"
+                      value={row.dueDate || ''}
+                      onChange={(e) => updateRow(idx, { dueDate: e.target.value || undefined })}
+                      className="px-2 py-2 bg-bg border border-border rounded text-sm"
+                      aria-label="Due date"
+                    />
+                    <select
+                      value={row.priority}
+                      onChange={(e) => updateRow(idx, { priority: e.target.value as TodoPriority })}
+                      className="px-2 py-2 bg-bg border border-border rounded text-sm"
+                    >
+                      <option value="high">High</option>
+                      <option value="medium">Medium</option>
+                      <option value="low">Low</option>
+                    </select>
+                    <button
+                      type="button"
+                      className="btn-ghost btn-sm text-red-500 p-2"
+                      onClick={() => removeRow(idx)}
+                      aria-label="Remove row"
+                    >
+                      <Trash2 size={14} />
+                    </button>
                         <label className="md:col-span-4 flex items-center gap-2 text-xs text-text-subtle">
                           <input
                             type="checkbox"
