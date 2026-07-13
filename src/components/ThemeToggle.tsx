@@ -1,16 +1,24 @@
 import { useTheme } from '../context/ThemeContext'
 
 export function ThemeToggle({ className = '' }: { className?: string }) {
-  const { theme, toggle } = useTheme()
+  const { theme, preference, toggle } = useTheme()
   const isDark = theme === 'dark'
+  const title =
+    preference === 'auto'
+      ? isDark
+        ? 'Auto night · tap for Light'
+        : 'Auto day · tap for Dark'
+      : isDark
+        ? 'Switch to light mode'
+        : 'Switch to dark mode'
 
   return (
     <button
       type="button"
       onClick={toggle}
-      aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+      aria-label={title}
       aria-pressed={!isDark}
-      title={isDark ? 'Light mode' : 'Dark mode'}
+      title={title}
       className={`toolbar-icon ${className}`}
     >
       <svg viewBox="0 0 24 24" className="w-[18px] h-[18px]" aria-hidden="true">
