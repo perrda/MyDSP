@@ -39,6 +39,7 @@ import { SettingsPage } from './pages/SettingsPage'
 import { TodosPage } from './pages/TodosPage'
 import { JobsPage } from './pages/JobsPage'
 import { JobDetailPage } from './pages/JobDetailPage'
+import { PredictiveAnalyticsPage } from './pages/PredictiveAnalyticsPage'
 
 export default function App() {
   return (
@@ -80,6 +81,7 @@ export default function App() {
                   <Route path="achievements" element={<AchievementsPage />} />
                   <Route path="tax" element={<TaxPage />} />
                   <Route path="analytics" element={<AnalyticsPage />} />
+                  <Route path="analytics/predictive" element={<PredictiveAnalyticsPage />} />
                   <Route path="compare" element={<ComparePage />} />
                   <Route path="setup/opening" element={<OpeningBalanceWizardPage />} />
                   <Route path="todos" element={<TodosPage />} />

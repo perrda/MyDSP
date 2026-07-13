@@ -1,4 +1,6 @@
 import { useMemo } from 'react'
+import { Link } from 'react-router-dom'
+import { Brain } from 'lucide-react'
 import { AllocationRing } from '../components/charts/AllocationRing'
 import { PortfolioSeriesChart } from '../components/charts/PortfolioSeriesChart'
 import { 
@@ -84,6 +86,32 @@ export function AnalyticsPage() {
           />
         }
       />
+
+      {/* Predictive Analytics Link */}
+      <Link
+        to="/analytics/predictive"
+        className="surface p-6 mb-8 rounded-xl md:rounded-none shadow-sm md:shadow-none flex items-center justify-between hover:bg-surface-hover transition-colors"
+      >
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-full bg-accent/20 flex items-center justify-center">
+            <Brain size={24} className="text-accent" />
+          </div>
+          <div>
+            <h3 className="font-bold text-lg mb-1">Predictive Analytics</h3>
+            <p className="text-sm text-text-muted">
+              AI-powered forecasting, anomaly detection, and financial health scoring
+            </p>
+          </div>
+        </div>
+        <svg
+          className="w-6 h-6 text-text-muted"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+      </Link>
 
       <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px mb-8 ${privacyClass(privacy)}`}>
         <StatCard label="Net worth" value={formatGBP(netWorth)} />
