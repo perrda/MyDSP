@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { PageHeader } from '../components/ui/PageHeader'
 import { ConfirmDialog } from '../components/ui/Modal'
 import { useSecurity } from '../components/SecurityProvider'
@@ -152,6 +152,17 @@ export function SettingsPage() {
   } | null>(null)
 
   useEffect(() => subscribeAutoSync(setAutoSyncStatus), [])
+
+  const location = useLocation()
+  useEffect(() => {
+    if (location.hash !== '#sync') return
+    const scroll = () => {
+      document.getElementById('sync')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+    // Wait a tick for layout (PWA / iOS)
+    const t = window.setTimeout(scroll, 80)
+    return () => window.clearTimeout(t)
+  }, [location.hash, location.pathname])
 
   const refreshBackupList = () => {
     void listFullBackups()
@@ -353,7 +364,7 @@ export function SettingsPage() {
       <PageHeader
         eyebrow="System"
         title="Settings & data"
-        description="Portfolios, FCC import, backup, and privacy. Storage keys stay compatible with FCC v7.60."
+        description="Cloud Sync is first below — turn it on so Mac, iPhone, and iPad stay aligned automatically."
       />
 
       {message && (
@@ -363,476 +374,15 @@ export function SettingsPage() {
       )}
 
       <div className="grid grid-cols-1 gap-px">
-        <section className="surface p-6 sm:p-8">
-          <p className="eyebrow mb-3">Appearance</p>
-          <h3 className="text-lg font-bold tracking-tight mb-3">Light &amp; dark mode</h3>
-          <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
-            <span className="text-text font-medium">Auto</span> follows your computer clock —
-            light after approximate sunrise, dark after sunset (local time). Choose Light or Dark
-            to lock a theme. Header moon toggle also locks Light/Dark.
-          </p>
-          <div className="flex flex-wrap gap-2 mb-3" role="group" aria-label="Theme preference">
-            {(
-              [
-                { id: 'auto' as const, label: 'Auto (day / night)' },
-                { id: 'light' as const, label: 'Light' },
-                { id: 'dark' as const, label: 'Dark' },
-              ] as const
-            ).map((opt) => (
-              <button
-                key={opt.id}
-                type="button"
-                className={preference === opt.id ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
-                aria-pressed={preference === opt.id}
-                onClick={() => {
-                  setPreference(opt.id as ThemePreference)
-                  flash(
-                    opt.id === 'auto'
-                      ? `Auto theme on — currently ${theme} mode for local daytime.`
-                      : `${opt.label} mode locked.`,
-                  )
-                }}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-          <p className="text-xs text-text-subtle">
-            Now showing: <span className="text-text font-medium uppercase">{theme}</span>
-            {preference === 'auto' ? ' · Auto' : ' · Manual'}
-          </p>
-        </section>
-
-        <section className="surface p-6 sm:p-8">
-          <p className="eyebrow mb-3">Layout</p>
-          <h3 className="text-lg font-bold tracking-tight mb-3">Sidebar menu order</h3>
-          <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
-            Drag the grip next to each item in the left menu to rearrange. Order is saved in this
-            browser. Reset restores the default sequence.
-          </p>
-          <button
-            type="button"
-            className="btn-secondary"
-            onClick={() => {
-              resetNavOrder()
-              window.dispatchEvent(new Event('mydsp-nav-order'))
-              flash('Sidebar menu order reset to defaults.')
-            }}
-          >
-            Reset sidebar order
-          </button>
-        </section>
-
-        <section className="surface p-6 sm:p-8">
-          <p className="eyebrow mb-3">FCC bridge</p>
-          <h3 className="text-lg font-bold tracking-tight mb-3">Import your Financial Command Centre data</h3>
-          <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
-            MyDSP reads the same <code className="text-accent">dfc_data_v3</code> key FCC uses.
-            {fccDataPresent
-              ? ' Live FCC data was detected in this browser.'
-              : ' No live FCC blob detected here — use a JSON backup export from FCC instead.'}
-          </p>
-          <div className="flex flex-wrap gap-3">
-            <button type="button" className="btn-primary" onClick={onImportFccLive} disabled={!fccDataPresent}>
-              Import live FCC data
-            </button>
-            <button type="button" className="btn-secondary" onClick={() => fileRef.current?.click()}>
-              Import JSON backup
-            </button>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="application/json,.json"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0]
-                if (f) void onImportFile(f)
-                e.target.value = ''
-              }}
-            />
-          </div>
-        </section>
-
-        <section className="surface p-6 sm:p-8">
-          <p className="eyebrow mb-3">Display</p>
-          <h3 className="text-lg font-bold tracking-tight mb-3">Currency &amp; tax residency</h3>
-          <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
-            Stored per active portfolio. Amounts stay in GBP internally; display currency uses FX.
-            Tax residency flags CGT / reporting context for this workspace.
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-2xl">
-            <label className="block">
-              <span className="label-uppercase block mb-2">Display currency</span>
-              <select
-                value={data.settings.currency || 'GBP'}
-                onChange={(e) => {
-                  setCurrency(e.target.value)
-                  flash(`Display currency set to ${e.target.value}.`)
-                }}
-              >
-                {DISPLAY_CURRENCIES.map((c) => (
-                  <option key={c.code} value={c.code}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="block">
-              <span className="label-uppercase block mb-2">Tax residency</span>
-              <select
-                value={data.settings.taxResidency || 'GB'}
-                onChange={(e) => {
-                  const code = e.target.value
-                  setData((prev) => ({
-                    ...prev,
-                    settings: { ...prev.settings, taxResidency: code },
-                  }))
-                  flash(`Tax residency set to ${code}.`)
-                }}
-              >
-                {TAX_RESIDENCIES.map((t) => (
-                  <option key={t.code} value={t.code}>
-                    {t.label} ({t.code})
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-          <p className="text-xs text-text-muted mt-4 label-muted">
-            Active portfolio: {portfolios.find((p) => p.id === activeId)?.name ?? activeId}
-            {fxRates.USD
-              ? ` · GBP/USD ${fxRates.USD.toFixed(4)} (1 GBP = ${fxRates.USD.toFixed(2)} USD)`
-              : ''}
-          </p>
-        </section>
-
-        <section className="surface p-6 sm:p-8" id="trade-history">
-          <p className="eyebrow mb-3">David · holdings</p>
-          <h3 className="text-lg font-bold tracking-tight mb-3">TSLA / MSTR / BTC trade history</h3>
-          <p className="text-sm text-text-muted font-light mb-4 max-w-2xl">
-            Download a CSV template, fill your dated buys/sells (GBP unit prices), then open the
-            holding → <strong className="text-text">Import history</strong>. Pre-2014 BTC dates use
-            the OTC overlay below. For positions without journal legs, use the{' '}
-            <Link to="/setup/opening" className="text-accent hover:underline">
-              opening-balance wizard
-            </Link>
-            .
-          </p>
-          <div className="flex flex-wrap gap-3 mb-4">
-            {TRADE_TEMPLATES.map((t) => (
-              <a
-                key={t.symbol}
-                className="btn-secondary btn-sm"
-                href={`${import.meta.env.BASE_URL}${t.href}`}
-                download={`trades-${t.symbol}.csv`}
-              >
-                {t.symbol} template
-              </a>
-            ))}
-            <Link to="/setup/opening" className="btn-ghost btn-sm">
-              Opening wizard
-            </Link>
-            <Link to="/compare" className="btn-ghost btn-sm">
-              Compare portfolios
-            </Link>
-          </div>
-          <ol className="text-sm text-text-muted font-light space-y-2 list-decimal pl-5 max-w-2xl">
-            <li>
-              Switch header portfolio to <strong className="text-text">David</strong>
-            </li>
-            <li>Equities → TSLA / MSTR or Crypto → BTC → Import history</li>
-            <li>Paste CSV or use multi-row entry; journal rebuilds cost basis</li>
-          </ol>
-        </section>
-
-        <section className="surface p-6 sm:p-8" id="price-history">
-          <p className="eyebrow mb-3">Markets</p>
-          <h3 className="text-lg font-bold tracking-tight mb-3">Historical prices &amp; OTC</h3>
-          <p className="text-sm text-text-muted font-light mb-4 max-w-2xl">
-            Bundled daily closes: <strong className="text-text">TSLA</strong> /{' '}
-            <strong className="text-text">MSTR</strong> (USD→GBP via GBPUSD),{' '}
-            <strong className="text-text">BTC</strong> (GBP). Live equity refreshes convert USD
-            quotes to GBP with the daily FX rate. Upload a JSON series for any other symbol, or a
-            pre-2014 BTC OTC overlay. Format:{' '}
-            <code className="text-accent">{`{ "series": [["2013-01-01", 12.5], ...] }`}</code>
-          </p>
-          <div className="flex flex-wrap gap-3 items-end mb-4">
-            <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle">
-              Kind
-              <select
-                className="mt-2 block"
-                value={backfillKind}
-                onChange={(e) => setBackfillKind(e.target.value as 'crypto' | 'equity')}
-              >
-                <option value="crypto">Crypto</option>
-                <option value="equity">Equity</option>
-              </select>
-            </label>
-            <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle">
-              Symbol
-              <input
-                className="mt-2 block uppercase"
-                value={backfillSymbol}
-                onChange={(e) => setBackfillSymbol(e.target.value.toUpperCase())}
-                placeholder="ETH / AAPL"
-              />
-            </label>
-            <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle">
-              From
-              <input
-                type="date"
-                className="mt-2 block"
-                value={backfillFrom}
-                onChange={(e) => setBackfillFrom(e.target.value)}
-              />
-            </label>
-            <button
-              type="button"
-              className="btn-primary"
-              disabled={backfillBusy}
-              onClick={() => void onFetchYahoo()}
-            >
-              {backfillBusy ? 'Fetching…' : 'Fetch from Yahoo'}
-            </button>
-            <button
-              type="button"
-              className="btn-secondary"
-              onClick={() => priceFileRef.current?.click()}
-            >
-              Upload price JSON
-            </button>
-            <input
-              ref={priceFileRef}
-              type="file"
-              accept="application/json,.json"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0]
-                if (f) void onImportPriceHistory(f)
-                e.target.value = ''
-              }}
-            />
-          </div>
-          <p className="text-xs text-text-subtle font-light max-w-2xl">
-            Pre-2014 BTC: upload OTC rows into{' '}
-            <code className="text-accent">btc-gbp-otc.json</code> format via Upload, or place the
-            file under <code className="text-accent">public/data/prices/</code>. HTTPS host: see{' '}
-            <code className="text-accent">DEPLOY.md</code>.
-          </p>
-        </section>
-
-        <section className="surface p-6 sm:p-8">
-          <p className="eyebrow mb-3">Security</p>
-          <h3 className="text-lg font-bold tracking-tight mb-3">PIN lock</h3>
-          <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
-            4-digit PIN with optional biometrics and auto-lock. Compatible with FCC security keys.
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 max-w-lg">
-            <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle">
-              New PIN
-              <input
-                type="password"
-                inputMode="numeric"
-                maxLength={4}
-                className="mt-2"
-                value={pinDraft}
-                onChange={(e) => setPinDraft(e.target.value.replace(/\D/g, '').slice(0, 4))}
-              />
-            </label>
-            <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle">
-              Confirm
-              <input
-                type="password"
-                inputMode="numeric"
-                maxLength={4}
-                className="mt-2"
-                value={pinConfirm}
-                onChange={(e) => setPinConfirm(e.target.value.replace(/\D/g, '').slice(0, 4))}
-              />
-            </label>
-          </div>
-          <div className="flex flex-wrap gap-3 mb-6">
-            <button
-              type="button"
-              className="btn-primary"
-              onClick={() => {
-                void (async () => {
-                  if (pinDraft.length !== 4 || pinDraft !== pinConfirm) {
-                    flash('Enter a matching 4-digit PIN.')
-                    return
-                  }
-                  const pinHash = await hashPin(pinDraft)
-                  persistSecurity({ ...sec, pinEnabled: true, pinHash })
-                  setPinDraft('')
-                  setPinConfirm('')
-                  flash('PIN enabled.')
-                })()
-              }}
-            >
-              Enable / update PIN
-            </button>
-            {pinEnabled && (
-              <>
-                <button
-                  type="button"
-                  className="btn-ghost"
-                  onClick={() => {
-                    persistSecurity({
-                      ...sec,
-                      pinEnabled: false,
-                      pinHash: '',
-                      biometricEnabled: false,
-                    })
-                    clearBiometricCred()
-                    flash('PIN disabled.')
-                  }}
-                >
-                  Disable PIN
-                </button>
-                <button type="button" className="btn-ghost" onClick={() => lock()}>
-                  Lock now
-                </button>
-              </>
-            )}
-          </div>
-          <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle mb-2">
-            Auto-lock (minutes)
-          </label>
-          <select
-            className="max-w-xs mb-6"
-            value={sec.autoLockMinutes}
-            onChange={(e) => {
-              const autoLockMinutes = Number(e.target.value)
-              persistSecurity({ ...sec, autoLockMinutes })
-              flash('Auto-lock updated.')
-            }}
-          >
-            {[0, 1, 5, 15, 30].map((m) => (
-              <option key={m} value={m}>
-                {m === 0 ? 'Off' : `${m} min`}
-              </option>
-            ))}
-          </select>
-          <div>
-            <button
-              type="button"
-              className="btn-secondary"
-              disabled={!sec.pinEnabled}
-              onClick={() => {
-                void (async () => {
-                  const ok = await registerBiometric()
-                  if (ok) {
-                    persistSecurity({ ...sec, biometricEnabled: true })
-                    flash('Biometrics registered.')
-                  } else flash('Biometrics unavailable or cancelled.')
-                })()
-              }}
-            >
-              {sec.biometricEnabled ? 'Re-register biometrics' : 'Enable biometrics'}
-            </button>
-            <p className="text-xs text-text-subtle mt-3 max-w-xl">
-              Face ID / Touch ID (WebAuthn) requires a secure context — use an HTTPS PWA host, not
-              plain HTTP LAN.
-            </p>
-          </div>
-        </section>
-
-        <section className="surface p-6 sm:p-8">
-          <p className="eyebrow mb-3">Income</p>
-          <h3 className="text-lg font-bold tracking-tight mb-3">Monthly income</h3>
-          <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
-            Used by Monthly review for surplus calculations.
-          </p>
-          <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle mb-2">
-            Amount £
-          </label>
-          <input
-            key={`income-${activeId}`}
-            type="text"
-            inputMode="decimal"
-            className="max-w-xs"
-            defaultValue={data.monthlyIncome || ''}
-            onBlur={(e) => {
-              const n = Number(String(e.target.value).replace(/,/g, ''))
-              setData((prev) => ({
-                ...prev,
-                monthlyIncome: Number.isFinite(n) ? n : 0,
-              }))
-              flash('Monthly income saved.')
-            }}
-          />
-        </section>
-
-        <section className="surface p-6 sm:p-8">
-          <p className="eyebrow mb-3">Prices</p>
-          <h3 className="text-lg font-bold tracking-tight mb-3">Live market data</h3>
-          <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
-            Crypto prices use CoinGecko (no key). Equities use Finnhub if you add a free API key,
-            otherwise Yahoo via a CORS proxy. Use the Prices button in the header to refresh.
-          </p>
-          <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle mb-2">
-            Finnhub API key
-          </label>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <input
-              key={`finnhub-${activeId}`}
-              type="password"
-              autoComplete="off"
-              placeholder="Optional — finnhub.io"
-              defaultValue={data.settings.finnhubKey ?? ''}
-              onBlur={(e) => {
-                const key = e.target.value.trim()
-                setData((prev) => ({
-                  ...prev,
-                  settings: { ...prev.settings, finnhubKey: key || undefined },
-                }))
-                try {
-                  if (key) localStorage.setItem('finnhub_key', key)
-                  else localStorage.removeItem('finnhub_key')
-                } catch {
-                  /* ignore */
-                }
-                flash(key ? 'Finnhub key saved.' : 'Finnhub key cleared.')
-              }}
-            />
-          </div>
-        </section>
-
-        <section className="surface p-6 sm:p-8">
-          <p className="eyebrow mb-3">Devices</p>
-          <h3 className="text-lg font-bold tracking-tight mb-3">Install on iPhone &amp; iPad</h3>
-          <p className="text-sm text-text-muted font-light mb-4 max-w-2xl leading-relaxed">
-            Pin MyDSP as a home-screen app so it opens full-screen with the orange icon. Data on
-            each device is local-first (same browser origin). Use Encrypted cloud sync below to
-            keep web, iPhone, and iPad aligned.
-          </p>
-          <ol className="text-sm text-text-muted font-light space-y-2 mb-6 max-w-2xl list-decimal list-inside leading-relaxed">
-            <li>
-              Open MyDSP in <span className="text-text font-medium">Safari</span> (required on iOS).
-            </li>
-            <li>
-              Tap <span className="text-text font-medium">Share</span>, then{' '}
-              <span className="text-text font-medium">Add to Home Screen</span>.
-            </li>
-            <li>Confirm the name <span className="text-text font-medium">MyDSP</span> and add.</li>
-            <li>
-              After install, push/pull via Sync so every device shares the same portfolios.
-            </li>
-          </ol>
-          <p className="text-xs text-text-subtle leading-relaxed max-w-2xl">
-            On desktop Chrome/Edge, use the install banner or the browser&apos;s Install app menu.
-            Android: browser menu → Install app / Add to Home screen.
-          </p>
-        </section>
-
-        <section id="sync" className="surface p-6 sm:p-8">
+        <section id="sync" className="surface p-6 sm:p-8 scroll-mt-24">
           <p className="eyebrow mb-3">Sync</p>
           <h3 className="text-lg font-bold tracking-tight mb-3">Encrypted cloud sync</h3>
           <p className="text-sm text-text-muted font-light mb-4 max-w-2xl">
-            Keep every device in sync automatically via a free Cloudflare Worker. Data is encrypted
-            on your device before it leaves the browser — Cloudflare only stores a locked blob. Same
-            Remote URL + same passphrase on Mac, iPhone, and iPad. Setup guide:{' '}
-            <code className="text-accent">SYNC_SETUP.md</code>.
+            On iPhone: open the <span className="text-text font-medium">Settings</span> tab at the
+            bottom, then use this section. Same Remote URL + passphrase on Mac, iPhone, and iPad.
+            Turn on <span className="text-text font-medium">Automatic sync</span> and{' '}
+            <span className="text-text font-medium">Remember passphrase</span> so devices stay in
+            sync without Push/Pull each time.
           </p>
           <div className="border border-border p-4 mb-6 max-w-2xl space-y-4">
             <div>
@@ -1457,6 +1007,474 @@ export function SettingsPage() {
               })}
             </div>
           )}
+        </section>
+
+
+        <section className="surface p-6 sm:p-8">
+          <p className="eyebrow mb-3">Appearance</p>
+          <h3 className="text-lg font-bold tracking-tight mb-3">Light &amp; dark mode</h3>
+          <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
+            <span className="text-text font-medium">Auto</span> follows your computer clock —
+            light after approximate sunrise, dark after sunset (local time). Choose Light or Dark
+            to lock a theme. Header moon toggle also locks Light/Dark.
+          </p>
+          <div className="flex flex-wrap gap-2 mb-3" role="group" aria-label="Theme preference">
+            {(
+              [
+                { id: 'auto' as const, label: 'Auto (day / night)' },
+                { id: 'light' as const, label: 'Light' },
+                { id: 'dark' as const, label: 'Dark' },
+              ] as const
+            ).map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                className={preference === opt.id ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
+                aria-pressed={preference === opt.id}
+                onClick={() => {
+                  setPreference(opt.id as ThemePreference)
+                  flash(
+                    opt.id === 'auto'
+                      ? `Auto theme on — currently ${theme} mode for local daytime.`
+                      : `${opt.label} mode locked.`,
+                  )
+                }}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-text-subtle">
+            Now showing: <span className="text-text font-medium uppercase">{theme}</span>
+            {preference === 'auto' ? ' · Auto' : ' · Manual'}
+          </p>
+        </section>
+
+        <section className="surface p-6 sm:p-8">
+          <p className="eyebrow mb-3">Layout</p>
+          <h3 className="text-lg font-bold tracking-tight mb-3">Sidebar menu order</h3>
+          <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
+            Drag the grip next to each item in the left menu to rearrange. Order is saved in this
+            browser. Reset restores the default sequence.
+          </p>
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={() => {
+              resetNavOrder()
+              window.dispatchEvent(new Event('mydsp-nav-order'))
+              flash('Sidebar menu order reset to defaults.')
+            }}
+          >
+            Reset sidebar order
+          </button>
+        </section>
+
+        <section className="surface p-6 sm:p-8">
+          <p className="eyebrow mb-3">FCC bridge</p>
+          <h3 className="text-lg font-bold tracking-tight mb-3">Import your Financial Command Centre data</h3>
+          <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
+            MyDSP reads the same <code className="text-accent">dfc_data_v3</code> key FCC uses.
+            {fccDataPresent
+              ? ' Live FCC data was detected in this browser.'
+              : ' No live FCC blob detected here — use a JSON backup export from FCC instead.'}
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <button type="button" className="btn-primary" onClick={onImportFccLive} disabled={!fccDataPresent}>
+              Import live FCC data
+            </button>
+            <button type="button" className="btn-secondary" onClick={() => fileRef.current?.click()}>
+              Import JSON backup
+            </button>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="application/json,.json"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0]
+                if (f) void onImportFile(f)
+                e.target.value = ''
+              }}
+            />
+          </div>
+        </section>
+
+        <section className="surface p-6 sm:p-8">
+          <p className="eyebrow mb-3">Display</p>
+          <h3 className="text-lg font-bold tracking-tight mb-3">Currency &amp; tax residency</h3>
+          <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
+            Stored per active portfolio. Amounts stay in GBP internally; display currency uses FX.
+            Tax residency flags CGT / reporting context for this workspace.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-2xl">
+            <label className="block">
+              <span className="label-uppercase block mb-2">Display currency</span>
+              <select
+                value={data.settings.currency || 'GBP'}
+                onChange={(e) => {
+                  setCurrency(e.target.value)
+                  flash(`Display currency set to ${e.target.value}.`)
+                }}
+              >
+                {DISPLAY_CURRENCIES.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block">
+              <span className="label-uppercase block mb-2">Tax residency</span>
+              <select
+                value={data.settings.taxResidency || 'GB'}
+                onChange={(e) => {
+                  const code = e.target.value
+                  setData((prev) => ({
+                    ...prev,
+                    settings: { ...prev.settings, taxResidency: code },
+                  }))
+                  flash(`Tax residency set to ${code}.`)
+                }}
+              >
+                {TAX_RESIDENCIES.map((t) => (
+                  <option key={t.code} value={t.code}>
+                    {t.label} ({t.code})
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <p className="text-xs text-text-muted mt-4 label-muted">
+            Active portfolio: {portfolios.find((p) => p.id === activeId)?.name ?? activeId}
+            {fxRates.USD
+              ? ` · GBP/USD ${fxRates.USD.toFixed(4)} (1 GBP = ${fxRates.USD.toFixed(2)} USD)`
+              : ''}
+          </p>
+        </section>
+
+        <section className="surface p-6 sm:p-8" id="trade-history">
+          <p className="eyebrow mb-3">David · holdings</p>
+          <h3 className="text-lg font-bold tracking-tight mb-3">TSLA / MSTR / BTC trade history</h3>
+          <p className="text-sm text-text-muted font-light mb-4 max-w-2xl">
+            Download a CSV template, fill your dated buys/sells (GBP unit prices), then open the
+            holding → <strong className="text-text">Import history</strong>. Pre-2014 BTC dates use
+            the OTC overlay below. For positions without journal legs, use the{' '}
+            <Link to="/setup/opening" className="text-accent hover:underline">
+              opening-balance wizard
+            </Link>
+            .
+          </p>
+          <div className="flex flex-wrap gap-3 mb-4">
+            {TRADE_TEMPLATES.map((t) => (
+              <a
+                key={t.symbol}
+                className="btn-secondary btn-sm"
+                href={`${import.meta.env.BASE_URL}${t.href}`}
+                download={`trades-${t.symbol}.csv`}
+              >
+                {t.symbol} template
+              </a>
+            ))}
+            <Link to="/setup/opening" className="btn-ghost btn-sm">
+              Opening wizard
+            </Link>
+            <Link to="/compare" className="btn-ghost btn-sm">
+              Compare portfolios
+            </Link>
+          </div>
+          <ol className="text-sm text-text-muted font-light space-y-2 list-decimal pl-5 max-w-2xl">
+            <li>
+              Switch header portfolio to <strong className="text-text">David</strong>
+            </li>
+            <li>Equities → TSLA / MSTR or Crypto → BTC → Import history</li>
+            <li>Paste CSV or use multi-row entry; journal rebuilds cost basis</li>
+          </ol>
+        </section>
+
+        <section className="surface p-6 sm:p-8" id="price-history">
+          <p className="eyebrow mb-3">Markets</p>
+          <h3 className="text-lg font-bold tracking-tight mb-3">Historical prices &amp; OTC</h3>
+          <p className="text-sm text-text-muted font-light mb-4 max-w-2xl">
+            Bundled daily closes: <strong className="text-text">TSLA</strong> /{' '}
+            <strong className="text-text">MSTR</strong> (USD→GBP via GBPUSD),{' '}
+            <strong className="text-text">BTC</strong> (GBP). Live equity refreshes convert USD
+            quotes to GBP with the daily FX rate. Upload a JSON series for any other symbol, or a
+            pre-2014 BTC OTC overlay. Format:{' '}
+            <code className="text-accent">{`{ "series": [["2013-01-01", 12.5], ...] }`}</code>
+          </p>
+          <div className="flex flex-wrap gap-3 items-end mb-4">
+            <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle">
+              Kind
+              <select
+                className="mt-2 block"
+                value={backfillKind}
+                onChange={(e) => setBackfillKind(e.target.value as 'crypto' | 'equity')}
+              >
+                <option value="crypto">Crypto</option>
+                <option value="equity">Equity</option>
+              </select>
+            </label>
+            <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle">
+              Symbol
+              <input
+                className="mt-2 block uppercase"
+                value={backfillSymbol}
+                onChange={(e) => setBackfillSymbol(e.target.value.toUpperCase())}
+                placeholder="ETH / AAPL"
+              />
+            </label>
+            <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle">
+              From
+              <input
+                type="date"
+                className="mt-2 block"
+                value={backfillFrom}
+                onChange={(e) => setBackfillFrom(e.target.value)}
+              />
+            </label>
+            <button
+              type="button"
+              className="btn-primary"
+              disabled={backfillBusy}
+              onClick={() => void onFetchYahoo()}
+            >
+              {backfillBusy ? 'Fetching…' : 'Fetch from Yahoo'}
+            </button>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => priceFileRef.current?.click()}
+            >
+              Upload price JSON
+            </button>
+            <input
+              ref={priceFileRef}
+              type="file"
+              accept="application/json,.json"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0]
+                if (f) void onImportPriceHistory(f)
+                e.target.value = ''
+              }}
+            />
+          </div>
+          <p className="text-xs text-text-subtle font-light max-w-2xl">
+            Pre-2014 BTC: upload OTC rows into{' '}
+            <code className="text-accent">btc-gbp-otc.json</code> format via Upload, or place the
+            file under <code className="text-accent">public/data/prices/</code>. HTTPS host: see{' '}
+            <code className="text-accent">DEPLOY.md</code>.
+          </p>
+        </section>
+
+        <section className="surface p-6 sm:p-8">
+          <p className="eyebrow mb-3">Security</p>
+          <h3 className="text-lg font-bold tracking-tight mb-3">PIN lock</h3>
+          <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
+            4-digit PIN with optional biometrics and auto-lock. Compatible with FCC security keys.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 max-w-lg">
+            <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle">
+              New PIN
+              <input
+                type="password"
+                inputMode="numeric"
+                maxLength={4}
+                className="mt-2"
+                value={pinDraft}
+                onChange={(e) => setPinDraft(e.target.value.replace(/\D/g, '').slice(0, 4))}
+              />
+            </label>
+            <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle">
+              Confirm
+              <input
+                type="password"
+                inputMode="numeric"
+                maxLength={4}
+                className="mt-2"
+                value={pinConfirm}
+                onChange={(e) => setPinConfirm(e.target.value.replace(/\D/g, '').slice(0, 4))}
+              />
+            </label>
+          </div>
+          <div className="flex flex-wrap gap-3 mb-6">
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={() => {
+                void (async () => {
+                  if (pinDraft.length !== 4 || pinDraft !== pinConfirm) {
+                    flash('Enter a matching 4-digit PIN.')
+                    return
+                  }
+                  const pinHash = await hashPin(pinDraft)
+                  persistSecurity({ ...sec, pinEnabled: true, pinHash })
+                  setPinDraft('')
+                  setPinConfirm('')
+                  flash('PIN enabled.')
+                })()
+              }}
+            >
+              Enable / update PIN
+            </button>
+            {pinEnabled && (
+              <>
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  onClick={() => {
+                    persistSecurity({
+                      ...sec,
+                      pinEnabled: false,
+                      pinHash: '',
+                      biometricEnabled: false,
+                    })
+                    clearBiometricCred()
+                    flash('PIN disabled.')
+                  }}
+                >
+                  Disable PIN
+                </button>
+                <button type="button" className="btn-ghost" onClick={() => lock()}>
+                  Lock now
+                </button>
+              </>
+            )}
+          </div>
+          <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle mb-2">
+            Auto-lock (minutes)
+          </label>
+          <select
+            className="max-w-xs mb-6"
+            value={sec.autoLockMinutes}
+            onChange={(e) => {
+              const autoLockMinutes = Number(e.target.value)
+              persistSecurity({ ...sec, autoLockMinutes })
+              flash('Auto-lock updated.')
+            }}
+          >
+            {[0, 1, 5, 15, 30].map((m) => (
+              <option key={m} value={m}>
+                {m === 0 ? 'Off' : `${m} min`}
+              </option>
+            ))}
+          </select>
+          <div>
+            <button
+              type="button"
+              className="btn-secondary"
+              disabled={!sec.pinEnabled}
+              onClick={() => {
+                void (async () => {
+                  const ok = await registerBiometric()
+                  if (ok) {
+                    persistSecurity({ ...sec, biometricEnabled: true })
+                    flash('Biometrics registered.')
+                  } else flash('Biometrics unavailable or cancelled.')
+                })()
+              }}
+            >
+              {sec.biometricEnabled ? 'Re-register biometrics' : 'Enable biometrics'}
+            </button>
+            <p className="text-xs text-text-subtle mt-3 max-w-xl">
+              Face ID / Touch ID (WebAuthn) requires a secure context — use an HTTPS PWA host, not
+              plain HTTP LAN.
+            </p>
+          </div>
+        </section>
+
+        <section className="surface p-6 sm:p-8">
+          <p className="eyebrow mb-3">Income</p>
+          <h3 className="text-lg font-bold tracking-tight mb-3">Monthly income</h3>
+          <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
+            Used by Monthly review for surplus calculations.
+          </p>
+          <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle mb-2">
+            Amount £
+          </label>
+          <input
+            key={`income-${activeId}`}
+            type="text"
+            inputMode="decimal"
+            className="max-w-xs"
+            defaultValue={data.monthlyIncome || ''}
+            onBlur={(e) => {
+              const n = Number(String(e.target.value).replace(/,/g, ''))
+              setData((prev) => ({
+                ...prev,
+                monthlyIncome: Number.isFinite(n) ? n : 0,
+              }))
+              flash('Monthly income saved.')
+            }}
+          />
+        </section>
+
+        <section className="surface p-6 sm:p-8">
+          <p className="eyebrow mb-3">Prices</p>
+          <h3 className="text-lg font-bold tracking-tight mb-3">Live market data</h3>
+          <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
+            Crypto prices use CoinGecko (no key). Equities use Finnhub if you add a free API key,
+            otherwise Yahoo via a CORS proxy. Use the Prices button in the header to refresh.
+          </p>
+          <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle mb-2">
+            Finnhub API key
+          </label>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <input
+              key={`finnhub-${activeId}`}
+              type="password"
+              autoComplete="off"
+              placeholder="Optional — finnhub.io"
+              defaultValue={data.settings.finnhubKey ?? ''}
+              onBlur={(e) => {
+                const key = e.target.value.trim()
+                setData((prev) => ({
+                  ...prev,
+                  settings: { ...prev.settings, finnhubKey: key || undefined },
+                }))
+                try {
+                  if (key) localStorage.setItem('finnhub_key', key)
+                  else localStorage.removeItem('finnhub_key')
+                } catch {
+                  /* ignore */
+                }
+                flash(key ? 'Finnhub key saved.' : 'Finnhub key cleared.')
+              }}
+            />
+          </div>
+        </section>
+
+        <section className="surface p-6 sm:p-8">
+          <p className="eyebrow mb-3">Devices</p>
+          <h3 className="text-lg font-bold tracking-tight mb-3">Install on iPhone &amp; iPad</h3>
+          <p className="text-sm text-text-muted font-light mb-4 max-w-2xl leading-relaxed">
+            Pin MyDSP as a home-screen app so it opens full-screen with the orange icon. Data on
+            each device is local-first (same browser origin). Use{' '}
+            <a href="#sync" className="text-accent font-medium">
+              Encrypted cloud sync
+            </a>{' '}
+            (top of this page) so web, iPhone, and iPad stay aligned.
+          </p>
+          <ol className="text-sm text-text-muted font-light space-y-2 mb-6 max-w-2xl list-decimal list-inside leading-relaxed">
+            <li>
+              Open MyDSP in <span className="text-text font-medium">Safari</span> (required on iOS).
+            </li>
+            <li>
+              Tap <span className="text-text font-medium">Share</span>, then{' '}
+              <span className="text-text font-medium">Add to Home Screen</span>.
+            </li>
+            <li>Confirm the name <span className="text-text font-medium">MyDSP</span> and add.</li>
+            <li>
+              Open Settings (bottom tab) → turn on{' '}
+              <span className="text-text font-medium">Automatic sync</span> +{' '}
+              <span className="text-text font-medium">Remember passphrase</span>.
+            </li>
+          </ol>
+          <p className="text-xs text-text-subtle leading-relaxed max-w-2xl">
+            On desktop Chrome/Edge, use the install banner or the browser&apos;s Install app menu.
+            Android: browser menu → Install app / Add to Home screen.
+          </p>
         </section>
 
         <section className="surface p-6 sm:p-8">
