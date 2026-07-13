@@ -74,6 +74,7 @@ export function PortfolioSeriesChart({
   const gradId = useId().replace(/:/g, '')
   const [range, setRange] = useState<ChartRange>(defaultRange)
   const [showLayers, setShowLayers] = useState(false)
+  const [focusedPoint, setFocusedPoint] = useState<number | null>(null)
 
   const filtered = useMemo(() => filterByRange(history, range), [history, range])
   const delta = useMemo(
@@ -100,6 +101,9 @@ export function PortfolioSeriesChart({
   )
 
   const primaryDef = SERIES.find((s) => s.key === primary) ?? SERIES[0]
+  
+  // Get focused point data for display
+  const focusedData = focusedPoint !== null && chartData[focusedPoint] ? chartData[focusedPoint] : null
 
   return (
     <div className={`surface p-0 chart-panel ${className}`}>
@@ -108,7 +112,11 @@ export function PortfolioSeriesChart({
           <div className="min-w-0">
             <p className="text-xs uppercase tracking-wider text-text-subtle mb-1 md:mb-2 font-semibold">{eyebrow}</p>
             <h3 className="text-base md:text-lg font-bold tracking-tight">{title}</h3>
-            {delta && (
+            {focusedData ? (
+              <p className="text-sm mt-2 tabular-nums text-accent">
+                {formatGBP(focusedData[primary] as number)} · {focusedData.tick}
+              </p>
+            ) : delta ? (
               <p
                 className={`text-xs md:text-sm mt-2 tabular-nums font-semibold ${
                   (invertDelta ? delta.change <= 0 : delta.change >= 0)
@@ -118,7 +126,7 @@ export function PortfolioSeriesChart({
               >
                 {formatGBP(delta.change, { signed: true })} · {formatPct(delta.pct)} · {range}
               </p>
-            )}
+            ) : null}
           </div>
           {onSnapshot && (
             <button type="button" className="btn-secondary btn-sm shrink-0 min-h-[44px] md:min-h-[36px]" onClick={onSnapshot}>
@@ -154,7 +162,15 @@ export function PortfolioSeriesChart({
               : `: ${chartData.length} points`}
           </p>
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chartData} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
+            <AreaChart
+              data={chartData}
+              margin={{ top: 8, right: 4, left: 0, bottom: 0 }}
+              onMouseMove={(e) => {
+                const idx = e?.activeTooltipIndex
+                setFocusedPoint(typeof idx === 'number' ? idx : null)
+              }}
+              onMouseLeave={() => setFocusedPoint(null)}
+            >
               <defs>
                 <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor={primaryDef.color} stopOpacity={0.35} />
@@ -192,6 +208,7 @@ export function PortfolioSeriesChart({
                 }}
                 labelStyle={{ color: 'var(--text-muted)', fontWeight: 600, marginBottom: 4 }}
                 itemStyle={{ color: 'var(--text)' }}
+                cursor={{ stroke: 'var(--accent)', strokeWidth: 1, strokeOpacity: 0.3 }}
               />
               {(showLayers || activeLines.length > 0) && (
                 <Legend
@@ -208,7 +225,7 @@ export function PortfolioSeriesChart({
                 fill={`url(#${gradId})`}
                 strokeWidth={2}
                 animationDuration={800}
-                animationEasing="ease-in-out"
+                animationEasing="ease-out"
               />
               {activeLines.map((key) => {
                 const def = SERIES.find((s) => s.key === key)
@@ -224,7 +241,7 @@ export function PortfolioSeriesChart({
                     strokeWidth={1.5}
                     strokeDasharray={def.dashed ? '4 4' : undefined}
                     animationDuration={800}
-                    animationEasing="ease-in-out"
+                    animationEasing="ease-out"
                   />
                 )
               })}
