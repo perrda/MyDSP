@@ -52,8 +52,8 @@ initializeSearchDB().catch((error) => {
   logger.error('Failed to initialize search', error instanceof Error ? error : new Error(String(error)), 'app')
 })
 
-// Register service worker
-if ('serviceWorker' in navigator) {
+// Register service worker only in production builds (not during local vite preview debugging)
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
     registerServiceWorker().catch((error) => {
       logger.error(
