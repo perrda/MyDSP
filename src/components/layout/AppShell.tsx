@@ -8,6 +8,7 @@ import { PrivacyToggle } from '../PrivacyToggle'
 import { ThemeToggle } from '../ThemeToggle'
 import { MenuButton, Sidebar } from './Sidebar'
 import { BottomNav } from './BottomNav'
+import { GlobalSearch } from '../GlobalSearch'
 
 const titles: Record<string, { eyebrow: string; title: string }> = {
   '/': { eyebrow: 'Portfolio', title: 'Overview' },
@@ -154,6 +155,9 @@ export function AppShell() {
 
               <PrivacyToggle privacy={privacy} onToggle={() => setPrivacy(!privacy)} />
               <ThemeToggle />
+              <div className="hidden sm:block">
+                <GlobalSearch />
+              </div>
             </div>
           </div>
           {(priceMsg || lastPriceError || data.settings.lastPriceUpdate || syncCfg.lastSyncAt) && (

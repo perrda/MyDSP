@@ -346,11 +346,17 @@ export function globalSearch(
     crypto: CryptoHolding[]
     equities: EquityHolding[]
     goals: Goal[]
-    jobs: JobApplication[]
-    todos: TodoItem[]
+    jobApplications?: JobApplication[]
+    todoItems?: TodoItem[]
+    /** @deprecated use jobApplications */
+    jobs?: JobApplication[]
+    /** @deprecated use todoItems */
+    todos?: TodoItem[]
   }
 ): GlobalSearchResult[] {
   const results: GlobalSearchResult[] = []
+  const jobs = data.jobApplications ?? data.jobs ?? []
+  const todos = data.todoItems ?? data.todos ?? []
   
   // Search spending
   data.spending.forEach(s => {
@@ -413,7 +419,7 @@ export function globalSearch(
   })
   
   // Search jobs
-  data.jobs.forEach(j => {
+  jobs.forEach(j => {
     const score = fuzzyScore(query, `${j.companyName} ${j.jobTitle}`)
     if (score > 0.3) {
       results.push({
@@ -428,7 +434,7 @@ export function globalSearch(
   })
   
   // Search todos
-  data.todos.forEach(t => {
+  todos.forEach(t => {
     const score = fuzzyScore(query, t.title)
     if (score > 0.3) {
       results.push({

@@ -40,8 +40,8 @@ const KANBAN_COLUMNS: Array<{ status: JobStatus[]; title: string; color: string 
   { status: ['applying'], title: 'Applying', color: 'border-blue-500' },
   { status: ['applied', 'screening'], title: 'Applied', color: 'border-purple-500' },
   { status: ['interviewing'], title: 'Interviewing', color: 'border-amber-500' },
-  { status: ['offer'], title: 'Offers', color: 'border-green-500' },
-  { status: ['rejected', 'withdrawn'], title: 'Closed', color: 'border-red-500' },
+  { status: ['offer', 'accepted'], title: 'Offers', color: 'border-green-500' },
+  { status: ['rejected', 'withdrawn', 'archived'], title: 'Closed', color: 'border-red-500' },
 ]
 
 export function JobsPage() {
@@ -96,13 +96,13 @@ export function JobsPage() {
     if (editingApp) {
       setData((prev) => ({
         ...prev,
-        jobApplications: prev.jobApplications.map((a) => (a.id === app.id ? app : a)),
+        jobApplications: (prev.jobApplications ?? []).map((a) => (a.id === app.id ? app : a)),
       }))
       success('Application updated')
     } else {
       setData((prev) => ({
         ...prev,
-        jobApplications: [...(prev.jobApplications || []), app],
+        jobApplications: [...(prev.jobApplications ?? []), app],
       }))
       success('Application created', `${app.companyName} - ${app.jobTitle}`)
     }
@@ -113,7 +113,7 @@ export function JobsPage() {
   const handleStatusChange = (id: number, status: JobStatus) => {
     setData((prev) => ({
       ...prev,
-      jobApplications: prev.jobApplications.map((app) =>
+      jobApplications: (prev.jobApplications ?? []).map((app) =>
         app.id === id ? { ...app, status, updatedAt: new Date().toISOString() } : app,
       ),
     }))
@@ -124,7 +124,7 @@ export function JobsPage() {
     if (!confirm('Delete this job application?')) return
     setData((prev) => ({
       ...prev,
-      jobApplications: prev.jobApplications.filter((app) => app.id !== id),
+      jobApplications: (prev.jobApplications ?? []).filter((app) => app.id !== id),
     }))
     success('Application deleted')
   }
@@ -144,6 +144,16 @@ export function JobsPage() {
   if (applications.length === 0) {
     return (
       <div>
+        {showForm && (
+          <JobFormModal
+            application={editingApp}
+            onSave={handleSaveApplication}
+            onClose={() => {
+              setShowForm(false)
+              setEditingApp(undefined)
+            }}
+          />
+        )}
         <PageHeader
           eyebrow="Career"
           title="Job Applications"

@@ -147,12 +147,12 @@ export function DataExportPanel() {
         break
 
       case 'jobs':
-        excelData = jobsToExcel(data.jobs || [])
+        excelData = jobsToExcel(data.jobApplications || [])
         filename = `jobs-${new Date().toISOString().split('T')[0]}.csv`
         break
 
       case 'todos':
-        excelData = todosToExcel(data.todos || [])
+        excelData = todosToExcel(data.todoItems || [])
         filename = `todos-${new Date().toISOString().split('T')[0]}.csv`
         break
 
