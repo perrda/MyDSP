@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -29,7 +29,7 @@ import type { JobApplication, JobContact, JobInterview, JobNote, JobStatus } fro
 import { getDaysSinceApplied, STATUS_COLORS, STATUS_LABELS } from '../domain/jobs'
 import { createJobLinkedTodo } from '../domain/jobTodos'
 import { createTodoList } from '../domain/todos'
-import { downloadBlob, getDocumentBlob } from '../storage/documentBlobStore'
+import { downloadBlob, deleteDocumentBlob, getDocumentBlob } from '../storage/documentBlobStore'
 import { formatGBP, privacyClass } from '../utils/format'
 
 export function JobDetailPage() {
@@ -70,6 +70,26 @@ export function JobDetailPage() {
         : [],
     [data.todoItems, application],
   )
+
+  /** blobDocId → true if bytes exist on this device */
+  const [blobPresent, setBlobPresent] = useState<Record<number, boolean>>({})
+
+  useEffect(() => {
+    let cancelled = false
+    const docs = application?.customDocuments ?? []
+    void (async () => {
+      const next: Record<number, boolean> = {}
+      for (const doc of docs) {
+        if (!doc.hasBlob || typeof doc.blobDocId !== 'number') continue
+        const blob = await getDocumentBlob(doc.blobDocId)
+        next[doc.blobDocId] = Boolean(blob)
+      }
+      if (!cancelled) setBlobPresent(next)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [application?.customDocuments])
 
   if (!application) {
     return (
@@ -239,10 +259,46 @@ export function JobDetailPage() {
   }
 
   const handleDeleteDocument = (index: number) => {
-    updateApplication({
-      customDocuments: application.customDocuments.filter((_, i) => i !== index),
+    const doc = application.customDocuments[index]
+    setConfirmState({
+      title: 'Delete document',
+      body: `Remove “${doc?.name ?? 'document'}” from this application?`,
+      confirmLabel: 'Delete document',
+      onConfirm: () => {
+        void (async () => {
+          if (doc?.blobDocId) {
+            try {
+              await deleteDocumentBlob(doc.blobDocId)
+            } catch {
+              /* best-effort */
+            }
+          }
+          updateApplication({
+            customDocuments: application.customDocuments.filter((_, i) => i !== index),
+          })
+          success('Document deleted')
+        })()
+      },
     })
-    success('Document deleted')
+  }
+
+  const handleDownloadDoc = async (doc: {
+    blobDocId?: number
+    fileName?: string
+    name: string
+    hasBlob?: boolean
+  }) => {
+    if (!doc.blobDocId) return
+    const blob = await getDocumentBlob(doc.blobDocId)
+    if (!blob) {
+      showError(
+        'This device only',
+        'File bytes are not on this device. Re-upload here, or restore a backup / sync that includes attachments.',
+      )
+      setBlobPresent((prev) => ({ ...prev, [doc.blobDocId!]: false }))
+      return
+    }
+    downloadBlob(blob, doc.fileName || doc.name)
   }
 
   const handleToggleTask = (taskId: number) => {
@@ -288,16 +344,6 @@ export function JobDetailPage() {
       }
     })
     success('Todo created', interview ? 'Interview prep task' : 'Follow-up task')
-  }
-
-  const handleDownloadDoc = async (doc: { blobDocId?: number; fileName?: string; name: string }) => {
-    if (!doc.blobDocId) return
-    const blob = await getDocumentBlob(doc.blobDocId)
-    if (!blob) {
-      showError('File missing', 'Blob not found on this device')
-      return
-    }
-    downloadBlob(blob, doc.fileName || doc.name)
   }
 
   const daysSince = getDaysSinceApplied(application)
@@ -779,7 +825,14 @@ export function JobDetailPage() {
                         >
                           {doc.name}
                         </button>
-                        {doc.hasBlob && (
+                        {doc.hasBlob &&
+                          typeof doc.blobDocId === 'number' &&
+                          blobPresent[doc.blobDocId] === false && (
+                            <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-0.5">
+                              This device only — file not stored here. Re-upload or restore/sync attachments.
+                            </p>
+                          )}
+                        {doc.hasBlob && blobPresent[doc.blobDocId!] !== false && (
                           <button
                             type="button"
                             className="block text-accent text-xs underline mt-0.5"

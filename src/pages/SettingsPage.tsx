@@ -23,12 +23,15 @@ import {
   type SyncConflict,
 } from '../services/sync/conflicts'
 import {
+  allConflictsResolved,
+  applyMergePreview,
   downloadEncryptedBackup,
-  importEncryptedFile,
   loadSyncConfig,
-  pullAndMerge,
+  previewImport,
+  previewPull,
   pushSync,
   saveSyncConfig,
+  type MergePreview,
 } from '../services/sync/syncService'
 import {
   clearBiometricCred,
@@ -122,6 +125,7 @@ export function SettingsPage() {
   const syncFileRef = useRef<HTMLInputElement>(null)
   const [conflicts, setConflicts] = useState<SyncConflict[]>([])
   const [conflictChoices, setConflictChoices] = useState<Record<string, ConflictChoice>>({})
+  const [pendingMerge, setPendingMerge] = useState<MergePreview | null>(null)
   const [cloudEmail, setCloudEmail] = useState(() => {
     try {
       return localStorage.getItem('mydsp_cloud_email') ?? ''
@@ -872,24 +876,32 @@ export function SettingsPage() {
                     return
                   }
                   try {
-                    const r = await pullAndMerge(syncCfg.remoteUrl, syncPass, conflictChoices)
-                    reload()
-                    const next = {
-                      ...syncCfg,
-                      lastSyncAt: new Date().toISOString(),
-                      lastSyncError: undefined,
-                      lastMergeCount: r.merged,
-                    }
-                    setSyncCfg(next)
-                    saveSyncConfig(next)
-                    setConflicts(r.conflicts)
-                    if (r.conflicts.length > 0) {
+                    const preview = await previewPull(syncCfg.remoteUrl, syncPass)
+                    setPendingMerge(preview)
+                    setConflicts(preview.conflicts)
+                    if (preview.conflicts.length > 0) {
                       flash(
-                        `Merged ${r.merged} · ${r.conflicts.length} conflict(s) — choose Keep local/remote, then pull again.`,
+                        `Review ${preview.conflicts.length} conflict(s) — pick Keep local/remote, then Apply merge.`,
                       )
                     } else {
+                      const r = await applyMergePreview(preview, {})
+                      reload()
+                      setPendingMerge(null)
                       setConflictChoices({})
-                      flash(`Pulled & merged ${r.merged} portfolios.`)
+                      setConflicts([])
+                      const next = {
+                        ...syncCfg,
+                        lastSyncAt: new Date().toISOString(),
+                        lastSyncError: undefined,
+                        lastMergeCount: r.merged,
+                      }
+                      setSyncCfg(next)
+                      saveSyncConfig(next)
+                      const blobNote =
+                        preview.documentBlobs && preview.documentBlobs.length > 0
+                          ? ` · ${preview.documentBlobs.length} file(s)`
+                          : ''
+                      flash(`Pulled & merged ${r.merged} portfolios${blobNote}.`)
                     }
                   } catch (e) {
                     flash(e instanceof Error ? e.message : 'Pull failed')
@@ -898,6 +910,47 @@ export function SettingsPage() {
               }}
             >
               Pull & merge
+            </button>
+            <button
+              type="button"
+              className="btn-primary"
+              disabled={
+                !pendingMerge ||
+                (pendingMerge.conflicts.length > 0 &&
+                  !allConflictsResolved(pendingMerge.conflicts, conflictChoices))
+              }
+              onClick={() => {
+                void (async () => {
+                  if (!pendingMerge) return
+                  if (
+                    pendingMerge.conflicts.length > 0 &&
+                    !allConflictsResolved(pendingMerge.conflicts, conflictChoices)
+                  ) {
+                    flash('Resolve every conflict before applying.')
+                    return
+                  }
+                  try {
+                    const r = await applyMergePreview(pendingMerge, conflictChoices)
+                    reload()
+                    setPendingMerge(null)
+                    setConflicts([])
+                    setConflictChoices({})
+                    const next = {
+                      ...syncCfg,
+                      lastSyncAt: new Date().toISOString(),
+                      lastSyncError: undefined,
+                      lastMergeCount: r.merged,
+                    }
+                    setSyncCfg(next)
+                    saveSyncConfig(next)
+                    flash(`Applied merge · ${r.merged} portfolios.`)
+                  } catch (e) {
+                    flash(e instanceof Error ? e.message : 'Apply failed')
+                  }
+                })()
+              }}
+            >
+              Apply merge
             </button>
             <button type="button" className="btn-ghost" onClick={() => void testSyncEndpoint()}>
               Test endpoint
@@ -936,22 +989,29 @@ export function SettingsPage() {
                     return
                   }
                   try {
-                    const r = await importEncryptedFile(f, syncPass, conflictChoices)
-                    reload()
-                    setConflicts(r.conflicts)
-                    const next = {
-                      ...syncCfg,
-                      lastMergeCount: r.merged,
-                      lastSyncAt: new Date().toISOString(),
-                      lastSyncError: undefined,
+                    const preview = await previewImport(f, syncPass)
+                    setPendingMerge(preview)
+                    setConflicts(preview.conflicts)
+                    if (preview.conflicts.length > 0) {
+                      flash(
+                        `Review ${preview.conflicts.length} conflict(s) — pick Keep local/remote, then Apply merge.`,
+                      )
+                    } else {
+                      const r = await applyMergePreview(preview, {})
+                      reload()
+                      setPendingMerge(null)
+                      setConflictChoices({})
+                      setConflicts([])
+                      const next = {
+                        ...syncCfg,
+                        lastMergeCount: r.merged,
+                        lastSyncAt: new Date().toISOString(),
+                        lastSyncError: undefined,
+                      }
+                      setSyncCfg(next)
+                      saveSyncConfig(next)
+                      flash(`Imported & merged ${r.merged} portfolios.`)
                     }
-                    setSyncCfg(next)
-                    saveSyncConfig(next)
-                    flash(
-                      r.conflicts.length > 0
-                        ? `Imported ${r.merged} portfolios — ${r.conflicts.length} conflict(s) need a choice, then import again.`
-                        : `Imported & merged ${r.merged} portfolios.`,
-                    )
                   } catch (err) {
                     flash(err instanceof Error ? err.message : 'Import failed')
                   }
@@ -959,6 +1019,29 @@ export function SettingsPage() {
               }}
             />
           </div>
+          {pendingMerge && (
+            <p className="text-xs text-amber-600 dark:text-amber-400 mb-2">
+              Pending {pendingMerge.source} review
+              {pendingMerge.conflicts.length > 0
+                ? ` · ${pendingMerge.conflicts.length} conflict(s) to resolve`
+                : ' · ready to apply'}
+              {pendingMerge.documentBlobs && pendingMerge.documentBlobs.length > 0
+                ? ` · ${pendingMerge.documentBlobs.length} attachment(s)`
+                : ''}
+              {' · '}
+              <button
+                type="button"
+                className="underline"
+                onClick={() => {
+                  setPendingMerge(null)
+                  setConflicts([])
+                  setConflictChoices({})
+                }}
+              >
+                Discard
+              </button>
+            </p>
+          )}
           {syncCfg.lastSyncAt && (
             <p className="text-xs text-text-subtle mb-2">
               Last sync {new Date(syncCfg.lastSyncAt).toLocaleString('en-GB')}
@@ -1055,9 +1138,33 @@ export function SettingsPage() {
             <div className="mt-6 border border-border p-4 space-y-3">
               <p className="text-sm font-semibold">Sync conflicts</p>
               <p className="text-xs text-text-muted font-light">
-                Same-id rows differ locally and remotely (now includes todos, jobs, documents). Review field
-                diffs, pick a side, then Pull &amp; merge again.
+                Same-id rows differ locally and remotely. Nothing has been written yet — review field
+                diffs, pick a side for each row, then Apply merge.
               </p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className="btn-ghost btn-sm"
+                  onClick={() => {
+                    const next: Record<string, ConflictChoice> = { ...conflictChoices }
+                    for (const c of conflicts) next[conflictKey(c)] = 'local'
+                    setConflictChoices(next)
+                  }}
+                >
+                  Keep all local
+                </button>
+                <button
+                  type="button"
+                  className="btn-ghost btn-sm"
+                  onClick={() => {
+                    const next: Record<string, ConflictChoice> = { ...conflictChoices }
+                    for (const c of conflicts) next[conflictKey(c)] = 'remote'
+                    setConflictChoices(next)
+                  }}
+                >
+                  Keep all remote
+                </button>
+              </div>
               {conflicts.map((c) => {
                 const key = conflictKey(c)
                 return (
@@ -1069,6 +1176,7 @@ export function SettingsPage() {
                       <span className="uppercase text-[10px] tracking-widest text-text-subtle font-bold">
                         {c.collection}
                       </span>
+                      <span className="text-[10px] text-text-subtle">{c.portfolioId}</span>
                       <span className="font-medium">{c.localLabel}</span>
                       <span className="text-text-subtle">vs</span>
                       <span className="text-text-muted">{c.remoteLabel}</span>
@@ -1422,9 +1530,11 @@ export function SettingsPage() {
                       body: `Replace ALL portfolios with backup from ${parsed.createdAt.slice(0, 10)} (v${parsed.appVersion})?`,
                       confirmLabel: 'Restore backup',
                       onConfirm: () => {
-                        restoreFullWorkspace(parsed)
-                        reload()
-                        flash('Full workspace restored.')
+                        void (async () => {
+                          await restoreFullWorkspace(parsed)
+                          reload()
+                          flash('Full workspace restored.')
+                        })()
                       },
                     })
                   } catch {
@@ -1462,9 +1572,11 @@ export function SettingsPage() {
                             body: `Restore “${b.label}”? This replaces all current portfolios.`,
                             confirmLabel: 'Restore backup',
                             onConfirm: () => {
-                              restoreFullWorkspace(full)
-                              reload()
-                              flash('Restored from local backup.')
+                              void (async () => {
+                                await restoreFullWorkspace(full)
+                                reload()
+                                flash('Restored from local backup.')
+                              })()
                             },
                           })
                         })()

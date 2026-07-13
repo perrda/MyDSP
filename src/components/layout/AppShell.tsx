@@ -1,9 +1,14 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { RefreshCw } from 'lucide-react'
 import { usePortfolio } from '../../context/PortfolioContext'
 import { DISPLAY_CURRENCIES } from '../../services/fx'
 import { loadSyncConfig } from '../../services/sync/syncService'
+import {
+  checkTodoReminders,
+  markReminderFired,
+  syncTodoRemindersToServiceWorker,
+} from '../../domain/todoReminders'
 import { PrivacyToggle } from '../PrivacyToggle'
 import { ThemeToggle } from '../ThemeToggle'
 import { MenuButton, Sidebar } from './Sidebar'
@@ -72,6 +77,28 @@ export function AppShell() {
     refreshFx,
   } = usePortfolio()
   const [priceMsg, setPriceMsg] = useState<string | null>(null)
+
+  // Keep SW reminder schedule in sync app-wide (not only while Todos is open)
+  useEffect(() => {
+    const items = data.todoItems ?? []
+    void syncTodoRemindersToServiceWorker(items)
+    checkTodoReminders(items)
+    const id = window.setInterval(() => checkTodoReminders(items), 60_000)
+    return () => window.clearInterval(id)
+  }, [data.todoItems])
+
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return
+    const onMessage = (event: MessageEvent) => {
+      const msg = event.data
+      if (!msg || typeof msg !== 'object') return
+      if (msg.type === 'TODO_REMINDER_FIRED' && typeof msg.key === 'string') {
+        markReminderFired(msg.key)
+      }
+    }
+    navigator.serviceWorker.addEventListener('message', onMessage)
+    return () => navigator.serviceWorker.removeEventListener('message', onMessage)
+  }, [])
 
   const onRefresh = async () => {
     const r = await refreshPrices()

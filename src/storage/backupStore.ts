@@ -50,6 +50,9 @@ export interface FullBackupRecord extends FullBackupMeta {
   portfolios: PortfolioMeta[]
   /** portfolioId → storage-shaped data */
   blobs: Record<string, unknown>
+  /** Optional file attachments (CV/PDFs) as base64 payloads */
+  documentBlobs?: import('./documentBlobStore').DocumentBlobPayload[]
+  documentBlobsSkipped?: number[]
 }
 
 function openDb(): Promise<IDBDatabase> {
@@ -130,6 +133,23 @@ export async function createFullBackup(
   const snap = captureFullWorkspace()
   const createdAt = new Date().toISOString()
   const id = `bk_${createdAt.replace(/[:.]/g, '-')}_${Math.random().toString(36).slice(2, 6)}`
+
+  let documentBlobs: import('./documentBlobStore').DocumentBlobPayload[] | undefined
+  let documentBlobsSkipped: number[] | undefined
+  try {
+    const { collectBlobIdsFromPortfolios } = await import('./blobIds')
+    const { exportDocumentBlobs } = await import('./documentBlobStore')
+    const portfolios = Object.values(snap.blobs).map((raw) =>
+      normalizePortfolio(raw),
+    )
+    const ids = collectBlobIdsFromPortfolios(portfolios)
+    const exported = await exportDocumentBlobs(ids)
+    documentBlobs = exported.payloads
+    documentBlobsSkipped = exported.skipped
+  } catch {
+    /* blob export is best-effort */
+  }
+
   const record: FullBackupRecord = {
     id,
     createdAt,
@@ -140,6 +160,8 @@ export async function createFullBackup(
         : `Manual ${createdAt.slice(0, 16).replace('T', ' ')}`),
     source,
     ...snap,
+    documentBlobs,
+    documentBlobsSkipped,
   }
   await putBackup(record)
   await pruneOldBackups()
@@ -212,8 +234,8 @@ export async function deleteFullBackup(id: string): Promise<void> {
   db.close()
 }
 
-/** Replace entire workspace from a backup record. */
-export function restoreFullWorkspace(record: FullBackupRecord): void {
+/** Replace entire workspace from a backup record (including document file blobs). */
+export async function restoreFullWorkspace(record: FullBackupRecord): Promise<void> {
   const keep = new Set(record.portfolios.map((p) => p.id))
   for (const p of listPortfolios()) {
     if (!keep.has(p.id) && p.id !== 'default') {
@@ -237,6 +259,11 @@ export function restoreFullWorkspace(record: FullBackupRecord): void {
     ? record.activePortfolioId
     : 'default'
   setActivePortfolioId(active)
+
+  if (record.documentBlobs && record.documentBlobs.length > 0) {
+    const { importDocumentBlobs } = await import('./documentBlobStore')
+    await importDocumentBlobs(record.documentBlobs)
+  }
 }
 
 function fullBackupPayload(record: FullBackupRecord) {
@@ -250,6 +277,12 @@ function fullBackupPayload(record: FullBackupRecord) {
     activePortfolioId: record.activePortfolioId,
     portfolios: record.portfolios,
     blobs: record.blobs,
+    ...(record.documentBlobs && record.documentBlobs.length > 0
+      ? { documentBlobs: record.documentBlobs }
+      : {}),
+    ...(record.documentBlobsSkipped && record.documentBlobsSkipped.length > 0
+      ? { documentBlobsSkipped: record.documentBlobsSkipped }
+      : {}),
   }
 }
 
@@ -386,6 +419,12 @@ export function parseFullBackupFile(raw: unknown): FullBackupRecord | null {
       typeof o.activePortfolioId === 'string' ? o.activePortfolioId : 'default',
     portfolios: o.portfolios as PortfolioMeta[],
     blobs: o.blobs as Record<string, unknown>,
+    documentBlobs: Array.isArray(o.documentBlobs)
+      ? (o.documentBlobs as import('./documentBlobStore').DocumentBlobPayload[])
+      : undefined,
+    documentBlobsSkipped: Array.isArray(o.documentBlobsSkipped)
+      ? (o.documentBlobsSkipped as number[])
+      : undefined,
   }
 }
 
