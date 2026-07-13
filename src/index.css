@@ -339,7 +339,14 @@ html.theme-transitioning *::after {
   }
 }
 .toolbar-select-currency {
-  width: 4.25rem !important;
+  /* 3-letter codes (GBP/USD/…) need room beside the chevron — 4.25rem clipped to "GB" */
+  width: 5.75rem !important;
+  min-width: 5.75rem;
+  max-width: 6.5rem;
+  padding-left: 0.65rem !important;
+  padding-right: 1.6rem !important;
+  font-size: 0.6875rem !important;
+  letter-spacing: 0.1em;
   text-align: center;
   text-align-last: center;
 }
@@ -896,6 +903,14 @@ select:focus {
   .toolbar-select-portfolio {
     width: 5.75rem !important;
     font-size: 0.5625rem !important;
+  }
+
+  .toolbar-select-currency {
+    width: 5.25rem !important;
+    min-width: 5.25rem;
+    font-size: 0.625rem !important;
+    padding-left: 0.5rem !important;
+    padding-right: 1.45rem !important;
   }
 
   .app-content {
