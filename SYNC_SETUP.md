@@ -80,6 +80,7 @@ That’s it. Edits push a few seconds after you change data; opening the app or 
 | Event | What happens |
 |-------|----------------|
 | You edit data | Debounced **push** (~8s after last change) |
+| **Pull down** on iPhone / iPad | Immediate **sync** (pull cloud, then push local) |
 | Open app / return to tab / come online | **Pull** if cloud is newer, then push if you have local changes |
 | Every ~5 minutes while open | Background check |
 | Same item edited on two devices | By default **prefer cloud** on pull (toggle in Settings) |

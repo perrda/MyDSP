@@ -385,11 +385,11 @@ export function SettingsPage() {
           <p className="eyebrow mb-3">Sync</p>
           <h3 className="text-lg font-bold tracking-tight mb-3">Encrypted cloud sync</h3>
           <p className="text-sm text-text-muted font-light mb-4 max-w-2xl">
-            On iPhone: open the <span className="text-text font-medium">Settings</span> tab at the
-            bottom, then use this section. Same Remote URL + passphrase on Mac, iPhone, and iPad.
-            Turn on <span className="text-text font-medium">Automatic sync</span> and{' '}
-            <span className="text-text font-medium">Remember passphrase</span> so devices stay in
-            sync without Push/Pull each time.
+            On iPhone / iPad: pull down on any screen to sync across devices. Same Remote URL +
+            passphrase on Mac, iPhone, and iPad. Turn on{' '}
+            <span className="text-text font-medium">Automatic sync</span> and{' '}
+            <span className="text-text font-medium">Remember passphrase</span> so sync works after
+            you close the tab.
           </p>
           <div className="border border-border p-4 mb-6 max-w-2xl space-y-4">
             <div>

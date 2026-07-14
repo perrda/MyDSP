@@ -1,10 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { RefreshCw } from 'lucide-react'
 import { usePortfolio } from '../../context/PortfolioContext'
 import { DISPLAY_CURRENCIES } from '../../services/fx'
 import { loadSyncConfig } from '../../services/sync/syncService'
-import { subscribeAutoSync } from '../../services/sync/autoSyncService'
+import {
+  getAutoSyncStatus,
+  subscribeAutoSync,
+  syncNow,
+} from '../../services/sync/autoSyncService'
+import { getSessionSyncPassphrase } from '../../services/sync/sessionPassphrase'
 import {
   checkTodoReminders,
   markReminderFired,
@@ -15,6 +20,7 @@ import { ThemeToggle } from '../ThemeToggle'
 import { MenuButton, Sidebar } from './Sidebar'
 import { BottomNav } from './BottomNav'
 import { GlobalSearch } from '../GlobalSearch'
+import { PullToRefresh } from '../ui/PullToRefresh'
 import { formatDateTime } from '../../utils/format'
 
 const titles: Record<string, { eyebrow: string; title: string }> = {
@@ -119,6 +125,36 @@ export function AppShell() {
     window.setTimeout(() => setPriceMsg(null), 4000)
   }
 
+  /** Pull-down on iPhone/iPad → cloud sync (pull then push). */
+  const onPullToSync = useCallback(async () => {
+    const cfg = loadSyncConfig()
+    if (!cfg.remoteUrl.trim()) {
+      setPriceMsg('Set Remote URL in Settings → Cloud Sync')
+      window.setTimeout(() => setPriceMsg(null), 4500)
+      return
+    }
+    if (!cfg.enabled) {
+      setPriceMsg('Turn on Automatic sync in Settings')
+      window.setTimeout(() => setPriceMsg(null), 4500)
+      return
+    }
+    if (!getSessionSyncPassphrase()) {
+      setPriceMsg('Enter passphrase in Settings (enable Remember)')
+      window.setTimeout(() => setPriceMsg(null), 4500)
+      return
+    }
+    setPriceMsg('Syncing across devices…')
+    await syncNow()
+    setSyncCfg(loadSyncConfig())
+    const st = getAutoSyncStatus()
+    if (st.state === 'error' || st.state === 'needs-passphrase' || st.state === 'conflict') {
+      setPriceMsg(st.message ?? 'Sync needs attention — open Settings')
+    } else {
+      setPriceMsg(st.message ?? 'Devices synced')
+    }
+    window.setTimeout(() => setPriceMsg(null), 4500)
+  }, [])
+
   return (
     <div className="app-shell">
       <Sidebar open={open} onClose={() => setOpen(false)} />
@@ -217,9 +253,11 @@ export function AppShell() {
         </header>
 
         <main className="app-content pb-16 lg:pb-0">
-          <Outlet />
+          <PullToRefresh onRefresh={onPullToSync} refreshingLabel="Syncing devices…">
+            <Outlet />
+          </PullToRefresh>
         </main>
-        
+
         <BottomNav />
       </div>
     </div>
