@@ -2,6 +2,11 @@
 
 ## [1.2.1] - 2026-07-14
 
+### Fixed — YouTube crash (lucide / react-vendor chunk collision)
+- `manualChunks` matched `lucide-react` as React because the path contains `"react"`, merging icons into `react-vendor`
+- Minified Lucide exports collided with React internals → YouTube (and any page rendering those icons) threw **Oops! Something went wrong**
+- Lucide now chunks to `icon-vendor` first; React matching is path-precise
+
 ### Improved — Sidebar Favourites + Sort
 - **Favourites** sit at the top of the menu; remaining routes live in a collapsible **Others** section
 - **Sort** toggle shows grab handles only while rearranging; ★ moves sections between Favourites and Others

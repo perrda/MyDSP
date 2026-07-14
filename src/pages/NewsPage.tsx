@@ -288,7 +288,9 @@ export function NewsPage() {
             </div>
 
             <div className="px-4 sm:px-5 py-3 border-t border-border">
-              <p className="text-xs text-text-subtle mb-3">Meta-tags · drag ⋮⋮ to reorder</p>
+              <p className="text-xs text-text-subtle mb-3">
+                {sorting ? 'Meta-tags · drag ⋮⋮ to reorder' : 'Meta-tags'}
+              </p>
               {tags.length === 0 ? (
                 <p className="text-sm text-text-muted mb-3">No tags yet. Add TSLA, BTC, ADA…</p>
               ) : (
