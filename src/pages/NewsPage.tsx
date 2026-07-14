@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
+  ArrowUpDown,
   ChevronDown,
   ChevronUp,
   ExternalLink,
   Newspaper,
   Pencil,
   Plus,
-  RefreshCw,
   Trash2,
 } from 'lucide-react'
 import { PageHeader } from '../components/ui/PageHeader'
@@ -82,6 +82,7 @@ export function NewsPage() {
   const [formError, setFormError] = useState<string | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [filterTag, setFilterTag] = useState<string | 'all'>('all')
+  const [sorting, setSorting] = useState(false)
   const inFlight = useRef(false)
 
   const reloadList = useCallback(() => {
@@ -106,7 +107,7 @@ export function NewsPage() {
       setNewsLastRefresh(at)
       setLastAt(at)
       if (topNews.length === 0 && Object.values(tagged).every((a) => a.length === 0)) {
-        setError('No headlines returned. Check your connection and try Refresh again.')
+        setError('No headlines returned. Check your connection and try the header refresh.')
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'News refresh failed')
@@ -125,6 +126,12 @@ export function NewsPage() {
     window.addEventListener('mydsp-news-changed', onChanged)
     return () => window.removeEventListener('mydsp-news-changed', onChanged)
   }, [reloadList])
+
+  useEffect(() => {
+    const onGlobal = () => void refresh()
+    window.addEventListener('mydsp-global-refresh', onGlobal)
+    return () => window.removeEventListener('mydsp-global-refresh', onGlobal)
+  }, [refresh])
 
   const taggedFlat = useMemo(() => {
     const rows: NewsArticle[] = []
@@ -178,22 +185,22 @@ export function NewsPage() {
       <PageHeader
         eyebrow="Insights"
         title="News"
-        description="Top financial headlines plus ticker meta-tags (TSLA, BTC, ADA…). Pulled from Google News and Yahoo Finance RSS — refresh anytime."
+        description="Top financial headlines plus ticker meta-tags (TSLA, BTC, ADA…). Pulled from Google News and Yahoo Finance RSS — use the header refresh to force an update."
         action={
           <button
             type="button"
-            className="btn-secondary inline-flex items-center gap-2"
-            disabled={refreshing}
-            onClick={() => void refresh()}
+            className={`btn-secondary inline-flex items-center gap-2 ${sorting ? 'border-accent text-accent' : ''}`}
+            aria-pressed={sorting}
+            onClick={() => setSorting((v) => !v)}
           >
-            <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
-            Refresh
+            <ArrowUpDown size={14} strokeWidth={1.75} />
+            {sorting ? 'Done' : 'Sort'}
           </button>
         }
       />
 
       <p className="text-xs text-text-subtle mb-4">
-        {lastAt ? `Last update ${formatDateTime(lastAt)}` : 'Headlines not loaded yet'}
+        {refreshing ? 'Updating headlines…' : lastAt ? `Last update ${formatDateTime(lastAt)}` : 'Headlines not loaded yet'}
         {error ? ` · ${error}` : ''}
       </p>
 
@@ -296,7 +303,7 @@ export function NewsPage() {
                 >
                   {(t) => (
                     <div className="px-3 py-2.5 flex items-center gap-2">
-                      <ReorderHandle label={`Reorder ${t.tag}`} />
+                      {sorting ? <ReorderHandle label={`Reorder ${t.tag}`} /> : null}
                       <div className="min-w-0 flex-1">
                         <p className="font-semibold text-sm">{t.tag}</p>
                         <p className="text-xs text-text-muted truncate">{t.label}</p>

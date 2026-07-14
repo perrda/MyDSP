@@ -1090,21 +1090,21 @@ export function SettingsPage() {
 
         <section className="surface p-6 sm:p-8">
           <p className="eyebrow mb-3">Layout</p>
-          <h3 className="text-lg font-bold tracking-tight mb-3">Sidebar menu order</h3>
+          <h3 className="text-lg font-bold tracking-tight mb-3">Sidebar Favourites</h3>
           <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
-            Drag the grip next to each item in the left menu to rearrange. Order is saved in this
-            browser. Reset restores the default sequence.
+            Open the menu and tap <span className="text-text font-medium">Sort</span> to show grab
+            handles and ★ controls. Pin sections to Favourites (always on top); everything else
+            lives in a collapsible Others list. Layout is saved in this browser.
           </p>
           <button
             type="button"
             className="btn-secondary"
             onClick={() => {
               resetNavOrder()
-              window.dispatchEvent(new Event('mydsp-nav-order'))
-              flash('Sidebar menu order reset to defaults.')
+              flash('Sidebar Favourites reset to defaults.')
             }}
           >
-            Reset sidebar order
+            Reset sidebar Favourites
           </button>
         </section>
 

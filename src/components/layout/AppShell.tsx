@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
-import { RefreshCw } from 'lucide-react'
 import { usePortfolio } from '../../context/PortfolioContext'
 import { DISPLAY_CURRENCIES } from '../../services/fx'
 import { loadSyncConfig } from '../../services/sync/syncService'
@@ -15,11 +14,9 @@ import {
   markReminderFired,
   syncTodoRemindersToServiceWorker,
 } from '../../domain/todoReminders'
-import { PrivacyToggle } from '../PrivacyToggle'
-import { ThemeToggle } from '../ThemeToggle'
 import { MenuButton, Sidebar } from './Sidebar'
 import { BottomNav } from './BottomNav'
-import { GlobalSearch } from '../GlobalSearch'
+import { ToolbarControls } from './ToolbarControls'
 import { PullToRefresh } from '../ui/PullToRefresh'
 import { formatDateTime } from '../../utils/format'
 
@@ -123,10 +120,24 @@ export function AppShell() {
       setPriceMsg(lastPriceError ?? 'Please wait before refreshing again')
     } else {
       await refreshFx()
+      // Notify Markets / News / YouTube (and any other listeners) to refresh too
+      try {
+        window.dispatchEvent(new CustomEvent('mydsp-global-refresh'))
+      } catch {
+        /* ignore */
+      }
       setPriceMsg(`Updated ${r.crypto} crypto · ${r.equities} equities · FX`)
     }
     window.setTimeout(() => setPriceMsg(null), 4000)
   }
+
+  const lastSyncAt = (() => {
+    const candidates = [syncCfg.lastSyncAt, data.settings.lastPriceUpdate].filter(
+      (v): v is string => Boolean(v),
+    )
+    if (candidates.length === 0) return null
+    return candidates.sort((a, b) => a.localeCompare(b)).at(-1) ?? null
+  })()
 
   /** Pull-down on iPhone/iPad → cloud sync (pull then push). */
   const onPullToSync = useCallback(async () => {
@@ -178,61 +189,49 @@ export function AppShell() {
             {/* Mobile: keep header lean — page PageHeader carries the title */}
             <div className="sm:hidden flex-1 min-w-0" aria-hidden />
 
-            <div className="toolbar-cluster" role="toolbar" aria-label="Workspace controls">
-              <label className="toolbar-field">
-                <span className="sr-only">Portfolio</span>
-                <select
-                  className="toolbar-select toolbar-select-portfolio"
-                  value={activeId}
-                  onChange={(e) => switchPortfolio(e.target.value)}
-                  aria-label="Active portfolio"
-                  title={portfolios.find((p) => p.id === activeId)?.name}
-                >
-                  {portfolios.map((p) => (
-                    <option key={`${p.id}:${p.name}`} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="toolbar-field">
-                <span className="sr-only">Display currency</span>
-                <select
-                  className="toolbar-select toolbar-select-currency"
-                  value={data.settings.currency || 'GBP'}
-                  onChange={(e) => setCurrency(e.target.value)}
-                  aria-label="Display currency"
-                >
-                  {DISPLAY_CURRENCIES.map((c) => (
-                    <option key={c.code} value={c.code}>
-                      {c.code}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <button
-                type="button"
-                onClick={() => void onRefresh()}
-                disabled={refreshing}
-                className="toolbar-icon"
-                title="Refresh live prices"
-                aria-label={refreshing ? 'Updating prices' : 'Refresh prices'}
-              >
-                <RefreshCw
-                  size={16}
-                  strokeWidth={1.5}
-                  className={refreshing ? 'animate-spin' : ''}
-                />
-              </button>
-
-              <PrivacyToggle privacy={privacy} onToggle={() => setPrivacy(!privacy)} />
-              <ThemeToggle />
-              <GlobalSearch />
-            </div>
+            <ToolbarControls
+              refreshing={refreshing}
+              onRefresh={() => void onRefresh()}
+              privacy={privacy}
+              onPrivacyToggle={() => setPrivacy(!privacy)}
+              portfolioSelect={
+                <label className="toolbar-field">
+                  <span className="sr-only">Portfolio</span>
+                  <select
+                    className="toolbar-select toolbar-select-portfolio"
+                    value={activeId}
+                    onChange={(e) => switchPortfolio(e.target.value)}
+                    aria-label="Active portfolio"
+                    title={portfolios.find((p) => p.id === activeId)?.name}
+                  >
+                    {portfolios.map((p) => (
+                      <option key={`${p.id}:${p.name}`} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              }
+              currencySelect={
+                <label className="toolbar-field">
+                  <span className="sr-only">Display currency</span>
+                  <select
+                    className="toolbar-select toolbar-select-currency"
+                    value={data.settings.currency || 'GBP'}
+                    onChange={(e) => setCurrency(e.target.value)}
+                    aria-label="Display currency"
+                  >
+                    {DISPLAY_CURRENCIES.map((c) => (
+                      <option key={c.code} value={c.code}>
+                        {c.code}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              }
+            />
           </div>
-          {(priceMsg || lastPriceError || data.settings.lastPriceUpdate || syncCfg.lastSyncAt) && (
+          {(priceMsg || lastPriceError || lastSyncAt) && (
             <div className="app-header-meta">
               <p
                 className={`text-xs truncate ${lastPriceError && !priceMsg ? 'text-accent' : 'text-text-subtle'}`}
@@ -240,16 +239,7 @@ export function AppShell() {
               >
                 {priceMsg ??
                   lastPriceError ??
-                  [
-                    data.settings.lastPriceUpdate
-                      ? `Last price update ${formatDateTime(data.settings.lastPriceUpdate)}`
-                      : null,
-                    syncCfg.lastSyncAt
-                      ? `Last sync ${formatDateTime(syncCfg.lastSyncAt)}`
-                      : null,
-                  ]
-                    .filter(Boolean)
-                    .join(' · ')}
+                  (lastSyncAt ? `Last Sync ${formatDateTime(lastSyncAt)}` : null)}
               </p>
             </div>
           )}

@@ -1,5 +1,27 @@
 # MyDSP Changelog
 
+## [1.2.1] - 2026-07-14
+
+### Improved — Sidebar Favourites + Sort
+- **Favourites** sit at the top of the menu; remaining routes live in a collapsible **Others** section
+- **Sort** toggle shows grab handles only while rearranging; ★ moves sections between Favourites and Others
+- Legacy flat sidebar order migrates automatically
+
+### Improved — Header toolbar (phone / tablet / web)
+- Portfolio + currency stay visible; Refresh / Privacy / Theme / Search collapse into a **More (⋯)** menu under `lg`
+- Same controls inline on desktop for a consistent control set
+- Header status shows a single **Last Sync** timestamp (no separate price + sync lines)
+- Header refresh also triggers Markets / News / YouTube (`mydsp-global-refresh`)
+
+### Changed — Page refresh affordances
+- Removed large per-page **Refresh** buttons on Markets, News, and YouTube (auto-refresh + header refresh)
+- Markets / News / YouTube use a **Sort** control for grab handles instead of persistent ⋮⋮
+
+### Version
+- 1.2.0 → **1.2.1**
+
+---
+
 ## [1.2.0] - 2026-07-14
 
 ### Added — News
