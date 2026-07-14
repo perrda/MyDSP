@@ -1,5 +1,7 @@
 /** Markets watchlist — equities, crypto, FX, crosses, and indices. */
 
+import { formatGBP, formatGBPMarket } from '../utils/format'
+
 export type MarketAssetKind = 'crypto' | 'equity' | 'fx' | 'cross' | 'index'
 
 export interface MarketTicker {
@@ -185,12 +187,7 @@ export function mergeDefaultTickers(state: MarketsState): { state: MarketsState;
 export function formatMarketLast(quote: MarketQuote): string {
   if (!(quote.last > 0)) return '—'
   if (quote.kind === 'crypto' || quote.kind === 'equity') {
-    return quote.last.toLocaleString('en-GB', {
-      style: 'currency',
-      currency: 'GBP',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })
+    return formatGBPMarket(quote.last)
   }
   if (quote.kind === 'index') {
     return quote.last.toLocaleString('en-GB', {
@@ -208,15 +205,7 @@ export function formatMarketLast(quote: MarketQuote): string {
 export function formatMarketChangeAbs(quote: MarketQuote): string {
   const n = quote.changeAbs
   if (quote.kind === 'crypto' || quote.kind === 'equity') {
-    const abs = Math.abs(n).toLocaleString('en-GB', {
-      style: 'currency',
-      currency: 'GBP',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })
-    if (n > 0) return `+${abs}`
-    if (n < 0) return `−${abs}`
-    return abs
+    return formatGBP(n, { signed: true })
   }
   if (quote.kind === 'index') {
     const body = Math.abs(n).toLocaleString('en-GB', {

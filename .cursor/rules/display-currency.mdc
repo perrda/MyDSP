@@ -1,0 +1,28 @@
+---
+description: Display currency (CCY) — all money shown in toolbar currency
+alwaysApply: true
+---
+
+# Display currency (CCY) — app-wide default
+
+MyDSP stores money in **GBP** internally. The toolbar **CCY** control (GBP / USD / THB / BTC) sets the **display** currency via `setDisplayCurrency` in `src/utils/format.ts`.
+
+## Rule
+
+**Every user-visible money amount must follow the selected display CCY** — Markets, Dashboard, Portfolio, Spending, Goals, Budgets, Tax screens, exports, notifications, and smart suggestions.
+
+## Do
+
+- Format GBP-stored amounts with `formatGBP`, `formatGBPPrecise`, or `formatGBPMarket` from `src/utils/format.ts` (these convert via FX).
+- Keep using those helpers for new UI; do not invent local `toLocaleString({ currency: 'GBP' })` or `` £${n} `` templates for displayed values.
+- For **job salaries** and other fields stored in a foreign currency already, use `formatNativeCurrency(amount, currency)` (no GBP conversion).
+- Indices / FX pairs / crypto crosses that are **rates or points** (not GBP amounts) stay in their native units.
+
+## Do not
+
+- Hard-code `£`, `currency: 'GBP'`, or `.toFixed(2)` with a pound sign for **displayed** portfolio/spending/market amounts.
+- Assume the UI is always GBP because storage is GBP.
+
+## Data entry exception
+
+Form labels for amounts that are **entered and stored as GBP** may say “Amount (GBP)” / “Price £” to clarify storage. Once shown elsewhere (lists, charts, totals, Markets), always use the display-CCY formatters.

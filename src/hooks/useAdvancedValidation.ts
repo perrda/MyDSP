@@ -1,6 +1,7 @@
 // Advanced Form Validation Integration - UK-specific validators
 
 import type { ValidationRule } from '../utils/formValidation'
+import { formatGBP } from '../utils/format'
 
 // === UK-SPECIFIC VALIDATORS ===
 
@@ -86,7 +87,7 @@ export const maxAmount = (max: number, message?: string): ValidationRule => ({
     
     return isNaN(num) || num <= max
   },
-  message: message || `Amount cannot exceed £${max.toFixed(2)}`
+  message: message || `Amount cannot exceed ${formatGBP(max)}`
 })
 
 // Date range validator

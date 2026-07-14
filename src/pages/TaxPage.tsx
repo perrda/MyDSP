@@ -184,7 +184,7 @@ export function TaxPage() {
         >
           {years.map((y) => (
             <option key={y} value={y}>
-              {y} (allowance £{CGT_ALLOWANCES[y].toLocaleString()})
+              {y} (allowance {formatGBP(CGT_ALLOWANCES[y])})
             </option>
           ))}
         </select>

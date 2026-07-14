@@ -14,6 +14,7 @@ import {
 import { Download, FileText, Table as TableIcon, Printer, CheckCircle } from 'lucide-react'
 import { logger } from '../utils/logger'
 import { useToasts } from './ToastProvider'
+import { formatGBP } from '../utils/format'
 
 type ExportFormat = 'pdf' | 'excel' | 'csv'
 type ExportType = 'transactions' | 'spending' | 'goals' | 'portfolio' | 'jobs' | 'todos' | 'full'
@@ -69,7 +70,7 @@ export function DataExportPanel() {
                 <tr>
                   <td>${c.symbol}</td>
                   <td>${c.qty}</td>
-                  <td>£${(c.qty * c.price).toFixed(2)}</td>
+                  <td>${formatGBP(c.qty * c.price)}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -82,7 +83,7 @@ export function DataExportPanel() {
         const totalSpending = (data.spending || []).reduce((sum: number, s: any) => sum + s.amount, 0)
         htmlContent = `
           <h1>Spending Report</h1>
-          <p>Total: £${totalSpending.toFixed(2)}</p>
+          <p>Total: ${formatGBP(totalSpending)}</p>
           <p>Transactions: ${data.spending?.length || 0}</p>
           <table>
             <thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Amount</th></tr></thead>
@@ -92,7 +93,7 @@ export function DataExportPanel() {
                   <td>${s.date}</td>
                   <td>${s.description}</td>
                   <td>${s.category}</td>
-                  <td>£${s.amount.toFixed(2)}</td>
+                  <td>${formatGBP(s.amount)}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -110,7 +111,7 @@ export function DataExportPanel() {
               ${(data.goals || []).map((g: any) => `
                 <tr>
                   <td>${g.name}</td>
-                  <td>£${g.target.toFixed(2)}</td>
+                  <td>${formatGBP(g.target)}</td>
                   <td>${g.deadline}</td>
                   <td>${g.type}</td>
                 </tr>

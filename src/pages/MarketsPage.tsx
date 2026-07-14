@@ -36,7 +36,7 @@ import {
   setMarketsLastRefresh,
   updateMarketTicker,
 } from '../storage/marketsStore'
-import { formatDateTime, formatGBP, formatGBPPrecise, formatPct, privacyClass } from '../utils/format'
+import { formatDateTime, formatGBP, formatGBPMarket, formatGBPPrecise, formatPct, privacyClass } from '../utils/format'
 
 type FormState = {
   kind: MarketAssetKind
@@ -111,19 +111,12 @@ function ChangeBadge({ pct }: { pct: number }) {
 
 function formatLastDisplay(q: MarketQuote | undefined): string {
   if (!q || !(q.last > 0)) return '—'
-  if (q.kind === 'index') return formatMarketLast(q)
-  if (q.kind === 'crypto' || q.kind === 'equity') {
-    if (q.kind === 'crypto' && q.last < 1) {
-      return q.last.toLocaleString('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: q.last < 0.01 ? 6 : 4,
-        maximumFractionDigits: q.last < 0.01 ? 6 : 4,
-      })
-    }
-    return formatGBPPrecise(q.last)
+  // Indices stay in native points; FX/crosses stay in quote units
+  if (q.kind === 'index' || q.kind === 'fx' || q.kind === 'cross') {
+    return formatMarketLast(q)
   }
-  return formatMarketLast(q)
+  // Crypto + equity quotes are stored in GBP — convert to the toolbar display CCY
+  return formatGBPMarket(q.last)
 }
 
 function sectionTotals(
