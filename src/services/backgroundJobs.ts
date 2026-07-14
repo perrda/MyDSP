@@ -2,6 +2,7 @@
 
 import { createJobQueue } from '../utils/jobQueue'
 import { logger } from '../utils/logger'
+import { formatGBP } from '../utils/format'
 import { notificationManager } from '../utils/notifications'
 import type { PortfolioData } from '../domain/types'
 
@@ -94,7 +95,7 @@ backgroundJobs.process('budget-alert', async (data: { category: string, spent: n
       type: 'warning',
       priority: percentage > 90 ? 'high' : 'medium',
       title: `Budget Alert: ${data.category}`,
-      message: `You've used ${percentage.toFixed(0)}% of your ${data.category} budget (£${data.spent.toFixed(2)} / £${data.budget.toFixed(2)})`,
+      message: `You've used ${percentage.toFixed(0)}% of your ${data.category} budget (${formatGBP(data.spent)} / ${formatGBP(data.budget)})`,
       actionUrl: '/budgets',
       actionLabel: 'View Budgets',
       category: 'budgets'

@@ -2,6 +2,7 @@
 // ML-style features without external dependencies
 
 import type { SpendingEntry, RecurringTransaction, Goal } from '../domain/types'
+import { formatGBP } from '../utils/format'
 
 export interface SpendingPattern {
   pattern: 'recurring' | 'seasonal' | 'weekend' | 'weekday'
@@ -154,7 +155,7 @@ export function generateSmartSuggestions(
         type: 'budget',
         priority: 'medium',
         title: `Set budget for ${category}`,
-        description: `You've spent £${spent.toFixed(0)} on ${category} this month with no budget set`,
+        description: `You've spent ${formatGBP(spent)} on ${category} this month with no budget set`,
         action: 'Create budget',
         data: { category, suggestedLimit: Math.ceil(spent * 1.1) },
       })
@@ -182,7 +183,7 @@ export function generateSmartSuggestions(
       type: 'goal',
       priority: 'high',
       title: 'Create emergency fund goal',
-      description: `Based on your average spending of £${avgMonthlySpending.toFixed(0)}/month, aim for 3-6 months of expenses`,
+      description: `Based on your average spending of ${formatGBP(avgMonthlySpending)}/month, aim for 3-6 months of expenses`,
       action: 'Create goal',
       data: { suggestedAmount: Math.ceil(avgMonthlySpending * 3) },
     })
