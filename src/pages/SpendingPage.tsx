@@ -106,9 +106,9 @@ export function SpendingPage() {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     return [...data.spending]
-      .sort((a, b) => b.date.localeCompare(a.date))
+      .sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''))
       .filter((tx) => {
-        const matchMonth = tx.date.startsWith(ym)
+        const matchMonth = (tx.date ?? '').startsWith(ym)
         const matchCat =
           category === 'All' || tx.category.toLowerCase() === category.toLowerCase()
         const matchQ =

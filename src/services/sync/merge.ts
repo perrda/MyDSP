@@ -15,7 +15,8 @@ function pickById<T extends { id: number }>(a: T[], b: T[]): T[] {
 function mergeHistory(a: HistoryPoint[], b: HistoryPoint[]): HistoryPoint[] {
   const map = new Map<string, HistoryPoint>()
   for (const h of [...a, ...b]) {
-    const day = normalizeHistoryDate(h.date)
+    const day = normalizeHistoryDate(h?.date)
+    if (!day) continue
     const k = h.at ? `${day}|${h.at}` : day
     const prev = map.get(k)
     map.set(k, prev ? { ...prev, ...h, date: day } : { ...h, date: day })
@@ -47,10 +48,10 @@ export function mergePortfolio(local: PortfolioData, remote: PortfolioData): Por
     customCategories: [...new Set([...local.customCategories, ...remote.customCategories])],
     history: mergeHistory(local.history, remote.history),
     staking: {
-      pool: remote.staking?.pool?.name ? remote.staking.pool : local.staking.pool,
+      pool: remote.staking?.pool?.name ? remote.staking.pool : local.staking?.pool,
       rewards: [
         ...new Map(
-          [...local.staking.rewards, ...remote.staking.rewards].map((r) => [
+          [...(local.staking?.rewards ?? []), ...(remote.staking?.rewards ?? [])].map((r) => [
             `${r.epoch}-${r.date}-${r.amount}`,
             r,
           ]),
@@ -58,10 +59,10 @@ export function mergePortfolio(local: PortfolioData, remote: PortfolioData): Por
       ],
     },
     family: {
-      settings: remote.family?.settings ?? local.family.settings,
+      settings: remote.family?.settings ?? local.family?.settings,
       members: (() => {
-        const map = new Map(local.family.members.map((m) => [m.id, m]))
-        for (const m of remote.family.members) {
+        const map = new Map((local.family?.members ?? []).map((m) => [m.id, m]))
+        for (const m of remote.family?.members ?? []) {
           if (!map.has(m.id)) map.set(m.id, m)
         }
         return [...map.values()]

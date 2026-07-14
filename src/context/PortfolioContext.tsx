@@ -32,6 +32,7 @@ import {
   runAutoSyncCycle,
   startAutoSync,
   stopAutoSync,
+  isApplyingRemote,
 } from '../services/sync/autoSyncService'
 import { setDisplayCurrency } from '../utils/format'
 import { migrateEquityLivePricesToGbp, repairEquityLivePricesToGbp, EQUITY_GBP_VERSION } from '../domain/migrateEquityGbp'
@@ -194,11 +195,30 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
   )
 
   const reload = useCallback(() => {
-    const id = getActivePortfolioId()
-    setPortfolios(listPortfolios())
-    setActiveId(id)
-    setDataState(loadPortfolio(id))
-    setFccDataPresent(hasFccData())
+    try {
+      const id = getActivePortfolioId()
+      const portfolios = listPortfolios()
+      const safeId = portfolios.some((p) => p.id === id) ? id : 'default'
+      if (safeId !== id) setActivePortfolioId(safeId)
+      setPortfolios(portfolios)
+      setActiveId(safeId)
+      const loaded = loadPortfolio(safeId)
+      const rates = loadCachedFxRates()
+      const { data: migrated, migrated: didMigrate } = migrateEquityLivePricesToGbp(loaded, rates)
+      if (didMigrate) savePortfolioImmediate(migrated, safeId)
+      setDataState(migrated)
+      setDisplayCurrency(migrated.settings.currency || 'GBP', rates)
+      setFccDataPresent(hasFccData())
+    } catch (e) {
+      console.warn('[portfolio] reload after sync failed:', e)
+      try {
+        setPortfolios(listPortfolios())
+        setActiveId(getActivePortfolioId())
+        setDataState(loadPortfolio())
+      } catch {
+        /* keep previous React state — data already on disk */
+      }
+    }
   }, [])
 
   const switchPortfolio = useCallback(
@@ -413,7 +433,16 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     setOnPortfolioDataChanged(() => markLocalDataChanged())
     startAutoSync()
-    const onApplied = () => reload()
+    const onApplied = () => {
+      // Defer so Pull-to-refresh / in-flight React updates finish before remounting charts
+      window.setTimeout(() => {
+        try {
+          reload()
+        } catch (e) {
+          console.warn('[portfolio] sync reload failed:', e)
+        }
+      }, 0)
+    }
     window.addEventListener('mydsp-sync-applied', onApplied)
     return () => {
       setOnPortfolioDataChanged(null)
@@ -447,34 +476,55 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('online', onOnline)
   }, [refreshPrices])
 
-  const breakdown = useMemo(() => calcBreakdown(data), [data])
+  const breakdown = useMemo(() => {
+    try {
+      return calcBreakdown(data)
+    } catch (e) {
+      console.warn('[portfolio] calcBreakdown failed:', e)
+      const emptyAsset = { value: 0, cost: 0, pnl: 0, pct: 0 }
+      const emptyLiab = { cc: 0, loans: 0, total: 0, monthly: 0 }
+      return {
+        netWorth: 0,
+        assets: 0,
+        liabilities: 0,
+        crypto: emptyAsset,
+        equity: emptyAsset,
+        liability: emptyLiab,
+      }
+    }
+  }, [data])
 
   useEffect(() => {
+    if (isApplyingRemote()) return
     setDataState((prev) => {
-      const next = upsertDailySnapshot(prev, 'auto')
-      if (next === prev || next.history === prev.history) {
-        // still may have updated today's values
-        const today = new Date().toISOString().slice(0, 10)
-        const before = prev.history.find((h) => h.date.slice(0, 10) === today)
-        const after = next.history.find((h) => h.date.slice(0, 10) === today)
-        if (
-          before &&
-          after &&
-          before.netWorth === after.netWorth &&
-          before.crypto === after.crypto &&
-          before.equity === after.equity
-        ) {
-          return prev
+      try {
+        const next = upsertDailySnapshot(prev, 'auto')
+        if (next === prev || next.history === prev.history) {
+          const today = new Date().toISOString().slice(0, 10)
+          const before = prev.history.find((h) => (h.date ?? '').slice(0, 10) === today)
+          const after = next.history.find((h) => (h.date ?? '').slice(0, 10) === today)
+          if (
+            before &&
+            after &&
+            before.netWorth === after.netWorth &&
+            before.crypto === after.crypto &&
+            before.equity === after.equity
+          ) {
+            return prev
+          }
         }
+        if (next.history.length === prev.history.length) {
+          const today = new Date().toISOString().slice(0, 10)
+          const a = prev.history.find((h) => (h.date ?? '').slice(0, 10) === today)
+          const b = next.history.find((h) => (h.date ?? '').slice(0, 10) === today)
+          if (a && b && a.netWorth === b.netWorth) return prev
+        }
+        savePortfolioImmediate(next, activeId)
+        return next
+      } catch (e) {
+        console.warn('[portfolio] daily snapshot failed:', e)
+        return prev
       }
-      if (next.history.length === prev.history.length) {
-        const today = new Date().toISOString().slice(0, 10)
-        const a = prev.history.find((h) => h.date.slice(0, 10) === today)
-        const b = next.history.find((h) => h.date.slice(0, 10) === today)
-        if (a && b && a.netWorth === b.netWorth) return prev
-      }
-      savePortfolioImmediate(next, activeId)
-      return next
     })
   }, [activeId])
 

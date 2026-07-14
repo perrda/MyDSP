@@ -325,8 +325,8 @@ export function deleteJournalTrade(
 export function journalForSymbol(data: PortfolioData, symbol: string): JournalEntry[] {
   const s = symbol.toUpperCase()
   return data.journal
-    .filter((j) => j.asset.toUpperCase() === s)
-    .sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id)
+    .filter((j) => (j.asset ?? '').toUpperCase() === s)
+    .sort((a, b) => (b.date ?? '').localeCompare(a.date ?? '') || (b.id ?? 0) - (a.id ?? 0))
 }
 
 export function tradeJournalForSymbol(data: PortfolioData, symbol: string): JournalEntry[] {

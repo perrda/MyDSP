@@ -95,7 +95,7 @@ export function HoldingDetailPage() {
   const suggested = ragFromPct(pnlPct)
   const rag = item.ragStatus
   const commentaries = [...(item.commentaries ?? [])].sort((a, b) =>
-    b.createdAt.localeCompare(a.createdAt),
+    (b.createdAt ?? '').localeCompare(a.createdAt ?? ''),
   )
 
   const unitCost = isCrypto
