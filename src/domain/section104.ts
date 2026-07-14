@@ -2,6 +2,7 @@
 
 import type { Disposal, JournalEntry } from './types'
 import { getDisposalsForYear } from './cgt'
+import { formatGBP, formatGBPPrecise } from '../utils/format'
 
 export interface PoolLot {
   symbol: string
@@ -355,9 +356,9 @@ export function buildCgtReportHtml(
           <td>${m.disposal.date}</td>
           <td>${m.disposal.symbol}</td>
           <td>${m.matchedRule}</td>
-          <td style="text-align:right">${m.disposal.proceeds.toFixed(2)}</td>
-          <td style="text-align:right">${m.allowableCost.toFixed(2)}</td>
-          <td style="text-align:right">${m.gain.toFixed(2)}</td>
+          <td style="text-align:right">${formatGBPPrecise(m.disposal.proceeds)}</td>
+          <td style="text-align:right">${formatGBPPrecise(m.allowableCost)}</td>
+          <td style="text-align:right">${formatGBPPrecise(m.gain)}</td>
         </tr>`,
     )
     .join('')
@@ -389,10 +390,10 @@ export function buildCgtReportHtml(
     Not formal tax advice. Verify with a qualified tax advisor before filing SA108.
   </div>
   <div class="sum">
-    <div>Net gain<strong>£${summary.netGain.toFixed(2)}</strong></div>
-    <div>Allowance<strong>£${summary.allowance.toFixed(2)}</strong></div>
-    <div>Taxable<strong>£${summary.taxableGain.toFixed(2)}</strong></div>
-    <div>Est. CGT @20%<strong>£${summary.cgtDue.toFixed(2)}</strong></div>
+    <div>Net gain<strong>${formatGBP(summary.netGain)}</strong></div>
+    <div>Allowance<strong>${formatGBP(summary.allowance)}</strong></div>
+    <div>Taxable<strong>${formatGBP(summary.taxableGain)}</strong></div>
+    <div>Est. CGT @20%<strong>${formatGBP(summary.cgtDue)}</strong></div>
   </div>
   <table>
     <thead><tr><th>Date</th><th>Asset</th><th>Rule</th><th>Proceeds</th><th>Cost</th><th>Gain</th></tr></thead>

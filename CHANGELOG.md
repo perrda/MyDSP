@@ -14,7 +14,19 @@
 - Workspace backup/restore for channel list
 
 ### Version
-- 1.1.3 → **1.2.0**
+- 1.1.4 → **1.2.0**
+
+---
+
+## [1.1.4] - 2026-07-14
+
+### Fixed — Display currency app-wide
+- Markets crypto/equity prints (ADA, USDC, NIGHT, …) follow toolbar CCY via `formatGBPMarket`
+- Exports, budget alerts, smart suggestions, CGT HTML, planning notes, and validation messages no longer hard-code `£`
+- Cursor rule: **display-currency** (always apply) — all visible money uses display CCY
+
+### Version
+- 1.1.3 → **1.1.4**
 
 ---
 

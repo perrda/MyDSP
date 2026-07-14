@@ -36,7 +36,7 @@ import {
   setMarketsLastRefresh,
   updateMarketTicker,
 } from '../storage/marketsStore'
-import { formatDateTime, formatGBP, formatGBPPrecise, formatPct, privacyClass } from '../utils/format'
+import { formatDateTime, formatGBP, formatGBPMarket, formatGBPPrecise, formatPct, privacyClass } from '../utils/format'
 
 type FormState = {
   kind: MarketAssetKind
@@ -111,19 +111,12 @@ function ChangeBadge({ pct }: { pct: number }) {
 
 function formatLastDisplay(q: MarketQuote | undefined): string {
   if (!q || !(q.last > 0)) return '—'
-  if (q.kind === 'index') return formatMarketLast(q)
-  if (q.kind === 'crypto' || q.kind === 'equity') {
-    if (q.kind === 'crypto' && q.last < 1) {
-      return q.last.toLocaleString('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: q.last < 0.01 ? 6 : 4,
-        maximumFractionDigits: q.last < 0.01 ? 6 : 4,
-      })
-    }
-    return formatGBPPrecise(q.last)
+  // Indices stay in native points; FX/crosses stay in quote units
+  if (q.kind === 'index' || q.kind === 'fx' || q.kind === 'cross') {
+    return formatMarketLast(q)
   }
-  return formatMarketLast(q)
+  // Crypto + equity quotes are stored in GBP — convert to the toolbar display CCY
+  return formatGBPMarket(q.last)
 }
 
 function sectionTotals(
@@ -347,9 +340,9 @@ export function MarketsPage() {
       >
         <div className="px-4 sm:px-5 pt-4 pb-3 flex items-start justify-between gap-3 border-b border-border">
           <div className="min-w-0">
-            <p className="label-uppercase text-[10px] text-text-subtle mb-1">{meta.title}</p>
+            <p className="text-xl sm:text-2xl font-bold tracking-tight text-text mb-1">{meta.title}</p>
             <div className={`flex flex-wrap items-baseline gap-x-3 gap-y-1 ${privacyClass(privacy)}`}>
-              <p className="text-xl sm:text-2xl font-bold tracking-tight tabular-nums text-text">
+              <p className="label-uppercase text-[10px] text-text-subtle tabular-nums">
                 {isRateSection
                   ? items.length > 0
                     ? `${items.length} ${section === 'indices' ? 'index' : 'rate'}${items.length === 1 ? '' : section === 'indices' ? 'es' : 's'}`
@@ -361,7 +354,7 @@ export function MarketsPage() {
                       : '—'}
               </p>
               <p
-                className={`text-sm font-medium tabular-nums ${
+                className={`text-[10px] font-medium tabular-nums ${
                   totals.changePct > 0
                     ? 'text-emerald-500'
                     : totals.changePct < 0

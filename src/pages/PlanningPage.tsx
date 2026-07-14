@@ -195,7 +195,7 @@ export function PlanningPage() {
                           price: 0,
                           fees: 0,
                           total: a.amount,
-                          notes: `Rebalance suggestion: ${a.type} ${a.bucket} £${a.amount.toFixed(2)} (${a.currentPct.toFixed(1)}% → ${a.targetPct.toFixed(1)}%)`,
+                          notes: `Rebalance suggestion: ${a.type} ${a.bucket} ${formatGBP(a.amount)} (${a.currentPct.toFixed(1)}% → ${a.targetPct.toFixed(1)}%)`,
                         })),
                       ],
                     }))

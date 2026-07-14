@@ -66,6 +66,18 @@ export function formatGBPPrecise(n: number): string {
 }
 
 /**
+ * Format a GBP market print in the active display currency.
+ * Uses more fraction digits for sub-unit prices (ADA, USDC, NIGHT, …).
+ */
+export function formatGBPMarket(n: number, opts?: { signed?: boolean }): string {
+  if (!Number.isFinite(n)) return '—'
+  if (displayCurrency === 'BTC') return formatMoney(n, 'BTC', opts)
+  const converted = Math.abs(convertFromGbp(n, displayCurrency, displayRates))
+  const digits = converted >= 1 ? 2 : converted >= 0.01 ? 4 : 6
+  return formatMoney(n, displayCurrency, { ...opts, digits })
+}
+
+/**
  * Format an amount already denominated in `currency` (no GBP conversion).
  * Use for job salaries and other foreign-currency fields stored as-is.
  */
