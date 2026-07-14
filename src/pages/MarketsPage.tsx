@@ -14,7 +14,14 @@ import { Sparkline } from '../components/charts/Sparkline'
 import { PageHeader } from '../components/ui/PageHeader'
 import { ConfirmDialog, Field, Modal } from '../components/ui/Modal'
 import { usePortfolio } from '../context/PortfolioContext'
-import type { MarketAssetKind, MarketQuote, MarketTicker } from '../domain/markets'
+import {
+  formatMarketChangeAbs,
+  formatMarketLast,
+  type MarketAssetKind,
+  type MarketQuote,
+  type MarketTicker,
+  type MarketsCollapsed,
+} from '../domain/markets'
 import { refreshMarketQuotes } from '../services/marketsQuotes'
 import { KNOWN_CRYPTO_SYMBOLS } from '../services/prices'
 import {
@@ -42,6 +49,40 @@ const emptyForm: FormState = {
   coingeckoId: '',
 }
 
+type SectionKey = keyof MarketsCollapsed
+
+const SECTION_META: Record<
+  SectionKey,
+  { title: string; kind: MarketAssetKind; detailsHref?: string; emptyLabel: string; addLabel: string }
+> = {
+  crypto: {
+    title: 'My Crypto',
+    kind: 'crypto',
+    detailsHref: '/crypto',
+    emptyLabel: 'crypto',
+    addLabel: 'Add crypto',
+  },
+  equities: {
+    title: 'My Equities',
+    kind: 'equity',
+    detailsHref: '/equities',
+    emptyLabel: 'equity',
+    addLabel: 'Add equity',
+  },
+  fx: {
+    title: 'FX Rates',
+    kind: 'fx',
+    emptyLabel: 'FX',
+    addLabel: 'Add FX rate',
+  },
+  crosses: {
+    title: 'Crypto Crosses',
+    kind: 'cross',
+    emptyLabel: 'crypto cross',
+    addLabel: 'Add cross',
+  },
+}
+
 function ChangeBadge({ pct }: { pct: number }) {
   const up = pct > 0
   const flat = Math.abs(pct) < 0.005
@@ -59,6 +100,12 @@ function ChangeBadge({ pct }: { pct: number }) {
   )
 }
 
+function formatLastDisplay(q: MarketQuote | undefined): string {
+  if (!q || !(q.last > 0)) return '—'
+  if (q.kind === 'crypto' || q.kind === 'equity') return formatGBPPrecise(q.last)
+  return formatMarketLast(q)
+}
+
 function sectionTotals(
   tickers: MarketTicker[],
   quotes: Map<string, MarketQuote>,
@@ -67,24 +114,43 @@ function sectionTotals(
   let value = 0
   let prevValue = 0
   let matched = 0
+  let avgPct = 0
+  let pctCount = 0
+
   for (const t of tickers) {
     const q = quotes.get(t.id)
-    if (!q || !(q.priceGbp > 0)) continue
+    if (!q || !(q.last > 0)) continue
+    pctCount++
+    avgPct += q.changePct
+
+    if (t.kind === 'fx' || t.kind === 'cross') continue
+
     const held = holdingsValueBySymbol.get(t.symbol.toUpperCase())
     if (held != null && held > 0) {
       matched++
-      const qtyImplied = held / q.priceGbp
+      const qtyImplied = held / q.last
       value += held
-      prevValue += held - q.changeAbsGbp * qtyImplied
-    } else {
-      // No holding — contribute unit price so empty watchlists still show live prints
-      value += q.priceGbp
-      prevValue += q.priceGbp - q.changeAbsGbp
+      prevValue += held - q.changeAbs * qtyImplied
     }
   }
+
   const changeAbs = value - prevValue
-  const changePct = prevValue > 0 ? (changeAbs / prevValue) * 100 : 0
-  return { value, changeAbs, changePct, matched }
+  const changePct = prevValue > 0 ? (changeAbs / prevValue) * 100 : pctCount ? avgPct / pctCount : 0
+  return { value, changeAbs, changePct, matched, avgPct: pctCount ? avgPct / pctCount : 0 }
+}
+
+function symbolPlaceholder(kind: MarketAssetKind): string {
+  if (kind === 'crypto') return 'BTC'
+  if (kind === 'equity') return 'TSLA'
+  if (kind === 'fx') return 'GBP/USD'
+  return 'ADA/BTC'
+}
+
+function namePlaceholder(kind: MarketAssetKind): string {
+  if (kind === 'crypto') return 'Bitcoin'
+  if (kind === 'equity') return 'Tesla, Inc.'
+  if (kind === 'fx') return 'British Pound / US Dollar'
+  return 'Cardano / Bitcoin'
 }
 
 export function MarketsPage() {
@@ -102,8 +168,15 @@ export function MarketsPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [addKind, setAddKind] = useState<MarketAssetKind | null>(null)
 
-  const crypto = useMemo(() => tickers.filter((t) => t.kind === 'crypto'), [tickers])
-  const equities = useMemo(() => tickers.filter((t) => t.kind === 'equity'), [tickers])
+  const bySection = useMemo(
+    () => ({
+      crypto: tickers.filter((t) => t.kind === 'crypto'),
+      equities: tickers.filter((t) => t.kind === 'equity'),
+      fx: tickers.filter((t) => t.kind === 'fx'),
+      crosses: tickers.filter((t) => t.kind === 'cross'),
+    }),
+    [tickers],
+  )
 
   const cryptoHoldingsValue = useMemo(() => {
     const map = new Map<string, number>()
@@ -120,7 +193,7 @@ export function MarketsPage() {
     for (const e of data.equities) {
       if (e.includeInPortfolio === false) continue
       const sym = e.symbol.toUpperCase()
-      map.set(sym, (map.get(sym) ?? 0) + e.qty * e.price)
+      map.set(sym, (map.get(sym) ?? 0) + e.shares * e.livePrice)
     }
     return map
   }, [data.equities])
@@ -166,7 +239,6 @@ export function MarketsPage() {
     return () => window.removeEventListener('mydsp-markets-changed', onChanged)
   }, [reloadList])
 
-  // Auto-refresh every 60s while page is visible
   useEffect(() => {
     const id = window.setInterval(() => {
       if (document.visibilityState === 'visible') void refresh()
@@ -216,65 +288,74 @@ export function MarketsPage() {
       reloadList()
       void refresh()
     } catch (e) {
-      setFormError(e instanceof Error ? e.message : 'Could not save ticker')
+      setFormError(e instanceof Error ? e.message : 'Could not save')
     }
   }
 
-  const toggleSection = (section: 'crypto' | 'equities') => {
+  const toggleSection = (section: SectionKey) => {
     const next = !collapsed[section]
     setMarketsCollapsed(section, next)
     setCollapsed((c) => ({ ...c, [section]: next }))
   }
 
-  const renderSection = (
-    section: 'crypto' | 'equities',
-    title: string,
-    items: MarketTicker[],
-    detailsHref: string,
-    holdingsValueBySymbol: Map<string, number>,
-  ) => {
-    const totals = sectionTotals(items, quotes, holdingsValueBySymbol)
+  const renderSection = (section: SectionKey) => {
+    const meta = SECTION_META[section]
+    const items = bySection[section]
+    const holdings =
+      section === 'crypto'
+        ? cryptoHoldingsValue
+        : section === 'equities'
+          ? equityHoldingsValue
+          : new Map<string, number>()
+    const totals = sectionTotals(items, quotes, holdings)
     const isCollapsed = collapsed[section]
-    const kind: MarketAssetKind = section === 'crypto' ? 'crypto' : 'equity'
+    const isRateSection = section === 'fx' || section === 'crosses'
 
     return (
-      <section className="border border-border bg-bg-elevated mb-6 overflow-hidden">
+      <section
+        key={section}
+        className="border border-border bg-bg-elevated mb-6 overflow-hidden"
+      >
         <div className="px-4 sm:px-5 pt-4 pb-3 flex items-start justify-between gap-3 border-b border-border">
           <div className="min-w-0">
-            <p className="label-uppercase text-[10px] text-text-subtle mb-1">{title}</p>
+            <p className="label-uppercase text-[10px] text-text-subtle mb-1">{meta.title}</p>
             <div className={`flex flex-wrap items-baseline gap-x-3 gap-y-1 ${privacyClass(privacy)}`}>
               <p className="text-xl sm:text-2xl font-bold tracking-tight tabular-nums text-text">
-                {totals.matched > 0
-                  ? formatGBPPrecise(totals.value)
-                  : items.length > 0
-                    ? `${items.length} ticker${items.length === 1 ? '' : 's'}`
-                    : '—'}
+                {isRateSection
+                  ? items.length > 0
+                    ? `${items.length} rate${items.length === 1 ? '' : 's'}`
+                    : '—'
+                  : totals.matched > 0
+                    ? formatGBPPrecise(totals.value)
+                    : items.length > 0
+                      ? `${items.length} ticker${items.length === 1 ? '' : 's'}`
+                      : '—'}
               </p>
               <p
                 className={`text-sm font-medium tabular-nums ${
-                  totals.changeAbs > 0
+                  totals.changePct > 0
                     ? 'text-emerald-500'
-                    : totals.changeAbs < 0
+                    : totals.changePct < 0
                       ? 'text-red-500'
                       : 'text-text-muted'
                 }`}
               >
-                {totals.matched > 0
-                  ? `${formatGBP(totals.changeAbs, { signed: true })} (${formatPct(totals.changePct, 2)})`
-                  : formatPct(totals.changePct, 2)}
+                {isRateSection
+                  ? formatPct(totals.avgPct, 2)
+                  : totals.matched > 0
+                    ? `${formatGBP(totals.changeAbs, { signed: true })} (${formatPct(totals.changePct, 2)})`
+                    : formatPct(totals.avgPct, 2)}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-1 shrink-0">
-            <button
-              type="button"
-              className="btn-ghost btn-sm p-2 min-h-10 min-w-10"
-              aria-label={isCollapsed ? `Expand ${title}` : `Collapse ${title}`}
-              onClick={() => toggleSection(section)}
-            >
-              {isCollapsed ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
-            </button>
-          </div>
+          <button
+            type="button"
+            className="btn-ghost btn-sm p-2 min-h-10 min-w-10 shrink-0"
+            aria-label={isCollapsed ? `Expand ${meta.title}` : `Collapse ${meta.title}`}
+            onClick={() => toggleSection(section)}
+          >
+            {isCollapsed ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+          </button>
         </div>
 
         {!isCollapsed && (
@@ -282,13 +363,14 @@ export function MarketsPage() {
             <ul className="divide-y divide-border">
               {items.length === 0 ? (
                 <li className="px-4 sm:px-5 py-8 text-sm text-text-muted text-center">
-                  No {section === 'crypto' ? 'crypto' : 'equity'} tickers yet.
+                  No {meta.emptyLabel} items yet.
                 </li>
               ) : (
                 items.map((t) => {
                   const q = quotes.get(t.id)
                   const pct = q?.changePct ?? 0
                   const trend = pct > 0 ? 'up' : pct < 0 ? 'down' : 'neutral'
+                  const showSpark = Boolean(q && q.sparkline.length > 1)
                   return (
                     <li
                       key={t.id}
@@ -299,10 +381,10 @@ export function MarketsPage() {
                         <p className="text-xs text-text-muted truncate">{t.name}</p>
                       </div>
 
-                      {kind === 'equity' && q && q.sparkline.length > 1 ? (
+                      {showSpark ? (
                         <div className="hidden sm:block w-16 shrink-0">
                           <Sparkline
-                            data={q.sparkline}
+                            data={q!.sparkline}
                             height={28}
                             showGradient={false}
                             trend={trend}
@@ -314,10 +396,15 @@ export function MarketsPage() {
 
                       <div className={`text-right shrink-0 ${privacyClass(privacy)}`}>
                         <p className="text-sm font-medium tabular-nums text-text">
-                          {q && q.priceGbp > 0 ? formatGBPPrecise(q.priceGbp) : '—'}
+                          {formatLastDisplay(q)}
                         </p>
                         <div className="mt-1 flex flex-col items-end gap-0.5">
                           <ChangeBadge pct={pct} />
+                          {isRateSection && q && q.last > 0 ? (
+                            <span className="text-[10px] text-text-subtle tabular-nums">
+                              {formatMarketChangeAbs(q)}
+                            </span>
+                          ) : null}
                           {q?.extendedHours ? (
                             <span
                               className={`inline-flex items-center gap-1 text-[10px] tabular-nums ${
@@ -365,17 +452,21 @@ export function MarketsPage() {
               <button
                 type="button"
                 className="btn-ghost btn-sm text-accent inline-flex items-center gap-1.5"
-                onClick={() => openCreate(kind)}
+                onClick={() => openCreate(meta.kind)}
               >
                 <Plus size={14} strokeWidth={2} />
-                Add ticker
+                {meta.addLabel}
               </button>
-              <Link
-                to={detailsHref}
-                className="text-sm text-accent hover:underline inline-flex items-center gap-1"
-              >
-                View details →
-              </Link>
+              {meta.detailsHref ? (
+                <Link
+                  to={meta.detailsHref}
+                  className="text-sm text-accent hover:underline inline-flex items-center gap-1"
+                >
+                  View details →
+                </Link>
+              ) : (
+                <span className="text-xs text-text-subtle">Live rates · day change + sparkline</span>
+              )}
             </div>
           </>
         )}
@@ -383,12 +474,22 @@ export function MarketsPage() {
     )
   }
 
+  const modalTitle = editing
+    ? 'Edit Markets item'
+    : addKind === 'crypto'
+      ? 'Add crypto'
+      : addKind === 'fx'
+        ? 'Add FX rate'
+        : addKind === 'cross'
+          ? 'Add crypto cross'
+          : 'Add equity'
+
   return (
     <div>
       <PageHeader
         eyebrow="Watchlist"
         title="Markets"
-        description="Track live equity and crypto prices with daily changes. Quotes refresh automatically about every minute."
+        description="Live equities, crypto, FX (GBP/USD, GBP/THB…), and crypto crosses (ADA/BTC…). Day change, % and sparklines — refresh about every minute."
         action={
           <button
             type="button"
@@ -407,14 +508,12 @@ export function MarketsPage() {
         {error ? ` · ${error}` : ''}
       </p>
 
-      {renderSection('crypto', 'My Crypto', crypto, '/crypto', cryptoHoldingsValue)}
-      {renderSection('equities', 'My Equities', equities, '/equities', equityHoldingsValue)}
+      {renderSection('crypto')}
+      {renderSection('equities')}
+      {renderSection('fx')}
+      {renderSection('crosses')}
 
-      <Modal
-        open={modalOpen}
-        title={editing ? 'Edit ticker' : addKind === 'crypto' ? 'Add crypto' : 'Add equity'}
-        onClose={() => setModalOpen(false)}
-      >
+      <Modal open={modalOpen} title={modalTitle} onClose={() => setModalOpen(false)}>
         <div className="space-y-4">
           <Field label="Type">
             <select
@@ -427,14 +526,31 @@ export function MarketsPage() {
             >
               <option value="equity">Equity</option>
               <option value="crypto">Crypto</option>
+              <option value="fx">FX rate (e.g. GBP/USD)</option>
+              <option value="cross">Crypto cross (e.g. ADA/BTC)</option>
             </select>
           </Field>
-          <Field label="Symbol" hint="e.g. TSLA or BTC">
+          <Field
+            label={form.kind === 'fx' || form.kind === 'cross' ? 'Pair' : 'Symbol'}
+            hint={
+              form.kind === 'fx'
+                ? 'Format BASE/QUOTE — e.g. GBP/USD, GBP/THB, EUR/USD'
+                : form.kind === 'cross'
+                  ? 'Format BASE/QUOTE — e.g. ADA/BTC, ETH/BTC'
+                  : 'e.g. TSLA or BTC'
+            }
+          >
             <input
               className="w-full"
               value={form.symbol}
-              onChange={(e) => setForm((f) => ({ ...f, symbol: e.target.value.toUpperCase() }))}
-              placeholder={form.kind === 'crypto' ? 'BTC' : 'TSLA'}
+              onChange={(e) => {
+                const v = e.target.value.toUpperCase()
+                setForm((f) => ({
+                  ...f,
+                  symbol: form.kind === 'fx' || form.kind === 'cross' ? v : v.replace(/\//g, ''),
+                }))
+              }}
+              placeholder={symbolPlaceholder(form.kind)}
               autoCapitalize="characters"
             />
           </Field>
@@ -443,23 +559,25 @@ export function MarketsPage() {
               className="w-full"
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              placeholder={form.kind === 'crypto' ? 'Bitcoin' : 'Tesla, Inc.'}
+              placeholder={namePlaceholder(form.kind)}
             />
           </Field>
-          {form.kind === 'crypto' ? (
+          {form.kind === 'crypto' || form.kind === 'cross' ? (
             <Field
               label="CoinGecko id (optional)"
               hint={
-                KNOWN_CRYPTO_SYMBOLS.includes(form.symbol.toUpperCase())
-                  ? `Known map: ${form.symbol.toUpperCase()}`
-                  : 'Required for less common coins (e.g. avalanche-2)'
+                form.kind === 'cross'
+                  ? 'For the base coin if it is uncommon (e.g. cardano for ADA/BTC)'
+                  : KNOWN_CRYPTO_SYMBOLS.includes(form.symbol.toUpperCase())
+                    ? `Known map: ${form.symbol.toUpperCase()}`
+                    : 'Required for less common coins (e.g. avalanche-2)'
               }
             >
               <input
                 className="w-full"
                 value={form.coingeckoId}
                 onChange={(e) => setForm((f) => ({ ...f, coingeckoId: e.target.value }))}
-                placeholder="bitcoin"
+                placeholder={form.kind === 'cross' ? 'cardano' : 'bitcoin'}
               />
             </Field>
           ) : null}
@@ -481,8 +599,8 @@ export function MarketsPage() {
 
       <ConfirmDialog
         open={Boolean(deleteId)}
-        title="Remove ticker"
-        body="Remove this ticker from Markets? Your holdings are unchanged."
+        title="Remove from Markets"
+        body="Remove this item from Markets? Your holdings and FX settings are unchanged."
         confirmLabel="Remove"
         onConfirm={() => {
           if (deleteId) {

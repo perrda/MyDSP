@@ -127,7 +127,7 @@ export function GlobalSearch() {
     // Add page shortcuts
     const pages = [
       { title: 'Dashboard', path: '/', keywords: ['home', 'overview'] },
-      { title: 'Markets', path: '/markets', keywords: ['watchlist', 'quotes', 'prices', 'tickers'] },
+      { title: 'Markets', path: '/markets', keywords: ['watchlist', 'quotes', 'prices', 'tickers', 'fx', 'gbp', 'usd', 'thb', 'ada', 'cross'] },
       { title: 'Crypto', path: '/crypto', keywords: ['bitcoin', 'btc', 'holdings'] },
       { title: 'Equities', path: '/equities', keywords: ['stocks', 'shares'] },
       { title: 'Liabilities', path: '/liabilities', keywords: ['debt', 'credit', 'loans'] },

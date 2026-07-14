@@ -325,3 +325,223 @@ export async function fetchCryptoMarketQuotesGbp(
   })
 }
 
+/** Yahoo FX symbol for a fiat pair e.g. GBP/USD → GBPUSD=X */
+export function yahooFxSymbol(base: string, quote: string): string {
+  return `${base.toUpperCase()}${quote.toUpperCase()}=X`
+}
+
+export interface RateMarketQuote {
+  last: number
+  previousClose: number
+  changeAbs: number
+  changePct: number
+  sparkline: number[]
+  source: string
+}
+
+/** Fiat FX pair quote via Yahoo chart (intraday sparkline). */
+export async function fetchFxPairQuote(base: string, quote: string): Promise<RateMarketQuote | null> {
+  const ySym = yahooFxSymbol(base, quote)
+  const yahoo = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ySym)}?interval=5m&range=1d`
+  const data = await fetchViaProxies<{
+    chart?: {
+      result?: Array<{
+        meta?: {
+          regularMarketPrice?: number
+          chartPreviousClose?: number
+          previousClose?: number
+        }
+        indicators?: { quote?: Array<{ close?: Array<number | null> }> }
+      }>
+    }
+  }>(yahoo)
+
+  const result = data?.chart?.result?.[0]
+  const meta = result?.meta
+  const price = meta?.regularMarketPrice
+  if (!price || !(price > 0)) {
+    // Fallback: exchangerate-api spot only (no sparkline / day change)
+    try {
+      const res = await fetch(`https://api.exchangerate-api.com/v4/latest/${encodeURIComponent(base)}`)
+      if (res.ok) {
+        const json = (await res.json()) as { rates?: Record<string, number> }
+        const spot = json.rates?.[quote.toUpperCase()]
+        if (typeof spot === 'number' && spot > 0) {
+          return {
+            last: spot,
+            previousClose: spot,
+            changeAbs: 0,
+            changePct: 0,
+            sparkline: [],
+            source: 'exchangerate-api',
+          }
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+    return null
+  }
+
+  const previousClose = meta?.chartPreviousClose || meta?.previousClose || price
+  const changeAbs = price - previousClose
+  const changePct = previousClose > 0 ? (changeAbs / previousClose) * 100 : 0
+  const closes = (result?.indicators?.quote?.[0]?.close || []).filter(
+    (n): n is number => typeof n === 'number' && n > 0,
+  )
+
+  return {
+    last: price,
+    previousClose,
+    changeAbs,
+    changePct,
+    sparkline: closes,
+    source: 'yahoo',
+  }
+}
+
+/** Crypto cross e.g. ADA/BTC via CoinGecko (quote in BTC) + 24h sparkline. */
+export async function fetchCryptoCrossQuote(
+  base: string,
+  quote: string,
+  baseGeckoId?: string,
+): Promise<RateMarketQuote | null> {
+  const baseId = resolveGeckoId(base, baseGeckoId)
+  const quoteId = resolveGeckoId(quote)
+  if (!baseId) return null
+
+  const vs = quote.toLowerCase()
+  // CoinGecko vs_currencies supports btc, eth, and fiat — not arbitrary coin ids
+  const supportedVs = new Set([
+    'btc',
+    'eth',
+    'ltc',
+    'bch',
+    'bnb',
+    'eos',
+    'xrp',
+    'xlm',
+    'link',
+    'dot',
+    'yfi',
+    'usd',
+    'aed',
+    'ars',
+    'aud',
+    'bdt',
+    'bhd',
+    'bmd',
+    'brl',
+    'cad',
+    'chf',
+    'clp',
+    'cny',
+    'czk',
+    'dkk',
+    'eur',
+    'gbp',
+    'hkd',
+    'huf',
+    'idr',
+    'ils',
+    'inr',
+    'jpy',
+    'krw',
+    'kwd',
+    'lkr',
+    'mmk',
+    'mxn',
+    'myr',
+    'ngn',
+    'nok',
+    'nzd',
+    'php',
+    'pkr',
+    'pln',
+    'rub',
+    'sar',
+    'sek',
+    'sgd',
+    'thb',
+    'try',
+    'twd',
+    'uah',
+    'vef',
+    'vnd',
+    'zar',
+    'xdr',
+    'xag',
+    'xau',
+    'bits',
+    'sats',
+  ])
+
+  if (!supportedVs.has(vs)) {
+    // Derive cross from both coins vs GBP
+    if (!quoteId) return null
+    const url = `https://api.coingecko.com/api/v3/simple/price?ids=${baseId},${quoteId}&vs_currencies=gbp&include_24hr_change=true`
+    const data = await fetchJson<
+      Record<string, { gbp?: number; gbp_24h_change?: number }>
+    >(url)
+    const baseGbp = data?.[baseId]?.gbp
+    const quoteGbp = data?.[quoteId]?.gbp
+    if (!(baseGbp && baseGbp > 0 && quoteGbp && quoteGbp > 0)) return null
+    const last = baseGbp / quoteGbp
+    // Approximate cross change from GBP changes (first-order)
+    const baseCh = data?.[baseId]?.gbp_24h_change ?? 0
+    const quoteCh = data?.[quoteId]?.gbp_24h_change ?? 0
+    const changePct = baseCh - quoteCh
+    const previousClose = last / (1 + changePct / 100)
+    return {
+      last,
+      previousClose,
+      changeAbs: last - previousClose,
+      changePct,
+      sparkline: [],
+      source: 'coingecko-derived',
+    }
+  }
+
+  const url = `https://api.coingecko.com/api/v3/simple/price?ids=${encodeURIComponent(baseId)}&vs_currencies=${encodeURIComponent(vs)}&include_24hr_change=true`
+  const data = await fetchJson<Record<string, Record<string, number | undefined>>>(url)
+  const row = data?.[baseId]
+  const last = row?.[vs]
+  if (!(typeof last === 'number' && last > 0)) return null
+  const changePct = row?.[`${vs}_24h_change`] ?? 0
+  const previousClose = last / (1 + changePct / 100)
+
+  let sparkline: number[] = []
+  try {
+    const chartUrl = `https://api.coingecko.com/api/v3/coins/${encodeURIComponent(baseId)}/market_chart?vs_currency=${encodeURIComponent(vs)}&days=1`
+    const chart = await fetchJson<{ prices?: Array<[number, number]> }>(chartUrl, 12000)
+    sparkline = (chart?.prices || [])
+      .map((p) => p[1])
+      .filter((n): n is number => typeof n === 'number' && n > 0)
+  } catch {
+    /* optional */
+  }
+
+  return {
+    last,
+    previousClose,
+    changeAbs: last - previousClose,
+    changePct,
+    sparkline,
+    source: 'coingecko',
+  }
+}
+
+/** Optional 24h GBP sparkline for a single crypto (CoinGecko). */
+export async function fetchCryptoGbpSparkline(
+  symbol: string,
+  coingeckoId?: string,
+): Promise<number[]> {
+  const id = resolveGeckoId(symbol, coingeckoId)
+  if (!id) return []
+  const chartUrl = `https://api.coingecko.com/api/v3/coins/${encodeURIComponent(id)}/market_chart?vs_currency=gbp&days=1`
+  const chart = await fetchJson<{ prices?: Array<[number, number]> }>(chartUrl, 12000)
+  return (chart?.prices || [])
+    .map((p) => p[1])
+    .filter((n): n is number => typeof n === 'number' && n > 0)
+}
+

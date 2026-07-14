@@ -2,10 +2,14 @@
 
 import {
   createEmptyMarketsState,
+  defaultNameForPair,
+  mergeDefaultTickers,
   newMarketTickerId,
   normalizeMarketSymbol,
+  parseRatePair,
   type MarketAssetKind,
   type MarketTicker,
+  type MarketsCollapsed,
   type MarketsState,
 } from '../domain/markets'
 
@@ -36,26 +40,37 @@ function readRaw(): MarketsState | null {
   }
 }
 
-function writeState(state: MarketsState): void {
+function writeState(state: MarketsState, opts?: { silent?: boolean }): void {
   localStorage.setItem(KEY, JSON.stringify(state))
-  notifyChanged()
+  if (!opts?.silent) notifyChanged()
+}
+
+function normalizeTicker(t: MarketTicker, i: number): MarketTicker {
+  return {
+    ...t,
+    kind: (['crypto', 'equity', 'fx', 'cross'].includes(t.kind) ? t.kind : 'equity') as MarketAssetKind,
+    symbol: normalizeMarketSymbol(t.symbol),
+    sortOrder: typeof t.sortOrder === 'number' ? t.sortOrder : i,
+  }
 }
 
 export function loadMarketsState(): MarketsState {
   const existing = readRaw()
   if (existing) {
-    return {
+    const normalized: MarketsState = {
       ...existing,
+      version: 1,
       collapsed: {
         crypto: Boolean(existing.collapsed?.crypto),
         equities: Boolean(existing.collapsed?.equities),
+        fx: Boolean((existing.collapsed as MarketsCollapsed | undefined)?.fx),
+        crosses: Boolean((existing.collapsed as MarketsCollapsed | undefined)?.crosses),
       },
-      tickers: existing.tickers.map((t, i) => ({
-        ...t,
-        symbol: normalizeMarketSymbol(t.symbol),
-        sortOrder: typeof t.sortOrder === 'number' ? t.sortOrder : i,
-      })),
+      tickers: existing.tickers.map(normalizeTicker),
     }
+    const { state, added } = mergeDefaultTickers(normalized)
+    if (added.length > 0) writeState(state)
+    return state
   }
   const seeded = createEmptyMarketsState()
   writeState(seeded)
@@ -66,11 +81,7 @@ export function saveMarketsState(state: MarketsState): void {
   writeState({
     ...state,
     version: 1,
-    tickers: state.tickers.map((t, i) => ({
-      ...t,
-      symbol: normalizeMarketSymbol(t.symbol),
-      sortOrder: typeof t.sortOrder === 'number' ? t.sortOrder : i,
-    })),
+    tickers: state.tickers.map(normalizeTicker),
   })
 }
 
@@ -80,25 +91,35 @@ export function listMarketTickers(kind?: MarketAssetKind): MarketTicker[] {
   return kind ? list.filter((t) => t.kind === kind) : list
 }
 
+function validateSymbol(kind: MarketAssetKind, symbol: string): string {
+  const norm = normalizeMarketSymbol(symbol)
+  if (!norm) throw new Error('Symbol is required.')
+  if (kind === 'fx' || kind === 'cross') {
+    const pair = parseRatePair(norm)
+    if (!pair) throw new Error('Use a pair like GBP/USD or ADA/BTC.')
+    if (pair.base === pair.quote) throw new Error('Base and quote must differ.')
+  }
+  return norm
+}
+
 export function addMarketTicker(input: {
   kind: MarketAssetKind
   symbol: string
   name: string
   coingeckoId?: string
 }): MarketTicker {
-  const symbol = normalizeMarketSymbol(input.symbol)
-  if (!symbol) throw new Error('Symbol is required.')
+  const symbol = validateSymbol(input.kind, input.symbol)
   const state = loadMarketsState()
   const dup = state.tickers.find(
     (t) => t.kind === input.kind && normalizeMarketSymbol(t.symbol) === symbol,
   )
-  if (dup) throw new Error('This ticker is already on Markets.')
+  if (dup) throw new Error('This rate or ticker is already on Markets.')
   const maxOrder = state.tickers.reduce((m, t) => Math.max(m, t.sortOrder), -1)
   const ticker: MarketTicker = {
     id: newMarketTickerId(input.kind, symbol),
     kind: input.kind,
     symbol,
-    name: input.name.trim() || symbol,
+    name: input.name.trim() || defaultNameForPair(input.kind, symbol),
     coingeckoId: input.coingeckoId?.trim() || undefined,
     createdAt: new Date().toISOString(),
     sortOrder: maxOrder + 1,
@@ -116,18 +137,21 @@ export function updateMarketTicker(
   const idx = state.tickers.findIndex((t) => t.id === id)
   if (idx < 0) throw new Error('Ticker not found.')
   const current = state.tickers[idx]
-  const nextSymbol = patch.symbol != null ? normalizeMarketSymbol(patch.symbol) : current.symbol
   const nextKind = patch.kind ?? current.kind
-  if (!nextSymbol) throw new Error('Symbol is required.')
+  const nextSymbol =
+    patch.symbol != null ? validateSymbol(nextKind, patch.symbol) : current.symbol
   const clash = state.tickers.find(
     (t) => t.id !== id && t.kind === nextKind && normalizeMarketSymbol(t.symbol) === nextSymbol,
   )
-  if (clash) throw new Error('This ticker is already on Markets.')
+  if (clash) throw new Error('This rate or ticker is already on Markets.')
   const updated: MarketTicker = {
     ...current,
     kind: nextKind,
     symbol: nextSymbol,
-    name: patch.name != null ? patch.name.trim() || nextSymbol : current.name,
+    name:
+      patch.name != null
+        ? patch.name.trim() || defaultNameForPair(nextKind, nextSymbol)
+        : current.name,
     coingeckoId:
       patch.coingeckoId !== undefined
         ? patch.coingeckoId.trim() || undefined
@@ -144,7 +168,10 @@ export function removeMarketTicker(id: string): void {
   saveMarketsState(state)
 }
 
-export function setMarketsCollapsed(section: 'crypto' | 'equities', collapsed: boolean): void {
+export function setMarketsCollapsed(
+  section: keyof MarketsCollapsed,
+  collapsed: boolean,
+): void {
   const state = loadMarketsState()
   state.collapsed = { ...state.collapsed, [section]: collapsed }
   saveMarketsState(state)
@@ -153,8 +180,7 @@ export function setMarketsCollapsed(section: 'crypto' | 'equities', collapsed: b
 export function setMarketsLastRefresh(iso: string): void {
   const state = loadMarketsState()
   state.lastRefreshAt = iso
-  // Avoid dirty-marking sync for quote cache timestamps alone — write without markLocalDataChanged
-  localStorage.setItem(KEY, JSON.stringify(state))
+  writeState(state, { silent: true })
 }
 
 export function exportMarketsForBackup(): MarketsState {
@@ -165,5 +191,15 @@ export function importMarketsFromBackup(raw: unknown): void {
   if (!raw || typeof raw !== 'object') return
   const parsed = raw as MarketsState
   if (parsed.version !== 1 || !Array.isArray(parsed.tickers)) return
-  saveMarketsState(parsed)
+  const { state } = mergeDefaultTickers({
+    ...parsed,
+    collapsed: {
+      crypto: Boolean(parsed.collapsed?.crypto),
+      equities: Boolean(parsed.collapsed?.equities),
+      fx: Boolean((parsed.collapsed as MarketsCollapsed | undefined)?.fx),
+      crosses: Boolean((parsed.collapsed as MarketsCollapsed | undefined)?.crosses),
+    },
+    tickers: parsed.tickers.map(normalizeTicker),
+  })
+  saveMarketsState(state)
 }
