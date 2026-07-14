@@ -12,6 +12,8 @@ import {
 } from './portfolioStore'
 import { STORAGE } from './keys'
 import { exportMarketsForBackup, importMarketsFromBackup } from './marketsStore'
+import { exportNewsForBackup, importNewsFromBackup } from './newsStore'
+import { exportYoutubeForBackup, importYoutubeFromBackup } from './youtubeStore'
 
 // Lazy import to avoid circular deps - sync service imports backupStore
 let _pushSyncLazy: ((url: string, pass: string) => Promise<void>) | null = null
@@ -53,6 +55,10 @@ export interface FullBackupRecord extends FullBackupMeta {
   blobs: Record<string, unknown>
   /** Optional Markets watchlist (workspace-level) */
   markets?: unknown
+  /** Optional News tags / feed prefs (workspace-level) */
+  news?: unknown
+  /** Optional YouTube favourite channels (workspace-level) */
+  youtube?: unknown
   /** Optional file attachments (CV/PDFs) as base64 payloads */
   documentBlobs?: import('./documentBlobStore').DocumentBlobPayload[]
   documentBlobsSkipped?: number[]
@@ -101,6 +107,8 @@ export function captureFullWorkspace(): Omit<
     portfolios: portfolios.map((p) => ({ ...p })),
     blobs,
     markets: exportMarketsForBackup(),
+    news: exportNewsForBackup(),
+    youtube: exportYoutubeForBackup(),
   }
 }
 
@@ -272,6 +280,12 @@ export async function restoreFullWorkspace(record: FullBackupRecord): Promise<vo
   if (record.markets) {
     importMarketsFromBackup(record.markets)
   }
+  if (record.news) {
+    importNewsFromBackup(record.news)
+  }
+  if (record.youtube) {
+    importYoutubeFromBackup(record.youtube)
+  }
 }
 
 function fullBackupPayload(record: FullBackupRecord) {
@@ -292,6 +306,8 @@ function fullBackupPayload(record: FullBackupRecord) {
       ? { documentBlobsSkipped: record.documentBlobsSkipped }
       : {}),
     ...(record.markets ? { markets: record.markets } : {}),
+    ...(record.news ? { news: record.news } : {}),
+    ...(record.youtube ? { youtube: record.youtube } : {}),
   }
 }
 
@@ -435,6 +451,8 @@ export function parseFullBackupFile(raw: unknown): FullBackupRecord | null {
       ? (o.documentBlobsSkipped as number[])
       : undefined,
     markets: o.markets,
+    news: o.news,
+    youtube: o.youtube,
   }
 }
 

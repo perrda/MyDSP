@@ -128,6 +128,8 @@ export function GlobalSearch() {
     const pages = [
       { title: 'Dashboard', path: '/', keywords: ['home', 'overview'] },
       { title: 'Markets', path: '/markets', keywords: ['watchlist', 'quotes', 'prices', 'tickers', 'fx', 'gbp', 'usd', 'thb', 'ada', 'cross', 'index', 'spx', 'nasdaq', 'ftse'] },
+      { title: 'News', path: '/news', keywords: ['news', 'headlines', 'yahoo', 'google', 'ticker', 'tsla', 'btc', 'insights'] },
+      { title: 'YouTube', path: '/youtube', keywords: ['youtube', 'videos', 'channels', 'finance', 'media'] },
       { title: 'Crypto', path: '/crypto', keywords: ['bitcoin', 'btc', 'holdings'] },
       { title: 'Equities', path: '/equities', keywords: ['stocks', 'shares'] },
       { title: 'Liabilities', path: '/liabilities', keywords: ['debt', 'credit', 'loans'] },
