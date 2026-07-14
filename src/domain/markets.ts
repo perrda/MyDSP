@@ -185,6 +185,7 @@ export function mergeDefaultTickers(state: MarketsState): { state: MarketsState;
 export function formatMarketLast(quote: MarketQuote): string {
   if (!(quote.last > 0)) return '—'
   if (quote.kind === 'crypto' || quote.kind === 'equity') {
+    // GBP storage units — UI should prefer formatGBPMarket / formatGBPPrecise for display CCY
     return quote.last.toLocaleString('en-GB', {
       style: 'currency',
       currency: 'GBP',

@@ -1,5 +1,16 @@
 # MyDSP Changelog
 
+## [1.1.4] - 2026-07-14
+
+### Fixed — Markets display currency
+- Crypto/equity Markets prints (including ADA, USDC, NIGHT) now follow the toolbar CCY (USD, THB, BTC, …) via GBP→display FX
+- Small prices keep extra decimals after conversion; indices stay in points; FX/crosses stay in quote units
+
+### Version
+- 1.1.3 → **1.1.4**
+
+---
+
 ## [1.1.3] - 2026-07-14
 
 ### Fixed — Markets live quotes (ADA / USDC / NIGHT) + sparklines
