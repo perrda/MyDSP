@@ -147,7 +147,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           </div>
           <button
             type="button"
-            className="lg:hidden w-9 h-9 flex items-center justify-center border border-border-strong text-text-muted hover:text-accent hover:border-accent"
+            className="lg:hidden w-11 h-11 flex items-center justify-center border border-border-strong text-text-muted hover:text-accent hover:border-accent"
             onClick={onClose}
             aria-label="Close sidebar"
           >

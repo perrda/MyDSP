@@ -72,9 +72,9 @@ export function TodoModal({ todo, listId, lists = [], onSave, onClose }: TodoMod
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="surface rounded-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto my-8">
-        <div className="sticky top-0 surface border-b border-border p-4 flex items-center justify-between">
+    <div className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-0 sm:p-4 overflow-y-auto">
+      <div className="surface rounded-none sm:rounded-xl max-w-3xl w-full h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[min(92dvh,56rem)] overflow-y-auto my-0 sm:my-8 pb-[env(safe-area-inset-bottom)]">
+        <div className="sticky top-0 surface border-b border-border p-4 flex items-center justify-between pt-[max(1rem,env(safe-area-inset-top))]">
           <h2 className="text-xl font-bold">{todo ? 'Edit Task' : 'New Task'}</h2>
           <button type="button" onClick={onClose} className="btn-ghost btn-sm" aria-label="Close">
             <X size={16} />
@@ -93,7 +93,7 @@ export function TodoModal({ todo, listId, lists = [], onSave, onClose }: TodoMod
                   autoFocus
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full px-3 py-2 bg-surface-hover border border-border rounded text-sm"
+                  className="w-full px-3 py-2.5 bg-surface-hover border border-border rounded text-base min-h-11"
                   placeholder="What needs to be done?"
                 />
               </div>
@@ -103,7 +103,7 @@ export function TodoModal({ todo, listId, lists = [], onSave, onClose }: TodoMod
                   <select
                     value={formData.listId}
                     onChange={(e) => setFormData({ ...formData, listId: Number(e.target.value) })}
-                    className="w-full px-3 py-2 bg-surface-hover border border-border rounded text-sm"
+                    className="w-full px-3 py-2.5 bg-surface-hover border border-border rounded text-base min-h-11"
                   >
                     {lists.map((l) => (
                       <option key={l.id} value={l.id}>
@@ -118,7 +118,7 @@ export function TodoModal({ todo, listId, lists = [], onSave, onClose }: TodoMod
                 <select
                   value={formData.priority}
                   onChange={(e) => setFormData({ ...formData, priority: e.target.value as TodoPriority })}
-                  className="w-full px-3 py-2 bg-surface-hover border border-border rounded text-sm"
+                  className="w-full px-3 py-2.5 bg-surface-hover border border-border rounded text-base min-h-11"
                 >
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>
@@ -130,7 +130,7 @@ export function TodoModal({ todo, listId, lists = [], onSave, onClose }: TodoMod
                 <select
                   value={formData.status}
                   onChange={(e) => setFormData({ ...formData, status: e.target.value as TodoStatus })}
-                  className="w-full px-3 py-2 bg-surface-hover border border-border rounded text-sm"
+                  className="w-full px-3 py-2.5 bg-surface-hover border border-border rounded text-base min-h-11"
                 >
                   <option value="todo">To Do</option>
                   <option value="in-progress">In Progress</option>
@@ -143,7 +143,7 @@ export function TodoModal({ todo, listId, lists = [], onSave, onClose }: TodoMod
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-3 py-2 bg-surface-hover border border-border rounded text-sm min-h-[90px]"
+                  className="w-full px-3 py-2.5 bg-surface-hover border border-border rounded text-base min-h-[90px]"
                   placeholder="Add more details..."
                 />
               </div>
@@ -159,7 +159,7 @@ export function TodoModal({ todo, listId, lists = [], onSave, onClose }: TodoMod
                   type="date"
                   value={formData.dueDate}
                   onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                  className="w-full px-3 py-2 bg-surface-hover border border-border rounded text-sm"
+                  className="w-full px-3 py-2.5 bg-surface-hover border border-border rounded text-base min-h-11"
                 />
               </div>
               <div>
@@ -168,7 +168,7 @@ export function TodoModal({ todo, listId, lists = [], onSave, onClose }: TodoMod
                   type="time"
                   value={formData.dueTime}
                   onChange={(e) => setFormData({ ...formData, dueTime: e.target.value })}
-                  className="w-full px-3 py-2 bg-surface-hover border border-border rounded text-sm"
+                  className="w-full px-3 py-2.5 bg-surface-hover border border-border rounded text-base min-h-11"
                 />
               </div>
               <div>
@@ -177,7 +177,7 @@ export function TodoModal({ todo, listId, lists = [], onSave, onClose }: TodoMod
                   type="date"
                   value={formData.reminderDate}
                   onChange={(e) => setFormData({ ...formData, reminderDate: e.target.value })}
-                  className="w-full px-3 py-2 bg-surface-hover border border-border rounded text-sm"
+                  className="w-full px-3 py-2.5 bg-surface-hover border border-border rounded text-base min-h-11"
                 />
               </div>
               <div>
@@ -186,7 +186,7 @@ export function TodoModal({ todo, listId, lists = [], onSave, onClose }: TodoMod
                   type="time"
                   value={formData.reminderTime}
                   onChange={(e) => setFormData({ ...formData, reminderTime: e.target.value })}
-                  className="w-full px-3 py-2 bg-surface-hover border border-border rounded text-sm"
+                  className="w-full px-3 py-2.5 bg-surface-hover border border-border rounded text-base min-h-11"
                 />
               </div>
             </div>
@@ -202,7 +202,7 @@ export function TodoModal({ todo, listId, lists = [], onSave, onClose }: TodoMod
                   min="0"
                   value={formData.estimatedMinutes}
                   onChange={(e) => setFormData({ ...formData, estimatedMinutes: e.target.value })}
-                  className="w-full px-3 py-2 bg-surface-hover border border-border rounded text-sm"
+                  className="w-full px-3 py-2.5 bg-surface-hover border border-border rounded text-base min-h-11"
                   placeholder="60"
                 />
               </div>
@@ -213,7 +213,7 @@ export function TodoModal({ todo, listId, lists = [], onSave, onClose }: TodoMod
                   min="0"
                   value={formData.actualMinutes}
                   onChange={(e) => setFormData({ ...formData, actualMinutes: e.target.value })}
-                  className="w-full px-3 py-2 bg-surface-hover border border-border rounded text-sm"
+                  className="w-full px-3 py-2.5 bg-surface-hover border border-border rounded text-base min-h-11"
                   placeholder="45"
                 />
               </div>
@@ -223,7 +223,7 @@ export function TodoModal({ todo, listId, lists = [], onSave, onClose }: TodoMod
                   type="text"
                   value={formData.tags}
                   onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-                  className="w-full px-3 py-2 bg-surface-hover border border-border rounded text-sm"
+                  className="w-full px-3 py-2.5 bg-surface-hover border border-border rounded text-base min-h-11"
                   placeholder="work, urgent, personal (comma separated)"
                 />
               </div>

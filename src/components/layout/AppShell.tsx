@@ -164,15 +164,17 @@ export function AppShell() {
         <header className="app-header">
           <div className="app-header-row">
             <MenuButton onClick={() => setOpen(true)} />
-            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+            <div className="hidden sm:flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
               <div className="hidden sm:block w-[3px] h-7 bg-accent shrink-0" aria-hidden />
               <div className="min-w-0">
-                <p className="eyebrow text-[10px] tracking-[0.2em]">{meta.eyebrow}</p>
+                <p className="eyebrow tracking-[0.2em]">{meta.eyebrow}</p>
                 <h1 className="text-base sm:text-lg font-bold tracking-tight truncate leading-tight">
                   {meta.title}
                 </h1>
               </div>
             </div>
+            {/* Mobile: keep header lean — page PageHeader carries the title */}
+            <div className="sm:hidden flex-1 min-w-0" aria-hidden />
 
             <div className="toolbar-cluster" role="toolbar" aria-label="Workspace controls">
               <label className="toolbar-field">
@@ -225,15 +227,13 @@ export function AppShell() {
 
               <PrivacyToggle privacy={privacy} onToggle={() => setPrivacy(!privacy)} />
               <ThemeToggle />
-              <div className="hidden sm:block">
-                <GlobalSearch />
-              </div>
+              <GlobalSearch />
             </div>
           </div>
           {(priceMsg || lastPriceError || data.settings.lastPriceUpdate || syncCfg.lastSyncAt) && (
             <div className="app-header-meta">
               <p
-                className={`text-[11px] truncate ${lastPriceError && !priceMsg ? 'text-accent' : 'text-text-subtle'}`}
+                className={`text-xs truncate ${lastPriceError && !priceMsg ? 'text-accent' : 'text-text-subtle'}`}
                 role="status"
               >
                 {priceMsg ??
@@ -253,7 +253,7 @@ export function AppShell() {
           )}
         </header>
 
-        <main className="app-content pb-16 lg:pb-0">
+        <main className="app-content app-content-with-bottom-nav lg:pb-0">
           <PullToRefresh onRefresh={onPullToSync} refreshingLabel="Syncing devices…">
             <Outlet />
           </PullToRefresh>

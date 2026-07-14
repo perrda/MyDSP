@@ -1,5 +1,21 @@
 # MyDSP Changelog
 
+## [1.1.1] - 2026-07-14
+
+### Fixed — Mobile / tablet readability & bugs
+- iPhone content no longer hidden under the bottom tab bar (safe-area aware padding)
+- Sync/price status visible on phone; larger portfolio/currency selects; mobile search
+- Spending: card layout on small screens; full-screen expense modal
+- Jobs: interview timeline crash guards; salary currency display; a11y on ratings
+- Sync merge includes FIRE / income / allocation scalars from remote
+- Todo modal safe-area + 16px inputs (no iOS zoom); confirm buttons 44px
+- `formatGBP` shows pence (2 dp) by default for clearer money on mobile
+
+### Version
+- 1.1.0 → **1.1.1**
+
+---
+
 ## [1.1.0] - 2026-07-14
 
 ### Added — Markets watchlist

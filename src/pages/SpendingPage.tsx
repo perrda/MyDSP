@@ -183,33 +183,47 @@ export function SpendingPage() {
         title="Spending ledger"
         description={`${formatMonthLabel(ym)} · filter by category, search, or jump to budgets.`}
         action={
-          <div className="flex flex-wrap gap-2 items-center">
-            <button type="button" className="btn-ghost btn-sm" onClick={() => setYm(shiftMonth(ym, -1))}>
-              Prev
-            </button>
-            <span className="text-sm font-semibold tabular-nums">{ym}</span>
-            <button type="button" className="btn-ghost btn-sm" onClick={() => setYm(shiftMonth(ym, 1))}>
-              Next
-            </button>
-            {ym !== monthKey() && (
-              <button type="button" className="btn-ghost btn-sm" onClick={() => setYm(monthKey())}>
-                Now
-              </button>
-            )}
-            {category !== 'All' && (
-              <Link
-                to={`/budgets?category=${encodeURIComponent(category)}&month=${ym}`}
-                className="btn-secondary btn-sm"
+          <div className="flex flex-wrap gap-2 items-center w-full sm:w-auto">
+            <div className="flex items-center gap-1.5 w-full sm:w-auto">
+              <button
+                type="button"
+                className="btn-ghost btn-sm min-h-11 min-w-11"
+                onClick={() => setYm(shiftMonth(ym, -1))}
+                aria-label="Previous month"
               >
-                Set budget
+                Prev
+              </button>
+              <span className="text-sm font-semibold tabular-nums flex-1 text-center sm:flex-none">{ym}</span>
+              <button
+                type="button"
+                className="btn-ghost btn-sm min-h-11 min-w-11"
+                onClick={() => setYm(shiftMonth(ym, 1))}
+                aria-label="Next month"
+              >
+                Next
+              </button>
+              {ym !== monthKey() && (
+                <button type="button" className="btn-ghost btn-sm" onClick={() => setYm(monthKey())}>
+                  Now
+                </button>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+              {category !== 'All' && (
+                <Link
+                  to={`/budgets?category=${encodeURIComponent(category)}&month=${ym}`}
+                  className="btn-secondary btn-sm"
+                >
+                  Set budget
+                </Link>
+              )}
+              <Link to={`/budgets?month=${ym}`} className="btn-ghost btn-sm">
+                Budgets
               </Link>
-            )}
-            <Link to={`/budgets?month=${ym}`} className="btn-ghost btn-sm">
-              Budgets
-            </Link>
-            <button type="button" className="btn-primary btn-sm" onClick={openCreate}>
-              Add expense
-            </button>
+              <button type="button" className="btn-primary btn-sm flex-1 sm:flex-none" onClick={openCreate}>
+                Add expense
+              </button>
+            </div>
           </div>
         }
       />
@@ -263,7 +277,52 @@ export function SpendingPage() {
         </div>
       </div>
 
-      <div className="surface overflow-x-auto">
+      {/* Mobile card list — no horizontal scroll */}
+      <div className="sm:hidden space-y-2 mb-4">
+        {filtered.map((tx) => (
+          <div key={tx.id} className="surface p-4 rounded-xl">
+            <div className="flex items-start justify-between gap-3 mb-2">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-text leading-snug break-words">{tx.description}</p>
+                <p className="text-xs text-text-muted mt-1">{formatDate(tx.date)} · {tx.method}</p>
+              </div>
+              <p className={`text-sm font-semibold tabular-nums shrink-0 ${privacyClass(privacy)}`}>
+                {formatGBPPrecise(-Math.abs(tx.amount))}
+              </p>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="bg-accent/10 text-accent text-xs font-bold uppercase tracking-wider px-2 py-1 rounded">
+                {tx.category}
+              </span>
+              <div className="flex gap-1">
+                <button
+                  type="button"
+                  className="btn-ghost btn-sm min-h-11"
+                  onClick={() => openEdit(tx)}
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  className="btn-ghost btn-sm min-h-11 text-red-500"
+                  onClick={() => setDeleteId(tx.id)}
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+        {filtered.length === 0 && (
+          <div className="surface p-8 text-center text-text-subtle font-light rounded-xl">
+            {data.spending.length === 0
+              ? 'No spending yet — tap Add expense.'
+              : 'No transactions match your filters.'}
+          </div>
+        )}
+      </div>
+
+      <div className="surface overflow-x-auto hidden sm:block">
         <table className="w-full text-left min-w-[720px]">
           <thead>
             <tr className="border-b border-border">
@@ -282,7 +341,7 @@ export function SpendingPage() {
                 </td>
                 <td className="px-5 sm:px-6 py-4 text-sm font-medium">{tx.description}</td>
                 <td className="px-5 sm:px-6 py-4">
-                  <span className="bg-accent/10 text-accent text-[10px] font-bold uppercase tracking-widest px-2 py-0.5">
+                  <span className="bg-accent/10 text-accent text-xs font-bold uppercase tracking-widest px-2 py-0.5">
                     {tx.category}
                   </span>
                 </td>
@@ -319,7 +378,12 @@ export function SpendingPage() {
         </table>
       </div>
 
-      <Modal open={open} title={editing ? 'Edit expense' : 'Add expense'} onClose={() => setOpen(false)}>
+      <Modal
+        open={open}
+        title={editing ? 'Edit expense' : 'Add expense'}
+        onClose={() => setOpen(false)}
+        size="full"
+      >
         <form
           className="space-y-5"
           onSubmit={(e) => {

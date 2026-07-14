@@ -43,8 +43,8 @@ function formatMoney(
     style: 'currency',
     currency: currency.length === 3 ? currency : 'GBP',
     notation: opts?.compact ? 'compact' : 'standard',
-    maximumFractionDigits: digits ?? (opts?.compact ? 2 : currency === 'JPY' ? 0 : 0),
-    minimumFractionDigits: digits ?? 0,
+    maximumFractionDigits: digits ?? (opts?.compact ? 2 : currency === 'JPY' ? 0 : 2),
+    minimumFractionDigits: digits ?? (opts?.compact ? 0 : currency === 'JPY' ? 0 : 2),
   }).format(abs)
 
   if (opts?.signed) {
@@ -63,6 +63,34 @@ export function formatGBP(n: number, opts?: { signed?: boolean; compact?: boolea
 export function formatGBPPrecise(n: number): string {
   if (displayCurrency === 'BTC') return formatMoney(n, 'BTC')
   return formatMoney(n, displayCurrency, { digits: 2 })
+}
+
+/**
+ * Format an amount already denominated in `currency` (no GBP conversion).
+ * Use for job salaries and other foreign-currency fields stored as-is.
+ */
+export function formatNativeCurrency(
+  n: number,
+  currency: string,
+  opts?: { signed?: boolean; digits?: number },
+): string {
+  if (!Number.isFinite(n)) return '—'
+  const code = (currency || 'GBP').toUpperCase()
+  if (code === 'BTC') return formatBtc(n, opts)
+  const abs = Math.abs(n)
+  const digits = opts?.digits ?? (code === 'JPY' ? 0 : 0)
+  const formatted = new Intl.NumberFormat('en-GB', {
+    style: 'currency',
+    currency: code.length === 3 ? code : 'GBP',
+    maximumFractionDigits: digits,
+    minimumFractionDigits: 0,
+  }).format(abs)
+  if (opts?.signed) {
+    if (n > 0) return `+${formatted}`
+    if (n < 0) return `−${formatted}`
+  }
+  if (n < 0) return `−${formatted}`
+  return formatted
 }
 
 export function formatPct(n: number, digits = 1): string {

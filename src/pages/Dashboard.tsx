@@ -75,24 +75,24 @@ export function Dashboard() {
 
       {/* Mobile: Stacked stat cards with better spacing */}
       <div className={`grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-px mb-6 ${privacyClass(privacy)}`}>
-        <div className="surface p-4 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
-          <p className="text-xs md:text-[10px] uppercase tracking-wider text-text-subtle mb-2 md:mb-1 font-semibold">Net worth</p>
-          <p className="text-xl md:text-2xl font-bold tabular-nums mb-1">{formatGBP(netWorth)}</p>
+        <div className="surface p-4 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none col-span-2 md:col-span-1">
+          <p className="text-xs uppercase tracking-wider text-text-subtle mb-2 md:mb-1 font-semibold">Net worth</p>
+          <p className="text-2xl md:text-2xl font-bold tabular-nums mb-1 break-words">{formatGBP(netWorth)}</p>
           <p className="text-xs text-text-muted font-light leading-tight">Assets − debt</p>
         </div>
         <div className="surface p-4 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
-          <p className="text-xs md:text-[10px] uppercase tracking-wider text-text-subtle mb-2 md:mb-1 font-semibold">Assets</p>
-          <p className="text-xl md:text-2xl font-bold tabular-nums mb-1">{formatGBP(assets)}</p>
+          <p className="text-xs uppercase tracking-wider text-text-subtle mb-2 md:mb-1 font-semibold">Assets</p>
+          <p className="text-xl md:text-2xl font-bold tabular-nums mb-1 break-words">{formatGBP(assets)}</p>
           <p className="text-xs text-text-muted font-light leading-tight">Crypto + Equity</p>
         </div>
         <div className="surface p-4 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
-          <p className="text-xs md:text-[10px] uppercase tracking-wider text-text-subtle mb-2 md:mb-1 font-semibold">Debt</p>
-          <p className="text-xl md:text-2xl font-bold tabular-nums mb-1 text-text-muted">{formatGBP(liabilities)}</p>
+          <p className="text-xs uppercase tracking-wider text-text-subtle mb-2 md:mb-1 font-semibold">Debt</p>
+          <p className="text-xl md:text-2xl font-bold tabular-nums mb-1 text-text-muted break-words">{formatGBP(liabilities)}</p>
           <p className="text-xs text-text-muted font-light leading-tight">Total owed</p>
         </div>
-        <div className="surface p-4 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
-          <p className="text-xs md:text-[10px] uppercase tracking-wider text-text-subtle mb-2 md:mb-1 font-semibold">Monthly</p>
-          <p className="text-xl md:text-2xl font-bold tabular-nums mb-1">{formatGBP(liability.monthly)}</p>
+        <div className="surface p-4 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none col-span-2 md:col-span-1">
+          <p className="text-xs uppercase tracking-wider text-text-subtle mb-2 md:mb-1 font-semibold">Monthly</p>
+          <p className="text-xl md:text-2xl font-bold tabular-nums mb-1 break-words">{formatGBP(liability.monthly)}</p>
           <p className="text-xs text-text-muted font-light leading-tight">Min payments</p>
         </div>
       </div>
