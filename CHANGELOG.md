@@ -1,5 +1,29 @@
 # MyDSP Changelog
 
+## [1.2.2] - 2026-07-14
+
+### Fixed — PIN & biometrics (iPhone / iPad)
+- Face ID / Touch ID no longer auto-fires on lock (iOS requires a user tap) — prominent **Unlock with Face ID** button
+- PIN lockout persists in `sessionStorage` (refresh no longer bypasses the 30s lockout)
+- Enabling PIN locks the app immediately; biometrics can be disabled independently
+- WebAuthn: ES256 + RS256, `residentKey: preferred`, safer `rp.id` on localhost
+- Branded lock screen with safe-area padding and clearer iPhone/iPad copy
+
+### Fixed — Enhanced CSV import
+- Lloyds / Nationwide **separate debit/credit** columns now parse correctly (was mis-routed through a single-amount parser)
+
+### Improved — App Store polish pass
+- Error boundary restyled to MyDSP design tokens (no generic blue/gray card)
+- YouTube empty states use shared EmptyState + correct header-refresh copy
+- Removed dead recursive `ui/GlobalSearch.tsx`
+- AppShell titles for Opening balances / Legacy CSV
+- Unit tests: PIN security, enhanced CSV presets
+
+### Version
+- 1.2.1 → **1.2.2**
+
+---
+
 ## [1.2.1] - 2026-07-14
 
 ### Fixed — YouTube crash (lucide / react-vendor chunk collision)

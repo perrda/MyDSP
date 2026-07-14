@@ -38,7 +38,9 @@ import {
 } from '../services/sync/syncService'
 import {
   clearBiometricCred,
+  getBiometricLabel,
   hashPin,
+  isBiometricSupported,
   loadSecurity,
   registerBiometric,
   saveSecurity,
@@ -1306,11 +1308,13 @@ export function SettingsPage() {
           </p>
         </section>
 
-        <section className="surface p-6 sm:p-8">
+        <section className="surface p-6 sm:p-8" id="security">
           <p className="eyebrow mb-3">Security</p>
-          <h3 className="text-lg font-bold tracking-tight mb-3">PIN lock</h3>
+          <h3 className="text-lg font-bold tracking-tight mb-3">PIN &amp; biometrics</h3>
           <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
-            4-digit PIN with optional biometrics and auto-lock. Compatible with FCC security keys.
+            Lock MyDSP with a 4-digit PIN. On iPhone and iPad (HTTPS / Add to Home Screen), unlock
+            with {getBiometricLabel()} via WebAuthn. Security stays on this device and is not
+            included in cloud backups.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 max-w-lg">
             <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle">
@@ -1318,6 +1322,7 @@ export function SettingsPage() {
               <input
                 type="password"
                 inputMode="numeric"
+                autoComplete="off"
                 maxLength={4}
                 className="mt-2"
                 value={pinDraft}
@@ -1329,6 +1334,7 @@ export function SettingsPage() {
               <input
                 type="password"
                 inputMode="numeric"
+                autoComplete="off"
                 maxLength={4}
                 className="mt-2"
                 value={pinConfirm}
@@ -1350,7 +1356,8 @@ export function SettingsPage() {
                   persistSecurity({ ...sec, pinEnabled: true, pinHash })
                   setPinDraft('')
                   setPinConfirm('')
-                  flash('PIN enabled.')
+                  flash('PIN enabled — locking now.')
+                  lock()
                 })()
               }}
             >
@@ -1384,7 +1391,7 @@ export function SettingsPage() {
             Auto-lock (minutes)
           </label>
           <select
-            className="max-w-xs mb-6"
+            className="max-w-xs mb-2"
             value={sec.autoLockMinutes}
             onChange={(e) => {
               const autoLockMinutes = Number(e.target.value)
@@ -1394,32 +1401,55 @@ export function SettingsPage() {
           >
             {[0, 1, 5, 15, 30].map((m) => (
               <option key={m} value={m}>
-                {m === 0 ? 'Off' : `${m} min`}
+                {m === 0 ? 'Off (manual lock only)' : `${m} min`}
               </option>
             ))}
           </select>
-          <div>
+          <p className="text-xs text-text-subtle mb-6 max-w-xl">
+            When auto-lock is on, MyDSP also locks when you leave the app (iPhone/iPad app switcher).
+          </p>
+          <div className="flex flex-wrap gap-3 items-start">
             <button
               type="button"
               className="btn-secondary"
-              disabled={!sec.pinEnabled}
+              disabled={!sec.pinEnabled || !isBiometricSupported()}
               onClick={() => {
                 void (async () => {
+                  if (!isBiometricSupported()) {
+                    flash('Biometrics need HTTPS (or localhost). Open the installed PWA.')
+                    return
+                  }
                   const ok = await registerBiometric()
                   if (ok) {
                     persistSecurity({ ...sec, biometricEnabled: true })
-                    flash('Biometrics registered.')
-                  } else flash('Biometrics unavailable or cancelled.')
+                    flash(`${getBiometricLabel()} registered.`)
+                  } else flash(`${getBiometricLabel()} unavailable or cancelled.`)
                 })()
               }}
             >
-              {sec.biometricEnabled ? 'Re-register biometrics' : 'Enable biometrics'}
+              {sec.biometricEnabled
+                ? `Re-register ${getBiometricLabel()}`
+                : `Enable ${getBiometricLabel()}`}
             </button>
-            <p className="text-xs text-text-subtle mt-3 max-w-xl">
-              Face ID / Touch ID (WebAuthn) requires a secure context — use an HTTPS PWA host, not
-              plain HTTP LAN.
-            </p>
+            {sec.biometricEnabled ? (
+              <button
+                type="button"
+                className="btn-ghost"
+                onClick={() => {
+                  clearBiometricCred()
+                  persistSecurity({ ...sec, biometricEnabled: false })
+                  flash(`${getBiometricLabel()} disabled.`)
+                }}
+              >
+                Disable {getBiometricLabel()}
+              </button>
+            ) : null}
           </div>
+          <p className="text-xs text-text-subtle mt-3 max-w-xl">
+            {isBiometricSupported()
+              ? `Tap “Unlock with ${getBiometricLabel()}” on the lock screen (iOS requires a tap — Face ID will not auto-start).`
+              : 'Biometrics unavailable here — use an HTTPS host (e.g. workers.dev) and Add to Home Screen on iPhone/iPad.'}
+          </p>
         </section>
 
         <section className="surface p-6 sm:p-8">

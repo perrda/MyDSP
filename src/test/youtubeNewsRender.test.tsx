@@ -47,9 +47,11 @@ describe('YouTube + News page render QA', () => {
 
     expect(screen.getByRole('heading', { name: 'YouTube' })).toBeTruthy()
     expect(screen.getByText(/Favourite channels/i)).toBeTruthy()
-    expect(screen.getByText(/Add up to 25 channels/i)).toBeTruthy()
+    expect(screen.getByText(/No channels yet/i)).toBeTruthy()
+    const addBtns = screen.getAllByRole('button', { name: /Add channel/i })
+    expect(addBtns.length).toBeGreaterThan(0)
 
-    fireEvent.click(screen.getByRole('button', { name: /Add channel/i }))
+    fireEvent.click(addBtns[0])
     expect(screen.getByText(/Add YouTube channel/i)).toBeTruthy()
     expect(screen.getByLabelText(/Channel URL or @handle/i)).toBeTruthy()
   })
@@ -97,7 +99,7 @@ describe('YouTube + News page render QA', () => {
       </MemoryRouter>,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: /Add channel/i }))
+    fireEvent.click(screen.getAllByRole('button', { name: /Add channel/i })[0])
     fireEvent.change(screen.getByPlaceholderText(/youtube.com/i), {
       target: { value: 'https://www.youtube.com/@AltcoinDaily' },
     })

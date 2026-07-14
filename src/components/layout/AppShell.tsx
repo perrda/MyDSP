@@ -53,6 +53,8 @@ const titles: Record<string, { eyebrow: string; title: string }> = {
   '/compare': { eyebrow: 'Compare', title: 'Compare Portfolios' },
   '/api': { eyebrow: 'Integration', title: 'API & Automation' },
   '/insights': { eyebrow: 'Intelligence', title: 'Smart Insights' },
+  '/setup/opening': { eyebrow: 'Setup', title: 'Opening balances' },
+  '/import/legacy': { eyebrow: 'Import', title: 'Legacy CSV' },
   '/settings': { eyebrow: 'System', title: 'Settings' },
 }
 

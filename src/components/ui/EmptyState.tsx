@@ -19,7 +19,7 @@ interface EmptyStateProps {
 
 export function EmptyState({ icon, title, description, action, secondaryAction }: EmptyStateProps) {
   return (
-    <div className="surface p-12 md:p-16 text-center rounded-xl md:rounded-none shadow-sm md:shadow-none animate-fade-in">
+    <div className="surface p-10 sm:p-12 md:p-16 text-center border border-border animate-fade-in">
       {icon && (
         <div className="flex justify-center mb-4">
           <div className="text-text-subtle opacity-40 text-6xl">{icon}</div>
