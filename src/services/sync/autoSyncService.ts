@@ -206,8 +206,10 @@ async function doPull(cfg: SyncConfig, pass: string, reason: CycleReason): Promi
 
   const wasDirty = dirty
   beginApplyingRemote()
+  let removedDupes = 0
   try {
     const result = await applyMergePreview(preview, resolutions)
+    removedDupes = result.removedDupes
     const at = new Date().toISOString()
     updateCfg({
       lastSyncAt: at,
@@ -217,9 +219,14 @@ async function doPull(cfg: SyncConfig, pass: string, reason: CycleReason): Promi
     })
     pendingConflictPreview = null
     if (!wasDirty) dirty = false
+    // Local cleanup after a dirty cloud registry — push so other devices heal too
+    if (removedDupes > 0 || preview.remoteHadDuplicateNames) dirty = true
     emit({
       state: 'idle',
-      message: `Merged ${result.merged} portfolio(s)`,
+      message:
+        removedDupes > 0 || preview.remoteHadDuplicateNames
+          ? `Merged ${result.merged} portfolio(s); cleaned duplicate portfolio names`
+          : `Merged ${result.merged} portfolio(s)`,
       lastAt: at,
     })
     try {

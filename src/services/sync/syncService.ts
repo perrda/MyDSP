@@ -12,6 +12,8 @@ import {
   setActivePortfolioId,
   dedupePortfoliosByName,
   portfolioNameKey,
+  hasDuplicatePortfolioNames,
+  MAX_PORTFOLIOS,
 } from '../../storage/portfolioStore'
 import { checksum, decryptJson, encryptJson, type EncryptedBlob } from './crypto'
 import { setSessionSyncPassphrase } from './sessionPassphrase'
@@ -83,6 +85,8 @@ export interface MergePreview {
   documentBlobs?: DocumentBlobPayload[]
   documentBlobsSkipped?: number[]
   conflicts: SyncConflict[]
+  /** Remote registry had duplicate names or exceeded the cap — push cleaned local after merge. */
+  remoteHadDuplicateNames?: boolean
 }
 
 export function loadSyncConfig(): SyncConfig {
@@ -461,6 +465,9 @@ function buildMergePreview(
 
   // Registry: keep local names unique when combining with remote metadata
   const registryPortfolios = mergeRegistryUnique(localList, envelope.portfolios)
+  const remoteHadDuplicateNames =
+    hasDuplicatePortfolioNames(envelope.portfolios) ||
+    envelope.portfolios.length > MAX_PORTFOLIOS
 
   return {
     source,
@@ -470,14 +477,25 @@ function buildMergePreview(
     documentBlobs,
     documentBlobsSkipped: envelope.documentBlobsSkipped,
     conflicts,
+    remoteHadDuplicateNames,
   }
 }
 
 /** Union registries without duplicate display names (case-insensitive). */
 function mergeRegistryUnique(local: PortfolioMeta[], remote: PortfolioMeta[]): PortfolioMeta[] {
-  const combined = [...local]
-  const ids = new Set(local.map((p) => p.id))
-  const names = new Set(local.map((p) => portfolioNameKey(p.name)))
+  // Never seed from a dirty local list — collapse name dupes first.
+  const combined: PortfolioMeta[] = []
+  const ids = new Set<string>()
+  const names = new Set<string>()
+
+  for (const p of local) {
+    if (ids.has(p.id)) continue
+    const key = portfolioNameKey(p.name)
+    if (key && names.has(key)) continue
+    combined.push(p)
+    ids.add(p.id)
+    if (key) names.add(key)
+  }
 
   for (const p of remote) {
     if (ids.has(p.id)) continue
@@ -517,7 +535,7 @@ export async function previewImport(file: File, passphrase: string): Promise<Mer
 export async function applyMergePreview(
   preview: MergePreview,
   resolutions: Record<string, ConflictChoice> = {},
-): Promise<{ merged: number; conflicts: SyncConflict[] }> {
+): Promise<{ merged: number; conflicts: SyncConflict[]; removedDupes: number }> {
   let merged = 0
   for (const plan of preview.portfolios) {
     if (plan.isNew || !plan.local) {
@@ -537,7 +555,7 @@ export async function applyMergePreview(
 
   // preview.registryPortfolios is already name-deduped vs local
   localStorage.setItem('fcc_portfolios', JSON.stringify(preview.registryPortfolios))
-  dedupePortfoliosByName()
+  const { removed } = dedupePortfoliosByName()
   if (preview.activePortfolioId) {
     const ids = new Set(listPortfolios().map((p) => p.id))
     if (ids.has(preview.activePortfolioId)) {
@@ -550,7 +568,7 @@ export async function applyMergePreview(
     await importDocumentBlobs(preview.documentBlobs)
   }
 
-  return { merged, conflicts: preview.conflicts }
+  return { merged, conflicts: preview.conflicts, removedDupes: removed.length }
 }
 
 /**

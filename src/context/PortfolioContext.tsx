@@ -33,6 +33,7 @@ import {
   startAutoSync,
   stopAutoSync,
   isApplyingRemote,
+  syncNow,
 } from '../services/sync/autoSyncService'
 import { setDisplayCurrency } from '../utils/format'
 import { migrateEquityLivePricesToGbp, repairEquityLivePricesToGbp, EQUITY_GBP_VERSION } from '../domain/migrateEquityGbp'
@@ -91,9 +92,10 @@ interface PortfolioContextValue {
 const PortfolioContext = createContext<PortfolioContextValue | undefined>(undefined)
 
 export function PortfolioProvider({ children }: { children: ReactNode }) {
+  const bootCleanupRef = useRef<{ removedDupes: string[] }>({ removedDupes: [] })
   const [activeId, setActiveId] = useState(getActivePortfolioId)
   const [portfolios, setPortfolios] = useState(() => {
-    bootstrapFamilyPortfolios()
+    bootCleanupRef.current = bootstrapFamilyPortfolios()
     return listPortfolios()
   })
   const [data, setDataState] = useState<PortfolioData>(() => {
@@ -449,6 +451,29 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
       stopAutoSync()
       window.removeEventListener('mydsp-sync-applied', onApplied)
     }
+  }, [reload])
+
+  // After duplicate portfolio cleanup, refresh UI and mark dirty so auto-sync
+  // pushes the cleaned registry (other devices stop re-pulling name duplicates).
+  useEffect(() => {
+    const onDeduped = () => {
+      try {
+        reload()
+      } catch (e) {
+        console.warn('[portfolio] dedupe reload failed:', e)
+      }
+      window.setTimeout(() => markLocalDataChanged(), 0)
+    }
+    window.addEventListener('mydsp-portfolios-deduped', onDeduped)
+    if (bootCleanupRef.current.removedDupes.length > 0) {
+      window.setTimeout(() => {
+        markLocalDataChanged()
+        void syncNow().catch(() => {
+          /* push may be unavailable; cleaned list remains local */
+        })
+      }, 0)
+    }
+    return () => window.removeEventListener('mydsp-portfolios-deduped', onDeduped)
   }, [reload])
 
   // Flush offline quote + sync jobs when connectivity returns
