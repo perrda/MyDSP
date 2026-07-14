@@ -20,11 +20,16 @@ const GECKO_IDS: Record<string, string> = {
   LINK: 'chainlink',
   AVAX: 'avalanche-2',
   MATIC: 'matic-network',
+  /** Midnight (NIGHT) — live CoinGecko id */
+  NIGHT: 'midnight-3',
 }
 
-const MANUAL_DEFAULTS: Record<string, number> = {
-  NIGHT: 0.0635,
-}
+/** Last-resort static GBP prints when every live source fails (prefer live APIs). */
+const MANUAL_DEFAULTS: Record<string, number> = {}
+
+/** In-memory cache of symbol → CoinGecko id from search (session). */
+const geckoSearchCache = new Map<string, string>()
+
 
 async function fetchJson<T>(url: string, timeoutMs = 10000): Promise<T | null> {
   const controller = new AbortController()
@@ -51,32 +56,55 @@ export async function fetchCryptoPricesGbp(
   manualOverrides: Record<string, number> = {},
 ): Promise<CryptoPriceUpdate[]> {
   const unique = [...new Set(symbols.map((s) => s.toUpperCase()))]
-  const geckoIds = unique.map((s) => GECKO_IDS[s]).filter(Boolean)
+  const idBySym = new Map<string, string>()
+  await Promise.all(
+    unique.map(async (s) => {
+      const id = await lookupGeckoId(s)
+      if (id) idBySym.set(s, id)
+    }),
+  )
+  const geckoIds = [...new Set(idBySym.values())]
   const byGecko: Record<string, number> = {}
 
   if (geckoIds.length > 0) {
     const url = `https://api.coingecko.com/api/v3/simple/price?ids=${geckoIds.join(',')}&vs_currencies=gbp`
     const data = await fetchJson<Record<string, { gbp?: number }>>(url)
     if (data) {
-      for (const [sym, id] of Object.entries(GECKO_IDS)) {
+      for (const [sym, id] of idBySym) {
         const p = data[id]?.gbp
         if (p && p > 0) byGecko[sym] = p
       }
     }
   }
 
-  return unique.map((symbol) => {
+  const fx = await ensureFxRates()
+  const out: CryptoPriceUpdate[] = []
+  for (const symbol of unique) {
     if (byGecko[symbol]) {
-      return { symbol, price: byGecko[symbol], source: 'coingecko' as const }
+      out.push({ symbol, price: byGecko[symbol], source: 'coingecko' })
+      continue
+    }
+    try {
+      const yahoo = await fetchCryptoYahooQuoteGbp(symbol, fx)
+      if (yahoo && yahoo.priceGbp > 0) {
+        // Yahoo is a live print; surface as coingecko-equivalent for portfolio callers
+        out.push({ symbol, price: yahoo.priceGbp, source: 'coingecko' })
+        continue
+      }
+    } catch {
+      /* continue */
     }
     if (manualOverrides[symbol] > 0) {
-      return { symbol, price: manualOverrides[symbol], source: 'manual' as const }
+      out.push({ symbol, price: manualOverrides[symbol], source: 'manual' })
+      continue
     }
     if (MANUAL_DEFAULTS[symbol]) {
-      return { symbol, price: MANUAL_DEFAULTS[symbol], source: 'default' as const }
+      out.push({ symbol, price: MANUAL_DEFAULTS[symbol], source: 'default' })
+      continue
     }
-    return { symbol, price: 0, source: 'manual' as const }
-  })
+    out.push({ symbol, price: 0, source: 'manual' })
+  }
+  return out
 }
 
 /** Raw market quote in the venue’s native currency (USD for US equities). */
@@ -137,10 +165,36 @@ export function equityQuoteToGbp(
 
 export function resolveGeckoId(symbol: string, override?: string): string | undefined {
   if (override?.trim()) return override.trim()
-  return GECKO_IDS[symbol.toUpperCase()]
+  const sym = symbol.toUpperCase()
+  return GECKO_IDS[sym] ?? geckoSearchCache.get(sym)
 }
 
 export const KNOWN_CRYPTO_SYMBOLS = Object.keys(GECKO_IDS)
+
+/** Resolve a CoinGecko id via search when the symbol is not in the built-in map. */
+export async function lookupGeckoId(symbol: string): Promise<string | undefined> {
+  const sym = symbol.trim().toUpperCase()
+  if (!sym) return undefined
+  const known = resolveGeckoId(sym)
+  if (known) return known
+  const cached = geckoSearchCache.get(sym)
+  if (cached) return cached
+
+  const data = await fetchJson<{
+    coins?: Array<{ id?: string; symbol?: string; market_cap_rank?: number | null }>
+  }>(`https://api.coingecko.com/api/v3/search?query=${encodeURIComponent(sym)}`, 8000)
+
+  const coins = data?.coins ?? []
+  const exact = coins
+    .filter((c) => (c.symbol || '').toUpperCase() === sym && c.id)
+    .sort((a, b) => (a.market_cap_rank ?? 999999) - (b.market_cap_rank ?? 999999))
+  const id = exact[0]?.id
+  if (id) {
+    geckoSearchCache.set(sym, id)
+    return id
+  }
+  return undefined
+}
 
 async function fetchViaProxies<T>(url: string, timeoutMs = 8000): Promise<T | null> {
   const proxies = [
@@ -259,10 +313,66 @@ export interface CryptoMarketQuoteGbp {
   symbol: string
   priceGbp: number
   changePct: number
-  source: 'coingecko' | 'manual' | 'default'
+  sparkline?: number[]
+  coingeckoId?: string
+  source: 'coingecko' | 'yahoo' | 'manual' | 'default'
 }
 
-/** Crypto quotes in GBP with 24h % change (CoinGecko). */
+/** Yahoo crypto chart ticker e.g. ADA → ADA-USD */
+function yahooCryptoSymbol(symbol: string): string {
+  const s = symbol.trim().toUpperCase()
+  if (s.includes('-')) return s
+  return `${s}-USD`
+}
+
+/** Live crypto quote via Yahoo (USD) converted to GBP — fallback when CoinGecko fails. */
+export async function fetchCryptoYahooQuoteGbp(
+  symbol: string,
+  rates?: FxRates,
+): Promise<CryptoMarketQuoteGbp | null> {
+  const fx = rates ?? (await ensureFxRates())
+  const ySym = yahooCryptoSymbol(symbol)
+  const yahoo = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ySym)}?interval=5m&range=1d`
+  const data = await fetchViaProxies<{
+    chart?: {
+      result?: Array<{
+        meta?: {
+          regularMarketPrice?: number
+          chartPreviousClose?: number
+          previousClose?: number
+          currency?: string
+        }
+        indicators?: { quote?: Array<{ close?: Array<number | null> }> }
+      }>
+    }
+  }>(yahoo)
+
+  const result = data?.chart?.result?.[0]
+  const meta = result?.meta
+  const priceUsd = meta?.regularMarketPrice
+  if (!priceUsd || !(priceUsd > 0)) return null
+  const prevUsd = meta?.chartPreviousClose || meta?.previousClose || priceUsd
+  const priceGbp = usdToGbp(priceUsd, fx)
+  const prevGbp = usdToGbp(prevUsd, fx)
+  const changeAbs = priceGbp - prevGbp
+  const changePct = prevGbp > 0 ? (changeAbs / prevGbp) * 100 : 0
+  const closes = (result?.indicators?.quote?.[0]?.close || [])
+    .filter((n): n is number => typeof n === 'number' && n > 0)
+    .map((n) => usdToGbp(n, fx))
+
+  return {
+    symbol: symbol.toUpperCase(),
+    priceGbp,
+    changePct,
+    sparkline: closes,
+    source: 'yahoo',
+  }
+}
+
+/**
+ * Crypto quotes in GBP with 24h % change.
+ * CoinGecko first (with search for unknown symbols), then Yahoo USD→GBP fallback.
+ */
 export async function fetchCryptoMarketQuotesGbp(
   items: Array<{ symbol: string; coingeckoId?: string }>,
   manualOverrides: Record<string, number> = {},
@@ -273,13 +383,25 @@ export async function fetchCryptoMarketQuotesGbp(
     if (!unique.has(sym)) unique.set(sym, item.coingeckoId)
   }
 
+  // Resolve ids — built-in map, overrides, then CoinGecko search for unknowns
+  const resolvedIds = new Map<string, string>()
+  await Promise.all(
+    [...unique.entries()].map(async ([sym, override]) => {
+      const id = override?.trim() || (await lookupGeckoId(sym))
+      if (id) resolvedIds.set(sym, id)
+    }),
+  )
+
   const idToSym = new Map<string, string>()
-  for (const [sym, override] of unique) {
-    const id = resolveGeckoId(sym, override)
-    if (id) idToSym.set(id, sym)
+  for (const [sym, id] of resolvedIds) {
+    idToSym.set(id, sym)
   }
 
-  const bySym = new Map<string, { price: number; changePct: number }>()
+  const bySym = new Map<
+    string,
+    { price: number; changePct: number; coingeckoId?: string; source: 'coingecko' }
+  >()
+
   if (idToSym.size > 0) {
     const ids = [...idToSym.keys()].join(',')
     const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=gbp&include_24hr_change=true`
@@ -289,40 +411,74 @@ export async function fetchCryptoMarketQuotesGbp(
         const row = data[id]
         const p = row?.gbp
         if (p && p > 0) {
-          bySym.set(sym, { price: p, changePct: row?.gbp_24h_change ?? 0 })
+          bySym.set(sym, {
+            price: p,
+            changePct: row?.gbp_24h_change ?? 0,
+            coingeckoId: id,
+            source: 'coingecko',
+          })
         }
       }
     }
   }
 
-  return [...unique.keys()].map((symbol) => {
+  const fx = await ensureFxRates()
+  const out: CryptoMarketQuoteGbp[] = []
+
+  for (const symbol of unique.keys()) {
     const hit = bySym.get(symbol)
     if (hit) {
-      return {
+      out.push({
         symbol,
         priceGbp: hit.price,
         changePct: hit.changePct,
-        source: 'coingecko' as const,
-      }
+        coingeckoId: hit.coingeckoId,
+        source: 'coingecko',
+      })
+      continue
     }
+
+    // Live Yahoo fallback (covers CoinGecko rate limits / unknown ids)
+    try {
+      const yahoo = await fetchCryptoYahooQuoteGbp(symbol, fx)
+      if (yahoo && yahoo.priceGbp > 0) {
+        out.push({ ...yahoo, coingeckoId: resolvedIds.get(symbol) })
+        continue
+      }
+    } catch {
+      /* continue to manual */
+    }
+
     if (manualOverrides[symbol] > 0) {
-      return {
+      out.push({
         symbol,
         priceGbp: manualOverrides[symbol],
         changePct: 0,
-        source: 'manual' as const,
-      }
+        coingeckoId: resolvedIds.get(symbol),
+        source: 'manual',
+      })
+      continue
     }
     if (MANUAL_DEFAULTS[symbol]) {
-      return {
+      out.push({
         symbol,
         priceGbp: MANUAL_DEFAULTS[symbol],
         changePct: 0,
-        source: 'default' as const,
-      }
+        coingeckoId: resolvedIds.get(symbol),
+        source: 'default',
+      })
+      continue
     }
-    return { symbol, priceGbp: 0, changePct: 0, source: 'manual' as const }
-  })
+    out.push({
+      symbol,
+      priceGbp: 0,
+      changePct: 0,
+      coingeckoId: resolvedIds.get(symbol),
+      source: 'manual',
+    })
+  }
+
+  return out
 }
 
 /** Yahoo FX symbol for a fiat pair e.g. GBP/USD → GBPUSD=X */
@@ -406,9 +562,38 @@ export async function fetchCryptoCrossQuote(
   quote: string,
   baseGeckoId?: string,
 ): Promise<RateMarketQuote | null> {
-  const baseId = resolveGeckoId(base, baseGeckoId)
-  const quoteId = resolveGeckoId(quote)
-  if (!baseId) return null
+  const baseId = baseGeckoId?.trim() || (await lookupGeckoId(base))
+  const quoteId = await lookupGeckoId(quote)
+  if (!baseId) {
+    // Last resort: derive from Yahoo USD legs converted via GBP
+    try {
+      const [baseQ, quoteQ] = await Promise.all([
+        fetchCryptoYahooQuoteGbp(base),
+        fetchCryptoYahooQuoteGbp(quote),
+      ])
+      if (
+        baseQ &&
+        quoteQ &&
+        baseQ.priceGbp > 0 &&
+        quoteQ.priceGbp > 0
+      ) {
+        const last = baseQ.priceGbp / quoteQ.priceGbp
+        const changePct = (baseQ.changePct ?? 0) - (quoteQ.changePct ?? 0)
+        const previousClose = last / (1 + changePct / 100)
+        return {
+          last,
+          previousClose,
+          changeAbs: last - previousClose,
+          changePct,
+          sparkline: [],
+          source: 'yahoo-derived',
+        }
+      }
+    } catch {
+      /* fall through */
+    }
+    return null
+  }
 
   const vs = quote.toLowerCase()
   // CoinGecko vs_currencies supports btc, eth, and fiat — not arbitrary coin ids
@@ -536,7 +721,7 @@ export async function fetchCryptoGbpSparkline(
   symbol: string,
   coingeckoId?: string,
 ): Promise<number[]> {
-  const id = resolveGeckoId(symbol, coingeckoId)
+  const id = coingeckoId?.trim() || (await lookupGeckoId(symbol))
   if (!id) return []
   const chartUrl = `https://api.coingecko.com/api/v3/coins/${encodeURIComponent(id)}/market_chart?vs_currency=gbp&days=1`
   const chart = await fetchJson<{ prices?: Array<[number, number]> }>(chartUrl, 12000)

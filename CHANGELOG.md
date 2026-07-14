@@ -1,5 +1,20 @@
 # MyDSP Changelog
 
+## [1.1.2] - 2026-07-14
+
+### Fixed — Markets live quotes for any new ticker
+- Crypto: CoinGecko symbol search for unknowns (e.g. **NIGHT** → `midnight-3`); removed stale static £0.06 default
+- Crypto: Yahoo `SYMBOL-USD` → GBP fallback when CoinGecko misses or rate-limits (covers **ADA**, **USDC**, etc.)
+- Sparklines: limited concurrency to reduce CoinGecko 429s; reuse Yahoo sparkline when present
+- Persist resolved CoinGecko ids onto watchlist tickers after refresh
+- Crosses: async id lookup + Yahoo-derived fallback; empty rows show “No live quote”
+- Portfolio crypto refresh also uses search + Yahoo fallback
+
+### Version
+- 1.1.1 → **1.1.2**
+
+---
+
 ## [1.1.1] - 2026-07-14
 
 ### Fixed — Mobile / tablet readability & bugs
