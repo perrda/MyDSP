@@ -749,21 +749,18 @@ export function TodosPage() {
                   {
                     key: 'high' as const,
                     label: 'High',
-                    short: 'H',
                     title: 'High',
                     active: 'bg-red-500/25 text-red-400 ring-red-500/50',
                   },
                   {
                     key: 'medium' as const,
                     label: 'Med',
-                    short: 'M',
                     title: 'Medium',
                     active: 'bg-amber-500/25 text-amber-400 ring-amber-500/50',
                   },
                   {
                     key: 'low' as const,
                     label: 'Low',
-                    short: 'L',
                     title: 'Low',
                     active: 'bg-blue-500/25 text-blue-400 ring-blue-500/50',
                   },
