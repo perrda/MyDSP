@@ -7,6 +7,7 @@ import {
   type MarketTicker,
 } from '../domain/markets'
 import { equityNeedsUsdToGbp } from '../domain/equityCurrency'
+import { updateMarketTicker } from '../storage/marketsStore'
 import { ensureFxRates, usdToGbp } from './fx'
 import {
   fetchCryptoCrossQuote,
@@ -14,7 +15,10 @@ import {
   fetchCryptoMarketQuotesGbp,
   fetchEquityMarketQuote,
   fetchFxPairQuote,
+  type CryptoMarketQuoteGbp,
 } from './prices'
+
+const SPARKLINE_CONCURRENCY = 2
 
 function emptyQuote(
   t: MarketTicker,
@@ -37,6 +41,47 @@ function emptyQuote(
   }
 }
 
+async function mapPool<T>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T) => Promise<void>,
+): Promise<void> {
+  let next = 0
+  async function worker() {
+    while (next < items.length) {
+      const i = next++
+      await fn(items[i])
+    }
+  }
+  const n = Math.max(1, Math.min(concurrency, items.length || 1))
+  await Promise.all(Array.from({ length: n }, () => worker()))
+}
+
+function cryptoDecimals(last: number): number {
+  if (!(last > 0)) return 2
+  if (last < 0.01) return 6
+  if (last < 1) return 4
+  return 2
+}
+
+/** Persist CoinGecko ids discovered via search so later refreshes skip the lookup. */
+function persistResolvedGeckoIds(
+  tickers: MarketTicker[],
+  bySym: Map<string, CryptoMarketQuoteGbp>,
+): void {
+  for (const t of tickers) {
+    if (t.kind !== 'crypto') continue
+    const q = bySym.get(t.symbol.toUpperCase())
+    if (!q?.coingeckoId) continue
+    if (t.coingeckoId === q.coingeckoId) continue
+    try {
+      updateMarketTicker(t.id, { coingeckoId: q.coingeckoId })
+    } catch {
+      /* watchlist may have changed mid-refresh */
+    }
+  }
+}
+
 export async function refreshMarketQuotes(
   tickers: MarketTicker[],
   opts?: { finnhubKey?: string; manualCryptoPrices?: Record<string, number> },
@@ -56,33 +101,46 @@ export async function refreshMarketQuotes(
       cryptos.map((t) => ({ symbol: t.symbol, coingeckoId: t.coingeckoId })),
       opts?.manualCryptoPrices ?? {},
     )
-    const bySym = new Map(quotes.map((q) => [q.symbol, q]))
+    const bySym = new Map(quotes.map((q) => [q.symbol.toUpperCase(), q]))
+    persistResolvedGeckoIds(cryptos, bySym)
 
-    await Promise.all(
-      cryptos.map(async (t) => {
-        const q = bySym.get(t.symbol)
-        const last = q?.priceGbp ?? 0
-        const changePct = q?.changePct ?? 0
-        const changeAbs = last * (changePct / 100)
-        let sparkline: number[] = []
+    // Build quotes first (prices), then sparklines with limited concurrency
+    for (const t of cryptos) {
+      const q = bySym.get(t.symbol.toUpperCase())
+      const last = q?.priceGbp ?? 0
+      const changePct = q?.changePct ?? 0
+      const changeAbs = last * (changePct / 100)
+      out.set(t.id, {
+        symbol: t.symbol,
+        kind: 'crypto',
+        last,
+        changeAbs,
+        changePct,
+        sparkline: q?.sparkline && q.sparkline.length > 1 ? q.sparkline : [],
+        unit: 'GBP',
+        decimals: cryptoDecimals(last),
+        source: q?.source ?? 'manual',
+        updatedAt: now,
+      })
+    }
+
+    await mapPool(
+      cryptos.filter((t) => (out.get(t.id)?.last ?? 0) > 0),
+      SPARKLINE_CONCURRENCY,
+      async (t) => {
+        const existing = out.get(t.id)
+        if (!existing || existing.sparkline.length > 1) return
         try {
-          sparkline = await fetchCryptoGbpSparkline(t.symbol, t.coingeckoId)
+          const geckoId =
+            bySym.get(t.symbol.toUpperCase())?.coingeckoId ?? t.coingeckoId
+          const sparkline = await fetchCryptoGbpSparkline(t.symbol, geckoId)
+          if (sparkline.length > 1) {
+            out.set(t.id, { ...existing, sparkline })
+          }
         } catch {
           /* optional */
         }
-        out.set(t.id, {
-          symbol: t.symbol,
-          kind: 'crypto',
-          last,
-          changeAbs,
-          changePct,
-          sparkline,
-          unit: 'GBP',
-          decimals: 2,
-          source: q?.source ?? 'manual',
-          updatedAt: now,
-        })
-      }),
+      },
     )
   }
 

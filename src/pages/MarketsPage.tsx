@@ -398,6 +398,9 @@ export function MarketsPage() {
                         <p className="text-sm font-medium tabular-nums text-text">
                           {formatLastDisplay(q)}
                         </p>
+                        {q && !(q.last > 0) ? (
+                          <p className="text-[10px] text-text-subtle mt-0.5">No live quote</p>
+                        ) : null}
                         <div className="mt-1 flex flex-col items-end gap-0.5">
                           <ChangeBadge pct={pct} />
                           {isRateSection && q && q.last > 0 ? (
