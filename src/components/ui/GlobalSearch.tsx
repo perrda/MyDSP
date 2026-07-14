@@ -93,7 +93,7 @@ export function GlobalSearch() {
           type: 'liability',
           title: cc.name,
           subtitle: 'Credit Card',
-          path: `/liabilities/cc/${cc.id}`,
+          path: `/liabilities/card/${cc.id}`,
           icon: Building2,
         })
       }

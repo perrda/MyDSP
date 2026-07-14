@@ -43,7 +43,7 @@ import {
   STATUS_LABELS,
 } from '../domain/jobs'
 import { applySortOrder, sortBySortOrder } from '../utils/reorder'
-import { formatGBP, privacyClass } from '../utils/format'
+import { formatNativeCurrency, privacyClass } from '../utils/format'
 
 const KANBAN_COLUMNS: Array<{ status: JobStatus[]; title: string; color: string }> = [
   { status: ['wishlist', 'researching'], title: 'Wishlist', color: 'border-gray-500' },
@@ -755,9 +755,11 @@ function JobCard({
           <div className={`flex items-center gap-2 ${privacyClass(privacy)}`}>
             <DollarSign size={12} className="flex-shrink-0" />
             <span>
-              {application.salaryMin && formatGBP(application.salaryMin)}
-              {application.salaryMin && application.salaryMax && ' - '}
-              {application.salaryMax && formatGBP(application.salaryMax)}
+              {application.salaryMin != null &&
+                formatNativeCurrency(application.salaryMin, application.salaryCurrency || 'GBP')}
+              {application.salaryMin != null && application.salaryMax != null && ' - '}
+              {application.salaryMax != null &&
+                formatNativeCurrency(application.salaryMax, application.salaryCurrency || 'GBP')}
               {' '}
               {application.salaryCurrency}/{application.salaryPeriod}
             </span>

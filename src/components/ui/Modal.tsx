@@ -135,15 +135,15 @@ export function ConfirmDialog({
     <Modal open={open} title={title} onClose={onClose}>
       <p className="text-sm text-text-muted mb-6">{body}</p>
       <div className="flex gap-3 pt-4 border-t border-border">
-        <button type="button" className="btn-ghost flex-1" onClick={onClose}>
+        <button type="button" className="btn-ghost flex-1 min-h-11" onClick={onClose}>
           Cancel
         </button>
         <button
           type="button"
           className={
             variant === 'danger'
-              ? 'flex-1 px-4 py-2 rounded text-sm font-semibold bg-red-600 hover:bg-red-500 text-white'
-              : 'btn-primary flex-1'
+              ? 'flex-1 min-h-11 px-4 py-2.5 rounded text-sm font-semibold bg-red-600 hover:bg-red-500 text-white'
+              : 'btn-primary flex-1 min-h-11'
           }
           onClick={() => {
             onConfirm()

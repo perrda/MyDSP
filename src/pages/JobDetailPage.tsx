@@ -30,7 +30,7 @@ import { getDaysSinceApplied, STATUS_COLORS, STATUS_LABELS } from '../domain/job
 import { createJobLinkedTodo } from '../domain/jobTodos'
 import { createTodoList } from '../domain/todos'
 import { downloadBlob, deleteDocumentBlob, getDocumentBlob } from '../storage/documentBlobStore'
-import { formatGBP, privacyClass } from '../utils/format'
+import { formatNativeCurrency, privacyClass } from '../utils/format'
 
 export function JobDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -534,9 +534,11 @@ export function JobDetailPage() {
                   <DollarSign size={16} className="text-text-subtle mt-0.5 flex-shrink-0" />
                   <div className="flex-1">
                     <p className="text-sm">
-                      {application.salaryMin && formatGBP(application.salaryMin)}
-                      {application.salaryMin && application.salaryMax && ' - '}
-                      {application.salaryMax && formatGBP(application.salaryMax)}
+                      {application.salaryMin != null &&
+                        formatNativeCurrency(application.salaryMin, application.salaryCurrency || 'GBP')}
+                      {application.salaryMin != null && application.salaryMax != null && ' - '}
+                      {application.salaryMax != null &&
+                        formatNativeCurrency(application.salaryMax, application.salaryCurrency || 'GBP')}
                       {' '}
                       {application.salaryCurrency}/{application.salaryPeriod}
                     </p>
@@ -594,10 +596,11 @@ export function JobDetailPage() {
                     {event.type === 'interview' && (
                       <div>
                         <p className="text-sm font-semibold">
-                          {(event.data as JobInterview).type.replace('-', ' ')} Interview
+                          {((event.data as JobInterview).type ?? 'other').replace(/-/g, ' ')} Interview
                         </p>
                         <p className="text-xs text-text-muted">
-                          {(event.data as JobInterview).interviewers.join(', ') || 'No interviewers listed'}
+                          {((event.data as JobInterview).interviewers ?? []).join(', ') ||
+                            'No interviewers listed'}
                         </p>
                       </div>
                     )}
@@ -624,7 +627,8 @@ export function JobDetailPage() {
                   type="button"
                   onClick={() => updateApplication({ rating: star })}
                   disabled={!editMode}
-                  className="hover:scale-110 transition-transform disabled:cursor-not-allowed"
+                  aria-label={`Rate ${star} star${star === 1 ? '' : 's'}`}
+                  className="hover:scale-110 transition-transform disabled:cursor-not-allowed min-h-11 min-w-11 flex items-center justify-center"
                 >
                   <Star size={20} className={star <= application.rating ? 'fill-accent text-accent' : 'text-text-subtle'} />
                 </button>

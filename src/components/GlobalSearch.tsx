@@ -106,7 +106,7 @@ export function GlobalSearch() {
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="flex items-center gap-2 px-3 py-2 bg-bg hover:bg-surface-hover rounded-lg transition-colors text-sm text-text-muted border border-border"
+        className="toolbar-icon sm:flex sm:items-center sm:gap-2 sm:px-3 sm:py-2 sm:w-auto sm:h-auto sm:min-w-0 sm:bg-bg sm:hover:bg-surface-hover sm:rounded-lg sm:transition-colors sm:text-sm sm:text-text-muted sm:border sm:border-border"
         aria-label="Search"
       >
         <Search className="w-4 h-4" />
@@ -119,18 +119,19 @@ export function GlobalSearch() {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-20 bg-black/50 backdrop-blur-sm">
-      <div className="w-full max-w-2xl mx-3 bg-bg-elevated rounded-xl shadow-2xl border border-border overflow-hidden">
-        <div className="flex items-center gap-3 p-4 border-b border-border">
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[max(1rem,env(safe-area-inset-top))] sm:pt-20 bg-black/50 backdrop-blur-sm">
+      <div className="w-full max-w-2xl mx-0 sm:mx-3 h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[min(85vh,40rem)] bg-bg-elevated sm:rounded-xl shadow-2xl border-0 sm:border border-border overflow-hidden flex flex-col">
+        <div className="flex items-center gap-3 p-4 border-b border-border shrink-0">
           <Search className="w-5 h-5 text-text-muted" />
           <input
             ref={inputRef}
-            type="text"
+            type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Search spending, holdings, goals, todos, jobs..."
-            className="flex-1 bg-transparent outline-none text-lg"
+            placeholder="Search spending, holdings, goals…"
+            className="flex-1 bg-transparent outline-none text-base sm:text-lg border-0 shadow-none focus:ring-0"
+            style={{ fontSize: 16 }}
           />
           <button
             type="button"
@@ -139,14 +140,14 @@ export function GlobalSearch() {
               setQuery('')
               setResults([])
             }}
-            className="p-1 hover:bg-surface-hover rounded"
+            className="p-2 min-h-11 min-w-11 flex items-center justify-center hover:bg-surface-hover rounded"
             aria-label="Close search"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="max-h-96 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto">
           {results.length === 0 && query && (
             <div className="p-8 text-center text-text-muted">No results for “{query}”</div>
           )}
@@ -161,7 +162,7 @@ export function GlobalSearch() {
               key={`${result.type}-${result.title}-${index}`}
               type="button"
               onClick={() => handleSelect(result)}
-              className={`w-full flex items-center justify-between p-4 border-b border-border hover:bg-surface-hover transition-colors text-left ${
+              className={`w-full flex items-center justify-between p-4 min-h-[3.25rem] border-b border-border hover:bg-surface-hover transition-colors text-left ${
                 index === selectedIndex ? 'bg-accent/10' : ''
               }`}
             >
@@ -181,12 +182,13 @@ export function GlobalSearch() {
           ))}
         </div>
 
-        <div className="p-3 bg-bg border-t border-border flex items-center justify-between text-xs text-text-muted">
-          <div className="flex items-center gap-4">
+        <div className="p-3 bg-bg border-t border-border flex items-center justify-between text-xs text-text-muted pb-[max(0.75rem,env(safe-area-inset-bottom))] shrink-0">
+          <div className="hidden sm:flex items-center gap-4">
             <span>↑↓ Navigate</span>
             <span>↵ Select</span>
             <span>esc Close</span>
           </div>
+          <span className="sm:hidden">Tap a result</span>
           <span>{results.length} results</span>
         </div>
       </div>

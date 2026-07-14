@@ -169,7 +169,11 @@ select:focus-visible {
 html {
   scroll-behavior: smooth;
   font-family: var(--font-sans);
-  scrollbar-gutter: stable both-edges;
+}
+@media (min-width: 640px) {
+  html {
+    scrollbar-gutter: stable;
+  }
 }
 
 body {
@@ -881,8 +885,11 @@ select:focus {
 }
 
 @media (max-width: 639px) {
+  /* Keep sync/price status visible on iPhone — one truncated line under toolbar */
   .app-header-meta {
-    display: none;
+    display: block;
+    padding: 0.35rem 0.75rem 0.5rem;
+    border-top: 1px solid var(--border);
   }
 
   .app-header-row {
@@ -892,35 +899,52 @@ select:focus {
   }
 
   .toolbar-cluster {
-    max-width: 62vw;
+    max-width: none;
+    flex: 1;
+    justify-content: flex-end;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     padding-bottom: 1px;
+    gap: 0.35rem;
   }
   .toolbar-cluster::-webkit-scrollbar {
     display: none;
   }
 
   .toolbar-select-portfolio {
-    width: 5.75rem !important;
-    font-size: 0.5625rem !important;
+    width: 7.25rem !important;
+    min-width: 6.5rem;
+    font-size: 0.75rem !important; /* readable on iPhone — was 9px */
+    letter-spacing: 0.04em;
   }
 
   .toolbar-select-currency {
-    width: 5.25rem !important;
+    width: 5.5rem !important;
     min-width: 5.25rem;
-    font-size: 0.625rem !important;
+    font-size: 0.75rem !important;
     padding-left: 0.5rem !important;
     padding-right: 1.45rem !important;
   }
 
+  .toolbar-icon {
+    width: 2.75rem;
+    height: 2.75rem;
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+  }
+
+  /* Clear fixed BottomNav + home indicator so last list items stay tappable */
+  .app-content.app-content-with-bottom-nav {
+    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+  }
+
   .app-content {
-    padding: 0.75rem 0.625rem calc(1.25rem + env(safe-area-inset-bottom));
+    padding: 0.75rem 0.75rem calc(1.25rem + env(safe-area-inset-bottom));
   }
 
   .btn-sm {
-    min-height: 2.5rem;
+    min-height: 2.75rem;
     padding-left: 0.75rem;
     padding-right: 0.75rem;
   }
@@ -932,9 +956,28 @@ select:focus {
   input[type="search"],
   input[type="url"],
   input[type="password"],
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"],
   textarea,
   select {
     font-size: 16px; /* prevent iOS Safari zoom on focus */
+    min-height: 2.75rem;
+  }
+
+  /* Floor for tiny uppercase labels / badges on phone */
+  .label-uppercase,
+  .eyebrow {
+    font-size: 0.6875rem; /* 11px floor vs 10px */
+  }
+
+  .chart-panel .recharts-cartesian-axis-tick-value {
+    font-size: 11px;
+  }
+
+  .nav-reorder-item .reorder-handle,
+  .reorder-handle {
+    min-width: 2.75rem;
     min-height: 2.75rem;
   }
 

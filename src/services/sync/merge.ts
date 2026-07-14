@@ -73,6 +73,14 @@ export function mergePortfolio(local: PortfolioData, remote: PortfolioData): Por
     todoLists: pickById(local.todoLists ?? [], remote.todoLists ?? []),
     todoItems: pickById(local.todoItems ?? [], remote.todoItems ?? []),
     jobApplications: pickById(local.jobApplications ?? [], remote.jobApplications ?? []),
+    // Prefer remote scalars when present so FIRE / income edits sync across devices
+    fireInputs: remote.fireInputs ?? local.fireInputs,
+    monthlyIncome:
+      typeof remote.monthlyIncome === 'number' ? remote.monthlyIncome : local.monthlyIncome,
+    monthlyExpenses:
+      typeof remote.monthlyExpenses === 'number' ? remote.monthlyExpenses : local.monthlyExpenses,
+    targetAllocations: remote.targetAllocations ?? local.targetAllocations,
+    splitSettings: remote.splitSettings ?? local.splitSettings,
     settings: {
       ...local.settings,
       ...remote.settings,
