@@ -7,8 +7,11 @@ import {
   getActivePortfolioId,
   listPortfolios,
   loadPortfolio,
+  resolveLocalPortfolioId,
   savePortfolioImmediate,
   setActivePortfolioId,
+  dedupePortfoliosByName,
+  portfolioNameKey,
 } from '../../storage/portfolioStore'
 import { checksum, decryptJson, encryptJson, type EncryptedBlob } from './crypto'
 import { setSessionSyncPassphrase } from './sessionPassphrase'
@@ -409,15 +412,21 @@ function buildMergePreview(
 ): MergePreview {
   const portfolios: MergePreview['portfolios'] = []
   const conflicts: SyncConflict[] = []
+  const localList = listPortfolios()
 
   for (const meta of envelope.portfolios) {
     const remote = remoteByPortfolio.get(meta.id)
     if (!remote) continue
-    const key = `dfc_data_v3${meta.id === 'default' ? '' : `_${meta.id}`}`
-    const existed = localStorage.getItem(key) !== null
+
+    // Prefer matching local id; else same display name (avoids Mum×2 after multi-device sync)
+    const mappedId = resolveLocalPortfolioId(meta)
+    const targetId = mappedId ?? meta.id
+    const key = `dfc_data_v3${targetId === 'default' ? '' : `_${targetId}`}`
+    const existed = localStorage.getItem(key) !== null || Boolean(mappedId)
+
     if (!existed) {
       portfolios.push({
-        portfolioId: meta.id,
+        portfolioId: targetId,
         isNew: true,
         local: null,
         remote,
@@ -425,12 +434,13 @@ function buildMergePreview(
       })
       continue
     }
+
     let local: PortfolioData
     try {
-      local = loadPortfolio(meta.id)
+      local = loadPortfolio(targetId)
     } catch {
       portfolios.push({
-        portfolioId: meta.id,
+        portfolioId: targetId,
         isNew: true,
         local: null,
         remote,
@@ -438,10 +448,10 @@ function buildMergePreview(
       })
       continue
     }
-    const found = detectConflicts(meta.id, local, remote)
+    const found = detectConflicts(targetId, local, remote)
     conflicts.push(...found)
     portfolios.push({
-      portfolioId: meta.id,
+      portfolioId: targetId,
       isNew: false,
       local,
       remote,
@@ -449,15 +459,35 @@ function buildMergePreview(
     })
   }
 
+  // Registry: keep local names unique when combining with remote metadata
+  const registryPortfolios = mergeRegistryUnique(localList, envelope.portfolios)
+
   return {
     source,
     portfolios,
-    registryPortfolios: envelope.portfolios,
+    registryPortfolios,
     activePortfolioId: envelope.activePortfolioId,
     documentBlobs,
     documentBlobsSkipped: envelope.documentBlobsSkipped,
     conflicts,
   }
+}
+
+/** Union registries without duplicate display names (case-insensitive). */
+function mergeRegistryUnique(local: PortfolioMeta[], remote: PortfolioMeta[]): PortfolioMeta[] {
+  const combined = [...local]
+  const ids = new Set(local.map((p) => p.id))
+  const names = new Set(local.map((p) => portfolioNameKey(p.name)))
+
+  for (const p of remote) {
+    if (ids.has(p.id)) continue
+    const key = portfolioNameKey(p.name)
+    if (key && names.has(key)) continue
+    combined.push(p)
+    ids.add(p.id)
+    if (key) names.add(key)
+  }
+  return combined
 }
 
 export async function previewPull(url: string, passphrase: string): Promise<MergePreview> {
@@ -505,14 +535,15 @@ export async function applyMergePreview(
     merged++
   }
 
-  const existing = listPortfolios()
-  const ids = new Set(existing.map((p) => p.id))
-  const combined = [...existing]
-  for (const p of preview.registryPortfolios) {
-    if (!ids.has(p.id)) combined.push(p)
+  // preview.registryPortfolios is already name-deduped vs local
+  localStorage.setItem('fcc_portfolios', JSON.stringify(preview.registryPortfolios))
+  dedupePortfoliosByName()
+  if (preview.activePortfolioId) {
+    const ids = new Set(listPortfolios().map((p) => p.id))
+    if (ids.has(preview.activePortfolioId)) {
+      setActivePortfolioId(preview.activePortfolioId)
+    }
   }
-  localStorage.setItem('fcc_portfolios', JSON.stringify(combined))
-  if (preview.activePortfolioId) setActivePortfolioId(preview.activePortfolioId)
 
   if (preview.documentBlobs && preview.documentBlobs.length > 0) {
     const { importDocumentBlobs } = await import('../../storage/documentBlobStore')
