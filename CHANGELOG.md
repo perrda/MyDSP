@@ -1,5 +1,23 @@
 # MyDSP Changelog
 
+## [1.1.3] - 2026-07-14
+
+### Fixed — Markets live quotes (ADA / USDC / NIGHT) + sparklines
+- **NIGHT** Yahoo fallback used the wrong token (`NIGHT-USD` ≈ £0.06); now uses `NIGHT39064-USD` (IOG Midnight) with CoinGecko `midnight-3`
+- Built-in CoinGecko ids win over a bad stored `coingeckoId` override
+- CoinGecko 429 cooldown + proxy fallback; Yahoo sparklines preferred so chart calls don’t burn the free tier
+- Default sparklines are **7-day** (crypto, equities, indices, FX, crosses)
+- Sparklines visible on mobile; unique gradient ids (no shared SVG clash)
+
+### Added — Indices + reorder
+- **Indices** section seeded with S&P 500 (`^GSPC`), Nasdaq (`^IXIC`), FTSE 100 (`^FTSE`); add others via SPX / NDX / FTSE aliases
+- Drag **⋮⋮** handles to reorder tickers within each asset class
+
+### Version
+- 1.1.2 → **1.1.3**
+
+---
+
 ## [1.1.2] - 2026-07-14
 
 ### Fixed — Markets live quotes for any new ticker

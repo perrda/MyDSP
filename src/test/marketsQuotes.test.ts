@@ -115,6 +115,19 @@ vi.mock('../services/prices', async (importOriginal) => {
       }
       return null
     }),
+    fetchIndexQuote: vi.fn(async (symbol: string) => {
+      if (symbol === '^GSPC' || symbol.toUpperCase() === 'SPX') {
+        return {
+          price: 5500,
+          previousClose: 5450,
+          changePct: 0.92,
+          changeAbs: 50,
+          sparkline: [5400, 5450, 5500],
+          source: 'yahoo' as const,
+        }
+      }
+      return null
+    }),
   }
 })
 

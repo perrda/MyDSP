@@ -1,9 +1,8 @@
-/** CoinGecko + Finnhub live price refresh (ported from FCC, MyDSP-native). */
+/** CoinGecko + Finnhub + Yahoo live price refresh (MyDSP-native). */
 
 import { equityNeedsUsdToGbp } from '../domain/equityCurrency'
 import {
   ensureFxRates,
-  loadCachedFxRates,
   usdToGbp,
   type FxRates,
 } from './fx'
@@ -20,8 +19,26 @@ const GECKO_IDS: Record<string, string> = {
   LINK: 'chainlink',
   AVAX: 'avalanche-2',
   MATIC: 'matic-network',
-  /** Midnight (NIGHT) — live CoinGecko id */
+  /** Midnight (IOG) — live CoinGecko id */
   NIGHT: 'midnight-3',
+}
+
+/**
+ * Yahoo crypto chart symbols when `SYMBOL-USD` is wrong or ambiguous.
+ * NIGHT-USD is a different token (~$0.08); IOG Midnight is NIGHT39064-USD.
+ */
+const YAHOO_CRYPTO_SYMBOLS: Record<string, string> = {
+  BTC: 'BTC-USD',
+  ETH: 'ETH-USD',
+  ADA: 'ADA-USD',
+  USDC: 'USDC-USD',
+  SOL: 'SOL-USD',
+  XRP: 'XRP-USD',
+  DOGE: 'DOGE-USD',
+  DOT: 'DOT-USD',
+  LINK: 'LINK-USD',
+  AVAX: 'AVAX-USD',
+  NIGHT: 'NIGHT39064-USD',
 }
 
 /** Last-resort static GBP prints when every live source fails (prefer live APIs). */
@@ -30,19 +47,69 @@ const MANUAL_DEFAULTS: Record<string, number> = {}
 /** In-memory cache of symbol → CoinGecko id from search (session). */
 const geckoSearchCache = new Map<string, string>()
 
+/** After a CoinGecko 429, skip further Gecko calls briefly. */
+let geckoCooldownUntil = 0
 
-async function fetchJson<T>(url: string, timeoutMs = 10000): Promise<T | null> {
+const SPARKLINE_DAYS = 7
+
+function geckoCoolingDown(): boolean {
+  return Date.now() < geckoCooldownUntil
+}
+
+function markGeckoRateLimited(): void {
+  geckoCooldownUntil = Date.now() + 90_000
+}
+
+async function fetchJson<T>(
+  url: string,
+  timeoutMs = 10000,
+): Promise<{ data: T | null; status: number }> {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), timeoutMs)
   try {
     const res = await fetch(url, { signal: controller.signal })
-    if (!res.ok) return null
-    return (await res.json()) as T
+    if (res.status === 429) markGeckoRateLimited()
+    if (!res.ok) return { data: null, status: res.status }
+    const data = (await res.json()) as T
+    // CoinGecko sometimes returns 200 with { status: { error_code: 429 } }
+    const errCode = (data as { status?: { error_code?: number } })?.status?.error_code
+    if (errCode === 429) {
+      markGeckoRateLimited()
+      return { data: null, status: 429 }
+    }
+    return { data, status: res.status }
   } catch {
-    return null
+    return { data: null, status: 0 }
   } finally {
     clearTimeout(timer)
   }
+}
+
+async function fetchViaProxies<T>(url: string, timeoutMs = 10000): Promise<T | null> {
+  const proxies = [
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+    `https://corsproxy.io/?${encodeURIComponent(url)}`,
+    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+  ]
+  for (const proxy of proxies) {
+    const { data } = await fetchJson<T>(proxy, timeoutMs)
+    if (data) return data
+  }
+  const { data } = await fetchJson<T>(url, timeoutMs)
+  return data
+}
+
+/** Prefer direct CoinGecko (CORS *), fall back to proxies on failure / 429. */
+async function fetchGeckoJson<T>(url: string, timeoutMs = 10000): Promise<T | null> {
+  if (geckoCoolingDown()) {
+    return fetchViaProxies<T>(url, timeoutMs)
+  }
+  const direct = await fetchJson<T>(url, timeoutMs)
+  if (direct.data) return direct.data
+  if (direct.status === 429 || direct.status === 0) {
+    return fetchViaProxies<T>(url, timeoutMs)
+  }
+  return null
 }
 
 export interface CryptoPriceUpdate {
@@ -55,56 +122,20 @@ export async function fetchCryptoPricesGbp(
   symbols: string[],
   manualOverrides: Record<string, number> = {},
 ): Promise<CryptoPriceUpdate[]> {
-  const unique = [...new Set(symbols.map((s) => s.toUpperCase()))]
-  const idBySym = new Map<string, string>()
-  await Promise.all(
-    unique.map(async (s) => {
-      const id = await lookupGeckoId(s)
-      if (id) idBySym.set(s, id)
-    }),
+  const quotes = await fetchCryptoMarketQuotesGbp(
+    symbols.map((symbol) => ({ symbol })),
+    manualOverrides,
   )
-  const geckoIds = [...new Set(idBySym.values())]
-  const byGecko: Record<string, number> = {}
-
-  if (geckoIds.length > 0) {
-    const url = `https://api.coingecko.com/api/v3/simple/price?ids=${geckoIds.join(',')}&vs_currencies=gbp`
-    const data = await fetchJson<Record<string, { gbp?: number }>>(url)
-    if (data) {
-      for (const [sym, id] of idBySym) {
-        const p = data[id]?.gbp
-        if (p && p > 0) byGecko[sym] = p
-      }
-    }
-  }
-
-  const fx = await ensureFxRates()
-  const out: CryptoPriceUpdate[] = []
-  for (const symbol of unique) {
-    if (byGecko[symbol]) {
-      out.push({ symbol, price: byGecko[symbol], source: 'coingecko' })
-      continue
-    }
-    try {
-      const yahoo = await fetchCryptoYahooQuoteGbp(symbol, fx)
-      if (yahoo && yahoo.priceGbp > 0) {
-        // Yahoo is a live print; surface as coingecko-equivalent for portfolio callers
-        out.push({ symbol, price: yahoo.priceGbp, source: 'coingecko' })
-        continue
-      }
-    } catch {
-      /* continue */
-    }
-    if (manualOverrides[symbol] > 0) {
-      out.push({ symbol, price: manualOverrides[symbol], source: 'manual' })
-      continue
-    }
-    if (MANUAL_DEFAULTS[symbol]) {
-      out.push({ symbol, price: MANUAL_DEFAULTS[symbol], source: 'default' })
-      continue
-    }
-    out.push({ symbol, price: 0, source: 'manual' })
-  }
-  return out
+  return quotes.map((q) => ({
+    symbol: q.symbol,
+    price: q.priceGbp,
+    source:
+      q.source === 'coingecko' || q.source === 'yahoo'
+        ? 'coingecko'
+        : q.source === 'default'
+          ? 'default'
+          : 'manual',
+  }))
 }
 
 /** Raw market quote in the venue’s native currency (USD for US equities). */
@@ -112,26 +143,8 @@ export async function fetchEquityQuote(
   symbol: string,
   finnhubKey: string,
 ): Promise<number | null> {
-  const sym = symbol.toUpperCase()
-  if (finnhubKey.trim()) {
-    const url = `https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(sym)}&token=${encodeURIComponent(finnhubKey.trim())}`
-    const data = await fetchJson<{ c?: number }>(url)
-    if (data?.c && data.c > 0) return data.c
-  }
-
-  const yahoo = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&range=1d`
-  const proxies = [
-    `https://corsproxy.io/?${encodeURIComponent(yahoo)}`,
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(yahoo)}`,
-  ]
-  for (const proxy of proxies) {
-    const data = await fetchJson<{
-      chart?: { result?: Array<{ meta?: { regularMarketPrice?: number } }> }
-    }>(proxy, 8000)
-    const price = data?.chart?.result?.[0]?.meta?.regularMarketPrice
-    if (price && price > 0) return price
-  }
-  return null
+  const q = await fetchEquityMarketQuote(symbol, finnhubKey)
+  return q?.price ?? null
 }
 
 /**
@@ -144,12 +157,14 @@ export async function fetchEquityPrices(
 ): Promise<Record<string, number>> {
   const fx = rates ?? (await ensureFxRates())
   const out: Record<string, number> = {}
-  for (const symbol of symbols) {
-    const raw = await fetchEquityQuote(symbol, finnhubKey)
-    if (!raw || !(raw > 0)) continue
-    const sym = symbol.toUpperCase()
-    out[sym] = equityNeedsUsdToGbp(sym) ? usdToGbp(raw, fx) : raw
-  }
+  await Promise.all(
+    symbols.map(async (symbol) => {
+      const raw = await fetchEquityQuote(symbol, finnhubKey)
+      if (!raw || !(raw > 0)) return
+      const sym = symbol.toUpperCase()
+      out[sym] = equityNeedsUsdToGbp(sym) ? usdToGbp(raw, fx) : raw
+    }),
+  )
   return out
 }
 
@@ -157,16 +172,21 @@ export async function fetchEquityPrices(
 export function equityQuoteToGbp(
   symbol: string,
   nativePrice: number,
-  rates: FxRates = loadCachedFxRates(),
+  rates: FxRates,
 ): number {
   if (!(nativePrice > 0)) return 0
   return equityNeedsUsdToGbp(symbol) ? usdToGbp(nativePrice, rates) : nativePrice
 }
 
+/**
+ * Resolve CoinGecko id. Built-in map wins over a stored override so a bad
+ * watchlist coingeckoId cannot poison known symbols (ADA, NIGHT, …).
+ */
 export function resolveGeckoId(symbol: string, override?: string): string | undefined {
-  if (override?.trim()) return override.trim()
   const sym = symbol.toUpperCase()
-  return GECKO_IDS[sym] ?? geckoSearchCache.get(sym)
+  if (GECKO_IDS[sym]) return GECKO_IDS[sym]
+  if (override?.trim()) return override.trim()
+  return geckoSearchCache.get(sym)
 }
 
 export const KNOWN_CRYPTO_SYMBOLS = Object.keys(GECKO_IDS)
@@ -179,8 +199,9 @@ export async function lookupGeckoId(symbol: string): Promise<string | undefined>
   if (known) return known
   const cached = geckoSearchCache.get(sym)
   if (cached) return cached
+  if (geckoCoolingDown()) return undefined
 
-  const data = await fetchJson<{
+  const data = await fetchGeckoJson<{
     coins?: Array<{ id?: string; symbol?: string; market_cap_rank?: number | null }>
   }>(`https://api.coingecko.com/api/v3/search?query=${encodeURIComponent(sym)}`, 8000)
 
@@ -196,18 +217,6 @@ export async function lookupGeckoId(symbol: string): Promise<string | undefined>
   return undefined
 }
 
-async function fetchViaProxies<T>(url: string, timeoutMs = 8000): Promise<T | null> {
-  const proxies = [
-    `https://corsproxy.io/?${encodeURIComponent(url)}`,
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-  ]
-  for (const proxy of proxies) {
-    const data = await fetchJson<T>(proxy, timeoutMs)
-    if (data) return data
-  }
-  return fetchJson<T>(url, timeoutMs)
-}
-
 export interface EquityMarketQuoteNative {
   price: number
   previousClose: number
@@ -218,23 +227,22 @@ export interface EquityMarketQuoteNative {
   source: 'finnhub' | 'yahoo'
 }
 
-/** Full equity quote with day change + intraday sparkline (native venue currency). */
+/** Full equity quote with day change + 7d sparkline (native venue currency). */
 export async function fetchEquityMarketQuote(
   symbol: string,
   finnhubKey: string,
 ): Promise<EquityMarketQuoteNative | null> {
-  const sym = symbol.toUpperCase()
+  const sym = normalizeYahooEquitySymbol(symbol)
 
-  if (finnhubKey.trim()) {
+  if (finnhubKey.trim() && !sym.startsWith('^')) {
     const url = `https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(sym)}&token=${encodeURIComponent(finnhubKey.trim())}`
-    const data = await fetchJson<{ c?: number; d?: number; dp?: number; pc?: number }>(url)
+    const { data } = await fetchJson<{ c?: number; d?: number; dp?: number; pc?: number }>(url)
     if (data?.c && data.c > 0) {
       const previousClose = data.pc && data.pc > 0 ? data.pc : data.c - (data.d ?? 0)
       const changeAbs = data.d ?? data.c - previousClose
       const changePct =
         data.dp ?? (previousClose > 0 ? ((data.c - previousClose) / previousClose) * 100 : 0)
-      // Sparkline from Yahoo even when Finnhub supplies the print
-      const spark = await fetchYahooIntradaySparkline(sym)
+      const spark = await fetchYahooSparkline(sym, SPARKLINE_DAYS)
       return {
         price: data.c,
         previousClose,
@@ -246,7 +254,11 @@ export async function fetchEquityMarketQuote(
     }
   }
 
-  const yahoo = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=5m&range=1d`
+  return fetchYahooChartQuote(sym)
+}
+
+async function fetchYahooChartQuote(sym: string): Promise<EquityMarketQuoteNative | null> {
+  const yahoo = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&range=${SPARKLINE_DAYS}d`
   const data = await fetchViaProxies<{
     chart?: {
       result?: Array<{
@@ -256,7 +268,7 @@ export async function fetchEquityMarketQuote(
           previousClose?: number
           preMarketPrice?: number
           postMarketPrice?: number
-          instrumentType?: string
+          currency?: string
         }
         indicators?: { quote?: Array<{ close?: Array<number | null> }> }
       }>
@@ -298,13 +310,33 @@ export async function fetchEquityMarketQuote(
   }
 }
 
-async function fetchYahooIntradaySparkline(symbol: string): Promise<number[]> {
-  const yahoo = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=5m&range=1d`
+/** Normalize equity / index symbols for Yahoo (SPX → ^GSPC, etc.). */
+export function normalizeYahooEquitySymbol(symbol: string): string {
+  const raw = symbol.trim().toUpperCase()
+  const aliases: Record<string, string> = {
+    SPX: '^GSPC',
+    GSPC: '^GSPC',
+    'S&P500': '^GSPC',
+    'S&P': '^GSPC',
+    NDX: '^IXIC',
+    IXIC: '^IXIC',
+    COMP: '^IXIC',
+    NASDAQ: '^IXIC',
+    FTSE: '^FTSE',
+    UKX: '^FTSE',
+  }
+  if (aliases[raw]) return aliases[raw]
+  if (raw.startsWith('^')) return raw
+  return raw
+}
+
+async function fetchYahooSparkline(symbol: string, days = SPARKLINE_DAYS): Promise<number[]> {
+  const yahoo = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=${days}d`
   const data = await fetchViaProxies<{
     chart?: {
       result?: Array<{ indicators?: { quote?: Array<{ close?: Array<number | null> }> } }>
     }
-  }>(yahoo, 6000)
+  }>(yahoo, 8000)
   const closes = data?.chart?.result?.[0]?.indicators?.quote?.[0]?.close || []
   return closes.filter((n): n is number => typeof n === 'number' && n > 0)
 }
@@ -318,21 +350,22 @@ export interface CryptoMarketQuoteGbp {
   source: 'coingecko' | 'yahoo' | 'manual' | 'default'
 }
 
-/** Yahoo crypto chart ticker e.g. ADA → ADA-USD */
-function yahooCryptoSymbol(symbol: string): string {
+/** Yahoo crypto chart ticker e.g. ADA → ADA-USD, NIGHT → NIGHT39064-USD */
+export function yahooCryptoSymbol(symbol: string): string {
   const s = symbol.trim().toUpperCase()
+  if (YAHOO_CRYPTO_SYMBOLS[s]) return YAHOO_CRYPTO_SYMBOLS[s]
   if (s.includes('-')) return s
   return `${s}-USD`
 }
 
-/** Live crypto quote via Yahoo (USD) converted to GBP — fallback when CoinGecko fails. */
+/** Live crypto quote via Yahoo (USD) converted to GBP — includes 7d sparkline. */
 export async function fetchCryptoYahooQuoteGbp(
   symbol: string,
   rates?: FxRates,
 ): Promise<CryptoMarketQuoteGbp | null> {
   const fx = rates ?? (await ensureFxRates())
   const ySym = yahooCryptoSymbol(symbol)
-  const yahoo = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ySym)}?interval=5m&range=1d`
+  const yahoo = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ySym)}?interval=1d&range=${SPARKLINE_DAYS}d`
   const data = await fetchViaProxies<{
     chart?: {
       result?: Array<{
@@ -370,8 +403,8 @@ export async function fetchCryptoYahooQuoteGbp(
 }
 
 /**
- * Crypto quotes in GBP with 24h % change.
- * CoinGecko first (with search for unknown symbols), then Yahoo USD→GBP fallback.
+ * Crypto quotes in GBP with 24h % change + 7d sparkline when available.
+ * CoinGecko first (built-in map wins), then Yahoo USD→GBP fallback (parallel).
  */
 export async function fetchCryptoMarketQuotesGbp(
   items: Array<{ symbol: string; coingeckoId?: string }>,
@@ -383,18 +416,20 @@ export async function fetchCryptoMarketQuotesGbp(
     if (!unique.has(sym)) unique.set(sym, item.coingeckoId)
   }
 
-  // Resolve ids — built-in map, overrides, then CoinGecko search for unknowns
   const resolvedIds = new Map<string, string>()
   await Promise.all(
     [...unique.entries()].map(async ([sym, override]) => {
-      const id = override?.trim() || (await lookupGeckoId(sym))
+      // Built-in map always wins for known tickers
+      const id = GECKO_IDS[sym] || override?.trim() || (await lookupGeckoId(sym))
       if (id) resolvedIds.set(sym, id)
     }),
   )
 
-  const idToSym = new Map<string, string>()
+  const idToSyms = new Map<string, string[]>()
   for (const [sym, id] of resolvedIds) {
-    idToSym.set(id, sym)
+    const list = idToSyms.get(id) ?? []
+    list.push(sym)
+    idToSyms.set(id, list)
   }
 
   const bySym = new Map<
@@ -402,29 +437,45 @@ export async function fetchCryptoMarketQuotesGbp(
     { price: number; changePct: number; coingeckoId?: string; source: 'coingecko' }
   >()
 
-  if (idToSym.size > 0) {
-    const ids = [...idToSym.keys()].join(',')
+  if (idToSyms.size > 0 && !geckoCoolingDown()) {
+    const ids = [...idToSyms.keys()].join(',')
     const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=gbp&include_24hr_change=true`
-    const data = await fetchJson<Record<string, { gbp?: number; gbp_24h_change?: number }>>(url)
+    const data = await fetchGeckoJson<Record<string, { gbp?: number; gbp_24h_change?: number }>>(url)
     if (data) {
-      for (const [id, sym] of idToSym) {
+      for (const [id, syms] of idToSyms) {
         const row = data[id]
         const p = row?.gbp
         if (p && p > 0) {
-          bySym.set(sym, {
-            price: p,
-            changePct: row?.gbp_24h_change ?? 0,
-            coingeckoId: id,
-            source: 'coingecko',
-          })
+          for (const sym of syms) {
+            bySym.set(sym, {
+              price: p,
+              changePct: row?.gbp_24h_change ?? 0,
+              coingeckoId: id,
+              source: 'coingecko',
+            })
+          }
         }
       }
     }
   }
 
   const fx = await ensureFxRates()
-  const out: CryptoMarketQuoteGbp[] = []
+  const missing = [...unique.keys()].filter((s) => !bySym.has(s))
 
+  // Parallel Yahoo fallback for CoinGecko misses only (includes 7d sparkline)
+  const yahooBySym = new Map<string, CryptoMarketQuoteGbp>()
+  await Promise.all(
+    missing.map(async (symbol) => {
+      try {
+        const yahoo = await fetchCryptoYahooQuoteGbp(symbol, fx)
+        if (yahoo && yahoo.priceGbp > 0) yahooBySym.set(symbol, yahoo)
+      } catch {
+        /* continue */
+      }
+    }),
+  )
+
+  const out: CryptoMarketQuoteGbp[] = []
   for (const symbol of unique.keys()) {
     const hit = bySym.get(symbol)
     if (hit) {
@@ -438,15 +489,10 @@ export async function fetchCryptoMarketQuotesGbp(
       continue
     }
 
-    // Live Yahoo fallback (covers CoinGecko rate limits / unknown ids)
-    try {
-      const yahoo = await fetchCryptoYahooQuoteGbp(symbol, fx)
-      if (yahoo && yahoo.priceGbp > 0) {
-        out.push({ ...yahoo, coingeckoId: resolvedIds.get(symbol) })
-        continue
-      }
-    } catch {
-      /* continue to manual */
+    const yahoo = yahooBySym.get(symbol)
+    if (yahoo && yahoo.priceGbp > 0) {
+      out.push({ ...yahoo, coingeckoId: resolvedIds.get(symbol) })
+      continue
     }
 
     if (manualOverrides[symbol] > 0) {
@@ -495,10 +541,9 @@ export interface RateMarketQuote {
   source: string
 }
 
-/** Fiat FX pair quote via Yahoo chart (intraday sparkline). */
 export async function fetchFxPairQuote(base: string, quote: string): Promise<RateMarketQuote | null> {
   const ySym = yahooFxSymbol(base, quote)
-  const yahoo = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ySym)}?interval=5m&range=1d`
+  const yahoo = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ySym)}?interval=1d&range=${SPARKLINE_DAYS}d`
   const data = await fetchViaProxies<{
     chart?: {
       result?: Array<{
@@ -516,21 +561,20 @@ export async function fetchFxPairQuote(base: string, quote: string): Promise<Rat
   const meta = result?.meta
   const price = meta?.regularMarketPrice
   if (!price || !(price > 0)) {
-    // Fallback: exchangerate-api spot only (no sparkline / day change)
+    // exchangerate-api fallback (spot only)
     try {
-      const res = await fetch(`https://api.exchangerate-api.com/v4/latest/${encodeURIComponent(base)}`)
-      if (res.ok) {
-        const json = (await res.json()) as { rates?: Record<string, number> }
-        const spot = json.rates?.[quote.toUpperCase()]
-        if (typeof spot === 'number' && spot > 0) {
-          return {
-            last: spot,
-            previousClose: spot,
-            changeAbs: 0,
-            changePct: 0,
-            sparkline: [],
-            source: 'exchangerate-api',
-          }
+      const { data: fx } = await fetchJson<{ rates?: Record<string, number> }>(
+        `https://api.exchangerate-api.com/v4/latest/${encodeURIComponent(base.toUpperCase())}`,
+      )
+      const rate = fx?.rates?.[quote.toUpperCase()]
+      if (rate && rate > 0) {
+        return {
+          last: rate,
+          previousClose: rate,
+          changeAbs: 0,
+          changePct: 0,
+          sparkline: [],
+          source: 'exchangerate-api',
         }
       }
     } catch {
@@ -538,7 +582,6 @@ export async function fetchFxPairQuote(base: string, quote: string): Promise<Rat
     }
     return null
   }
-
   const previousClose = meta?.chartPreviousClose || meta?.previousClose || price
   const changeAbs = price - previousClose
   const changePct = previousClose > 0 ? (changeAbs / previousClose) * 100 : 0
@@ -556,36 +599,43 @@ export async function fetchFxPairQuote(base: string, quote: string): Promise<Rat
   }
 }
 
-/** Crypto cross e.g. ADA/BTC via CoinGecko (quote in BTC) + 24h sparkline. */
+/** Index quote (S&P 500, Nasdaq, FTSE) in native points — not converted to GBP. */
+export async function fetchIndexQuote(symbol: string): Promise<EquityMarketQuoteNative | null> {
+  const sym = normalizeYahooEquitySymbol(symbol)
+  return fetchYahooChartQuote(sym)
+}
+
+/** Crypto cross e.g. ADA/BTC via CoinGecko (quote in BTC) + 7d sparkline. */
 export async function fetchCryptoCrossQuote(
   base: string,
   quote: string,
   baseGeckoId?: string,
 ): Promise<RateMarketQuote | null> {
-  const baseId = baseGeckoId?.trim() || (await lookupGeckoId(base))
-  const quoteId = await lookupGeckoId(quote)
+  const baseId = GECKO_IDS[base.toUpperCase()] || baseGeckoId?.trim() || (await lookupGeckoId(base))
+  const quoteId = GECKO_IDS[quote.toUpperCase()] || (await lookupGeckoId(quote))
   if (!baseId) {
-    // Last resort: derive from Yahoo USD legs converted via GBP
     try {
       const [baseQ, quoteQ] = await Promise.all([
         fetchCryptoYahooQuoteGbp(base),
         fetchCryptoYahooQuoteGbp(quote),
       ])
-      if (
-        baseQ &&
-        quoteQ &&
-        baseQ.priceGbp > 0 &&
-        quoteQ.priceGbp > 0
-      ) {
+      if (baseQ && quoteQ && baseQ.priceGbp > 0 && quoteQ.priceGbp > 0) {
         const last = baseQ.priceGbp / quoteQ.priceGbp
         const changePct = (baseQ.changePct ?? 0) - (quoteQ.changePct ?? 0)
         const previousClose = last / (1 + changePct / 100)
+        const spark =
+          baseQ.sparkline && quoteQ.sparkline
+            ? baseQ.sparkline.map((b, i) => {
+                const q = quoteQ.sparkline![Math.min(i, quoteQ.sparkline!.length - 1)]
+                return q > 0 ? b / q : 0
+              }).filter((n) => n > 0)
+            : []
         return {
           last,
           previousClose,
           changeAbs: last - previousClose,
           changePct,
-          sparkline: [],
+          sparkline: spark,
           source: 'yahoo-derived',
         }
       }
@@ -596,83 +646,23 @@ export async function fetchCryptoCrossQuote(
   }
 
   const vs = quote.toLowerCase()
-  // CoinGecko vs_currencies supports btc, eth, and fiat — not arbitrary coin ids
   const supportedVs = new Set([
-    'btc',
-    'eth',
-    'ltc',
-    'bch',
-    'bnb',
-    'eos',
-    'xrp',
-    'xlm',
-    'link',
-    'dot',
-    'yfi',
-    'usd',
-    'aed',
-    'ars',
-    'aud',
-    'bdt',
-    'bhd',
-    'bmd',
-    'brl',
-    'cad',
-    'chf',
-    'clp',
-    'cny',
-    'czk',
-    'dkk',
-    'eur',
-    'gbp',
-    'hkd',
-    'huf',
-    'idr',
-    'ils',
-    'inr',
-    'jpy',
-    'krw',
-    'kwd',
-    'lkr',
-    'mmk',
-    'mxn',
-    'myr',
-    'ngn',
-    'nok',
-    'nzd',
-    'php',
-    'pkr',
-    'pln',
-    'rub',
-    'sar',
-    'sek',
-    'sgd',
-    'thb',
-    'try',
-    'twd',
-    'uah',
-    'vef',
-    'vnd',
-    'zar',
-    'xdr',
-    'xag',
-    'xau',
-    'bits',
-    'sats',
+    'btc', 'eth', 'ltc', 'bch', 'bnb', 'eos', 'xrp', 'xlm', 'link', 'dot', 'yfi',
+    'usd', 'eur', 'gbp', 'aed', 'ars', 'aud', 'bdt', 'bhd', 'bmd', 'brl', 'cad',
+    'chf', 'clp', 'cny', 'czk', 'dkk', 'hkd', 'huf', 'idr', 'ils', 'inr', 'jpy',
+    'krw', 'kwd', 'lkr', 'mmk', 'mxn', 'myr', 'ngn', 'nok', 'nzd', 'php', 'pkr',
+    'pln', 'rub', 'sar', 'sek', 'sgd', 'thb', 'try', 'twd', 'uah', 'vef', 'vnd',
+    'zar', 'xdr', 'xag', 'xau', 'bits', 'sats',
   ])
 
   if (!supportedVs.has(vs)) {
-    // Derive cross from both coins vs GBP
     if (!quoteId) return null
     const url = `https://api.coingecko.com/api/v3/simple/price?ids=${baseId},${quoteId}&vs_currencies=gbp&include_24hr_change=true`
-    const data = await fetchJson<
-      Record<string, { gbp?: number; gbp_24h_change?: number }>
-    >(url)
+    const data = await fetchGeckoJson<Record<string, { gbp?: number; gbp_24h_change?: number }>>(url)
     const baseGbp = data?.[baseId]?.gbp
     const quoteGbp = data?.[quoteId]?.gbp
     if (!(baseGbp && baseGbp > 0 && quoteGbp && quoteGbp > 0)) return null
     const last = baseGbp / quoteGbp
-    // Approximate cross change from GBP changes (first-order)
     const baseCh = data?.[baseId]?.gbp_24h_change ?? 0
     const quoteCh = data?.[quoteId]?.gbp_24h_change ?? 0
     const changePct = baseCh - quoteCh
@@ -688,7 +678,7 @@ export async function fetchCryptoCrossQuote(
   }
 
   const url = `https://api.coingecko.com/api/v3/simple/price?ids=${encodeURIComponent(baseId)}&vs_currencies=${encodeURIComponent(vs)}&include_24hr_change=true`
-  const data = await fetchJson<Record<string, Record<string, number | undefined>>>(url)
+  const data = await fetchGeckoJson<Record<string, Record<string, number | undefined>>>(url)
   const row = data?.[baseId]
   const last = row?.[vs]
   if (!(typeof last === 'number' && last > 0)) return null
@@ -696,14 +686,21 @@ export async function fetchCryptoCrossQuote(
   const previousClose = last / (1 + changePct / 100)
 
   let sparkline: number[] = []
-  try {
-    const chartUrl = `https://api.coingecko.com/api/v3/coins/${encodeURIComponent(baseId)}/market_chart?vs_currency=${encodeURIComponent(vs)}&days=1`
-    const chart = await fetchJson<{ prices?: Array<[number, number]> }>(chartUrl, 12000)
-    sparkline = (chart?.prices || [])
-      .map((p) => p[1])
-      .filter((n): n is number => typeof n === 'number' && n > 0)
-  } catch {
-    /* optional */
+  if (!geckoCoolingDown()) {
+    try {
+      const chartUrl = `https://api.coingecko.com/api/v3/coins/${encodeURIComponent(baseId)}/market_chart?vs_currency=${encodeURIComponent(vs)}&days=${SPARKLINE_DAYS}`
+      const chart = await fetchGeckoJson<{ prices?: Array<[number, number]> }>(chartUrl, 12000)
+      sparkline = (chart?.prices || [])
+        .map((p) => p[1])
+        .filter((n): n is number => typeof n === 'number' && n > 0)
+      // Downsample to ~daily points for 7d
+      if (sparkline.length > 14) {
+        const step = Math.ceil(sparkline.length / 14)
+        sparkline = sparkline.filter((_, i) => i % step === 0)
+      }
+    } catch {
+      /* optional */
+    }
   }
 
   return {
@@ -716,17 +713,37 @@ export async function fetchCryptoCrossQuote(
   }
 }
 
-/** Optional 24h GBP sparkline for a single crypto (CoinGecko). */
+/**
+ * Optional 7d GBP sparkline for a single crypto.
+ * Prefers Yahoo (no CoinGecko quota); CoinGecko market_chart only as last resort.
+ */
 export async function fetchCryptoGbpSparkline(
   symbol: string,
   coingeckoId?: string,
 ): Promise<number[]> {
-  const id = coingeckoId?.trim() || (await lookupGeckoId(symbol))
+  try {
+    const yahoo = await fetchCryptoYahooQuoteGbp(symbol)
+    if (yahoo?.sparkline && yahoo.sparkline.length > 1) return yahoo.sparkline
+  } catch {
+    /* try gecko */
+  }
+
+  if (geckoCoolingDown()) return []
+  const id = GECKO_IDS[symbol.toUpperCase()] || coingeckoId?.trim() || (await lookupGeckoId(symbol))
   if (!id) return []
-  const chartUrl = `https://api.coingecko.com/api/v3/coins/${encodeURIComponent(id)}/market_chart?vs_currency=gbp&days=1`
-  const chart = await fetchJson<{ prices?: Array<[number, number]> }>(chartUrl, 12000)
-  return (chart?.prices || [])
+  const chartUrl = `https://api.coingecko.com/api/v3/coins/${encodeURIComponent(id)}/market_chart?vs_currency=gbp&days=${SPARKLINE_DAYS}`
+  const chart = await fetchGeckoJson<{ prices?: Array<[number, number]> }>(chartUrl, 12000)
+  let prices = (chart?.prices || [])
     .map((p) => p[1])
     .filter((n): n is number => typeof n === 'number' && n > 0)
+  if (prices.length > 14) {
+    const step = Math.ceil(prices.length / 14)
+    prices = prices.filter((_, i) => i % step === 0)
+  }
+  return prices
 }
 
+/** @deprecated use fetchYahooSparkline — kept for callers expecting intraday */
+export async function fetchEquitySparkline(symbol: string, _days = SPARKLINE_DAYS): Promise<number[]> {
+  return fetchYahooSparkline(normalizeYahooEquitySymbol(symbol), SPARKLINE_DAYS)
+}

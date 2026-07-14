@@ -31,15 +31,18 @@ describe('markets watchlist store', () => {
     mem.clear()
   })
 
-  it('seeds crypto, equities, FX and crypto crosses', async () => {
+  it('seeds crypto, equities, indices, FX and crypto crosses', async () => {
     const store = await import('../storage/marketsStore')
     const domain = await import('../domain/markets')
     const state = store.loadMarketsState()
-    expect(state.tickers.length).toBeGreaterThanOrEqual(7)
+    expect(state.tickers.length).toBeGreaterThanOrEqual(10)
     expect(store.listMarketTickers('fx').map((t) => t.symbol)).toEqual(
       expect.arrayContaining(['GBP/USD', 'GBP/THB']),
     )
     expect(store.listMarketTickers('cross').some((t) => t.symbol === 'ADA/BTC')).toBe(true)
+    expect(store.listMarketTickers('index').map((t) => t.symbol)).toEqual(
+      expect.arrayContaining(['^GSPC', '^IXIC', '^FTSE']),
+    )
     expect(domain.parseRatePair('gbp-usd')).toEqual({ base: 'GBP', quote: 'USD' })
   })
 
@@ -69,7 +72,7 @@ describe('markets watchlist store', () => {
     expect(store.listMarketTickers('fx').some((t) => t.symbol === 'EUR/USD')).toBe(false)
   })
 
-  it('migrates existing watchlists to include default FX/cross rates', async () => {
+  it('migrates existing watchlists to include default FX/cross/index rates', async () => {
     const store = await import('../storage/marketsStore')
     mem.set(
       'mydsp_markets_v1',
@@ -92,8 +95,45 @@ describe('markets watchlist store', () => {
     expect(state.tickers.some((t) => t.symbol === 'GBP/USD')).toBe(true)
     expect(state.tickers.some((t) => t.symbol === 'GBP/THB')).toBe(true)
     expect(state.tickers.some((t) => t.symbol === 'ADA/BTC')).toBe(true)
+    expect(state.tickers.some((t) => t.symbol === '^GSPC')).toBe(true)
     expect(state.collapsed.fx).toBe(false)
     expect(state.collapsed.crosses).toBe(false)
+    expect(state.collapsed.indices).toBe(false)
+  })
+
+  it('reorders tickers within an asset class only', async () => {
+    const store = await import('../storage/marketsStore')
+    store.loadMarketsState()
+    const crypto = store.listMarketTickers('crypto')
+    expect(crypto.length).toBeGreaterThanOrEqual(2)
+    const reversed = [...crypto].reverse().map((t) => t.id)
+    store.reorderMarketTickersInKind('crypto', reversed)
+    expect(store.listMarketTickers('crypto').map((t) => t.id)).toEqual(reversed)
+    // Equities order unchanged relative to themselves
+    expect(store.listMarketTickers('equity').length).toBeGreaterThan(0)
+  })
+
+  it('normalizes index aliases when adding', async () => {
+    const domain = await import('../domain/markets')
+    expect(domain.normalizeMarketSymbol('SPX')).toBe('^GSPC')
+    expect(domain.normalizeMarketSymbol('NASDAQ')).toBe('^IXIC')
+    expect(domain.normalizeMarketSymbol('FTSE')).toBe('^FTSE')
+    expect(domain.defaultNameForPair('index', 'SPX')).toMatch(/S&P/i)
+
+    const store = await import('../storage/marketsStore')
+    store.loadMarketsState()
+    // Remove all indices, then add via alias without triggering merge mid-flight
+    for (const t of store.listMarketTickers('index')) {
+      store.removeMarketTicker(t.id)
+    }
+    // Bypass mergeDefaultTickers by writing emptied indices then adding before reload
+    const state = store.loadMarketsState()
+    // merge will re-seed defaults — remove again from in-memory after and use update path
+    const seeded = store.listMarketTickers('index').find((t) => t.symbol === '^GSPC')
+    expect(seeded).toBeTruthy()
+    store.updateMarketTicker(seeded!.id, { symbol: 'SPX', name: '' })
+    expect(store.listMarketTickers('index').find((t) => t.id === seeded!.id)?.symbol).toBe('^GSPC')
+    expect(state.version).toBe(1)
   })
 
   it('exports and imports backup payload with rates', async () => {

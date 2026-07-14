@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useId, useMemo } from 'react'
 import { Area, AreaChart, ResponsiveContainer } from 'recharts'
 
 interface SparklineProps {
@@ -16,6 +16,8 @@ export function Sparkline({
   showGradient = true,
   trend,
 }: SparklineProps) {
+  const reactId = useId().replace(/:/g, '')
+  const gradId = `sparklineGradient-${reactId}`
   const chartData = useMemo(() => data.map((value, index) => ({ index, value })), [data])
 
   const trendColor = trend === 'up' ? '#4ade80' : trend === 'down' ? '#f87171' : color
@@ -26,7 +28,7 @@ export function Sparkline({
         <AreaChart data={chartData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
           {showGradient && (
             <defs>
-              <linearGradient id="sparklineGradient" x1="0" y1="0" x2="0" y2="1">
+              <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor={trendColor} stopOpacity={0.4} />
                 <stop offset="100%" stopColor={trendColor} stopOpacity={0} />
               </linearGradient>
@@ -37,7 +39,7 @@ export function Sparkline({
             dataKey="value"
             stroke={trendColor}
             strokeWidth={1.5}
-            fill={showGradient ? 'url(#sparklineGradient)' : 'none'}
+            fill={showGradient ? `url(#${gradId})` : 'none'}
             dot={false}
             animationDuration={500}
             animationEasing="ease-in-out"

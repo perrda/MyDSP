@@ -1,13 +1,13 @@
-/** Markets watchlist — equities, crypto, FX pairs, and crypto crosses. */
+/** Markets watchlist — equities, crypto, FX, crosses, and indices. */
 
-export type MarketAssetKind = 'crypto' | 'equity' | 'fx' | 'cross'
+export type MarketAssetKind = 'crypto' | 'equity' | 'fx' | 'cross' | 'index'
 
 export interface MarketTicker {
   id: string
   kind: MarketAssetKind
-  /** Ticker or pair e.g. BTC, TSLA, GBP/USD, ADA/BTC */
+  /** Ticker or pair e.g. BTC, TSLA, GBP/USD, ADA/BTC, ^GSPC */
   symbol: string
-  /** Display name e.g. Bitcoin, Pound / US Dollar */
+  /** Display name e.g. Bitcoin, S&P 500 */
   name: string
   /** Optional CoinGecko id when symbol is not in the built-in map */
   coingeckoId?: string
@@ -18,6 +18,7 @@ export interface MarketTicker {
 export type MarketsCollapsed = {
   crypto: boolean
   equities: boolean
+  indices: boolean
   fx: boolean
   crosses: boolean
 }
@@ -35,20 +36,16 @@ export interface MarketQuote {
   /**
    * Last print in native units:
    * - crypto/equity → GBP
-   * - fx/cross → quote currency units per 1 base (e.g. USD per GBP, BTC per ADA)
+   * - index → index points (native)
+   * - fx/cross → quote currency units per 1 base
    */
   last: number
-  /** Absolute day change in the same units as `last` */
   changeAbs: number
-  /** Day change percent */
   changePct: number
-  /** Intraday / 24h sparkline in the same units as `last` */
+  /** 7-day sparkline in the same units as `last` */
   sparkline: number[]
-  /** Unit suffix for display (GBP, USD, THB, BTC, …) */
   unit: string
-  /** Preferred fraction digits */
   decimals: number
-  /** Pre/post market % when available (equities) */
   extendedHours?: { session: 'pre' | 'post'; changePct: number }
   source: string
   updatedAt: string
@@ -59,6 +56,9 @@ export const DEFAULT_MARKET_TICKERS: Omit<MarketTicker, 'id' | 'createdAt' | 'so
   { kind: 'crypto', symbol: 'ETH', name: 'Ethereum' },
   { kind: 'equity', symbol: 'TSLA', name: 'Tesla, Inc.' },
   { kind: 'equity', symbol: 'MSTR', name: 'MicroStrategy Incorporated' },
+  { kind: 'index', symbol: '^GSPC', name: 'S&P 500' },
+  { kind: 'index', symbol: '^IXIC', name: 'Nasdaq Composite' },
+  { kind: 'index', symbol: '^FTSE', name: 'FTSE 100' },
   { kind: 'fx', symbol: 'GBP/USD', name: 'British Pound / US Dollar' },
   { kind: 'fx', symbol: 'GBP/THB', name: 'British Pound / Thai Baht' },
   { kind: 'cross', symbol: 'ADA/BTC', name: 'Cardano / Bitcoin' },
@@ -67,8 +67,26 @@ export const DEFAULT_MARKET_TICKERS: Omit<MarketTicker, 'id' | 'createdAt' | 'so
 export const DEFAULT_COLLAPSED: MarketsCollapsed = {
   crypto: false,
   equities: false,
+  indices: false,
   fx: false,
   crosses: false,
+}
+
+/** Friendly aliases → canonical Yahoo index symbol. */
+export const INDEX_ALIASES: Record<string, { symbol: string; name: string }> = {
+  SPX: { symbol: '^GSPC', name: 'S&P 500' },
+  GSPC: { symbol: '^GSPC', name: 'S&P 500' },
+  '^GSPC': { symbol: '^GSPC', name: 'S&P 500' },
+  'S&P500': { symbol: '^GSPC', name: 'S&P 500' },
+  'S&P': { symbol: '^GSPC', name: 'S&P 500' },
+  NDX: { symbol: '^IXIC', name: 'Nasdaq Composite' },
+  IXIC: { symbol: '^IXIC', name: 'Nasdaq Composite' },
+  '^IXIC': { symbol: '^IXIC', name: 'Nasdaq Composite' },
+  COMP: { symbol: '^IXIC', name: 'Nasdaq Composite' },
+  NASDAQ: { symbol: '^IXIC', name: 'Nasdaq Composite' },
+  FTSE: { symbol: '^FTSE', name: 'FTSE 100' },
+  UKX: { symbol: '^FTSE', name: 'FTSE 100' },
+  '^FTSE': { symbol: '^FTSE', name: 'FTSE 100' },
 }
 
 export function createEmptyMarketsState(): MarketsState {
@@ -77,7 +95,7 @@ export function createEmptyMarketsState(): MarketsState {
     version: 1,
     tickers: DEFAULT_MARKET_TICKERS.map((t, i) => ({
       ...t,
-      id: `mkt_${t.kind}_${normalizeMarketSymbol(t.symbol).toLowerCase().replace(/\//g, '_')}`,
+      id: `mkt_${t.kind}_${normalizeMarketSymbol(t.symbol).toLowerCase().replace(/\//g, '_').replace(/\^/g, '')}`,
       createdAt: now,
       sortOrder: i,
     })),
@@ -85,9 +103,17 @@ export function createEmptyMarketsState(): MarketsState {
   }
 }
 
-/** Uppercase; keep a single `/` for pairs; strip spaces. */
+/** Uppercase; keep `/` for pairs and `^` for indices; strip spaces. */
 export function normalizeMarketSymbol(symbol: string): string {
-  const cleaned = symbol.trim().toUpperCase().replace(/\s+/g, '').replace(/-/g, '/')
+  const trimmed = symbol.trim().toUpperCase().replace(/\s+/g, '')
+  // Indices: preserve caret, map aliases
+  const asIndexKey = trimmed.replace(/-/g, '')
+  if (INDEX_ALIASES[asIndexKey] || INDEX_ALIASES[trimmed]) {
+    return (INDEX_ALIASES[asIndexKey] || INDEX_ALIASES[trimmed]).symbol
+  }
+  if (trimmed.startsWith('^')) return trimmed
+
+  const cleaned = trimmed.replace(/-/g, '/')
   const parts = cleaned.split('/').filter(Boolean)
   if (parts.length >= 2) return `${parts[0]}/${parts[1]}`
   return parts[0] ?? ''
@@ -101,19 +127,22 @@ export function parseRatePair(symbol: string): { base: string; quote: string } |
 }
 
 export function newMarketTickerId(kind: MarketAssetKind, symbol: string): string {
-  const key = normalizeMarketSymbol(symbol).toLowerCase().replace(/\//g, '_')
+  const key = normalizeMarketSymbol(symbol).toLowerCase().replace(/\//g, '_').replace(/\^/g, '')
   return `mkt_${kind}_${key}_${Math.random().toString(36).slice(2, 8)}`
 }
 
 export function defaultNameForPair(kind: MarketAssetKind, symbol: string): string {
+  const norm = normalizeMarketSymbol(symbol)
+  if (kind === 'index') {
+    return INDEX_ALIASES[norm]?.name || norm
+  }
   const pair = parseRatePair(symbol)
-  if (!pair) return normalizeMarketSymbol(symbol)
-  if (kind === 'fx') return `${pair.base} / ${pair.quote}`
-  if (kind === 'cross') return `${pair.base} / ${pair.quote}`
-  return normalizeMarketSymbol(symbol)
+  if (!pair) return norm
+  if (kind === 'fx' || kind === 'cross') return `${pair.base} / ${pair.quote}`
+  return norm
 }
 
-/** Merge missing seed FX/cross (and any other defaults) into an existing watchlist. */
+/** Merge missing seed FX/cross/index defaults into an existing watchlist. */
 export function mergeDefaultTickers(state: MarketsState): { state: MarketsState; added: string[] } {
   const added: string[] = []
   const tickers = [...state.tickers]
@@ -127,12 +156,12 @@ export function mergeDefaultTickers(state: MarketsState): { state: MarketsState;
       (t) => t.kind === d.kind && normalizeMarketSymbol(t.symbol) === sym,
     )
     if (exists) continue
-    // Only auto-add FX + cross defaults for upgrades (don't re-add deleted crypto/equity)
-    if (d.kind !== 'fx' && d.kind !== 'cross') continue
+    // Auto-add FX + cross + index defaults on upgrade (don't re-add deleted crypto/equity)
+    if (d.kind !== 'fx' && d.kind !== 'cross' && d.kind !== 'index') continue
     tickers.push({
       ...d,
       symbol: sym,
-      id: `mkt_${d.kind}_${sym.toLowerCase().replace(/\//g, '_')}`,
+      id: `mkt_${d.kind}_${sym.toLowerCase().replace(/\//g, '_').replace(/\^/g, '')}`,
       createdAt: now,
       sortOrder: nextOrder++,
     })
@@ -142,8 +171,9 @@ export function mergeDefaultTickers(state: MarketsState): { state: MarketsState;
   const collapsed: MarketsCollapsed = {
     crypto: Boolean(state.collapsed?.crypto),
     equities: Boolean(state.collapsed?.equities),
-    fx: Boolean(state.collapsed?.fx),
-    crosses: Boolean(state.collapsed?.crosses),
+    indices: Boolean((state.collapsed as MarketsCollapsed | undefined)?.indices),
+    fx: Boolean((state.collapsed as MarketsCollapsed | undefined)?.fx),
+    crosses: Boolean((state.collapsed as MarketsCollapsed | undefined)?.crosses),
   }
 
   return {
@@ -155,10 +185,15 @@ export function mergeDefaultTickers(state: MarketsState): { state: MarketsState;
 export function formatMarketLast(quote: MarketQuote): string {
   if (!(quote.last > 0)) return '—'
   if (quote.kind === 'crypto' || quote.kind === 'equity') {
-    // Caller typically uses formatGBPPrecise; keep a plain fallback here
     return quote.last.toLocaleString('en-GB', {
       style: 'currency',
       currency: 'GBP',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })
+  }
+  if (quote.kind === 'index') {
+    return quote.last.toLocaleString('en-GB', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })
@@ -180,8 +215,17 @@ export function formatMarketChangeAbs(quote: MarketQuote): string {
       maximumFractionDigits: 2,
     })
     if (n > 0) return `+${abs}`
-    if (n < 0) return `−${abs.replace('£', '£')}`
+    if (n < 0) return `−${abs}`
     return abs
+  }
+  if (quote.kind === 'index') {
+    const body = Math.abs(n).toLocaleString('en-GB', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })
+    if (n > 0) return `+${body}`
+    if (n < 0) return `−${body}`
+    return body
   }
   const sign = n > 0 ? '+' : n < 0 ? '−' : ''
   const body = Math.abs(n).toLocaleString('en-GB', {
