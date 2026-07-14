@@ -1,4 +1,4 @@
-/** Refresh Markets watchlist quotes (crypto, equities, FX, crypto crosses). */
+/** Refresh Markets watchlist quotes (crypto, equities, indices, FX, crosses). */
 
 import {
   parseRatePair,
@@ -15,6 +15,7 @@ import {
   fetchCryptoMarketQuotesGbp,
   fetchEquityMarketQuote,
   fetchFxPairQuote,
+  fetchIndexQuote,
   type CryptoMarketQuoteGbp,
 } from './prices'
 
@@ -64,7 +65,6 @@ function cryptoDecimals(last: number): number {
   return 2
 }
 
-/** Persist CoinGecko ids discovered via search so later refreshes skip the lookup. */
 function persistResolvedGeckoIds(
   tickers: MarketTicker[],
   bySym: Map<string, CryptoMarketQuoteGbp>,
@@ -93,6 +93,7 @@ export async function refreshMarketQuotes(
 
   const cryptos = tickers.filter((t) => t.kind === 'crypto')
   const equities = tickers.filter((t) => t.kind === 'equity')
+  const indices = tickers.filter((t) => t.kind === 'index')
   const fiatFx = tickers.filter((t) => t.kind === 'fx')
   const crosses = tickers.filter((t) => t.kind === 'cross')
 
@@ -104,7 +105,6 @@ export async function refreshMarketQuotes(
     const bySym = new Map(quotes.map((q) => [q.symbol.toUpperCase(), q]))
     persistResolvedGeckoIds(cryptos, bySym)
 
-    // Build quotes first (prices), then sparklines with limited concurrency
     for (const t of cryptos) {
       const q = bySym.get(t.symbol.toUpperCase())
       const last = q?.priceGbp ?? 0
@@ -124,12 +124,13 @@ export async function refreshMarketQuotes(
       })
     }
 
+    // Fill missing 7d sparklines via Yahoo-first helper (avoids CoinGecko chart spam)
     await mapPool(
-      cryptos.filter((t) => (out.get(t.id)?.last ?? 0) > 0),
+      cryptos.filter((t) => (out.get(t.id)?.last ?? 0) > 0 && (out.get(t.id)?.sparkline.length ?? 0) < 2),
       SPARKLINE_CONCURRENCY,
       async (t) => {
         const existing = out.get(t.id)
-        if (!existing || existing.sparkline.length > 1) return
+        if (!existing) return
         try {
           const geckoId =
             bySym.get(t.symbol.toUpperCase())?.coingeckoId ?? t.coingeckoId
@@ -173,6 +174,32 @@ export async function refreshMarketQuotes(
         })
       } catch {
         out.set(t.id, emptyQuote(t, now, 'GBP', 2, 'error'))
+      }
+    }),
+  )
+
+  await Promise.all(
+    indices.map(async (t) => {
+      try {
+        const q = await fetchIndexQuote(t.symbol)
+        if (!q || !(q.price > 0)) {
+          out.set(t.id, emptyQuote(t, now, 'pts', 2, 'none'))
+          return
+        }
+        out.set(t.id, {
+          symbol: t.symbol,
+          kind: 'index',
+          last: q.price,
+          changeAbs: q.changeAbs,
+          changePct: q.changePct,
+          sparkline: q.sparkline,
+          unit: 'pts',
+          decimals: 2,
+          source: q.source,
+          updatedAt: now,
+        })
+      } catch {
+        out.set(t.id, emptyQuote(t, now, 'pts', 2, 'error'))
       }
     }),
   )

@@ -3,6 +3,7 @@ import {
   fetchCryptoMarketQuotesGbp,
   KNOWN_CRYPTO_SYMBOLS,
   resolveGeckoId,
+  yahooCryptoSymbol,
 } from '../services/prices'
 
 describe('crypto quote resolution', () => {
@@ -11,6 +12,16 @@ describe('crypto quote resolution', () => {
     expect(resolveGeckoId('ADA')).toBe('cardano')
     expect(resolveGeckoId('USDC')).toBe('usd-coin')
     expect(KNOWN_CRYPTO_SYMBOLS).toContain('NIGHT')
+  })
+
+  it('uses the correct Yahoo symbol for IOG Midnight (not NIGHT-USD)', () => {
+    expect(yahooCryptoSymbol('NIGHT')).toBe('NIGHT39064-USD')
+    expect(yahooCryptoSymbol('ADA')).toBe('ADA-USD')
+  })
+
+  it('prefers built-in CoinGecko id over a bad stored override', () => {
+    expect(resolveGeckoId('NIGHT', 'wrong-night-token')).toBe('midnight-3')
+    expect(resolveGeckoId('ADA', 'not-cardano')).toBe('cardano')
   })
 
   it('falls back to Yahoo when CoinGecko batch misses a symbol', async () => {
@@ -33,7 +44,8 @@ describe('crypto quote resolution', () => {
         url.includes('ADA-USD') ||
         url.includes('finance.yahoo.com') ||
         url.includes('corsproxy') ||
-        url.includes('allorigins')
+        url.includes('allorigins') ||
+        url.includes('codetabs')
       ) {
         return new Response(
           JSON.stringify({
@@ -53,9 +65,12 @@ describe('crypto quote resolution', () => {
           { status: 200, headers: { 'Content-Type': 'application/json' } },
         )
       }
-      // FX / anything else
       return new Response(
-        JSON.stringify({ rates: { GBP: 1, USD: 1.27 }, result: 'success', conversion_rates: { GBP: 1, USD: 1.27 } }),
+        JSON.stringify({
+          rates: { GBP: 1, USD: 1.27 },
+          result: 'success',
+          conversion_rates: { GBP: 1, USD: 1.27 },
+        }),
         { status: 200, headers: { 'Content-Type': 'application/json' } },
       )
     })
@@ -64,6 +79,7 @@ describe('crypto quote resolution', () => {
       const rows = await fetchCryptoMarketQuotesGbp([{ symbol: 'ADA' }])
       expect(rows[0]?.source).toBe('yahoo')
       expect(rows[0]?.priceGbp).toBeGreaterThan(0)
+      expect(rows[0]?.sparkline?.length).toBeGreaterThan(1)
     } finally {
       fetchSpy.mockRestore()
     }

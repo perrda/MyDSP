@@ -48,7 +48,9 @@ function writeState(state: MarketsState, opts?: { silent?: boolean }): void {
 function normalizeTicker(t: MarketTicker, i: number): MarketTicker {
   return {
     ...t,
-    kind: (['crypto', 'equity', 'fx', 'cross'].includes(t.kind) ? t.kind : 'equity') as MarketAssetKind,
+    kind: (['crypto', 'equity', 'fx', 'cross', 'index'].includes(t.kind)
+      ? t.kind
+      : 'equity') as MarketAssetKind,
     symbol: normalizeMarketSymbol(t.symbol),
     sortOrder: typeof t.sortOrder === 'number' ? t.sortOrder : i,
   }
@@ -63,6 +65,7 @@ export function loadMarketsState(): MarketsState {
       collapsed: {
         crypto: Boolean(existing.collapsed?.crypto),
         equities: Boolean(existing.collapsed?.equities),
+        indices: Boolean((existing.collapsed as MarketsCollapsed | undefined)?.indices),
         fx: Boolean((existing.collapsed as MarketsCollapsed | undefined)?.fx),
         crosses: Boolean((existing.collapsed as MarketsCollapsed | undefined)?.crosses),
       },
@@ -98,6 +101,11 @@ function validateSymbol(kind: MarketAssetKind, symbol: string): string {
     const pair = parseRatePair(norm)
     if (!pair) throw new Error('Use a pair like GBP/USD or ADA/BTC.')
     if (pair.base === pair.quote) throw new Error('Base and quote must differ.')
+  }
+  if (kind === 'index') {
+    if (!/^[\^]?[A-Z0-9.&]+$/.test(norm)) {
+      throw new Error('Use an index symbol like SPX, ^GSPC, NDX, or FTSE.')
+    }
   }
   return norm
 }
@@ -168,6 +176,35 @@ export function removeMarketTicker(id: string): void {
   saveMarketsState(state)
 }
 
+/**
+ * Reorder tickers within a single asset kind. Other kinds keep their sortOrder.
+ * `orderedIds` is the full id list for that kind in the new top→bottom order.
+ */
+export function reorderMarketTickersInKind(kind: MarketAssetKind, orderedIds: string[]): void {
+  const state = loadMarketsState()
+  const inKind = state.tickers
+    .filter((t) => t.kind === kind)
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+  const byId = new Map(inKind.map((t) => [t.id, t]))
+  const nextInKind: MarketTicker[] = []
+  for (const id of orderedIds) {
+    const t = byId.get(id)
+    if (t) {
+      nextInKind.push(t)
+      byId.delete(id)
+    }
+  }
+  for (const t of byId.values()) nextInKind.push(t)
+
+  const idToOrder = new Map(nextInKind.map((t, i) => [t.id, i]))
+  state.tickers = state.tickers.map((t) =>
+    t.kind === kind && idToOrder.has(t.id)
+      ? { ...t, sortOrder: idToOrder.get(t.id)! }
+      : t,
+  )
+  saveMarketsState(state)
+}
+
 export function setMarketsCollapsed(
   section: keyof MarketsCollapsed,
   collapsed: boolean,
@@ -196,6 +233,7 @@ export function importMarketsFromBackup(raw: unknown): void {
     collapsed: {
       crypto: Boolean(parsed.collapsed?.crypto),
       equities: Boolean(parsed.collapsed?.equities),
+      indices: Boolean((parsed.collapsed as MarketsCollapsed | undefined)?.indices),
       fx: Boolean((parsed.collapsed as MarketsCollapsed | undefined)?.fx),
       crosses: Boolean((parsed.collapsed as MarketsCollapsed | undefined)?.crosses),
     },

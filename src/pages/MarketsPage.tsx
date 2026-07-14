@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   ChevronDown,
@@ -13,8 +13,10 @@ import {
 import { Sparkline } from '../components/charts/Sparkline'
 import { PageHeader } from '../components/ui/PageHeader'
 import { ConfirmDialog, Field, Modal } from '../components/ui/Modal'
+import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
 import { usePortfolio } from '../context/PortfolioContext'
 import {
+  defaultNameForPair,
   formatMarketChangeAbs,
   formatMarketLast,
   type MarketAssetKind,
@@ -29,6 +31,7 @@ import {
   listMarketTickers,
   loadMarketsState,
   removeMarketTicker,
+  reorderMarketTickersInKind,
   setMarketsCollapsed,
   setMarketsLastRefresh,
   updateMarketTicker,
@@ -69,6 +72,12 @@ const SECTION_META: Record<
     emptyLabel: 'equity',
     addLabel: 'Add equity',
   },
+  indices: {
+    title: 'Indices',
+    kind: 'index',
+    emptyLabel: 'index',
+    addLabel: 'Add index',
+  },
   fx: {
     title: 'FX Rates',
     kind: 'fx',
@@ -102,7 +111,18 @@ function ChangeBadge({ pct }: { pct: number }) {
 
 function formatLastDisplay(q: MarketQuote | undefined): string {
   if (!q || !(q.last > 0)) return '—'
-  if (q.kind === 'crypto' || q.kind === 'equity') return formatGBPPrecise(q.last)
+  if (q.kind === 'index') return formatMarketLast(q)
+  if (q.kind === 'crypto' || q.kind === 'equity') {
+    if (q.kind === 'crypto' && q.last < 1) {
+      return q.last.toLocaleString('en-GB', {
+        style: 'currency',
+        currency: 'GBP',
+        minimumFractionDigits: q.last < 0.01 ? 6 : 4,
+        maximumFractionDigits: q.last < 0.01 ? 6 : 4,
+      })
+    }
+    return formatGBPPrecise(q.last)
+  }
   return formatMarketLast(q)
 }
 
@@ -123,7 +143,7 @@ function sectionTotals(
     pctCount++
     avgPct += q.changePct
 
-    if (t.kind === 'fx' || t.kind === 'cross') continue
+    if (t.kind === 'fx' || t.kind === 'cross' || t.kind === 'index') continue
 
     const held = holdingsValueBySymbol.get(t.symbol.toUpperCase())
     if (held != null && held > 0) {
@@ -142,6 +162,7 @@ function sectionTotals(
 function symbolPlaceholder(kind: MarketAssetKind): string {
   if (kind === 'crypto') return 'BTC'
   if (kind === 'equity') return 'TSLA'
+  if (kind === 'index') return 'SPX'
   if (kind === 'fx') return 'GBP/USD'
   return 'ADA/BTC'
 }
@@ -149,6 +170,7 @@ function symbolPlaceholder(kind: MarketAssetKind): string {
 function namePlaceholder(kind: MarketAssetKind): string {
   if (kind === 'crypto') return 'Bitcoin'
   if (kind === 'equity') return 'Tesla, Inc.'
+  if (kind === 'index') return 'S&P 500'
   if (kind === 'fx') return 'British Pound / US Dollar'
   return 'Cardano / Bitcoin'
 }
@@ -167,11 +189,13 @@ export function MarketsPage() {
   const [formError, setFormError] = useState<string | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [addKind, setAddKind] = useState<MarketAssetKind | null>(null)
+  const refreshInFlight = useRef(false)
 
   const bySection = useMemo(
     () => ({
       crypto: tickers.filter((t) => t.kind === 'crypto'),
       equities: tickers.filter((t) => t.kind === 'equity'),
+      indices: tickers.filter((t) => t.kind === 'index'),
       fx: tickers.filter((t) => t.kind === 'fx'),
       crosses: tickers.filter((t) => t.kind === 'cross'),
     }),
@@ -209,6 +233,8 @@ export function MarketsPage() {
       setQuotes(new Map())
       return
     }
+    if (refreshInFlight.current) return
+    refreshInFlight.current = true
     setRefreshing(true)
     setError(null)
     try {
@@ -225,6 +251,7 @@ export function MarketsPage() {
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Price refresh failed')
     } finally {
+      refreshInFlight.current = false
       setRefreshing(false)
     }
   }, [data.settings.finnhubKey, data.settings.manualCryptoPrices])
@@ -269,18 +296,20 @@ export function MarketsPage() {
 
   const save = () => {
     try {
+      const name =
+        form.name.trim() || defaultNameForPair(form.kind, form.symbol)
       if (editing) {
         updateMarketTicker(editing.id, {
           kind: form.kind,
           symbol: form.symbol,
-          name: form.name,
+          name,
           coingeckoId: form.coingeckoId,
         })
       } else {
         addMarketTicker({
           kind: form.kind,
           symbol: form.symbol,
-          name: form.name,
+          name,
           coingeckoId: form.coingeckoId || undefined,
         })
       }
@@ -309,7 +338,7 @@ export function MarketsPage() {
           : new Map<string, number>()
     const totals = sectionTotals(items, quotes, holdings)
     const isCollapsed = collapsed[section]
-    const isRateSection = section === 'fx' || section === 'crosses'
+    const isRateSection = section === 'fx' || section === 'crosses' || section === 'indices'
 
     return (
       <section
@@ -323,7 +352,7 @@ export function MarketsPage() {
               <p className="text-xl sm:text-2xl font-bold tracking-tight tabular-nums text-text">
                 {isRateSection
                   ? items.length > 0
-                    ? `${items.length} rate${items.length === 1 ? '' : 's'}`
+                    ? `${items.length} ${section === 'indices' ? 'index' : 'rate'}${items.length === 1 ? '' : section === 'indices' ? 'es' : 's'}`
                     : '—'
                   : totals.matched > 0
                     ? formatGBPPrecise(totals.value)
@@ -360,29 +389,38 @@ export function MarketsPage() {
 
         {!isCollapsed && (
           <>
-            <ul className="divide-y divide-border">
-              {items.length === 0 ? (
-                <li className="px-4 sm:px-5 py-8 text-sm text-text-muted text-center">
-                  No {meta.emptyLabel} items yet.
-                </li>
-              ) : (
-                items.map((t) => {
+            {items.length === 0 ? (
+              <p className="px-4 sm:px-5 py-8 text-sm text-text-muted text-center">
+                No {meta.emptyLabel} items yet.
+              </p>
+            ) : (
+              <ReorderList
+                items={items}
+                getId={(t) => t.id}
+                onReorder={(next) => {
+                  reorderMarketTickersInKind(
+                    meta.kind,
+                    next.map((t) => t.id),
+                  )
+                  reloadList()
+                }}
+                className="divide-y divide-border"
+              >
+                {(t) => {
                   const q = quotes.get(t.id)
                   const pct = q?.changePct ?? 0
                   const trend = pct > 0 ? 'up' : pct < 0 ? 'down' : 'neutral'
                   const showSpark = Boolean(q && q.sparkline.length > 1)
                   return (
-                    <li
-                      key={t.id}
-                      className="px-4 sm:px-5 py-3.5 flex items-center gap-3 sm:gap-4"
-                    >
+                    <div className="px-4 sm:px-5 py-3.5 flex items-center gap-2 sm:gap-4">
+                      <ReorderHandle label={`Reorder ${t.symbol}`} />
                       <div className="min-w-0 flex-1">
                         <p className="font-semibold text-text tracking-tight">{t.symbol}</p>
                         <p className="text-xs text-text-muted truncate">{t.name}</p>
                       </div>
 
                       {showSpark ? (
-                        <div className="hidden sm:block w-16 shrink-0">
+                        <div className="w-14 sm:w-16 shrink-0">
                           <Sparkline
                             data={q!.sparkline}
                             height={28}
@@ -391,7 +429,7 @@ export function MarketsPage() {
                           />
                         </div>
                       ) : (
-                        <div className="hidden sm:block w-16 shrink-0" />
+                        <div className="w-14 sm:w-16 shrink-0" />
                       )}
 
                       <div className={`text-right shrink-0 ${privacyClass(privacy)}`}>
@@ -403,7 +441,9 @@ export function MarketsPage() {
                         ) : null}
                         <div className="mt-1 flex flex-col items-end gap-0.5">
                           <ChangeBadge pct={pct} />
-                          {isRateSection && q && q.last > 0 ? (
+                          {(section === 'fx' || section === 'crosses' || section === 'indices') &&
+                          q &&
+                          q.last > 0 ? (
                             <span className="text-[10px] text-text-subtle tabular-nums">
                               {formatMarketChangeAbs(q)}
                             </span>
@@ -445,11 +485,11 @@ export function MarketsPage() {
                           <Trash2 size={14} strokeWidth={1.5} />
                         </button>
                       </div>
-                    </li>
+                    </div>
                   )
-                })
-              )}
-            </ul>
+                }}
+              </ReorderList>
+            )}
 
             <div className="px-4 sm:px-5 py-3 flex flex-wrap items-center justify-between gap-3 border-t border-border">
               <button
@@ -468,7 +508,7 @@ export function MarketsPage() {
                   View details →
                 </Link>
               ) : (
-                <span className="text-xs text-text-subtle">Live rates · day change + sparkline</span>
+                <span className="text-xs text-text-subtle">Drag ⋮⋮ to reorder · 7-day sparkline</span>
               )}
             </div>
           </>
@@ -485,14 +525,16 @@ export function MarketsPage() {
         ? 'Add FX rate'
         : addKind === 'cross'
           ? 'Add crypto cross'
-          : 'Add equity'
+          : addKind === 'index'
+            ? 'Add index'
+            : 'Add equity'
 
   return (
     <div>
       <PageHeader
         eyebrow="Watchlist"
         title="Markets"
-        description="Live equities, crypto, FX (GBP/USD, GBP/THB…), and crypto crosses (ADA/BTC…). Day change, % and sparklines — refresh about every minute."
+        description="Live equities, crypto, indices (S&P 500, Nasdaq, FTSE), FX, and crypto crosses. Day change, % and 7-day sparklines — refresh about every minute. Drag ⋮⋮ to reorder within each section."
         action={
           <button
             type="button"
@@ -513,6 +555,7 @@ export function MarketsPage() {
 
       {renderSection('crypto')}
       {renderSection('equities')}
+      {renderSection('indices')}
       {renderSection('fx')}
       {renderSection('crosses')}
 
@@ -529,6 +572,7 @@ export function MarketsPage() {
             >
               <option value="equity">Equity</option>
               <option value="crypto">Crypto</option>
+              <option value="index">Index (e.g. SPX, NDX, FTSE)</option>
               <option value="fx">FX rate (e.g. GBP/USD)</option>
               <option value="cross">Crypto cross (e.g. ADA/BTC)</option>
             </select>
@@ -540,7 +584,9 @@ export function MarketsPage() {
                 ? 'Format BASE/QUOTE — e.g. GBP/USD, GBP/THB, EUR/USD'
                 : form.kind === 'cross'
                   ? 'Format BASE/QUOTE — e.g. ADA/BTC, ETH/BTC'
-                  : 'e.g. TSLA or BTC'
+                  : form.kind === 'index'
+                    ? 'e.g. SPX, ^GSPC, NDX, NASDAQ, FTSE'
+                    : 'e.g. TSLA or BTC'
             }
           >
             <input
@@ -550,7 +596,12 @@ export function MarketsPage() {
                 const v = e.target.value.toUpperCase()
                 setForm((f) => ({
                   ...f,
-                  symbol: form.kind === 'fx' || form.kind === 'cross' ? v : v.replace(/\//g, ''),
+                  symbol:
+                    form.kind === 'fx' || form.kind === 'cross'
+                      ? v
+                      : form.kind === 'index'
+                        ? v
+                        : v.replace(/\//g, ''),
                 }))
               }}
               placeholder={symbolPlaceholder(form.kind)}
@@ -573,7 +624,7 @@ export function MarketsPage() {
                   ? 'For the base coin if it is uncommon (e.g. cardano for ADA/BTC)'
                   : KNOWN_CRYPTO_SYMBOLS.includes(form.symbol.toUpperCase())
                     ? `Known map: ${form.symbol.toUpperCase()}`
-                    : 'Required for less common coins (e.g. avalanche-2)'
+                    : 'Leave blank — we search CoinGecko automatically'
               }
             >
               <input
