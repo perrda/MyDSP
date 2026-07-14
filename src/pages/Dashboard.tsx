@@ -33,8 +33,12 @@ export function Dashboard() {
   const { netWorth, assets, liabilities, crypto, equity, liability } = breakdown
   const { reminders } = useSmartReminders()
 
-  const recentJournal = [...data.journal].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5)
-  const recentSpend = [...data.spending].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5)
+  const recentJournal = [...(data.journal ?? [])]
+    .sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''))
+    .slice(0, 5)
+  const recentSpend = [...(data.spending ?? [])]
+    .sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''))
+    .slice(0, 5)
 
   const achievements = useMemo(
     () => evaluateAchievements({ data, breakdown, goalProgress }),

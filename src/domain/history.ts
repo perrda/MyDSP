@@ -21,7 +21,8 @@ export function todayKey(): string {
   return new Date().toISOString().slice(0, 10)
 }
 
-export function normalizeHistoryDate(date: string): string {
+export function normalizeHistoryDate(date?: string | null): string {
+  if (date == null || typeof date !== 'string') return ''
   return date.slice(0, 10)
 }
 
@@ -127,6 +128,7 @@ export function filterByRange<T extends { date: string; at?: string }>(
 ): T[] {
   const sorted = [...points]
     .map((p) => ({ ...p, date: normalizeHistoryDate(p.date) }))
+    .filter((p) => Boolean(p.date))
     .sort((a, b) => {
       const ka = a.at ?? `${a.date}T23:59:59.000Z`
       const kb = b.at ?? `${b.date}T23:59:59.000Z`

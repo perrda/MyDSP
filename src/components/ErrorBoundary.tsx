@@ -54,7 +54,12 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   handleGoHome = () => {
-    window.location.href = '/'
+    this.setState({
+      hasError: false,
+      error: null,
+      errorInfo: null,
+    })
+    window.location.assign('/')
   }
 
   render() {

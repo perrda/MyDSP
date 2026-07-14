@@ -95,7 +95,7 @@ export function JournalPage() {
   )
 
   const sortedJournal = useMemo(
-    () => sortBySortOrder(data.journal, (a, b) => b.date.localeCompare(a.date)),
+    () => sortBySortOrder(data.journal, (a, b) => (b.date ?? '').localeCompare(a.date ?? '')),
     [data.journal],
   )
 

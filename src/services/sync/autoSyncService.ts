@@ -97,6 +97,10 @@ export function endApplyingRemote(): void {
   applyingRemote = false
 }
 
+export function isApplyingRemote(): boolean {
+  return applyingRemote
+}
+
 export function markLocalDataChanged(): void {
   if (applyingRemote) return
   const cfg = loadSyncConfig()
