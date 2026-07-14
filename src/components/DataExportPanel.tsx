@@ -171,7 +171,7 @@ export function DataExportPanel() {
     { type: 'spending' as ExportType, label: 'Spending Data', icon: <TableIcon /> },
     { type: 'goals' as ExportType, label: 'Goals & Targets', icon: <TableIcon /> },
     { type: 'jobs' as ExportType, label: 'Job Applications', icon: <TableIcon /> },
-    { type: 'todos' as ExportType, label: 'Todo Lists', icon: <TableIcon /> },
+    { type: 'todos' as ExportType, label: 'To Do Lists', icon: <TableIcon /> },
   ]
 
   return (

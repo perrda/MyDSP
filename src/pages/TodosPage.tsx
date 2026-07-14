@@ -528,7 +528,7 @@ export function TodosPage() {
 
       <PageHeader
         eyebrow="Tasks"
-        title="Todo Lists"
+        title="To Do Lists"
         description={
           lists.length === 0
             ? 'Organize and track your tasks across multiple lists'
