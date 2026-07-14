@@ -64,6 +64,100 @@ export function listPortfolios(): PortfolioMeta[] {
   return [{ ...DEFAULT_META }]
 }
 
+export function normalizePortfolioName(name: string): string {
+  return name.trim().replace(/\s+/g, ' ')
+}
+
+export function portfolioNameKey(name: string): string {
+  return normalizePortfolioName(name).toLowerCase()
+}
+
+/** True if another portfolio already uses this name (case-insensitive). */
+export function isPortfolioNameTaken(name: string, exceptId?: string): boolean {
+  const key = portfolioNameKey(name)
+  if (!key) return false
+  return listPortfolios().some((p) => p.id !== exceptId && portfolioNameKey(p.name) === key)
+}
+
+function portfolioDataWeight(portfolioId: string): number {
+  try {
+    const raw = localStorage.getItem(STORAGE.dataKey(portfolioId))
+    if (!raw) return 0
+    return raw.length
+  } catch {
+    return 0
+  }
+}
+
+/**
+ * Collapse duplicate display names (case-insensitive). Keeps one entry per name:
+ * prefer `default`, then the heaviest data blob, then earliest createdAt.
+ * Removes orphaned storage keys for discarded ids.
+ */
+export function dedupePortfoliosByName(): { removed: string[]; kept: number } {
+  const list = listPortfolios()
+  const byName = new Map<string, PortfolioMeta[]>()
+  for (const p of list) {
+    const key = portfolioNameKey(p.name) || p.id
+    const group = byName.get(key) ?? []
+    group.push(p)
+    byName.set(key, group)
+  }
+
+  const kept: PortfolioMeta[] = []
+  const removed: string[] = []
+
+  for (const group of byName.values()) {
+    if (group.length === 1) {
+      kept.push(group[0])
+      continue
+    }
+    const ranked = [...group].sort((a, b) => {
+      if (a.id === 'default') return -1
+      if (b.id === 'default') return 1
+      const dw = portfolioDataWeight(b.id) - portfolioDataWeight(a.id)
+      if (dw !== 0) return dw
+      return String(a.createdAt).localeCompare(String(b.createdAt))
+    })
+    kept.push(ranked[0])
+    for (const dup of ranked.slice(1)) {
+      removed.push(dup.id)
+      if (dup.id !== 'default') {
+        flushSave(dup.id)
+        localStorage.removeItem(STORAGE.dataKey(dup.id))
+      }
+    }
+  }
+
+  // Preserve a stable order: default first, then remaining in prior order
+  const order = list.map((p) => p.id)
+  kept.sort((a, b) => {
+    if (a.id === 'default') return -1
+    if (b.id === 'default') return 1
+    return order.indexOf(a.id) - order.indexOf(b.id)
+  })
+
+  if (removed.length > 0) {
+    writeJson(STORAGE.PORTFOLIOS, kept)
+    const active = getActivePortfolioId()
+    if (!kept.some((p) => p.id === active)) {
+      setActivePortfolioId('default')
+    }
+  }
+
+  return { removed, kept: kept.length }
+}
+
+/** Resolve a remote registry entry onto a local id when names match. */
+export function resolveLocalPortfolioId(meta: Pick<PortfolioMeta, 'id' | 'name'>): string | null {
+  const list = listPortfolios()
+  if (list.some((p) => p.id === meta.id)) return meta.id
+  const key = portfolioNameKey(meta.name)
+  if (!key) return null
+  const byName = list.find((p) => portfolioNameKey(p.name) === key)
+  return byName?.id ?? null
+}
+
 export function getActivePortfolioId(): string {
   return localStorage.getItem(STORAGE.ACTIVE) || 'default'
 }
@@ -156,12 +250,19 @@ export function createPortfolio(
   name: string,
   opts?: { empty?: boolean },
 ): PortfolioMeta {
+  const trimmed = normalizePortfolioName(name)
+  if (!trimmed) {
+    throw new Error('Portfolio name is required.')
+  }
+  if (isPortfolioNameTaken(trimmed)) {
+    throw new Error(`A portfolio named “${trimmed}” already exists.`)
+  }
   const list = listPortfolios()
   if (list.length >= MAX_PORTFOLIOS) {
     throw new Error(`Maximum of ${MAX_PORTFOLIOS} portfolios (David + up to 5 others).`)
   }
   const id = newPortfolioId()
-  const meta: PortfolioMeta = { id, name: name.trim(), createdAt: new Date().toISOString() }
+  const meta: PortfolioMeta = { id, name: trimmed, createdAt: new Date().toISOString() }
   list.push(meta)
   writeJson(STORAGE.PORTFOLIOS, list)
   const seed = opts?.empty === false ? createSamplePortfolio() : createEmptyPortfolio()
@@ -206,7 +307,14 @@ export function repairDuplicatePortfolioIds(): boolean {
 }
 
 export function renamePortfolio(id: string, name: string): void {
-  const list = listPortfolios().map((p) => (p.id === id ? { ...p, name: name.trim() } : p))
+  const trimmed = normalizePortfolioName(name)
+  if (!trimmed) {
+    throw new Error('Portfolio name is required.')
+  }
+  if (isPortfolioNameTaken(trimmed, id)) {
+    throw new Error(`A portfolio named “${trimmed}” already exists.`)
+  }
+  const list = listPortfolios().map((p) => (p.id === id ? { ...p, name: trimmed } : p))
   writeJson(STORAGE.PORTFOLIOS, list)
 }
 
@@ -232,36 +340,52 @@ export function duplicatePortfolio(id: string, name: string): PortfolioMeta {
 
 /**
  * Idempotent: ensure default is “David” and family portfolios exist (empty).
- * Respects MAX_PORTFOLIOS (David + up to 5). Also repairs duplicate portfolio ids.
+ * Respects MAX_PORTFOLIOS (David + up to 5). Repairs duplicate ids and names.
  */
-export function bootstrapFamilyPortfolios(): { renamed: boolean; created: string[] } {
+export function bootstrapFamilyPortfolios(): { renamed: boolean; created: string[]; removedDupes: string[] } {
   ensurePortfolioRegistry()
   repairDuplicatePortfolioIds()
+  const { removed } = dedupePortfoliosByName()
   let list = listPortfolios()
   let renamed = false
 
   const david = list.find((p) => p.id === 'default')
   // Migrate old “David Portfolio” label (and any other default name) to “David”.
   if (david && david.name !== DAVID_PORTFOLIO_NAME) {
+    // If another “David” exists, rename the duplicate away first so default can be David
+    if (isPortfolioNameTaken(DAVID_PORTFOLIO_NAME, 'default')) {
+      const clash = list.find(
+        (p) => p.id !== 'default' && portfolioNameKey(p.name) === portfolioNameKey(DAVID_PORTFOLIO_NAME),
+      )
+      if (clash) {
+        let candidate = `${clash.name} (copy)`
+        let n = 2
+        while (isPortfolioNameTaken(candidate, clash.id)) {
+          candidate = `${clash.name} (${n++})`
+        }
+        renamePortfolio(clash.id, candidate)
+      }
+    }
     renamePortfolio('default', DAVID_PORTFOLIO_NAME)
     renamed = true
     list = listPortfolios()
   }
 
-  const existingNames = new Set(list.map((p) => p.name.toLowerCase()))
+  const existingNames = new Set(list.map((p) => portfolioNameKey(p.name)))
   const created: string[] = []
   for (const name of FAMILY_PORTFOLIO_NAMES) {
-    if (existingNames.has(name.toLowerCase())) continue
+    if (existingNames.has(portfolioNameKey(name))) continue
     if (!canCreatePortfolio()) break
     createPortfolio(name, { empty: true })
     created.push(name)
-    existingNames.add(name.toLowerCase())
+    existingNames.add(portfolioNameKey(name))
   }
 
-  // Second pass in case createPortfolio somehow collided (shouldn't after unique ids).
+  // Final hygiene
   repairDuplicatePortfolioIds()
+  const again = dedupePortfoliosByName()
 
-  return { renamed, created }
+  return { renamed, created, removedDupes: [...removed, ...again.removed] }
 }
 
 export function hasFccData(): boolean {

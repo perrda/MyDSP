@@ -1528,8 +1528,8 @@ export function SettingsPage() {
           <h3 className="text-lg font-bold tracking-tight mb-2">Family portfolios</h3>
           <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
             Up to {maxPortfolios} workspaces — <strong className="text-text">David</strong>{' '}
-            plus {maxPortfolios - 1} others. New portfolios start empty so you can enter data
-            manually. Set currency / tax residency per active portfolio above.{' '}
+            plus {maxPortfolios - 1} others. Names must be unique. New portfolios start empty so you
+            can enter data manually. Set currency / tax residency per active portfolio above.{' '}
             <Link to="/setup/opening" className="text-accent hover:underline">
               Opening wizard
             </Link>
@@ -1546,10 +1546,13 @@ export function SettingsPage() {
                     className="flex flex-wrap gap-2 flex-1"
                     onSubmit={(e) => {
                       e.preventDefault()
-                      if (renameDraft.trim()) {
-                        renamePortfolio(p.id, renameDraft.trim())
-                        flash(`Renamed to ${renameDraft.trim()}.`)
+                      if (!renameDraft.trim()) return
+                      const r = renamePortfolio(p.id, renameDraft.trim())
+                      if (!r.ok) {
+                        flash(r.error ?? 'Rename failed')
+                        return
                       }
+                      flash(`Renamed to ${renameDraft.trim()}.`)
                       setRenameId(null)
                     }}
                   >

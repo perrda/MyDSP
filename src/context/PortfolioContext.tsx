@@ -64,7 +64,7 @@ interface PortfolioContextValue {
   activeId: string
   switchPortfolio: (id: string) => void
   createPortfolio: (name: string) => { ok: boolean; error?: string }
-  renamePortfolio: (id: string, name: string) => void
+  renamePortfolio: (id: string, name: string) => { ok: boolean; error?: string }
   deletePortfolio: (id: string) => void
   maxPortfolios: number
   canAddPortfolio: boolean
@@ -239,9 +239,14 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
     [activeId],
   )
 
-  const renamePortfolio = useCallback((id: string, name: string) => {
-    renamePortfolioMeta(id, name)
-    setPortfolios(listPortfolios())
+  const renamePortfolio = useCallback((id: string, name: string): { ok: boolean; error?: string } => {
+    try {
+      renamePortfolioMeta(id, name)
+      setPortfolios(listPortfolios())
+      return { ok: true }
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : 'Could not rename portfolio' }
+    }
   }, [])
 
   const deletePortfolio = useCallback(
