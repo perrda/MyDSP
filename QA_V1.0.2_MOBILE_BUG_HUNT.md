@@ -1,10 +1,10 @@
-# QA Bug Hunt — v1.0.2 (mobile / tablet / web)
+# QA Bug Hunt — v1.1.1 (mobile / tablet / web)
 
 **Date:** 2026-07-14  
 **Branch:** `cursor/full-mobile-bug-hunt-0550`
 
 ## Scope
-Full-app bug hunt focused on iPhone/iPad readability, touch targets, layout chrome, and high-severity functional bugs.
+Full-app bug hunt focused on iPhone/iPad readability, touch targets, layout chrome, and high-severity functional bugs. Built on top of Markets **v1.1.0** (merged from main).
 
 ## Fixes shipped
 
@@ -46,19 +46,18 @@ Full-app bug hunt focused on iPhone/iPad readability, touch targets, layout chro
 | Check | Result |
 |-------|--------|
 | `npx tsc -b` | Pass |
-| `npm test` | **143 / 143** pass |
-| Version | **1.0.2** |
+| `npm test` | **149 / 149** pass (includes Markets) |
+| Version | **1.1.1** (on top of Markets 1.1.0) |
 
 ## Manual checklist (device)
 1. iPhone: open Overview — stats readable; scroll to bottom of Spending — last row clear of tab bar  
 2. Pull-to-sync — status line under header updates  
 3. Tap search icon — full-screen search works  
 4. Spending — card list, add expense sheet fills screen  
-5. Jobs — open application with interviews; salary shows USD (or stored currency) correctly  
-6. Sidebar — Markets not on this branch (see PR #38); rest of nav readable  
+5. Jobs — open application with interviews; salary shows stored currency correctly  
+6. Markets still present from v1.1.0  
 
 ## Follow-ups (not in this PR)
 - Wire Enhanced CSV bank presets (Lloyds/Nationwide)
 - Wire DataExportPanel / NotificationCenter into Settings
 - Crypto/Equities mobile overflow menus
-- Markets (PR #38) merge + FX boards

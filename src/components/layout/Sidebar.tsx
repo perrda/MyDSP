@@ -31,6 +31,7 @@ import {
   ListChecks,
   Briefcase,
   RefreshCw,
+  CandlestickChart,
   type LucideIcon,
 } from 'lucide-react'
 import { BrandMark } from '../BrandMark'
@@ -46,6 +47,7 @@ interface NavItem {
 
 const DEFAULT_LINKS: NavItem[] = [
   { to: '/', label: 'Overview', icon: LayoutDashboard, end: true },
+  { to: '/markets', label: 'Markets', icon: CandlestickChart },
   { to: '/crypto', label: 'Crypto', icon: Coins },
   { to: '/equities', label: 'Equities', icon: TrendingUp },
   { to: '/staking', label: 'Staking', icon: Layers },

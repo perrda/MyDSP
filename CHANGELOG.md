@@ -1,6 +1,6 @@
 # MyDSP Changelog
 
-## [1.0.2] - 2026-07-14
+## [1.1.1] - 2026-07-14
 
 ### Fixed — Mobile / tablet readability & bugs
 - iPhone content no longer hidden under the bottom tab bar (safe-area aware padding)
@@ -12,7 +12,23 @@
 - `formatGBP` shows pence (2 dp) by default for clearer money on mobile
 
 ### Version
-- 1.0.1 → **1.0.2**
+- 1.1.0 → **1.1.1**
+
+---
+
+## [1.1.0] - 2026-07-14
+
+### Added — Markets watchlist
+- **Markets** sidebar section: live equities & crypto boards (Yahoo-style layout in MyDSP styling)
+- **FX rates**: GBP/USD and GBP/THB seeded; add/remove any BASE/QUOTE fiat pair
+- **Crypto crosses**: ADA/BTC seeded; add/remove pairs like ETH/BTC
+- Day change, %, sparklines (equities, FX, crypto, crosses), extended-hours badges for equities
+- Auto-refresh ~60s + manual Refresh; CRUD modals; included in full backups
+- Quotes via CoinGecko, Finnhub/Yahoo, and exchangerate-api fallback for FX
+
+### Notes
+- Existing Markets watchlists auto-gain default FX/cross rates on load
+- Version bump from 1.0.1 → 1.1.0
 
 ---
 

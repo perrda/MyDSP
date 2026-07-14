@@ -25,6 +25,7 @@ import { formatDateTime } from '../../utils/format'
 
 const titles: Record<string, { eyebrow: string; title: string }> = {
   '/': { eyebrow: 'Portfolio', title: 'Overview' },
+  '/markets': { eyebrow: 'Watchlist', title: 'Markets' },
   '/crypto': { eyebrow: 'Holdings', title: 'Crypto' },
   '/equities': { eyebrow: 'Holdings', title: 'Equities' },
   '/staking': { eyebrow: 'Crypto', title: 'Staking' },
