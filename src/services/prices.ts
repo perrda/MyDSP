@@ -134,3 +134,194 @@ export function equityQuoteToGbp(
   if (!(nativePrice > 0)) return 0
   return equityNeedsUsdToGbp(symbol) ? usdToGbp(nativePrice, rates) : nativePrice
 }
+
+export function resolveGeckoId(symbol: string, override?: string): string | undefined {
+  if (override?.trim()) return override.trim()
+  return GECKO_IDS[symbol.toUpperCase()]
+}
+
+export const KNOWN_CRYPTO_SYMBOLS = Object.keys(GECKO_IDS)
+
+async function fetchViaProxies<T>(url: string, timeoutMs = 8000): Promise<T | null> {
+  const proxies = [
+    `https://corsproxy.io/?${encodeURIComponent(url)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  ]
+  for (const proxy of proxies) {
+    const data = await fetchJson<T>(proxy, timeoutMs)
+    if (data) return data
+  }
+  return fetchJson<T>(url, timeoutMs)
+}
+
+export interface EquityMarketQuoteNative {
+  price: number
+  previousClose: number
+  changePct: number
+  changeAbs: number
+  sparkline: number[]
+  extendedHours?: { session: 'pre' | 'post'; changePct: number }
+  source: 'finnhub' | 'yahoo'
+}
+
+/** Full equity quote with day change + intraday sparkline (native venue currency). */
+export async function fetchEquityMarketQuote(
+  symbol: string,
+  finnhubKey: string,
+): Promise<EquityMarketQuoteNative | null> {
+  const sym = symbol.toUpperCase()
+
+  if (finnhubKey.trim()) {
+    const url = `https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(sym)}&token=${encodeURIComponent(finnhubKey.trim())}`
+    const data = await fetchJson<{ c?: number; d?: number; dp?: number; pc?: number }>(url)
+    if (data?.c && data.c > 0) {
+      const previousClose = data.pc && data.pc > 0 ? data.pc : data.c - (data.d ?? 0)
+      const changeAbs = data.d ?? data.c - previousClose
+      const changePct =
+        data.dp ?? (previousClose > 0 ? ((data.c - previousClose) / previousClose) * 100 : 0)
+      // Sparkline from Yahoo even when Finnhub supplies the print
+      const spark = await fetchYahooIntradaySparkline(sym)
+      return {
+        price: data.c,
+        previousClose,
+        changeAbs,
+        changePct,
+        sparkline: spark,
+        source: 'finnhub',
+      }
+    }
+  }
+
+  const yahoo = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=5m&range=1d`
+  const data = await fetchViaProxies<{
+    chart?: {
+      result?: Array<{
+        meta?: {
+          regularMarketPrice?: number
+          chartPreviousClose?: number
+          previousClose?: number
+          preMarketPrice?: number
+          postMarketPrice?: number
+          instrumentType?: string
+        }
+        indicators?: { quote?: Array<{ close?: Array<number | null> }> }
+      }>
+    }
+  }>(yahoo)
+
+  const result = data?.chart?.result?.[0]
+  const meta = result?.meta
+  const price = meta?.regularMarketPrice
+  if (!price || !(price > 0)) return null
+  const previousClose = meta?.chartPreviousClose || meta?.previousClose || price
+  const changeAbs = price - previousClose
+  const changePct = previousClose > 0 ? (changeAbs / previousClose) * 100 : 0
+  const closes = (result?.indicators?.quote?.[0]?.close || []).filter(
+    (n): n is number => typeof n === 'number' && n > 0,
+  )
+
+  let extendedHours: EquityMarketQuoteNative['extendedHours']
+  if (meta?.postMarketPrice && meta.postMarketPrice > 0 && price > 0) {
+    extendedHours = {
+      session: 'post',
+      changePct: ((meta.postMarketPrice - price) / price) * 100,
+    }
+  } else if (meta?.preMarketPrice && meta.preMarketPrice > 0 && previousClose > 0) {
+    extendedHours = {
+      session: 'pre',
+      changePct: ((meta.preMarketPrice - previousClose) / previousClose) * 100,
+    }
+  }
+
+  return {
+    price,
+    previousClose,
+    changeAbs,
+    changePct,
+    sparkline: closes,
+    extendedHours,
+    source: 'yahoo',
+  }
+}
+
+async function fetchYahooIntradaySparkline(symbol: string): Promise<number[]> {
+  const yahoo = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=5m&range=1d`
+  const data = await fetchViaProxies<{
+    chart?: {
+      result?: Array<{ indicators?: { quote?: Array<{ close?: Array<number | null> }> } }>
+    }
+  }>(yahoo, 6000)
+  const closes = data?.chart?.result?.[0]?.indicators?.quote?.[0]?.close || []
+  return closes.filter((n): n is number => typeof n === 'number' && n > 0)
+}
+
+export interface CryptoMarketQuoteGbp {
+  symbol: string
+  priceGbp: number
+  changePct: number
+  source: 'coingecko' | 'manual' | 'default'
+}
+
+/** Crypto quotes in GBP with 24h % change (CoinGecko). */
+export async function fetchCryptoMarketQuotesGbp(
+  items: Array<{ symbol: string; coingeckoId?: string }>,
+  manualOverrides: Record<string, number> = {},
+): Promise<CryptoMarketQuoteGbp[]> {
+  const unique = new Map<string, string | undefined>()
+  for (const item of items) {
+    const sym = item.symbol.toUpperCase()
+    if (!unique.has(sym)) unique.set(sym, item.coingeckoId)
+  }
+
+  const idToSym = new Map<string, string>()
+  for (const [sym, override] of unique) {
+    const id = resolveGeckoId(sym, override)
+    if (id) idToSym.set(id, sym)
+  }
+
+  const bySym = new Map<string, { price: number; changePct: number }>()
+  if (idToSym.size > 0) {
+    const ids = [...idToSym.keys()].join(',')
+    const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=gbp&include_24hr_change=true`
+    const data = await fetchJson<Record<string, { gbp?: number; gbp_24h_change?: number }>>(url)
+    if (data) {
+      for (const [id, sym] of idToSym) {
+        const row = data[id]
+        const p = row?.gbp
+        if (p && p > 0) {
+          bySym.set(sym, { price: p, changePct: row?.gbp_24h_change ?? 0 })
+        }
+      }
+    }
+  }
+
+  return [...unique.keys()].map((symbol) => {
+    const hit = bySym.get(symbol)
+    if (hit) {
+      return {
+        symbol,
+        priceGbp: hit.price,
+        changePct: hit.changePct,
+        source: 'coingecko' as const,
+      }
+    }
+    if (manualOverrides[symbol] > 0) {
+      return {
+        symbol,
+        priceGbp: manualOverrides[symbol],
+        changePct: 0,
+        source: 'manual' as const,
+      }
+    }
+    if (MANUAL_DEFAULTS[symbol]) {
+      return {
+        symbol,
+        priceGbp: MANUAL_DEFAULTS[symbol],
+        changePct: 0,
+        source: 'default' as const,
+      }
+    }
+    return { symbol, priceGbp: 0, changePct: 0, source: 'manual' as const }
+  })
+}
+
