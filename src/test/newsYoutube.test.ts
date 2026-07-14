@@ -1,6 +1,7 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { normalizeNewsTag } from '../domain/news'
 import { MAX_YOUTUBE_CHANNELS, parseYoutubeInput } from '../domain/youtube'
+import { extractChannelIdFromHtml } from '../services/youtubeFeeds'
 
 function mockLocalStorage() {
   const mem = new Map<string, string>()
@@ -83,6 +84,52 @@ describe('youtube store', () => {
       parseYoutubeInput('https://www.youtube.com/channel/UCqK_GSMbpiV8spgD3ZGloSw').channelId,
     ).toBe('UCqK_GSMbpiV8spgD3ZGloSw')
     expect(parseYoutubeInput('https://www.youtube.com/@CoinBureau').handle).toBe('CoinBureau')
+  })
+
+  it('extracts the page owner channel id (not a related channel)', () => {
+    const html = `
+      <html><head>
+        <link rel="canonical" href="https://www.youtube.com/channel/UCbLhGKVY-bJPcawebgtNfbw">
+        <meta property="og:url" content="https://www.youtube.com/channel/UCbLhGKVY-bJPcawebgtNfbw">
+        <meta itemprop="identifier" content="UCbLhGKVY-bJPcawebgtNfbw">
+      </head><body>
+        <script>"channelId":"UC7KjtEJT6HvI3kBcF2I4vXg","externalId":"UCbLhGKVY-bJPcawebgtNfbw"</script>
+      </body></html>`
+    expect(extractChannelIdFromHtml(html)).toBe('UCbLhGKVY-bJPcawebgtNfbw')
+  })
+
+  it('resolves @handle via HTML when feed verify is unavailable', async () => {
+    const html = `
+      <html><head>
+        <link rel="canonical" href="https://www.youtube.com/channel/UCbLhGKVY-bJPcawebgtNfbw">
+        <meta property="og:title" content="Altcoin Daily - YouTube">
+        <meta property="og:image" content="https://example.com/thumb.jpg">
+      </head><body>youtube channelId enough</body></html>`
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url =
+        typeof input === 'string'
+          ? input
+          : input instanceof URL
+            ? input.toString()
+            : input.url
+      if (url.includes('feeds/videos.xml')) {
+        return new Response('nope', { status: 403 })
+      }
+      // Direct YouTube HTML or any proxy that wraps it
+      if (url.includes('AltcoinDaily') || url.includes('youtube.com')) {
+        return new Response(html, { status: 200 })
+      }
+      return new Response('', { status: 404 })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { resolveYoutubeChannel } = await import('../services/youtubeFeeds')
+    const resolved = await resolveYoutubeChannel('https://www.youtube.com/@AltcoinDaily')
+    expect(resolved.channelId).toBe('UCbLhGKVY-bJPcawebgtNfbw')
+    expect(resolved.title).toBe('Altcoin Daily')
+    expect(resolved.thumbnailUrl).toBe('https://example.com/thumb.jpg')
+
+    vi.unstubAllGlobals()
   })
 
   it('enforces max 25 channels and supports reorder', async () => {

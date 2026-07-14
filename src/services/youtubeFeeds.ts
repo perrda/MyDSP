@@ -1,57 +1,70 @@
 /** YouTube channel resolve + Atom video feeds (no API key). */
 
 import { parseYoutubeInput, type YoutubeChannel, type YoutubeVideo } from '../domain/youtube'
-import { fetchFeedXml, parseFeedXml } from './rss'
+import { fetchFeedXml, fetchRemoteText, parseFeedXml } from './rss'
 
 function videosFeedUrl(channelId: string): string {
   return `https://www.youtube.com/feeds/videos.xml?channel_id=${encodeURIComponent(channelId)}`
 }
 
-async function fetchText(url: string, timeoutMs = 12000): Promise<string | null> {
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), timeoutMs)
-  try {
-    const res = await fetch(url, { signal: controller.signal })
-    if (!res.ok) return null
-    return await res.text()
-  } catch {
-    return null
-  } finally {
-    clearTimeout(timer)
-  }
-}
-
 async function fetchHtml(url: string): Promise<string | null> {
-  const direct = await fetchText(url)
-  if (direct && direct.length > 500) return direct
-  const proxies = [
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
-  ]
-  for (const p of proxies) {
-    const t = await fetchText(p, 14000)
-    if (t && t.length > 500) return t
-  }
-  return direct
+  return fetchRemoteText(url, {
+    timeoutMs: 6000,
+    proxyTimeoutMs: 12000,
+    isAcceptable: (t) =>
+      t.length > 200 &&
+      (t.includes('youtube') ||
+        t.includes('channelId') ||
+        t.includes('externalId') ||
+        t.includes('og:url') ||
+        t.includes('/channel/UC')),
+  })
 }
 
-function extractChannelIdFromHtml(html: string): string | undefined {
-  const patterns = [
-    /"channelId":"(UC[\w-]{20,})"/,
-    /channel_id=(UC[\w-]{20,})/,
-    /\/channel\/(UC[\w-]{20,})/,
-    /<meta\s+itemprop="channelId"\s+content="(UC[\w-]{20,})"/i,
-    /"externalId":"(UC[\w-]{20,})"/,
+/**
+ * Prefer canonical / og:url / externalId / identifier — the first "channelId"
+ * in ytInitialData is often a related channel, not the page owner.
+ */
+export function extractChannelIdFromHtml(html: string): string | undefined {
+  const preferred = [
+    /<link[^>]+rel=["']canonical["'][^>]+href=["']https?:\/\/(?:www\.)?youtube\.com\/channel\/(UC[\w-]{20,})["']/i,
+    /<link[^>]+href=["']https?:\/\/(?:www\.)?youtube\.com\/channel\/(UC[\w-]{20,})["'][^>]+rel=["']canonical["']/i,
+    /<meta\s+property=["']og:url["']\s+content=["']https?:\/\/(?:www\.)?youtube\.com\/channel\/(UC[\w-]{20,})["']/i,
+    /<meta\s+content=["']https?:\/\/(?:www\.)?youtube\.com\/channel\/(UC[\w-]{20,})["']\s+property=["']og:url["']/i,
+    /<meta\s+itemprop=["']identifier["']\s+content=["'](UC[\w-]{20,})["']/i,
+    /<meta\s+content=["'](UC[\w-]{20,})["']\s+itemprop=["']identifier["']/i,
+    /<meta\s+itemprop=["']channelId["']\s+content=["'](UC[\w-]{20,})["']/i,
+    /"externalId"\s*:\s*"(UC[\w-]{20,})"/,
+    /"channelUrl"\s*:\s*"https?:\\\/\\\/(?:www\.)?youtube\.com\\\/channel\\\/(UC[\w-]{20,})"/,
   ]
-  for (const re of patterns) {
+  for (const re of preferred) {
     const m = html.match(re)
     if (m?.[1]) return m[1]
   }
-  return undefined
+
+  // browseId often equals the page channel; take the most common UC… browseId
+  const browseIds = [...html.matchAll(/"browseId"\s*:\s*"(UC[\w-]{20,})"/g)].map((m) => m[1])
+  if (browseIds.length > 0) {
+    const counts = new Map<string, number>()
+    for (const id of browseIds) counts.set(id, (counts.get(id) || 0) + 1)
+    let best = browseIds[0]
+    let bestN = 0
+    for (const [id, n] of counts) {
+      if (n > bestN) {
+        best = id
+        bestN = n
+      }
+    }
+    return best
+  }
+
+  const fallback = html.match(/"channelId"\s*:\s*"(UC[\w-]{20,})"/)
+  return fallback?.[1]
 }
 
 function extractChannelTitleFromHtml(html: string): string | undefined {
-  const og = html.match(/<meta\s+property="og:title"\s+content="([^"]+)"/i)
+  const og = html.match(/<meta\s+property=["']og:title["']\s+content=["']([^"']+)["']/i)
+    || html.match(/<meta\s+content=["']([^"']+)["']\s+property=["']og:title["']/i)
   if (og?.[1]) return og[1].replace(/ - YouTube$/i, '').trim()
   const t = html.match(/<title>([^<]+)<\/title>/i)
   if (t?.[1]) return t[1].replace(/ - YouTube$/i, '').trim()
@@ -59,12 +72,15 @@ function extractChannelTitleFromHtml(html: string): string | undefined {
 }
 
 function extractThumbnailFromHtml(html: string): string | undefined {
-  const og = html.match(/<meta\s+property="og:image"\s+content="([^"]+)"/i)
+  const og = html.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i)
+    || html.match(/<meta\s+content=["']([^"']+)["']\s+property=["']og:image["']/i)
   return og?.[1]
 }
 
 /**
  * Resolve a pasted YouTube URL / @handle / UC… id into a channel record.
+ * Does not require a YouTube API key. Soft-fails feed verification so the
+ * channel can still be saved when Atom is temporarily unreachable.
  */
 export async function resolveYoutubeChannel(raw: string): Promise<{
   channelId: string
@@ -85,12 +101,17 @@ export async function resolveYoutubeChannel(raw: string): Promise<{
   if (!channelId && parsed.handle) {
     url = `https://www.youtube.com/@${parsed.handle}`
     const html = await fetchHtml(url)
-    if (!html) throw new Error('Could not reach YouTube to resolve that handle.')
+    if (!html) {
+      throw new Error(
+        'Could not resolve that @handle (YouTube blocked the lookup). Paste the channel’s /channel/UC… URL instead, or try again.',
+      )
+    }
     channelId = extractChannelIdFromHtml(html)
     title = extractChannelTitleFromHtml(html) || parsed.handle
     thumbnailUrl = extractThumbnailFromHtml(html)
   } else if (channelId) {
     url = `https://www.youtube.com/channel/${channelId}`
+    // Title/thumbnail are nice-to-have — don't block add on HTML fetch
     const html = await fetchHtml(url)
     if (html) {
       title = extractChannelTitleFromHtml(html) || channelId
@@ -98,7 +119,7 @@ export async function resolveYoutubeChannel(raw: string): Promise<{
     }
   } else if (parsed.url) {
     const html = await fetchHtml(parsed.url)
-    if (!html) throw new Error('Could not reach that YouTube URL.')
+    if (!html) throw new Error('Could not reach that YouTube URL. Try a /channel/UC… link.')
     channelId = extractChannelIdFromHtml(html)
     title = extractChannelTitleFromHtml(html) || 'YouTube channel'
     thumbnailUrl = extractThumbnailFromHtml(html)
@@ -106,18 +127,17 @@ export async function resolveYoutubeChannel(raw: string): Promise<{
   }
 
   if (!channelId) {
-    throw new Error('Could not find a YouTube channel id. Try the channel’s /channel/UC… URL.')
+    throw new Error('Could not find a YouTube channel id. Open the channel → Share → copy link, or paste the /channel/UC… URL.')
   }
 
-  // Verify feed exists
+  // Soft-verify feed; still save the channel if Atom is temporarily blocked
   const feed = await fetchFeedXml(videosFeedUrl(channelId))
-  if (!feed) {
-    throw new Error('Channel found but the video feed is unavailable. Try again later.')
-  }
-  if (!title) {
+  if (feed && !title) {
     const items = parseFeedXml(feed)
     title = items[0]?.author || items[0]?.source || channelId
   }
+
+  if (!title) title = channelId
 
   return { channelId, title, url, thumbnailUrl }
 }

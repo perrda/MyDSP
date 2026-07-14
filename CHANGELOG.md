@@ -13,6 +13,10 @@
 - Latest videos aggregated from favourites via YouTube Atom feeds
 - Workspace backup/restore for channel list
 
+### Fixed — YouTube channel add
+- @handle / URL resolve no longer hangs on **Resolving…** (CORS proxies raced; correct channel id from canonical/og:url)
+- Channel save no longer blocked when the Atom feed is temporarily unreachable
+
 ### Version
 - 1.1.4 → **1.2.0**
 
