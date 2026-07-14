@@ -1,6 +1,6 @@
 /** Shared RSS / Atom fetch + parse (News + YouTube). */
 
-async function fetchText(url: string, timeoutMs = 12000): Promise<string | null> {
+async function fetchText(url: string, timeoutMs = 10000): Promise<string | null> {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), timeoutMs)
   try {
@@ -14,24 +14,58 @@ async function fetchText(url: string, timeoutMs = 12000): Promise<string | null>
   }
 }
 
-/** Direct first (often CORS-ok for Google/Yahoo/YouTube RSS), then public proxies. */
-export async function fetchFeedXml(url: string): Promise<string | null> {
-  const direct = await fetchText(url)
-  if (direct && (direct.includes('<rss') || direct.includes('<feed') || direct.includes('<?xml'))) {
-    return direct
-  }
-  const proxies = [
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
-    `https://corsproxy.io/?${encodeURIComponent(url)}`,
+/** Public CORS proxies — raced in parallel; first usable response wins. */
+function proxyUrlsFor(target: string): string[] {
+  return [
+    `https://proxy.cors.sh/${target}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(target)}`,
+    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(target)}`,
+    `https://corsproxy.io/?${encodeURIComponent(target)}`,
   ]
-  for (const proxy of proxies) {
-    const text = await fetchText(proxy, 14000)
-    if (text && (text.includes('<rss') || text.includes('<feed') || text.includes('<?xml'))) {
-      return text
-    }
-  }
-  return direct
+}
+
+/**
+ * Fetch a remote URL from the browser: try direct, then race CORS proxies.
+ * Returns the first body that passes `isAcceptable` (default: non-empty).
+ */
+export async function fetchRemoteText(
+  url: string,
+  opts?: {
+    timeoutMs?: number
+    proxyTimeoutMs?: number
+    isAcceptable?: (text: string) => boolean
+  },
+): Promise<string | null> {
+  const timeoutMs = opts?.timeoutMs ?? 8000
+  const proxyTimeoutMs = opts?.proxyTimeoutMs ?? 10000
+  const isAcceptable = opts?.isAcceptable ?? ((t: string) => t.trim().length > 0)
+
+  const direct = await fetchText(url, timeoutMs)
+  if (direct && isAcceptable(direct)) return direct
+
+  const proxies = proxyUrlsFor(url)
+  const result = await Promise.any(
+    proxies.map(async (proxy) => {
+      const text = await fetchText(proxy, proxyTimeoutMs)
+      if (text && isAcceptable(text)) return text
+      throw new Error('proxy miss')
+    }),
+  ).catch(() => null)
+
+  return result ?? (direct && isAcceptable(direct) ? direct : null)
+}
+
+function looksLikeFeed(text: string): boolean {
+  return text.includes('<rss') || text.includes('<feed') || text.includes('<?xml')
+}
+
+/** Direct first (often CORS-ok for Google/Yahoo RSS), then public proxies. */
+export async function fetchFeedXml(url: string): Promise<string | null> {
+  return fetchRemoteText(url, {
+    timeoutMs: 8000,
+    proxyTimeoutMs: 12000,
+    isAcceptable: looksLikeFeed,
+  })
 }
 
 export interface ParsedFeedItem {
@@ -57,6 +91,11 @@ function firstChild(parent: Element, names: string[]): Element | null {
   for (const name of names) {
     const hit = parent.getElementsByTagName(name)[0]
     if (hit) return hit
+    const local = name.includes(':') ? name.split(':')[1] : name
+    const byLocal = [...parent.children].find(
+      (c) => c.localName === local || c.tagName.toLowerCase() === name.toLowerCase(),
+    )
+    if (byLocal) return byLocal
   }
   return null
 }

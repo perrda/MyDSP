@@ -305,14 +305,16 @@ export function YouTubePage() {
         <div className="space-y-4">
           <Field
             label="Channel URL or @handle"
-            hint="e.g. https://www.youtube.com/@CoinBureau or UC…"
+            hint="e.g. @CoinBureau, https://www.youtube.com/@CoinBureau, or /channel/UC…"
           >
             <input
               className="w-full"
               value={formUrl}
               onChange={(e) => setFormUrl(e.target.value)}
-              placeholder="https://www.youtube.com/@…"
+              placeholder="https://www.youtube.com/@… or UC…"
               disabled={Boolean(editing) || resolving}
+              autoComplete="off"
+              spellCheck={false}
             />
           </Field>
           <Field label="Display name" hint={editing ? 'Rename this favourite' : 'Optional override'}>
