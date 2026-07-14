@@ -34,11 +34,18 @@ import {
   CandlestickChart,
   Newspaper,
   Video,
+  Star,
+  ChevronDown,
+  ArrowUpDown,
   type LucideIcon,
 } from 'lucide-react'
 import { BrandMark } from '../BrandMark'
 import { ReorderHandle, ReorderList } from '../ui/Reorderable'
-import { loadNavOrder, saveNavOrder } from '../../storage/navOrder'
+import {
+  loadNavLayout,
+  saveNavLayout,
+  type NavLayout,
+} from '../../storage/navOrder'
 
 interface NavItem {
   to: string
@@ -83,17 +90,23 @@ const DEFAULT_LINKS: NavItem[] = [
 ]
 
 const DEFAULT_PATHS = DEFAULT_LINKS.map((l) => l.to)
+const LINK_MAP = new Map(DEFAULT_LINKS.map((l) => [l.to, l]))
 
 interface SidebarProps {
   open: boolean
   onClose: () => void
 }
 
+function pathsToItems(paths: string[]): NavItem[] {
+  return paths.map((to) => LINK_MAP.get(to)).filter((l): l is NavItem => Boolean(l))
+}
+
 export function Sidebar({ open, onClose }: SidebarProps) {
-  const [order, setOrder] = useState(() => loadNavOrder(DEFAULT_PATHS))
+  const [layout, setLayout] = useState<NavLayout>(() => loadNavLayout(DEFAULT_PATHS))
+  const [sorting, setSorting] = useState(false)
 
   useEffect(() => {
-    const sync = () => setOrder(loadNavOrder(DEFAULT_PATHS))
+    const sync = () => setLayout(loadNavLayout(DEFAULT_PATHS))
     window.addEventListener('mydsp-nav-order', sync)
     window.addEventListener('storage', sync)
     return () => {
@@ -102,16 +115,75 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     }
   }, [])
 
-  const links = useMemo(() => {
-    const map = new Map(DEFAULT_LINKS.map((l) => [l.to, l]))
-    return order.map((to) => map.get(to)).filter((l): l is NavItem => Boolean(l))
-  }, [order])
+  const favourites = useMemo(() => pathsToItems(layout.favourites), [layout.favourites])
+  const others = useMemo(() => pathsToItems(layout.others), [layout.others])
 
-  const onReorder = (next: NavItem[]) => {
-    const paths = next.map((l) => l.to)
-    if (!paths.includes('/settings')) paths.push('/settings')
-    setOrder(paths)
-    saveNavOrder(paths)
+  const persist = (next: NavLayout) => {
+    setLayout(next)
+    saveNavLayout(next)
+  }
+
+  const onReorderFavourites = (next: NavItem[]) => {
+    persist({ ...layout, favourites: next.map((l) => l.to) })
+  }
+
+  const onReorderOthers = (next: NavItem[]) => {
+    persist({ ...layout, others: next.map((l) => l.to) })
+  }
+
+  const addToFavourites = (to: string) => {
+    if (layout.favourites.includes(to)) return
+    persist({
+      ...layout,
+      favourites: [...layout.favourites, to],
+      others: layout.others.filter((p) => p !== to),
+    })
+  }
+
+  const removeFromFavourites = (to: string) => {
+    if (!layout.favourites.includes(to)) return
+    persist({
+      ...layout,
+      favourites: layout.favourites.filter((p) => p !== to),
+      others: [...layout.others.filter((p) => p !== to), to],
+    })
+  }
+
+  const othersOpen = sorting || !layout.othersCollapsed
+
+  const renderRow = (link: NavItem, zone: 'favourites' | 'others') => {
+    const Icon = link.icon
+    const isFav = zone === 'favourites'
+    return (
+      <div className={`nav-reorder-item ${sorting ? 'is-sorting' : ''}`}>
+        {sorting ? <ReorderHandle label={`Reorder ${link.label}`} /> : null}
+        <NavLink
+          to={link.to}
+          end={link.end}
+          onClick={onClose}
+          className={({ isActive }) => `nav-link nav-link-flex ${isActive ? 'active' : ''}`}
+        >
+          <Icon size={16} strokeWidth={1.5} />
+          {link.label}
+        </NavLink>
+        {sorting ? (
+          <button
+            type="button"
+            className={`nav-fav-toggle ${isFav ? 'is-fav' : ''}`}
+            aria-label={isFav ? `Remove ${link.label} from Favourites` : `Add ${link.label} to Favourites`}
+            title={isFav ? 'Remove from Favourites' : 'Add to Favourites'}
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              if (isFav) removeFromFavourites(link.to)
+              else addToFavourites(link.to)
+            }}
+          >
+            <Star size={15} strokeWidth={1.75} fill={isFav ? 'currentColor' : 'none'} />
+          </button>
+        ) : null}
+      </div>
+    )
   }
 
   return (
@@ -179,35 +251,116 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           </NavLink>
         </div>
 
-        <p className="px-5 pt-3 text-[10px] font-bold uppercase tracking-widest text-text-subtle">
-          Drag ⋮⋮ to reorder
-        </p>
-
-        <nav className="flex-1 py-2 overflow-y-auto" aria-label="Primary">
-          <ReorderList
-            items={links.filter((l) => l.to !== '/settings')}
-            getId={(l) => l.to}
-            onReorder={onReorder}
-            className="flex flex-col"
-          >
-            {(link) => {
-              const Icon = link.icon
-              return (
-                <div className="nav-reorder-item">
-                  <ReorderHandle label={`Reorder ${link.label}`} />
-                  <NavLink
-                    to={link.to}
-                    end={link.end}
-                    onClick={onClose}
-                    className={({ isActive }) => `nav-link nav-link-flex ${isActive ? 'active' : ''}`}
-                  >
-                    <Icon size={16} strokeWidth={1.5} />
-                    {link.label}
-                  </NavLink>
-                </div>
-              )
+        <div className="px-3 pt-3 pb-2 flex items-center justify-between gap-2">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-text-subtle px-2">
+            Menu
+          </p>
+          <button
+            type="button"
+            className={`nav-sort-toggle ${sorting ? 'is-active' : ''}`}
+            aria-pressed={sorting}
+            aria-label={sorting ? 'Done sorting menu' : 'Sort menu sections'}
+            title={sorting ? 'Done' : 'Sort / Favourites'}
+            onClick={() => {
+              setSorting((v) => {
+                const next = !v
+                if (next && layout.othersCollapsed) {
+                  persist({ ...layout, othersCollapsed: false })
+                }
+                return next
+              })
             }}
-          </ReorderList>
+          >
+            <ArrowUpDown size={14} strokeWidth={1.75} />
+            <span>{sorting ? 'Done' : 'Sort'}</span>
+          </button>
+        </div>
+
+        {sorting ? (
+          <p className="px-5 pb-2 text-[11px] text-text-muted leading-snug">
+            Drag ⋮⋮ to reorder. Tap ★ to move between Favourites and Others.
+          </p>
+        ) : null}
+
+        <nav className="flex-1 py-1 overflow-y-auto" aria-label="Primary">
+          <div className="px-3 pb-1">
+            <p className="nav-section-label">
+              <Star size={11} strokeWidth={2} className="text-accent" aria-hidden />
+              Favourites
+              <span className="tabular-nums text-text-subtle font-normal normal-case tracking-normal">
+                {favourites.length}
+              </span>
+            </p>
+          </div>
+
+          {favourites.length === 0 ? (
+            <p className="px-5 py-3 text-xs text-text-muted">
+              {sorting
+                ? 'Star items below to pin them here.'
+                : 'Tap Sort, then ★ to pin sections here.'}
+            </p>
+          ) : sorting ? (
+            <ReorderList
+              items={favourites}
+              getId={(l) => l.to}
+              onReorder={onReorderFavourites}
+              className="flex flex-col"
+            >
+              {(link) => renderRow(link, 'favourites')}
+            </ReorderList>
+          ) : (
+            <ul className="flex flex-col">
+              {favourites.map((link) => (
+                <li key={link.to}>{renderRow(link, 'favourites')}</li>
+              ))}
+            </ul>
+          )}
+
+          <div className="px-3 pt-3 pb-1">
+            <button
+              type="button"
+              className="nav-section-label nav-section-toggle w-full"
+              aria-expanded={othersOpen}
+              onClick={() => {
+                if (sorting) return
+                persist({ ...layout, othersCollapsed: !layout.othersCollapsed })
+              }}
+            >
+              <span className="inline-flex items-center gap-1.5 min-w-0">
+                Others
+                <span className="tabular-nums text-text-subtle font-normal normal-case tracking-normal">
+                  {others.length}
+                </span>
+              </span>
+              <ChevronDown
+                size={14}
+                strokeWidth={1.75}
+                className={`shrink-0 transition-transform ${othersOpen ? 'rotate-180' : ''}`}
+                aria-hidden
+              />
+            </button>
+          </div>
+
+          {othersOpen ? (
+            others.length === 0 ? (
+              <p className="px-5 py-3 text-xs text-text-muted">All sections are in Favourites.</p>
+            ) : sorting ? (
+              <ReorderList
+                items={others}
+                getId={(l) => l.to}
+                onReorder={onReorderOthers}
+                className="flex flex-col pb-2"
+              >
+                {(link) => renderRow(link, 'others')}
+              </ReorderList>
+            ) : (
+              <ul className="flex flex-col pb-2">
+                {others.map((link) => (
+                  <li key={link.to}>{renderRow(link, 'others')}</li>
+                ))}
+              </ul>
+            )
+          ) : null}
         </nav>
 
         <div className="px-5 py-4 border-t border-border">
@@ -224,7 +377,8 @@ export function MenuButton({ onClick }: { onClick: () => void }) {
       type="button"
       onClick={onClick}
       aria-label="Open menu"
-      className="toolbar-icon lg:hidden"
+      title="Menu"
+      className="toolbar-icon toolbar-menu-btn lg:hidden"
     >
       <Menu size={18} strokeWidth={1.5} />
     </button>

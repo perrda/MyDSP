@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
+  ArrowUpDown,
   ExternalLink,
   Pencil,
   Plus,
@@ -47,6 +48,7 @@ export function YouTubePage() {
   const [formTitle, setFormTitle] = useState('')
   const [formError, setFormError] = useState<string | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [sorting, setSorting] = useState(false)
   const inFlight = useRef(false)
 
   const reloadList = useCallback(() => {
@@ -92,6 +94,12 @@ export function YouTubePage() {
     window.addEventListener('mydsp-youtube-changed', onChanged)
     return () => window.removeEventListener('mydsp-youtube-changed', onChanged)
   }, [reloadList, refresh])
+
+  useEffect(() => {
+    const onGlobal = () => void refresh()
+    window.addEventListener('mydsp-global-refresh', onGlobal)
+    return () => window.removeEventListener('mydsp-global-refresh', onGlobal)
+  }, [refresh])
 
   const openCreate = () => {
     setEditing(null)
@@ -141,23 +149,24 @@ export function YouTubePage() {
       <PageHeader
         eyebrow="Media"
         title="YouTube"
-        description={`Favourite finance channels (up to ${MAX_YOUTUBE_CHANNELS}). Latest uploads appear below — no API key required. Drag ⋮⋮ to reorder.`}
+        description={`Favourite finance channels (up to ${MAX_YOUTUBE_CHANNELS}). Latest uploads appear below — no API key required. Use the header refresh to force an update.`}
         action={
           <button
             type="button"
-            className="btn-secondary inline-flex items-center gap-2"
-            disabled={refreshing || channels.length === 0}
-            onClick={() => void refresh()}
+            className={`btn-secondary inline-flex items-center gap-2 ${sorting ? 'border-accent text-accent' : ''}`}
+            aria-pressed={sorting}
+            onClick={() => setSorting((v) => !v)}
+            disabled={channels.length === 0}
           >
-            <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
-            Refresh
+            <ArrowUpDown size={14} strokeWidth={1.75} />
+            {sorting ? 'Done' : 'Sort'}
           </button>
         }
       />
 
       <p className="text-xs text-text-subtle mb-4">
         {channels.length}/{MAX_YOUTUBE_CHANNELS} channels
-        {lastAt ? ` · Last update ${formatDateTime(lastAt)}` : ''}
+        {refreshing ? ' · Updating…' : lastAt ? ` · Last update ${formatDateTime(lastAt)}` : ''}
         {error ? ` · ${error}` : ''}
       </p>
 
@@ -169,7 +178,7 @@ export function YouTubePage() {
               Favourite channels
             </p>
             <p className="label-uppercase text-[10px] text-text-subtle">
-              Full CRUD · drag to reorder
+              {sorting ? 'Drag ⋮⋮ to reorder' : 'Full CRUD'}
             </p>
           </div>
           <button
@@ -199,7 +208,7 @@ export function YouTubePage() {
           >
             {(c) => (
               <div className="px-4 sm:px-5 py-3 flex items-center gap-3">
-                <ReorderHandle label={`Reorder ${c.title}`} />
+                {sorting ? <ReorderHandle label={`Reorder ${c.title}`} /> : null}
                 {c.thumbnailUrl ? (
                   <img
                     src={c.thumbnailUrl}

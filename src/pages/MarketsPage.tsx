@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
+  ArrowUpDown,
   ChevronDown,
   ChevronUp,
   Moon,
   Pencil,
   Plus,
-  RefreshCw,
   Sun,
   Trash2,
 } from 'lucide-react'
@@ -36,7 +36,7 @@ import {
   setMarketsLastRefresh,
   updateMarketTicker,
 } from '../storage/marketsStore'
-import { formatDateTime, formatGBP, formatGBPMarket, formatGBPPrecise, formatPct, privacyClass } from '../utils/format'
+import { formatGBP, formatGBPMarket, formatGBPPrecise, formatPct, privacyClass } from '../utils/format'
 
 type FormState = {
   kind: MarketAssetKind
@@ -175,13 +175,13 @@ export function MarketsPage() {
   const [quotes, setQuotes] = useState<Map<string, MarketQuote>>(() => new Map())
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [lastAt, setLastAt] = useState(() => loadMarketsState().lastRefreshAt)
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<MarketTicker | null>(null)
   const [form, setForm] = useState<FormState>(emptyForm)
   const [formError, setFormError] = useState<string | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [addKind, setAddKind] = useState<MarketAssetKind | null>(null)
+  const [sorting, setSorting] = useState(false)
   const refreshInFlight = useRef(false)
 
   const bySection = useMemo(
@@ -240,7 +240,6 @@ export function MarketsPage() {
       setQuotes(next)
       const at = new Date().toISOString()
       setMarketsLastRefresh(at)
-      setLastAt(at)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Price refresh failed')
     } finally {
@@ -258,6 +257,12 @@ export function MarketsPage() {
     window.addEventListener('mydsp-markets-changed', onChanged)
     return () => window.removeEventListener('mydsp-markets-changed', onChanged)
   }, [reloadList])
+
+  useEffect(() => {
+    const onGlobal = () => void refresh()
+    window.addEventListener('mydsp-global-refresh', onGlobal)
+    return () => window.removeEventListener('mydsp-global-refresh', onGlobal)
+  }, [refresh])
 
   useEffect(() => {
     const id = window.setInterval(() => {
@@ -406,7 +411,7 @@ export function MarketsPage() {
                   const showSpark = Boolean(q && q.sparkline.length > 1)
                   return (
                     <div className="px-4 sm:px-5 py-3.5 flex items-center gap-2 sm:gap-4">
-                      <ReorderHandle label={`Reorder ${t.symbol}`} />
+                      {sorting ? <ReorderHandle label={`Reorder ${t.symbol}`} /> : null}
                       <div className="min-w-0 flex-1">
                         <p className="font-semibold text-text tracking-tight">{t.symbol}</p>
                         <p className="text-xs text-text-muted truncate">{t.name}</p>
@@ -501,7 +506,9 @@ export function MarketsPage() {
                   View details →
                 </Link>
               ) : (
-                <span className="text-xs text-text-subtle">Drag ⋮⋮ to reorder · 7-day sparkline</span>
+                <span className="text-xs text-text-subtle">
+                  {sorting ? 'Drag ⋮⋮ to reorder · 7-day sparkline' : '7-day sparkline'}
+                </span>
               )}
             </div>
           </>
@@ -527,23 +534,24 @@ export function MarketsPage() {
       <PageHeader
         eyebrow="Watchlist"
         title="Markets"
-        description="Live equities, crypto, indices (S&P 500, Nasdaq, FTSE), FX, and crypto crosses. Day change, % and 7-day sparklines — refresh about every minute. Drag ⋮⋮ to reorder within each section."
+        description="Live equities, crypto, indices (S&P 500, Nasdaq, FTSE), FX, and crypto crosses. Quotes refresh about every minute — use the header refresh to force an update."
         action={
           <button
             type="button"
-            className="btn-secondary inline-flex items-center gap-2"
-            disabled={refreshing}
-            onClick={() => void refresh()}
+            className={`btn-secondary inline-flex items-center gap-2 ${sorting ? 'border-accent text-accent' : ''}`}
+            aria-pressed={sorting}
+            onClick={() => setSorting((v) => !v)}
           >
-            <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
-            Refresh
+            <ArrowUpDown size={14} strokeWidth={1.75} />
+            {sorting ? 'Done' : 'Sort'}
           </button>
         }
       />
 
       <p className="text-xs text-text-subtle mb-4">
-        {lastAt ? `Last update ${formatDateTime(lastAt)}` : 'Prices not loaded yet'}
-        {error ? ` · ${error}` : ''}
+        {refreshing ? 'Updating quotes…' : null}
+        {error ? `${refreshing ? ' · ' : ''}${error}` : null}
+        {!refreshing && !error ? (sorting ? 'Drag ⋮⋮ to reorder tickers within each section.' : null) : null}
       </p>
 
       {renderSection('crypto')}
