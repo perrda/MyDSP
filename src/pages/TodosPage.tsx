@@ -39,7 +39,7 @@ import {
   sortTodoItems,
 } from '../domain/todos'
 import { moveTodoItemsToList } from '../domain/todoOcr'
-import { privacyClass } from '../utils/format'
+import { privacyClass, formatDate } from '../utils/format'
 
 const PRIORITY_COLORS = {
   high: 'border-l-red-500 bg-red-950/10',
@@ -53,11 +53,33 @@ const PRIORITY_TEXT_COLORS = {
   low: 'text-blue-500',
 }
 
+const PRIORITY_CHIP_LABEL: Record<TodoItem['priority'], string> = {
+  high: 'High',
+  medium: 'Med',
+  low: 'Low',
+}
+
 const STATUS_LABELS = {
   todo: 'To Do',
   'in-progress': 'In Progress',
   done: 'Done',
   archived: 'Archived',
+}
+
+/** Format YYYY-MM-DD due dates in local time without UTC day-shift. */
+function formatTodoDue(dueDate: string, dueTime?: string): string {
+  let dateLabel = dueDate
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) {
+    const [y, m, d] = dueDate.split('-').map(Number)
+    dateLabel = new Intl.DateTimeFormat('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    }).format(new Date(y, m - 1, d))
+  } else {
+    dateLabel = formatDate(dueDate)
+  }
+  return dueTime ? `${dateLabel} · ${dueTime}` : dateLabel
 }
 
 export function TodosPage() {
@@ -510,10 +532,16 @@ export function TodosPage() {
         description={
           lists.length === 0
             ? 'Organize and track your tasks across multiple lists'
-            : `${stats.total} tasks · ${stats.highPriority} high priority · ${stats.overdue} overdue`
+            : `${stats.total} tasks · ${stats.highPriority} high · ${stats.overdue} overdue`
         }
         action={
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 justify-end">
+            <button type="button" onClick={handleCreateItem} className="btn-primary btn-sm" disabled={lists.length === 0}>
+              <Plus size={16} /> New Task
+            </button>
+            <button type="button" onClick={openCreateList} className="btn-secondary btn-sm">
+              <Plus size={16} /> New List
+            </button>
             <button
               type="button"
               onClick={() => {
@@ -524,16 +552,10 @@ export function TodosPage() {
                 }
                 setShowScreenshotImport(true)
               }}
-              className="btn-secondary btn-sm"
+              className="btn-secondary btn-sm hidden sm:inline-flex"
               disabled={lists.length === 0}
             >
               <ImagePlus size={16} /> From Screenshot
-            </button>
-            <button type="button" onClick={handleCreateItem} className="btn-primary btn-sm" disabled={lists.length === 0}>
-              <Plus size={16} /> New Task
-            </button>
-            <button type="button" onClick={openCreateList} className="btn-secondary btn-sm">
-              <Plus size={16} /> New List
             </button>
           </div>
         }
@@ -551,33 +573,33 @@ export function TodosPage() {
         />
       ) : (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
-            <div className="surface p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none">
-              <p className="text-xs uppercase tracking-wider text-text-subtle mb-1 font-semibold">To Do</p>
-              <p className="text-2xl font-bold tabular-nums">{stats.todo}</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-3 mb-5 sm:mb-6">
+            <div className="surface p-3 sm:p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none">
+              <p className="text-[11px] sm:text-xs uppercase tracking-wider text-text-subtle mb-1 font-semibold">To Do</p>
+              <p className="text-xl sm:text-2xl font-bold tabular-nums">{stats.todo}</p>
             </div>
-            <div className="surface p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none">
-              <p className="text-xs uppercase tracking-wider text-text-subtle mb-1 font-semibold">In Progress</p>
-              <p className="text-2xl font-bold tabular-nums text-amber-500">{stats.inProgress}</p>
+            <div className="surface p-3 sm:p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none">
+              <p className="text-[11px] sm:text-xs uppercase tracking-wider text-text-subtle mb-1 font-semibold">In Progress</p>
+              <p className="text-xl sm:text-2xl font-bold tabular-nums text-amber-500">{stats.inProgress}</p>
             </div>
-            <div className="surface p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none">
-              <p className="text-xs uppercase tracking-wider text-text-subtle mb-1 font-semibold">Done</p>
-              <p className="text-2xl font-bold tabular-nums text-green-500">{stats.done}</p>
+            <div className="surface p-3 sm:p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none">
+              <p className="text-[11px] sm:text-xs uppercase tracking-wider text-text-subtle mb-1 font-semibold">Done</p>
+              <p className="text-xl sm:text-2xl font-bold tabular-nums text-green-500">{stats.done}</p>
             </div>
-            <div className="surface p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none">
-              <p className="text-xs uppercase tracking-wider text-text-subtle mb-1 font-semibold">High Priority</p>
-              <p className="text-2xl font-bold tabular-nums text-red-500">{stats.highPriority}</p>
+            <div className="surface p-3 sm:p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none">
+              <p className="text-[11px] sm:text-xs uppercase tracking-wider text-text-subtle mb-1 font-semibold">High Priority</p>
+              <p className="text-xl sm:text-2xl font-bold tabular-nums text-red-500">{stats.highPriority}</p>
             </div>
-            <div className="surface p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none">
-              <p className="text-xs uppercase tracking-wider text-text-subtle mb-1 font-semibold">Overdue</p>
-              <p className="text-2xl font-bold tabular-nums text-red-500">{stats.overdue}</p>
+            <div className="surface p-3 sm:p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none col-span-2 sm:col-span-1">
+              <p className="text-[11px] sm:text-xs uppercase tracking-wider text-text-subtle mb-1 font-semibold">Overdue</p>
+              <p className="text-xl sm:text-2xl font-bold tabular-nums text-red-500">{stats.overdue}</p>
             </div>
           </div>
 
           <div className="mb-4">
             <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-              <p className="text-xs text-text-subtle">Drag lists to reorder · icons show on each tab</p>
-              <button type="button" className="btn-ghost btn-sm text-xs" onClick={() => void enableDesktopReminders()}>
+              <p className="text-xs text-text-subtle">Swipe lists · drag grips to reorder</p>
+              <button type="button" className="btn-ghost btn-sm text-xs hidden sm:inline-flex" onClick={() => void enableDesktopReminders()}>
                 Enable desktop reminders
               </button>
             </div>
@@ -585,13 +607,13 @@ export function TodosPage() {
               <button
                 type="button"
                 onClick={() => setSelectedListId(null)}
-                className={`px-3 py-2 text-xs font-semibold uppercase tracking-wider whitespace-nowrap rounded border ${
+                className={`min-h-11 px-3.5 py-2 text-xs font-semibold uppercase tracking-wider whitespace-nowrap rounded-lg border ${
                   selectedListId === null
                     ? 'bg-accent text-white border-accent'
                     : 'bg-surface border-border hover:border-accent'
                 }`}
               >
-                All Lists ({allItems.length})
+                All ({allItems.length})
               </button>
             </div>
             <ReorderList
@@ -610,7 +632,7 @@ export function TodosPage() {
                     <button
                       type="button"
                       onClick={() => setSelectedListId(list.id)}
-                      className={`px-3 py-2 text-xs font-semibold uppercase tracking-wider whitespace-nowrap rounded border ${
+                      className={`min-h-11 px-3.5 py-2 text-xs font-semibold uppercase tracking-wider whitespace-nowrap rounded-lg border ${
                         active
                           ? 'bg-accent text-white border-accent'
                           : 'bg-surface border-border hover:border-accent'
@@ -623,14 +645,15 @@ export function TodosPage() {
                         className="inline-block w-2 h-2 rounded-full mr-2 align-middle"
                         style={{ backgroundColor: list.color || '#F7931A' }}
                       />
-                      {list.name} ({count})
+                      {list.name}
+                      <span className="ml-1.5 tabular-nums opacity-80">({count})</span>
                     </button>
                     {active && (
                       <>
                         <button
                           type="button"
                           onClick={() => openEditList(list)}
-                          className="btn-ghost btn-sm p-2"
+                          className="btn-ghost btn-sm p-2 min-h-11 min-w-11"
                           title="Edit list"
                           aria-label="Edit list"
                         >
@@ -639,7 +662,7 @@ export function TodosPage() {
                         <button
                           type="button"
                           onClick={() => handleDeleteList(list)}
-                          className="btn-ghost btn-sm p-2 text-red-500"
+                          className="btn-ghost btn-sm p-2 min-h-11 min-w-11 text-red-500"
                           title="Delete list"
                           aria-label="Delete list"
                         >
@@ -659,15 +682,15 @@ export function TodosPage() {
 
           {/* Compact controls — stays above the task cards (mobile-first) */}
           <div className="surface p-3 sm:p-4 mb-4 rounded-xl md:rounded-none shadow-sm md:shadow-none space-y-3">
-            <div className="flex flex-wrap items-end gap-2">
-              <div className="flex-1 min-w-[10rem]">
-                <label className="block text-[10px] uppercase tracking-wider text-text-subtle mb-1 font-semibold">
+            <div className="flex flex-wrap items-end gap-2 sm:gap-3">
+              <div className="flex-1 min-w-[9.5rem]">
+                <label className="block text-xs md:text-[10px] uppercase tracking-wider text-text-subtle mb-1.5 font-semibold">
                   Sort
                 </label>
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as TodoSortBy)}
-                  className="w-full px-3 py-2 bg-surface-hover border border-border rounded text-sm"
+                  className="w-full px-3 py-2.5 bg-surface-hover border border-border rounded text-sm"
                 >
                   <option value="order-asc">Number (#1 → n)</option>
                   <option value="order-desc">Number (#n → 1)</option>
@@ -681,14 +704,14 @@ export function TodosPage() {
                   <option value="title-desc">Title (Z-A)</option>
                 </select>
               </div>
-              <div className="flex-1 min-w-[10rem]">
-                <label className="block text-[10px] uppercase tracking-wider text-text-subtle mb-1 font-semibold">
+              <div className="flex-1 min-w-[9.5rem]">
+                <label className="block text-xs md:text-[10px] uppercase tracking-wider text-text-subtle mb-1.5 font-semibold">
                   Filter
                 </label>
                 <select
                   value={filterBy}
                   onChange={(e) => setFilterBy(e.target.value as TodoFilterBy)}
-                  className="w-full px-3 py-2 bg-surface-hover border border-border rounded text-sm"
+                  className="w-full px-3 py-2.5 bg-surface-hover border border-border rounded text-sm"
                 >
                   <option value="all">All Tasks</option>
                   <option value="high-priority">High Priority</option>
@@ -704,40 +727,40 @@ export function TodosPage() {
                 </select>
               </div>
               <div className="w-full sm:w-auto sm:flex-1 min-w-[12rem]">
-                <label className="block text-[10px] uppercase tracking-wider text-text-subtle mb-1 font-semibold">
+                <label className="block text-xs md:text-[10px] uppercase tracking-wider text-text-subtle mb-1.5 font-semibold">
                   Search
                 </label>
                 <input
-                  type="text"
+                  type="search"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search todos..."
-                  className="w-full px-3 py-2 bg-surface-hover border border-border rounded text-sm"
+                  placeholder="Search tasks…"
+                  className="w-full px-3 py-2.5 bg-surface-hover border border-border rounded text-sm"
                 />
               </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[10px] uppercase tracking-wider text-text-subtle font-semibold">
+              <span className="text-xs md:text-[10px] uppercase tracking-wider text-text-subtle font-semibold w-full sm:w-auto">
                 Priority
               </span>
               {(
                 [
                   {
                     key: 'high' as const,
-                    label: 'H',
+                    label: 'High',
                     title: 'High',
                     active: 'bg-red-500/25 text-red-400 ring-red-500/50',
                   },
                   {
                     key: 'medium' as const,
-                    label: 'M',
+                    label: 'Med',
                     title: 'Medium',
                     active: 'bg-amber-500/25 text-amber-400 ring-amber-500/50',
                   },
                   {
                     key: 'low' as const,
-                    label: 'L',
+                    label: 'Low',
                     title: 'Low',
                     active: 'bg-blue-500/25 text-blue-400 ring-blue-500/50',
                   },
@@ -749,15 +772,17 @@ export function TodosPage() {
                     key={chip.key}
                     type="button"
                     onClick={() => togglePriorityChip(chip.key)}
-                    className={`h-9 min-w-[2.5rem] px-3 rounded border text-sm font-bold ${
+                    className={`min-h-11 sm:min-h-9 min-w-[3.25rem] px-3.5 rounded border text-sm font-bold ${
                       on
                         ? `${chip.active} ring-1 border-transparent`
                         : 'border-border bg-surface-hover text-text-muted hover:border-accent'
                     }`}
                     aria-pressed={on}
                     title={`${chip.title} priority`}
+                    aria-label={`${chip.title} priority`}
                   >
-                    {chip.label}
+                    <span className="sm:hidden">{chip.label}</span>
+                    <span className="hidden sm:inline">{chip.label}</span>
                   </button>
                 )
               })}
@@ -770,28 +795,29 @@ export function TodosPage() {
                   Clear
                 </button>
               )}
-              <label className="flex items-center gap-2 text-sm px-3 py-2 bg-surface-hover border border-border rounded ml-auto">
+              <label className="flex items-center gap-2 text-sm min-h-11 sm:min-h-9 px-3 py-2 bg-surface-hover border border-border rounded sm:ml-auto w-full sm:w-auto">
                 <input
                   type="checkbox"
                   checked={showCompleted}
                   onChange={(e) => setShowCompleted(e.target.checked)}
+                  className="w-4 h-4"
                 />
-                Show Completed
+                Show completed
               </label>
             </div>
 
             <div className="flex flex-wrap gap-2 items-center">
               {selectedListId != null ? (
-                <p className="text-xs text-text-subtle flex-1">
-                  Drag the grip on each task to reorder · #1 is top
+                <p className="text-xs text-text-subtle flex-1 min-w-[12rem]">
+                  Drag the grip to reorder · #1 is top
                 </p>
               ) : (
-                <p className="text-xs text-amber-500/90 flex-1">
-                  Select a list tab above to drag-reorder tasks
+                <p className="text-xs text-amber-500/90 flex-1 min-w-[12rem]">
+                  Select a list tab to drag-reorder tasks
                 </p>
               )}
               <button type="button" onClick={handleImportCsv} className="btn-secondary btn-sm">
-                <Upload size={14} /> Import CSV
+                <Upload size={14} /> Import
               </button>
               <button
                 type="button"
@@ -940,106 +966,206 @@ function TodoItemCard({
   onDuplicate: (item: TodoItem) => void
   onDelete: (id: number) => void
 }) {
+  const overdue = isOverdue(item)
+  const dueLabel = item.dueDate ? formatTodoDue(item.dueDate, item.dueTime) : null
+
   return (
-    <div
-      className={`surface p-4 border-l-4 rounded-r-xl md:rounded-none shadow-sm md:shadow-none ${PRIORITY_COLORS[item.priority]} ${
+    <article
+      className={`surface p-3 sm:p-4 border-l-4 rounded-xl md:rounded-none shadow-sm md:shadow-none ${PRIORITY_COLORS[item.priority]} ${
         selected ? 'ring-2 ring-accent' : ''
       }`}
     >
-      <div className="flex items-start gap-3">
-        {showReorderHandle && <ReorderHandle label="Reorder task" />}
-        <span
-          className="mt-0.5 w-8 shrink-0 text-center text-sm font-bold tabular-nums text-accent"
-          title="List position (#1 is top)"
-        >
-          {orderNumber != null ? orderNumber : '—'}
-        </span>
-        <input
-          type="checkbox"
-          checked={selected}
-          onChange={() => onToggleSelect(item.id)}
-          className="mt-1 w-4 h-4 flex-shrink-0"
-          aria-label={`Select ${item.title}`}
-        />
-        <button
-          type="button"
-          onClick={() => onToggleComplete(item)}
-          className="mt-0.5 text-text-subtle hover:text-accent flex-shrink-0"
-          title={item.status === 'done' ? 'Mark incomplete' : 'Mark complete'}
-          aria-label={item.status === 'done' ? 'Mark incomplete' : 'Mark complete'}
-        >
-          {item.status === 'done' ? (
-            <CheckCircle2 size={18} className="text-green-500" />
-          ) : (
-            <Circle size={18} />
-          )}
-        </button>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap mb-1">
-            <h3 className={`font-semibold ${item.status === 'done' ? 'line-through text-text-muted' : ''}`}>
+      <div
+        className={`grid gap-x-2.5 sm:gap-x-3 gap-y-2 ${
+          showReorderHandle
+            ? 'grid-cols-[2rem_2.75rem_minmax(0,1fr)]'
+            : 'grid-cols-[2.75rem_minmax(0,1fr)]'
+        }`}
+      >
+        {showReorderHandle ? (
+          <div className="row-span-2 flex justify-center pt-1">
+            <ReorderHandle label="Reorder task" />
+          </div>
+        ) : null}
+
+        <div className="row-span-2 flex justify-center pt-0.5">
+          <button
+            type="button"
+            onClick={() => onToggleComplete(item)}
+            className="flex h-11 w-11 sm:h-10 sm:w-10 items-center justify-center rounded-full text-text-subtle hover:text-accent hover:bg-surface-hover"
+            title={item.status === 'done' ? 'Mark incomplete' : 'Mark complete'}
+            aria-label={item.status === 'done' ? 'Mark incomplete' : 'Mark complete'}
+          >
+            {item.status === 'done' ? (
+              <CheckCircle2 size={22} className="text-green-500" />
+            ) : (
+              <Circle size={22} />
+            )}
+          </button>
+        </div>
+
+        <div className="min-w-0 flex items-start gap-2">
+          <button type="button" onClick={() => onEdit(item)} className="flex-1 min-w-0 text-left">
+            <h3
+              className={`text-[15px] sm:text-base font-semibold leading-snug break-words ${
+                item.status === 'done' ? 'line-through text-text-muted' : 'text-text'
+              }`}
+            >
               {item.title}
             </h3>
-            {listName && <span className="text-xs text-text-subtle">{listName}</span>}
-            {item.linkedJobId != null && (
-              <Link
-                to={`/jobs/${item.linkedJobId}`}
-                className="text-xs px-2 py-0.5 bg-accent/10 text-accent rounded"
-              >
-                Job linked
-              </Link>
-            )}
-            <span className={`text-xs font-bold uppercase ${PRIORITY_TEXT_COLORS[item.priority]}`}>
-              {item.priority}
-            </span>
-            {item.isFinanceRelated && (
-              <span className="text-xs px-2 py-0.5 bg-accent/10 text-accent rounded">Finance</span>
-            )}
-            {isOverdue(item) && (
-              <span className="text-xs px-2 py-0.5 bg-red-500/10 text-red-500 rounded inline-flex items-center gap-1">
-                <AlertCircle size={12} /> Overdue
-              </span>
-            )}
-          </div>
-          {item.description && <p className="text-sm text-text-muted mb-2">{item.description}</p>}
-          <div className="flex items-center gap-3 text-xs text-text-subtle flex-wrap">
-            {item.dueDate && (
-              <span className="inline-flex items-center gap-1">
-                <Clock size={12} /> Due: {item.dueDate}
-                {item.dueTime ? ` at ${item.dueTime}` : ''}
-              </span>
-            )}
-            <span className="uppercase">{STATUS_LABELS[item.status]}</span>
-            {item.estimatedMinutes ? <span>Est: {item.estimatedMinutes}m</span> : null}
-            {(item.tags ?? []).length > 0 && <span>Tags: {item.tags.join(', ')}</span>}
+            {item.description ? (
+              <p className="mt-1 text-sm text-text-muted leading-relaxed line-clamp-2 break-words">
+                {item.description}
+              </p>
+            ) : null}
+          </button>
+
+          <div className="hidden sm:flex gap-1 shrink-0">
+            <button
+              type="button"
+              onClick={() => onEdit(item)}
+              className="btn-ghost btn-sm p-2 min-h-9 min-w-9"
+              title="Edit"
+              aria-label="Edit task"
+            >
+              <Edit2 size={14} />
+            </button>
+            <button
+              type="button"
+              onClick={() => onDuplicate(item)}
+              className="btn-ghost btn-sm p-2 min-h-9 min-w-9"
+              title="Duplicate"
+              aria-label="Duplicate task"
+            >
+              <Copy size={14} />
+            </button>
+            <button
+              type="button"
+              onClick={() => onDelete(item.id)}
+              className="btn-ghost btn-sm p-2 min-h-9 min-w-9 text-red-500 hover:text-red-400"
+              title="Delete"
+              aria-label="Delete task"
+            >
+              <Trash2 size={14} />
+            </button>
           </div>
         </div>
-        <div className="flex gap-1 flex-shrink-0">
+
+        <div className="min-w-0 flex flex-wrap items-center gap-x-2 gap-y-1.5 content-start">
+          {orderNumber != null ? (
+            <span
+              className="text-xs font-bold tabular-nums text-accent"
+              title="List position (#1 is top)"
+            >
+              #{orderNumber}
+            </span>
+          ) : null}
+          <span
+            className={`text-[11px] sm:text-xs font-bold uppercase tracking-wide ${PRIORITY_TEXT_COLORS[item.priority]}`}
+          >
+            {PRIORITY_CHIP_LABEL[item.priority]}
+          </span>
+          <span className="text-[11px] sm:text-xs text-text-subtle">
+            {STATUS_LABELS[item.status]}
+          </span>
+          {listName ? (
+            <span className="text-[11px] sm:text-xs text-text-subtle truncate max-w-[10rem]">
+              {listName}
+            </span>
+          ) : null}
+          {dueLabel ? (
+            <span
+              className={`inline-flex items-center gap-1 text-[11px] sm:text-xs ${
+                overdue ? 'text-red-500 font-medium' : 'text-text-subtle'
+              }`}
+            >
+              <Clock size={12} aria-hidden />
+              {dueLabel}
+            </span>
+          ) : null}
+          {overdue ? (
+            <span className="inline-flex items-center gap-1 text-[11px] sm:text-xs px-1.5 py-0.5 bg-red-500/10 text-red-500 rounded font-medium">
+              <AlertCircle size={12} aria-hidden /> Overdue
+            </span>
+          ) : null}
+          {item.isFinanceRelated ? (
+            <span className="text-[11px] sm:text-xs px-1.5 py-0.5 bg-accent/10 text-accent rounded">
+              Finance
+            </span>
+          ) : null}
+          {item.linkedJobId != null ? (
+            <Link
+              to={`/jobs/${item.linkedJobId}`}
+              className="text-[11px] sm:text-xs px-1.5 py-0.5 bg-accent/10 text-accent rounded"
+            >
+              Job
+            </Link>
+          ) : null}
+          {item.estimatedMinutes ? (
+            <span className="text-[11px] sm:text-xs text-text-subtle">{item.estimatedMinutes}m</span>
+          ) : null}
+          {(item.tags ?? []).length > 0 ? (
+            <span className="text-[11px] sm:text-xs text-text-subtle truncate max-w-full">
+              {(item.tags ?? []).slice(0, 3).join(' · ')}
+              {(item.tags ?? []).length > 3 ? '…' : ''}
+            </span>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="sm:hidden mt-3 flex items-center justify-between gap-2 border-t border-border/70 pt-2.5">
+        <label className="inline-flex items-center gap-2 text-xs text-text-muted min-h-10">
+          <input
+            type="checkbox"
+            checked={selected}
+            onChange={() => onToggleSelect(item.id)}
+            className="w-4 h-4"
+            aria-label={`Select ${item.title}`}
+          />
+          Select
+        </label>
+        <div className="flex items-center gap-1">
           <button
             type="button"
             onClick={() => onEdit(item)}
-            className="btn-ghost btn-sm text-xs p-2"
-            title="Edit"
+            className="btn-ghost btn-sm text-xs px-3 min-h-10"
+            aria-label="Edit task"
           >
-            <Edit2 size={14} />
+            <Edit2 size={15} /> Edit
           </button>
           <button
             type="button"
             onClick={() => onDuplicate(item)}
-            className="btn-ghost btn-sm text-xs p-2"
+            className="btn-ghost btn-sm p-2 min-h-10 min-w-10"
             title="Duplicate"
+            aria-label="Duplicate task"
           >
-            <Copy size={14} />
+            <Copy size={15} />
           </button>
           <button
             type="button"
             onClick={() => onDelete(item.id)}
-            className="btn-ghost btn-sm text-xs text-red-500 hover:text-red-400 p-2"
+            className="btn-ghost btn-sm p-2 min-h-10 min-w-10 text-red-500"
             title="Delete"
+            aria-label="Delete task"
           >
-            <Trash2 size={14} />
+            <Trash2 size={15} />
           </button>
         </div>
       </div>
-    </div>
+
+      <div className="hidden sm:flex mt-2.5 items-center gap-2">
+        <label className="inline-flex items-center gap-2 text-xs text-text-subtle">
+          <input
+            type="checkbox"
+            checked={selected}
+            onChange={() => onToggleSelect(item.id)}
+            className="w-3.5 h-3.5"
+            aria-label={`Select ${item.title}`}
+          />
+          Select for bulk actions
+        </label>
+      </div>
+    </article>
   )
 }
