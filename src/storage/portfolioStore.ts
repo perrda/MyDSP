@@ -13,6 +13,9 @@ export const FAMILY_PORTFOLIO_NAMES = [
   'James King',
 ] as const
 
+/** User-facing message when create/rename would collide. */
+export const PORTFOLIO_NAME_EXISTS_MSG = 'This portfolio name already exists.'
+
 const DEFAULT_META: PortfolioMeta = {
   id: 'default',
   name: DAVID_PORTFOLIO_NAME,
@@ -59,9 +62,18 @@ function writeJson(key: string, value: unknown): void {
 }
 
 export function listPortfolios(): PortfolioMeta[] {
+  let list = readRawPortfolioList()
+  if (list.length === 0) return [{ ...DEFAULT_META }]
+  if (hasDuplicatePortfolioNames(list) || list.length > MAX_PORTFOLIOS) {
+    dedupePortfoliosByName()
+    list = readRawPortfolioList()
+  }
+  return list.length > 0 ? list : [{ ...DEFAULT_META }]
+}
+
+function readRawPortfolioList(): PortfolioMeta[] {
   const list = readJson<PortfolioMeta[]>(STORAGE.PORTFOLIOS)
-  if (list && list.length > 0) return list
-  return [{ ...DEFAULT_META }]
+  return Array.isArray(list) ? list : []
 }
 
 export function normalizePortfolioName(name: string): string {
@@ -72,11 +84,21 @@ export function portfolioNameKey(name: string): string {
   return normalizePortfolioName(name).toLowerCase()
 }
 
+export function hasDuplicatePortfolioNames(list: PortfolioMeta[] = readRawPortfolioList()): boolean {
+  const seen = new Set<string>()
+  for (const p of list) {
+    const key = portfolioNameKey(p.name) || p.id
+    if (seen.has(key)) return true
+    seen.add(key)
+  }
+  return false
+}
+
 /** True if another portfolio already uses this name (case-insensitive). */
 export function isPortfolioNameTaken(name: string, exceptId?: string): boolean {
   const key = portfolioNameKey(name)
   if (!key) return false
-  return listPortfolios().some((p) => p.id !== exceptId && portfolioNameKey(p.name) === key)
+  return readRawPortfolioList().some((p) => p.id !== exceptId && portfolioNameKey(p.name) === key)
 }
 
 function portfolioDataWeight(portfolioId: string): number {
@@ -92,10 +114,15 @@ function portfolioDataWeight(portfolioId: string): number {
 /**
  * Collapse duplicate display names (case-insensitive). Keeps one entry per name:
  * prefer `default`, then the heaviest data blob, then earliest createdAt.
- * Removes orphaned storage keys for discarded ids.
+ * Caps at MAX_PORTFOLIOS. Removes orphaned storage keys for discarded ids.
  */
 export function dedupePortfoliosByName(): { removed: string[]; kept: number } {
-  const list = listPortfolios()
+  const list = readRawPortfolioList()
+  if (list.length === 0) {
+    writeJson(STORAGE.PORTFOLIOS, [{ ...DEFAULT_META }])
+    return { removed: [], kept: 1 }
+  }
+
   const byName = new Map<string, PortfolioMeta[]>()
   for (const p of list) {
     const key = portfolioNameKey(p.name) || p.id
@@ -117,15 +144,11 @@ export function dedupePortfoliosByName(): { removed: string[]; kept: number } {
       if (b.id === 'default') return 1
       const dw = portfolioDataWeight(b.id) - portfolioDataWeight(a.id)
       if (dw !== 0) return dw
-      return String(a.createdAt).localeCompare(String(b.createdAt))
+      return String(a.createdAt ?? '').localeCompare(String(b.createdAt ?? ''))
     })
     kept.push(ranked[0])
     for (const dup of ranked.slice(1)) {
       removed.push(dup.id)
-      if (dup.id !== 'default') {
-        flushSave(dup.id)
-        localStorage.removeItem(STORAGE.dataKey(dup.id))
-      }
     }
   }
 
@@ -137,11 +160,60 @@ export function dedupePortfoliosByName(): { removed: string[]; kept: number } {
     return order.indexOf(a.id) - order.indexOf(b.id)
   })
 
-  if (removed.length > 0) {
+  // Hard cap — prefer David + canonical family names, then earliest others
+  const familyKeys = new Set(
+    [DAVID_PORTFOLIO_NAME, ...FAMILY_PORTFOLIO_NAMES].map((n) => portfolioNameKey(n)),
+  )
+  while (kept.length > MAX_PORTFOLIOS) {
+    const idx = [...kept]
+      .map((p, i) => ({ p, i }))
+      .reverse()
+      .find(({ p }) => p.id !== 'default' && !familyKeys.has(portfolioNameKey(p.name)))
+      ?.i
+    const dropAt =
+      idx ??
+      [...kept]
+        .map((p, i) => ({ p, i }))
+        .reverse()
+        .find(({ p }) => p.id !== 'default')?.i
+    if (dropAt == null) break
+    removed.push(kept[dropAt].id)
+    kept.splice(dropAt, 1)
+  }
+
+  const changed =
+    removed.length > 0 ||
+    kept.length !== list.length ||
+    kept.some((p, i) => p.id !== list[i]?.id)
+
+  if (changed) {
+    // Write clean registry first so UI heals even if blob cleanup fails
     writeJson(STORAGE.PORTFOLIOS, kept)
     const active = getActivePortfolioId()
     if (!kept.some((p) => p.id === active)) {
       setActivePortfolioId('default')
+    }
+    for (const id of removed) {
+      if (id === 'default') continue
+      try {
+        flushSave(id)
+      } catch {
+        /* ignore */
+      }
+      try {
+        localStorage.removeItem(STORAGE.dataKey(id))
+      } catch {
+        /* ignore */
+      }
+    }
+    try {
+      window.dispatchEvent(
+        new CustomEvent('mydsp-portfolios-deduped', {
+          detail: { removed: removed.length, kept: kept.length },
+        }),
+      )
+    } catch {
+      /* ignore */
     }
   }
 
@@ -150,7 +222,7 @@ export function dedupePortfoliosByName(): { removed: string[]; kept: number } {
 
 /** Resolve a remote registry entry onto a local id when names match. */
 export function resolveLocalPortfolioId(meta: Pick<PortfolioMeta, 'id' | 'name'>): string | null {
-  const list = listPortfolios()
+  const list = readRawPortfolioList()
   if (list.some((p) => p.id === meta.id)) return meta.id
   const key = portfolioNameKey(meta.name)
   if (!key) return null
@@ -255,7 +327,7 @@ export function createPortfolio(
     throw new Error('Portfolio name is required.')
   }
   if (isPortfolioNameTaken(trimmed)) {
-    throw new Error(`A portfolio named “${trimmed}” already exists.`)
+    throw new Error(PORTFOLIO_NAME_EXISTS_MSG)
   }
   const list = listPortfolios()
   if (list.length >= MAX_PORTFOLIOS) {
@@ -312,7 +384,7 @@ export function renamePortfolio(id: string, name: string): void {
     throw new Error('Portfolio name is required.')
   }
   if (isPortfolioNameTaken(trimmed, id)) {
-    throw new Error(`A portfolio named “${trimmed}” already exists.`)
+    throw new Error(PORTFOLIO_NAME_EXISTS_MSG)
   }
   const list = listPortfolios().map((p) => (p.id === id ? { ...p, name: trimmed } : p))
   writeJson(STORAGE.PORTFOLIOS, list)
@@ -343,9 +415,12 @@ export function duplicatePortfolio(id: string, name: string): PortfolioMeta {
  * Respects MAX_PORTFOLIOS (David + up to 5). Repairs duplicate ids and names.
  */
 export function bootstrapFamilyPortfolios(): { renamed: boolean; created: string[]; removedDupes: string[] } {
-  ensurePortfolioRegistry()
-  repairDuplicatePortfolioIds()
+  // Dedupe from raw storage first so removedDupes is accurate (listPortfolios also auto-heals).
   const { removed } = dedupePortfoliosByName()
+  if (!localStorage.getItem(STORAGE.PORTFOLIOS)) {
+    writeJson(STORAGE.PORTFOLIOS, [{ ...DEFAULT_META }])
+  }
+  repairDuplicatePortfolioIds()
   let list = listPortfolios()
   let renamed = false
 

@@ -60,6 +60,10 @@ import {
   type FullBackupMeta,
 } from '../storage/backupStore'
 import { STORAGE } from '../storage/keys'
+import {
+  dedupePortfoliosByName,
+  hasDuplicatePortfolioNames,
+} from '../storage/portfolioStore'
 import { resetNavOrder } from '../storage/navOrder'
 import {
   getSessionSyncPassphrase,
@@ -119,6 +123,7 @@ export function SettingsPage() {
   const fullBackupFileRef = useRef<HTMLInputElement>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [newName, setNewName] = useState('')
+  const [portfolioNameError, setPortfolioNameError] = useState<string | null>(null)
   const [renameId, setRenameId] = useState<string | null>(null)
   const [renameDraft, setRenameDraft] = useState('')
   const [backups, setBackups] = useState<FullBackupMeta[]>([])
@@ -671,7 +676,16 @@ export function SettingsPage() {
                         preview.documentBlobs && preview.documentBlobs.length > 0
                           ? ` · ${preview.documentBlobs.length} file(s)`
                           : ''
-                      flash(`Pulled & merged ${r.merged} portfolios${blobNote}.`)
+                      const cleaned =
+                        r.removedDupes > 0 || preview.remoteHadDuplicateNames
+                          ? ' · cleaned duplicate names'
+                          : ''
+                      flash(`Pulled & merged ${r.merged} portfolios${blobNote}${cleaned}.`)
+                      if (r.removedDupes > 0 || preview.remoteHadDuplicateNames) {
+                        void syncNow().catch(() => {
+                          /* local already cleaned */
+                        })
+                      }
                     }
                   } catch (e) {
                     flash(e instanceof Error ? e.message : 'Pull failed')
@@ -742,6 +756,11 @@ export function SettingsPage() {
                     setSyncCfg(next)
                     saveSyncConfig(next)
                     flash(`Applied merge · ${r.merged} portfolios.`)
+                    if (r.removedDupes > 0 || pendingMerge.remoteHadDuplicateNames) {
+                      void syncNow().catch(() => {
+                        /* local already cleaned */
+                      })
+                    }
                   } catch (e) {
                     flash(e instanceof Error ? e.message : 'Apply failed')
                   }
@@ -1549,9 +1568,11 @@ export function SettingsPage() {
                       if (!renameDraft.trim()) return
                       const r = renamePortfolio(p.id, renameDraft.trim())
                       if (!r.ok) {
+                        setPortfolioNameError(r.error ?? 'Rename failed')
                         flash(r.error ?? 'Rename failed')
                         return
                       }
+                      setPortfolioNameError(null)
                       flash(`Renamed to ${renameDraft.trim()}.`)
                       setRenameId(null)
                     }}
@@ -1627,8 +1648,12 @@ export function SettingsPage() {
               type="text"
               placeholder="New portfolio name"
               value={newName}
-              onChange={(e) => setNewName(e.target.value)}
+              onChange={(e) => {
+                setNewName(e.target.value)
+                if (portfolioNameError) setPortfolioNameError(null)
+              }}
               disabled={!canAddPortfolio}
+              aria-invalid={Boolean(portfolioNameError)}
             />
             <button
               type="button"
@@ -1638,9 +1663,11 @@ export function SettingsPage() {
                 if (!newName.trim()) return
                 const r = createPortfolio(newName.trim())
                 if (!r.ok) {
+                  setPortfolioNameError(r.error ?? 'Could not create')
                   flash(r.error ?? 'Could not create')
                   return
                 }
+                setPortfolioNameError(null)
                 setNewName('')
                 flash('Empty portfolio created — add holdings when ready.')
               }}
@@ -1648,10 +1675,44 @@ export function SettingsPage() {
               Add portfolio
             </button>
           </div>
+          {portfolioNameError ? (
+            <p className="text-sm text-red-500 mt-2" role="alert">
+              {portfolioNameError}
+            </p>
+          ) : null}
           <p className="text-xs text-text-subtle mt-3">
             {portfolios.length} / {maxPortfolios} used
             {!canAddPortfolio ? ' · delete one to add another' : ''}
           </p>
+          <div className="mt-4 flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+            <button
+              type="button"
+              className="btn-ghost btn-sm"
+              onClick={() => {
+                const before = hasDuplicatePortfolioNames()
+                const { removed, kept } = dedupePortfoliosByName()
+                reload()
+                setPortfolioNameError(null)
+                if (!before && removed.length === 0) {
+                  flash('Portfolio names are already unique. Syncing current list…')
+                } else {
+                  flash(
+                    `Removed ${removed.length} duplicate(s) — ${kept} portfolio(s) kept. Syncing…`,
+                  )
+                }
+                void syncNow()
+                  .then(() => flash('Portfolio list synced — other devices will match on refresh.'))
+                  .catch((e) =>
+                    flash(e instanceof Error ? e.message : 'Cleanup saved locally; sync failed.'),
+                  )
+              }}
+            >
+              Clean up duplicates & sync
+            </button>
+            <p className="text-xs text-text-muted">
+              Ensures one entry per name (max {maxPortfolios}) and pushes so iPhone / Mac / iPad match.
+            </p>
+          </div>
         </section>
 
         <section className="surface p-6 sm:p-8" id="full-backup">

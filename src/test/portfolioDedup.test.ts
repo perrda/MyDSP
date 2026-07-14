@@ -56,13 +56,13 @@ describe('portfolio name uniqueness', () => {
     expect(list.find((p) => p.name.toLowerCase() === 'mum')!.id).toBe('p_mum_a')
   })
 
-  it('rejects create/rename with a duplicate name', async () => {
+  it('rejects create/rename with This portfolio name already exists', async () => {
     const store = await import('../storage/portfolioStore')
     mem.clear()
     store.bootstrapFamilyPortfolios()
-    expect(() => store.createPortfolio('Mum')).toThrow(/already exists/i)
+    expect(() => store.createPortfolio('Mum')).toThrow(store.PORTFOLIO_NAME_EXISTS_MSG)
     const andrew = store.listPortfolios().find((p) => p.name === 'Andrew')!
-    expect(() => store.renamePortfolio(andrew.id, 'Thomas')).toThrow(/already exists/i)
+    expect(() => store.renamePortfolio(andrew.id, 'Thomas')).toThrow(store.PORTFOLIO_NAME_EXISTS_MSG)
   })
 
   it('bootstrap removes name duplicates then keeps six unique family portfolios', async () => {
@@ -88,5 +88,50 @@ describe('portfolio name uniqueness', () => {
     const list = store.listPortfolios()
     expect(list).toHaveLength(6)
     expect(new Set(list.map((p) => p.name.toLowerCase())).size).toBe(6)
+  })
+
+  it('listPortfolios auto-heals triple family-name duplicates back to 6', async () => {
+    const store = await import('../storage/portfolioStore')
+    const triples = [
+      { id: 'default', name: 'David', createdAt: '2026-01-01' },
+      ...['Mum', 'Andrew', 'Thomas', 'Rebecca', 'James King'].flatMap((name, i) =>
+        [0, 1, 2].map((n) => ({
+          id: `p_${name.replace(/\s+/g, '_').toLowerCase()}_${n}`,
+          name,
+          createdAt: `2026-0${i + 1}-0${n + 1}`,
+        })),
+      ),
+    ]
+    mem.set('fcc_portfolios', JSON.stringify(triples))
+    expect(triples.length).toBe(16)
+
+    const list = store.listPortfolios()
+    expect(list).toHaveLength(6)
+    expect(new Set(list.map((p) => p.name.toLowerCase())).size).toBe(6)
+    expect(list.map((p) => p.name)).toEqual(
+      expect.arrayContaining(['David', 'Mum', 'Andrew', 'Thomas', 'Rebecca', 'James King']),
+    )
+  })
+
+  it('hard-caps above MAX_PORTFOLIOS preferring canonical family names', async () => {
+    const store = await import('../storage/portfolioStore')
+    mem.set(
+      'fcc_portfolios',
+      JSON.stringify([
+        { id: 'default', name: 'David', createdAt: '2026-01-01' },
+        { id: 'p_mum', name: 'Mum', createdAt: '2026-01-01' },
+        { id: 'p_andrew', name: 'Andrew', createdAt: '2026-01-01' },
+        { id: 'p_thomas', name: 'Thomas', createdAt: '2026-01-01' },
+        { id: 'p_rebecca', name: 'Rebecca', createdAt: '2026-01-01' },
+        { id: 'p_james', name: 'James King', createdAt: '2026-01-01' },
+        { id: 'p_uncle', name: 'Uncle John', createdAt: '2026-01-01' },
+      ]),
+    )
+    const { removed, kept } = store.dedupePortfoliosByName()
+    expect(kept).toBe(6)
+    expect(removed).toContain('p_uncle')
+    const names = store.listPortfolios().map((p) => p.name)
+    expect(names).not.toContain('Uncle John')
+    expect(names).toHaveLength(6)
   })
 })
