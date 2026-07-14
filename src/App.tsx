@@ -54,6 +54,7 @@ const JobDetailPage = lazy(() => import('./pages/JobDetailPage').then(m => ({ de
 const PredictiveAnalyticsPage = lazy(() => import('./pages/PredictiveAnalyticsPage').then(m => ({ default: m.PredictiveAnalyticsPage })))
 const ApiAutomationPage = lazy(() => import('./pages/ApiAutomationPage').then(m => ({ default: m.ApiAutomationPage })))
 const SmartInsightsPage = lazy(() => import('./pages/SmartInsightsPage').then(m => ({ default: m.SmartInsightsPage })))
+const MarketsPage = lazy(() => import('./pages/MarketsPage').then(m => ({ default: m.MarketsPage })))
 
 export default function App() {
   return (
@@ -71,6 +72,7 @@ export default function App() {
                   <Routes>
                     <Route element={<AppShell />}>
                       <Route index element={<Dashboard />} />
+                      <Route path="markets" element={<MarketsPage />} />
                       <Route path="crypto" element={<CryptoPage />} />
                       <Route path="crypto/:id" element={<HoldingDetailPage />} />
                       <Route path="equities" element={<EquitiesPage />} />

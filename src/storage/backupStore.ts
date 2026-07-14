@@ -11,6 +11,7 @@ import {
   setActivePortfolioId,
 } from './portfolioStore'
 import { STORAGE } from './keys'
+import { exportMarketsForBackup, importMarketsFromBackup } from './marketsStore'
 
 // Lazy import to avoid circular deps - sync service imports backupStore
 let _pushSyncLazy: ((url: string, pass: string) => Promise<void>) | null = null
@@ -50,6 +51,8 @@ export interface FullBackupRecord extends FullBackupMeta {
   portfolios: PortfolioMeta[]
   /** portfolioId → storage-shaped data */
   blobs: Record<string, unknown>
+  /** Optional Markets watchlist (workspace-level) */
+  markets?: unknown
   /** Optional file attachments (CV/PDFs) as base64 payloads */
   documentBlobs?: import('./documentBlobStore').DocumentBlobPayload[]
   documentBlobsSkipped?: number[]
@@ -97,6 +100,7 @@ export function captureFullWorkspace(): Omit<
     activePortfolioId,
     portfolios: portfolios.map((p) => ({ ...p })),
     blobs,
+    markets: exportMarketsForBackup(),
   }
 }
 
@@ -264,6 +268,10 @@ export async function restoreFullWorkspace(record: FullBackupRecord): Promise<vo
     const { importDocumentBlobs } = await import('./documentBlobStore')
     await importDocumentBlobs(record.documentBlobs)
   }
+
+  if (record.markets) {
+    importMarketsFromBackup(record.markets)
+  }
 }
 
 function fullBackupPayload(record: FullBackupRecord) {
@@ -283,6 +291,7 @@ function fullBackupPayload(record: FullBackupRecord) {
     ...(record.documentBlobsSkipped && record.documentBlobsSkipped.length > 0
       ? { documentBlobsSkipped: record.documentBlobsSkipped }
       : {}),
+    ...(record.markets ? { markets: record.markets } : {}),
   }
 }
 
@@ -425,6 +434,7 @@ export function parseFullBackupFile(raw: unknown): FullBackupRecord | null {
     documentBlobsSkipped: Array.isArray(o.documentBlobsSkipped)
       ? (o.documentBlobsSkipped as number[])
       : undefined,
+    markets: o.markets,
   }
 }
 
