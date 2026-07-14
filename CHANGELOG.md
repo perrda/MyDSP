@@ -1,5 +1,23 @@
 # MyDSP Changelog
 
+## [1.2.0] - 2026-07-14
+
+### Added — News
+- **News** sidebar section: Top financial headlines (Google News RSS) in a CoinGecko / Yahoo Finance style feed
+- **Meta-tags** (BTC, ETH, ADA, TSLA, MSTR seeded): add/edit/remove/reorder tags; ticker news from Yahoo Finance + Google News
+- Workspace backup/restore for news tags
+
+### Added — YouTube
+- **YouTube** sidebar section: favourite finance channels (up to **25**)
+- Full CRUD + drag ⋮⋮ reorder; paste channel URL / @handle / UC… id (resolved without API key)
+- Latest videos aggregated from favourites via YouTube Atom feeds
+- Workspace backup/restore for channel list
+
+### Version
+- 1.1.3 → **1.2.0**
+
+---
+
 ## [1.1.3] - 2026-07-14
 
 ### Fixed — Markets live quotes (ADA / USDC / NIGHT) + sparklines

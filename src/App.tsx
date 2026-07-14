@@ -55,6 +55,8 @@ const PredictiveAnalyticsPage = lazy(() => import('./pages/PredictiveAnalyticsPa
 const ApiAutomationPage = lazy(() => import('./pages/ApiAutomationPage').then(m => ({ default: m.ApiAutomationPage })))
 const SmartInsightsPage = lazy(() => import('./pages/SmartInsightsPage').then(m => ({ default: m.SmartInsightsPage })))
 const MarketsPage = lazy(() => import('./pages/MarketsPage').then(m => ({ default: m.MarketsPage })))
+const NewsPage = lazy(() => import('./pages/NewsPage').then(m => ({ default: m.NewsPage })))
+const YouTubePage = lazy(() => import('./pages/YouTubePage').then(m => ({ default: m.YouTubePage })))
 
 export default function App() {
   return (
@@ -73,6 +75,8 @@ export default function App() {
                     <Route element={<AppShell />}>
                       <Route index element={<Dashboard />} />
                       <Route path="markets" element={<MarketsPage />} />
+                      <Route path="news" element={<NewsPage />} />
+                      <Route path="youtube" element={<YouTubePage />} />
                       <Route path="crypto" element={<CryptoPage />} />
                       <Route path="crypto/:id" element={<HoldingDetailPage />} />
                       <Route path="equities" element={<EquitiesPage />} />
