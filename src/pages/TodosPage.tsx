@@ -11,7 +11,6 @@ import {
   Copy,
   Archive,
   Trash2,
-  Settings2,
   ImagePlus,
   CheckCircle2,
   Circle,
@@ -21,11 +20,12 @@ import { PageHeader } from '../components/ui/PageHeader'
 import { EmptyState } from '../components/ui/EmptyState'
 import { ConfirmDialog } from '../components/ui/Modal'
 import { TodoModal } from '../components/TodoModal'
-import { TodoListModal, listIconGlyph } from '../components/TodoListModal'
+import { TodoListModal } from '../components/TodoListModal'
 import { ReorderList, ReorderHandle } from '../components/ui/Reorderable'
 import { applySortOrder, sortBySortOrder } from '../utils/reorder'
 import { checkTodoReminders, ensureDesktopNotificationPermission } from '../domain/todoReminders'
 import { TodoScreenshotImportModal } from '../components/TodoScreenshotImportModal'
+import { TodoListPicker } from '../components/TodoListPicker'
 import { usePortfolio } from '../context/PortfolioContext'
 import { useToasts } from '../components/ToastProvider'
 import type { TodoFilterBy, TodoItem, TodoList, TodoSortBy } from '../domain/todo-types'
@@ -111,6 +111,13 @@ export function TodosPage() {
 
   const lists = sortBySortOrder(data.todoLists || [])
   const allItems = data.todoItems || []
+  const listCounts = useMemo(() => {
+    const m = new Map<number, number>()
+    for (const item of allItems) {
+      m.set(item.listId, (m.get(item.listId) ?? 0) + 1)
+    }
+    return m
+  }, [allItems])
   const todoItemsRef = useRef(allItems)
   todoItemsRef.current = allItems
 
@@ -596,85 +603,23 @@ export function TodosPage() {
             </div>
           </div>
 
-          <div className="mb-4">
-            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-              <p className="text-xs text-text-subtle">Swipe lists · drag grips to reorder</p>
-              <button type="button" className="btn-ghost btn-sm text-xs hidden sm:inline-flex" onClick={() => void enableDesktopReminders()}>
-                Enable desktop reminders
-              </button>
-            </div>
-            <div className="flex gap-2 mb-2 overflow-x-auto pb-2 scrollbar-hide items-center">
-              <button
-                type="button"
-                onClick={() => setSelectedListId(null)}
-                className={`min-h-11 px-3.5 py-2 text-xs font-semibold uppercase tracking-wider whitespace-nowrap rounded-lg border ${
-                  selectedListId === null
-                    ? 'bg-accent text-white border-accent'
-                    : 'bg-surface border-border hover:border-accent'
-                }`}
-              >
-                All ({allItems.length})
-              </button>
-            </div>
-            <ReorderList
-              items={lists}
-              getId={(l) => String(l.id)}
-              onReorder={handleReorderLists}
-              className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide items-center"
-              itemClassName="shrink-0"
-            >
-              {(list) => {
-                const count = allItems.filter((i) => i.listId === list.id).length
-                const active = selectedListId === list.id
-                return (
-                  <div className="flex items-center gap-1">
-                    <ReorderHandle />
-                    <button
-                      type="button"
-                      onClick={() => setSelectedListId(list.id)}
-                      className={`min-h-11 px-3.5 py-2 text-xs font-semibold uppercase tracking-wider whitespace-nowrap rounded-lg border ${
-                        active
-                          ? 'bg-accent text-white border-accent'
-                          : 'bg-surface border-border hover:border-accent'
-                      }`}
-                    >
-                      <span className="mr-1.5" aria-hidden>
-                        {listIconGlyph(list.icon)}
-                      </span>
-                      <span
-                        className="inline-block w-2 h-2 rounded-full mr-2 align-middle"
-                        style={{ backgroundColor: list.color || '#F7931A' }}
-                      />
-                      {list.name}
-                      <span className="ml-1.5 tabular-nums opacity-80">({count})</span>
-                    </button>
-                    {active && (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => openEditList(list)}
-                          className="btn-ghost btn-sm p-2 min-h-11 min-w-11"
-                          title="Edit list"
-                          aria-label="Edit list"
-                        >
-                          <Settings2 size={14} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteList(list)}
-                          className="btn-ghost btn-sm p-2 min-h-11 min-w-11 text-red-500"
-                          title="Delete list"
-                          aria-label="Delete list"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </>
-                    )}
-                  </div>
-                )
-              }}
-            </ReorderList>
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs text-text-subtle">Pick a list · Sort inside the menu to reorder</p>
+            <button type="button" className="btn-ghost btn-sm text-xs hidden sm:inline-flex" onClick={() => void enableDesktopReminders()}>
+              Enable desktop reminders
+            </button>
           </div>
+
+          <TodoListPicker
+            lists={lists}
+            selectedListId={selectedListId}
+            counts={listCounts}
+            totalCount={allItems.length}
+            onSelect={setSelectedListId}
+            onReorder={handleReorderLists}
+            onEdit={openEditList}
+            onDelete={handleDeleteList}
+          />
 
           {currentList?.description && (
             <p className="text-sm text-text-muted mb-4">{currentList.description}</p>
@@ -684,7 +629,7 @@ export function TodosPage() {
           <div className="surface p-3 sm:p-4 mb-4 rounded-xl md:rounded-none shadow-sm md:shadow-none space-y-3">
             <div className="flex flex-wrap items-end gap-2 sm:gap-3">
               <div className="flex-1 min-w-[9.5rem]">
-                <label className="block text-xs md:text-[10px] uppercase tracking-wider text-text-subtle mb-1.5 font-semibold">
+                <label className="block text-[11px] uppercase tracking-wider text-text-subtle mb-1.5 font-semibold">
                   Sort
                 </label>
                 <select
@@ -705,7 +650,7 @@ export function TodosPage() {
                 </select>
               </div>
               <div className="flex-1 min-w-[9.5rem]">
-                <label className="block text-xs md:text-[10px] uppercase tracking-wider text-text-subtle mb-1.5 font-semibold">
+                <label className="block text-[11px] uppercase tracking-wider text-text-subtle mb-1.5 font-semibold">
                   Filter
                 </label>
                 <select
@@ -727,7 +672,7 @@ export function TodosPage() {
                 </select>
               </div>
               <div className="w-full sm:w-auto sm:flex-1 min-w-[12rem]">
-                <label className="block text-xs md:text-[10px] uppercase tracking-wider text-text-subtle mb-1.5 font-semibold">
+                <label className="block text-[11px] uppercase tracking-wider text-text-subtle mb-1.5 font-semibold">
                   Search
                 </label>
                 <input
