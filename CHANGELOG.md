@@ -1,5 +1,17 @@
 # MyDSP Changelog
 
+## [1.2.25] - 2026-07-15
+
+### Added — Glass Mode + softer UI chrome
+1. **Notification badge** — iOS-style red circle; white count when 2+ unread (dot only for 1)
+2. **Slightly rounded boxes** site-wide via `--radius-box` / `--radius-control` (web, tablet, phone). Say **REVERT ROUNDED EDGES** to restore sharp corners (`html.angular` or set tokens to `0`)
+3. **Glass Mode** — Settings → Appearance On/Off + header toolbar toggle (frosted blur like Apple liquid glass); works with Light/Dark; persists
+
+### Version
+- 1.2.24 → **1.2.25**
+
+---
+
 ## [1.2.24] - 2026-07-15
 
 ### Changed — Collapsible filters (less chrome, more list)

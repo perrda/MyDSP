@@ -26,6 +26,14 @@ vi.mock('../components/ThemeToggle', () => ({
   ),
 }))
 
+vi.mock('../components/GlassToggle', () => ({
+  GlassToggle: () => (
+    <button type="button" className="toolbar-icon" aria-label="Toggle glass mode">
+      Glass
+    </button>
+  ),
+}))
+
 describe('ToolbarControls', () => {
   beforeEach(() => {
     cleanup()
@@ -86,7 +94,7 @@ describe('ToolbarControls', () => {
     // assert via the menu instead).
     fireEvent.click(screen.getByLabelText('More workspace controls'))
     expect(screen.getByRole('menu', { name: 'Workspace actions' })).toBeInTheDocument()
-    expect(screen.getByText(/Refresh · Privacy · Theme · Search/i)).toBeInTheDocument()
+    expect(screen.getByText(/Refresh · Privacy · Theme · Glass · Search/i)).toBeInTheDocument()
 
     const refreshButtons = screen.getAllByLabelText('Refresh all data')
     expect(refreshButtons.length).toBeGreaterThanOrEqual(1)
