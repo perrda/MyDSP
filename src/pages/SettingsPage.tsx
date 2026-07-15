@@ -265,8 +265,10 @@ export function SettingsPage() {
     body: string
     confirmLabel?: string
     variant?: 'default' | 'danger'
+    holdMs?: number
     onConfirm: () => void
   } | null>(null)
+  const [showSyncPass, setShowSyncPass] = useState(false)
 
   useEffect(() => subscribeAutoSync(setAutoSyncStatus), [])
 
@@ -531,14 +533,19 @@ export function SettingsPage() {
         description="Sections start collapsed — tap a header (Sync, Display, Security…) to expand. Cloud Sync is first."
       />
 
-      <div className="flex flex-wrap gap-2 mb-4 items-center" role="group" aria-label="Settings sections">
+      <div
+        className="settings-search-sticky sticky z-20 -mx-1 px-1 py-2 mb-4 flex flex-wrap gap-2 items-center bg-bg/95 backdrop-blur-sm border-b border-border/60"
+        style={{ top: 'var(--app-header-offset, 3.5rem)' }}
+        role="group"
+        aria-label="Settings sections"
+      >
         <label className="sr-only" htmlFor="settings-search">
           Search settings
         </label>
         <input
           id="settings-search"
           type="search"
-          className="toolbar-select flex-1 min-w-[12rem] max-w-md !w-auto px-3 py-2 text-sm"
+          className="toolbar-select flex-1 min-w-[12rem] max-w-md !w-auto px-3 py-2 text-sm min-h-11"
           placeholder="Search settings…"
           value={settingsQuery}
           onChange={(e) => {
@@ -563,14 +570,14 @@ export function SettingsPage() {
         />
         <button
           type="button"
-          className="btn-secondary btn-sm"
+          className="btn-secondary btn-sm min-h-11"
           onClick={() => setAllSettingsSectionsOpen([...SETTINGS_SECTION_IDS], true)}
         >
           Expand all
         </button>
         <button
           type="button"
-          className="btn-ghost btn-sm"
+          className="btn-ghost btn-sm min-h-11"
           onClick={() => setAllSettingsSectionsOpen([...SETTINGS_SECTION_IDS], false)}
         >
           Collapse all
@@ -636,28 +643,50 @@ export function SettingsPage() {
           <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle mb-2">
             Remote URL
           </label>
-          <input
-            type="url"
-            className="mb-4 w-full max-w-4xl min-h-12 text-sm break-all"
-            placeholder="https://mydsp-sync.YOUR_SUBDOMAIN.workers.dev?key=YOUR_SECRET"
-            value={syncCfg.remoteUrl}
-            onChange={(e) => {
-              const next = { ...syncCfg, remoteUrl: e.target.value }
-              setSyncCfg(next)
-              saveSyncConfig(next)
-            }}
-            onBlur={() => {
-              const normalized = normalizeSyncRemoteUrl(syncCfg.remoteUrl)
-              if (normalized === syncCfg.remoteUrl) return
-              const next = { ...syncCfg, remoteUrl: normalized }
-              setSyncCfg(next)
-              saveSyncConfig(next)
-            }}
-            spellCheck={false}
-            autoCapitalize="off"
-            autoCorrect="off"
-            title={syncCfg.remoteUrl || undefined}
-          />
+          <div className="flex flex-wrap gap-2 mb-4 max-w-4xl items-stretch">
+            <input
+              type="url"
+              className="flex-1 min-w-[12rem] min-h-12 text-sm break-all"
+              placeholder="https://mydsp-sync.YOUR_SUBDOMAIN.workers.dev?key=YOUR_SECRET"
+              value={syncCfg.remoteUrl}
+              onChange={(e) => {
+                const next = { ...syncCfg, remoteUrl: e.target.value }
+                setSyncCfg(next)
+                saveSyncConfig(next)
+              }}
+              onBlur={() => {
+                const normalized = normalizeSyncRemoteUrl(syncCfg.remoteUrl)
+                if (normalized === syncCfg.remoteUrl) return
+                const next = { ...syncCfg, remoteUrl: normalized }
+                setSyncCfg(next)
+                saveSyncConfig(next)
+              }}
+              spellCheck={false}
+              autoCapitalize="off"
+              autoCorrect="off"
+              title={syncCfg.remoteUrl || undefined}
+            />
+            <button
+              type="button"
+              className="btn-secondary btn-sm min-h-12 shrink-0"
+              onClick={() => {
+                void (async () => {
+                  try {
+                    const text = await navigator.clipboard.readText()
+                    const normalized = normalizeSyncRemoteUrl(text.trim())
+                    const next = { ...syncCfg, remoteUrl: normalized }
+                    setSyncCfg(next)
+                    saveSyncConfig(next)
+                    flash('Pasted Remote URL from clipboard.')
+                  } catch {
+                    flash('Could not read clipboard — paste manually.')
+                  }
+                })()
+              }}
+            >
+              Paste
+            </button>
+          </div>
           {syncCfg.remoteUrl ? (
             <p className="text-xs text-text-subtle mb-2 -mt-2 max-w-4xl break-all font-mono">
               {syncCfg.remoteUrl}
@@ -671,18 +700,28 @@ export function SettingsPage() {
           <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle mb-2">
             Passphrase
           </label>
-          <input
-            type="password"
-            className="mb-3 w-full max-w-md"
-            autoComplete="new-password"
-            placeholder="Sync passphrase (min 8 chars)"
-            value={syncPass}
-            onChange={(e) => {
-              const v = e.target.value
-              setSyncPass(v)
-              setSessionSyncPassphrase(v, { remember: Boolean(syncCfg.rememberPassphrase) })
-            }}
-          />
+          <div className="flex flex-wrap gap-2 mb-3 max-w-md items-stretch">
+            <input
+              type={showSyncPass ? 'text' : 'password'}
+              className="flex-1 min-h-11"
+              autoComplete="new-password"
+              placeholder="Sync passphrase (min 8 chars)"
+              value={syncPass}
+              onChange={(e) => {
+                const v = e.target.value
+                setSyncPass(v)
+                setSessionSyncPassphrase(v, { remember: Boolean(syncCfg.rememberPassphrase) })
+              }}
+            />
+            <button
+              type="button"
+              className="btn-ghost btn-sm min-h-11 shrink-0"
+              aria-pressed={showSyncPass}
+              onClick={() => setShowSyncPass((v) => !v)}
+            >
+              {showSyncPass ? 'Hide' : 'Show'}
+            </button>
+          </div>
           <div className="flex flex-col gap-3 mb-6 max-w-2xl">
             <label className="flex items-start gap-3 cursor-pointer">
               <input
@@ -1309,6 +1348,23 @@ export function SettingsPage() {
             light after approximate sunrise, dark after sunset (local time). Choose Light or Dark
             to lock a theme. Header moon toggle also locks Light/Dark.
           </p>
+          <div
+            className="appearance-preview mb-6 grid grid-cols-3 gap-2 max-w-lg"
+            aria-hidden
+          >
+            <div className={`rounded-lg border border-border p-3 ${theme === 'light' && preference !== 'auto' ? 'ring-2 ring-accent' : ''}`}>
+              <div className="h-8 rounded bg-white border border-border mb-2" />
+              <p className="text-[10px] font-bold uppercase tracking-wider text-text-subtle">Light</p>
+            </div>
+            <div className={`rounded-lg border border-border p-3 ${theme === 'dark' && preference !== 'auto' ? 'ring-2 ring-accent' : ''}`}>
+              <div className="h-8 rounded bg-black border border-border mb-2" />
+              <p className="text-[10px] font-bold uppercase tracking-wider text-text-subtle">Dark</p>
+            </div>
+            <div className={`rounded-lg border border-border p-3 ${glass ? 'ring-2 ring-accent' : ''}`}>
+              <div className="h-8 rounded border border-border mb-2 bg-gradient-to-br from-white/40 to-black/30 backdrop-blur-sm" />
+              <p className="text-[10px] font-bold uppercase tracking-wider text-text-subtle">Glass</p>
+            </div>
+          </div>
           <div className="flex flex-wrap gap-2 mb-3" role="group" aria-label="Theme preference">
             {(
               [
@@ -2528,6 +2584,23 @@ export function SettingsPage() {
                     >
                       Download
                     </button>
+                    {canUseNativeShare() ? (
+                      <button
+                        type="button"
+                        className="btn-ghost btn-sm"
+                        onClick={() => {
+                          void (async () => {
+                            const full = await getFullBackup(b.id)
+                            if (!full) return
+                            const result = await shareBackupFile(full)
+                            if (result === 'shared') flash('Shared backup.')
+                            else if (result === 'fallback') flash('Share unavailable — downloaded instead.')
+                          })()
+                        }}
+                      >
+                        Share
+                      </button>
+                    ) : null}
                     <button
                       type="button"
                       className="btn-ghost btn-sm"
@@ -2652,6 +2725,7 @@ export function SettingsPage() {
         body={confirmState?.body ?? ''}
         confirmLabel={confirmState?.confirmLabel}
         variant={confirmState?.variant}
+        holdMs={confirmState?.holdMs ?? (confirmState?.variant === 'danger' ? 800 : 0)}
         onClose={() => setConfirmState(null)}
         onConfirm={() => confirmState?.onConfirm()}
       />

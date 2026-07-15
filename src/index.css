@@ -284,6 +284,14 @@ html.theme-transitioning *::after {
   padding-top: env(safe-area-inset-top);
 }
 
+:root {
+  --app-header-offset: calc(3.5rem + env(safe-area-inset-top, 0px));
+}
+
+.settings-search-sticky {
+  top: var(--app-header-offset);
+}
+
 .app-header-row {
   display: flex;
   align-items: center;

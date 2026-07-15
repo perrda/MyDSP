@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.31**
+**Current version: 1.2.32**
 
-## Completed (through v1.2.31)
+## Completed (through v1.2.32)
 
+- Settings / forms polish (21–30): sticky search, clipboard paste, passphrase reveal, Field errors, decimal inputs, keyboard avoidance, hold-to-confirm, appearance preview, native share
 - Markets / holdings polish (11–20): sticky headers, sparkline detail, long-press sort, swipe actions, price strip, amber stale, Compare tablet layout, legend hide, fill undo, seed presets
 - Nav / PWA polish (1–10): safe-area sheets, label truncation, landscape icon-only nav, Stage Manager padding, A2HS after sync, press feedback, PTR ring, short offline banners, conflict sheet, keyboard shortcuts help
 - UI polish Top 10: Markets Compact overflow, tablet toolbar, banner offset, single title, bottom-nav active, Glass sheets, modal motion, Jump-in, PageHeader actions, sticky tables

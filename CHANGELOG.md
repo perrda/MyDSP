@@ -1,5 +1,24 @@
 # MyDSP Changelog
 
+## [1.2.32] - 2026-07-15
+
+### Improved — Settings / forms polish (backlog 21–30)
+21. Sticky Settings search under shell header  
+22. Paste Remote URL from clipboard  
+23. Sync passphrase Show/Hide  
+24. `Field` optional error prop  
+25. `inputMode=decimal` on Job salary + opening unit price  
+26. Modal iOS keyboard avoidance (`visualViewport`)  
+27. Hold-to-confirm destructive dialogs on phone  
+28. Settings section open state (already persisted; sticky search keeps jump targets usable)  
+29. Appearance live preview strip (Light / Dark / Glass)  
+30. Native Share on backup rows + CSV export share
+
+### Version
+- 1.2.31 → **1.2.32**
+
+---
+
 ## [1.2.31] - 2026-07-15
 
 ### Improved — Markets / holdings polish (backlog 11–20)
