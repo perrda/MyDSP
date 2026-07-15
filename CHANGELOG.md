@@ -8,6 +8,13 @@
 - Also hides in narrow desktop browser windows (mouse-only), where the old `lg:` breakpoint left it visible
 - Bottom content padding only applies when the tab bar is actually shown
 
+### Improved — Settings sections
+- Every Settings block (Sync, Appearance, Display, Markets, Security, Alerts, …) is **collapsible**
+- Tap the orange header name to expand/collapse; sections start **collapsed** so the full list is easy to scan
+- **Expand all** / **Collapse all** controls under the page title
+- Deep links (`/settings#sync`, `#alerts`, `#trade-history`, …) still open and scroll to the right section
+- Open/closed state remembered in this browser
+
 ### Version
 - 1.2.7 → **1.2.8**
 
