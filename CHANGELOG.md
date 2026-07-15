@@ -1,5 +1,24 @@
 # MyDSP Changelog
 
+## [1.2.34] - 2026-07-15
+
+### Improved — Sync / a11y / perf polish (backlog 41–50)
+41. Skeleton shimmer on Markets / Equities / Crypto first paint & refresh  
+42. Prefetch Markets quotes when bottom-nav Markets is focused/hovered  
+43. `prefers-reduced-motion` disables sparkline draw-on + modal sheet motion  
+44. Higher-contrast `--text-muted` / `--text-subtle` in light + dark  
+45. Landmark roles/labels on header, nav, main (AppShell / BottomNav / Sidebar)  
+46. Focus-visible rings on Glass Mode frosted controls  
+47. Lazy recharts wrappers for Dashboard (`LazyCharts`)  
+48. Quote Worker health badge in Settings → Sync  
+49. Soft weekly backup nudge on Today when last backup &gt; 7 days  
+50. Playwright smoke for iPhone 14 + iPad Air (Today → Markets → Settings)
+
+### Version
+- 1.2.33 → **1.2.34**
+
+---
+
 ## [1.2.33] - 2026-07-15
 
 ### Improved — Today / Jobs / Todos polish (backlog 31–40)

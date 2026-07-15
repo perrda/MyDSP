@@ -4,6 +4,7 @@ import { ArrowUpDown, Landmark } from 'lucide-react'
 import { AllocationRing } from '../components/charts/AllocationRing'
 import { PortfolioSeriesChart } from '../components/charts/PortfolioSeriesChart'
 import { EmptyState } from '../components/ui/EmptyState'
+import { MarketsHoldingsSkeleton } from '../components/ui/MarketsHoldingsSkeleton'
 import { OverflowMenu } from '../components/ui/OverflowMenu'
 import { PageHeader } from '../components/ui/PageHeader'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
@@ -35,7 +36,7 @@ function nextId(items: { id: number }[]): number {
 const emptyForm = { symbol: '', name: '', shares: '', avgCost: '', livePrice: '' }
 
 export function EquitiesPage() {
-  const { data, breakdown, privacy, setData, fxRates } = usePortfolio()
+  const { data, breakdown, privacy, setData, fxRates, refreshing } = usePortfolio()
   const { error: showError, showToast } = useToasts()
   const { equity } = breakdown
   const [open, setOpen] = useState(false)
@@ -48,6 +49,7 @@ export function EquitiesPage() {
 
   const holdings = useMemo(() => sortBySortOrder(data.equities), [data.equities])
   const displayCcy = getDisplayCurrency()
+  const showSkeleton = refreshing && holdings.length === 0
 
   const fillFromLastSynced = () => {
     const snapshot = data
@@ -186,6 +188,12 @@ export function EquitiesPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-px mb-6">
+        {showSkeleton ? (
+          <div className="lg:col-span-3">
+            <MarketsHoldingsSkeleton rows={3} label="Loading equity holdings" />
+          </div>
+        ) : (
+          <>
         <div className="surface p-5 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
           <AllocationRing
             data={pieSlices}
@@ -206,6 +214,8 @@ export function EquitiesPage() {
             heightClass="h-56 sm:h-64 lg:h-72"
           />
         </div>
+          </>
+        )}
       </div>
 
       {holdings.length === 0 ? (

@@ -13,6 +13,7 @@ import {
 import { Sparkline } from '../components/charts/Sparkline'
 import { PageHeader } from '../components/ui/PageHeader'
 import { EmptyStateInline } from '../components/ui/EmptyState'
+import { MarketsHoldingsSkeleton } from '../components/ui/MarketsHoldingsSkeleton'
 import { ConfirmDialog, Field, Modal } from '../components/ui/Modal'
 import { OverflowMenu } from '../components/ui/OverflowMenu'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
@@ -306,6 +307,7 @@ export function MarketsPage() {
     return seedQuotesFromPortfolio(listMarketTickers(), data, cached)
   })
   const [refreshing, setRefreshing] = useState(false)
+  const [initialLoad, setInitialLoad] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<MarketTicker | null>(null)
@@ -466,6 +468,7 @@ export function MarketsPage() {
     } finally {
       refreshInFlight.current = false
       setRefreshing(false)
+      setInitialLoad(false)
     }
   }, [data])
 
@@ -922,6 +925,11 @@ export function MarketsPage() {
       />
 
       <p className="text-xs text-text-subtle mb-4">{statusHint}</p>
+
+      {(initialLoad || refreshing) &&
+      ![...quotes.values()].some((q) => q.last > 0) ? (
+        <MarketsHoldingsSkeleton rows={5} label="Loading market quotes" className="mb-6" />
+      ) : null}
 
       {renderSection('crypto')}
       {renderSection('equities')}

@@ -4,6 +4,7 @@ import { ArrowUpDown, Coins } from 'lucide-react'
 import { AllocationRing } from '../components/charts/AllocationRing'
 import { PortfolioSeriesChart } from '../components/charts/PortfolioSeriesChart'
 import { EmptyState } from '../components/ui/EmptyState'
+import { MarketsHoldingsSkeleton } from '../components/ui/MarketsHoldingsSkeleton'
 import { OverflowMenu } from '../components/ui/OverflowMenu'
 import { PageHeader } from '../components/ui/PageHeader'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
@@ -31,7 +32,7 @@ const emptyForm = {
 }
 
 export function CryptoPage() {
-  const { data, breakdown, privacy, setData } = usePortfolio()
+  const { data, breakdown, privacy, setData, refreshing } = usePortfolio()
   const { error: showError, showToast } = useToasts()
   const { crypto } = breakdown
   const [open, setOpen] = useState(false)
@@ -43,6 +44,7 @@ export function CryptoPage() {
   const [sorting, setSorting] = useState(false)
 
   const holdings = useMemo(() => sortBySortOrder(data.crypto), [data.crypto])
+  const showSkeleton = refreshing && holdings.length === 0
 
   const fillFromLastSynced = () => {
     const snapshot = data
@@ -181,6 +183,12 @@ export function CryptoPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-px mb-6">
+        {showSkeleton ? (
+          <div className="lg:col-span-3">
+            <MarketsHoldingsSkeleton rows={3} label="Loading crypto holdings" />
+          </div>
+        ) : (
+          <>
         <div className="surface p-5 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
           <AllocationRing
             data={pieSlices}
@@ -201,6 +209,8 @@ export function CryptoPage() {
             heightClass="h-56 sm:h-64 lg:h-72"
           />
         </div>
+          </>
+        )}
       </div>
 
       {holdings.length === 0 ? (

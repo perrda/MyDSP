@@ -1,12 +1,19 @@
 import { useEffect, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useLayoutMode, useShowBottomNav } from '../../hooks/useShowBottomNav'
+import { prefetchRouteChunk } from '../../hooks/useIdlePrefetch'
+import { prefetchMarketQuotes } from '../../services/marketsQuotes'
 import { loadNavLayout } from '../../storage/navOrder'
 import { BOTTOM_NAV_CATALOG, resolveBottomNavItems, type BottomNavItem } from '../../domain/bottomNav'
 
 function readItems(): BottomNavItem[] {
   const layout = loadNavLayout(Object.keys(BOTTOM_NAV_CATALOG))
   return resolveBottomNavItems(layout.favourites)
+}
+
+function prefetchMarketsNav(): void {
+  prefetchRouteChunk('/markets')
+  prefetchMarketQuotes()
 }
 
 export function BottomNav() {
@@ -34,6 +41,7 @@ export function BottomNav() {
         tablet ? 'bottom-nav--tablet' : ''
       }`}
       aria-label={tablet ? 'Tablet navigation' : 'Mobile navigation'}
+      role="navigation"
     >
       <div
         className={`flex items-center justify-around px-1 pt-1.5 ${
@@ -45,6 +53,8 @@ export function BottomNav() {
             key={item.to}
             to={item.to}
             end={item.to === '/'}
+            onMouseEnter={item.to === '/markets' ? prefetchMarketsNav : undefined}
+            onFocus={item.to === '/markets' ? prefetchMarketsNav : undefined}
             className={({ isActive }) =>
               `bottom-nav-link relative flex flex-col items-center gap-0.5 py-2 min-h-11 transition-colors ${
                 tablet ? 'px-4 min-w-[4.5rem] flex-1' : 'px-2 min-w-[3.5rem]'

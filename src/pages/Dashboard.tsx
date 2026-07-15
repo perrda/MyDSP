@@ -2,9 +2,8 @@ import { Link } from 'react-router-dom'
 import { ArrowRight, CandlestickChart } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { GettingStartedChecklist } from '../components/GettingStartedChecklist'
-import { AllocationRing } from '../components/charts/AllocationRing'
+import { AllocationRing, NetWorthChart } from '../components/charts/LazyCharts'
 import { BudgetSparkline } from '../components/charts/BudgetSparkline'
-import { NetWorthChart } from '../components/charts/NetWorthChart'
 import { PageHeader } from '../components/ui/PageHeader'
 import { RemindersPanel, useSmartReminders } from '../components/SmartReminders'
 import { PortfolioShareCard } from '../components/SocialShare'
@@ -21,6 +20,7 @@ import {
 } from '../services/sync/autoSyncService'
 import { loadSyncConfig } from '../services/sync/syncService'
 import { loadOfflineQueue } from '../services/offlineQueue'
+import { LAST_BACKUP_KEY } from '../storage/backupStore'
 import { listMarketTickers, loadMarketQuotesCache } from '../storage/marketsStore'
 import { buildPriceAlertNotifications } from '../domain/priceAlerts'
 import { formatDate, formatGBP, formatPct, privacyClass } from '../utils/format'
@@ -88,6 +88,18 @@ export function Dashboard() {
   const syncCfg = loadSyncConfig()
   const syncEnabled = Boolean(syncCfg.enabled && syncCfg.remoteUrl.trim())
 
+  const showBackupNudge = useMemo(() => {
+    try {
+      const last = localStorage.getItem(LAST_BACKUP_KEY)
+      if (!last) return true
+      const then = Date.parse(`${last}T00:00:00Z`)
+      if (!Number.isFinite(then)) return true
+      return Date.now() - then > 7 * 24 * 60 * 60 * 1000
+    } catch {
+      return false
+    }
+  }, [syncStatus.lastAt])
+
   const recentJournal = [...(data.journal ?? [])]
     .sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''))
     .slice(0, 5)
@@ -135,6 +147,18 @@ export function Dashboard() {
           </Link>
         }
       />
+
+      {showBackupNudge ? (
+        <div
+          className="backup-nudge mb-3 px-3 py-2 text-xs text-text-muted border border-border/70 bg-surface/40 rounded-lg md:rounded-none"
+          role="status"
+        >
+          Weekly backup overdue —{' '}
+          <Link to="/settings#full-backup" className="text-accent hover:underline font-semibold">
+            open Settings backups
+          </Link>
+        </div>
+      ) : null}
 
       {/* First viewport: one composition — brand pulse + act */}
       <div className={`surface p-5 md:p-6 mb-4 rounded-xl md:rounded-none shadow-sm md:shadow-none ${privacyClass(privacy)}`}>

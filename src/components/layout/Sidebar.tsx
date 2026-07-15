@@ -209,6 +209,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       )}
 
       <aside
+        aria-label="Sidebar navigation"
         className={`
           fixed inset-y-0 left-0 z-50 w-[min(20rem,88%)]
           bg-bg-elevated border-r border-border
@@ -293,7 +294,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           </p>
         ) : null}
 
-        <nav className="flex-1 py-1 overflow-y-auto" aria-label="Primary">
+        <nav className="flex-1 py-1 overflow-y-auto" role="navigation" aria-label="Primary">
           <div className="px-3 pb-1">
             <p className="nav-section-label">
               <Star size={11} strokeWidth={2} className="text-accent" aria-hidden />

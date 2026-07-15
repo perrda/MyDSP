@@ -208,7 +208,7 @@ export function AppShell() {
       <Sidebar open={open} onClose={() => setOpen(false)} />
 
       <div className="app-main">
-        <header className="app-header">
+        <header className="app-header" role="banner" aria-label="App header">
           <div className="app-header-row">
             <MenuButton onClick={() => setOpen(true)} />
             <div className="hidden sm:flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
@@ -292,6 +292,8 @@ export function AppShell() {
 
         <main
           id="main-content"
+          role="main"
+          aria-label="Main content"
           className={`app-content${showBottomNav ? ' app-content-with-bottom-nav' : ''}`}
         >
           <PullToRefresh onRefresh={onPullToSync} refreshingLabel="Syncing devices…">

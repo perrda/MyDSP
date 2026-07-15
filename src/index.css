@@ -108,8 +108,8 @@ select:focus-visible {
   --border: rgba(255, 255, 255, 0.08);
   --border-strong: rgba(255, 255, 255, 0.18);
   --text: #ffffff;
-  --text-muted: #f3f4f6;
-  --text-subtle: #d1d5db;
+  --text-muted: #f9fafb;
+  --text-subtle: #e5e7eb;
   --accent: #F7931A;
   --accent-bright: #f9a94b;
   --accent-dim: #c47210;
@@ -139,8 +139,8 @@ html.angular {
   --border: rgba(0, 0, 0, 0.1);
   --border-strong: rgba(0, 0, 0, 0.2);
   --text: #0a0a0a;
-  --text-muted: #1f2937;
-  --text-subtle: #4b5563;
+  --text-muted: #111827;
+  --text-subtle: #374151;
   --accent: #d97c0a;
   --accent-bright: #F7931A;
   --accent-dim: #b35e00;
@@ -1751,8 +1751,17 @@ select:focus {
   .sync-just-added,
   .sync-chip--busy .sync-chip-dot,
   .app-content > *,
-  .modal-enter {
+  .modal-enter,
+  .modal-sheet,
+  .filters-sheet.modal-enter,
+  .sparkline-draw-on .recharts-area,
+  .sparkline-draw-on .recharts-area-curve {
     animation: none !important;
+    transition: none !important;
+  }
+  .sparkline-draw-on .recharts-layer path {
+    animation: none !important;
+    transition: none !important;
   }
 }
 
@@ -1782,6 +1791,10 @@ select:focus {
 
 .skeleton-card {
   min-height: 8rem;
+}
+
+.markets-holdings-skeleton .skeleton-card {
+  min-height: 3.5rem;
 }
 
 /* Todo list picker — vertical dropdown (portfolio-select style) */
@@ -2001,6 +2014,22 @@ html.glass [class*='table-wrap'] {
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
   }
+}
+
+/* Glass Mode — visible focus rings on frosted controls */
+html.glass :focus-visible,
+html.glass button:focus-visible,
+html.glass a:focus-visible,
+html.glass input:focus-visible,
+html.glass textarea:focus-visible,
+html.glass select:focus-visible,
+html.glass .toolbar-icon:focus-visible,
+html.glass .toolbar-select:focus-visible,
+html.glass .bottom-nav-link:focus-visible,
+html.glass .sync-chip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);
 }
 
 /* Markets holdings polish */

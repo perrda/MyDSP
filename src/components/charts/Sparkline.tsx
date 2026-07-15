@@ -1,6 +1,7 @@
 import { useId, useMemo } from 'react'
 import { Area, AreaChart, ResponsiveContainer, YAxis } from 'recharts'
 import { sparklineYDomain } from '../../domain/sparklineSeries'
+import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
 
 interface SparklineProps {
   data: number[]
@@ -19,6 +20,7 @@ export function Sparkline({
 }: SparklineProps) {
   const reactId = useId().replace(/:/g, '')
   const gradId = `sparklineGradient-${reactId}`
+  const reduceMotion = usePrefersReducedMotion()
 
   const { chartData, yDomain } = useMemo(() => {
     const values = data.filter((n) => typeof n === 'number' && Number.isFinite(n) && n > 0)
@@ -35,7 +37,7 @@ export function Sparkline({
   }
 
   return (
-    <div style={{ height }} className="w-full">
+    <div style={{ height }} className={`w-full sparkline-draw-on${reduceMotion ? ' sparkline-draw-on--static' : ''}`}>
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={chartData} margin={{ top: 2, right: 0, left: 0, bottom: 2 }}>
           {/* Scale to the series — default Recharts Y domain [0,'auto'] flattens weekly moves */}
@@ -56,8 +58,8 @@ export function Sparkline({
             fill={showGradient ? `url(#${gradId})` : 'none'}
             baseValue={yDomain[0]}
             dot={false}
-            isAnimationActive={false}
-            animationDuration={0}
+            isAnimationActive={!reduceMotion}
+            animationDuration={reduceMotion ? 0 : 600}
           />
         </AreaChart>
       </ResponsiveContainer>

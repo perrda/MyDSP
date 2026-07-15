@@ -18,6 +18,7 @@ import {
   type ChartRange,
 } from '../../domain/history'
 import type { HistoryPoint } from '../../domain/types'
+import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
 import { formatGBP, formatPct, privacyClass } from '../../utils/format'
 import { ChartRangeToolbar } from './ChartRangeToolbar'
 
@@ -72,6 +73,7 @@ export function PortfolioSeriesChart({
   className = '',
 }: Props) {
   const gradId = useId().replace(/:/g, '')
+  const reduceMotion = usePrefersReducedMotion()
   const [range, setRange] = useState<ChartRange>(defaultRange)
   const [showLayers, setShowLayers] = useState(false)
   const [focusedPoint, setFocusedPoint] = useState<number | null>(null)
@@ -224,7 +226,8 @@ export function PortfolioSeriesChart({
                 stroke={primaryDef.color}
                 fill={`url(#${gradId})`}
                 strokeWidth={2}
-                animationDuration={800}
+                isAnimationActive={!reduceMotion}
+                animationDuration={reduceMotion ? 0 : 800}
                 animationEasing="ease-out"
               />
               {activeLines.map((key) => {
@@ -240,7 +243,8 @@ export function PortfolioSeriesChart({
                     dot={false}
                     strokeWidth={1.5}
                     strokeDasharray={def.dashed ? '4 4' : undefined}
-                    animationDuration={800}
+                    isAnimationActive={!reduceMotion}
+                    animationDuration={reduceMotion ? 0 : 800}
                     animationEasing="ease-out"
                   />
                 )

@@ -1,6 +1,7 @@
 import { useId, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
+import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
 import { formatGBP, privacyClass } from '../../utils/format'
 
 export interface SliceDatum {
@@ -48,6 +49,7 @@ export function AllocationRing({
 }: Props) {
   const navigate = useNavigate()
   const gradId = useId().replace(/:/g, '')
+  const reduceMotion = usePrefersReducedMotion()
   const slices = useMemo(
     () => data.filter((d) => Number.isFinite(d.value) && d.value > 0),
     [data],
@@ -101,7 +103,8 @@ export function AllocationRing({
                   const s = slices[index]
                   if (s) go(s.name)
                 }}
-                animationDuration={800}
+                isAnimationActive={!reduceMotion}
+                animationDuration={reduceMotion ? 0 : 800}
                 animationEasing="ease-in-out"
               >
                 {slices.map((_, i) => (

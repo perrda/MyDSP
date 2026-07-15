@@ -31,6 +31,10 @@ import {
 } from '../services/sync/conflicts'
 import { loadSyncActivity, type SyncActivityEntry } from '../services/sync/syncActivity'
 import {
+  formatMarketsProviderHealthHint,
+  getMarketsProviderHealth,
+} from '../services/marketsProviderHealth'
+import {
   DEFAULT_LAUNCH_PATH,
   LAUNCH_PATH_OPTIONS,
   loadLaunchPath,
@@ -252,6 +256,12 @@ export function SettingsPage() {
     loadPriceAlertThresholds(),
   )
   const [syncActivity, setSyncActivity] = useState<SyncActivityEntry[]>(() => loadSyncActivity())
+  const [quoteHealthHint, setQuoteHealthHint] = useState<string | null>(() =>
+    formatMarketsProviderHealthHint(),
+  )
+  const [quoteHealthOk, setQuoteHealthOk] = useState(() =>
+    getMarketsProviderHealth().every((p) => p.consecutiveFailures === 0),
+  )
   const [settingsQuery, setSettingsQuery] = useState('')
   const [cloudEmail, setCloudEmail] = useState(() => {
     try {
@@ -276,6 +286,20 @@ export function SettingsPage() {
     const refresh = () => setSyncActivity(loadSyncActivity())
     window.addEventListener('mydsp-sync-activity', refresh)
     return () => window.removeEventListener('mydsp-sync-activity', refresh)
+  }, [])
+
+  useEffect(() => {
+    const refresh = () => {
+      setQuoteHealthHint(formatMarketsProviderHealthHint())
+      setQuoteHealthOk(getMarketsProviderHealth().every((p) => p.consecutiveFailures === 0))
+    }
+    refresh()
+    window.addEventListener('mydsp-markets-quotes', refresh)
+    const id = window.setInterval(refresh, 30_000)
+    return () => {
+      window.removeEventListener('mydsp-markets-quotes', refresh)
+      window.clearInterval(id)
+    }
   }, [])
 
   /** Hydrate parked auto-sync conflicts into the manual review UI. */
@@ -601,6 +625,30 @@ export function SettingsPage() {
             an edit to push, and a pull when you open/focus the app, pull-to-refresh, or about once
             a minute while it stays open.
           </p>
+          <div
+            className={`quote-worker-health mb-4 inline-flex items-center gap-2 px-2.5 py-1.5 text-xs border max-w-2xl ${
+              quoteHealthHint
+                ? 'border-amber-500/50 text-amber-700 dark:text-amber-300'
+                : quoteHealthOk
+                  ? 'border-emerald-500/40 text-emerald-700 dark:text-emerald-300'
+                  : 'border-border text-text-muted'
+            }`}
+            role="status"
+            aria-label="Quote Worker health"
+          >
+            <span
+              className={`w-1.5 h-1.5 shrink-0 rounded-full ${
+                quoteHealthHint ? 'bg-amber-500' : quoteHealthOk ? 'bg-emerald-500' : 'bg-text-subtle'
+              }`}
+              aria-hidden
+            />
+            <span className="font-semibold tracking-wide uppercase text-[10px] opacity-80">
+              Quote Worker
+            </span>
+            <span className="font-light">
+              {quoteHealthHint ?? (quoteHealthOk ? 'Healthy · markets feeds OK' : 'No recent feed checks')}
+            </span>
+          </div>
           <div className="border border-border p-4 mb-6 max-w-2xl space-y-4">
             <div>
               <p className="text-[11px] font-bold uppercase tracking-widest text-text-subtle mb-3">
