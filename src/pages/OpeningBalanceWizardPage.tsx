@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { PageHeader } from '../components/ui/PageHeader'
+import { BackNav } from '../components/ui/BackNav'
 import { usePortfolio } from '../context/PortfolioContext'
 import {
   scanAllOpeningBalances,
@@ -103,6 +104,9 @@ export function OpeningBalanceWizardPage() {
 
   return (
     <div>
+      <div className="mb-4">
+        <BackNav to="/settings#trade-history" label="Back to settings" />
+      </div>
       <PageHeader
         eyebrow="Setup"
         title="Opening balance wizard"

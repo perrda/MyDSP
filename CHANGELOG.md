@@ -1,5 +1,18 @@
 # MyDSP Changelog
 
+## [1.2.10] - 2026-07-15
+
+### Improved — Back navigation
+- Shared **Back** control (`BackNav`) for detail and filtered views
+- **To Do Lists**: when viewing a specific list, **Back to all lists** returns to the All lists view (no need to use the sidebar)
+- Clearer back labels on Crypto / Equities holdings, Liabilities, and Job applications
+- Predictive Analytics → Analytics; Opening balance wizard → Settings; Legacy CSV import → CSV Import
+
+### Version
+- 1.2.9 → **1.2.10**
+
+---
+
 ## [1.2.9] - 2026-07-15
 
 ### Improved — Navigation scroll

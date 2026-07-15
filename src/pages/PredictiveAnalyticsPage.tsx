@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { TrendingUp, TrendingDown, Minus, AlertTriangle, Award } from 'lucide-react'
 import { PageHeader } from '../components/ui/PageHeader'
+import { BackNav } from '../components/ui/BackNav'
 import { usePortfolio } from '../context/PortfolioContext'
 import {
   analyzeSpendingTrends,
@@ -96,6 +97,9 @@ export function PredictiveAnalyticsPage() {
 
   return (
     <div>
+      <div className="mb-4">
+        <BackNav to="/analytics" label="Back to analytics" />
+      </div>
       <PageHeader
         eyebrow="Insights"
         title="Predictive Analytics"

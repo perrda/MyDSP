@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { PageHeader } from '../components/ui/PageHeader'
+import { BackNav } from '../components/ui/BackNav'
 import { Field } from '../components/ui/Modal'
 import { usePortfolio } from '../context/PortfolioContext'
 import type { ParsedBankRow } from '../services/csvImport'
@@ -65,6 +66,9 @@ export function ImportPage() {
 
   return (
     <div>
+      <div className="mb-4">
+        <BackNav to="/import" label="Back to CSV import" />
+      </div>
       <PageHeader
         eyebrow="Import"
         title="Bank CSV import"
