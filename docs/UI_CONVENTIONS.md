@@ -15,6 +15,8 @@ Cursor agents (and future you) need a single source of truth for forms. The livi
 | Screenshot → todos | `TodoScreenshotImportModal` + `domain/todoOcr.ts` |
 | Phone thumb CTAs | `.thumb-cta-bar` in `index.css` (Todos / Jobs / Markets) |
 | Success feedback | `utils/successFlash.ts` + `.success-haptic-flash` |
+| Spending → Rules | `Make rule` link → `/rules?pattern=&category=` prefill |
+| Today money pulse | `domain/moneyPulse.ts` NW Δ since yesterday |
 
 ## Form recipe
 

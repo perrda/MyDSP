@@ -160,10 +160,10 @@ describe('next25b mobile ergonomics (11–15)', () => {
     expect(shell).toMatch(/triggerSuccessFlash/)
   })
 
-  it('package version is 1.2.42', () => {
+  it('package version is 1.2.43', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8')) as {
       version: string
     }
-    expect(pkg.version).toBe('1.2.42')
+    expect(pkg.version).toBe('1.2.43')
   })
 })

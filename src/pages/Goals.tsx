@@ -6,6 +6,11 @@ import { PageHeader } from '../components/ui/PageHeader'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
 import { usePortfolio } from '../context/PortfolioContext'
+import {
+  estimateMonthlySurplus,
+  formatGoalProjectionLine,
+  projectGoalDate,
+} from '../domain/goalProjectedDate'
 import { nextCommentaryId, ragClass, ragLabel } from '../domain/liabilityHelpers'
 import type { Goal, GoalMetric, GoalType, ProgressCommentary, RagStatus } from '../domain/types'
 import { applySortOrder, sortBySortOrder } from '../utils/reorder'
@@ -37,6 +42,7 @@ export function GoalsPage() {
 
   const goals = useMemo(() => sortBySortOrder(data.goals), [data.goals])
   const noteGoal = goals.find((g) => g.id === noteGoalId) ?? null
+  const monthlySurplus = useMemo(() => estimateMonthlySurplus(data), [data])
 
   const openCreate = () => {
     setEditing(null)
@@ -153,6 +159,8 @@ export function GoalsPage() {
             const current = goalCurrent(g.metric)
             const progress = goalProgress(g)
             const notes = g.commentaries?.length ?? 0
+            const projection =
+              monthlySurplus != null ? projectGoalDate(g, current, monthlySurplus) : null
             return (
               <div className="surface p-5 sm:p-8 goals-density-card">
                 <div className="flex gap-3 mb-4">
@@ -167,6 +175,11 @@ export function GoalsPage() {
                       Deadline {formatDate(g.deadline)} · {g.metric}
                       {notes > 0 ? ` · ${notes} notes` : ''}
                     </p>
+                    {projection ? (
+                      <p className={`goal-projection-line mt-1 text-xs text-accent font-medium ${privacyClass(privacy)}`}>
+                        {formatGoalProjectionLine(projection, formatDate)}
+                      </p>
+                    ) : null}
                   </div>
                   <div className="text-right shrink-0">
                     <p className="label-uppercase mb-1">Progress</p>

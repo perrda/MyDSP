@@ -12,6 +12,9 @@ import { evaluateAchievements } from '../domain/achievements'
 import { buildAlerts } from '../domain/alerts'
 import { worstBudgetOffenders } from '../domain/budgetChart'
 import { appendManualSnapshot } from '../domain/history'
+import { nearestGoalProjection, formatGoalProjectionLine } from '../domain/goalProjectedDate'
+import { formatMoneyPulseLine, moneyPulseDelta } from '../domain/moneyPulse'
+import { dueWithinDays } from '../domain/recurringDueStrip'
 import { isDueToday, isOverdue } from '../domain/todos'
 import { snoozeDueDateOneDay } from '../domain/todoSnooze'
 import {
@@ -192,6 +195,19 @@ export function Dashboard() {
 
   const soonGoalProgress = soonGoal ? goalProgress(soonGoal) : 0
 
+  const moneyPulse = useMemo(() => {
+    const hit = moneyPulseDelta(data.history, netWorth)
+    if (!hit) return null
+    return formatMoneyPulseLine(hit.delta, formatGBP)
+  }, [data.history, netWorth])
+
+  const billsDueSoon = useMemo(
+    () => dueWithinDays(data.recurringTransactions, 7).slice(0, 4),
+    [data.recurringTransactions],
+  )
+
+  const goalProjection = useMemo(() => nearestGoalProjection(data), [data])
+
   const syncLine = !syncEnabled
     ? 'Cloud sync off — enable in Settings'
     : syncStatus.state === 'pulling' || syncStatus.state === 'pushing'
@@ -252,6 +268,11 @@ export function Dashboard() {
         <p className="today-net-worth-value text-3xl md:text-4xl font-bold tabular-nums tracking-tight mb-1 break-words">
           {formatGBP(netWorth)}
         </p>
+        {moneyPulse ? (
+          <p className="today-money-pulse text-sm text-text-muted font-light mb-2 tabular-nums">
+            {moneyPulse}
+          </p>
+        ) : null}
         <p className="text-sm text-text-muted font-light mb-4">
           Assets {formatGBP(assets)} · Debt {formatGBP(liabilities)}
         </p>
@@ -331,6 +352,29 @@ export function Dashboard() {
         )}
       </div>
 
+      {billsDueSoon.length > 0 ? (
+        <div className="today-bills-strip surface p-3 md:p-4 mb-3 rounded-xl md:rounded-none shadow-sm md:shadow-none">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs uppercase tracking-wider text-text-subtle font-semibold">
+              Bills · due in 7 days
+            </p>
+            <Link to="/recurring" className="text-xs text-accent font-semibold">
+              Recurring
+            </Link>
+          </div>
+          <ul className="flex flex-col gap-1.5">
+            {billsDueSoon.map((r) => (
+              <li key={r.id} className="flex items-baseline justify-between gap-3 text-sm">
+                <span className="min-w-0 truncate font-medium">{r.name}</span>
+                <span className={`shrink-0 tabular-nums text-text-muted ${privacyClass(privacy)}`}>
+                  {formatDate(r.nextDue)} · {formatGBP(r.amount)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
       {soonGoal ? (
         <Link
           to="/goals"
@@ -376,6 +420,23 @@ export function Dashboard() {
               Due {formatDate(soonGoal.deadline)}
             </p>
           </div>
+        </Link>
+      ) : null}
+
+      {goalProjection ? (
+        <Link
+          to="/goals"
+          className="today-goal-projection surface p-3 md:p-4 mb-3 rounded-xl md:rounded-none shadow-sm md:shadow-none block group"
+        >
+          <p className="text-xs uppercase tracking-wider text-text-subtle font-semibold mb-1">
+            Goal estimate
+          </p>
+          <p className="text-sm font-semibold tracking-tight group-hover:text-accent line-clamp-1">
+            {goalProjection.goal.name}
+          </p>
+          <p className={`text-xs text-text-muted font-light mt-0.5 ${privacyClass(privacy)}`}>
+            {formatGoalProjectionLine(goalProjection, formatDate)}
+          </p>
         </Link>
       ) : null}
 

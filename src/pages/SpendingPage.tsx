@@ -45,6 +45,14 @@ function nextId(items: { id: number }[]): number {
   return items.reduce((m, i) => Math.max(m, i.id), 0) + 1
 }
 
+/** Deep-link to Rules with merchant pattern/category prefilled. */
+function makeRuleHref(tx: SpendingEntry): string {
+  const params = new URLSearchParams()
+  params.set('pattern', tx.description.trim() || 'merchant')
+  params.set('category', (tx.category || 'other').toLowerCase())
+  return `/rules?${params.toString()}`
+}
+
 const emptyForm = {
   date: new Date().toISOString().slice(0, 10),
   description: '',
@@ -361,6 +369,12 @@ export function SpendingPage() {
                 {tx.category}
               </span>
               <div className="flex gap-1">
+                <Link
+                  to={makeRuleHref(tx)}
+                  className="btn-ghost btn-sm min-h-11 inline-flex items-center"
+                >
+                  Make rule
+                </Link>
                 <button
                   type="button"
                   className="btn-ghost btn-sm min-h-11"
@@ -426,6 +440,9 @@ export function SpendingPage() {
                   {formatGBPPrecise(-Math.abs(tx.amount))}
                 </td>
                 <td className="px-5 sm:px-6 py-4 whitespace-nowrap">
+                  <Link to={makeRuleHref(tx)} className="btn-ghost btn-sm">
+                    Make rule
+                  </Link>
                   <button type="button" className="btn-ghost btn-sm" onClick={() => openEdit(tx)}>
                     Edit
                   </button>

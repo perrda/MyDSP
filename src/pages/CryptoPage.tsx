@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { ArrowUpDown } from 'lucide-react'
 import { AllocationRing } from '../components/charts/AllocationRing'
 import { PortfolioSeriesChart } from '../components/charts/PortfolioSeriesChart'
@@ -39,6 +39,7 @@ const emptyForm = {
 export function CryptoPage() {
   const { data, breakdown, privacy, setData, refreshing } = usePortfolio()
   const { error: showError, showToast } = useToasts()
+  const navigate = useNavigate()
   const { crypto } = breakdown
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<CryptoHolding | null>(null)
@@ -410,7 +411,11 @@ export function CryptoPage() {
         defaultPrice={tradeFor?.price}
         defaultSide={tradeSide}
         data={data}
-        onClose={() => setTradeFor(null)}
+        onClose={(opts) => {
+          const holding = tradeFor
+          setTradeFor(null)
+          if (opts?.saved && holding) navigate(`/crypto/${holding.id}`)
+        }}
         onSave={(vals) => {
           if (!tradeFor) return
           setData((prev) =>
@@ -429,7 +434,6 @@ export function CryptoPage() {
             }),
           )
           showToast({ type: 'success', title: 'Trade saved', message: tradeFor.symbol })
-          setTradeFor(null)
         }}
       />
 

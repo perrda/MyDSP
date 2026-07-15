@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { ArrowUpDown } from 'lucide-react'
 import { AllocationRing } from '../components/charts/AllocationRing'
 import { PortfolioSeriesChart } from '../components/charts/PortfolioSeriesChart'
@@ -44,6 +44,7 @@ const emptyForm = { symbol: '', name: '', shares: '', avgCost: '', livePrice: ''
 export function EquitiesPage() {
   const { data, breakdown, privacy, setData, fxRates, refreshing } = usePortfolio()
   const { error: showError, showToast } = useToasts()
+  const navigate = useNavigate()
   const { equity } = breakdown
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<EquityHolding | null>(null)
@@ -447,7 +448,11 @@ export function EquitiesPage() {
         defaultPrice={tradeFor ? equityUnitPriceGbp(tradeFor) : 0}
         defaultSide={tradeSide}
         data={data}
-        onClose={() => setTradeFor(null)}
+        onClose={(opts) => {
+          const holding = tradeFor
+          setTradeFor(null)
+          if (opts?.saved && holding) navigate(`/equities/${holding.id}`)
+        }}
         onSave={(vals) => {
           if (!tradeFor) return
           setData((prev) =>
@@ -466,7 +471,6 @@ export function EquitiesPage() {
             }),
           )
           showToast({ type: 'success', title: 'Trade saved', message: tradeFor.symbol })
-          setTradeFor(null)
         }}
       />
 

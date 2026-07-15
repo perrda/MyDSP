@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { PageHeader } from '../components/ui/PageHeader'
 import { ConfirmDialog, Field, Modal } from '../components/ui/Modal'
 import { usePortfolio } from '../context/PortfolioContext'
@@ -34,6 +35,7 @@ const empty = {
 
 export function RulesPage() {
   const { data, setData } = usePortfolio()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<MerchantRule | null>(null)
   const [form, setForm] = useState(empty)
@@ -44,6 +46,26 @@ export function RulesPage() {
     () => (testDesc.trim() ? resolveCategory(testDesc, data.merchantRules) : null),
     [testDesc, data.merchantRules],
   )
+
+  /** Prefill create modal from Spending “Make rule” (`?pattern=&category=`). */
+  useEffect(() => {
+    const pattern = searchParams.get('pattern')
+    if (pattern == null || !pattern.trim()) return
+    const categoryRaw = searchParams.get('category') ?? 'other'
+    const category = CATEGORIES.includes(categoryRaw) ? categoryRaw : 'other'
+    setEditing(null)
+    setForm({
+      pattern: pattern.trim(),
+      matchType: 'contains',
+      category,
+      priority: '10',
+    })
+    setOpen(true)
+    const next = new URLSearchParams(searchParams)
+    next.delete('pattern')
+    next.delete('category')
+    setSearchParams(next, { replace: true })
+  }, [searchParams, setSearchParams])
 
   const openCreate = () => {
     setEditing(null)

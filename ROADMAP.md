@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.42**
+**Current version: 1.2.43**
 
-## Completed (through v1.2.42)
+## Completed (through v1.2.43)
 
+- Today / planning (next25b 16–20): money pulse NW Δ, Spending Make rule → Rules prefill, bills due-in-7 strip, goal projected date from surplus estimate, TradeModal save → holding detail
 - Mobile ergonomics (next25b 11–15): thumb CTA bar / PageHeader phone order, Jobs column picker, Todos Select mode, landscape iPad sticky sidebar, success haptic flash
 - Markets / portfolio (next25b 6–10): session Open/Closed chips, holdings drift alert, watchlist tags, dividend yield stub, Compare week-Δ
 - Sync / backup trust (next25b 1–5): pull/push latency on Today, full-backup checksum, passphrase strength meter, multi-device activity hints, pause auto-sync 1 hour

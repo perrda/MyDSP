@@ -1,5 +1,19 @@
 # MyDSP Changelog
 
+## [1.2.43] - 2026-07-15
+
+### Improved — Today / planning (next 25b · 16–20)
+16. Today **money pulse** — one-line NW change since yesterday from history (`today-money-pulse`; privacy-aware)  
+17. Spending **Make rule** on each row → Rules page with `?pattern=&category=` prefill (opens Add rule modal)  
+18. Today **bills due in 7 days** strip from recurring transactions (`today-bills-strip`)  
+19. Goals / Today **projected date** estimate when monthly surplus holds (`goalProjectedDate`; labeled estimate)  
+20. Journal **TradeModal** — after save, `onClose({ saved: true })` navigates Equities/Crypto list → holding detail  
+
+### Version
+- 1.2.42 → **1.2.43**
+
+---
+
 ## [1.2.42] - 2026-07-15
 
 ### Improved — Mobile ergonomics (next 25b · 11–15)
