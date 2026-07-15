@@ -37,6 +37,20 @@ vi.mock('../components/GlassToggle', () => ({
 describe('ToolbarControls', () => {
   beforeEach(() => {
     cleanup()
+    // jsdom defaults to phone-width unless matchMedia is stubbed
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      value: (query: string) => ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      }),
+    })
   })
 
   afterEach(() => {
@@ -72,7 +86,7 @@ describe('ToolbarControls', () => {
 
     expect(screen.getByLabelText('Active portfolio')).toBeInTheDocument()
     expect(screen.getByLabelText('Display currency')).toBeInTheDocument()
-    expect(screen.getAllByLabelText('Notifications').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByLabelText('Notifications')).toBeInTheDocument()
     expect(screen.getByLabelText('More workspace controls')).toBeInTheDocument()
   })
 
@@ -89,16 +103,11 @@ describe('ToolbarControls', () => {
       />,
     )
 
-    // Primary strip should not expose Refresh until More is opened (mobile path
-    // still mounts the desktop refresh in a display:none container in jsdom —
-    // assert via the menu instead).
     fireEvent.click(screen.getByLabelText('More workspace controls'))
     expect(screen.getByRole('menu', { name: 'Workspace actions' })).toBeInTheDocument()
     expect(screen.getByText(/Refresh · Privacy · Theme · Glass · Search/i)).toBeInTheDocument()
 
-    const refreshButtons = screen.getAllByLabelText('Refresh all data')
-    expect(refreshButtons.length).toBeGreaterThanOrEqual(1)
-    fireEvent.click(refreshButtons[refreshButtons.length - 1])
+    fireEvent.click(screen.getByLabelText('Refresh all data'))
     expect(onRefresh).toHaveBeenCalledTimes(1)
   })
 })

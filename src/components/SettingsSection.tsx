@@ -30,7 +30,7 @@ export function SettingsSection({ id, eyebrow, title, children, className = '' }
     >
       <button
         type="button"
-        className="w-full flex items-start justify-between gap-3 text-left p-6 sm:p-8 hover:bg-surface-hover/50 transition-colors"
+        className="w-full flex items-start justify-between gap-3 text-left p-4 sm:p-6 md:p-8 hover:bg-surface-hover/50 transition-colors"
         aria-expanded={open}
         aria-controls={`${id}-panel`}
         onClick={() => setSettingsSectionOpen(id, !open)}
@@ -51,7 +51,7 @@ export function SettingsSection({ id, eyebrow, title, children, className = '' }
         </span>
       </button>
       {open && (
-        <div id={`${id}-panel`} className="px-6 sm:px-8 pb-6 sm:pb-8 -mt-2">
+        <div id={`${id}-panel`} className="px-4 sm:px-6 md:px-8 pb-4 sm:pb-6 md:pb-8 -mt-2">
           {children}
         </div>
       )}

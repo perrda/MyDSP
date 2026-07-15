@@ -135,7 +135,7 @@ export function EquitiesPage() {
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
-              className="btn-ghost btn-sm"
+              className="btn-ghost btn-sm hidden sm:inline-flex min-h-11"
               disabled={holdings.length === 0}
               onClick={fillFromLastSynced}
               title="Apply last-synced Markets quotes to holdings"
@@ -144,7 +144,7 @@ export function EquitiesPage() {
             </button>
             <button
               type="button"
-              className={`btn-secondary btn-sm inline-flex items-center gap-2 ${sorting ? 'border-accent text-accent' : ''}`}
+              className={`btn-secondary btn-sm inline-flex items-center gap-2 min-h-11 ${sorting ? 'border-accent text-accent' : ''}`}
               aria-pressed={sorting}
               disabled={holdings.length === 0}
               onClick={() => setSorting((v) => !v)}
@@ -152,7 +152,7 @@ export function EquitiesPage() {
               <ArrowUpDown size={14} strokeWidth={1.75} />
               {sorting ? 'Done' : 'Sort'}
             </button>
-            <button type="button" className="btn-primary btn-sm" onClick={openCreate}>
+            <button type="button" className="btn-primary btn-sm min-h-11" onClick={openCreate}>
               Add equity
             </button>
           </div>
@@ -177,29 +177,8 @@ export function EquitiesPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-px mb-6">
-        <div className="surface p-5 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
-          <AllocationRing
-            data={pieSlices}
-            privacy={privacy}
-            eyebrow="Mix"
-            title="Holdings"
-            donut
-          />
-        </div>
-        <div className="lg:col-span-2 surface p-5 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
-          <PortfolioSeriesChart
-            history={data.history}
-            privacy={privacy}
-            title="Equity value"
-            eyebrow="Chart"
-            primary="equity"
-            defaultRange="12M"
-            heightClass="h-56 sm:h-64 lg:h-72"
-          />
-        </div>
-      </div>
-
+      <div className="flex flex-col gap-6 mb-6">
+        <div className="order-1 lg:order-2">
       {holdings.length === 0 ? (
         <EmptyState
           icon={<Landmark size={40} strokeWidth={1.25} />}
@@ -301,6 +280,31 @@ export function EquitiesPage() {
           }}
         </ReorderList>
       )}
+        </div>
+
+        <div className="order-2 lg:order-1 grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-px">
+          <div className="surface p-5 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
+            <AllocationRing
+              data={pieSlices}
+              privacy={privacy}
+              eyebrow="Mix"
+              title="Holdings"
+              donut
+            />
+          </div>
+          <div className="lg:col-span-2 surface p-5 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
+            <PortfolioSeriesChart
+              history={data.history}
+              privacy={privacy}
+              title="Equity value"
+              eyebrow="Chart"
+              primary="equity"
+              defaultRange="12M"
+              heightClass="h-56 sm:h-64 lg:h-72"
+            />
+          </div>
+        </div>
+      </div>
 
       <Modal open={open} size="full" title={editing ? 'Edit equity' : 'Add equity'} onClose={() => setOpen(false)}>
         <form

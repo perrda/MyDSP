@@ -15,12 +15,21 @@ interface ToolbarControlsProps {
   onPrivacyToggle: () => void
 }
 
+type ToolbarTier = 'phone' | 'tablet' | 'desktop'
+
+function readTier(): ToolbarTier {
+  if (typeof window === 'undefined') return 'phone'
+  if (window.matchMedia('(min-width: 1024px)').matches) return 'desktop'
+  if (window.matchMedia('(min-width: 768px)').matches) return 'tablet'
+  return 'phone'
+}
+
 /**
- * Workspace controls — designed so a ~390px phone header never overflows.
+ * Workspace controls — phone / tablet / desktop tiers.
  *
- * Phone (&lt;768px): Portfolio · Currency · Notifications · More
- * More menu: Refresh · Privacy · Theme · Glass · Search
- * Tablet / desktop (≥768px): full strip (refresh one-tap).
+ * Phone (&lt;768): Portfolio · Currency · Bell · More (Refresh · Privacy · Theme · Glass · Search)
+ * Tablet (768–1023): Portfolio · Currency · Refresh · Bell · More (Privacy · Theme · Glass · Search)
+ * Desktop (≥1024): full strip one-tap
  */
 export function ToolbarControls({
   portfolioSelect,
@@ -31,8 +40,26 @@ export function ToolbarControls({
   onPrivacyToggle,
 }: ToolbarControlsProps) {
   const [moreOpen, setMoreOpen] = useState(false)
+  const [tier, setTier] = useState<ToolbarTier>(readTier)
   const menuId = useId()
   const wrapRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const mqDesktop = window.matchMedia('(min-width: 1024px)')
+    const mqTablet = window.matchMedia('(min-width: 768px)')
+    const sync = () => {
+      const next = readTier()
+      setTier(next)
+      if (next === 'desktop') setMoreOpen(false)
+    }
+    sync()
+    mqDesktop.addEventListener('change', sync)
+    mqTablet.addEventListener('change', sync)
+    return () => {
+      mqDesktop.removeEventListener('change', sync)
+      mqTablet.removeEventListener('change', sync)
+    }
+  }, [])
 
   useEffect(() => {
     if (!moreOpen) return
@@ -53,15 +80,6 @@ export function ToolbarControls({
     }
   }, [moreOpen])
 
-  useEffect(() => {
-    const mq = window.matchMedia('(min-width: 768px)')
-    const onChange = () => {
-      if (mq.matches) setMoreOpen(false)
-    }
-    mq.addEventListener('change', onChange)
-    return () => mq.removeEventListener('change', onChange)
-  }, [])
-
   const refreshBtn = (opts?: { inMenu?: boolean }) => (
     <button
       type="button"
@@ -79,57 +97,71 @@ export function ToolbarControls({
     </button>
   )
 
+  const moreMenu = (hint: string, includeRefresh: boolean) =>
+    moreOpen ? (
+      <div id={menuId} role="menu" aria-label="Workspace actions" className="toolbar-more-menu">
+        <div className="toolbar-more-row" role="none">
+          {includeRefresh ? refreshBtn({ inMenu: true }) : null}
+          <PrivacyToggle privacy={privacy} onToggle={onPrivacyToggle} />
+          <ThemeToggle />
+          <GlassToggle />
+          <GlobalSearch />
+        </div>
+        <p className="toolbar-more-hint">{hint}</p>
+      </div>
+    ) : null
+
+  const moreTrigger = (
+    <button
+      type="button"
+      className={`toolbar-icon ${moreOpen ? 'is-active' : ''}`}
+      aria-haspopup="menu"
+      aria-expanded={moreOpen}
+      aria-controls={menuId}
+      aria-label={moreOpen ? 'Close workspace menu' : 'More workspace controls'}
+      title="More"
+      onClick={() => setMoreOpen((v) => !v)}
+    >
+      <Ellipsis size={18} strokeWidth={1.5} />
+    </button>
+  )
+
   return (
     <div className="toolbar-cluster" role="toolbar" aria-label="Workspace controls" ref={wrapRef}>
       {portfolioSelect}
       {currencySelect}
 
-      {/* Tablet / desktop: full strip */}
-      <div className="toolbar-actions-desktop">
-        {refreshBtn()}
-        <NotificationCenter />
-        <PrivacyToggle privacy={privacy} onToggle={onPrivacyToggle} />
-        <ThemeToggle />
-        <GlassToggle />
-        <GlobalSearch />
-      </div>
-
-      {/* Phone only: bell + More — refresh lives in the menu */}
-      <div className="toolbar-actions-mobile">
-        <NotificationCenter />
-        <div className="toolbar-more-wrap">
-          <button
-            type="button"
-            className={`toolbar-icon ${moreOpen ? 'is-active' : ''}`}
-            aria-haspopup="menu"
-            aria-expanded={moreOpen}
-            aria-controls={menuId}
-            aria-label={moreOpen ? 'Close workspace menu' : 'More workspace controls'}
-            title="More"
-            onClick={() => setMoreOpen((v) => !v)}
-          >
-            <Ellipsis size={18} strokeWidth={1.5} />
-          </button>
-
-          {moreOpen ? (
-            <div
-              id={menuId}
-              role="menu"
-              aria-label="Workspace actions"
-              className="toolbar-more-menu"
-            >
-              <div className="toolbar-more-row" role="none">
-                {refreshBtn({ inMenu: true })}
-                <PrivacyToggle privacy={privacy} onToggle={onPrivacyToggle} />
-                <ThemeToggle />
-                <GlassToggle />
-                <GlobalSearch />
-              </div>
-              <p className="toolbar-more-hint">Refresh · Privacy · Theme · Glass · Search</p>
-            </div>
-          ) : null}
+      {tier === 'desktop' ? (
+        <div className="toolbar-actions-desktop is-active-tier">
+          {refreshBtn()}
+          <NotificationCenter />
+          <PrivacyToggle privacy={privacy} onToggle={onPrivacyToggle} />
+          <ThemeToggle />
+          <GlassToggle />
+          <GlobalSearch />
         </div>
-      </div>
+      ) : null}
+
+      {tier === 'tablet' ? (
+        <div className="toolbar-actions-tablet is-active-tier">
+          {refreshBtn()}
+          <NotificationCenter />
+          <div className="toolbar-more-wrap">
+            {moreTrigger}
+            {moreMenu('Privacy · Theme · Glass · Search', false)}
+          </div>
+        </div>
+      ) : null}
+
+      {tier === 'phone' ? (
+        <div className="toolbar-actions-mobile is-active-tier">
+          <NotificationCenter />
+          <div className="toolbar-more-wrap">
+            {moreTrigger}
+            {moreMenu('Refresh · Privacy · Theme · Glass · Search', true)}
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

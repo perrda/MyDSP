@@ -24,9 +24,9 @@ export function titleCaseHeader(title: string): string {
 
 /**
  * Page intro chrome.
- * Phone: full eyebrow + title (shell title is hidden).
- * ≥sm: shell sticky title is visible — hide duplicate heading; keep description + actions.
- * Actions sit beside the text block from sm up so CTAs stay near the top.
+ * Phone (&lt;768px): full eyebrow + title (shell title is hidden).
+ * ≥md: shell sticky title is visible — hide duplicate heading; keep description + actions.
+ * Actions sit beside the text block from md up so CTAs stay near the top.
  */
 export function PageHeader({ eyebrow, title, description, action }: PageHeaderProps) {
   const display = titleCaseHeader(title)
@@ -36,10 +36,10 @@ export function PageHeader({ eyebrow, title, description, action }: PageHeaderPr
   const accent = hasAccentSplit ? display.slice(lastSpace + 1) : display
 
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4 mb-6 md:mb-8">
+    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between md:gap-4 mb-6 md:mb-8">
       <div className="min-w-0 flex-1">
-        <p className="eyebrow mb-2 md:mb-3 text-xs md:text-sm sm:hidden">{eyebrow}</p>
-        <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight leading-tight sm:hidden">
+        <p className="eyebrow mb-2 md:mb-3 text-xs md:text-sm md:hidden">{eyebrow}</p>
+        <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight leading-tight md:hidden">
           {hasAccentSplit ? (
             <>
               {lead}{' '}
@@ -52,8 +52,7 @@ export function PageHeader({ eyebrow, title, description, action }: PageHeaderPr
         {description && (
           <p
             className={`text-xs md:text-sm text-text-muted font-light leading-relaxed max-w-2xl ${
-              /* On sm+ the shell owns the title — description is the first page copy */
-              'mt-2 md:mt-3 sm:mt-0'
+              'mt-2 md:mt-0'
             }`}
           >
             {description}

@@ -19,35 +19,35 @@ interface EmptyStateProps {
 
 export function EmptyState({ icon, title, description, action, secondaryAction }: EmptyStateProps) {
   return (
-    <div className="surface p-10 sm:p-12 md:p-16 text-center border border-border animate-fade-in">
+    <div className="surface p-6 sm:p-10 md:p-14 text-center border border-border animate-fade-in">
       {icon && (
-        <div className="flex justify-center mb-4">
-          <div className="text-text-subtle opacity-40 text-6xl">{icon}</div>
+        <div className="flex justify-center mb-3 sm:mb-4">
+          <div className="text-text-subtle opacity-40 text-5xl sm:text-6xl">{icon}</div>
         </div>
       )}
-      <h3 className="text-lg font-bold mb-2">{title}</h3>
-      <p className="text-sm text-text-muted max-w-md mx-auto leading-relaxed mb-6">{description}</p>
+      <h3 className="text-base sm:text-lg font-bold mb-2">{title}</h3>
+      <p className="text-sm text-text-muted max-w-md mx-auto leading-relaxed mb-5 sm:mb-6">{description}</p>
       {(action || secondaryAction) && (
         <div className="flex flex-wrap gap-3 justify-center">
           {action &&
             (action.to ? (
-              <Link to={action.to} className="btn-primary btn-sm">
+              <Link to={action.to} className="btn-primary btn-sm min-h-11">
                 {action.label}
               </Link>
             ) : (
-              <button type="button" className="btn-primary btn-sm" onClick={action.onClick}>
+              <button type="button" className="btn-primary btn-sm min-h-11" onClick={action.onClick}>
                 {action.label}
               </button>
             ))}
           {secondaryAction &&
             (secondaryAction.to ? (
-              <Link to={secondaryAction.to} className="btn-secondary btn-sm">
+              <Link to={secondaryAction.to} className="btn-secondary btn-sm min-h-11">
                 {secondaryAction.label}
               </Link>
             ) : (
               <button
                 type="button"
-                className="btn-secondary btn-sm"
+                className="btn-secondary btn-sm min-h-11"
                 onClick={secondaryAction.onClick}
               >
                 {secondaryAction.label}

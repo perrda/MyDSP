@@ -24,7 +24,7 @@ import { useShowBottomNav } from '../../hooks/useShowBottomNav'
 import { useIdlePrefetch } from '../../hooks/useIdlePrefetch'
 
 const titles: Record<string, { eyebrow: string; title: string }> = {
-  '/': { eyebrow: 'Portfolio', title: 'Overview' },
+  '/': { eyebrow: 'MyDSP', title: 'Today' },
   '/markets': { eyebrow: 'Watchlist', title: 'Markets' },
   '/news': { eyebrow: 'Insights', title: 'News' },
   '/youtube': { eyebrow: 'Media', title: 'YouTube' },
@@ -211,20 +211,21 @@ export function AppShell() {
         <header className="app-header">
           <div className="app-header-row">
             <MenuButton onClick={() => setOpen(true)} />
-            <div className="hidden sm:flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
-              <div className="hidden sm:block w-[3px] h-7 bg-accent shrink-0" aria-hidden />
+            <div className="hidden md:flex items-center gap-2.5 md:gap-3 min-w-0 flex-1">
+              <div className="hidden md:block w-[3px] h-7 bg-accent shrink-0" aria-hidden />
               <div className="min-w-0">
                 <p className="eyebrow tracking-[0.2em]">{meta.eyebrow}</p>
-                <h1 className="text-base sm:text-lg font-bold tracking-tight truncate leading-tight">
+                <h1 className="text-base md:text-lg font-bold tracking-tight truncate leading-tight">
                   {meta.title}
                 </h1>
               </div>
             </div>
-            {/* Mobile: keep header lean — page PageHeader carries the title */}
-            <div className="sm:hidden flex-1 min-w-0 flex items-center justify-end pr-1">
+            {/* Phone: spacer + chip; :empty hides chip wrap when SyncStatusChip returns null */}
+            <div className="md:hidden flex-1 min-w-0" aria-hidden />
+            <div className="md:hidden shrink-0 empty:hidden flex items-center pr-1">
               <SyncStatusChip />
             </div>
-            <div className="hidden sm:flex items-center justify-end shrink-0 mr-1">
+            <div className="hidden md:flex items-center justify-end shrink-0 mr-1 empty:hidden">
               <SyncStatusChip />
             </div>
 
@@ -270,7 +271,7 @@ export function AppShell() {
               }
             />
           </div>
-          {(priceMsg || lastPriceError || lastSyncAt) && (
+          {(priceMsg || lastPriceError) && (
             <div className="app-header-meta">
               <p
                 className={`text-xs truncate ${lastPriceError && !priceMsg ? 'text-accent' : 'text-text-subtle'}`}
@@ -281,13 +282,19 @@ export function AppShell() {
                     {priceMsg}
                   </Link>
                 ) : (
-                  (priceMsg ??
-                    lastPriceError ??
-                    (lastSyncAt ? `Last Sync ${formatDateTime(lastSyncAt)}` : null))
+                  (priceMsg ?? lastPriceError)
                 )}
               </p>
             </div>
           )}
+          {/* Idle “Last Sync …” only on tablet/desktop — phone uses the sync chip */}
+          {!priceMsg && !lastPriceError && lastSyncAt ? (
+            <div className="app-header-meta hidden md:block">
+              <p className="text-xs truncate text-text-subtle" role="status">
+                Last Sync {formatDateTime(lastSyncAt)}
+              </p>
+            </div>
+          ) : null}
         </header>
 
         <main

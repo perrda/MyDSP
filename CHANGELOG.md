@@ -1,5 +1,25 @@
 # MyDSP Changelog
 
+## [1.2.29] - 2026-07-15
+
+### Improved — Mobile / iPad / web clarity batch
+1. **Phone header** — idle “Last Sync …” meta hidden; empty sync chip slot collapses
+2. **Title breakpoints** — PageHeader + shell titles align at 768px (no double titles on tablet)
+3. **Lean iPad toolbar** — 768–1023: Refresh · Bell · More; desktop ≥1024 keeps full strip
+4. **Tablet bottom nav** — roomier hit targets (`.bottom-nav--tablet`)
+5. **Markets %** — “24h” caption under change badges; denser compact rows
+6. **Holdings** — list before charts on phone/tablet; Sort/Add touch targets; Fill last synced desktop+
+7. **Settings** — denser phone padding on collapsible sections
+8. **Today** — home shell title unified as Today (was Overview)
+9. **Modals / empty** — Close + empty CTAs use min-h-11; tighter empty padding
+10. **PWA** — Today / Markets / Settings shortcuts; theme-color tracks light/dark chrome
+11. **Loading** — compact route spinner (not full-screen takeover)
+
+### Version
+- 1.2.27 → **1.2.29** (1.2.28 reserved for Markets 24h / live prices PR)
+
+---
+
 ## [1.2.27] - 2026-07-15
 
 ### Improved — UI polish Top 10

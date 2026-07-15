@@ -335,23 +335,27 @@ html.theme-transitioning *::after {
   gap: inherit;
   flex-shrink: 0;
 }
-.toolbar-actions-mobile {
-  display: flex;
+.toolbar-actions-tablet {
+  display: none;
   align-items: center;
   gap: inherit;
   flex-shrink: 0;
 }
+.toolbar-actions-mobile {
+  display: none;
+  align-items: center;
+  gap: inherit;
+  flex-shrink: 0;
+}
+/* JS mounts only the active tier (phone / tablet / desktop) */
+.toolbar-actions-desktop.is-active-tier,
+.toolbar-actions-tablet.is-active-tier,
+.toolbar-actions-mobile.is-active-tier {
+  display: flex;
+}
 .toolbar-more-wrap {
   position: relative;
   flex-shrink: 0;
-}
-@media (min-width: 768px) {
-  .toolbar-actions-desktop {
-    display: flex;
-  }
-  .toolbar-actions-mobile {
-    display: none;
-  }
 }
 
 .toolbar-more-menu {
@@ -587,6 +591,20 @@ html.has-bottom-nav .floating-banner--toast {
   .bottom-nav {
     display: none !important;
   }
+}
+
+/* iPad / tablet bottom nav — roomier targets */
+.bottom-nav--tablet {
+  padding-top: 0.15rem;
+}
+.bottom-nav--tablet .bottom-nav-link {
+  min-height: 3.25rem;
+  padding-top: 0.45rem;
+  padding-bottom: 0.45rem;
+}
+.bottom-nav--tablet .bottom-nav-link--active::before {
+  width: 2.25rem;
+  height: 2.5px;
 }
 
 /* Touch-friendly tables on small screens */

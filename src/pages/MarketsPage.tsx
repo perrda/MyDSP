@@ -105,7 +105,7 @@ const SECTION_META: Record<
   },
 }
 
-function ChangeBadge({ pct }: { pct: number }) {
+function ChangeBadge({ pct, windowLabel = '24h' }: { pct: number; windowLabel?: string }) {
   const up = pct > 0
   const flat = Math.abs(pct) < 0.005
   const cls = flat
@@ -114,10 +114,15 @@ function ChangeBadge({ pct }: { pct: number }) {
       ? 'bg-emerald-600/90 text-white'
       : 'bg-red-600/90 text-white'
   return (
-    <span
-      className={`inline-flex min-w-[4.25rem] justify-center px-2 py-1 text-xs font-semibold tabular-nums rounded-md ${cls}`}
-    >
-      {formatPct(pct, 2)}
+    <span className="inline-flex flex-col items-end gap-0.5">
+      <span
+        className={`inline-flex min-w-[4.25rem] justify-center px-2 py-1 text-xs font-semibold tabular-nums rounded-md ${cls}`}
+      >
+        {formatPct(pct, 2)}
+      </span>
+      <span className="text-[10px] font-semibold uppercase tracking-wider text-text-subtle leading-none">
+        {windowLabel}
+      </span>
     </span>
   )
 }
@@ -604,7 +609,7 @@ export function MarketsPage() {
           </div>
           <button
             type="button"
-            className="btn-ghost btn-sm p-2 min-h-10 min-w-10 shrink-0"
+            className="btn-ghost btn-sm p-2 min-h-11 min-w-11 shrink-0"
             aria-label={isCollapsed ? `Expand ${meta.title}` : `Collapse ${meta.title}`}
             onClick={() => toggleSection(section)}
           >
@@ -642,7 +647,7 @@ export function MarketsPage() {
                   return (
                     <div
                       id={`market-${t.symbol.replace(/[^a-zA-Z0-9]/g, '_')}`}
-                      className={`px-4 sm:px-5 flex items-center gap-2 sm:gap-4 ${
+                      className={`px-4 sm:px-5 flex items-center gap-2 sm:gap-4 min-h-11 ${
                         compact ? 'py-2' : 'py-3.5'
                       } ${focused ? 'ring-2 ring-inset ring-accent bg-accent/5' : ''}`}
                     >

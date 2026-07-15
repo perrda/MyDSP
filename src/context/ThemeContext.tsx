@@ -48,6 +48,11 @@ function applyDomTheme(next: Theme, withTransition: boolean) {
   if (withTransition) root.classList.add('theme-transitioning')
   root.classList.remove('light', 'dark')
   root.classList.add(next)
+  // Match browser/PWA chrome to the active surface (iOS status bar / Android nav)
+  const chrome = next === 'light' ? '#ffffff' : '#000000'
+  for (const meta of document.querySelectorAll('meta[name="theme-color"]')) {
+    meta.setAttribute('content', chrome)
+  }
   if (withTransition) {
     window.setTimeout(() => root.classList.remove('theme-transitioning'), 300)
   }

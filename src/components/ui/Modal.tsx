@@ -101,7 +101,7 @@ export function Modal({ open, title, onClose, children, size = 'default' }: Moda
           <h2 id={titleId} className="text-base sm:text-lg font-bold tracking-tight truncate">
             {title}
           </h2>
-          <button type="button" className="btn-ghost btn-sm shrink-0" onClick={onClose}>
+          <button type="button" className="btn-ghost btn-sm shrink-0 min-h-11 min-w-11" onClick={onClose}>
             Close
           </button>
         </div>
