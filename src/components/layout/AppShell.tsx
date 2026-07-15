@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Outlet, useLocation } from 'react-router-dom'
+import { Link, Outlet, useLocation } from 'react-router-dom'
 import { usePortfolio } from '../../context/PortfolioContext'
 import { DISPLAY_CURRENCIES } from '../../services/fx'
 import { loadSyncConfig } from '../../services/sync/syncService'
