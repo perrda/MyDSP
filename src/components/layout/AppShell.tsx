@@ -268,6 +268,7 @@ export function AppShell() {
         </header>
 
         <main
+          id="main-content"
           className={`app-content${showBottomNav ? ' app-content-with-bottom-nav' : ''}`}
         >
           <PullToRefresh onRefresh={onPullToSync} refreshingLabel="Syncing devices…">

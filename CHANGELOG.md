@@ -1,5 +1,17 @@
 # MyDSP Changelog
 
+## [1.2.9] - 2026-07-15
+
+### Improved — Navigation scroll
+- Selecting a new section (sidebar, bottom nav, Overview quick links, in-page links) always opens at the **top of the page**
+- Browser scroll restoration disabled so SPA navigations don’t land mid-page
+- Hash deep-links (`/settings#sync`, `#alerts`, …) still scroll to the target section
+
+### Version
+- 1.2.8 → **1.2.9**
+
+---
+
 ## [1.2.8] - 2026-07-15
 
 ### Improved — Bottom nav (desktop web)
