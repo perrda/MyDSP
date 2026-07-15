@@ -1478,8 +1478,10 @@ export function SettingsPage() {
           <p className="eyebrow mb-3">Alerts</p>
           <h3 className="text-lg font-bold tracking-tight mb-3">Notifications</h3>
           <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
-            The header bell shows budget and debt alerts. Optional desktop/OS banners fire for new
-            high-priority items (works best on desktop browsers; iOS Safari is limited).
+            The header bell lists portfolio alerts. Optional desktop/OS banners fire only for new{' '}
+            <strong className="text-text font-medium">critical</strong> items by default (budget
+            overrun, debt RAG red, high card utilisation). iOS Safari support is limited; desktop
+            Chrome/Edge work best.
           </p>
 
           <div className="space-y-4 max-w-xl">

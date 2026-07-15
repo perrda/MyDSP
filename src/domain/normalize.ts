@@ -524,7 +524,7 @@ function normalizeFireInputs(raw: unknown): FireInputsState {
 
 const TAX_RESIDENCY_RE = /^[A-Za-z]{2}$/
 
-function normalizeTaxResidency(raw: unknown): string {
+export function normalizeTaxResidency(raw: unknown): string {
   const v = str(raw, 'GB').toUpperCase()
   if (v === 'OTHER' || v === 'XX') return 'XX'
   return TAX_RESIDENCY_RE.test(v) ? v : 'GB'

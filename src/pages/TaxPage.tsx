@@ -138,9 +138,11 @@ export function TaxPage() {
             >
               <Download size={14} strokeWidth={1.5} /> Export CSV
             </button>
-            <button type="button" className="btn-ghost btn-sm" onClick={onExportSa108}>
-              SA108 CSV
-            </button>
+            {isUkTax ? (
+              <button type="button" className="btn-ghost btn-sm" onClick={onExportSa108}>
+                SA108 CSV
+              </button>
+            ) : null}
             <button type="button" className="btn-ghost btn-sm" onClick={onExportTransactionLog}>
               Transaction log
             </button>
@@ -163,19 +165,20 @@ export function TaxPage() {
             </>
           ) : (
             <>
-              <strong>Portfolio tax residency: {residency}</strong> — calculations below follow UK
-              CGT rules and may not reflect {residency} tax law. Update residency in{' '}
+              <strong>Portfolio tax residency: {residency}</strong> — the UK §104 / B&amp;B matching
+              and SA108 export below are shown for reference only and may not reflect {residency}{' '}
+              tax law. Update residency in{' '}
               <Link to="/settings" className="text-accent hover:underline">
                 Settings
-              </Link>{' '}
-              if needed. Not formal tax advice.
+              </Link>
+              . Not formal tax advice.
             </>
           )}
         </p>
       </div>
       <div className="surface p-5 sm:p-6 mb-px">
         <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle mb-2">
-          Tax year
+          {isUkTax ? 'UK tax year' : 'Reference UK tax year'}
         </label>
         <select
           className="sm:w-56"
@@ -192,15 +195,15 @@ export function TaxPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px mb-6">
         <div className="surface p-6">
-          <p className="label-uppercase mb-2">Same-day</p>
+          <p className="label-uppercase mb-2">{isUkTax ? 'Same-day' : 'Matched (ref)'}</p>
           <p className="text-2xl font-bold tabular-nums">{s104.byRule.sameDay}</p>
         </div>
         <div className="surface p-6">
-          <p className="label-uppercase mb-2">Bed &amp; breakfast</p>
+          <p className="label-uppercase mb-2">{isUkTax ? 'Bed & breakfast' : 'B&B (ref)'}</p>
           <p className="text-2xl font-bold tabular-nums">{s104.byRule.bedAndBreakfast}</p>
         </div>
         <div className="surface p-6">
-          <p className="label-uppercase mb-2">Section 104</p>
+          <p className="label-uppercase mb-2">{isUkTax ? 'Section 104' : 'Pool (ref)'}</p>
           <p className="text-2xl font-bold tabular-nums">{s104.byRule.section104}</p>
         </div>
         <div className="surface p-6">

@@ -1,7 +1,7 @@
 {
   "name": "mydsp",
   "private": true,
-  "version": "1.2.5",
+  "version": "1.2.6",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,8 +10,10 @@
     "preview": "npm run build && wrangler dev",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "deploy": "npm run build && wrangler deploy",
-    "deploy:sync": "cd sync-endpoint && wrangler deploy"
+    "verify:deploy": "node scripts/verify-deploy.mjs",
+    "deploy": "npm run build && node scripts/verify-deploy.mjs && wrangler deploy",
+    "deploy:sync": "cd sync-endpoint && wrangler deploy",
+    "deploy:check": "npm run build && npm run verify:deploy"
   },
   "dependencies": {
     "lucide-react": "^1.24.0",
