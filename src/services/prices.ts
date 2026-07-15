@@ -2,6 +2,11 @@
 
 import { equityNeedsUsdToGbp } from '../domain/equityCurrency'
 import {
+  cleanSparklineCloses,
+  downsampleGeckoPricesToDaily,
+  takeLastSparklinePoints,
+} from '../domain/sparklineSeries'
+import {
   ensureFxRates,
   usdToGbp,
   type FxRates,
@@ -65,7 +70,17 @@ const geckoSearchCache = new Map<string, string>()
 /** After a CoinGecko 429, skip further Gecko calls briefly. */
 let geckoCooldownUntil = 0
 
+/** Display window for Markets sparklines (~7 daily points). */
 const SPARKLINE_DAYS = 7
+/**
+ * Yahoo `range=7d` often returns only ~5 equity closes (weekends).
+ * Fetch a longer daily window, then keep the last SPARKLINE_DAYS points.
+ */
+const YAHOO_SPARKLINE_RANGE = '14d'
+
+function yahooSparklineFromCloses(closes: Array<number | null | undefined>): number[] {
+  return takeLastSparklinePoints(cleanSparklineCloses(closes), SPARKLINE_DAYS)
+}
 
 function geckoCoolingDown(): boolean {
   return Date.now() < geckoCooldownUntil
@@ -257,7 +272,7 @@ export async function fetchEquityMarketQuote(
       const changeAbs = data.d ?? data.c - previousClose
       const changePct =
         data.dp ?? (previousClose > 0 ? ((data.c - previousClose) / previousClose) * 100 : 0)
-      const spark = await fetchYahooSparkline(sym, SPARKLINE_DAYS)
+      const spark = await fetchYahooSparkline(sym)
       return {
         price: data.c,
         previousClose,
@@ -273,7 +288,7 @@ export async function fetchEquityMarketQuote(
 }
 
 async function fetchYahooChartQuote(sym: string): Promise<EquityMarketQuoteNative | null> {
-  const yahoo = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&range=${SPARKLINE_DAYS}d`
+  const yahoo = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&range=${YAHOO_SPARKLINE_RANGE}`
   const data = await fetchViaProxies<{
     chart?: {
       result?: Array<{
@@ -297,9 +312,7 @@ async function fetchYahooChartQuote(sym: string): Promise<EquityMarketQuoteNativ
   const previousClose = meta?.chartPreviousClose || meta?.previousClose || price
   const changeAbs = price - previousClose
   const changePct = previousClose > 0 ? (changeAbs / previousClose) * 100 : 0
-  const closes = (result?.indicators?.quote?.[0]?.close || []).filter(
-    (n): n is number => typeof n === 'number' && n > 0,
-  )
+  const closes = yahooSparklineFromCloses(result?.indicators?.quote?.[0]?.close || [])
 
   let extendedHours: EquityMarketQuoteNative['extendedHours']
   if (meta?.postMarketPrice && meta.postMarketPrice > 0 && price > 0) {
@@ -345,15 +358,14 @@ export function normalizeYahooEquitySymbol(symbol: string): string {
   return raw
 }
 
-async function fetchYahooSparkline(symbol: string, days = SPARKLINE_DAYS): Promise<number[]> {
-  const yahoo = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=${days}d`
+async function fetchYahooSparkline(symbol: string): Promise<number[]> {
+  const yahoo = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=${YAHOO_SPARKLINE_RANGE}`
   const data = await fetchViaProxies<{
     chart?: {
       result?: Array<{ indicators?: { quote?: Array<{ close?: Array<number | null> }> } }>
     }
   }>(yahoo, 8000)
-  const closes = data?.chart?.result?.[0]?.indicators?.quote?.[0]?.close || []
-  return closes.filter((n): n is number => typeof n === 'number' && n > 0)
+  return yahooSparklineFromCloses(data?.chart?.result?.[0]?.indicators?.quote?.[0]?.close || [])
 }
 
 export interface CryptoMarketQuoteGbp {
@@ -410,7 +422,7 @@ export async function fetchCryptoYahooQuoteGbp(
 ): Promise<CryptoMarketQuoteGbp | null> {
   const fx = rates ?? (await ensureFxRates())
   const ySym = yahooCryptoSymbol(symbol)
-  const yahoo = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ySym)}?interval=1d&range=${SPARKLINE_DAYS}d`
+  const yahoo = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ySym)}?interval=1d&range=${YAHOO_SPARKLINE_RANGE}`
   const data = await fetchViaProxies<{
     chart?: {
       result?: Array<{
@@ -434,9 +446,9 @@ export async function fetchCryptoYahooQuoteGbp(
   const prevGbp = usdToGbp(prevUsd, fx)
   const changeAbs = priceGbp - prevGbp
   const changePct = prevGbp > 0 ? (changeAbs / prevGbp) * 100 : 0
-  const closes = (result?.indicators?.quote?.[0]?.close || [])
-    .filter((n): n is number => typeof n === 'number' && n > 0)
-    .map((n) => usdToGbp(n, fx))
+  const closes = yahooSparklineFromCloses(result?.indicators?.quote?.[0]?.close || []).map((n) =>
+    usdToGbp(n, fx),
+  )
 
   return {
     symbol: symbol.toUpperCase(),
@@ -622,7 +634,7 @@ export interface RateMarketQuote {
 
 export async function fetchFxPairQuote(base: string, quote: string): Promise<RateMarketQuote | null> {
   const ySym = yahooFxSymbol(base, quote)
-  const yahoo = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ySym)}?interval=1d&range=${SPARKLINE_DAYS}d`
+  const yahoo = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ySym)}?interval=1d&range=${YAHOO_SPARKLINE_RANGE}`
   const data = await fetchViaProxies<{
     chart?: {
       result?: Array<{
@@ -664,9 +676,7 @@ export async function fetchFxPairQuote(base: string, quote: string): Promise<Rat
   const previousClose = meta?.chartPreviousClose || meta?.previousClose || price
   const changeAbs = price - previousClose
   const changePct = previousClose > 0 ? (changeAbs / previousClose) * 100 : 0
-  const closes = (result?.indicators?.quote?.[0]?.close || []).filter(
-    (n): n is number => typeof n === 'number' && n > 0,
-  )
+  const closes = yahooSparklineFromCloses(result?.indicators?.quote?.[0]?.close || [])
 
   return {
     last: price,
@@ -704,10 +714,15 @@ export async function fetchCryptoCrossQuote(
         const previousClose = last / (1 + changePct / 100)
         const spark =
           baseQ.sparkline && quoteQ.sparkline
-            ? baseQ.sparkline.map((b, i) => {
-                const q = quoteQ.sparkline![Math.min(i, quoteQ.sparkline!.length - 1)]
-                return q > 0 ? b / q : 0
-              }).filter((n) => n > 0)
+            ? takeLastSparklinePoints(
+                baseQ.sparkline
+                  .map((b, i) => {
+                    const q = quoteQ.sparkline![Math.min(i, quoteQ.sparkline!.length - 1)]
+                    return q > 0 ? b / q : 0
+                  })
+                  .filter((n) => n > 0),
+                SPARKLINE_DAYS,
+              )
             : []
         return {
           last,
@@ -769,14 +784,7 @@ export async function fetchCryptoCrossQuote(
     try {
       const chartUrl = `https://api.coingecko.com/api/v3/coins/${encodeURIComponent(baseId)}/market_chart?vs_currency=${encodeURIComponent(vs)}&days=${SPARKLINE_DAYS}`
       const chart = await fetchGeckoJson<{ prices?: Array<[number, number]> }>(chartUrl, 12000)
-      sparkline = (chart?.prices || [])
-        .map((p) => p[1])
-        .filter((n): n is number => typeof n === 'number' && n > 0)
-      // Downsample to ~daily points for 7d
-      if (sparkline.length > 14) {
-        const step = Math.ceil(sparkline.length / 14)
-        sparkline = sparkline.filter((_, i) => i % step === 0)
-      }
+      sparkline = downsampleGeckoPricesToDaily(chart?.prices, SPARKLINE_DAYS)
     } catch {
       /* optional */
     }
@@ -812,17 +820,10 @@ export async function fetchCryptoGbpSparkline(
   if (!id) return []
   const chartUrl = `https://api.coingecko.com/api/v3/coins/${encodeURIComponent(id)}/market_chart?vs_currency=gbp&days=${SPARKLINE_DAYS}`
   const chart = await fetchGeckoJson<{ prices?: Array<[number, number]> }>(chartUrl, 12000)
-  let prices = (chart?.prices || [])
-    .map((p) => p[1])
-    .filter((n): n is number => typeof n === 'number' && n > 0)
-  if (prices.length > 14) {
-    const step = Math.ceil(prices.length / 14)
-    prices = prices.filter((_, i) => i % step === 0)
-  }
-  return prices
+  return downsampleGeckoPricesToDaily(chart?.prices, SPARKLINE_DAYS)
 }
 
 /** @deprecated use fetchYahooSparkline — kept for callers expecting intraday */
 export async function fetchEquitySparkline(symbol: string, _days = SPARKLINE_DAYS): Promise<number[]> {
-  return fetchYahooSparkline(normalizeYahooEquitySymbol(symbol), SPARKLINE_DAYS)
+  return fetchYahooSparkline(normalizeYahooEquitySymbol(symbol))
 }

@@ -25,6 +25,7 @@ import {
   type MarketsCollapsed,
 } from '../domain/markets'
 import { mergeMarketQuotes } from '../domain/marketQuotesCache'
+import { sparklineTrendFromSeries } from '../domain/sparklineSeries'
 import { refreshMarketQuotes } from '../services/marketsQuotes'
 import { KNOWN_CRYPTO_SYMBOLS } from '../services/prices'
 import {
@@ -501,7 +502,7 @@ export function MarketsPage() {
                 {(t) => {
                   const q = quotes.get(t.id)
                   const pct = q?.changePct ?? 0
-                  const trend = pct > 0 ? 'up' : pct < 0 ? 'down' : 'neutral'
+                  const trend = sparklineTrendFromSeries(q?.sparkline ?? [])
                   const showSpark = Boolean(q && q.sparkline.length > 1)
                   return (
                     <div className="px-4 sm:px-5 py-3.5 flex items-center gap-2 sm:gap-4">

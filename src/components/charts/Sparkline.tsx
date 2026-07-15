@@ -1,5 +1,6 @@
 import { useId, useMemo } from 'react'
-import { Area, AreaChart, ResponsiveContainer } from 'recharts'
+import { Area, AreaChart, ResponsiveContainer, YAxis } from 'recharts'
+import { sparklineYDomain } from '../../domain/sparklineSeries'
 
 interface SparklineProps {
   data: number[]
@@ -18,14 +19,27 @@ export function Sparkline({
 }: SparklineProps) {
   const reactId = useId().replace(/:/g, '')
   const gradId = `sparklineGradient-${reactId}`
-  const chartData = useMemo(() => data.map((value, index) => ({ index, value })), [data])
+
+  const { chartData, yDomain } = useMemo(() => {
+    const values = data.filter((n) => typeof n === 'number' && Number.isFinite(n) && n > 0)
+    return {
+      chartData: values.map((value, index) => ({ index, value })),
+      yDomain: sparklineYDomain(values),
+    }
+  }, [data])
 
   const trendColor = trend === 'up' ? '#4ade80' : trend === 'down' ? '#f87171' : color
+
+  if (chartData.length < 2) {
+    return <div style={{ height }} className="w-full" aria-hidden />
+  }
 
   return (
     <div style={{ height }} className="w-full">
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={chartData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+        <AreaChart data={chartData} margin={{ top: 2, right: 0, left: 0, bottom: 2 }}>
+          {/* Scale to the series — default Recharts Y domain [0,'auto'] flattens weekly moves */}
+          <YAxis domain={yDomain} hide width={0} />
           {showGradient && (
             <defs>
               <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
@@ -40,9 +54,10 @@ export function Sparkline({
             stroke={trendColor}
             strokeWidth={1.5}
             fill={showGradient ? `url(#${gradId})` : 'none'}
+            baseValue={yDomain[0]}
             dot={false}
-            animationDuration={500}
-            animationEasing="ease-in-out"
+            isAnimationActive={false}
+            animationDuration={0}
           />
         </AreaChart>
       </ResponsiveContainer>
