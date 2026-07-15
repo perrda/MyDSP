@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
-  ArrowLeft,
   Calendar,
   DollarSign,
   Edit2,
@@ -16,6 +15,7 @@ import {
   X,
 } from 'lucide-react'
 import { PageHeader } from '../components/ui/PageHeader'
+import { BackNav } from '../components/ui/BackNav'
 import { ConfirmDialog } from '../components/ui/Modal'
 import { InterviewModal } from '../components/InterviewModal'
 import { NoteModal } from '../components/NoteModal'
@@ -97,9 +97,7 @@ export function JobDetailPage() {
         <PageHeader eyebrow="Career" title="Job Not Found" />
         <div className="surface p-8 text-center rounded-xl md:rounded-none shadow-sm md:shadow-none">
           <p className="text-text-muted mb-4">This job application could not be found.</p>
-          <Link to="/jobs" className="btn-primary">
-            Back to Applications
-          </Link>
+          <BackNav to="/jobs" label="Back to applications" />
         </div>
       </div>
     )
@@ -428,10 +426,8 @@ export function JobDetailPage() {
           onClose={() => setShowJobForm(false)}
         />
       )}
-      <div className="mb-6">
-        <Link to="/jobs" className="text-accent hover:text-accent-bright text-sm mb-2 inline-flex items-center gap-1">
-          <ArrowLeft size={14} /> Back to Applications
-        </Link>
+      <div className="mb-4">
+        <BackNav to="/jobs" label="Back to applications" />
       </div>
 
       <PageHeader

@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react'
-import { Link, useLocation, useParams } from 'react-router-dom'
-import { ArrowLeft, ExternalLink } from 'lucide-react'
+import { useLocation, useParams } from 'react-router-dom'
+import { ExternalLink } from 'lucide-react'
 import { PortfolioSeriesChart } from '../components/charts/PortfolioSeriesChart'
 import { HoldingPriceChart } from '../components/charts/HoldingPriceChart'
 import { OverflowMenu } from '../components/ui/OverflowMenu'
 import { PageHeader } from '../components/ui/PageHeader'
+import { BackNav } from '../components/ui/BackNav'
 import { ConfirmDialog, Field, Modal } from '../components/ui/Modal'
 import { TradeHistoryModal } from '../components/ui/TradeHistoryModal'
 import { TradeModal } from '../components/ui/TradeModal'
@@ -72,9 +73,10 @@ export function HoldingDetailPage() {
     return (
       <div className="surface p-8">
         <p className="mb-4">Holding not found.</p>
-        <Link to={kind === 'equity' ? '/equities' : '/crypto'} className="btn-secondary btn-sm">
-          Back
-        </Link>
+        <BackNav
+          to={kind === 'equity' ? '/equities' : '/crypto'}
+          label={kind === 'equity' ? 'Back to equities' : 'Back to crypto'}
+        />
       </div>
     )
   }
@@ -152,12 +154,10 @@ export function HoldingDetailPage() {
   return (
     <div className="liability-workspace">
       <div className="liability-workspace-bar">
-        <Link
+        <BackNav
           to={isCrypto ? '/crypto' : '/equities'}
-          className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-text-muted hover:text-accent"
-        >
-          <ArrowLeft size={14} strokeWidth={1.5} /> Back
-        </Link>
+          label={isCrypto ? 'Back to crypto' : 'Back to equities'}
+        />
         <span className={ragClass(rag)}>{ragLabel(rag)}</span>
       </div>
 

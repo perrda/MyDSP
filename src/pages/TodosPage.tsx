@@ -17,6 +17,7 @@ import {
   FolderInput,
 } from 'lucide-react'
 import { PageHeader } from '../components/ui/PageHeader'
+import { BackNav } from '../components/ui/BackNav'
 import { EmptyState } from '../components/ui/EmptyState'
 import { ConfirmDialog } from '../components/ui/Modal'
 import { TodoModal } from '../components/TodoModal'
@@ -604,7 +605,17 @@ export function TodosPage() {
           </div>
 
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-            <p className="text-xs text-text-subtle">Pick a list · Sort inside the menu to reorder</p>
+            {selectedListId != null ? (
+              <BackNav
+                label="Back to all lists"
+                onClick={() => {
+                  setSelectedListId(null)
+                  window.scrollTo(0, 0)
+                }}
+              />
+            ) : (
+              <p className="text-xs text-text-subtle">Pick a list · Sort inside the menu to reorder</p>
+            )}
             <button type="button" className="btn-ghost btn-sm text-xs hidden sm:inline-flex" onClick={() => void enableDesktopReminders()}>
               Enable desktop reminders
             </button>
@@ -615,7 +626,10 @@ export function TodosPage() {
             selectedListId={selectedListId}
             counts={listCounts}
             totalCount={allItems.length}
-            onSelect={setSelectedListId}
+            onSelect={(id) => {
+              setSelectedListId(id)
+              window.scrollTo(0, 0)
+            }}
             onReorder={handleReorderLists}
             onEdit={openEditList}
             onDelete={handleDeleteList}

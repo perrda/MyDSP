@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, ExternalLink, Mail, Phone } from 'lucide-react'
+import { ExternalLink, Mail, Phone } from 'lucide-react'
 import { PageHeader } from '../components/ui/PageHeader'
+import { BackNav } from '../components/ui/BackNav'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
 import { usePortfolio } from '../context/PortfolioContext'
 import {
@@ -49,9 +50,7 @@ export function LiabilityDetailPage() {
     return (
       <div className="surface p-8">
         <p className="mb-4">Liability not found.</p>
-        <Link to="/liabilities" className="btn-secondary btn-sm">
-          Back to liabilities
-        </Link>
+        <BackNav to="/liabilities" label="Back to liabilities" />
       </div>
     )
   }
@@ -183,12 +182,7 @@ export function LiabilityDetailPage() {
   return (
     <div className="liability-workspace">
       <div className="liability-workspace-bar">
-        <Link
-          to="/liabilities"
-          className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-text-muted hover:text-accent"
-        >
-          <ArrowLeft size={14} strokeWidth={1.5} /> Back
-        </Link>
+        <BackNav to="/liabilities" label="Back to liabilities" />
         <span className={ragClass(rag)}>{ragLabel(rag)}</span>
       </div>
 
