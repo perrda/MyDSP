@@ -178,17 +178,17 @@ export function DataExportPanel() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold mb-2">Data Export & Reporting</h2>
-        <p className="text-gray-600 dark:text-gray-400">
-          Export your financial data in multiple formats
+        <h2 className="text-xl font-bold tracking-tight mb-1">Export formats</h2>
+        <p className="text-sm text-text-muted font-light">
+          Choose a dataset, then export as PDF or spreadsheet.
         </p>
       </div>
 
       {lastExport && (
-        <div className="bg-green-50 dark:bg-green-900/20 border border-green-300 dark:border-green-700 rounded-lg p-4 flex items-center gap-3">
-          <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
-          <span className="text-green-900 dark:text-green-100">
-            Successfully exported {lastExport.type} as {lastExport.format.toUpperCase()}
+        <div className="bg-emerald-500/10 border border-emerald-500/30 p-4 flex items-center gap-3">
+          <CheckCircle className="w-5 h-5 text-emerald-500" />
+          <span className="text-sm text-text">
+            Exported {lastExport.type} as {lastExport.format.toUpperCase()}
           </span>
         </div>
       )}

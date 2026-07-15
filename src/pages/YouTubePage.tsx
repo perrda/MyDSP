@@ -194,14 +194,12 @@ export function YouTubePage() {
         </div>
 
         {channels.length === 0 ? (
-          <div className="p-4 sm:p-6">
-            <EmptyState
-              icon={<Video size={40} strokeWidth={1.25} className="text-red-500" />}
-              title="No channels yet"
-              description={`Add up to ${MAX_YOUTUBE_CHANNELS} favourite finance channels. Paste a YouTube URL, @handle, or UC… id — no API key required.`}
-              action={{ label: 'Add channel', onClick: openCreate }}
-            />
-          </div>
+          <EmptyState
+            icon={<Video size={40} strokeWidth={1.25} className="text-red-500" />}
+            title="No channels yet"
+            description={`Add up to ${MAX_YOUTUBE_CHANNELS} favourite finance channels. Paste a YouTube URL, @handle, or UC… id — no API key required.`}
+            action={{ label: 'Add channel', onClick: openCreate }}
+          />
         ) : (
           <ReorderList
             items={channels}

@@ -1,59 +1,81 @@
-// Smart Notifications Hook - Integrates notification system with MyDSP data
+// Smart Notifications — bell menu wired into the app toolbar
 
-import { useEffect, useCallback, useState } from 'react'
+import { useEffect, useCallback, useState, useRef, useId } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { usePortfolio } from '../context/PortfolioContext'
+import { buildAlerts } from '../domain/alerts'
 import { notificationManager, type Notification } from '../utils/notifications'
 import { logger } from '../utils/logger'
-import { Bell as BellIcon, Info as InfoIcon, CheckCircle as CheckCircleIcon, AlertTriangle as AlertTriangleIcon, XCircle as XCircleIcon, Trophy as TrophyIcon, X as XIcon } from 'lucide-react'
+import {
+  Bell as BellIcon,
+  Info as InfoIcon,
+  CheckCircle as CheckCircleIcon,
+  AlertTriangle as AlertTriangleIcon,
+  XCircle as XCircleIcon,
+  Trophy as TrophyIcon,
+  X as XIcon,
+} from 'lucide-react'
 
-// === SMART NOTIFICATIONS HOOK ===
+function severityToPriority(severity: string): Notification['priority'] {
+  if (severity === 'red') return 'critical'
+  if (severity === 'amber') return 'high'
+  if (severity === 'green') return 'low'
+  return 'medium'
+}
+
+function severityToType(severity: string): Notification['type'] {
+  if (severity === 'red') return 'error'
+  if (severity === 'amber') return 'warning'
+  if (severity === 'green') return 'success'
+  return 'info'
+}
 
 export function useSmartNotifications() {
   const { data } = usePortfolio()
   const [notifications, setNotifications] = useState<Notification[]>([])
 
-  // Update local state when notifications change
   useEffect(() => {
     const updateNotifications = () => {
       setNotifications(notificationManager.getAll())
     }
 
     updateNotifications()
-    const unsubscribe = notificationManager.subscribe(updateNotifications)
-
-    return unsubscribe
+    return notificationManager.subscribe(updateNotifications)
   }, [])
 
-  // Process smart notifications based on data
   const processNotifications = useCallback(() => {
     if (!data) return
 
     try {
-      // Example: Budget alerts
-      // Note: This is a simplified version - the full SmartNotificationEngine
-      // would have more sophisticated rules
-      
-      logger.info('Processing smart notifications', undefined, 'analytics')
-      
+      const alerts = buildAlerts(data)
+      notificationManager.syncCategory(
+        'portfolio-alerts',
+        alerts.map((a) => ({
+          id: a.id,
+          type: severityToType(a.severity),
+          priority: severityToPriority(a.severity),
+          title: a.title,
+          message: a.detail,
+          actionUrl: a.to,
+          actionLabel: 'Open',
+          dismissible: true,
+        })),
+      )
       setNotifications(notificationManager.getAll())
     } catch (error) {
       logger.error('Failed to process smart notifications', error as Error, 'app')
     }
   }, [data])
 
-  // Run on mount and periodically
   useEffect(() => {
     processNotifications()
-    
-    // Check every 5 minutes
     const interval = setInterval(processNotifications, 5 * 60 * 1000)
-    
     return () => clearInterval(interval)
   }, [processNotifications])
 
   return {
     notifications,
-    unreadCount: notifications.filter(n => !n.read).length,
+    unreadCount: notifications.filter((n) => !n.read).length,
     markAsRead: (id: string) => {
       notificationManager.markAsRead(id)
       setNotifications(notificationManager.getAll())
@@ -73,52 +95,80 @@ export function useSmartNotifications() {
   }
 }
 
-// === NOTIFICATION COMPONENT ===
-
 export function NotificationCenter() {
+  const navigate = useNavigate()
   const { notifications, unreadCount, markAsRead, markAllAsRead, remove } = useSmartNotifications()
-
   const [isOpen, setIsOpen] = useState(false)
+  const menuId = useId()
+  const wrapRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!isOpen) return
+    const onDoc = (e: MouseEvent | TouchEvent) => {
+      const el = wrapRef.current
+      if (el && !el.contains(e.target as Node)) setIsOpen(false)
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsOpen(false)
+    }
+    document.addEventListener('mousedown', onDoc)
+    document.addEventListener('touchstart', onDoc)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDoc)
+      document.removeEventListener('touchstart', onDoc)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [isOpen])
 
   const priorityColors = {
-    low: 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600',
-    medium: 'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700',
-    high: 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700',
-    critical: 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700',
+    low: 'bg-surface-hover text-text-muted border border-border',
+    medium: 'bg-accent/10 text-accent border border-accent/30',
+    high: 'bg-amber-500/10 text-amber-500 border border-amber-500/30',
+    critical: 'bg-red-500/10 text-red-500 border border-red-500/30',
   }
 
   const typeIcons = {
-    info: <InfoIcon className="w-5 h-5" />,
-    success: <CheckCircleIcon className="w-5 h-5" />,
-    warning: <AlertTriangleIcon className="w-5 h-5" />,
-    error: <XCircleIcon className="w-5 h-5" />,
-    reminder: <BellIcon className="w-5 h-5" />,
-    achievement: <TrophyIcon className="w-5 h-5" />,
+    info: <InfoIcon className="w-5 h-5 text-accent" />,
+    success: <CheckCircleIcon className="w-5 h-5 text-emerald-500" />,
+    warning: <AlertTriangleIcon className="w-5 h-5 text-amber-500" />,
+    error: <XCircleIcon className="w-5 h-5 text-red-500" />,
+    reminder: <BellIcon className="w-5 h-5 text-accent" />,
+    achievement: <TrophyIcon className="w-5 h-5 text-accent" />,
   }
 
   return (
-    <div className="relative">
+    <div ref={wrapRef} className="relative">
       <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+        className="toolbar-icon relative"
         aria-label="Notifications"
+        aria-expanded={isOpen}
+        aria-controls={menuId}
       >
-        <BellIcon className="w-6 h-6" />
+        <BellIcon size={18} strokeWidth={1.75} />
         {unreadCount > 0 && (
-          <span className="absolute top-0 right-0 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 rounded-full">
+          <span className="absolute -top-0.5 -right-0.5 inline-flex items-center justify-center min-w-[1.125rem] h-[1.125rem] px-0.5 text-[10px] font-bold text-white bg-red-500">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-96 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50 max-h-[600px] overflow-hidden flex flex-col">
-          <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-            <h3 className="text-lg font-semibold">Notifications</h3>
+        <div
+          id={menuId}
+          role="dialog"
+          aria-label="Notifications"
+          className="absolute right-0 mt-2 w-[min(24rem,calc(100vw-1.5rem))] bg-bg-elevated border border-border z-50 max-h-[min(28rem,70vh)] overflow-hidden flex flex-col shadow-lg"
+        >
+          <div className="p-4 border-b border-border flex items-center justify-between gap-3">
+            <h3 className="text-sm font-bold tracking-tight">Notifications</h3>
             {notifications.length > 0 && (
               <button
+                type="button"
                 onClick={markAllAsRead}
-                className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                className="text-xs font-semibold text-accent hover:underline min-h-11 px-1"
               >
                 Mark all as read
               </button>
@@ -127,18 +177,19 @@ export function NotificationCenter() {
 
           <div className="overflow-y-auto flex-1">
             {notifications.length === 0 ? (
-              <div className="p-8 text-center text-gray-500 dark:text-gray-400">
-                <BellIcon className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                <p>No notifications</p>
+              <div className="p-8 text-center text-text-muted">
+                <BellIcon className="w-10 h-10 mx-auto mb-2 opacity-40 text-text-subtle" />
+                <p className="text-sm">All clear</p>
+                <p className="text-xs text-text-subtle mt-1">
+                  Budget, debt, and goal alerts appear here when something needs attention.
+                </p>
               </div>
             ) : (
-              <div className="divide-y divide-gray-200 dark:divide-gray-700">
+              <div className="divide-y divide-border">
                 {notifications.map((notification: Notification) => (
                   <div
                     key={notification.id}
-                    className={`p-4 ${
-                      !notification.read ? 'bg-blue-50 dark:bg-blue-900/10' : ''
-                    }`}
+                    className={`p-4 ${!notification.read ? 'bg-accent/5' : ''}`}
                   >
                     <div className="flex items-start gap-3">
                       <div className="flex-shrink-0 mt-1">
@@ -148,29 +199,47 @@ export function NotificationCenter() {
                         <div className="flex items-start justify-between gap-2">
                           <h4 className="font-medium text-sm">{notification.title}</h4>
                           <button
+                            type="button"
                             onClick={() => remove(notification.id)}
-                            className="flex-shrink-0 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                            className="flex-shrink-0 text-text-subtle hover:text-text min-h-11 min-w-11 inline-flex items-center justify-center"
+                            aria-label="Dismiss notification"
                           >
                             <XIcon className="w-4 h-4" />
                           </button>
                         </div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                          {notification.message}
-                        </p>
-                        <div className="flex items-center gap-2 mt-2 text-xs text-gray-500 dark:text-gray-400">
-                          <span className={`px-2 py-0.5 rounded ${priorityColors[notification.priority as keyof typeof priorityColors]}`}>
+                        <p className="text-sm text-text-muted mt-1">{notification.message}</p>
+                        <div className="flex flex-wrap items-center gap-2 mt-2 text-xs text-text-subtle">
+                          <span
+                            className={`px-2 py-0.5 ${priorityColors[notification.priority as keyof typeof priorityColors]}`}
+                          >
                             {notification.priority}
                           </span>
                           <span>{new Date(notification.timestamp).toLocaleTimeString()}</span>
                         </div>
-                        {!notification.read && (
-                          <button
-                            onClick={() => markAsRead(notification.id)}
-                            className="text-xs text-blue-600 dark:text-blue-400 hover:underline mt-2"
-                          >
-                            Mark as read
-                          </button>
-                        )}
+                        <div className="flex flex-wrap gap-3 mt-1">
+                          {notification.actionUrl ? (
+                            <button
+                              type="button"
+                              className="text-xs font-semibold text-accent hover:underline min-h-11"
+                              onClick={() => {
+                                markAsRead(notification.id)
+                                setIsOpen(false)
+                                navigate(notification.actionUrl!)
+                              }}
+                            >
+                              {notification.actionLabel ?? 'Open'}
+                            </button>
+                          ) : null}
+                          {!notification.read && (
+                            <button
+                              type="button"
+                              onClick={() => markAsRead(notification.id)}
+                              className="text-xs font-semibold text-text-muted hover:underline min-h-11"
+                            >
+                              Mark as read
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>

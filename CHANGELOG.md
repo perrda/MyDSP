@@ -1,5 +1,21 @@
 # MyDSP Changelog
 
+## [1.2.4] - 2026-07-15
+
+### Improved — Follow-up polish pass
+- Crypto / Equities: phone rows keep Buy/Sell visible; Edit / NW / Delete move into a **⋯** overflow menu
+- Settings → **Reports**: wired PDF/CSV `DataExportPanel` (portfolio, spending, goals, jobs, todos)
+- Toolbar **Notifications** bell: live portfolio alerts (budgets, debt RAG, utilisation) with deep links
+- Analytics: Advanced insights dashboard restyled and shown on the Analytics page
+- Liabilities: EmptyState CTAs for cards and loans
+- YouTube empty state no longer double-nests a surface card
+- Brand cleanup: notification chrome, advanced analytics, loading/mail accents
+
+### Version
+- 1.2.3 → **1.2.4**
+
+---
+
 ## [1.2.3] - 2026-07-15
 
 ### Fixed — Section QA (web / tablet / phone)

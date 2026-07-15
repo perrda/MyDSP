@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { CreditCard as CreditCardIcon, Landmark } from 'lucide-react'
 import { PortfolioSeriesChart } from '../components/charts/PortfolioSeriesChart'
+import { EmptyState } from '../components/ui/EmptyState'
 import { PageHeader } from '../components/ui/PageHeader'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
@@ -286,9 +288,18 @@ export function LiabilitiesPage() {
           : 'Clear the RAG filter to drag-reorder cards.'}
       </p>
       {cards.length === 0 ? (
-        <div className="surface p-8 text-text-subtle mb-10">
-          {data.creditCards.length === 0 ? 'No credit cards yet.' : 'No cards match this RAG filter.'}
-        </div>
+        data.creditCards.length === 0 ? (
+          <div className="mb-10">
+            <EmptyState
+              icon={<CreditCardIcon size={40} strokeWidth={1.25} />}
+              title="No credit cards yet"
+              description="Track balances, utilisation, and RAG status for each card."
+              action={{ label: 'Add card', onClick: () => openCreate('card') }}
+            />
+          </div>
+        ) : (
+          <div className="surface p-8 text-text-subtle mb-10">No cards match this RAG filter.</div>
+        )
       ) : (
         <ReorderList
           items={cards}
@@ -311,7 +322,7 @@ export function LiabilitiesPage() {
                       </h4>
                       <div className="mt-2 flex flex-wrap items-center gap-2">
                         <span className={ragClass(c.ragStatus)}>{ragLabel(c.ragStatus)}</span>
-                        <span className="text-[10px] uppercase tracking-widest text-accent">
+                        <span className="text-[11px] uppercase tracking-widest text-accent">
                           {notes > 0 ? `${notes} note${notes === 1 ? '' : 's'}` : 'Add commentary →'}
                         </span>
                       </div>
@@ -348,7 +359,7 @@ export function LiabilitiesPage() {
                 <button
                   type="button"
                   onClick={() => toggleCard(c.id)}
-                  className="text-[10px] font-bold uppercase tracking-widest text-accent"
+                  className="text-[11px] font-bold uppercase tracking-widest text-accent"
                 >
                   {included ? 'Included in NW' : 'Excluded from NW'}
                 </button>
@@ -365,9 +376,18 @@ export function LiabilitiesPage() {
           : 'Clear the RAG filter to drag-reorder loans.'}
       </p>
       {loans.length === 0 ? (
-        <div className="surface p-8 text-text-subtle mb-10">
-          {data.loans.length === 0 ? 'No loans yet.' : 'No loans match this RAG filter.'}
-        </div>
+        data.loans.length === 0 ? (
+          <div className="mb-10">
+            <EmptyState
+              icon={<Landmark size={40} strokeWidth={1.25} />}
+              title="No loans yet"
+              description="Add mortgages, car loans, or personal debt with original balance and progress."
+              action={{ label: 'Add loan', onClick: () => openCreate('loan') }}
+            />
+          </div>
+        ) : (
+          <div className="surface p-8 text-text-subtle mb-10">No loans match this RAG filter.</div>
+        )
       ) : (
         <ReorderList
           items={loans}
@@ -390,7 +410,7 @@ export function LiabilitiesPage() {
                       </h4>
                       <div className="mt-2 flex flex-wrap items-center gap-2">
                         <span className={ragClass(l.ragStatus)}>{ragLabel(l.ragStatus)}</span>
-                        <span className="text-[10px] uppercase tracking-widest text-accent">
+                        <span className="text-[11px] uppercase tracking-widest text-accent">
                           {notes > 0 ? `${notes} note${notes === 1 ? '' : 's'}` : 'Add commentary →'}
                         </span>
                       </div>
@@ -430,7 +450,7 @@ export function LiabilitiesPage() {
                 <button
                   type="button"
                   onClick={() => toggleLoan(l.id)}
-                  className="text-[10px] font-bold uppercase tracking-widest text-accent"
+                  className="text-[11px] font-bold uppercase tracking-widest text-accent"
                 >
                   {included ? 'Included in NW' : 'Excluded from NW'}
                 </button>

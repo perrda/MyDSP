@@ -4,6 +4,7 @@ import { Landmark } from 'lucide-react'
 import { AllocationRing } from '../components/charts/AllocationRing'
 import { PortfolioSeriesChart } from '../components/charts/PortfolioSeriesChart'
 import { EmptyState } from '../components/ui/EmptyState'
+import { OverflowMenu } from '../components/ui/OverflowMenu'
 import { PageHeader } from '../components/ui/PageHeader'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
 import { TradeModal } from '../components/ui/TradeModal'
@@ -210,43 +211,49 @@ export function EquitiesPage() {
                 >
                   {formatPct(cost > 0 ? (pnl / cost) * 100 : 0)}
                 </p>
-                <div className="flex flex-wrap gap-2 ml-auto md:ml-0">
-                  <button
-                    type="button"
-                    className="btn-primary btn-sm min-h-[44px] md:min-h-[36px]"
-                    onClick={() => {
-                      setTradeFor(e)
-                      setTradeSide('buy')
-                    }}
-                  >
-                    Buy
-                  </button>
-                  <button
-                    type="button"
-                    className="btn-secondary btn-sm min-h-[44px] md:min-h-[36px]"
-                    onClick={() => {
-                      setTradeFor(e)
-                      setTradeSide('sell')
-                    }}
-                  >
-                    Sell
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => toggle(e.id)}
-                    className={`text-[11px] font-bold uppercase tracking-widest px-2 py-1 border min-h-[44px] md:min-h-[36px] ${
-                      included ? 'border-accent text-accent' : 'border-border-strong text-text-subtle'
-                    }`}
-                  >
-                    {included ? 'In NW' : 'Off'}
-                  </button>
-                  <button type="button" className="btn-ghost btn-sm min-h-[44px] md:min-h-[36px]" onClick={() => openEdit(e)}>
-                    Edit
-                  </button>
-                  <button type="button" className="btn-ghost btn-sm min-h-[44px] md:min-h-[36px]" onClick={() => setDeleteId(e.id)}>
-                    Delete
-                  </button>
-                </div>
+                <OverflowMenu
+                  label={`More actions for ${e.symbol}`}
+                  className="ml-auto md:ml-0"
+                  leading={
+                    <>
+                      <button
+                        type="button"
+                        className="btn-primary btn-sm min-h-11 md:min-h-9"
+                        onClick={() => {
+                          setTradeFor(e)
+                          setTradeSide('buy')
+                        }}
+                      >
+                        Buy
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-secondary btn-sm min-h-11 md:min-h-9"
+                        onClick={() => {
+                          setTradeFor(e)
+                          setTradeSide('sell')
+                        }}
+                      >
+                        Sell
+                      </button>
+                    </>
+                  }
+                  items={[
+                    {
+                      id: 'nw',
+                      label: included ? 'In net worth' : 'Excluded from NW',
+                      active: included,
+                      onClick: () => toggle(e.id),
+                    },
+                    { id: 'edit', label: 'Edit', onClick: () => openEdit(e) },
+                    {
+                      id: 'delete',
+                      label: 'Delete',
+                      destructive: true,
+                      onClick: () => setDeleteId(e.id),
+                    },
+                  ]}
+                />
               </div>
             )
           }}

@@ -11,6 +11,7 @@ import {
   FinancialHealthRadar,
 } from '../components/charts/AdvancedCharts'
 import { ExportReportButton } from '../components/ExportReport'
+import { AdvancedAnalyticsDashboard } from '../components/AdvancedAnalyticsDashboard'
 import { PageHeader, StatCard } from '../components/ui/PageHeader'
 import { usePortfolio } from '../context/PortfolioContext'
 import { performanceSummary } from '../domain/performance'
@@ -224,7 +225,7 @@ export function AnalyticsPage() {
         </div>
       </div>
 
-      <div className="surface p-5 sm:p-6">
+      <div className="surface p-5 sm:p-6 mb-8">
         <p className="label-uppercase mb-2">Liabilities</p>
         <p className={`text-xl font-bold tabular-nums ${privacyClass(privacy)}`}>
           {formatGBP(liabilities)}
@@ -242,6 +243,8 @@ export function AnalyticsPage() {
           )}
         </p>
       </div>
+
+      <AdvancedAnalyticsDashboard />
     </div>
   )
 }

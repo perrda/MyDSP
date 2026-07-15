@@ -3,6 +3,7 @@ import { Ellipsis, RefreshCw } from 'lucide-react'
 import { PrivacyToggle } from '../PrivacyToggle'
 import { ThemeToggle } from '../ThemeToggle'
 import { GlobalSearch } from '../GlobalSearch'
+import { NotificationCenter } from '../SmartNotifications'
 
 interface ToolbarControlsProps {
   portfolioSelect: ReactNode
@@ -79,8 +80,9 @@ export function ToolbarControls({
       {portfolioSelect}
       {currencySelect}
 
-      {/* Always visible — one-tap refresh on phone too */}
+      {/* Always visible — one-tap refresh + notifications on phone too */}
       {refreshBtn}
+      <NotificationCenter />
 
       <div className="toolbar-actions-desktop">
         <PrivacyToggle privacy={privacy} onToggle={onPrivacyToggle} />

@@ -92,6 +92,29 @@ class NotificationManager {
     this.notifications = []
     this.notifyListeners()
   }
+
+  /**
+   * Replace all notifications in a category while preserving read state
+   * for matching ids (used to sync portfolio alerts into the bell).
+   */
+  syncCategory(
+    category: string,
+    items: Array<Omit<Notification, 'timestamp' | 'read' | 'category'> & { id: string }>,
+  ): void {
+    const previous = this.notifications.filter((n) => n.category === category)
+    const kept = this.notifications.filter((n) => n.category !== category)
+    const next: Notification[] = items.map((item) => {
+      const prev = previous.find((p) => p.id === item.id)
+      return {
+        ...item,
+        category,
+        timestamp: prev?.timestamp ?? Date.now(),
+        read: prev?.read ?? false,
+      }
+    })
+    this.notifications = [...next, ...kept].slice(0, 100)
+    this.notifyListeners()
+  }
   
   get(id: string): Notification | undefined {
     return this.notifications.find(n => n.id === id)

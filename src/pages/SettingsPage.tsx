@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import { DataExportPanel } from '../components/DataExportPanel'
 import { PageHeader } from '../components/ui/PageHeader'
 import { ConfirmDialog } from '../components/ui/Modal'
 import { useSecurity } from '../components/SecurityProvider'
@@ -2004,6 +2005,16 @@ export function SettingsPage() {
               Reload from storage
             </button>
           </div>
+        </section>
+
+        <section className="surface p-6 sm:p-8" id="reports">
+          <p className="eyebrow mb-3">Reports</p>
+          <h3 className="text-lg font-bold tracking-tight mb-2">PDF &amp; spreadsheet exports</h3>
+          <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
+            Print-ready PDFs and CSV downloads for portfolio, spending, goals, jobs, and todos —
+            separate from encrypted full backups above.
+          </p>
+          <DataExportPanel />
         </section>
 
         <section className="surface p-6 sm:p-8" id="versions">
