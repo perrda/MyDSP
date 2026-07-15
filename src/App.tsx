@@ -7,6 +7,7 @@ import { ToastProvider } from './components/ToastProvider'
 import { AchievementWatcher } from './components/AchievementWatcher'
 import { InstallPrompt } from './components/InstallPrompt'
 import { SkipToContent, ScreenReaderAnnouncer } from './components/Accessibility'
+import { ScrollToTop } from './components/ScrollToTop'
 import { AppShell } from './components/layout/AppShell'
 import { LoadingSpinner } from './components/LoadingSpinner'
 import { ErrorBoundary } from './components/ErrorBoundary'
@@ -65,6 +66,7 @@ export default function App() {
         <PortfolioProvider>
           <SecurityProvider>
             <BrowserRouter basename={__BASE_PATH__ === '/' ? undefined : __BASE_PATH__.replace(/\/$/, '')}>
+              <ScrollToTop />
               <SkipToContent />
               <ScreenReaderAnnouncer />
               <ToastProvider>
