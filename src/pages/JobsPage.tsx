@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import { PageHeader } from '../components/ui/PageHeader'
 import { EmptyState } from '../components/ui/EmptyState'
+import { CollapsibleFilters } from '../components/ui/CollapsibleFilters'
 import { ConfirmDialog, Modal } from '../components/ui/Modal'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
 import { JobFormModal } from '../components/JobFormModal'
@@ -428,8 +429,64 @@ export function JobsPage() {
         </div>
       </div>
 
-      {/* Toolbar */}
-      <div className="surface p-4 mb-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
+      {/* View mode always visible; search / filter / sort / export collapse */}
+      <div className="flex flex-wrap gap-2 mb-3">
+        <button
+          type="button"
+          onClick={() => setViewMode('kanban')}
+          className={`btn-sm ${viewMode === 'kanban' ? 'btn-primary' : 'btn-ghost'}`}
+        >
+          Kanban
+        </button>
+        <button
+          type="button"
+          onClick={() => setViewMode('list')}
+          className={`btn-sm ${viewMode === 'list' ? 'btn-primary' : 'btn-ghost'}`}
+        >
+          List
+        </button>
+        <button
+          type="button"
+          onClick={() => setViewMode('analytics')}
+          className={`btn-sm ${viewMode === 'analytics' ? 'btn-primary' : 'btn-ghost'}`}
+        >
+          Analytics
+        </button>
+      </div>
+
+      <CollapsibleFilters
+        id="jobs-filters"
+        title="Filters & search"
+        summary={
+          [
+            filterBy !== 'active' ? filterBy.replace(/-/g, ' ') : null,
+            searchQuery.trim()
+              ? `“${searchQuery.trim().slice(0, 16)}${searchQuery.trim().length > 16 ? '…' : ''}”`
+              : null,
+            viewMode === 'list' && sortBy !== 'updated-desc' ? sortBy.replace(/-/g, ' ') : null,
+          ]
+            .filter(Boolean)
+            .join(' · ') || 'None active'
+        }
+        activeCount={
+          (filterBy !== 'active' ? 1 : 0) +
+          (searchQuery.trim() ? 1 : 0) +
+          (viewMode === 'list' && sortBy !== 'updated-desc' ? 1 : 0)
+        }
+        actions={
+          <>
+            <button type="button" onClick={handleImportFile} className="btn-ghost btn-sm">
+              <Upload size={14} /> Import
+            </button>
+            <button type="button" onClick={handleExportCsv} className="btn-ghost btn-sm">
+              <Download size={14} /> CSV
+            </button>
+            <button type="button" onClick={handleExportJson} className="btn-ghost btn-sm">
+              <Download size={14} /> JSON
+            </button>
+          </>
+        }
+      >
         <div className="flex flex-wrap gap-3 items-center">
           <input
             type="text"
@@ -438,30 +495,11 @@ export function JobsPage() {
             placeholder="Search companies, roles..."
             className="flex-1 min-w-[200px] bg-transparent border border-border px-3 py-2 text-sm"
           />
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => setViewMode('kanban')}
-              className={`btn-sm ${viewMode === 'kanban' ? 'btn-primary' : 'btn-ghost'}`}
-            >
-              Kanban
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('list')}
-              className={`btn-sm ${viewMode === 'list' ? 'btn-primary' : 'btn-ghost'}`}
-            >
-              List
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('analytics')}
-              className={`btn-sm ${viewMode === 'analytics' ? 'btn-primary' : 'btn-ghost'}`}
-            >
-              Analytics
-            </button>
-          </div>
-          <select value={filterBy} onChange={(e) => setFilterBy(e.target.value as JobFilterBy)} className="btn-ghost btn-sm">
+          <select
+            value={filterBy}
+            onChange={(e) => setFilterBy(e.target.value as JobFilterBy)}
+            className="btn-ghost btn-sm"
+          >
             <option value="active">Active</option>
             <option value="all">All</option>
             <option value="wishlist">Wishlist</option>
@@ -471,7 +509,11 @@ export function JobsPage() {
             <option value="remote">Remote Only</option>
           </select>
           {viewMode === 'list' && (
-            <select value={sortBy} onChange={(e) => setSortBy(e.target.value as JobSortBy)} className="btn-ghost btn-sm">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as JobSortBy)}
+              className="btn-ghost btn-sm"
+            >
               <option value="updated-desc">Recently Updated</option>
               <option value="applied-desc">Recently Applied</option>
               <option value="deadline-asc">Deadline</option>
@@ -479,55 +521,46 @@ export function JobsPage() {
               <option value="rating-desc">Rating</option>
             </select>
           )}
-          <button type="button" onClick={handleImportFile} className="btn-ghost btn-sm">
-            <Upload size={14} /> Import
+        </div>
+      </CollapsibleFilters>
+
+      {selectedJobs.size > 0 && (
+        <div className="flex flex-wrap gap-2 items-center p-3 mb-4 bg-accent/10 rounded-lg border border-accent/20">
+          <span className="text-sm font-semibold">{selectedJobs.size} selected</span>
+          <select
+            value={bulkStatus}
+            onChange={(e) => setBulkStatus(e.target.value as JobStatus | '')}
+            className="px-2 py-1.5 bg-surface-hover border border-border rounded text-sm"
+          >
+            <option value="">Set status…</option>
+            {Object.entries(STATUS_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+          <button type="button" onClick={handleBulkStatus} disabled={!bulkStatus} className="btn-sm btn-primary">
+            Apply
           </button>
-          <button type="button" onClick={handleExportCsv} className="btn-ghost btn-sm">
-            <Download size={14} /> CSV
+          <button
+            type="button"
+            onClick={handleBulkArchive}
+            className="btn-sm bg-amber-500/20 text-amber-500 hover:bg-amber-500/30"
+          >
+            <Archive size={14} /> Archive
           </button>
-          <button type="button" onClick={handleExportJson} className="btn-ghost btn-sm">
-            <Download size={14} /> JSON
+          <button
+            type="button"
+            onClick={handleBulkDelete}
+            className="btn-sm bg-red-500/20 text-red-500 hover:bg-red-500/30"
+          >
+            Delete
+          </button>
+          <button type="button" onClick={() => setSelectedJobs(new Set())} className="btn-ghost btn-sm ml-auto">
+            Clear
           </button>
         </div>
-
-        {selectedJobs.size > 0 && (
-          <div className="flex flex-wrap gap-2 items-center p-3 mt-3 bg-accent/10 rounded-lg border border-accent/20">
-            <span className="text-sm font-semibold">{selectedJobs.size} selected</span>
-            <select
-              value={bulkStatus}
-              onChange={(e) => setBulkStatus(e.target.value as JobStatus | '')}
-              className="px-2 py-1.5 bg-surface-hover border border-border rounded text-sm"
-            >
-              <option value="">Set status…</option>
-              {Object.entries(STATUS_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-            <button type="button" onClick={handleBulkStatus} disabled={!bulkStatus} className="btn-sm btn-primary">
-              Apply
-            </button>
-            <button
-              type="button"
-              onClick={handleBulkArchive}
-              className="btn-sm bg-amber-500/20 text-amber-500 hover:bg-amber-500/30"
-            >
-              <Archive size={14} /> Archive
-            </button>
-            <button
-              type="button"
-              onClick={handleBulkDelete}
-              className="btn-sm bg-red-500/20 text-red-500 hover:bg-red-500/30"
-            >
-              Delete
-            </button>
-            <button type="button" onClick={() => setSelectedJobs(new Set())} className="btn-ghost btn-sm ml-auto">
-              Clear
-            </button>
-          </div>
-        )}
-      </div>
+      )}
 
       {filteredApplications.length === 0 ? (
         <EmptyState

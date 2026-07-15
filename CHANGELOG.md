@@ -8,7 +8,19 @@
 3. **Glass Mode** — Settings → Appearance On/Off + header toolbar toggle (frosted blur like Apple liquid glass); works with Light/Dark; persists
 
 ### Version
-- 1.2.23 → **1.2.25**
+- 1.2.24 → **1.2.25**
+
+---
+
+## [1.2.24] - 2026-07-15
+
+### Changed — Collapsible filters (less chrome, more list)
+- **To Do Lists** — Sort / Filter / Search / Priority collapse by default; Import · Screenshot · Export stay on the header row; expand shows the full controls; open/closed persists
+- **Job Tracker** — Search / filter / sort collapse the same way; Kanban · List · Analytics stay visible
+- **Spending** — Search / category / custom-category tools collapse by default
+
+### Version
+- 1.2.23 → **1.2.24**
 
 ---
 
