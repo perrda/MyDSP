@@ -19,6 +19,7 @@ import {
 import { PageHeader } from '../components/ui/PageHeader'
 import { BackNav } from '../components/ui/BackNav'
 import { EmptyState } from '../components/ui/EmptyState'
+import { CollapsibleFilters } from '../components/ui/CollapsibleFilters'
 import { ConfirmDialog } from '../components/ui/Modal'
 import { TodoModal } from '../components/TodoModal'
 import { TodoListModal } from '../components/TodoListModal'
@@ -66,6 +67,33 @@ const STATUS_LABELS = {
   'in-progress': 'In Progress',
   done: 'Done',
   archived: 'Archived',
+}
+
+const FILTER_SUMMARY: Record<TodoFilterBy, string> = {
+  all: 'All',
+  'high-priority': 'High priority',
+  'medium-priority': 'Medium priority',
+  'low-priority': 'Low priority',
+  'status-todo': 'To Do',
+  'status-in-progress': 'In Progress',
+  overdue: 'Overdue',
+  today: 'Due today',
+  'this-week': 'This week',
+  'no-due-date': 'No due date',
+  'finance-related': 'Finance',
+}
+
+const SORT_SUMMARY: Record<TodoSortBy, string> = {
+  'order-asc': '#1 → n',
+  'order-desc': '#n → 1',
+  'priority-desc': 'Priority ↓',
+  'priority-asc': 'Priority ↑',
+  'due-date-asc': 'Due earliest',
+  'due-date-desc': 'Due latest',
+  'created-desc': 'Newest',
+  'created-asc': 'Oldest',
+  'title-asc': 'A–Z',
+  'title-desc': 'Z–A',
 }
 
 /** Format YYYY-MM-DD due dates in local time without UTC day-shift. */
@@ -260,6 +288,32 @@ export function TodosPage() {
 
     return sortTodoItems(items, sortBy)
   }, [listItems, filterBy, priorityChips, searchQuery, showCompleted, sortBy])
+
+  const filterActiveCount = useMemo(() => {
+    let n = 0
+    if (filterBy !== 'all') n++
+    if (sortBy !== 'order-asc') n++
+    if (priorityChips.size > 0) n++
+    if (searchQuery.trim()) n++
+    if (showCompleted) n++
+    return n
+  }, [filterBy, sortBy, priorityChips, searchQuery, showCompleted])
+
+  const filterSummary = useMemo(() => {
+    const parts: string[] = []
+    if (filterBy !== 'all') parts.push(FILTER_SUMMARY[filterBy])
+    if (sortBy !== 'order-asc') parts.push(SORT_SUMMARY[sortBy])
+    if (priorityChips.size > 0) {
+      parts.push(
+        [...priorityChips]
+          .map((p) => PRIORITY_CHIP_LABEL[p])
+          .join('+'),
+      )
+    }
+    if (searchQuery.trim()) parts.push(`“${searchQuery.trim().slice(0, 16)}${searchQuery.trim().length > 16 ? '…' : ''}”`)
+    if (showCompleted) parts.push('Completed')
+    return parts.length ? parts.join(' · ') : 'None active'
+  }, [filterBy, sortBy, priorityChips, searchQuery, showCompleted])
 
   const togglePriorityChip = (p: 'high' | 'medium' | 'low') => {
     setPriorityChips((prev) => {
@@ -685,8 +739,30 @@ export function TodosPage() {
             <p className="text-sm text-text-muted mb-4">{currentList.description}</p>
           )}
 
-          {/* Compact controls — stays above the task cards (mobile-first) */}
-          <div className="surface p-3 sm:p-4 mb-4 rounded-xl md:rounded-none shadow-sm md:shadow-none space-y-3">
+          {/* Filters collapsed by default — Import / Screenshot / Export stay on the header */}
+          <CollapsibleFilters
+            id="todos-filters"
+            title="Filters & search"
+            summary={filterSummary}
+            activeCount={filterActiveCount}
+            actions={
+              <>
+                <button type="button" onClick={handleImportCsv} className="btn-secondary btn-sm">
+                  <Upload size={14} /> Import
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowScreenshotImport(true)}
+                  className="btn-secondary btn-sm"
+                >
+                  <ImagePlus size={14} /> Screenshot
+                </button>
+                <button type="button" onClick={handleExportCsv} className="btn-ghost btn-sm">
+                  <Download size={14} /> Export
+                </button>
+              </>
+            }
+          >
             <div className="flex flex-wrap items-end gap-2 sm:gap-3">
               <div className="flex-1 min-w-[9.5rem]">
                 <label className="block text-[11px] uppercase tracking-wider text-text-subtle mb-1.5 font-semibold">
@@ -786,8 +862,7 @@ export function TodosPage() {
                     title={`${chip.title} priority`}
                     aria-label={`${chip.title} priority`}
                   >
-                    <span className="sm:hidden">{chip.label}</span>
-                    <span className="hidden sm:inline">{chip.label}</span>
+                    {chip.label}
                   </button>
                 )
               })}
@@ -811,89 +886,70 @@ export function TodosPage() {
               </label>
             </div>
 
-            <div className="flex flex-wrap gap-2 items-center">
-              {selectedListId != null ? (
-                <p className="text-xs text-text-subtle flex-1 min-w-[12rem]">
-                  Drag the grip to reorder · #1 is top
-                </p>
-              ) : (
-                <p className="text-xs text-amber-500/90 flex-1 min-w-[12rem]">
-                  Select a list tab to drag-reorder tasks
-                </p>
-              )}
-              <button type="button" onClick={handleImportCsv} className="btn-secondary btn-sm">
-                <Upload size={14} /> Import
+            {selectedListId != null ? (
+              <p className="text-xs text-text-subtle">Drag the grip to reorder · #1 is top</p>
+            ) : (
+              <p className="text-xs text-amber-500/90">Select a list tab to drag-reorder tasks</p>
+            )}
+          </CollapsibleFilters>
+
+          {selectedTodos.size > 0 && (
+            <div className="flex flex-wrap gap-2 items-center p-3 mb-4 bg-accent/10 rounded-lg border border-accent/20">
+              <span className="text-sm font-semibold">{selectedTodos.size} selected</span>
+              <button
+                type="button"
+                onClick={handleBulkComplete}
+                className="btn-sm bg-green-500/20 text-green-500 hover:bg-green-500/30"
+              >
+                Complete All
               </button>
               <button
                 type="button"
-                onClick={() => setShowScreenshotImport(true)}
-                className="btn-secondary btn-sm"
+                onClick={handleBulkArchive}
+                className="btn-sm bg-amber-500/20 text-amber-500 hover:bg-amber-500/30"
               >
-                <ImagePlus size={14} /> Screenshot
+                <Archive size={14} /> Archive
               </button>
-              <button type="button" onClick={handleExportCsv} className="btn-ghost btn-sm">
-                <Download size={14} /> Export
-              </button>
-            </div>
-
-            {selectedTodos.size > 0 && (
-              <div className="flex flex-wrap gap-2 items-center p-3 bg-accent/10 rounded-lg border border-accent/20">
-                <span className="text-sm font-semibold">{selectedTodos.size} selected</span>
+              <div className="flex items-center gap-2">
+                <FolderInput size={14} className="text-text-subtle" />
+                <select
+                  value={bulkMoveListId}
+                  onChange={(e) => setBulkMoveListId(e.target.value ? Number(e.target.value) : '')}
+                  className="px-2 py-1.5 bg-surface-hover border border-border rounded text-sm"
+                  aria-label="Move to list"
+                >
+                  <option value="">Move to list…</option>
+                  {lists.map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {l.name}
+                    </option>
+                  ))}
+                </select>
                 <button
                   type="button"
-                  onClick={handleBulkComplete}
-                  className="btn-sm bg-green-500/20 text-green-500 hover:bg-green-500/30"
+                  onClick={handleBulkMove}
+                  disabled={bulkMoveListId === ''}
+                  className="btn-sm btn-primary"
                 >
-                  Complete All
-                </button>
-                <button
-                  type="button"
-                  onClick={handleBulkArchive}
-                  className="btn-sm bg-amber-500/20 text-amber-500 hover:bg-amber-500/30"
-                >
-                  <Archive size={14} /> Archive
-                </button>
-                <div className="flex items-center gap-2">
-                  <FolderInput size={14} className="text-text-subtle" />
-                  <select
-                    value={bulkMoveListId}
-                    onChange={(e) => setBulkMoveListId(e.target.value ? Number(e.target.value) : '')}
-                    className="px-2 py-1.5 bg-surface-hover border border-border rounded text-sm"
-                    aria-label="Move to list"
-                  >
-                    <option value="">Move to list…</option>
-                    {lists.map((l) => (
-                      <option key={l.id} value={l.id}>
-                        {l.name}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    onClick={handleBulkMove}
-                    disabled={bulkMoveListId === ''}
-                    className="btn-sm btn-primary"
-                  >
-                    Move
-                  </button>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleBulkDelete}
-                  className="btn-sm bg-red-500/20 text-red-500 hover:bg-red-500/30"
-                >
-                  Delete All
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedTodos(new Set())}
-                  className="btn-ghost btn-sm ml-auto"
-                >
-                  Clear Selection
+                  Move
                 </button>
               </div>
-            )}
-          </div>
+              <button
+                type="button"
+                onClick={handleBulkDelete}
+                className="btn-sm bg-red-500/20 text-red-500 hover:bg-red-500/30"
+              >
+                Delete All
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedTodos(new Set())}
+                className="btn-ghost btn-sm ml-auto"
+              >
+                Clear Selection
+              </button>
+            </div>
+          )}
 
           {filteredItems.length === 0 ? (
             <EmptyState

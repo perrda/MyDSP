@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.23**
+**Current version: 1.2.24**
 
-## Completed (through v1.2.23)
+## Completed (through v1.2.24)
 
+- Collapsible Filters & search on Todos / Jobs / Spending (defaults collapsed; preference persisted)
 - On-launch Overview default + Settings preference (web/tablet/phone)
 - Separate `mydsp-quote` Worker proxy; PWA update banner; sync conflict plain-English + activity log
 - Markets watchlist union merge; Today deep links; price alerts; fill-from-last-synced holdings
