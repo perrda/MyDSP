@@ -71,7 +71,7 @@ npx wrangler deploy
 5. On the **first** device (source of truth): click **Push** or **Sync now**.
 6. On **phone / iPad / other browsers**: same URL + passphrase + both toggles. Open the app — it **pulls automatically**.
 
-That’s it. Edits push a few seconds after you change data; opening the app or returning to the tab pulls newer cloud data.
+That’s it. Edits push about **8 seconds** after you change data (and pull first if another device updated cloud). Opening the app, returning to the tab, pull-to-refresh, or about **once a minute** while open pulls newer cloud data.
 
 ---
 
@@ -82,7 +82,7 @@ That’s it. Edits push a few seconds after you change data; opening the app or 
 | You edit data | Debounced **push** (~8s after last change) |
 | **Pull down** on iPhone / iPad | Immediate **sync** (pull cloud, then push local) |
 | Open app / return to tab / come online | **Pull** if cloud is newer, then push if you have local changes |
-| Every ~5 minutes while open | Background check |
+| Every ~60 seconds while open | Background check |
 | Same item edited on two devices | By default **prefer cloud** on pull (toggle in Settings) |
 
 Manual **Push** / **Pull & merge** remain available as overrides.

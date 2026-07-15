@@ -148,6 +148,17 @@ describe('autoSync dirty marking', () => {
     expect(getAutoSyncStatus().state).toBeTruthy()
   })
 
+  it('replays dirty mark after remote merge finishes', () => {
+    vi.useFakeTimers()
+    beginApplyingRemote()
+    markLocalDataChanged()
+    // Still applying — should not schedule yet
+    endApplyingRemote()
+    // endApplyingRemote should call markLocalDataChanged → schedule 8s push
+    expect(getAutoSyncStatus().state).toBeTruthy()
+    vi.useRealTimers()
+  })
+
   it('startAutoSync is idempotent', () => {
     startAutoSync()
     startAutoSync()

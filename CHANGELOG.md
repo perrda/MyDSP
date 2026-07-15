@@ -1,5 +1,23 @@
 # MyDSP Changelog
 
+## [1.2.16] - 2026-07-15
+
+### Fixed — Multi-device sync reliability
+- **Pull-before-push** on edit/tab-hide when another device wrote the cloud envelope (stops stale phone data wiping a new web todo)
+- Re-arm push if a sync cycle was already busy; replay dirty marks that arrived during a remote merge
+- Flush pending portfolio saves before building the sync envelope
+- Markets / News / YouTube store writes no longer mark portfolio sync dirty (they were causing silent clobbers; those feeds are workspace-local today)
+- Merge same-name To Do lists created independently on two devices onto one list (items remapped)
+
+### Improved — Sync cadence & copy
+- Background pull while open: **~60s** (was 5 minutes)
+- Settings + SYNC_SETUP: clearer “not live WebSockets” timing (~8s push, pull on focus / PTR / ~1 min)
+
+### Version
+- 1.2.15 → **1.2.16**
+
+---
+
 ## [1.2.15] - 2026-07-15
 
 ### Added — Broker sample CSV fixtures

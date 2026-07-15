@@ -504,7 +504,9 @@ export function SettingsPage() {
             passphrase on Mac, iPhone, and iPad. Turn on{' '}
             <span className="text-text font-medium">Automatic sync</span> and{' '}
             <span className="text-text font-medium">Remember passphrase</span> so sync works after
-            you close the tab.
+            you close the tab. Sync is encrypted batch sync (not live WebSockets): expect ~8s after
+            an edit to push, and a pull when you open/focus the app, pull-to-refresh, or about once
+            a minute while it stays open.
           </p>
           <div className="border border-border p-4 mb-6 max-w-2xl space-y-4">
             <div>
@@ -632,8 +634,9 @@ export function SettingsPage() {
               <span>
                 <span className="text-sm font-medium text-text">Automatic sync</span>
                 <span className="block text-xs text-text-muted font-light mt-0.5">
-                  Pull when you open the app or return to the tab; push a few seconds after you edit.
-                  No iCloud needed — uses your Cloudflare Worker.
+                  Pull when you open the app, return to the tab, or about every minute while open;
+                  push ~8s after you edit (pulls first if another device updated cloud). No iCloud
+                  needed — uses your Cloudflare Worker.
                 </span>
               </span>
             </label>
