@@ -1,6 +1,6 @@
 // Test setup file
 import '@testing-library/jest-dom'
-import { afterEach } from 'vitest'
+import { afterEach, vi } from 'vitest'
 import { cleanup } from '@testing-library/react'
 
 // Cleanup after each test
@@ -25,5 +25,22 @@ globalThis.IntersectionObserver = class IntersectionObserver {
   root = null
   rootMargin = ''
   thresholds = []
-  takeRecords() { return [] }
+  takeRecords() {
+    return []
+  }
 }
+
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  configurable: true,
+  value: vi.fn((query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    addListener: () => {},
+    removeListener: () => {},
+    dispatchEvent: () => true,
+  })),
+})

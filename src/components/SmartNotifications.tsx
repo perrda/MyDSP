@@ -149,7 +149,7 @@ export function NotificationCenter() {
       >
         <BellIcon size={18} strokeWidth={1.75} />
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 inline-flex items-center justify-center min-w-[1.125rem] h-[1.125rem] px-0.5 text-[10px] font-bold text-white bg-red-500">
+          <span className="toolbar-icon-badge" aria-hidden>
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}

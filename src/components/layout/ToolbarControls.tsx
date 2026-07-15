@@ -15,9 +15,11 @@ interface ToolbarControlsProps {
 }
 
 /**
- * Workspace controls: portfolio + currency always visible.
- * Refresh stays one tap away on all breakpoints; Privacy / Theme / Search
- * collapse into More (⋯) on phone/tablet. Search is always an icon (no label).
+ * Workspace controls — designed so a ~390px phone header never overflows.
+ *
+ * Mobile row: Portfolio · Currency · Notifications · More
+ * More menu: Refresh · Privacy · Theme · Search
+ * Desktop: all controls in one row (refresh stays one-tap).
  */
 export function ToolbarControls({
   portfolioSelect,
@@ -59,7 +61,7 @@ export function ToolbarControls({
     return () => mq.removeEventListener('change', onChange)
   }, [])
 
-  const refreshBtn = (
+  const refreshBtn = (opts?: { inMenu?: boolean }) => (
     <button
       type="button"
       onClick={() => {
@@ -70,6 +72,7 @@ export function ToolbarControls({
       className="toolbar-icon"
       title="Refresh all live data"
       aria-label={refreshing ? 'Refreshing data' : 'Refresh all data'}
+      role={opts?.inMenu ? 'menuitem' : undefined}
     >
       <RefreshCw size={16} strokeWidth={1.5} className={refreshing ? 'animate-spin' : ''} />
     </button>
@@ -80,45 +83,49 @@ export function ToolbarControls({
       {portfolioSelect}
       {currencySelect}
 
-      {/* Always visible — one-tap refresh + notifications on phone too */}
-      {refreshBtn}
-      <NotificationCenter />
-
+      {/* Desktop / large: full strip */}
       <div className="toolbar-actions-desktop">
+        {refreshBtn()}
+        <NotificationCenter />
         <PrivacyToggle privacy={privacy} onToggle={onPrivacyToggle} />
         <ThemeToggle />
         <GlobalSearch />
       </div>
 
-      <div className="toolbar-actions-mobile relative">
-        <button
-          type="button"
-          className={`toolbar-icon ${moreOpen ? 'is-active' : ''}`}
-          aria-haspopup="menu"
-          aria-expanded={moreOpen}
-          aria-controls={menuId}
-          aria-label={moreOpen ? 'Close workspace menu' : 'More workspace controls'}
-          title="More"
-          onClick={() => setMoreOpen((v) => !v)}
-        >
-          <Ellipsis size={18} strokeWidth={1.5} />
-        </button>
-
-        {moreOpen ? (
-          <div
-            id={menuId}
-            role="menu"
-            aria-label="Workspace actions"
-            className="toolbar-more-menu"
+      {/* Phone / tablet: bell + More only — refresh lives in the menu */}
+      <div className="toolbar-actions-mobile">
+        <NotificationCenter />
+        <div className="toolbar-more-wrap">
+          <button
+            type="button"
+            className={`toolbar-icon ${moreOpen ? 'is-active' : ''}`}
+            aria-haspopup="menu"
+            aria-expanded={moreOpen}
+            aria-controls={menuId}
+            aria-label={moreOpen ? 'Close workspace menu' : 'More workspace controls'}
+            title="More"
+            onClick={() => setMoreOpen((v) => !v)}
           >
-            <div className="toolbar-more-row" role="none">
-              <PrivacyToggle privacy={privacy} onToggle={onPrivacyToggle} />
-              <ThemeToggle />
-              <GlobalSearch />
+            <Ellipsis size={18} strokeWidth={1.5} />
+          </button>
+
+          {moreOpen ? (
+            <div
+              id={menuId}
+              role="menu"
+              aria-label="Workspace actions"
+              className="toolbar-more-menu"
+            >
+              <div className="toolbar-more-row" role="none">
+                {refreshBtn({ inMenu: true })}
+                <PrivacyToggle privacy={privacy} onToggle={onPrivacyToggle} />
+                <ThemeToggle />
+                <GlobalSearch />
+              </div>
+              <p className="toolbar-more-hint">Refresh · Privacy · Theme · Search</p>
             </div>
-            <p className="toolbar-more-hint">Privacy · Theme · Search</p>
-          </div>
-        ) : null}
+          ) : null}
+        </div>
       </div>
     </div>
   )
