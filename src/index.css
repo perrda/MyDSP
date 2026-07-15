@@ -1451,18 +1451,18 @@ select:focus {
   animation: pulse-subtle 2s ease-in-out infinite;
 }
 
-/* Sync status chip (header) */
+/* Sync status chip (header) — compact; no separate “Now” action */
 .sync-chip {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  max-width: 12rem;
-  min-height: 1.75rem;
-  padding: 0.15rem 0.35rem 0.15rem 0.5rem;
+  gap: 0.3rem;
+  max-width: 9.5rem;
+  min-height: 1.5rem;
+  padding: 0.1rem 0.45rem 0.1rem 0.4rem;
   border: 1px solid var(--border-strong);
-  font-size: 0.625rem;
+  font-size: 0.5625rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   text-decoration: none;
   color: var(--text-muted);
@@ -1734,11 +1734,33 @@ html.glass .toolbar-icon-badge {
   border-color: color-mix(in srgb, var(--bg-elevated) 70%, transparent);
 }
 
+html.glass .sync-chip,
+html.glass .surface-nested,
+html.glass .toolbar-select {
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  background: color-mix(in srgb, var(--surface) 75%, transparent);
+}
+
+html.glass.light .sync-chip,
+html.glass.light .surface-nested,
+html.glass.light .toolbar-select {
+  background: color-mix(in srgb, var(--bg-elevated) 70%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+html.glass table,
+html.glass .data-table,
+html.glass [class*='table-wrap'] {
+  background: color-mix(in srgb, var(--bg-elevated) 55%, transparent);
+}
+
 @media (prefers-reduced-motion: reduce) {
   html.glass .surface,
   html.glass .bg-bg-elevated,
   html.glass .app-header,
-  html.glass .bottom-nav {
+  html.glass .bottom-nav,
+  html.glass .sync-chip {
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
   }

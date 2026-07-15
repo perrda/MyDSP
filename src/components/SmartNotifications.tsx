@@ -73,7 +73,14 @@ export function useSmartNotifications() {
   useEffect(() => {
     processNotifications()
     const interval = setInterval(processNotifications, 5 * 60 * 1000)
-    return () => clearInterval(interval)
+    const onPrice = () => processNotifications()
+    window.addEventListener('mydsp-price-alerts', onPrice)
+    window.addEventListener('mydsp-markets-quotes', onPrice)
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('mydsp-price-alerts', onPrice)
+      window.removeEventListener('mydsp-markets-quotes', onPrice)
+    }
   }, [processNotifications])
 
   return {

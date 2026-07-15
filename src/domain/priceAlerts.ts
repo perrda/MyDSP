@@ -76,16 +76,19 @@ export function buildPriceAlertNotifications(): Array<
     if (!q || !(q.last > 0)) continue
     if (Math.abs(q.changePct) < th.changePct) continue
     const dir = q.changePct >= 0 ? 'up' : 'down'
+    const bigMove = Math.abs(q.changePct) >= th.changePct * 2
     out.push({
       id: `price-${ticker.id}-${Math.round(q.changePct * 10)}`,
-      type: Math.abs(q.changePct) >= th.changePct * 2 ? 'warning' : 'info',
-      priority: Math.abs(q.changePct) >= th.changePct * 2 ? 'high' : 'medium',
+      type: bigMove ? 'warning' : 'info',
+      // 2× threshold → critical so desktop banners fire with default Settings threshold
+      priority: bigMove ? 'critical' : 'high',
       title: `${ticker.symbol} ${dir} ${q.changePct >= 0 ? '+' : ''}${q.changePct.toFixed(2)}%`,
       message: `Last print ${q.last.toLocaleString(undefined, { maximumFractionDigits: q.decimals })} ${q.unit} · threshold ±${th.changePct}%`,
       actionUrl: `/markets?symbol=${encodeURIComponent(ticker.symbol)}`,
       actionLabel: 'Markets',
       dismissible: true,
       category: 'price-alerts',
+      metadata: { triggered: true, changePct: q.changePct, threshold: th.changePct },
     })
   }
   return out

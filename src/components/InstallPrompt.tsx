@@ -88,6 +88,23 @@ export function InstallPrompt() {
     )
   }
 
+  // Online but leftover queue — surface retry path (not only when offline)
+  if (queueLen > 0) {
+    return (
+      <div className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-[max(1rem,env(safe-area-inset-left))] z-[1400] max-w-sm surface border border-border-strong border-l-2 border-l-accent px-4 py-3">
+        <p className="text-sm font-semibold">
+          {queueLen} change{queueLen === 1 ? '' : 's'} waiting to sync
+        </p>
+        <p className="text-xs text-text-subtle mt-1 leading-relaxed">
+          Open Sync to flush the offline queue or tap Sync now after reconnecting.
+        </p>
+        <Link to="/settings#sync" className="text-xs text-accent font-semibold mt-2 inline-block">
+          Review queue →
+        </Link>
+      </div>
+    )
+  }
+
   if (!visible) return null
   if (!iosHint && !deferred) return null
 

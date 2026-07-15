@@ -169,7 +169,7 @@ export function TaxPage() {
                 className="btn-secondary btn-sm inline-flex items-center gap-1.5"
                 onClick={onExportCsv}
               >
-                <Download size={14} strokeWidth={1.5} /> Export CSV
+                <Download size={14} strokeWidth={1.5} /> {pack.exportLabel}
               </button>
             ) : null}
             {isUkTax ? (

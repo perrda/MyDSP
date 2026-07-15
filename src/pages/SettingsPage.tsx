@@ -120,6 +120,11 @@ const BROKER_SAMPLE_TEMPLATES = [
     download: 'broker-ibkr-TSLA.csv',
   },
   {
+    label: 'IBKR Flex aliases (TSLA)',
+    href: 'data/templates/broker-ibkr-flex-TSLA.csv',
+    download: 'broker-ibkr-flex-TSLA.csv',
+  },
+  {
     label: 'Trading 212 sample (TSLA)',
     href: 'data/templates/broker-trading212-TSLA.csv',
     download: 'broker-trading212-TSLA.csv',
@@ -154,6 +159,29 @@ const SETTINGS_SECTION_IDS = [
   'versions',
   'danger',
 ] as const
+
+const SETTINGS_SECTION_SEARCH: Record<(typeof SETTINGS_SECTION_IDS)[number], string> = {
+  sync: 'Encrypted cloud sync passphrase remote url push pull',
+  appearance: 'Light dark glass mode theme',
+  layout: 'On launch favourites sidebar bottom nav',
+  fcc: 'Sample FCC portfolio',
+  display: 'Currency tax residency privacy',
+  'trade-history': 'Broker CSV IBKR Trading 212 Coinbase trades',
+  'price-history': 'Holding price history import',
+  security: 'PIN Face ID lock',
+  alerts: 'Notifications quiet hours price alerts desktop sound',
+  income: 'Income honesty',
+  prices: 'Price refresh providers',
+  devices: 'Devices sync activity log',
+  account: 'Cloud account OAuth identity',
+  'open-banking': 'Open banking PSD2 bank feed',
+  portfolios: 'Create rename delete portfolios',
+  'full-backup': 'Encrypted full backup download restore',
+  export: 'Export data CSV JSON',
+  reports: 'PDF financial report',
+  versions: 'App version changelog',
+  danger: 'Reset clear all data danger zone',
+}
 
 const TAX_RESIDENCIES = [
   { code: 'GB', label: 'United Kingdom' },
@@ -224,6 +252,7 @@ export function SettingsPage() {
     loadPriceAlertThresholds(),
   )
   const [syncActivity, setSyncActivity] = useState<SyncActivityEntry[]>(() => loadSyncActivity())
+  const [settingsQuery, setSettingsQuery] = useState('')
   const [cloudEmail, setCloudEmail] = useState(() => {
     try {
       return localStorage.getItem('mydsp_cloud_email') ?? ''
@@ -502,7 +531,36 @@ export function SettingsPage() {
         description="Sections start collapsed — tap a header (Sync, Display, Security…) to expand. Cloud Sync is first."
       />
 
-      <div className="flex flex-wrap gap-2 mb-4" role="group" aria-label="Settings sections">
+      <div className="flex flex-wrap gap-2 mb-4 items-center" role="group" aria-label="Settings sections">
+        <label className="sr-only" htmlFor="settings-search">
+          Search settings
+        </label>
+        <input
+          id="settings-search"
+          type="search"
+          className="toolbar-select flex-1 min-w-[12rem] max-w-md !w-auto px-3 py-2 text-sm"
+          placeholder="Search settings…"
+          value={settingsQuery}
+          onChange={(e) => {
+            const q = e.target.value
+            setSettingsQuery(q)
+            const needle = q.trim().toLowerCase()
+            if (needle.length < 2) return
+            const hit = SETTINGS_SECTION_IDS.find((id) => {
+              const hay = `${id} ${SETTINGS_SECTION_SEARCH[id]}`.toLowerCase()
+              return hay.includes(needle)
+            })
+            if (!hit) return
+            openSettingsSection(hit)
+            requestAnimationFrame(() => {
+              document.getElementById(hit)?.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start',
+              })
+            })
+          }}
+          autoComplete="off"
+        />
         <button
           type="button"
           className="btn-secondary btn-sm"

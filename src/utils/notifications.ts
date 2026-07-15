@@ -131,6 +131,14 @@ class NotificationManager {
     category: string,
     items: Array<Omit<Notification, 'timestamp' | 'read' | 'category'> & { id: string }>,
   ): void {
+    // Category muted in Settings → remove from bell and skip desktop
+    if (this.settings.categories[category] === false) {
+      const before = this.notifications.length
+      this.notifications = this.notifications.filter((n) => n.category !== category)
+      if (this.notifications.length !== before) this.notifyListeners()
+      return
+    }
+
     const previous = this.notifications.filter((n) => n.category === category)
     const previousIds = new Set(previous.map((p) => p.id))
     const kept = this.notifications.filter((n) => n.category !== category)
@@ -146,11 +154,10 @@ class NotificationManager {
     this.notifications = [...next, ...kept].slice(0, 100)
     this.notifyListeners()
 
-    // Desktop/OS alert only for newly appeared *critical* items
-    // (budget overrun, RAG red, high utilisation — mapped from AppAlert severity red).
+    // Desktop/OS alert for newly appeared high + critical (respects quiet hours / threshold)
     for (const n of next) {
       if (previousIds.has(n.id)) continue
-      if (n.priority === 'critical') {
+      if (n.priority === 'critical' || n.priority === 'high') {
         void this.showNotification(n)
       }
     }

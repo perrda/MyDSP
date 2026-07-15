@@ -12,11 +12,12 @@ function detectLayoutMode(): LayoutMode {
   if (typeof window === 'undefined') return 'phone'
   const wideDesktop = window.matchMedia('(min-width: 1024px)').matches
   if (wideDesktop) return 'desktop'
-  const tabletWidth = window.matchMedia('(min-width: 768px)').matches
+  // Mouse-only browsers keep desktop chrome (sidebar) even when the window is narrow
   const mouseOnly =
     window.matchMedia('(hover: hover) and (pointer: fine)').matches &&
     navigator.maxTouchPoints === 0
-  if (mouseOnly && !tabletWidth) return 'phone'
+  if (mouseOnly) return 'desktop'
+  const tabletWidth = window.matchMedia('(min-width: 768px)').matches
   if (tabletWidth || navigator.maxTouchPoints > 0) {
     return tabletWidth ? 'tablet' : 'phone'
   }

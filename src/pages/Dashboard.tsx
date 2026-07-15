@@ -21,7 +21,8 @@ import {
 } from '../services/sync/autoSyncService'
 import { loadSyncConfig } from '../services/sync/syncService'
 import { loadOfflineQueue } from '../services/offlineQueue'
-import { listMarketTickers } from '../storage/marketsStore'
+import { listMarketTickers, loadMarketQuotesCache } from '../storage/marketsStore'
+import { buildPriceAlertNotifications } from '../domain/priceAlerts'
 import { formatDate, formatGBP, formatPct, privacyClass } from '../utils/format'
 
 const ALERT_BORDER: Record<string, string> = {
@@ -61,6 +62,22 @@ export function Dashboard() {
   }, [data.todoItems])
 
   const marketsCount = useMemo(() => listMarketTickers().length, [syncStatus.lastAt])
+
+  const todayMovers = useMemo(() => {
+    const quotes = loadMarketQuotesCache()
+    const tickers = listMarketTickers()
+    return tickers
+      .map((t) => {
+        const q = quotes.get(t.id)
+        if (!q || !(q.last > 0) || !Number.isFinite(q.changePct)) return null
+        return { id: t.id, symbol: t.symbol, changePct: q.changePct }
+      })
+      .filter((x): x is NonNullable<typeof x> => !!x)
+      .sort((a, b) => Math.abs(b.changePct) - Math.abs(a.changePct))
+      .slice(0, 3)
+  }, [syncStatus.lastAt, marketsCount])
+
+  const todayPriceAlerts = useMemo(() => buildPriceAlertNotifications().slice(0, 2), [syncStatus.lastAt, marketsCount])
 
   const syncCfg = loadSyncConfig()
   const syncEnabled = Boolean(syncCfg.enabled && syncCfg.remoteUrl.trim())
@@ -160,6 +177,35 @@ export function Dashboard() {
           <div className="flex items-center justify-between mb-3">
             <p className="text-xs uppercase tracking-wider text-text-subtle font-semibold">Jump in</p>
           </div>
+          {todayPriceAlerts.length > 0 ? (
+            <ul className="space-y-1.5 mb-3">
+              {todayPriceAlerts.map((a) => (
+                <li key={a.id}>
+                  <Link to={a.actionUrl ?? '/markets'} className="text-sm font-medium text-accent hover:underline line-clamp-1">
+                    Alert · {a.title}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          {todayMovers.length > 0 ? (
+            <ul className="space-y-1.5 mb-3">
+              {todayMovers.map((m) => (
+                <li key={m.id}>
+                  <Link
+                    to={`/markets?symbol=${encodeURIComponent(m.symbol)}`}
+                    className="text-sm text-text hover:text-accent inline-flex items-center gap-2"
+                  >
+                    <span className="font-semibold">{m.symbol}</span>
+                    <span className={m.changePct >= 0 ? 'text-emerald-500' : 'text-red-500'}>
+                      {m.changePct >= 0 ? '+' : ''}
+                      {m.changePct.toFixed(2)}%
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : null}
           <div className="flex flex-wrap gap-2">
             {QUICK_LINKS.map((l) => (
               <Link
@@ -181,13 +227,8 @@ export function Dashboard() {
 
       <GettingStartedChecklist />
 
-      {/* Secondary stats */}
-      <div className={`grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-px mb-6 ${privacyClass(privacy)}`}>
-        <div className="surface p-4 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none col-span-2 md:col-span-1">
-          <p className="text-xs uppercase tracking-wider text-text-subtle mb-2 md:mb-1 font-semibold">Net worth</p>
-          <p className="text-2xl md:text-2xl font-bold tabular-nums mb-1 break-words">{formatGBP(netWorth)}</p>
-          <p className="text-xs text-text-muted font-light leading-tight">Assets − debt</p>
-        </div>
+      {/* Secondary stats — Assets / Debt / allocation (net worth lives in Today pulse above) */}
+      <div className={`grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-px mb-6 ${privacyClass(privacy)}`}>
         <div className="surface p-4 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
           <p className="text-xs uppercase tracking-wider text-text-subtle mb-2 md:mb-1 font-semibold">Assets</p>
           <p className="text-xl md:text-2xl font-bold tabular-nums mb-1 break-words">{formatGBP(assets)}</p>

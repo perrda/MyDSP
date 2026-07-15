@@ -250,6 +250,7 @@ export function loadMarketQuotesCache(): Map<string, MarketQuote> {
 export function saveMarketQuotesCache(map: Map<string, MarketQuote>): void {
   try {
     localStorage.setItem(QUOTES_KEY, JSON.stringify(quotesMapToRecord(map)))
+    window.dispatchEvent(new CustomEvent('mydsp-markets-quotes'))
   } catch {
     /* quota / private mode */
   }

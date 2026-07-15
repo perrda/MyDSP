@@ -22,5 +22,6 @@ describe('design tokens — rounded edges + badge', () => {
   it('defines Glass Mode frosted surfaces', () => {
     expect(css).toMatch(/html\.glass/)
     expect(css).toMatch(/backdrop-filter:\s*blur\(28px\)\s*saturate\(180%\)/)
+    expect(css).toMatch(/html\.glass \.sync-chip/)
   })
 })

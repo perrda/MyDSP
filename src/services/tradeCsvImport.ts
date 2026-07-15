@@ -42,7 +42,9 @@ export function detectBrokerPreset(headers: string[]): BrokerTradePreset {
     exact('t.price', 'tprice') ||
     any('comm/fee') ||
     exact('commfee') ||
-    (any('buy/sell') && exact('quantity'))
+    (any('buy/sell') && exact('quantity')) ||
+    (exact('tradedate') && any('buy/sell', 'buysell')) ||
+    any('ibcommission', 'ibkr')
   ) {
     return BROKER_PRESETS[0]
   }
@@ -112,6 +114,8 @@ export function parseTradeCsv(text: string, opts: ParseTradeCsvOptions): ParsedT
         'datetime',
         'settledate',
         'executiontime',
+        'date/time',
+        'datetimeutc',
       ])
     : 0
   const iSide = hasHeader
@@ -124,6 +128,7 @@ export function parseTradeCsv(text: string, opts: ParseTradeCsvOptions): ParsedT
         'buysell',
         'transactiontype',
         'ordertype',
+        'b/s',
       ])
     : 1
   const iQty = hasHeader
@@ -138,6 +143,8 @@ export function parseTradeCsv(text: string, opts: ParseTradeCsvOptions): ParsedT
         'no.of shares',
         'quantitytransacted',
         'filledqty',
+        'sharesfilled',
+        'fillquantity',
       ])
     : 2
   const iPrice = hasHeader
@@ -154,6 +161,9 @@ export function parseTradeCsv(text: string, opts: ParseTradeCsvOptions): ParsedT
         'priceshare',
         'priceattransaction',
         'spotpriceattransaction',
+        'avg.fillprice',
+        'executedprice',
+        'tradeprice/share',
       ])
     : 3
   const iFees = hasHeader
@@ -166,6 +176,8 @@ export function parseTradeCsv(text: string, opts: ParseTradeCsvOptions): ParsedT
         'commfee',
         'totalfees',
         'feesand/orcommission',
+        'ibcommission',
+        'transactionfees',
       ])
     : 4
   const iNotes = hasHeader ? col(['notes', 'note', 'memo', 'comment', 'description']) : 5

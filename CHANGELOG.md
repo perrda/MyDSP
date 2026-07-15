@@ -1,5 +1,25 @@
 # MyDSP Changelog
 
+## [1.2.26] - 2026-07-15
+
+### Added / improved — Top 10 reliability & UX + sync chip
+1. **Sync chip** — removed counterintuitive **Now** beside “Synced · Xm ago”; compact chip links to Settings → Sync
+2. **Quote path** — prefer `mydsp-quote` Worker, then optional same-origin `/api/quote`, then CORS relays; deploy checklist includes `npm run deploy:quote`
+3. **Cross-device sync smoke** — `scripts/SYNC_SMOKE.md` + richer `verify-deploy` tips
+4. **Price alerts** — refresh on Markets quote cache / threshold save; 2× moves are critical (desktop banners); muted categories leave the bell
+5. **Tax packs** — deeper non-UK disclaimers + per-jurisdiction export labels (no fake SA108 outside UK)
+6. **Broker CSV** — more IBKR/T212/Coinbase header aliases + Flex-style sample
+7. **Overview Today** — live movers + price-alert deep links; dropped duplicate net-worth strip
+8. **Glass Mode** — frost sync chip, nested surfaces, selects, tables
+9. **Offline queue** — banner when queue remains while online (link to flush)
+10. **Compare** — Fill from last synced shows cache age
+11. **Settings search** — jump filter opens + scrolls matching section
+
+### Version
+- 1.2.25 → **1.2.26**
+
+---
+
 ## [1.2.25] - 2026-07-15
 
 ### Added — Glass Mode + softer UI chrome

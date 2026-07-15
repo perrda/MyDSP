@@ -1,11 +1,10 @@
 /** Sync status chip for the app header — tappable deep-link to Settings → Sync. */
 
-import { useEffect, useState, type MouseEvent } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   getAutoSyncStatus,
   subscribeAutoSync,
-  syncNow,
   type AutoSyncStatus,
 } from '../services/sync/autoSyncService'
 import { loadSyncConfig } from '../services/sync/syncService'
@@ -62,7 +61,6 @@ function chipTone(state: AutoSyncStatus['state'], offlineQueued: number): string
 export function SyncStatusChip() {
   const [status, setStatus] = useState<AutoSyncStatus>(() => getAutoSyncStatus())
   const [queueLen, setQueueLen] = useState(() => loadOfflineQueue().length)
-  const [syncing, setSyncing] = useState(false)
   const cfg = loadSyncConfig()
   const configured = Boolean(cfg.enabled && cfg.remoteUrl.trim())
 
@@ -87,44 +85,19 @@ export function SyncStatusChip() {
     status.message,
     status.lastAt ? `Last sync ${new Date(status.lastAt).toLocaleString()}` : null,
     queueLen > 0 ? `${queueLen} offline job(s)` : null,
+    'Open Settings → Sync to sync now',
   ].filter(Boolean)
   const detail = detailParts.join(' · ') || 'Cloud sync'
 
-  const onSyncNow = async (e: MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    if (syncing) return
-    setSyncing(true)
-    try {
-      await syncNow()
-    } catch {
-      /* status chip shows error state */
-    } finally {
-      setSyncing(false)
-    }
-  }
-
   return (
-    <div className={`${chipTone(status.state, queueLen)} inline-flex items-center gap-1`}>
-      <Link
-        to="/settings#sync"
-        className="inline-flex items-center gap-1.5 min-h-8"
-        title={detail}
-        aria-label={`Cloud sync: ${label}. Open Settings.`}
-      >
-        <span className="sync-chip-dot" aria-hidden />
-        <span className="sync-chip-label">{label}</span>
-      </Link>
-      <button
-        type="button"
-        className="sync-chip-action text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 min-h-8 opacity-80 hover:opacity-100"
-        title="Sync now"
-        aria-label="Sync now"
-        disabled={syncing || status.state === 'pulling' || status.state === 'pushing'}
-        onClick={(e) => void onSyncNow(e)}
-      >
-        {syncing ? '…' : 'Now'}
-      </button>
-    </div>
+    <Link
+      to="/settings#sync"
+      className={`${chipTone(status.state, queueLen)}`}
+      title={detail}
+      aria-label={`Cloud sync: ${label}. Open Settings to sync now.`}
+    >
+      <span className="sync-chip-dot" aria-hidden />
+      <span className="sync-chip-label">{label}</span>
+    </Link>
   )
 }
