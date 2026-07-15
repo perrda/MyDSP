@@ -23,9 +23,24 @@ import { DISPLAY_CURRENCIES } from '../services/fx'
 import { fetchSymbolHistory } from '../services/yahooHistory'
 import {
   conflictKey,
+  summarizeConflict,
+  summarizeConflictBatch,
   type ConflictChoice,
   type SyncConflict,
 } from '../services/sync/conflicts'
+import { loadSyncActivity, type SyncActivityEntry } from '../services/sync/syncActivity'
+import {
+  DEFAULT_LAUNCH_PATH,
+  LAUNCH_PATH_OPTIONS,
+  loadLaunchPath,
+  saveLaunchPath,
+} from '../storage/launchPathStore'
+import {
+  loadPriceAlertThresholds,
+  resetPriceAlertThresholds,
+  savePriceAlertThresholds,
+  type PriceAlertThreshold,
+} from '../domain/priceAlerts'
 import {
   allConflictsResolved,
   applyMergePreview,
@@ -202,6 +217,11 @@ export function SettingsPage() {
   const [conflicts, setConflicts] = useState<SyncConflict[]>([])
   const [conflictChoices, setConflictChoices] = useState<Record<string, ConflictChoice>>({})
   const [pendingMerge, setPendingMerge] = useState<MergePreview | null>(null)
+  const [launchPath, setLaunchPath] = useState(() => loadLaunchPath())
+  const [priceThresholds, setPriceThresholds] = useState<PriceAlertThreshold[]>(() =>
+    loadPriceAlertThresholds(),
+  )
+  const [syncActivity, setSyncActivity] = useState<SyncActivityEntry[]>(() => loadSyncActivity())
   const [cloudEmail, setCloudEmail] = useState(() => {
     try {
       return localStorage.getItem('mydsp_cloud_email') ?? ''
@@ -218,6 +238,12 @@ export function SettingsPage() {
   } | null>(null)
 
   useEffect(() => subscribeAutoSync(setAutoSyncStatus), [])
+
+  useEffect(() => {
+    const refresh = () => setSyncActivity(loadSyncActivity())
+    window.addEventListener('mydsp-sync-activity', refresh)
+    return () => window.removeEventListener('mydsp-sync-activity', refresh)
+  }, [])
 
   /** Hydrate parked auto-sync conflicts into the manual review UI. */
   const hydrateAutoSyncConflicts = () => {
@@ -1016,6 +1042,29 @@ export function SettingsPage() {
               {syncCfg.lastMergeCount === 1 ? '' : 's'}
             </p>
           )}
+          {syncActivity.length > 0 && (
+            <div className="mt-4 max-w-2xl border border-border/60 p-3 space-y-2">
+              <p className="text-[11px] font-bold uppercase tracking-widest text-text-subtle">
+                Recent sync activity
+              </p>
+              <ul className="space-y-1.5">
+                {syncActivity.slice(0, 8).map((e) => (
+                  <li key={e.id} className="text-xs text-text-muted font-light">
+                    <span className="text-text-subtle tabular-nums">
+                      {new Date(e.at).toLocaleString('en-GB')}
+                    </span>
+                    {' · '}
+                    <span className="uppercase tracking-wider text-[10px] font-bold text-text-subtle">
+                      {e.source}
+                    </span>
+                    {' · '}
+                    {e.message}
+                    {e.conflicts ? ` · ${e.conflicts} conflict(s)` : ''}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {queue.length > 0 && (
             <div className="border border-border p-4 mt-6 max-w-2xl">
@@ -1100,8 +1149,8 @@ export function SettingsPage() {
             <div id="sync-conflicts-panel" className="mt-6 border border-border p-4 space-y-3">
               <p className="text-sm font-semibold">Sync conflicts</p>
               <p className="text-xs text-text-muted font-light">
-                Same-id rows differ locally and remotely. Nothing has been written yet — review field
-                diffs, pick a side for each row, then Apply merge.
+                {summarizeConflictBatch(conflicts)} Nothing has been written yet — pick Keep local
+                or Keep remote for each row, then Apply merge.
               </p>
               <div className="flex flex-wrap gap-2">
                 <button
@@ -1124,7 +1173,7 @@ export function SettingsPage() {
                     setConflictChoices(next)
                   }}
                 >
-                  Keep all remote
+                  Keep all remote (newest from other device)
                 </button>
               </div>
               {conflicts.map((c) => {
@@ -1134,6 +1183,7 @@ export function SettingsPage() {
                     key={`${c.portfolioId}-${key}`}
                     className="text-sm border border-border/60 rounded-lg p-3 space-y-2"
                   >
+                    <p className="text-xs text-text-muted font-light">{summarizeConflict(c)}</p>
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="uppercase text-[11px] tracking-widest text-text-subtle font-bold">
                         {c.collection}
@@ -1238,6 +1288,31 @@ export function SettingsPage() {
             lives in a collapsible Others list. Favourites order is saved with cloud sync and full
             backups so phone, tablet, and web stay aligned.
           </p>
+          <label className="block mb-6 max-w-md">
+            <span className="label-uppercase block mb-2">On launch</span>
+            <select
+              className="w-full"
+              value={launchPath}
+              onChange={(e) => {
+                saveLaunchPath(e.target.value)
+                setLaunchPath(e.target.value)
+                flash(
+                  e.target.value === DEFAULT_LAUNCH_PATH
+                    ? 'Opens on Overview by default.'
+                    : `Opens on ${LAUNCH_PATH_OPTIONS.find((o) => o.path === e.target.value)?.label ?? e.target.value} on launch.`,
+                )
+              }}
+            >
+              {LAUNCH_PATH_OPTIONS.map((o) => (
+                <option key={o.path} value={o.path}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+            <span className="text-xs text-text-subtle mt-2 block font-light">
+              Default is Overview on web, tablet, and phone. Applies the next time you open MyDSP.
+            </span>
+          </label>
           <button
             type="button"
             className="btn-secondary"
@@ -1721,6 +1796,118 @@ export function SettingsPage() {
             <p className="text-xs text-text-subtle">
               Desktop banners are suppressed between these times (overnight ranges supported).
             </p>
+
+            <div className="pt-4 border-t border-border">
+              <label className="flex items-center justify-between gap-4 min-h-11 mb-3">
+                <span className="text-sm font-medium">
+                  Markets price alerts
+                  <span className="block text-xs text-text-muted font-light mt-0.5">
+                    Show in the bell when watchlist moves past your thresholds
+                  </span>
+                </span>
+                <input
+                  type="checkbox"
+                  className="h-5 w-5 accent-[var(--accent)]"
+                  checked={notifSettings.categories['price-alerts'] !== false}
+                  onChange={(e) => {
+                    notificationManager.updateSettings({
+                      categories: { 'price-alerts': e.target.checked },
+                    })
+                    flash(e.target.checked ? 'Price alerts on.' : 'Price alerts muted.')
+                  }}
+                />
+              </label>
+              <p className="text-xs font-bold uppercase tracking-widest text-text-subtle mb-2">
+                Thresholds (% move)
+              </p>
+              <div className="space-y-2">
+                {priceThresholds.map((th, idx) => (
+                  <div key={`${th.key}-${idx}`} className="grid grid-cols-[1fr_5.5rem_auto] gap-2 items-center">
+                    <input
+                      type="text"
+                      className="text-sm"
+                      value={th.key}
+                      aria-label={`Alert symbol ${idx + 1}`}
+                      onChange={(e) => {
+                        const next = [...priceThresholds]
+                        next[idx] = { ...next[idx], key: e.target.value.toUpperCase() }
+                        setPriceThresholds(next)
+                      }}
+                      onBlur={(e) => {
+                        const next = [...priceThresholds]
+                        next[idx] = { ...next[idx], key: e.target.value.toUpperCase() }
+                        setPriceThresholds(next)
+                        savePriceAlertThresholds(next)
+                        flash('Price alert thresholds saved.')
+                      }}
+                    />
+                    <input
+                      type="number"
+                      min={0.1}
+                      step={0.1}
+                      className="text-sm"
+                      value={th.changePct}
+                      aria-label={`Alert threshold % for ${th.key}`}
+                      onChange={(e) => {
+                        const next = [...priceThresholds]
+                        next[idx] = {
+                          ...next[idx],
+                          changePct: Number(e.target.value) || next[idx].changePct,
+                        }
+                        setPriceThresholds(next)
+                      }}
+                      onBlur={(e) => {
+                        const next = [...priceThresholds]
+                        next[idx] = {
+                          ...next[idx],
+                          changePct: Number(e.target.value) || next[idx].changePct,
+                        }
+                        setPriceThresholds(next)
+                        savePriceAlertThresholds(next)
+                        flash('Price alert thresholds saved.')
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="btn-ghost btn-sm"
+                      aria-label={`Remove ${th.key}`}
+                      onClick={() => {
+                        const next = priceThresholds.filter((_, i) => i !== idx)
+                        setPriceThresholds(next)
+                        savePriceAlertThresholds(next)
+                        flash('Threshold removed.')
+                      }}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="flex flex-wrap gap-2 mt-3">
+                <button
+                  type="button"
+                  className="btn-secondary btn-sm"
+                  onClick={() => {
+                    const next = [...priceThresholds, { key: 'BTC', changePct: 3 }]
+                    setPriceThresholds(next)
+                    savePriceAlertThresholds(next)
+                  }}
+                >
+                  Add threshold
+                </button>
+                <button
+                  type="button"
+                  className="btn-ghost btn-sm"
+                  onClick={() => {
+                    const next = resetPriceAlertThresholds()
+                    setPriceThresholds(next)
+                    flash('Defaults restored.')
+                  }}
+                >
+                  Reset defaults
+                </button>
+              </div>
+            </div>
           </div>
         </SettingsSection>
 

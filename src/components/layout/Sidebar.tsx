@@ -47,6 +47,7 @@ import {
   saveNavLayout,
   type NavLayout,
 } from '../../storage/navOrder'
+import { prefetchRouteChunk } from '../../hooks/useIdlePrefetch'
 
 interface NavItem {
   to: string
@@ -169,6 +170,8 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           to={link.to}
           end={link.end}
           onClick={onClose}
+          onMouseEnter={() => prefetchRouteChunk(link.to)}
+          onFocus={() => prefetchRouteChunk(link.to)}
           className={({ isActive }) => `nav-link nav-link-flex ${isActive ? 'active' : ''}`}
         >
           <Icon size={16} strokeWidth={1.5} />

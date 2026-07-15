@@ -115,12 +115,26 @@ async function fetchJson<T>(
   }
 }
 
-/** Prefer working CORS relays; corsproxy.io often returns HTML interstitial pages.
- * Same-origin /api/quote Worker proxy is deferred — adding `main` to wrangler broke
- * Cloudflare Workers Builds for this SPA-only pipeline. Race public relays instead.
- */
+/** Prefer dedicated quote Worker, then public CORS relays. */
 function proxyCandidatesFor(url: string): string[] {
+  const quoteProxyBase = (() => {
+    try {
+      const envUrl =
+        typeof import.meta !== 'undefined' &&
+        import.meta.env &&
+        typeof import.meta.env.VITE_QUOTE_PROXY_URL === 'string'
+          ? import.meta.env.VITE_QUOTE_PROXY_URL.trim()
+          : ''
+      if (envUrl) return envUrl.replace(/\/$/, '')
+      // Default public Worker (deploy via npm run deploy:quote)
+      return 'https://mydsp-quote.dave-perry.workers.dev'
+    } catch {
+      return 'https://mydsp-quote.dave-perry.workers.dev'
+    }
+  })()
+
   const wrap = (target: string) => [
+    `${quoteProxyBase}/quote?url=${encodeURIComponent(target)}`,
     `https://api.allorigins.win/raw?url=${encodeURIComponent(target)}`,
     `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(target)}`,
     `https://corsproxy.io/?${encodeURIComponent(target)}`,

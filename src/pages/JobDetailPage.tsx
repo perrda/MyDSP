@@ -785,7 +785,7 @@ export function JobDetailPage() {
                 {linkedTodos.map((t) => (
                   <Link
                     key={t.id}
-                    to="/todos"
+                    to={`/todos?focus=${t.id}`}
                     className="block p-2 bg-surface-hover rounded text-xs hover:border-accent"
                   >
                     <p className="font-semibold">{t.title}</p>

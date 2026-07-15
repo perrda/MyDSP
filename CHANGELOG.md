@@ -1,5 +1,24 @@
 # MyDSP Changelog
 
+## [1.2.23] - 2026-07-15
+
+### Added — Launch preference, sync UX, Markets, PWA, deep links
+1. **On launch** — default Overview on web/tablet/phone; Settings → Layout “On launch” picker
+2. **Quote proxy Worker** — separate `quote-endpoint` (`npm run deploy:quote`); SPA wrangler stays assets-only for CI
+3. **PWA update banner** — “New version ready / Reload” after deploy (SW no longer auto-activates)
+4. **Sync conflict UX** — plain-English summaries + “Keep all remote”; per-device activity log in Settings
+5. **Markets watchlist union merge** — sync keeps local tickers and appends remote-only symbols
+6. **Overview Today deep links** — todos → `/todos?focus=`; Markets jump-ins
+7. **Price alerts** — bell category + Settings thresholds (±% move)
+8. **Fill from last synced** — Compare / Crypto / Equities apply Markets quote cache; live refresh fills zeros from cache
+9. **Jobs ↔ Todos** — linked todos open with `?focus=`
+10. **Performance** — idle + sidebar hover prefetch for Tax / Analytics / heavy chunks
+
+### Version
+- 1.2.22 → **1.2.23**
+
+---
+
 ## [1.2.22] - 2026-07-15
 
 ### Added — Sync completeness & multi-device polish (Top 8)

@@ -1,7 +1,7 @@
 {
   "name": "mydsp",
   "private": true,
-  "version": "1.2.22",
+  "version": "1.2.23",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -13,6 +13,7 @@
     "verify:deploy": "node scripts/verify-deploy.mjs",
     "deploy": "npm run build && node scripts/verify-deploy.mjs && wrangler deploy",
     "deploy:sync": "cd sync-endpoint && wrangler deploy",
+    "deploy:quote": "cd quote-endpoint && wrangler deploy",
     "deploy:check": "npm run build && npm run verify:deploy"
   },
   "dependencies": {

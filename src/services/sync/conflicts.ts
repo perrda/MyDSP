@@ -138,6 +138,46 @@ export function conflictKey(c: Pick<SyncConflict, 'collection' | 'id'>): string 
   return `${c.collection}:${c.id}`
 }
 
+const COLLECTION_LABEL: Record<ConflictCollection, string> = {
+  crypto: 'crypto holding',
+  equities: 'equity holding',
+  creditCards: 'credit card',
+  loans: 'loan',
+  spending: 'spending row',
+  goals: 'goal',
+  journal: 'journal entry',
+  disposals: 'disposal',
+  todoItems: 'to-do',
+  todoLists: 'to-do list',
+  jobApplications: 'job application',
+  documents: 'document',
+}
+
+/** One-line plain-English summary for conflict review UI. */
+export function summarizeConflict(c: SyncConflict): string {
+  const kind = COLLECTION_LABEL[c.collection] ?? c.collection
+  const label = c.localLabel || c.remoteLabel || `#${c.id}`
+  const fields = (c.fieldDiffs ?? []).slice(0, 3).map((d) => d.field)
+  if (fields.length === 0) {
+    return `This ${kind} (“${label}”) differs between devices.`
+  }
+  return `This ${kind} (“${label}”) changed on ${fields.join(', ')} — pick which device to keep.`
+}
+
+/** Short portfolio-level blurb for a conflict batch. */
+export function summarizeConflictBatch(conflicts: SyncConflict[]): string {
+  if (conflicts.length === 0) return 'No conflicts.'
+  const byCollection = new Map<string, number>()
+  for (const c of conflicts) {
+    byCollection.set(c.collection, (byCollection.get(c.collection) ?? 0) + 1)
+  }
+  const parts = [...byCollection.entries()].map(([col, n]) => {
+    const label = COLLECTION_LABEL[col as ConflictCollection] ?? col
+    return `${n} ${label}${n === 1 ? '' : 's'}`
+  })
+  return `${conflicts.length} conflict${conflicts.length === 1 ? '' : 's'}: ${parts.join(', ')}.`
+}
+
 /**
  * Apply union merge, then overwrite conflicting IDs per user choice.
  * Default (no choice) keeps local for conflicting rows.

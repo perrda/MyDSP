@@ -21,6 +21,7 @@ import { SyncStatusChip } from '../SyncStatusChip'
 import { PullToRefresh } from '../ui/PullToRefresh'
 import { formatDateTime } from '../../utils/format'
 import { useShowBottomNav } from '../../hooks/useShowBottomNav'
+import { useIdlePrefetch } from '../../hooks/useIdlePrefetch'
 
 const titles: Record<string, { eyebrow: string; title: string }> = {
   '/': { eyebrow: 'Portfolio', title: 'Overview' },
@@ -63,6 +64,7 @@ const titles: Record<string, { eyebrow: string; title: string }> = {
 export function AppShell() {
   const [open, setOpen] = useState(false)
   const showBottomNav = useShowBottomNav()
+  useIdlePrefetch()
   const { pathname } = useLocation()
   const {
     portfolios,

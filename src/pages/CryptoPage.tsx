@@ -11,9 +11,11 @@ import { TradeModal } from '../components/ui/TradeModal'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
 import { usePortfolio } from '../context/PortfolioContext'
 import { applyTrade } from '../domain/trades'
+import { applyLastSyncedQuotesToHoldings } from '../domain/lastSyncedHoldings'
 import type { CryptoHolding } from '../domain/types'
 import { applySortOrder, sortBySortOrder } from '../utils/reorder'
 import { formatGBP, formatGBPPrecise, formatPct, formatQty, privacyClass } from '../utils/format'
+import { useToasts } from '../components/ToastProvider'
 
 function nextId(items: { id: number }[]): number {
   return items.reduce((m, i) => Math.max(m, i.id), 0) + 1
@@ -29,6 +31,7 @@ const emptyForm = {
 
 export function CryptoPage() {
   const { data, breakdown, privacy, setData } = usePortfolio()
+  const { success, error: showError } = useToasts()
   const { crypto } = breakdown
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<CryptoHolding | null>(null)
@@ -39,6 +42,16 @@ export function CryptoPage() {
   const [sorting, setSorting] = useState(false)
 
   const holdings = useMemo(() => sortBySortOrder(data.crypto), [data.crypto])
+
+  const fillFromLastSynced = () => {
+    const result = applyLastSyncedQuotesToHoldings(data, { overwrite: true })
+    if (result.crypto === 0) {
+      showError('No cache hits', 'Refresh Markets first, then try again.')
+      return
+    }
+    setData(() => result.data)
+    success('Filled from last synced', `${result.crypto} crypto price${result.crypto === 1 ? '' : 's'}`)
+  }
 
   const pieSlices = useMemo(
     () =>
@@ -112,6 +125,15 @@ export function CryptoPage() {
         }
         action={
           <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="btn-ghost btn-sm"
+              disabled={holdings.length === 0}
+              onClick={fillFromLastSynced}
+              title="Apply last-synced Markets quotes to holdings"
+            >
+              Fill last synced
+            </button>
             <button
               type="button"
               className={`btn-secondary btn-sm inline-flex items-center gap-2 ${sorting ? 'border-accent text-accent' : ''}`}

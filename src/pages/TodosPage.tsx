@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect, useRef } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import {
   Plus,
   Download,
@@ -87,6 +87,7 @@ function formatTodoDue(dueDate: string, dueTime?: string): string {
 export function TodosPage() {
   const { data, setData, privacy } = usePortfolio()
   const { success, error: showError } = useToasts()
+  const [searchParams, setSearchParams] = useSearchParams()
   const justSyncedTodos = useSyncHighlights('todoItems')
   const [selectedListId, setSelectedListId] = useState<number | null>(() => {
     const sorted = sortBySortOrder(data.todoLists || [])
@@ -111,6 +112,7 @@ export function TodosPage() {
   } | null>(null)
   const [showScreenshotImport, setShowScreenshotImport] = useState(false)
   const [bulkMoveListId, setBulkMoveListId] = useState<number | ''>('')
+  const [focusTodoId, setFocusTodoId] = useState<number | null>(null)
 
   const lists = sortBySortOrder(data.todoLists || [])
   const allItems = data.todoItems || []
@@ -134,6 +136,48 @@ export function TodosPage() {
     const id = window.setInterval(run, 60_000)
     return () => window.clearInterval(id)
   }, [success])
+
+  // Deep-link: /todos?focus=<id> selects list, reveals item, scrolls into view
+  useEffect(() => {
+    const raw = searchParams.get('focus')
+    if (!raw) return
+    const id = Number(raw)
+    if (!Number.isFinite(id)) {
+      setSearchParams({}, { replace: true })
+      return
+    }
+    const item = allItems.find((t) => t.id === id)
+    if (!item) {
+      setSearchParams({}, { replace: true })
+      return
+    }
+    setSelectedListId(item.listId)
+    setFilterBy('all')
+    setSearchQuery('')
+    setPriorityChips(new Set())
+    if (item.status === 'done' || item.status === 'archived') setShowCompleted(true)
+    setFocusTodoId(id)
+    setSearchParams({}, { replace: true })
+  }, [searchParams, allItems, setSearchParams])
+
+  useEffect(() => {
+    if (focusTodoId == null) return
+    const tryScroll = () => {
+      const el = document.getElementById(`todo-${focusTodoId}`)
+      if (!el) return false
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      return true
+    }
+    if (tryScroll()) {
+      const clear = window.setTimeout(() => setFocusTodoId(null), 2500)
+      return () => window.clearTimeout(clear)
+    }
+    const retry = window.setTimeout(() => {
+      tryScroll()
+      window.setTimeout(() => setFocusTodoId(null), 2500)
+    }, 100)
+    return () => window.clearTimeout(retry)
+  }, [focusTodoId, selectedListId, filterBy, showCompleted])
 
   const enableDesktopReminders = async () => {
     const perm = await ensureDesktopNotificationPermission()
@@ -871,6 +915,7 @@ export function TodosPage() {
                   orderNumber={orderNumbers.get(item.id)}
                   listName={!selectedListId ? lists.find((l) => l.id === item.listId)?.name : undefined}
                   selected={selectedTodos.has(item.id)}
+                  focused={focusTodoId === item.id}
                   justSynced={justSyncedTodos.has(item.id)}
                   showReorderHandle
                   onToggleSelect={handleToggleSelect}
@@ -890,6 +935,7 @@ export function TodosPage() {
                   orderNumber={orderNumbers.get(item.id)}
                   listName={!selectedListId ? lists.find((l) => l.id === item.listId)?.name : undefined}
                   selected={selectedTodos.has(item.id)}
+                  focused={focusTodoId === item.id}
                   justSynced={justSyncedTodos.has(item.id)}
                   onToggleSelect={handleToggleSelect}
                   onToggleComplete={handleToggleComplete}
@@ -911,6 +957,7 @@ function TodoItemCard({
   orderNumber,
   listName,
   selected,
+  focused = false,
   justSynced = false,
   showReorderHandle = false,
   onToggleSelect,
@@ -923,6 +970,7 @@ function TodoItemCard({
   orderNumber?: number
   listName?: string
   selected: boolean
+  focused?: boolean
   justSynced?: boolean
   showReorderHandle?: boolean
   onToggleSelect: (id: number) => void
@@ -936,8 +984,9 @@ function TodoItemCard({
 
   return (
     <article
+      id={`todo-${item.id}`}
       className={`surface p-3 sm:p-4 border-l-4 rounded-xl md:rounded-none shadow-sm md:shadow-none ${PRIORITY_COLORS[item.priority]} ${
-        selected ? 'ring-2 ring-accent' : ''
+        selected || focused ? 'ring-2 ring-accent' : ''
       } ${syncHighlightClass(justSynced)}`}
     >
       <div

@@ -4,6 +4,7 @@ import { useEffect, useCallback, useState, useRef, useId } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { usePortfolio } from '../context/PortfolioContext'
 import { buildAlerts } from '../domain/alerts'
+import { buildPriceAlertNotifications } from '../domain/priceAlerts'
 import { notificationManager, type Notification } from '../utils/notifications'
 import { logger } from '../utils/logger'
 import {
@@ -61,6 +62,8 @@ export function useSmartNotifications() {
           dismissible: true,
         })),
       )
+      const priceAlerts = buildPriceAlertNotifications()
+      notificationManager.syncCategory('price-alerts', priceAlerts)
       setNotifications(notificationManager.getAll())
     } catch (error) {
       logger.error('Failed to process smart notifications', error as Error, 'app')
