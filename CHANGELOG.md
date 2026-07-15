@@ -1,5 +1,29 @@
 # MyDSP Changelog
 
+## [1.2.13] - 2026-07-15
+
+### Added — Paste trade CSV into holdings
+- **Import history** modal: **Paste CSV** textarea (as well as file upload)
+- Ambiguous dates honour **D/M/Y (UK)** or **M/D/Y (US)** toggle
+- Hardened parser: currency symbols, extra columns ignored, clearer row errors
+- Example rows in TSLA / MSTR / BTC CSV templates
+
+### Added — Non-UK tax jurisdiction packs
+- Simplified packs for **US / IE / AU / CA / SG / TH / XX** (calendar year + reference rate)
+- SG / TH: no CGT computed (journal for records); SA108 remains UK-only
+- GB path unchanged (§104 / B&B / SA108)
+
+### Improved — Accessibility
+- Compare: table caption, decorative icon `aria-hidden`, net-worth scale as `role="img"`, active row `aria-current`
+- Trade history modal: labelled remove / fill-price, append/replace `aria-pressed`, error `role="alert"`
+- Opening-balance wizard: `aria-busy` while applying
+- e2e axe coverage for `/compare` and `/setup/opening`
+
+### Version
+- 1.2.12 → **1.2.13**
+
+---
+
 ## [1.2.12] - 2026-07-15
 
 ### Improved — Header search control

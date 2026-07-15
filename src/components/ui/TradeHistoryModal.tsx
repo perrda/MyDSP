@@ -12,7 +12,10 @@ import {
   type TradeSide,
 } from '../../domain/trades'
 import { lookupPriceOnDate } from '../../domain/staticPrices'
-import { parseTradeCsv } from '../../services/tradeCsvImport'
+import {
+  parseTradeCsv,
+  type TradeCsvDateOrder,
+} from '../../services/tradeCsvImport'
 import type { PortfolioData } from '../../domain/types'
 
 interface Props {
@@ -38,6 +41,9 @@ export function TradeHistoryModal({
   const [errors, setErrors] = useState<string[]>([])
   const [status, setStatus] = useState<string | null>(null)
   const [mode, setMode] = useState<'append' | 'replace'>('append')
+  const [pasteText, setPasteText] = useState('')
+  const [showPaste, setShowPaste] = useState(false)
+  const [dateOrder, setDateOrder] = useState<TradeCsvDateOrder>('dmy')
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -45,6 +51,9 @@ export function TradeHistoryModal({
     setRows([emptyTradeDraftRow('buy'), emptyTradeDraftRow('buy')])
     setErrors([])
     setStatus(null)
+    setPasteText('')
+    setShowPaste(false)
+    setDateOrder('dmy')
     const existing = tradeJournalForSymbol(data, symbol).length
     setMode(existing > 0 ? 'append' : 'replace')
   }, [open, symbol]) // data read once on open
@@ -67,11 +76,11 @@ export function TradeHistoryModal({
     )
   }
 
-  const onCsv = async (file: File) => {
-    const text = await file.text()
-    const parsed = parseTradeCsv(text, { kind, symbol, name })
+  const loadParsedCsv = (text: string, source: 'file' | 'paste') => {
+    const parsed = parseTradeCsv(text, { kind, symbol, name, dateOrder })
     if (parsed.errors.length && parsed.trades.length === 0) {
       setErrors(parsed.errors)
+      setStatus(null)
       return
     }
     setErrors(parsed.errors)
@@ -86,7 +95,18 @@ export function TradeHistoryModal({
         notes: t.notes ?? '',
       })),
     )
-    setStatus(`Loaded ${parsed.trades.length} trade(s) from CSV. Review and save.`)
+    setStatus(
+      `Loaded ${parsed.trades.length} trade(s) from ${source === 'paste' ? 'paste' : 'CSV'}. Review and save.`,
+    )
+    if (source === 'paste') {
+      setShowPaste(false)
+      setPasteText('')
+    }
+  }
+
+  const onCsv = async (file: File) => {
+    const text = await file.text()
+    loadParsedCsv(text, 'file')
   }
 
   const save = () => {
@@ -133,18 +153,24 @@ export function TradeHistoryModal({
     <Modal open={open} size="full" title={`Import ${symbol} trade history`} onClose={onClose}>
       <div className="space-y-5">
         <p className="text-sm text-text-muted font-light">
-          Enter every dated buy and sell (or paste CSV). Quantity and average cost rebuild from the
-          journal for {symbol}.
+          Enter every dated buy and sell, paste a broker CSV, or import a file. Quantity and average
+          cost rebuild from the journal for {symbol}.
         </p>
         <p className="text-xs text-text-subtle">
-          CSV columns: <code className="text-accent">date,side,qty,price[,fees][,notes]</code>
+          CSV columns:{' '}
+          <code className="text-accent">date,side,qty,price[,fees][,notes][,platform]</code>
         </p>
 
         {existingCount > 0 && (
-          <div className="flex flex-wrap gap-2 border border-border p-3">
+          <div
+            className="flex flex-wrap gap-2 border border-border p-3"
+            role="group"
+            aria-label="Import mode"
+          >
             <button
               type="button"
               className={`btn-sm ${mode === 'append' ? 'btn-primary' : 'btn-ghost'}`}
+              aria-pressed={mode === 'append'}
               onClick={() => setMode('append')}
             >
               Append to {existingCount} existing
@@ -152,6 +178,7 @@ export function TradeHistoryModal({
             <button
               type="button"
               className={`btn-sm ${mode === 'replace' ? 'btn-primary' : 'btn-ghost'}`}
+              aria-pressed={mode === 'replace'}
               onClick={() => setMode('replace')}
             >
               Replace all trades
@@ -159,7 +186,7 @@ export function TradeHistoryModal({
           </div>
         )}
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             className="btn-secondary btn-sm"
@@ -167,9 +194,30 @@ export function TradeHistoryModal({
           >
             Add row
           </button>
-          <button type="button" className="btn-ghost btn-sm" onClick={() => fileRef.current?.click()}>
-            Import CSV
+          <button
+            type="button"
+            className={`btn-sm ${showPaste ? 'btn-primary' : 'btn-ghost'}`}
+            aria-pressed={showPaste}
+            aria-expanded={showPaste}
+            onClick={() => setShowPaste((v) => !v)}
+          >
+            Paste CSV
           </button>
+          <button type="button" className="btn-ghost btn-sm" onClick={() => fileRef.current?.click()}>
+            Import file
+          </button>
+          <label className="flex items-center gap-2 text-xs text-text-muted ml-auto">
+            <span className="label-uppercase">Dates</span>
+            <select
+              className="text-sm"
+              value={dateOrder}
+              onChange={(e) => setDateOrder(e.target.value as TradeCsvDateOrder)}
+              aria-label="Ambiguous date order for pasted CSV"
+            >
+              <option value="dmy">D/M/Y (UK)</option>
+              <option value="mdy">M/D/Y (US)</option>
+            </select>
+          </label>
           <input
             ref={fileRef}
             type="file"
@@ -183,13 +231,50 @@ export function TradeHistoryModal({
           />
         </div>
 
+        {showPaste ? (
+          <div className="space-y-3 border border-border p-4">
+            <label className="block">
+              <span className="label-uppercase block mb-2">Paste broker CSV</span>
+              <textarea
+                value={pasteText}
+                onChange={(e) => setPasteText(e.target.value)}
+                rows={6}
+                className="w-full font-mono text-sm"
+                placeholder={'date,side,qty,price,fees,notes\n2024-01-15,buy,10,180.50,1.00,IBKR'}
+                aria-label="Paste trade CSV text"
+                style={{ fontSize: 16 }}
+              />
+            </label>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="btn-primary btn-sm"
+                disabled={!pasteText.trim()}
+                onClick={() => loadParsedCsv(pasteText, 'paste')}
+              >
+                Parse pasted CSV
+              </button>
+              <button
+                type="button"
+                className="btn-ghost btn-sm"
+                onClick={() => {
+                  setPasteText('')
+                  setShowPaste(false)
+                }}
+              >
+                Cancel paste
+              </button>
+            </div>
+          </div>
+        ) : null}
+
         {status && (
-          <p className="text-sm text-accent" role="status">
+          <p className="text-sm text-accent" role="status" aria-live="polite">
             {status}
           </p>
         )}
         {errors.length > 0 && (
-          <ul className="text-sm text-text-muted list-disc pl-5 space-y-1">
+          <ul className="text-sm text-text-muted list-disc pl-5 space-y-1" role="alert">
             {errors.map((e) => (
               <li key={e}>{e}</li>
             ))}
@@ -197,16 +282,33 @@ export function TradeHistoryModal({
         )}
 
         <div className="overflow-x-auto -mx-1">
-          <table className="w-full text-sm min-w-[640px]">
+          <table className="w-full text-sm min-w-[640px]" aria-label={`${symbol} trade draft rows`}>
+            <caption className="sr-only">
+              Draft buy and sell rows for {symbol}. Edit cells, then save to update the journal.
+            </caption>
             <thead>
-              <tr className="border-b border-border text-left text-[10px] uppercase tracking-widest text-text-subtle">
-                <th className="py-2 pr-2 font-bold">Side</th>
-                <th className="py-2 pr-2 font-bold">Date</th>
-                <th className="py-2 pr-2 font-bold">Qty</th>
-                <th className="py-2 pr-2 font-bold">Price</th>
-                <th className="py-2 pr-2 font-bold">Fees</th>
-                <th className="py-2 pr-2 font-bold">Notes</th>
-                <th className="py-2 font-bold" />
+              <tr className="border-b border-border text-left text-[11px] uppercase tracking-widest text-text-subtle">
+                <th className="py-2 pr-2 font-bold" scope="col">
+                  Side
+                </th>
+                <th className="py-2 pr-2 font-bold" scope="col">
+                  Date
+                </th>
+                <th className="py-2 pr-2 font-bold" scope="col">
+                  Qty
+                </th>
+                <th className="py-2 pr-2 font-bold" scope="col">
+                  Price
+                </th>
+                <th className="py-2 pr-2 font-bold" scope="col">
+                  Fees
+                </th>
+                <th className="py-2 pr-2 font-bold" scope="col">
+                  Notes
+                </th>
+                <th className="py-2 font-bold" scope="col">
+                  <span className="sr-only">Remove row</span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -253,8 +355,9 @@ export function TradeHistoryModal({
                       />
                       <button
                         type="button"
-                        className="btn-ghost btn-sm shrink-0"
+                        className="btn-ghost btn-sm shrink-0 min-h-11 min-w-11"
                         title="Fill from market history"
+                        aria-label={`Fill price from market history for ${r.date || 'selected date'}`}
                         onClick={() => void fillPrice(r)}
                       >
                         Px
@@ -283,11 +386,12 @@ export function TradeHistoryModal({
                   <td className="py-2">
                     <button
                       type="button"
-                      className="btn-ghost btn-sm"
+                      className="btn-ghost btn-sm min-h-11 min-w-11"
                       onClick={() => setRows((prev) => prev.filter((x) => x.id !== r.id))}
                       disabled={rows.length <= 1}
+                      aria-label="Remove row"
                     >
-                      ✕
+                      <span aria-hidden>✕</span>
                     </button>
                   </td>
                 </tr>

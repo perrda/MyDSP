@@ -98,7 +98,10 @@ export function ComparePage() {
       </div>
 
       <div className="surface overflow-x-auto mb-8">
-        <table className="w-full text-sm min-w-[40rem]" role="table" aria-label="Portfolio comparison">
+        <table className="w-full text-sm min-w-[40rem]" aria-label="Portfolio comparison">
+          <caption className="sr-only">
+            Side-by-side net worth, allocation, and flags for the selected portfolios.
+          </caption>
           <thead>
             <tr className="border-b border-border text-left">
               <th className="p-4 label-uppercase font-bold" scope="col">Portfolio</th>
@@ -115,6 +118,7 @@ export function ComparePage() {
               <tr
                 key={r.id}
                 className={`border-b border-border/60 ${r.id === activeId ? 'bg-accent/5' : ''}`}
+                aria-current={r.id === activeId ? 'true' : undefined}
               >
                 <td className="p-4">
                   <button
@@ -129,10 +133,11 @@ export function ComparePage() {
                       size={14}
                       className="opacity-0 group-hover:opacity-100 transition-opacity"
                       strokeWidth={2}
+                      aria-hidden
                     />
                   </button>
                   {r.isPrimary && (
-                    <span className="ml-2 text-[10px] uppercase tracking-widest text-text-subtle">
+                    <span className="ml-2 text-[11px] uppercase tracking-widest text-text-subtle">
                       primary
                     </span>
                   )}
@@ -216,11 +221,8 @@ export function ComparePage() {
                 </div>
                 <div
                   className="h-2 bg-border/40 overflow-hidden"
-                  role="progressbar"
-                  aria-valuenow={Math.round(pct)}
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-label={`${r.name} represents ${Math.round(pct)}% of maximum net worth`}
+                  role="img"
+                  aria-label={`${r.name} represents ${Math.round(pct)}% of the largest net worth shown`}
                 >
                   <div
                     className="h-full bg-accent transition-[width] duration-500 ease-out"

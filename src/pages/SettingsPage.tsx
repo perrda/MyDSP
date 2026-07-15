@@ -1272,7 +1272,7 @@ export function SettingsPage() {
               Switch header portfolio to <strong className="text-text">David</strong>
             </li>
             <li>Equities → TSLA / MSTR or Crypto → BTC → Import history</li>
-            <li>Paste CSV or use multi-row entry; journal rebuilds cost basis</li>
+            <li>Paste CSV or use multi-row entry in Import history; journal rebuilds cost basis</li>
           </ol>
         </SettingsSection>
 
