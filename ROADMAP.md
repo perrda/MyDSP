@@ -1,31 +1,36 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.13**
+**Current version: 1.2.14**
 
-## Completed (through v1.2.13)
+## Completed (through v1.2.14)
 
 - Markets / News / YouTube, Favourites nav, PIN/Face ID iOS polish
 - Full section QA, empty states, overflow menus, live notification bell
-- Settings Alerts (desktop banners + quiet hours)
+- Settings Alerts (desktop banners + quiet hours + optional critical beep)
 - Per-portfolio display currency + tax residency (Tax page + Settings)
-- Encrypted sync, full backups, Compare, Jobs/Todos
+- Encrypted sync + conflict handoff to Settings review UI
+- Full backups, Compare, Jobs/Todos (board columns polished)
 - Markets last-good quote cache + 7-day sparkline fixes
 - Header Search icon redesign
-- Paste trade CSV into holdings + hardened broker CSV parsing
-- Compare / opening-wizard accessibility pass
-- Simplified non-UK tax jurisdiction packs (US / IE / AU / CA / SG / TH / XX)
+- Paste trade CSV + IBKR / Trading 212 / Coinbase header detection
+- Enhanced bank CSV wizard (mapping + income honesty + a11y)
+- Smart Insights → Merchant Rules / Recurring wiring
+- Compare / opening-wizard accessibility; fill prices from history
+- Non-UK tax packs + US 8949/wash-sale informational stub
+- Full financial PDF report; TaxPage `tax-pages` chunk split
+- API webhook ping foundations; open-banking honesty section
 
-## Next
+## Next (manual / ongoing)
 
-1. Cross-device sync smoke on phone + Mac (manual)
-2. Enhanced bank CSV wizard accessibility
-3. Tax page polish for remittance / Form 8949 stubs (parking lot)
-4. Real-broker CSV presets (IBKR / Trading 212 / Coinbase exports)
-5. Performance: split analysis-pages chunk further
+1. Cross-device sync smoke on phone + Mac after every deploy
+2. Real IBKR/T212/Coinbase sample fixtures from your exports (tune aliases)
+3. Remittance-basis notes for non-dom packs
+4. Markets provider health monitoring
 
 ## Parking lot
 
-- Open banking  
-- OAuth identity  
+- Open banking (PSD2) — informational only in Settings today  
+- OAuth identity — planned; passphrase sync remains primary  
 - Achievement confetti  
-- Wash-sale / Form 8949 / remittance stubs  
+- Full wash-sale / Form 8949 generation  
+- Todo `recurring` flag — use Recurring transactions / Insights instead  

@@ -11,6 +11,7 @@ import {
   downloadExcel,
   printPdf 
 } from '../utils/exportFormats'
+import { buildFullReportHtml } from '../utils/fullReportHtml'
 import { Download, FileText, Table as TableIcon, Printer, CheckCircle } from 'lucide-react'
 import { logger } from '../utils/logger'
 import { useToasts } from './ToastProvider'
@@ -121,9 +122,10 @@ export function DataExportPanel() {
         `
         break
 
+      case 'full':
       default:
         title = 'Full Report'
-        htmlContent = '<h1>Full Financial Report</h1><p>Coming soon...</p>'
+        htmlContent = buildFullReportHtml(data)
     }
 
     const pdfHtml = generatePdfHtml(htmlContent, {
@@ -168,6 +170,7 @@ export function DataExportPanel() {
   }
 
   const exportOptions = [
+    { type: 'full' as ExportType, label: 'Full Financial Report', icon: <FileText /> },
     { type: 'portfolio' as ExportType, label: 'Portfolio Summary', icon: <FileText /> },
     { type: 'spending' as ExportType, label: 'Spending Data', icon: <TableIcon /> },
     { type: 'goals' as ExportType, label: 'Goals & Targets', icon: <TableIcon /> },
@@ -218,14 +221,16 @@ export function DataExportPanel() {
                 Export PDF
               </button>
 
-              <button
-                onClick={() => handleExport(option.type, 'excel')}
-                disabled={exporting}
-                className="btn-secondary flex-1 inline-flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                <Download className="w-4 h-4" />
-                Export Excel/CSV
-              </button>
+              {option.type !== 'full' && option.type !== 'portfolio' ? (
+                <button
+                  onClick={() => handleExport(option.type, 'excel')}
+                  disabled={exporting}
+                  className="btn-secondary flex-1 inline-flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  <Download className="w-4 h-4" />
+                  Export Excel/CSV
+                </button>
+              ) : null}
             </div>
           </div>
         ))}

@@ -1,5 +1,56 @@
 # MyDSP Changelog
 
+## [1.2.14] - 2026-07-15
+
+### Fixed — Sync conflict handoff
+- Auto-sync conflicts now hydrate into Settings → Sync review UI (event + parked preview)
+- Amber banner + jump-to-conflicts; Apply/Discard clears parked preview
+- Header status links to `/settings#sync` when conflicts need attention
+
+### Added — Broker trade CSV presets
+- Detect **Interactive Brokers**, **Trading 212**, and **Coinbase** export headers
+- Extra column aliases + skip non-trade Coinbase types; Import history shows detected broker
+
+### Improved — Enhanced bank CSV wizard
+- Real **Mapping** step with editable column maps
+- Uses `analyzeImportData` / validation; quoted CSV via shared parser
+- Income honesty: optional import (default skip) with clear “will import” count
+- Step `aria-current`, captions, labelled file input
+
+### Improved — Smart Insights → Rules / Recurring
+- **Create Rule** writes a merchant rule and opens `/rules`
+- **Add to Recurring** creates a recurring transaction and opens `/recurring`
+
+### Added — Full financial PDF report
+- **Data export**: Full report PDF builds multi-section HTML (portfolio crypto + equities, spending by category, goals progress, liabilities totals, tax residency note)
+
+### Improved — Code splitting
+- Vite `manualChunks`: Tax page moved to its own `tax-pages` chunk; Analytics / Predictive / Smart Insights stay in `analysis-pages`
+
+### Added — Opening balance price fill
+- Opening balance wizard: **Fill prices from history** bulk action via `lookupPriceOnDate`
+
+### Added — US tax parking-lot stub
+- Tax page: informational **Form 8949 / wash-sale** disclaimer when residency pack is US (not a full form)
+
+### Improved — API & automation foundations
+- Portfolio JSON snapshot copy/download, webhook URL in localStorage, Test payload + curl example (replaces pure Coming Soon)
+
+### Added — Critical alert sound
+- Optional Web Audio beep on new critical alerts when Settings → Alert sound is enabled (still muted by default)
+
+### Improved — Jobs board
+- Kanban column labels polished to Applied / Interview / Offer / Rejected with empty-column drop hints
+
+### Improved — Settings account & open banking
+- Cloud account copy clarifies OAuth is planned (not fake sign-in); identity backup note
+- **Open banking (coming)** section with honest PSD2-out-of-scope wording (Settings + Import note)
+
+### Version
+- 1.2.13 → **1.2.14**
+
+---
+
 ## [1.2.13] - 2026-07-15
 
 ### Added — Paste trade CSV into holdings

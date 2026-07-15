@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { PageHeader } from '../components/ui/PageHeader'
 import { BackNav } from '../components/ui/BackNav'
 import { Field } from '../components/ui/Modal'
@@ -75,6 +76,15 @@ export function ImportPage() {
         description="Upload Monzo or generic bank CSVs. Merchant rules apply first, then keyword guesses. Income rows are deselected by default."
       />
 
+      <div className="surface border-l-2 border-l-border-strong px-5 py-3 mb-6">
+        <p className="text-sm text-text-muted font-light">
+          Open banking (PSD2) is not available — import CSVs only. See{' '}
+          <Link to="/settings#open-banking" className="text-accent hover:underline">
+            Settings → Open banking
+          </Link>
+          .
+        </p>
+      </div>
       {message && (
         <div className="surface border-l-2 border-l-accent px-5 py-4 mb-6" role="status">
           <p className="text-sm">{message}</p>

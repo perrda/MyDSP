@@ -184,7 +184,11 @@ export function AppShell() {
     setSyncCfg(loadSyncConfig())
     const st = getAutoSyncStatus()
     if (st.state === 'error' || st.state === 'needs-passphrase' || st.state === 'conflict') {
-      setPriceMsg(st.message ?? 'Sync needs attention — open Settings')
+      setPriceMsg(
+        st.state === 'conflict'
+          ? `${st.message ?? 'Sync conflicts'} — open Settings → Sync to resolve`
+          : (st.message ?? 'Sync needs attention — open Settings'),
+      )
     } else {
       setPriceMsg(st.message ?? 'Devices synced')
     }
@@ -259,9 +263,15 @@ export function AppShell() {
                 className={`text-xs truncate ${lastPriceError && !priceMsg ? 'text-accent' : 'text-text-subtle'}`}
                 role="status"
               >
-                {priceMsg ??
-                  lastPriceError ??
-                  (lastSyncAt ? `Last Sync ${formatDateTime(lastSyncAt)}` : null)}
+                {priceMsg?.includes('Settings → Sync') ? (
+                  <Link to="/settings#sync" className="text-accent hover:underline">
+                    {priceMsg}
+                  </Link>
+                ) : (
+                  (priceMsg ??
+                    lastPriceError ??
+                    (lastSyncAt ? `Last Sync ${formatDateTime(lastSyncAt)}` : null))
+                )}
               </p>
             </div>
           )}

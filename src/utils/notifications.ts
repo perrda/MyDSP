@@ -254,8 +254,33 @@ class NotificationManager {
     return '/favicon.svg'
   }
   
-  private playNotificationSound(_priority: NotificationPriority): void {
-    // Intentionally silent — OS notification + in-app bell are enough
+  private playNotificationSound(priority: NotificationPriority): void {
+    // Default is muted (soundEnabled: false). Only beep for critical when enabled.
+    if (priority !== 'critical') return
+    try {
+      const AudioCtx =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+      if (!AudioCtx) return
+      const ctx = new AudioCtx()
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.type = 'sine'
+      osc.frequency.value = 880
+      gain.gain.value = 0.08
+      osc.connect(gain)
+      gain.connect(ctx.destination)
+      const t0 = ctx.currentTime
+      gain.gain.setValueAtTime(0.08, t0)
+      gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.18)
+      osc.start(t0)
+      osc.stop(t0 + 0.2)
+      osc.onended = () => {
+        void ctx.close()
+      }
+    } catch {
+      /* ignore autoplay / AudioContext failures */
+    }
   }
   
   updateSettings(settings: Partial<NotificationSettings>): void {

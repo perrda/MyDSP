@@ -306,9 +306,9 @@ export const KANBAN_DROP_STATUS: Record<string, JobStatus> = {
   Wishlist: 'wishlist',
   Applying: 'applying',
   Applied: 'applied',
-  Interviewing: 'interviewing',
-  Offers: 'offer',
-  Closed: 'archived',
+  Interview: 'interviewing',
+  Offer: 'offer',
+  Rejected: 'rejected',
 }
 
 export function parseCsvToJobApplications(csv: string): JobApplication[] {
