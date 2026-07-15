@@ -4,6 +4,7 @@ import {
   ArrowUpDown,
   ChevronDown,
   ChevronUp,
+  HelpCircle,
   Moon,
   Pencil,
   Plus,
@@ -50,7 +51,14 @@ import {
   updateMarketTicker,
 } from '../storage/marketsStore'
 import { loadCachedFxRates } from '../services/fx'
-import { formatGBP, formatGBPMarket, formatGBPPrecise, formatPct, privacyClass } from '../utils/format'
+import {
+  formatGBP,
+  formatGBPMarket,
+  formatGBPPrecise,
+  formatPct,
+  getDisplayCurrency,
+  privacyClass,
+} from '../utils/format'
 import type { PortfolioData } from '../domain/types'
 
 type FormState = {
@@ -58,6 +66,7 @@ type FormState = {
   symbol: string
   name: string
   coingeckoId: string
+  notes: string
 }
 
 const emptyForm: FormState = {
@@ -65,6 +74,7 @@ const emptyForm: FormState = {
   symbol: '',
   name: '',
   coingeckoId: '',
+  notes: '',
 }
 
 type SectionKey = keyof MarketsCollapsed
@@ -132,6 +142,32 @@ function formatLastDisplay(q: MarketQuote | undefined): string {
   }
   // Crypto + equity quotes are stored in GBP — convert to the toolbar display CCY
   return formatGBPMarket(q.last)
+}
+
+/** Freshest quote `updatedAt` in the section, else Markets `lastRefreshAt`. */
+function sectionAsOfLabel(
+  tickers: MarketTicker[],
+  quotes: Map<string, MarketQuote>,
+  lastRefreshAt?: string,
+): string | null {
+  let freshest = 0
+  for (const t of tickers) {
+    const at = quotes.get(t.id)?.updatedAt
+    if (!at) continue
+    const ms = Date.parse(at)
+    if (Number.isFinite(ms) && ms > freshest) freshest = ms
+  }
+  if (!freshest && lastRefreshAt) {
+    const ms = Date.parse(lastRefreshAt)
+    if (Number.isFinite(ms)) freshest = ms
+  }
+  if (!freshest) return null
+  return `As of ${new Date(freshest).toLocaleString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  })}`
 }
 
 function sectionTotals(
@@ -322,6 +358,7 @@ export function MarketsPage() {
   const [quoteDetail, setQuoteDetail] = useState<{ ticker: MarketTicker; quote?: MarketQuote } | null>(
     null,
   )
+  const [fxExplainerOpen, setFxExplainerOpen] = useState(false)
   const longPressTimer = useRef<number | null>(null)
   const refreshInFlight = useRef(false)
   const quotesRef = useRef(quotes)
@@ -533,6 +570,7 @@ export function MarketsPage() {
       symbol: t.symbol,
       name: t.name,
       coingeckoId: t.coingeckoId ?? '',
+      notes: t.notes ?? '',
     })
     setFormError(null)
     setModalOpen(true)
@@ -548,6 +586,7 @@ export function MarketsPage() {
           symbol: form.symbol,
           name,
           coingeckoId: form.coingeckoId,
+          notes: form.notes,
         })
       } else {
         addMarketTicker({
@@ -555,6 +594,7 @@ export function MarketsPage() {
           symbol: form.symbol,
           name,
           coingeckoId: form.coingeckoId || undefined,
+          notes: form.notes || undefined,
         })
       }
       setModalOpen(false)
@@ -583,6 +623,7 @@ export function MarketsPage() {
     const totals = sectionTotals(items, quotes, holdings)
     const isCollapsed = collapsed[section]
     const isRateSection = section === 'fx' || section === 'crosses' || section === 'indices'
+    const asOf = sectionAsOfLabel(items, quotes, loadMarketsState().lastRefreshAt)
 
     return (
       <section
@@ -621,16 +662,31 @@ export function MarketsPage() {
                     ? `${formatGBP(totals.changeAbs, { signed: true })} (${formatPct(totals.changePct, 2)})`
                     : formatPct(totals.avgPct, 2)}
               </p>
+              {asOf ? (
+                <p className="markets-section-asof text-[11px] text-text-subtle tabular-nums">{asOf}</p>
+              ) : null}
             </div>
           </div>
-          <button
-            type="button"
-            className="btn-ghost btn-sm p-2 min-h-10 min-w-10 shrink-0"
-            aria-label={isCollapsed ? `Expand ${meta.title}` : `Collapse ${meta.title}`}
-            onClick={() => toggleSection(section)}
-          >
-            {isCollapsed ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
-          </button>
+          <div className="flex items-center gap-1 shrink-0">
+            {section === 'fx' ? (
+              <button
+                type="button"
+                className="btn-ghost btn-sm p-2 min-h-10 min-w-10"
+                aria-label="Why FX quotes convert to display currency"
+                onClick={() => setFxExplainerOpen(true)}
+              >
+                <HelpCircle size={16} strokeWidth={1.75} />
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="btn-ghost btn-sm p-2 min-h-10 min-w-10"
+              aria-label={isCollapsed ? `Expand ${meta.title}` : `Collapse ${meta.title}`}
+              onClick={() => toggleSection(section)}
+            >
+              {isCollapsed ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+            </button>
+          </div>
         </div>
 
         {!isCollapsed && (
@@ -736,6 +792,11 @@ export function MarketsPage() {
                         <p className="font-semibold text-text tracking-tight">{t.symbol}</p>
                         {!compact ? (
                           <p className="text-xs text-text-muted truncate">{t.name}</p>
+                        ) : null}
+                        {t.notes ? (
+                          <p className="text-[11px] text-text-subtle truncate mt-0.5" title={t.notes}>
+                            {t.notes}
+                          </p>
                         ) : null}
                       </div>
 
@@ -1016,6 +1077,15 @@ export function MarketsPage() {
               />
             </Field>
           ) : null}
+          <Field label="Notes / watch reason (optional)" hint="Shown as a short preview on the row">
+            <textarea
+              className="w-full min-h-[4.5rem] resize-y"
+              value={form.notes}
+              onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+              placeholder="Why you’re watching this…"
+              maxLength={280}
+            />
+          </Field>
           {formError ? (
             <p className="text-sm text-red-500" role="alert">
               {formError}
@@ -1073,6 +1143,32 @@ export function MarketsPage() {
             </p>
           </div>
         ) : null}
+      </Modal>
+
+      <Modal
+        open={fxExplainerOpen}
+        title="FX & display currency"
+        onClose={() => setFxExplainerOpen(false)}
+      >
+        <div className="space-y-3 text-sm text-text-muted font-light leading-relaxed">
+          <p>
+            Holdings and equity/crypto market prints use <strong className="text-text font-medium">GBP storage</strong>{' '}
+            so sync, tax, and history stay consistent across devices.
+          </p>
+          <p>
+            The toolbar display currency ({getDisplayCurrency()}) converts those GBP amounts for on-screen
+            viewing only — it does not change stored cost basis or journal entries.
+          </p>
+          <p>
+            FX pair rows (e.g. GBP/USD) stay in quote units per 1 base. Indices stay in native points.
+            Switch display CCY anytime from the header currency control or Settings → Display.
+          </p>
+          <div className="flex justify-end pt-2">
+            <button type="button" className="btn-primary" onClick={() => setFxExplainerOpen(false)}>
+              Got it
+            </button>
+          </div>
+        </div>
       </Modal>
 
       <ConfirmDialog

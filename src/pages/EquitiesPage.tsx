@@ -266,6 +266,9 @@ export function EquitiesPage() {
                   <p className="text-xs text-text-muted">
                     {formatQty(e.shares)} × {formatGBPPrecise(priceGbp)}
                   </p>
+                  <p className="text-[11px] text-text-subtle tabular-nums mt-0.5">
+                    Cost {formatGBP(cost)} · P&L {formatGBP(pnl, { signed: true })}
+                  </p>
                   {usdSpot != null && displayCcy === 'GBP' && (
                     <p className="text-[11px] text-text-subtle tabular-nums">
                       US ${usdSpot.toLocaleString('en-GB', { maximumFractionDigits: 2 })}

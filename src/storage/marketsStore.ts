@@ -50,6 +50,8 @@ function writeState(state: MarketsState, opts?: { silent?: boolean; fromSync?: b
 }
 
 function normalizeTicker(t: MarketTicker, i: number): MarketTicker {
+  const notes =
+    typeof t.notes === 'string' && t.notes.trim() ? t.notes.trim() : undefined
   return {
     ...t,
     kind: (['crypto', 'equity', 'fx', 'cross', 'index'].includes(t.kind)
@@ -57,6 +59,7 @@ function normalizeTicker(t: MarketTicker, i: number): MarketTicker {
       : 'equity') as MarketAssetKind,
     symbol: normalizeMarketSymbol(t.symbol),
     sortOrder: typeof t.sortOrder === 'number' ? t.sortOrder : i,
+    notes,
   }
 }
 
@@ -119,6 +122,7 @@ export function addMarketTicker(input: {
   symbol: string
   name: string
   coingeckoId?: string
+  notes?: string
 }): MarketTicker {
   const symbol = validateSymbol(input.kind, input.symbol)
   const state = loadMarketsState()
@@ -133,6 +137,7 @@ export function addMarketTicker(input: {
     symbol,
     name: input.name.trim() || defaultNameForPair(input.kind, symbol),
     coingeckoId: input.coingeckoId?.trim() || undefined,
+    notes: input.notes?.trim() || undefined,
     createdAt: new Date().toISOString(),
     sortOrder: maxOrder + 1,
   }
@@ -143,7 +148,7 @@ export function addMarketTicker(input: {
 
 export function updateMarketTicker(
   id: string,
-  patch: Partial<Pick<MarketTicker, 'symbol' | 'name' | 'coingeckoId' | 'kind'>>,
+  patch: Partial<Pick<MarketTicker, 'symbol' | 'name' | 'coingeckoId' | 'kind' | 'notes'>>,
 ): MarketTicker {
   const state = loadMarketsState()
   const idx = state.tickers.findIndex((t) => t.id === id)
@@ -168,6 +173,10 @@ export function updateMarketTicker(
       patch.coingeckoId !== undefined
         ? patch.coingeckoId.trim() || undefined
         : current.coingeckoId,
+    notes:
+      patch.notes !== undefined
+        ? patch.notes.trim() || undefined
+        : current.notes,
   }
   state.tickers[idx] = updated
   saveMarketsState(state)

@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.35**
+**Current version: 1.2.36**
 
-## Completed (through v1.2.35)
+## Completed (through v1.2.36)
 
+- Markets / money clarity (next25 6–10): As-of sticky headers, ticker notes, cost·P&L rows, FX conversion explainer, tax exports meaning panel
 - Sync / reliability (next25 1–5): health dashboard, conflict export/share, offline cancel+backoff, Markets 24h merge, quote failover banner
 
 - Sync / a11y / perf polish (41–50): Markets shimmer, nav quote prefetch, reduced-motion sparklines/modals, muted text contrast, landmark labels, Glass focus rings, lazy Dashboard charts, Quote Worker health badge, weekly backup nudge, iPhone/iPad Playwright smoke

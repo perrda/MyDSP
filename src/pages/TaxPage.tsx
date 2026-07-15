@@ -35,6 +35,7 @@ export function TaxPage() {
   const [taxYear, setTaxYear] = useState(() => getCurrentPackYear(pack))
   const [open, setOpen] = useState(false)
   const [deleteId, setDeleteId] = useState<number | null>(null)
+  const [exportsExplainerOpen, setExportsExplainerOpen] = useState(false)
   const [form, setForm] = useState({
     date: new Date().toISOString().slice(0, 10),
     assetType: 'crypto' as 'crypto' | 'equity',
@@ -209,6 +210,52 @@ export function TaxPage() {
         <Link to="/settings#display" className="text-accent hover:underline min-h-11 inline-flex items-center">
           Change in Settings
         </Link>
+      </div>
+
+      <div className="surface border border-border px-4 py-3 mb-6">
+        <button
+          type="button"
+          className="w-full flex items-center justify-between gap-3 text-left min-h-11"
+          aria-expanded={exportsExplainerOpen}
+          onClick={() => setExportsExplainerOpen((v) => !v)}
+        >
+          <span className="text-sm font-semibold tracking-tight">What these exports mean</span>
+          <span className="text-xs text-text-subtle shrink-0">
+            {exportsExplainerOpen ? 'Hide' : 'Show'}
+          </span>
+        </button>
+        {exportsExplainerOpen ? (
+          <div className="tax-exports-explainer mt-3 space-y-2 text-sm text-text-muted font-light leading-relaxed border-t border-border pt-3">
+            <p>
+              Residency pack: <strong className="text-text font-medium">{pack.label}</strong> ({pack.code}
+              ). Export buttons above produce worksheets and journals for this pack — not a filed return.
+            </p>
+            <p>{pack.disclaimer}</p>
+            {isUkTax ? (
+              <p>
+                UK CGT / SA108 CSV and the transaction log are working papers for Self Assessment or your
+                adviser. Figures use §104 pooling when journal buys exist.
+              </p>
+            ) : pack.hasCgt ? (
+              <p>
+                “{pack.exportLabel}” is a simplified estimate export for {pack.label}. Use it with tax
+                software or a preparer — MyDSP does not submit forms.
+              </p>
+            ) : (
+              <p>
+                This residency has no personal CGT computed here. Exports are disposal / journal records
+                only.
+              </p>
+            )}
+            <p>
+              Change residency in{' '}
+              <Link to="/settings#display" className="text-accent hover:underline">
+                Settings → Display
+              </Link>
+              .
+            </p>
+          </div>
+        ) : null}
       </div>
 
       <div className="surface border-l-2 border-l-accent px-5 py-4 mb-6">

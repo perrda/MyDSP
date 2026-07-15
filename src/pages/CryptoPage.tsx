@@ -255,6 +255,9 @@ export function CryptoPage() {
                   <p className="text-xs text-text-subtle">
                     {formatQty(c.qty)} · {formatGBPPrecise(c.price)}
                   </p>
+                  <p className="text-[11px] text-text-subtle tabular-nums mt-0.5">
+                    Cost {formatGBP(c.cost)} · P&L {formatGBP(pnl, { signed: true })}
+                  </p>
                 </div>
                 <p
                   className={`text-sm tabular-nums w-20 text-right font-semibold ${

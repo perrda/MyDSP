@@ -1,5 +1,19 @@
 # MyDSP Changelog
 
+## [1.2.36] - 2026-07-15
+
+### Improved — Markets / money clarity (next 25 · 6–10)
+6. Markets sticky section headers show an **As of** timestamp (freshest quote `updatedAt`, else last refresh)  
+7. Optional per-ticker **notes / watch reasons** on Markets (domain + store + edit modal + row preview)  
+8. Equities / Crypto list rows show **cost · P&L** under live value  
+9. FX conversion explainer sheet on Markets (GBP storage vs toolbar display CCY)  
+10. Tax page expandable **What these exports mean** panel (pack disclaimer + residency)
+
+### Version
+- 1.2.35 → **1.2.36**
+
+---
+
 ## [1.2.35] - 2026-07-15
 
 ### Improved — Sync / reliability (next 25 · 1–5)

@@ -13,6 +13,8 @@ export interface MarketTicker {
   name: string
   /** Optional CoinGecko id when symbol is not in the built-in map */
   coingeckoId?: string
+  /** Optional watch reason / personal note */
+  notes?: string
   createdAt: string
   sortOrder: number
 }
