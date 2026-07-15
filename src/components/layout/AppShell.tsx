@@ -19,6 +19,7 @@ import { BottomNav } from './BottomNav'
 import { ToolbarControls } from './ToolbarControls'
 import { PullToRefresh } from '../ui/PullToRefresh'
 import { formatDateTime } from '../../utils/format'
+import { useShowBottomNav } from '../../hooks/useShowBottomNav'
 
 const titles: Record<string, { eyebrow: string; title: string }> = {
   '/': { eyebrow: 'Portfolio', title: 'Overview' },
@@ -60,6 +61,7 @@ const titles: Record<string, { eyebrow: string; title: string }> = {
 
 export function AppShell() {
   const [open, setOpen] = useState(false)
+  const showBottomNav = useShowBottomNav()
   const { pathname } = useLocation()
   const {
     portfolios,
@@ -265,7 +267,9 @@ export function AppShell() {
           )}
         </header>
 
-        <main className="app-content app-content-with-bottom-nav lg:pb-0">
+        <main
+          className={`app-content${showBottomNav ? ' app-content-with-bottom-nav' : ''}`}
+        >
           <PullToRefresh onRefresh={onPullToSync} refreshingLabel="Syncing devices…">
             <Outlet />
           </PullToRefresh>

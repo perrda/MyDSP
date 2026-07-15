@@ -7,6 +7,7 @@ import {
   Settings,
   type LucideIcon,
 } from 'lucide-react'
+import { useShowBottomNav } from '../../hooks/useShowBottomNav'
 
 interface NavItem {
   to: string
@@ -14,7 +15,7 @@ interface NavItem {
   icon: LucideIcon
 }
 
-/** Mobile primary nav — Markets replaces crypto-only “Portfolio”. */
+/** Touch primary nav — phone & tablet only; desktop uses the sidebar. */
 const PRIMARY_NAV: NavItem[] = [
   { to: '/', label: 'Overview', icon: LayoutDashboard },
   { to: '/markets', label: 'Markets', icon: CandlestickChart },
@@ -24,9 +25,12 @@ const PRIMARY_NAV: NavItem[] = [
 ]
 
 export function BottomNav() {
+  const show = useShowBottomNav()
+  if (!show) return null
+
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-40 lg:hidden bg-bg-elevated border-t border-border pb-[env(safe-area-inset-bottom)]"
+      className="bottom-nav fixed bottom-0 left-0 right-0 z-40 bg-bg-elevated border-t border-border pb-[env(safe-area-inset-bottom)]"
       aria-label="Mobile navigation"
     >
       <div className="flex items-center justify-around px-1 pt-1.5">
