@@ -174,13 +174,14 @@ export function OpeningBalanceWizardPage() {
                 disabled={busy || selectedCount === 0}
                 onClick={applySelected}
                 aria-label={`Apply ${selectedCount} selected opening balance${selectedCount === 1 ? '' : 's'}`}
+                aria-busy={busy}
               >
                 {busy ? 'Applying…' : `Apply ${selectedCount}`}
               </button>
             </div>
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-6" aria-busy={busy}>
             {byPortfolio.map(([portfolioId, group]) => (
               <section
                 key={portfolioId}
