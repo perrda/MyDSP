@@ -20,7 +20,7 @@ import { useToasts } from '../components/ToastProvider'
 
 export function ComparePage() {
   const { privacy, portfolios, activeId, switchPortfolio, reload } = usePortfolio()
-  const { success, error: showError } = useToasts()
+  const { error: showError, showToast } = useToasts()
   const [selected, setSelected] = useState<string[]>(() => portfolios.map((p) => p.id))
   const [scanToken, setScanToken] = useState(0)
   const [filling, setFilling] = useState(false)
@@ -76,10 +76,11 @@ export function ComparePage() {
     setFilling(true)
     try {
       const previous = getActivePortfolioId()
+      const snapshots = new Map(selected.map((id) => [id, loadPortfolio(id)]))
       let cryptoN = 0
       let equitiesN = 0
       for (const id of selected) {
-        const data = loadPortfolio(id)
+        const data = snapshots.get(id)!
         const result = applyLastSyncedQuotesToHoldings(data, { overwrite: true })
         if (result.crypto + result.equities > 0) {
           savePortfolioImmediate(result.data, id)
@@ -94,10 +95,24 @@ export function ComparePage() {
       if (cryptoN + equitiesN === 0) {
         showError('No cache hits', 'Refresh Markets first, then try again.')
       } else {
-        success(
-          'Filled from last synced',
-          `${cryptoN} crypto · ${equitiesN} equities updated`,
-        )
+        showToast({
+          type: 'success',
+          title: 'Filled from last synced',
+          message: `${cryptoN} crypto · ${equitiesN} equities updated`,
+          duration: 8000,
+          action: {
+            label: 'Undo',
+            onClick: () => {
+              for (const [id, snap] of snapshots) {
+                savePortfolioImmediate(snap, id)
+              }
+              setActivePortfolioId(previous)
+              reload()
+              switchPortfolio(activeId)
+              setScanToken((n) => n + 1)
+            },
+          },
+        })
       }
     } catch (e) {
       showError('Fill failed', e instanceof Error ? e.message : 'Unknown error')
@@ -253,7 +268,7 @@ export function ComparePage() {
         </table>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-px mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-px mb-8">
         <AllocationRing
           data={allocationData}
           privacy={privacy}

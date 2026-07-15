@@ -9,6 +9,7 @@ import { PageHeader } from '../components/ui/PageHeader'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
 import { TradeModal } from '../components/ui/TradeModal'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
+import { SwipeHoldingRow } from '../components/ui/SwipeHoldingRow'
 import { usePortfolio } from '../context/PortfolioContext'
 import { applyTrade } from '../domain/trades'
 import { applyLastSyncedQuotesToHoldings } from '../domain/lastSyncedHoldings'
@@ -31,7 +32,7 @@ const emptyForm = {
 
 export function CryptoPage() {
   const { data, breakdown, privacy, setData } = usePortfolio()
-  const { success, error: showError } = useToasts()
+  const { error: showError, showToast } = useToasts()
   const { crypto } = breakdown
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<CryptoHolding | null>(null)
@@ -44,13 +45,23 @@ export function CryptoPage() {
   const holdings = useMemo(() => sortBySortOrder(data.crypto), [data.crypto])
 
   const fillFromLastSynced = () => {
+    const snapshot = data
     const result = applyLastSyncedQuotesToHoldings(data, { overwrite: true })
     if (result.crypto === 0) {
       showError('No cache hits', 'Refresh Markets first, then try again.')
       return
     }
     setData(() => result.data)
-    success('Filled from last synced', `${result.crypto} crypto price${result.crypto === 1 ? '' : 's'}`)
+    showToast({
+      type: 'success',
+      title: 'Filled from last synced',
+      message: `${result.crypto} crypto price${result.crypto === 1 ? '' : 's'}`,
+      duration: 8000,
+      action: {
+        label: 'Undo',
+        onClick: () => setData(() => snapshot),
+      },
+    })
   }
 
   const pieSlices = useMemo(
@@ -211,6 +222,14 @@ export function CryptoPage() {
             const pnl = value - c.cost
             const included = c.includeInPortfolio !== false
             return (
+              <SwipeHoldingRow
+                onBuy={() => {
+                  setTradeFor(c)
+                  setTradeSide('buy')
+                }}
+                onToggleNw={() => toggle(c.id)}
+                included={included}
+              >
               <div
                 className={`surface p-4 md:p-5 flex flex-wrap md:flex-nowrap items-center gap-3 rounded-xl md:rounded-none shadow-sm md:shadow-none ${
                   included ? '' : 'opacity-50'
@@ -278,6 +297,7 @@ export function CryptoPage() {
                   ]}
                 />
               </div>
+              </SwipeHoldingRow>
             )
           }}
         </ReorderList>

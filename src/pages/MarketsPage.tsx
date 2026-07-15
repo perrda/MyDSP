@@ -255,11 +255,20 @@ function seedQuotesFromPortfolio(
 
 function isStaleQuote(q: MarketQuote | undefined): boolean {
   if (!q) return false
-  return (
+  if (
     q.source.startsWith('stale:') ||
     q.source === 'portfolio' ||
     q.source === 'fx-cache'
-  )
+  ) {
+    return true
+  }
+  try {
+    const t = new Date(q.updatedAt).getTime()
+    if (Number.isFinite(t) && Date.now() - t > 4 * 60 * 60 * 1000) return true
+  } catch {
+    /* ignore */
+  }
+  return false
 }
 
 function freshnessLabel(q: MarketQuote | undefined): string | null {
@@ -307,6 +316,10 @@ export function MarketsPage() {
   const [sorting, setSorting] = useState(false)
   const [density, setDensity] = useState<'comfortable' | 'compact'>(() => getMarketsDensity())
   const [focusSymbol, setFocusSymbol] = useState<string | null>(null)
+  const [quoteDetail, setQuoteDetail] = useState<{ ticker: MarketTicker; quote?: MarketQuote } | null>(
+    null,
+  )
+  const longPressTimer = useRef<number | null>(null)
   const refreshInFlight = useRef(false)
   const quotesRef = useRef(quotes)
   quotesRef.current = quotes
@@ -570,7 +583,9 @@ export function MarketsPage() {
         key={section}
         className="border border-border bg-bg-elevated mb-6 overflow-hidden"
       >
-        <div className={`px-4 sm:px-5 flex items-start justify-between gap-3 border-b border-border ${density === 'compact' ? 'pt-3 pb-2' : 'pt-4 pb-3'}`}>
+        <div
+          className={`markets-section-sticky sticky top-0 z-[5] bg-bg-elevated px-4 sm:px-5 flex items-start justify-between gap-3 border-b border-border ${density === 'compact' ? 'pt-3 pb-2' : 'pt-4 pb-3'}`}
+        >
           <div className="min-w-0">
             <p className={`font-bold tracking-tight text-text mb-1 ${density === 'compact' ? 'text-base sm:text-lg' : 'text-xl sm:text-2xl'}`}>{meta.title}</p>
             <div className={`flex flex-wrap items-baseline gap-x-3 gap-y-1 ${privacyClass(privacy)}`}>
@@ -615,10 +630,52 @@ export function MarketsPage() {
         {!isCollapsed && (
           <>
             {items.length === 0 ? (
-              <EmptyStateInline
-                message={`No ${meta.emptyLabel} yet — add one to start this section.`}
-                action={{ label: meta.addLabel, onClick: () => openCreate(meta.kind) }}
-              />
+              <div className="px-4 py-4 space-y-3">
+                <EmptyStateInline
+                  message={`No ${meta.emptyLabel} yet — add one or seed a preset.`}
+                  action={{ label: meta.addLabel, onClick: () => openCreate(meta.kind) }}
+                />
+                {section === 'crypto' || section === 'equities' || section === 'indices' ? (
+                  <div className="flex flex-wrap gap-2 pb-2">
+                    {(section === 'crypto'
+                      ? [
+                          { symbol: 'BTC', name: 'Bitcoin', kind: 'crypto' as const },
+                          { symbol: 'ETH', name: 'Ethereum', kind: 'crypto' as const },
+                        ]
+                      : section === 'equities'
+                        ? [
+                            { symbol: 'AAPL', name: 'Apple', kind: 'equity' as const },
+                            { symbol: 'MSFT', name: 'Microsoft', kind: 'equity' as const },
+                          ]
+                        : [
+                            { symbol: '^GSPC', name: 'S&P 500', kind: 'index' as const },
+                            { symbol: '^FTSE', name: 'FTSE 100', kind: 'index' as const },
+                          ]
+                    ).map((preset) => (
+                      <button
+                        key={preset.symbol}
+                        type="button"
+                        className="btn-secondary btn-sm min-h-11"
+                        onClick={() => {
+                          try {
+                            addMarketTicker({
+                              kind: preset.kind,
+                              symbol: preset.symbol,
+                              name: preset.name,
+                            })
+                            reloadList()
+                            void refresh()
+                          } catch (err) {
+                            setError(err instanceof Error ? err.message : 'Could not add preset')
+                          }
+                        }}
+                      >
+                        + {preset.symbol}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
             ) : (
               <ReorderList
                 items={items}
@@ -643,8 +700,30 @@ export function MarketsPage() {
                     <div
                       id={`market-${t.symbol.replace(/[^a-zA-Z0-9]/g, '_')}`}
                       className={`px-4 sm:px-5 flex items-center gap-2 sm:gap-4 ${
-                        compact ? 'py-2' : 'py-3.5'
-                      } ${focused ? 'ring-2 ring-inset ring-accent bg-accent/5' : ''}`}
+                        compact ? 'py-2 min-h-11' : 'py-3.5'
+                      } ${focused ? 'ring-2 ring-inset ring-accent bg-accent/5' : ''} ${
+                        isStaleQuote(q) ? 'markets-row--stale' : ''
+                      }`}
+                      onTouchStart={() => {
+                        if (sorting) return
+                        if (longPressTimer.current) window.clearTimeout(longPressTimer.current)
+                        longPressTimer.current = window.setTimeout(() => {
+                          setSorting(true)
+                          longPressTimer.current = null
+                        }, 520)
+                      }}
+                      onTouchEnd={() => {
+                        if (longPressTimer.current) {
+                          window.clearTimeout(longPressTimer.current)
+                          longPressTimer.current = null
+                        }
+                      }}
+                      onTouchMove={() => {
+                        if (longPressTimer.current) {
+                          window.clearTimeout(longPressTimer.current)
+                          longPressTimer.current = null
+                        }
+                      }}
                     >
                       {sorting ? <ReorderHandle label={`Reorder ${t.symbol}`} /> : null}
                       <div className="min-w-0 flex-1">
@@ -655,14 +734,19 @@ export function MarketsPage() {
                       </div>
 
                       {showSpark ? (
-                        <div className="w-14 sm:w-16 shrink-0">
+                        <button
+                          type="button"
+                          className="w-14 sm:w-16 shrink-0 rounded-md hover:bg-surface-hover/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+                          aria-label={`${t.symbol} 24h sparkline detail`}
+                          onClick={() => setQuoteDetail({ ticker: t, quote: q })}
+                        >
                           <Sparkline
                             data={q!.sparkline}
                             height={compact ? 20 : 28}
                             showGradient={false}
                             trend={trend}
                           />
-                        </div>
+                        </button>
                       ) : (
                         <div className="w-14 sm:w-16 shrink-0" />
                       )}
@@ -682,7 +766,9 @@ export function MarketsPage() {
                           return (
                             <p
                               className={`text-[11px] mt-0.5 ${
-                                stale ? 'text-text-subtle' : 'text-emerald-600/80 dark:text-emerald-400/80'
+                                stale
+                                  ? 'text-amber-600 dark:text-amber-400 font-semibold'
+                                  : 'text-emerald-600/80 dark:text-emerald-400/80'
                               }`}
                             >
                               {label}
@@ -933,6 +1019,49 @@ export function MarketsPage() {
             </button>
           </div>
         </div>
+      </Modal>
+
+      <Modal
+        open={Boolean(quoteDetail)}
+        title={quoteDetail ? `${quoteDetail.ticker.symbol} · 24h` : 'Quote'}
+        onClose={() => setQuoteDetail(null)}
+      >
+        {quoteDetail ? (
+          <div className="space-y-4">
+            <p className="text-sm text-text-muted">{quoteDetail.ticker.name}</p>
+            <div className={`grid grid-cols-2 gap-3 ${privacyClass(privacy)}`}>
+              <div className="surface p-3">
+                <p className="label-uppercase mb-1">Last</p>
+                <p className="text-lg font-bold tabular-nums">
+                  {formatLastDisplay(quoteDetail.quote)}
+                </p>
+              </div>
+              <div className="surface p-3">
+                <p className="label-uppercase mb-1">Change</p>
+                <p className="text-lg font-bold tabular-nums">
+                  {formatPct(quoteDetail.quote?.changePct ?? 0, 2)}
+                </p>
+              </div>
+            </div>
+            {quoteDetail.quote && quoteDetail.quote.sparkline.length > 1 ? (
+              <div className="surface p-3">
+                <p className="label-uppercase mb-2">Sparkline</p>
+                <Sparkline
+                  data={quoteDetail.quote.sparkline}
+                  height={56}
+                  showGradient
+                  trend={sparklineTrendFromSeries(quoteDetail.quote.sparkline)}
+                />
+              </div>
+            ) : null}
+            <p className="text-xs text-text-subtle">
+              Source: {quoteDetail.quote?.source ?? '—'}
+              {quoteDetail.quote?.updatedAt
+                ? ` · Updated ${new Date(quoteDetail.quote.updatedAt).toLocaleString('en-GB')}`
+                : ''}
+            </p>
+          </div>
+        ) : null}
       </Modal>
 
       <ConfirmDialog

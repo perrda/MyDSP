@@ -1,5 +1,24 @@
 # MyDSP Changelog
 
+## [1.2.31] - 2026-07-15
+
+### Improved — Markets / holdings polish (backlog 11–20)
+11. Sticky Markets section headers while scrolling  
+12. Sparkline tap → 24h quote detail sheet  
+13. Long-press watchlist row enters Sort mode  
+14. Swipe Buy / Exclude on equity & crypto rows  
+15. Holding detail large-type live price strip  
+16. Amber stale quotes (source + age &gt; 4h)  
+17. Compare allocation rings side-by-side from tablet  
+18. Hide chart legends under 360px width  
+19. Fill-from-last-synced Undo toast  
+20. Empty Markets seed presets (BTC/ETH, AAPL/MSFT, indices)
+
+### Version
+- 1.2.30 → **1.2.31**
+
+---
+
 ## [1.2.30] - 2026-07-15
 
 ### Improved — Nav / PWA polish (backlog 1–10)

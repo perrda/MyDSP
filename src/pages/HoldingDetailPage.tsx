@@ -232,6 +232,16 @@ export function HoldingDetailPage() {
         </div>
       </div>
 
+      <div className={`holding-price-strip surface p-5 sm:p-6 mb-6 ${privacyClass(privacy)}`}>
+        <p className="label-uppercase mb-2">Live price</p>
+        <p className="text-3xl sm:text-4xl font-bold tabular-nums tracking-tight">
+          {formatGBPPrecise(price)}
+        </p>
+        <p className={`mt-1 text-sm font-semibold tabular-nums ${pnl >= 0 ? 'text-accent' : 'text-text-muted'}`}>
+          {formatGBP(pnl, { signed: true })} · {formatPct(cost > 0 ? (pnl / cost) * 100 : 0)}
+        </p>
+      </div>
+
       <div className={`grid grid-cols-2 lg:grid-cols-4 gap-px mb-6 ${privacyClass(privacy)}`}>
         <div className="surface p-4 sm:p-6">
           <p className="label-uppercase mb-2">Value</p>

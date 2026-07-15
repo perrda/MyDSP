@@ -1994,3 +1994,14 @@ html.glass [class*='table-wrap'] {
     -webkit-backdrop-filter: blur(12px);
   }
 }
+
+/* Markets holdings polish */
+.markets-row--stale {
+  box-shadow: inset 3px 0 0 color-mix(in srgb, #d97706 75%, transparent);
+}
+.markets-section-sticky {
+  backdrop-filter: blur(8px);
+}
+.holding-price-strip {
+  border-left: 3px solid var(--accent);
+}

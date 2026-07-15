@@ -9,6 +9,7 @@ import { PageHeader } from '../components/ui/PageHeader'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
 import { TradeModal } from '../components/ui/TradeModal'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
+import { SwipeHoldingRow } from '../components/ui/SwipeHoldingRow'
 import { usePortfolio } from '../context/PortfolioContext'
 import { applyTrade } from '../domain/trades'
 import { equityNeedsUsdToGbp } from '../domain/equityCurrency'
@@ -35,7 +36,7 @@ const emptyForm = { symbol: '', name: '', shares: '', avgCost: '', livePrice: ''
 
 export function EquitiesPage() {
   const { data, breakdown, privacy, setData, fxRates } = usePortfolio()
-  const { success, error: showError } = useToasts()
+  const { error: showError, showToast } = useToasts()
   const { equity } = breakdown
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<EquityHolding | null>(null)
@@ -49,16 +50,23 @@ export function EquitiesPage() {
   const displayCcy = getDisplayCurrency()
 
   const fillFromLastSynced = () => {
+    const snapshot = data
     const result = applyLastSyncedQuotesToHoldings(data, { overwrite: true })
     if (result.equities === 0) {
       showError('No cache hits', 'Refresh Markets first, then try again.')
       return
     }
     setData(() => result.data)
-    success(
-      'Filled from last synced',
-      `${result.equities} equity price${result.equities === 1 ? '' : 's'}`,
-    )
+    showToast({
+      type: 'success',
+      title: 'Filled from last synced',
+      message: `${result.equities} equity price${result.equities === 1 ? '' : 's'}`,
+      duration: 8000,
+      action: {
+        label: 'Undo',
+        onClick: () => setData(() => snapshot),
+      },
+    })
   }
 
   const pieSlices = useMemo(
@@ -225,6 +233,14 @@ export function EquitiesPage() {
                 ? convertFromGbp(priceGbp, 'USD', fxRates)
                 : null
             return (
+              <SwipeHoldingRow
+                onBuy={() => {
+                  setTradeFor(e)
+                  setTradeSide('buy')
+                }}
+                onToggleNw={() => toggle(e.id)}
+                included={included}
+              >
               <div
                 className={`surface p-4 md:p-5 flex flex-wrap md:flex-nowrap items-center gap-3 rounded-xl md:rounded-none shadow-sm md:shadow-none ${
                   included ? '' : 'opacity-50'
@@ -297,6 +313,7 @@ export function EquitiesPage() {
                   ]}
                 />
               </div>
+              </SwipeHoldingRow>
             )
           }}
         </ReorderList>

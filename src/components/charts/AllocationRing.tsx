@@ -125,7 +125,7 @@ export function AllocationRing({
         </div>
       )}
       {slices.length > 0 && (
-        <ul className="chart-legend-list space-y-2 p-4 md:p-6 pt-0 md:pt-0">
+        <ul className="chart-legend-list space-y-2 p-4 md:p-6 pt-0 md:pt-0 max-[360px]:hidden">
           {slices.map((s, i) => (
             <li key={s.name}>
               {linkForSlice ? (
