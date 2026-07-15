@@ -30,6 +30,8 @@ export interface MarketsState {
   tickers: MarketTicker[]
   collapsed: MarketsCollapsed
   lastRefreshAt?: string
+  /** Row density — compact hides names / tightens padding on phone & desktop. */
+  density?: 'comfortable' | 'compact'
 }
 
 export interface MarketQuote {

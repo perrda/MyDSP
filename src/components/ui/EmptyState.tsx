@@ -59,15 +59,34 @@ export function EmptyState({ icon, title, description, action, secondaryAction }
   )
 }
 
-export function EmptyStateInline({ icon, message }: { icon?: ReactNode; message: string }) {
+export function EmptyStateInline({
+  icon,
+  message,
+  action,
+}: {
+  icon?: ReactNode
+  message: string
+  action?: { label: string; onClick?: () => void; to?: string }
+}) {
   return (
-    <div className="py-12 text-center animate-fade-in">
+    <div className="py-10 sm:py-12 text-center animate-fade-in px-4">
       {icon && (
         <div className="flex justify-center mb-3">
           <div className="text-text-subtle opacity-30 text-4xl">{icon}</div>
         </div>
       )}
-      <p className="text-sm text-text-muted">{message}</p>
+      <p className="text-sm text-text-muted mb-4">{message}</p>
+      {action ? (
+        action.to ? (
+          <Link to={action.to} className="btn-secondary btn-sm">
+            {action.label}
+          </Link>
+        ) : (
+          <button type="button" className="btn-secondary btn-sm" onClick={action.onClick}>
+            {action.label}
+          </button>
+        )
+      ) : null}
     </div>
   )
 }

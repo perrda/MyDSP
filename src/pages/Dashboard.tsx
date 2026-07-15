@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { ArrowRight, RefreshCw, Target, Landmark, ListChecks } from 'lucide-react'
 import { useMemo } from 'react'
+import { GettingStartedChecklist } from '../components/GettingStartedChecklist'
 import { AllocationRing } from '../components/charts/AllocationRing'
 import { BudgetSparkline } from '../components/charts/BudgetSparkline'
 import { NetWorthChart } from '../components/charts/NetWorthChart'
@@ -72,6 +73,8 @@ export function Dashboard() {
           </Link>
         }
       />
+
+      <GettingStartedChecklist />
 
       {/* Mobile: Stacked stat cards with better spacing */}
       <div className={`grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-px mb-6 ${privacyClass(privacy)}`}>

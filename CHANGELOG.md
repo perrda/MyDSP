@@ -1,5 +1,24 @@
 # MyDSP Changelog
 
+## [1.2.18] - 2026-07-15
+
+### Added — Standout polish (Top 10)
+1. **Sync status chip** in the header (Synced / Pulling / Conflicts → Settings)
+2. **Just-synced highlight** on To Do rows that arrived from another device
+3. **Shared motion** — page fade-in, sync pulse, reduced-motion safe
+4. **Empty states** — Markets sections use EmptyStateInline + Add CTA
+5. **Markets density** — Compact / Comfortable toggle (persisted)
+6. **Tax residency confidence strip** on Tax page (+ Settings deep link)
+7. **Keyboard + thumb** — GlobalSearch hints retained; 44px checklist rows
+8. **PDF / full report** — Bitcoin-orange MyDSP print styling + residency summary card
+9. **Bottom nav ↔ Favourites** — phone tabs follow sidebar favourites (Settings pinned)
+10. **Getting started checklist** on Overview (dismissible)
+
+### Version
+- 1.2.17 → **1.2.18**
+
+---
+
 ## [1.2.17] - 2026-07-15
 
 ### Fixed — Mobile header toolbar overflow

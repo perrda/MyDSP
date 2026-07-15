@@ -1,31 +1,28 @@
+import { useEffect, useState } from 'react'
 import { NavLink } from 'react-router-dom'
-import {
-  LayoutDashboard,
-  CandlestickChart,
-  Wallet,
-  Target,
-  Settings,
-  type LucideIcon,
-} from 'lucide-react'
 import { useShowBottomNav } from '../../hooks/useShowBottomNav'
+import { loadNavLayout } from '../../storage/navOrder'
+import { BOTTOM_NAV_CATALOG, resolveBottomNavItems, type BottomNavItem } from '../../domain/bottomNav'
 
-interface NavItem {
-  to: string
-  label: string
-  icon: LucideIcon
+function readItems(): BottomNavItem[] {
+  const layout = loadNavLayout(Object.keys(BOTTOM_NAV_CATALOG))
+  return resolveBottomNavItems(layout.favourites)
 }
-
-/** Touch primary nav — phone & tablet only; desktop uses the sidebar. */
-const PRIMARY_NAV: NavItem[] = [
-  { to: '/', label: 'Overview', icon: LayoutDashboard },
-  { to: '/markets', label: 'Markets', icon: CandlestickChart },
-  { to: '/spending', label: 'Spending', icon: Wallet },
-  { to: '/goals', label: 'Goals', icon: Target },
-  { to: '/settings', label: 'Settings', icon: Settings },
-]
 
 export function BottomNav() {
   const show = useShowBottomNav()
+  const [items, setItems] = useState<BottomNavItem[]>(() => readItems())
+
+  useEffect(() => {
+    const refresh = () => setItems(readItems())
+    window.addEventListener('mydsp-nav-order', refresh)
+    window.addEventListener('storage', refresh)
+    return () => {
+      window.removeEventListener('mydsp-nav-order', refresh)
+      window.removeEventListener('storage', refresh)
+    }
+  }, [])
+
   if (!show) return null
 
   return (
@@ -34,7 +31,7 @@ export function BottomNav() {
       aria-label="Mobile navigation"
     >
       <div className="flex items-center justify-around px-1 pt-1.5">
-        {PRIMARY_NAV.map((item) => (
+        {items.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}

@@ -44,8 +44,8 @@ export function buildFullReportHtml(data: FullReportData): string {
     cards.reduce((sum, c) => sum + c.balance, 0) + loans.reduce((sum, l) => sum + l.balance, 0)
 
   return `
-    <h1>Full Financial Report</h1>
-    <p>Net worth: ${netWorth != null ? formatGBP(netWorth) : 'N/A'}</p>
+    <h1>MyDSP Full Financial Report</h1>
+    <p class="summary-card">Net worth: ${netWorth != null ? formatGBP(netWorth) : 'N/A'} · Tax residency: <strong>${escapeHtml(residency)}</strong></p>
 
     <h2>Portfolio summary</h2>
     <h3>Crypto</h3>

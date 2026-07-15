@@ -1399,6 +1399,85 @@ select:focus {
   animation: pulse-subtle 2s ease-in-out infinite;
 }
 
+/* Sync status chip (header) */
+.sync-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: 7.5rem;
+  min-height: 1.75rem;
+  padding: 0.15rem 0.5rem;
+  border: 1px solid var(--border-strong);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--text-muted);
+  background: transparent;
+  flex-shrink: 0;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+.sync-chip:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.sync-chip-dot {
+  width: 0.4rem;
+  height: 0.4rem;
+  flex-shrink: 0;
+  background: var(--text-subtle);
+}
+.sync-chip--ok .sync-chip-dot {
+  background: var(--accent);
+}
+.sync-chip--busy {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.sync-chip--busy .sync-chip-dot {
+  background: var(--accent);
+  animation: pulse-subtle 1.2s ease-in-out infinite;
+}
+.sync-chip--warn {
+  color: #ef4444;
+  border-color: #ef4444;
+}
+.sync-chip--warn .sync-chip-dot {
+  background: #ef4444;
+}
+.sync-chip-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Cross-device “just arrived” row pulse */
+@keyframes sync-just-added {
+  0% {
+    background-color: color-mix(in srgb, var(--accent) 22%, transparent);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+.sync-just-added {
+  animation: sync-just-added 5.5s ease-out;
+}
+
+/* Soft page content enter */
+.app-content > * {
+  animation: fade-in 0.22s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sync-just-added,
+  .sync-chip--busy .sync-chip-dot,
+  .app-content > * {
+    animation: none !important;
+  }
+}
+
 /* Skeleton loaders */
 .skeleton {
   background: linear-gradient(

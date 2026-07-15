@@ -25,8 +25,9 @@ describe('buildFullReportHtml', () => {
       settings: { taxResidency: 'GB' },
     })
 
-    expect(html).toContain('Full Financial Report')
+    expect(html).toContain('MyDSP Full Financial Report')
     expect(html).toContain('Portfolio summary')
+    expect(html).toContain('summary-card')
     expect(html).toContain('BTC')
     expect(html).toContain('TSLA')
     expect(html).toContain('Spending')

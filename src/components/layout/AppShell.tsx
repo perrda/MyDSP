@@ -17,6 +17,7 @@ import {
 import { MenuButton, Sidebar } from './Sidebar'
 import { BottomNav } from './BottomNav'
 import { ToolbarControls } from './ToolbarControls'
+import { SyncStatusChip } from '../SyncStatusChip'
 import { PullToRefresh } from '../ui/PullToRefresh'
 import { formatDateTime } from '../../utils/format'
 import { useShowBottomNav } from '../../hooks/useShowBottomNav'
@@ -213,7 +214,12 @@ export function AppShell() {
               </div>
             </div>
             {/* Mobile: keep header lean — page PageHeader carries the title */}
-            <div className="sm:hidden flex-1 min-w-0" aria-hidden />
+            <div className="sm:hidden flex-1 min-w-0 flex items-center justify-end pr-1">
+              <SyncStatusChip />
+            </div>
+            <div className="hidden sm:flex items-center justify-end shrink-0 mr-1">
+              <SyncStatusChip />
+            </div>
 
             <ToolbarControls
               refreshing={refreshing}

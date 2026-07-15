@@ -29,6 +29,7 @@ import { TodoScreenshotImportModal } from '../components/TodoScreenshotImportMod
 import { TodoListPicker } from '../components/TodoListPicker'
 import { usePortfolio } from '../context/PortfolioContext'
 import { useToasts } from '../components/ToastProvider'
+import { syncHighlightClass, useSyncHighlights } from '../hooks/useSyncHighlights'
 import type { TodoFilterBy, TodoItem, TodoList, TodoSortBy } from '../domain/todo-types'
 import {
   calculateTodoStats,
@@ -86,6 +87,7 @@ function formatTodoDue(dueDate: string, dueTime?: string): string {
 export function TodosPage() {
   const { data, setData, privacy } = usePortfolio()
   const { success, error: showError } = useToasts()
+  const justSyncedTodos = useSyncHighlights('todoItems')
   const [selectedListId, setSelectedListId] = useState<number | null>(() => {
     const sorted = sortBySortOrder(data.todoLists || [])
     return sorted[0]?.id ?? null
@@ -869,6 +871,7 @@ export function TodosPage() {
                   orderNumber={orderNumbers.get(item.id)}
                   listName={!selectedListId ? lists.find((l) => l.id === item.listId)?.name : undefined}
                   selected={selectedTodos.has(item.id)}
+                  justSynced={justSyncedTodos.has(item.id)}
                   showReorderHandle
                   onToggleSelect={handleToggleSelect}
                   onToggleComplete={handleToggleComplete}
@@ -887,6 +890,7 @@ export function TodosPage() {
                   orderNumber={orderNumbers.get(item.id)}
                   listName={!selectedListId ? lists.find((l) => l.id === item.listId)?.name : undefined}
                   selected={selectedTodos.has(item.id)}
+                  justSynced={justSyncedTodos.has(item.id)}
                   onToggleSelect={handleToggleSelect}
                   onToggleComplete={handleToggleComplete}
                   onEdit={handleEditItem}
@@ -907,6 +911,7 @@ function TodoItemCard({
   orderNumber,
   listName,
   selected,
+  justSynced = false,
   showReorderHandle = false,
   onToggleSelect,
   onToggleComplete,
@@ -918,6 +923,7 @@ function TodoItemCard({
   orderNumber?: number
   listName?: string
   selected: boolean
+  justSynced?: boolean
   showReorderHandle?: boolean
   onToggleSelect: (id: number) => void
   onToggleComplete: (item: TodoItem) => void
@@ -932,7 +938,7 @@ function TodoItemCard({
     <article
       className={`surface p-3 sm:p-4 border-l-4 rounded-xl md:rounded-none shadow-sm md:shadow-none ${PRIORITY_COLORS[item.priority]} ${
         selected ? 'ring-2 ring-accent' : ''
-      }`}
+      } ${syncHighlightClass(justSynced)}`}
     >
       <div
         className={`grid gap-x-2.5 sm:gap-x-3 gap-y-2 ${
