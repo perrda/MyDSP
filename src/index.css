@@ -345,7 +345,7 @@ html.theme-transitioning *::after {
   position: relative;
   flex-shrink: 0;
 }
-@media (min-width: 1024px) {
+@media (min-width: 768px) {
   .toolbar-actions-desktop {
     display: flex;
   }
@@ -552,6 +552,36 @@ html.theme-transitioning *::after {
   padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
 }
 
+/* Floating banners / toasts sit above the bottom tab bar when present */
+.floating-banner {
+  bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+}
+html.has-bottom-nav .floating-banner {
+  bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+}
+.floating-banner--toast {
+  bottom: 1rem;
+}
+html.has-bottom-nav .floating-banner--toast {
+  bottom: calc(5.5rem + 0.5rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* Bottom nav active affordance (beyond accent colour alone) */
+.bottom-nav-link--active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1.75rem;
+  height: 2px;
+  background: var(--accent);
+  border-radius: var(--radius-pill);
+}
+.bottom-nav-link--active {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
 /* Desktop sidebar layout: hide bottom tabs (JS also unmounts for mouse-only windows). */
 @media (min-width: 1024px) {
   .bottom-nav {
@@ -561,8 +591,31 @@ html.theme-transitioning *::after {
 
 /* Touch-friendly tables on small screens */
 .surface.overflow-x-auto,
-.overflow-x-auto {
+.overflow-x-auto,
+.table-wrap {
   -webkit-overflow-scrolling: touch;
+}
+
+/* Wide tables: sticky first column + edge fade hint */
+.table-wrap {
+  position: relative;
+}
+.table-wrap::after {
+  content: '';
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 1.5rem;
+  background: linear-gradient(to left, color-mix(in srgb, var(--bg-elevated) 85%, transparent), transparent);
+}
+.table-wrap .table-sticky-col {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--bg-elevated);
+  box-shadow: 1px 0 0 var(--border);
 }
 
 .prose-card {
@@ -1417,6 +1470,37 @@ select:focus {
   }
 }
 
+@keyframes modal-sheet-up {
+  from {
+    opacity: 0;
+    transform: translateY(14%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes modal-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.modal-enter {
+  animation: modal-sheet-up 0.28s ease-out;
+}
+@media (min-width: 640px) {
+  .modal-enter {
+    animation: modal-scale-in 0.22s ease-out;
+  }
+}
+
 @keyframes pulse-subtle {
   0%, 100% {
     opacity: 1;
@@ -1525,7 +1609,8 @@ select:focus {
 @media (prefers-reduced-motion: reduce) {
   .sync-just-added,
   .sync-chip--busy .sync-chip-dot,
-  .app-content > * {
+  .app-content > *,
+  .modal-enter {
     animation: none !important;
   }
 }
@@ -1705,7 +1790,10 @@ html.glass .app-header,
 html.glass aside,
 html.glass .bottom-nav,
 html.glass .toolbar-more-menu,
-html.glass [role='dialog'] {
+html.glass [role='dialog'],
+html.glass .modal,
+html.glass .modal-sticky-header,
+html.glass .floating-banner {
   backdrop-filter: blur(28px) saturate(180%);
   -webkit-backdrop-filter: blur(28px) saturate(180%);
   box-shadow:
@@ -1718,10 +1806,17 @@ html.glass.light .app-header,
 html.glass.light aside,
 html.glass.light .bottom-nav,
 html.glass.light .toolbar-more-menu,
-html.glass.light [role='dialog'] {
+html.glass.light [role='dialog'],
+html.glass.light .modal,
+html.glass.light .modal-sticky-header,
+html.glass.light .floating-banner {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.65),
     0 8px 28px rgba(0, 0, 0, 0.08);
+}
+
+html.glass .modal-sticky-header {
+  background: color-mix(in srgb, var(--bg-elevated) 72%, transparent);
 }
 
 html.glass .toolbar-icon {
@@ -1751,6 +1846,7 @@ html.glass.light .toolbar-select {
 
 html.glass table,
 html.glass .data-table,
+html.glass .table-wrap,
 html.glass [class*='table-wrap'] {
   background: color-mix(in srgb, var(--bg-elevated) 55%, transparent);
 }

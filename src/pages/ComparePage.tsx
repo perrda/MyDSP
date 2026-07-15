@@ -172,14 +172,14 @@ export function ComparePage() {
         />
       </div>
 
-      <div className="surface overflow-x-auto mb-8">
+      <div className="table-wrap surface overflow-x-auto mb-8">
         <table className="w-full text-sm min-w-[40rem]" aria-label="Portfolio comparison">
           <caption className="sr-only">
             Side-by-side net worth, allocation, and flags for the selected portfolios.
           </caption>
           <thead>
             <tr className="border-b border-border text-left">
-              <th className="p-4 label-uppercase font-bold" scope="col">Portfolio</th>
+              <th className="p-4 label-uppercase font-bold table-sticky-col" scope="col">Portfolio</th>
               <th className="p-4 label-uppercase font-bold text-right" scope="col">Net worth</th>
               <th className="p-4 label-uppercase font-bold text-right" scope="col">Crypto</th>
               <th className="p-4 label-uppercase font-bold text-right" scope="col">Equities</th>
@@ -195,7 +195,7 @@ export function ComparePage() {
                 className={`border-b border-border/60 ${r.id === activeId ? 'bg-accent/5' : ''}`}
                 aria-current={r.id === activeId ? 'true' : undefined}
               >
-                <td className="p-4">
+                <td className="p-4 table-sticky-col">
                   <button
                     type="button"
                     className="font-semibold text-left hover:text-accent transition-colors inline-flex items-center gap-1.5 group"

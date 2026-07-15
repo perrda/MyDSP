@@ -1,5 +1,24 @@
 # MyDSP Changelog
 
+## [1.2.27] - 2026-07-15
+
+### Improved — UI polish Top 10
+1. **Markets Compact** — Edit/Remove collapse into overflow; denser section titles
+2. **Tablet toolbar** — full Refresh / Privacy / Theme / Glass / Search strip from 768px (More on phone only)
+3. **Floating banners** — install / offline / queue / toasts sit above the bottom tab bar
+4. **No double titles** — PageHeader heading is phone-only; shell sticky title owns ≥sm
+5. **Bottom nav active** — accent hairline + subtle tint (not colour-only)
+6. **Glass Mode** — frosts modals, sticky modal headers, floating banners, table wraps
+7. **Modal motion** — sheet slide-up on phone, scale-in on desktop (respects reduced motion)
+8. **Overview Jump-in** — one primary Markets CTA + text links (less chip clutter)
+9. **PageHeader actions** — sit beside copy from sm up (CTAs nearer the top)
+10. **Tax / Compare tables** — sticky first column + edge fade on wide scrolls
+
+### Version
+- 1.2.26 → **1.2.27**
+
+---
+
 ## [1.2.26] - 2026-07-15
 
 ### Added / improved — Top 10 reliability & UX + sync chip

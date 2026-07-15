@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { ArrowRight, RefreshCw, Target, Landmark, ListChecks, CandlestickChart } from 'lucide-react'
+import { ArrowRight, CandlestickChart } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { GettingStartedChecklist } from '../components/GettingStartedChecklist'
 import { AllocationRing } from '../components/charts/AllocationRing'
@@ -32,13 +32,12 @@ const ALERT_BORDER: Record<string, string> = {
   info: 'border-l-border-strong',
 }
 
-const QUICK_LINKS = [
-  { to: '/markets', label: 'Markets', icon: CandlestickChart },
-  { to: '/todos', label: 'To Do', icon: ListChecks },
-  { to: '/liabilities', label: 'Liabilities', icon: Landmark },
-  { to: '/goals', label: 'Goals', icon: Target },
-  { to: '/settings#sync', label: 'Sync', icon: RefreshCw },
-]
+const QUICK_PRIMARY = { to: '/markets', label: 'Markets', icon: CandlestickChart }
+const QUICK_SECONDARY = [
+  { to: '/todos', label: 'To Do' },
+  { to: '/liabilities', label: 'Liabilities' },
+  { to: '/goals', label: 'Goals' },
+] as const
 
 export function Dashboard() {
   const { data, breakdown, privacy, fccDataPresent, setData, goalProgress } = usePortfolio()
@@ -206,14 +205,20 @@ export function Dashboard() {
               ))}
             </ul>
           ) : null}
-          <div className="flex flex-wrap gap-2">
-            {QUICK_LINKS.map((l) => (
+          <div className="flex flex-wrap items-center gap-3">
+            <Link
+              to={QUICK_PRIMARY.to}
+              className="btn-primary btn-sm inline-flex items-center gap-2"
+            >
+              <QUICK_PRIMARY.icon size={16} strokeWidth={1.5} /> {QUICK_PRIMARY.label}
+            </Link>
+            {QUICK_SECONDARY.map((l) => (
               <Link
                 key={l.to}
                 to={l.to}
-                className="btn-ghost btn-sm inline-flex items-center gap-2"
+                className="text-sm font-semibold text-accent hover:underline"
               >
-                <l.icon size={16} strokeWidth={1.5} /> {l.label}
+                {l.label} →
               </Link>
             ))}
           </div>
