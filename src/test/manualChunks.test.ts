@@ -24,4 +24,13 @@ describe('vite manualChunks', () => {
     expect(resolveManualChunk('/workspace/src/pages/NewsPage.tsx')).toBe('media-pages')
     expect(resolveManualChunk('/workspace/src/pages/MarketsPage.tsx')).toBe('media-pages')
   })
+
+  it('keeps analysis pages together and TaxPage in tax-pages', () => {
+    expect(resolveManualChunk('/workspace/src/pages/AnalyticsPage.tsx')).toBe('analysis-pages')
+    expect(resolveManualChunk('/workspace/src/pages/PredictiveAnalyticsPage.tsx')).toBe(
+      'analysis-pages',
+    )
+    expect(resolveManualChunk('/workspace/src/pages/SmartInsightsPage.tsx')).toBe('analysis-pages')
+    expect(resolveManualChunk('/workspace/src/pages/TaxPage.tsx')).toBe('tax-pages')
+  })
 })

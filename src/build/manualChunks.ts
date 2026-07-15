@@ -45,10 +45,12 @@ export function resolveManualChunk(id: string): string | undefined {
     if (
       id.includes('AnalyticsPage') ||
       id.includes('PredictiveAnalyticsPage') ||
-      id.includes('SmartInsightsPage') ||
-      id.includes('TaxPage')
+      id.includes('SmartInsightsPage')
     ) {
       return 'analysis-pages'
+    }
+    if (id.includes('TaxPage')) {
+      return 'tax-pages'
     }
     if (
       id.includes('GoalsPage') ||

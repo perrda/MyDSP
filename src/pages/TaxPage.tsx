@@ -207,6 +207,24 @@ export function TaxPage() {
         </p>
       </div>
 
+      {pack.code === 'US' ? (
+        <section
+          className="surface border-l-2 border-l-border-strong px-5 py-4 mb-6"
+          aria-labelledby="us-8949-heading"
+        >
+          <h2 id="us-8949-heading" className="text-sm font-bold tracking-tight mb-2">
+            US Form 8949 / wash-sale (informational)
+          </h2>
+          <p className="text-sm text-text-muted font-light leading-relaxed max-w-3xl">
+            MyDSP does <strong className="text-text font-medium">not</strong> generate Form 8949 or
+            apply IRS wash-sale adjustments. The US pack uses a simplified FIFO-style cost basis and
+            a flat long-term reference rate for estimates only. Export your journal CSV and complete
+            Form 8949 (and Schedule D) in tax software or with a qualified preparer. Wash-sale
+            tracking across accounts is out of scope here.
+          </p>
+        </section>
+      ) : null}
+
       {!pack.hasCgt ? (
         <div className="surface p-8 sm:p-10 text-center mb-8">
           <p className="text-lg font-semibold mb-2">No CGT computed for {pack.label}</p>

@@ -13,6 +13,8 @@ import {
 } from '../../domain/trades'
 import { lookupPriceOnDate } from '../../domain/staticPrices'
 import {
+  detectBrokerPreset,
+  listBrokerTradePresets,
   parseTradeCsv,
   type TradeCsvDateOrder,
 } from '../../services/tradeCsvImport'
@@ -77,7 +79,14 @@ export function TradeHistoryModal({
   }
 
   const loadParsedCsv = (text: string, source: 'file' | 'paste') => {
-    const parsed = parseTradeCsv(text, { kind, symbol, name, dateOrder })
+    const firstLine = text.split(/\r?\n/).find((l) => l.trim() && !l.trim().startsWith('#')) ?? ''
+    const headers = firstLine.split(',').map((h) => h.trim().toLowerCase().replace(/\s+/g, ''))
+    const detected = detectBrokerPreset(headers)
+    const order = dateOrder || detected.dateOrder
+    if (detected.id !== 'generic') {
+      setDateOrder(detected.dateOrder)
+    }
+    const parsed = parseTradeCsv(text, { kind, symbol, name, dateOrder: order })
     if (parsed.errors.length && parsed.trades.length === 0) {
       setErrors(parsed.errors)
       setStatus(null)
@@ -95,8 +104,11 @@ export function TradeHistoryModal({
         notes: t.notes ?? '',
       })),
     )
+    const brokerLabel = parsed.broker?.label ?? detected.label
     setStatus(
-      `Loaded ${parsed.trades.length} trade(s) from ${source === 'paste' ? 'paste' : 'CSV'}. Review and save.`,
+      `Loaded ${parsed.trades.length} trade(s) from ${source === 'paste' ? 'paste' : 'CSV'}${
+        brokerLabel ? ` · ${brokerLabel}` : ''
+      }. Review and save.`,
     )
     if (source === 'paste') {
       setShowPaste(false)
@@ -159,6 +171,12 @@ export function TradeHistoryModal({
         <p className="text-xs text-text-subtle">
           CSV columns:{' '}
           <code className="text-accent">date,side,qty,price[,fees][,notes][,platform]</code>
+          . Also accepts IBKR / Trading 212 / Coinbase export headers (
+          {listBrokerTradePresets()
+            .filter((p) => p.id !== 'generic')
+            .map((p) => p.label)
+            .join(' · ')}
+          ).
         </p>
 
         {existingCount > 0 && (

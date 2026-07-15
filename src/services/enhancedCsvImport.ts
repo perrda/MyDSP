@@ -128,7 +128,7 @@ export const BANK_PRESETS: BankPreset[] = [
   },
 ]
 
-interface ColumnMapping {
+export interface ColumnMapping {
   date: string | null
   description: string | null
   amount: string | null

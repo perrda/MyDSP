@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Download, Copy, Check, Code, Webhook, FileJson, FileSpreadsheet } from 'lucide-react'
 import { PageHeader } from '../components/ui/PageHeader'
 import { usePortfolio } from '../context/PortfolioContext'
@@ -13,11 +13,58 @@ import {
   generateApiDocs,
 } from '../domain/apiExport'
 
+const WEBHOOK_URL_KEY = 'mydsp_webhook_url'
+
+function buildSignedPing(portfolioIdHint: string) {
+  const timestamp = new Date().toISOString()
+  const nonce = crypto.randomUUID().slice(0, 8)
+  // Local-only demo signature — not a real HMAC secret
+  const signature = btoa(`mydsp:${timestamp}:${nonce}`).replace(/=+$/, '')
+  return {
+    event: 'mydsp.ping',
+    timestamp,
+    nonce,
+    signature,
+    portfolioHint: portfolioIdHint || 'local',
+    meta: { version: '1.0', source: 'mydsp-api-automation' },
+  }
+}
+
 export function ApiAutomationPage() {
-  const { data } = usePortfolio()
+  const { data, activeId } = usePortfolio()
   const { success, error: showError } = useToasts()
-  
+
   const [copied, setCopied] = useState<string | null>(null)
+  const [webhookUrl, setWebhookUrl] = useState(() => {
+    try {
+      return localStorage.getItem(WEBHOOK_URL_KEY) ?? ''
+    } catch {
+      return ''
+    }
+  })
+  const [webhookStatus, setWebhookStatus] = useState<string | null>(null)
+  const [testing, setTesting] = useState(false)
+
+  useEffect(() => {
+    try {
+      if (webhookUrl.trim()) localStorage.setItem(WEBHOOK_URL_KEY, webhookUrl.trim())
+      else localStorage.removeItem(WEBHOOK_URL_KEY)
+    } catch {
+      /* ignore */
+    }
+  }, [webhookUrl])
+
+  const portfolioSnapshot = useMemo(() => exportPortfolioSummary(data), [data])
+  const snapshotJson = useMemo(
+    () => JSON.stringify(portfolioSnapshot, null, 2),
+    [portfolioSnapshot],
+  )
+
+  const pingPayload = useMemo(() => buildSignedPing(activeId ?? 'local'), [activeId])
+  const curlExample = useMemo(() => {
+    const url = webhookUrl.trim() || 'https://example.com/hooks/mydsp'
+    return `curl -X POST '${url}' \\\n  -H 'Content-Type: application/json' \\\n  -H 'X-MyDSP-Signature: ${pingPayload.signature}' \\\n  -d '${JSON.stringify(pingPayload)}'`
+  }, [webhookUrl, pingPayload])
 
   const copyToClipboard = async (text: string, label: string) => {
     try {
@@ -25,7 +72,7 @@ export function ApiAutomationPage() {
       setCopied(label)
       success('Copied!', `${label} copied to clipboard`)
       setTimeout(() => setCopied(null), 2000)
-    } catch (err) {
+    } catch {
       showError('Copy failed', 'Could not copy to clipboard')
     }
   }
@@ -46,7 +93,7 @@ export function ApiAutomationPage() {
   const handleExportJSON = (type: 'summary' | 'spending' | 'goals' | 'budgets') => {
     let response
     let filename
-    
+
     switch (type) {
       case 'summary':
         response = exportPortfolioSummary(data)
@@ -65,7 +112,7 @@ export function ApiAutomationPage() {
         filename = 'budget-data.json'
         break
     }
-    
+
     const content = JSON.stringify(response, null, 2)
     downloadFile(content, filename, 'application/json')
   }
@@ -75,104 +122,172 @@ export function ApiAutomationPage() {
     downloadFile(csv, 'spending-export.csv', 'text/csv')
   }
 
+  const testWebhookPayload = async () => {
+    const url = webhookUrl.trim()
+    const body = JSON.stringify(pingPayload)
+    if (!url) {
+      setWebhookStatus('Add a webhook URL, or copy the curl example below.')
+      return
+    }
+    setTesting(true)
+    setWebhookStatus(null)
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-MyDSP-Signature': pingPayload.signature,
+        },
+        body,
+        mode: 'cors',
+      })
+      setWebhookStatus(
+        res.ok
+          ? `Posted ping — HTTP ${res.status}.`
+          : `POST completed with HTTP ${res.status}. Check the receiver logs.`,
+      )
+    } catch (err) {
+      setWebhookStatus(
+        `Browser blocked or network failed (${err instanceof Error ? err.message : 'error'}). Use the curl example from a terminal instead.`,
+      )
+    } finally {
+      setTesting(false)
+    }
+  }
+
   return (
     <div>
       <PageHeader
         eyebrow="Integration"
         title="API & Automation"
-        description="Export data, view API endpoints, and set up automation workflows"
+        description="Local-first export foundations: REST-shaped endpoints, portfolio JSON snapshot, and webhook ping testing."
       />
 
-      {/* Quick Export Section */}
-      <div className="surface p-6 mb-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
-        <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-          <Download size={20} className="text-accent" />
-          Quick Export
+      <section className="surface p-6 mb-6" aria-labelledby="snapshot-heading">
+        <h3 id="snapshot-heading" className="font-bold text-lg mb-2 flex items-center gap-2">
+          <FileJson size={20} className="text-accent" aria-hidden />
+          Portfolio snapshot
         </h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <p className="text-sm text-text-muted font-light mb-4 max-w-2xl">
+          Copy the current portfolio summary as JSON (same shape as{' '}
+          <code className="text-accent">GET /api/v1/portfolio/summary</code>). Data stays in this
+          browser — nothing is uploaded until you paste it elsewhere.
+        </p>
+        <div className="flex flex-wrap gap-2 mb-4">
+          <button
+            type="button"
+            className="btn-primary btn-sm inline-flex items-center gap-2"
+            onClick={() => void copyToClipboard(snapshotJson, 'Portfolio snapshot')}
+          >
+            {copied === 'Portfolio snapshot' ? <Check size={14} /> : <Copy size={14} />}
+            Copy JSON snapshot
+          </button>
+          <button
+            type="button"
+            className="btn-secondary btn-sm inline-flex items-center gap-2"
+            onClick={() => downloadFile(snapshotJson, 'portfolio-summary.json', 'application/json')}
+          >
+            <Download size={14} />
+            Download JSON
+          </button>
+        </div>
+        <pre className="p-3 bg-bg text-xs overflow-x-auto max-h-48 border border-border">
+          {snapshotJson}
+        </pre>
+      </section>
+
+      <section className="surface p-6 mb-6" aria-labelledby="export-heading">
+        <h3 id="export-heading" className="font-bold text-lg mb-4 flex items-center gap-2">
+          <Download size={20} className="text-accent" aria-hidden />
+          Quick export
+        </h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-border">
           <button
             type="button"
             onClick={() => handleExportJSON('summary')}
-            className="flex items-center gap-3 p-4 bg-surface-hover rounded-lg hover:bg-surface transition-colors text-left"
+            className="flex items-center gap-3 p-4 bg-surface hover:bg-surface-hover transition-colors text-left"
           >
-            <FileJson size={24} className="text-accent" />
+            <FileJson size={22} className="text-accent shrink-0" aria-hidden />
             <div>
-              <p className="font-medium">Portfolio Summary</p>
+              <p className="font-medium">Portfolio summary</p>
               <p className="text-xs text-text-muted">Net worth, assets, liabilities (JSON)</p>
             </div>
           </button>
-          
+
           <button
             type="button"
             onClick={() => handleExportJSON('spending')}
-            className="flex items-center gap-3 p-4 bg-surface-hover rounded-lg hover:bg-surface transition-colors text-left"
+            className="flex items-center gap-3 p-4 bg-surface hover:bg-surface-hover transition-colors text-left"
           >
-            <FileJson size={24} className="text-green-500" />
+            <FileJson size={22} className="text-accent shrink-0" aria-hidden />
             <div>
-              <p className="font-medium">Spending Transactions</p>
-              <p className="text-xs text-text-muted">All transactions with filters (JSON)</p>
+              <p className="font-medium">Spending transactions</p>
+              <p className="text-xs text-text-muted">All transactions (JSON)</p>
             </div>
           </button>
-          
+
           <button
             type="button"
             onClick={() => handleExportCSV()}
-            className="flex items-center gap-3 p-4 bg-surface-hover rounded-lg hover:bg-surface transition-colors text-left"
+            className="flex items-center gap-3 p-4 bg-surface hover:bg-surface-hover transition-colors text-left"
           >
-            <FileSpreadsheet size={24} className="text-emerald-500" />
+            <FileSpreadsheet size={22} className="text-accent shrink-0" aria-hidden />
             <div>
               <p className="font-medium">Spending CSV</p>
-              <p className="text-xs text-text-muted">Import into Excel or Google Sheets</p>
+              <p className="text-xs text-text-muted">Excel or Google Sheets</p>
             </div>
           </button>
-          
+
           <button
             type="button"
             onClick={() => handleExportJSON('goals')}
-            className="flex items-center gap-3 p-4 bg-surface-hover rounded-lg hover:bg-surface transition-colors text-left"
+            className="flex items-center gap-3 p-4 bg-surface hover:bg-surface-hover transition-colors text-left"
           >
-            <FileJson size={24} className="text-accent" />
+            <FileJson size={22} className="text-accent shrink-0" aria-hidden />
             <div>
-              <p className="font-medium">Goals Progress</p>
-              <p className="text-xs text-text-muted">All goals with progress tracking (JSON)</p>
+              <p className="font-medium">Goals progress</p>
+              <p className="text-xs text-text-muted">Goals with progress (JSON)</p>
             </div>
           </button>
-          
+
           <button
             type="button"
             onClick={() => handleExportJSON('budgets')}
-            className="flex items-center gap-3 p-4 bg-surface-hover rounded-lg hover:bg-surface transition-colors text-left"
+            className="flex items-center gap-3 p-4 bg-surface hover:bg-surface-hover transition-colors text-left"
           >
-            <FileJson size={24} className="text-orange-500" />
+            <FileJson size={22} className="text-accent shrink-0" aria-hidden />
             <div>
-              <p className="font-medium">Budget Adherence</p>
-              <p className="text-xs text-text-muted">Current month budget status (JSON)</p>
+              <p className="font-medium">Budget adherence</p>
+              <p className="text-xs text-text-muted">Current month status (JSON)</p>
             </div>
           </button>
         </div>
-      </div>
+      </section>
 
-      {/* API Endpoints Documentation */}
-      <div className="surface p-6 mb-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
-        <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-          <Code size={20} className="text-accent" />
-          API Endpoints
+      <section className="surface p-6 mb-6" aria-labelledby="endpoints-heading">
+        <h3 id="endpoints-heading" className="font-bold text-lg mb-4 flex items-center gap-2">
+          <Code size={20} className="text-accent" aria-hidden />
+          Documented REST-like endpoints
         </h3>
-        
-        <p className="text-sm text-text-muted mb-4">
-          These endpoints define the standard API structure for external integrations. 
-          Currently designed for local-first architecture - external access requires authentication setup.
+
+        <p className="text-sm text-text-muted font-light mb-4 max-w-2xl">
+          Contract shapes for future remote access. Today these run locally via the export helpers
+          above — there is no public authenticated API yet.
         </p>
-        
-        <div className="space-y-4">
+
+        <div className="divide-y divide-border border border-border">
           {API_ENDPOINTS.map((endpoint, i) => (
-            <div key={i} className="p-4 bg-surface-hover rounded-lg">
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex items-center gap-3">
-                  <span className={`text-xs font-mono px-2 py-1 ${
-                    endpoint.method === 'GET' ? 'bg-accent/20 text-accent' : 'bg-emerald-500/20 text-emerald-500'
-                  }`}>
+            <div key={i} className="p-4">
+              <div className="flex items-start justify-between gap-3 mb-2">
+                <div className="flex flex-wrap items-center gap-3">
+                  <span
+                    className={`text-xs font-mono px-2 py-1 ${
+                      endpoint.method === 'GET'
+                        ? 'bg-accent/15 text-accent'
+                        : 'bg-emerald-500/15 text-emerald-600'
+                    }`}
+                  >
                     {endpoint.method}
                   </span>
                   <code className="text-sm">{endpoint.path}</code>
@@ -181,15 +296,16 @@ export function ApiAutomationPage() {
                   type="button"
                   onClick={() => copyToClipboard(endpoint.path, `Endpoint ${i}`)}
                   className="btn-ghost btn-sm"
+                  aria-label={`Copy ${endpoint.path}`}
                 >
                   {copied === `Endpoint ${i}` ? <Check size={14} /> : <Copy size={14} />}
                 </button>
               </div>
               <p className="text-sm text-text-muted mb-2">{endpoint.description}</p>
-              
+
               {endpoint.params && (
                 <div className="mt-2">
-                  <p className="text-xs font-medium mb-1">Parameters:</p>
+                  <p className="text-xs font-medium mb-1">Parameters</p>
                   <div className="text-xs text-text-muted space-y-1">
                     {Object.entries(endpoint.params).map(([key, desc]) => (
                       <div key={key}>
@@ -199,13 +315,13 @@ export function ApiAutomationPage() {
                   </div>
                 </div>
               )}
-              
+
               {endpoint.example && (
                 <details className="mt-2">
                   <summary className="text-xs font-medium cursor-pointer hover:text-accent">
-                    View example response
+                    Example response
                   </summary>
-                  <pre className="mt-2 p-2 bg-bg rounded text-xs overflow-x-auto">
+                  <pre className="mt-2 p-2 bg-bg text-xs overflow-x-auto border border-border">
                     {JSON.stringify(endpoint.example, null, 2)}
                   </pre>
                 </details>
@@ -213,97 +329,111 @@ export function ApiAutomationPage() {
             </div>
           ))}
         </div>
-        
+
         <button
           type="button"
           onClick={() => {
             const docs = generateApiDocs()
             downloadFile(docs, 'mydsp-api-docs.md', 'text/markdown')
           }}
-          className="btn-primary mt-4"
+          className="btn-primary mt-4 inline-flex items-center gap-2"
         >
           <Download size={16} />
-          Download Full API Documentation
+          Download API documentation
         </button>
-      </div>
+      </section>
 
-      {/* Webhook Configuration (Future Feature) */}
-      <div className="surface p-6 mb-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
-        <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-          <Webhook size={20} className="text-accent" />
-          Webhook Automation
+      <section className="surface p-6 mb-6" aria-labelledby="webhook-heading">
+        <h3 id="webhook-heading" className="font-bold text-lg mb-4 flex items-center gap-2">
+          <Webhook size={20} className="text-accent" aria-hidden />
+          Webhook URL
         </h3>
-        
-        <p className="text-sm text-text-muted mb-4">
-          Configure webhooks to receive real-time notifications for important events.
-        </p>
-        
-        <div className="space-y-3">
-          <div className="p-4 bg-surface-hover rounded-lg">
-            <p className="font-medium text-sm mb-1">goal.completed</p>
-            <p className="text-xs text-text-muted">Triggered when a financial goal is achieved</p>
-          </div>
-          
-          <div className="p-4 bg-surface-hover rounded-lg">
-            <p className="font-medium text-sm mb-1">budget.exceeded</p>
-            <p className="text-xs text-text-muted">Triggered when spending exceeds a budget limit</p>
-          </div>
-          
-          <div className="p-4 bg-surface-hover rounded-lg">
-            <p className="font-medium text-sm mb-1">spending.anomaly</p>
-            <p className="text-xs text-text-muted">Triggered when unusual spending is detected</p>
-          </div>
-          
-          <div className="p-4 bg-surface-hover rounded-lg">
-            <p className="font-medium text-sm mb-1">net_worth.milestone</p>
-            <p className="text-xs text-text-muted">Triggered when net worth reaches a milestone</p>
-          </div>
-        </div>
-        
-        <div className="mt-4 p-4 bg-accent/10 border border-accent/20">
-          <p className="text-sm font-medium mb-2">Coming Soon</p>
-          <p className="text-xs text-text-muted">
-            Webhook configuration will allow you to integrate MyDSP with external services like 
-            Zapier, IFTTT, or custom automation workflows. Set up your webhook URL and choose 
-            which events to receive notifications for.
-          </p>
-        </div>
-      </div>
 
-      {/* Integration Ideas */}
-      <div className="surface p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
-        <h3 className="font-bold text-lg mb-4">Integration Ideas</h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="p-4 bg-surface-hover rounded-lg">
-            <p className="font-medium mb-2">📊 Google Sheets</p>
-            <p className="text-xs text-text-muted">
-              Export spending CSV and import into Google Sheets for custom analysis and reporting
-            </p>
-          </div>
-          
-          <div className="p-4 bg-surface-hover rounded-lg">
-            <p className="font-medium mb-2">📧 Email Reports</p>
-            <p className="text-xs text-text-muted">
-              Use webhooks to send weekly/monthly financial summaries to your inbox
-            </p>
-          </div>
-          
-          <div className="p-4 bg-surface-hover rounded-lg">
-            <p className="font-medium mb-2">💬 Slack/Discord</p>
-            <p className="text-xs text-text-muted">
-              Get notifications in your team chat when budgets are exceeded or goals are achieved
-            </p>
-          </div>
-          
-          <div className="p-4 bg-surface-hover rounded-lg">
-            <p className="font-medium mb-2">📱 Mobile Apps</p>
-            <p className="text-xs text-text-muted">
-              Build custom mobile apps using the API to access your financial data on-the-go
-            </p>
-          </div>
+        <p className="text-sm text-text-muted font-light mb-4 max-w-2xl">
+          Save a receiver URL in this browser, then post a signed-looking JSON ping. CORS may block
+          browser POSTs — use the curl example when that happens.
+        </p>
+
+        <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle mb-2">
+          Webhook URL
+          <input
+            type="url"
+            className="mt-2 w-full max-w-xl"
+            placeholder="https://hooks.example.com/mydsp"
+            value={webhookUrl}
+            onChange={(e) => setWebhookUrl(e.target.value)}
+            autoComplete="off"
+          />
+        </label>
+
+        <div className="flex flex-wrap gap-2 mt-4 mb-4">
+          <button
+            type="button"
+            className="btn-primary btn-sm"
+            disabled={testing}
+            onClick={() => void testWebhookPayload()}
+            aria-busy={testing}
+          >
+            {testing ? 'Posting…' : 'Test payload'}
+          </button>
+          <button
+            type="button"
+            className="btn-ghost btn-sm inline-flex items-center gap-2"
+            onClick={() => void copyToClipboard(curlExample, 'curl example')}
+          >
+            {copied === 'curl example' ? <Check size={14} /> : <Copy size={14} />}
+            Copy curl
+          </button>
         </div>
-      </div>
+
+        {webhookStatus && (
+          <p className="text-sm text-accent mb-4" role="status" aria-live="polite">
+            {webhookStatus}
+          </p>
+        )}
+
+        <p className="text-xs font-bold uppercase tracking-widest text-text-subtle mb-2">
+          curl example
+        </p>
+        <pre className="p-3 bg-bg text-xs overflow-x-auto border border-border whitespace-pre-wrap">
+          {curlExample}
+        </pre>
+
+        <ul className="mt-4 text-sm text-text-muted font-light space-y-1 max-w-2xl">
+          <li>
+            <code className="text-accent">goal.completed</code> — financial goal achieved
+          </li>
+          <li>
+            <code className="text-accent">budget.exceeded</code> — spending over a budget limit
+          </li>
+          <li>
+            <code className="text-accent">spending.anomaly</code> — unusual spending detected
+          </li>
+          <li>
+            <code className="text-accent">net_worth.milestone</code> — net worth milestone
+          </li>
+        </ul>
+      </section>
+
+      <section className="surface p-6" aria-labelledby="ideas-heading">
+        <h3 id="ideas-heading" className="font-bold text-lg mb-4">
+          Integration ideas
+        </h3>
+        <ul className="text-sm text-text-muted font-light space-y-3 max-w-2xl list-disc pl-5">
+          <li>
+            <span className="text-text font-medium">Google Sheets</span> — export spending CSV and
+            import for custom analysis
+          </li>
+          <li>
+            <span className="text-text font-medium">Email reports</span> — pipe webhook pings into
+            Zapier / Make for weekly summaries
+          </li>
+          <li>
+            <span className="text-text font-medium">Slack / Discord</span> — notify when budgets are
+            exceeded or goals are hit
+          </li>
+        </ul>
+      </section>
     </div>
   )
 }

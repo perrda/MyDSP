@@ -82,7 +82,9 @@ import {
   setSessionSyncPassphrase,
 } from '../services/sync/sessionPassphrase'
 import {
+  clearPendingAutoSyncConflicts,
   getAutoSyncStatus,
+  getPendingAutoSyncConflicts,
   subscribeAutoSync,
   syncNow,
   type AutoSyncStatus,
@@ -109,6 +111,7 @@ const SETTINGS_SECTION_IDS = [
   'prices',
   'devices',
   'account',
+  'open-banking',
   'portfolios',
   'full-backup',
   'export',
@@ -196,6 +199,38 @@ export function SettingsPage() {
   } | null>(null)
 
   useEffect(() => subscribeAutoSync(setAutoSyncStatus), [])
+
+  /** Hydrate parked auto-sync conflicts into the manual review UI. */
+  const hydrateAutoSyncConflicts = () => {
+    const preview = getPendingAutoSyncConflicts()
+    if (!preview || preview.conflicts.length === 0) return false
+    setPendingMerge(preview)
+    setConflicts(preview.conflicts)
+    setConflictChoices({})
+    flash(
+      `Review ${preview.conflicts.length} auto-sync conflict(s) — pick Keep local/remote, then Apply merge.`,
+    )
+    openSettingsSection('sync')
+    return true
+  }
+
+  useEffect(() => {
+    if (autoSyncStatus.state === 'conflict') {
+      hydrateAutoSyncConflicts()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- hydrate only when status flips to conflict
+  }, [autoSyncStatus.state])
+
+  useEffect(() => {
+    const onConflicts = () => {
+      hydrateAutoSyncConflicts()
+    }
+    window.addEventListener('mydsp-sync-conflicts', onConflicts)
+    // Catch conflicts parked before Settings mounted
+    hydrateAutoSyncConflicts()
+    return () => window.removeEventListener('mydsp-sync-conflicts', onConflicts)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const location = useLocation()
   useEffect(() => {
@@ -636,7 +671,7 @@ export function SettingsPage() {
             </label>
           </div>
           {(syncCfg.enabled || autoSyncStatus.state !== 'disabled') && (
-            <p className="text-xs text-text-subtle mb-4">
+            <p className="text-xs text-text-subtle mb-4" role="status">
               Auto-sync status:{' '}
               <span className="text-text">
                 {autoSyncStatus.state}
@@ -644,6 +679,36 @@ export function SettingsPage() {
               </span>
             </p>
           )}
+          {autoSyncStatus.state === 'conflict' ||
+          (pendingMerge && pendingMerge.conflicts.length > 0) ? (
+            <div
+              className="mb-4 border border-accent/40 bg-accent/5 px-4 py-3 text-sm"
+              role="alert"
+            >
+              <p className="font-semibold text-text mb-1">
+                {pendingMerge?.conflicts.length ?? autoSyncStatus.pendingConflicts ?? 0} sync
+                conflict{(pendingMerge?.conflicts.length ?? 0) === 1 ? '' : 's'} need review
+              </p>
+              <p className="text-text-muted font-light text-xs mb-2">
+                The same item changed on two devices. Choose Keep local or Keep remote for each row
+                below, then Apply merge.
+              </p>
+              <button
+                type="button"
+                className="btn-ghost btn-sm"
+                onClick={() => {
+                  if (!hydrateAutoSyncConflicts()) {
+                    document.getElementById('sync-conflicts-panel')?.scrollIntoView({
+                      behavior: 'smooth',
+                      block: 'start',
+                    })
+                  }
+                }}
+              >
+                Jump to conflicts
+              </button>
+            </div>
+          ) : null}
           <div className="flex flex-wrap gap-3 mb-4">
             <button
               type="button"
@@ -803,6 +868,7 @@ export function SettingsPage() {
                     setPendingMerge(null)
                     setConflicts([])
                     setConflictChoices({})
+                    clearPendingAutoSyncConflicts()
                     const next = {
                       ...syncCfg,
                       lastSyncAt: new Date().toISOString(),
@@ -909,6 +975,7 @@ export function SettingsPage() {
                   setPendingMerge(null)
                   setConflicts([])
                   setConflictChoices({})
+                  clearPendingAutoSyncConflicts()
                 }}
               >
                 Discard
@@ -1008,7 +1075,7 @@ export function SettingsPage() {
           )}
 
           {conflicts.length > 0 && (
-            <div className="mt-6 border border-border p-4 space-y-3">
+            <div id="sync-conflicts-panel" className="mt-6 border border-border p-4 space-y-3">
               <p className="text-sm font-semibold">Sync conflicts</p>
               <p className="text-xs text-text-muted font-light">
                 Same-id rows differ locally and remotely. Nothing has been written yet — review field
@@ -1272,7 +1339,10 @@ export function SettingsPage() {
               Switch header portfolio to <strong className="text-text">David</strong>
             </li>
             <li>Equities → TSLA / MSTR or Crypto → BTC → Import history</li>
-            <li>Paste CSV or use multi-row entry in Import history; journal rebuilds cost basis</li>
+            <li>
+              Paste CSV (IBKR / Trading 212 / Coinbase headers auto-detected) or use multi-row entry
+              in Import history; journal rebuilds cost basis
+            </li>
           </ol>
         </SettingsSection>
 
@@ -1546,6 +1616,24 @@ export function SettingsPage() {
               />
             </label>
 
+            <label className="flex items-center justify-between gap-4 min-h-11">
+              <span className="text-sm font-medium">
+                Alert sound
+                <span className="block text-xs text-text-muted font-light mt-0.5">
+                  Short beep on new critical alerts (off by default)
+                </span>
+              </span>
+              <input
+                type="checkbox"
+                className="h-5 w-5 accent-[var(--accent)]"
+                checked={notifSettings.soundEnabled}
+                onChange={(e) => {
+                  notificationManager.updateSettings({ soundEnabled: e.target.checked })
+                  flash(e.target.checked ? 'Alert sound on.' : 'Alert sound muted.')
+                }}
+              />
+            </label>
+
             <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle">
               Minimum priority for banners
               <select
@@ -1685,15 +1773,18 @@ export function SettingsPage() {
         </SettingsSection>
 
         <SettingsSection id="account" eyebrow="Account" title="Cloud account (preview)">
-          <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
-            Optional email for a future cloud account. Sync remains passphrase-based — no OAuth yet.
+          <p className="text-sm text-text-muted font-light mb-4 max-w-2xl leading-relaxed">
+            Keep an optional email on this device as a future identity hint. Encrypted sync stays{' '}
+            <strong className="text-text font-medium">passphrase-based</strong> today — there is no
+            Google / Apple / Microsoft OAuth sign-in yet (planned later). Do not expect a “Sign in
+            with…” button here.
           </p>
           <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle mb-2">
             Email
           </label>
           <input
             type="email"
-            className="max-w-md"
+            className="max-w-md mb-6"
             placeholder="you@example.com"
             value={cloudEmail}
             onChange={(e) => {
@@ -1707,6 +1798,38 @@ export function SettingsPage() {
               }
             }}
           />
+          <div className="border border-border px-4 py-3 max-w-2xl">
+            <p className="text-sm font-medium mb-1">Export identity backup note</p>
+            <p className="text-xs text-text-muted font-light leading-relaxed">
+              Your portfolio identity is the combination of this browser origin, any email you
+              store above, and your sync passphrase / full backup files. Export a full backup from
+              Settings → Full backup before clearing site data. OAuth will not replace passphrase
+              sync when it lands — it is only planned as an optional account link.
+            </p>
+          </div>
+        </SettingsSection>
+
+        <SettingsSection id="open-banking" eyebrow="Import" title="Open banking (coming)">
+          <p className="text-sm text-text-muted font-light mb-4 max-w-2xl leading-relaxed">
+            Direct bank account linking (PSD2 / Open Banking) is <strong className="text-text font-medium">not
+            implemented</strong>. MyDSP stays local-first: you import CSV exports from your bank or
+            broker. We are not requesting AISP consent, storing bank credentials, or polling live
+            transaction feeds.
+          </p>
+          <ul className="text-sm text-text-muted font-light space-y-2 max-w-2xl list-disc pl-5 mb-4">
+            <li>
+              Use{' '}
+              <Link to="/import" className="text-accent hover:underline">
+                CSV Import
+              </Link>{' '}
+              or Enhanced CSV for spending
+            </li>
+            <li>Use Settings → Trade history templates for broker CSVs</li>
+            <li>Future open-banking work would be opt-in and UK/EU regulated — out of scope for now</li>
+          </ul>
+          <p className="text-xs text-text-subtle max-w-2xl">
+            Honest parking-lot item only — no fake “Connect bank” button.
+          </p>
         </SettingsSection>
 
         <SettingsSection id="portfolios" eyebrow="Portfolios" title="Family portfolios">

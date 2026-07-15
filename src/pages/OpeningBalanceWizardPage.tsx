@@ -8,6 +8,7 @@ import {
   type OpeningBalanceItem,
 } from '../domain/openingBalanceScan'
 import { applyTrade } from '../domain/trades'
+import { lookupPriceOnDate } from '../domain/staticPrices'
 import {
   getActivePortfolioId,
   listPortfolios,
@@ -35,6 +36,7 @@ export function OpeningBalanceWizardPage() {
   )
   const [message, setMessage] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [busyLabel, setBusyLabel] = useState<'apply' | 'prices' | null>(null)
 
   const byPortfolio = useMemo(() => {
     const map = new Map<string, DraftRow[]>()
@@ -60,8 +62,54 @@ export function OpeningBalanceWizardPage() {
     setMessage('Rescanned all portfolios.')
   }
 
+  const fillPricesFromHistory = async () => {
+    const included = rows.filter((r) => r.included)
+    if (included.length === 0) {
+      setMessage('Select at least one row to fill prices.')
+      return
+    }
+    setBusy(true)
+    setBusyLabel('prices')
+    try {
+      let filled = 0
+      let missed = 0
+      const updates = new Map<string, string>()
+      for (const r of included) {
+        const key = `${r.portfolioId}:${r.kind}:${r.symbol}`
+        const portfolioData = loadPortfolio(r.portfolioId)
+        const hit = await lookupPriceOnDate(r.kind, r.symbol, r.date, portfolioData)
+        if (hit && hit.price >= 0) {
+          updates.set(key, String(hit.price))
+          filled++
+        } else {
+          missed++
+        }
+      }
+      setRows((prev) =>
+        prev.map((x) => {
+          const key = `${x.portfolioId}:${x.kind}:${x.symbol}`
+          const price = updates.get(key)
+          return price != null ? { ...x, price } : x
+        }),
+      )
+      setMessage(
+        filled
+          ? `Filled ${filled} price${filled === 1 ? '' : 's'} from history` +
+              (missed ? ` · ${missed} without a match` : '') +
+              '.'
+          : 'No historical prices found for the selected rows.',
+      )
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : 'Failed to look up prices')
+    } finally {
+      setBusy(false)
+      setBusyLabel(null)
+    }
+  }
+
   const applySelected = () => {
     setBusy(true)
+    setBusyLabel('apply')
     try {
       const previous = getActivePortfolioId()
       let applied = 0
@@ -99,6 +147,7 @@ export function OpeningBalanceWizardPage() {
       setMessage(e instanceof Error ? e.message : 'Failed to apply')
     } finally {
       setBusy(false)
+      setBusyLabel(null)
     }
   }
 
@@ -151,7 +200,7 @@ export function OpeningBalanceWizardPage() {
               {selectedCount} of {rows.length} selected · {byPortfolio.length} portfolio
               {byPortfolio.length === 1 ? '' : 's'} · {listPortfolios().length} total workspaces
             </p>
-            <div className="flex gap-2" role="group" aria-label="Bulk actions">
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Bulk actions">
               <button
                 type="button"
                 className="btn-ghost btn-sm"
@@ -170,13 +219,23 @@ export function OpeningBalanceWizardPage() {
               </button>
               <button
                 type="button"
+                className="btn-secondary btn-sm"
+                disabled={busy || selectedCount === 0}
+                onClick={() => void fillPricesFromHistory()}
+                aria-label={`Fill prices from history for ${selectedCount} selected row${selectedCount === 1 ? '' : 's'}`}
+                aria-busy={busy && busyLabel === 'prices'}
+              >
+                {busy && busyLabel === 'prices' ? 'Looking up…' : 'Fill prices from history'}
+              </button>
+              <button
+                type="button"
                 className="btn-primary"
                 disabled={busy || selectedCount === 0}
                 onClick={applySelected}
                 aria-label={`Apply ${selectedCount} selected opening balance${selectedCount === 1 ? '' : 's'}`}
-                aria-busy={busy}
+                aria-busy={busy && busyLabel === 'apply'}
               >
-                {busy ? 'Applying…' : `Apply ${selectedCount}`}
+                {busy && busyLabel === 'apply' ? 'Applying…' : `Apply ${selectedCount}`}
               </button>
             </div>
           </div>

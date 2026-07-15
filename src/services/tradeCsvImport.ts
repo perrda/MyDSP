@@ -4,6 +4,47 @@ import type { TradeInput, TradeKind, TradeSide } from '../domain/trades'
 
 export type TradeCsvDateOrder = 'dmy' | 'mdy'
 
+export type BrokerTradePresetId = 'ibkr' | 'trading212' | 'coinbase' | 'generic'
+
+export interface BrokerTradePreset {
+  id: BrokerTradePresetId
+  label: string
+  /** Hint for ambiguous dates */
+  dateOrder: TradeCsvDateOrder
+}
+
+const BROKER_PRESETS: BrokerTradePreset[] = [
+  { id: 'ibkr', label: 'Interactive Brokers', dateOrder: 'mdy' },
+  { id: 'trading212', label: 'Trading 212', dateOrder: 'dmy' },
+  { id: 'coinbase', label: 'Coinbase', dateOrder: 'mdy' },
+  { id: 'generic', label: 'Generic MyDSP CSV', dateOrder: 'dmy' },
+]
+
+export function listBrokerTradePresets(): BrokerTradePreset[] {
+  return BROKER_PRESETS
+}
+
+/** Detect broker export from normalised header tokens. */
+export function detectBrokerPreset(headers: string[]): BrokerTradePreset {
+  const h = headers.map((x) => x.toLowerCase().replace(/\s+/g, ''))
+  const has = (...names: string[]) => names.every((n) => h.includes(n.replace(/\s+/g, '')))
+  const any = (...names: string[]) => names.some((n) => h.some((x) => x.includes(n.replace(/\s+/g, ''))))
+
+  if (any('t.price', 'tprice', 'comm/fee', 'commfee') || (any('buy/sell') && any('quantity'))) {
+    return BROKER_PRESETS[0]
+  }
+  if (any('no.ofshares', 'nofshares') || (any('action') && any('time') && any('price/share', 'priceshare'))) {
+    return BROKER_PRESETS[1]
+  }
+  if (any('quantitytransacted') || any('spotpriceattransaction') || any('transactiontype')) {
+    return BROKER_PRESETS[2]
+  }
+  if (has('date', 'side', 'qty', 'price') || has('date', 'side', 'quantity', 'price')) {
+    return BROKER_PRESETS[3]
+  }
+  return BROKER_PRESETS[3]
+}
+
 export interface ParseTradeCsvOptions {
   kind: TradeKind
   symbol: string
@@ -15,6 +56,7 @@ export interface ParseTradeCsvOptions {
 export interface ParsedTradeCsv {
   trades: TradeInput[]
   errors: string[]
+  broker?: BrokerTradePreset
 }
 
 /**
@@ -33,7 +75,16 @@ export function parseTradeCsv(text: string, opts: ParseTradeCsvOptions): ParsedT
   if (lines.length === 0) return { trades: [], errors: ['Empty CSV — paste or choose a file with trade rows'] }
 
   const header = splitCsvLine(lines[0]).map((h) => h.toLowerCase().replace(/\s+/g, ''))
-  const hasHeader = header.some((h) => h.includes('date') || h.includes('qty') || h.includes('side'))
+  const hasHeader = header.some(
+    (h) =>
+      h.includes('date') ||
+      h.includes('qty') ||
+      h.includes('side') ||
+      h.includes('time') ||
+      h.includes('action') ||
+      h.includes('quantity') ||
+      h.includes('transaction'),
+  )
   const rows = hasHeader ? lines.slice(1) : lines
   const col = (names: string[]) => {
     for (const n of names) {
@@ -43,18 +94,81 @@ export function parseTradeCsv(text: string, opts: ParseTradeCsvOptions): ParsedT
     return -1
   }
 
-  const iDate = hasHeader ? col(['date', 'tradedate', 'day', 'tradedateutc']) : 0
-  const iSide = hasHeader ? col(['side', 'type', 'action', 'buyorsell', 'buysell']) : 1
-  const iQty = hasHeader ? col(['qty', 'quantity', 'shares', 'amount', 'units']) : 2
-  const iPrice = hasHeader ? col(['price', 'unitprice', 'px', 'fillprice', 'avgprice']) : 3
-  const iFees = hasHeader ? col(['fees', 'fee', 'commission', 'comm']) : 4
-  const iNotes = hasHeader ? col(['notes', 'note', 'memo', 'comment']) : 5
-  const iPlatform = hasHeader ? col(['platform', 'broker', 'exchange', 'venue']) : 6
+  const iDate = hasHeader
+    ? col([
+        'date',
+        'tradedate',
+        'day',
+        'tradedateutc',
+        'time',
+        'timestamp',
+        'datetime',
+        'settledate',
+        'executiontime',
+      ])
+    : 0
+  const iSide = hasHeader
+    ? col([
+        'side',
+        'type',
+        'action',
+        'buyorsell',
+        'buy/sell',
+        'buysell',
+        'transactiontype',
+        'ordertype',
+      ])
+    : 1
+  const iQty = hasHeader
+    ? col([
+        'qty',
+        'quantity',
+        'shares',
+        'amount',
+        'units',
+        'no.ofshares',
+        'nofshares',
+        'no.of shares',
+        'quantitytransacted',
+        'filledqty',
+      ])
+    : 2
+  const iPrice = hasHeader
+    ? col([
+        'price',
+        'unitprice',
+        'px',
+        'fillprice',
+        'avgprice',
+        't.price',
+        'tprice',
+        'tradeprice',
+        'price/share',
+        'priceshare',
+        'priceattransaction',
+        'spotpriceattransaction',
+      ])
+    : 3
+  const iFees = hasHeader
+    ? col([
+        'fees',
+        'fee',
+        'commission',
+        'comm',
+        'comm/fee',
+        'commfee',
+        'totalfees',
+        'feesand/orcommission',
+      ])
+    : 4
+  const iNotes = hasHeader ? col(['notes', 'note', 'memo', 'comment', 'description']) : 5
+  const iPlatform = hasHeader ? col(['platform', 'broker', 'exchange', 'venue', 'account']) : 6
 
   if (iDate < 0 || iSide < 0 || iQty < 0 || iPrice < 0) {
     return {
       trades: [],
       errors: ['Need columns: date, side/type, qty, price'],
+      broker: detectBrokerPreset(header),
     }
   }
 
@@ -76,11 +190,34 @@ export function parseTradeCsv(text: string, opts: ParseTradeCsvOptions): ParsedT
     else if (platform) notes = platform
 
     const date = normalizeDate(dateRaw, dateOrder)
-    let side: TradeSide | null = null
-    if (sideRaw === 'buy' || sideRaw === 'b' || sideRaw === 'purchase' || sideRaw === 'bought') {
-      side = 'buy'
+    // Coinbase / exchange transfers are not buy/sell for cost basis
+    if (
+      sideRaw.includes('send') ||
+      sideRaw.includes('receive') ||
+      sideRaw.includes('transfer') ||
+      sideRaw.includes('convert') ||
+      sideRaw.includes('deposit') ||
+      sideRaw.includes('withdrawal')
+    ) {
+      errors.push(`Row ${rowNum}: skipped non-trade type “${sideRaw}”`)
+      return
     }
-    if (sideRaw === 'sell' || sideRaw === 's' || sideRaw === 'sale' || sideRaw === 'sold') {
+    let side: TradeSide | null = null
+    if (
+      sideRaw === 'buy' ||
+      sideRaw === 'b' ||
+      sideRaw === 'purchase' ||
+      sideRaw === 'bought' ||
+      sideRaw.includes('buy')
+    ) {
+      side = 'buy'
+    } else if (
+      sideRaw === 'sell' ||
+      sideRaw === 's' ||
+      sideRaw === 'sale' ||
+      sideRaw === 'sold' ||
+      sideRaw.includes('sell')
+    ) {
       side = 'sell'
     }
 
@@ -119,7 +256,7 @@ export function parseTradeCsv(text: string, opts: ParseTradeCsvOptions): ParsedT
     errors.push('No trade rows found')
   }
 
-  return { trades, errors }
+  return { trades, errors, broker: detectBrokerPreset(header) }
 }
 
 function splitCsvLine(line: string): string[] {

@@ -13,7 +13,7 @@ export interface ParsedBankRow {
   isIncome: boolean
 }
 
-function parseCSVLine(line: string, delimiter = ','): string[] {
+export function parseCSVLine(line: string, delimiter = ','): string[] {
   const result: string[] = []
   let cur = ''
   let inQuotes = false

@@ -49,9 +49,9 @@ const KANBAN_COLUMNS: Array<{ status: JobStatus[]; title: string; color: string 
   { status: ['wishlist', 'researching'], title: 'Wishlist', color: 'border-border-strong' },
   { status: ['applying'], title: 'Applying', color: 'border-accent' },
   { status: ['applied', 'screening'], title: 'Applied', color: 'border-amber-500' },
-  { status: ['interviewing'], title: 'Interviewing', color: 'border-emerald-500' },
-  { status: ['offer', 'accepted'], title: 'Offers', color: 'border-green-500' },
-  { status: ['rejected', 'withdrawn', 'archived'], title: 'Closed', color: 'border-red-500' },
+  { status: ['interviewing'], title: 'Interview', color: 'border-emerald-500' },
+  { status: ['offer', 'accepted'], title: 'Offer', color: 'border-green-500' },
+  { status: ['rejected', 'withdrawn', 'archived'], title: 'Rejected', color: 'border-red-500' },
 ]
 
 export function JobsPage() {
@@ -241,16 +241,16 @@ export function JobsPage() {
     const app = applications.find((a) => a.id === appId)
     if (!app) return
 
-    // Already in Closed — within-column reorder handles order; ignore status DnD
+    // Already in Rejected — within-column reorder handles order; ignore status DnD
     if (
-      columnTitle === 'Closed' &&
+      columnTitle === 'Rejected' &&
       (app.status === 'rejected' || app.status === 'withdrawn' || app.status === 'archived')
     ) {
       setDragOverColumn(null)
       return
     }
 
-    if (columnTitle === 'Closed') {
+    if (columnTitle === 'Rejected') {
       setDragOverColumn(null)
       setClosedDrop({
         appId,
@@ -556,14 +556,19 @@ export function JobsPage() {
                 if (Number.isFinite(id)) handleKanbanDrop(column.title, id)
               }}
             >
-              <div className={`surface p-3 mb-3 border-t-4 ${column.color} rounded-t-xl md:rounded-t-none shadow-sm md:shadow-none`}>
+              <div className={`surface p-3 mb-3 border-t-4 ${column.color}`}>
                 <h3 className="font-bold uppercase text-xs tracking-wider">
                   {column.title} ({column.applications.length})
                 </h3>
                 <p className="text-[11px] text-text-subtle mt-1">
-                  Drag grip to move columns · reorder handle to sort
+                  Drag grip to change status · reorder handle to sort
                 </p>
               </div>
+              {column.applications.length === 0 ? (
+                <p className="text-xs text-text-subtle px-2 py-6 text-center border border-dashed border-border">
+                  Drop applications here
+                </p>
+              ) : (
               <ReorderList
                 items={column.applications}
                 getId={(app) => String(app.id)}
@@ -585,6 +590,7 @@ export function JobsPage() {
                   />
                 )}
               </ReorderList>
+              )}
             </div>
           ))}
         </div>
