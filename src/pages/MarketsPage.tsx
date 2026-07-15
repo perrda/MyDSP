@@ -17,6 +17,7 @@ import { ConfirmDialog, Field, Modal } from '../components/ui/Modal'
 import { OverflowMenu } from '../components/ui/OverflowMenu'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
 import { usePortfolio } from '../context/PortfolioContext'
+import { applyLastSyncedQuotesToHoldings } from '../domain/lastSyncedHoldings'
 import {
   defaultNameForPair,
   formatMarketChangeAbs,
@@ -288,7 +289,7 @@ function freshnessLabel(q: MarketQuote | undefined): string | null {
 }
 
 export function MarketsPage() {
-  const { data, privacy } = usePortfolio()
+  const { data, privacy, setData } = usePortfolio()
   const [searchParams, setSearchParams] = useSearchParams()
   const [tickers, setTickers] = useState(() => listMarketTickers())
   const [collapsed, setCollapsed] = useState(() => loadMarketsState().collapsed)
@@ -436,6 +437,8 @@ export function MarketsPage() {
       const merged = mergeMarketQuotes(previous, next)
       setQuotes(merged)
       saveMarketQuotesCache(merged)
+      // Push live Markets prints into holdings so Equities / net worth stay real-time
+      setData((prev) => applyLastSyncedQuotesToHoldings(prev, { overwrite: true }).data)
       const at = new Date().toISOString()
       setMarketsLastRefresh(at)
       const liveCount = [...merged.values()].filter((q) => q.last > 0 && !isStaleQuote(q)).length
@@ -780,7 +783,7 @@ export function MarketsPage() {
                 </Link>
               ) : (
                 <span className="text-xs text-text-subtle">
-                  {sorting ? 'Drag ⋮⋮ to reorder · 7-day sparkline' : '7-day sparkline'}
+                  {sorting ? 'Drag ⋮⋮ to reorder · 24h sparkline' : '24h % · 24h sparkline'}
                 </span>
               )}
             </div>

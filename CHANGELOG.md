@@ -1,5 +1,18 @@
 # MyDSP Changelog
 
+## [1.2.28] - 2026-07-15
+
+### Fixed — Markets 24h % + sparklines; live equity valuations
+1. **Markets % and sparklines** — both use the same ~24h window (Yahoo/Finnhub 5m intraday, CoinGecko `days=1`). Badge colour now matches the spark direction (no more 7d red spark vs green day %).
+2. **Crypto** — keeps CoinGecko/CoinCap true 24h `%` when available; Yahoo fallback derives `%` from the 24h series.
+3. **Equities / indices / FX** — `%` from the 24h series when the spark has enough points (weekends fall back to last session prints).
+4. **Live valuations** — sample TSLA/MSTR/crypto seeds no longer ship hardcoded marks (`livePrice`/`price` = 0). Markets refresh pushes live quotes into holdings so Equities tab and net worth stay real-time.
+
+### Version
+- 1.2.27 → **1.2.28**
+
+---
+
 ## [1.2.27] - 2026-07-15
 
 ### Improved — UI polish Top 10

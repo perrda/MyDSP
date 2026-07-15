@@ -13,7 +13,7 @@ afterEach(() => {
 })
 
 describe('FX quote fallbacks', () => {
-  it('builds a 7d sparkline from Frankfurter daily rates', async () => {
+  it('builds a short sparkline from Frankfurter daily rates', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const url = urlOf(input as RequestInfo | URL)
       if (url.includes('frankfurter')) {

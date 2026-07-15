@@ -46,7 +46,7 @@ export interface MarketQuote {
   last: number
   changeAbs: number
   changePct: number
-  /** 7-day sparkline in the same units as `last` */
+  /** ~24h sparkline in the same units as `last` */
   sparkline: number[]
   unit: string
   decimals: number
