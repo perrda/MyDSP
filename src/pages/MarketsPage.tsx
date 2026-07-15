@@ -1016,7 +1016,7 @@ export function MarketsPage() {
         title="Markets"
         description="Live equities, crypto, indices, FX, and crosses. Auto-refreshes ~45s; header refresh forces an update."
         action={
-          <div className="flex flex-wrap gap-2">
+          <div className="hidden sm:flex flex-wrap gap-2">
             <button
               type="button"
               className={`btn-ghost btn-sm ${density === 'compact' ? 'border-accent text-accent' : ''}`}
@@ -1294,6 +1294,24 @@ export function MarketsPage() {
         }}
         onClose={() => setDeleteId(null)}
       />
+
+      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary markets actions">
+        <button
+          type="button"
+          className="btn-primary btn-sm inline-flex items-center gap-1.5"
+          onClick={() => openCreate('equity')}
+        >
+          <Plus size={16} strokeWidth={2} /> Add equity
+        </button>
+        <button
+          type="button"
+          className="btn-secondary btn-sm inline-flex items-center gap-1.5"
+          onClick={() => openCreate('crypto')}
+        >
+          <Plus size={16} strokeWidth={2} /> Add crypto
+        </button>
+      </div>
+      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }

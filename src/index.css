@@ -2181,3 +2181,137 @@ html.a11y-reduce-motion *::after {
   border-left: 3px solid color-mix(in srgb, var(--accent) 55%, transparent);
 }
 
+/* ----- next25b mobile ergonomics (11–15) ----- */
+
+/* 11: One-handed reachability — PageHeader actions below copy on phone */
+@media (max-width: 639px) {
+  .page-header {
+    display: flex;
+    flex-direction: column;
+  }
+  .page-header__copy {
+    order: 1;
+  }
+  .page-header__action {
+    order: 2;
+    align-self: stretch;
+    margin-top: 0.25rem;
+  }
+}
+
+/* Sticky bottom CTA cluster above bottom-nav (phone); hidden ≥sm */
+.thumb-cta-bar {
+  display: none;
+}
+@media (max-width: 639px) {
+  .thumb-cta-bar {
+    display: flex;
+    position: fixed;
+    left: 0;
+    right: 0;
+    z-index: 35;
+    bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: stretch;
+    gap: 0.5rem;
+    padding: 0.625rem 0.75rem;
+    background: color-mix(in srgb, var(--bg-elevated) 94%, transparent);
+    border-top: 1px solid var(--border);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 -4px 24px color-mix(in srgb, var(--bg) 40%, transparent);
+  }
+  .thumb-cta-bar > button,
+  .thumb-cta-bar > a {
+    flex: 1 1 auto;
+    min-height: 2.75rem;
+    justify-content: center;
+  }
+  html.has-bottom-nav .thumb-cta-bar {
+    bottom: calc(5.5rem + 0.25rem + env(safe-area-inset-bottom, 0px));
+  }
+  /* Spacer so list content clears the fixed bar */
+  .thumb-cta-bar-spacer {
+    height: calc(4.25rem + env(safe-area-inset-bottom, 0px));
+  }
+  html.has-bottom-nav .thumb-cta-bar-spacer {
+    height: calc(4.25rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+@media (min-width: 640px) {
+  .thumb-cta-bar-spacer {
+    display: none;
+  }
+}
+
+/* 14: Landscape tablet — sticky sidebar, hide bottom-nav (768–1023) */
+@media (orientation: landscape) and (min-width: 768px) and (max-width: 1023px) {
+  .app-sidebar-backdrop {
+    display: none !important;
+  }
+  .app-sidebar {
+    position: static !important;
+    transform: translateX(0) !important;
+    z-index: auto !important;
+    width: 14.5rem !important;
+    max-width: none !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+  .app-sidebar .sidebar-close-btn {
+    display: none !important;
+  }
+  .toolbar-menu-btn {
+    display: none !important;
+  }
+  .bottom-nav {
+    display: none !important;
+  }
+  html.has-bottom-nav .app-content.app-content-with-bottom-nav {
+    padding-bottom: calc(2rem + env(safe-area-inset-bottom, 0px));
+  }
+  html.has-bottom-nav .floating-banner,
+  html.has-bottom-nav .floating-banner--toast {
+    bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* 15: Haptic-style success flash (edge pulse + toast accent) */
+@keyframes success-haptic-edge {
+  0% {
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+html.success-haptic-flash::after {
+  content: '';
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--accent) 70%, transparent);
+  animation: success-haptic-edge 0.5s ease-out 1;
+}
+.toast-haptic-flash {
+  animation: settings-section-flash 0.7s ease-out 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  html.success-haptic-flash::after {
+    animation: none;
+    opacity: 1;
+    box-shadow: inset 0 0 0 2px var(--accent);
+    transition: opacity 0.35s ease-out;
+  }
+  .toast-haptic-flash {
+    animation: none;
+    outline: 2px solid color-mix(in srgb, var(--accent) 60%, transparent);
+    outline-offset: 1px;
+  }
+}
+

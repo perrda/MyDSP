@@ -15,6 +15,7 @@ import {
   loadLargeText,
   saveLargeText,
 } from '../utils/largeText'
+import { isSyncTradeBackupSuccess, triggerSuccessFlash } from '../utils/successFlash'
 import {
   A11Y_CHART_CB_KEY,
   A11Y_HIGH_CONTRAST_KEY,
@@ -441,6 +442,7 @@ export function SettingsPage() {
 
   const flash = (msg: string) => {
     setMessage(msg)
+    if (isSyncTradeBackupSuccess(msg)) triggerSuccessFlash()
     window.setTimeout(() => setMessage(null), 5000)
   }
 

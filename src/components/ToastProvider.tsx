@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import type { AchievementDef } from '../domain/achievements'
+import { triggerSuccessFlash } from '../utils/successFlash'
 import type { Toast } from './ui/Toast'
 import { ToastItem } from './ui/Toast'
 
@@ -34,6 +35,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
   const showToast = useCallback((toast: Omit<Toast, 'id'>) => {
     const id = `toast-${Date.now()}-${Math.random()}`
+    if (toast.type === 'success') triggerSuccessFlash()
     setToasts((prev) => [...prev, { ...toast, id }])
   }, [])
 

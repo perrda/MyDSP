@@ -1,5 +1,19 @@
 # MyDSP Changelog
 
+## [1.2.42] - 2026-07-15
+
+### Improved — Mobile ergonomics (next 25b · 11–15)
+11. **One-handed reachability** — `.page-header` CSS order on &lt;640px + `.thumb-cta-bar` sticky bottom CTAs on Todos / Jobs / Markets (above bottom-nav)  
+12. Jobs **Columns** sheet — jump/scroll to a kanban column by name  
+13. Todos **Select** mode — toggle Select; multi Complete / Move list / Delete  
+14. **Landscape iPad** — sticky sidebar + hide bottom-nav at landscape + min-width 768px (`useShowBottomNav` + CSS)  
+15. **Haptic-style success flash** — edge flash + toast accent after Sync / Trade / Backup (reduce-motion safe)  
+
+### Version
+- 1.2.41 → **1.2.42**
+
+---
+
 ## [1.2.41] - 2026-07-15
 
 ### Improved — Markets / portfolio (next 25b · 6–10)

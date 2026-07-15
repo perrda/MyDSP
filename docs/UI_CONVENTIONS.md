@@ -13,6 +13,8 @@ Cursor agents (and future you) need a single source of truth for forms. The livi
 | Task modal | `src/components/TodoModal.tsx` |
 | Destructive confirm | `ConfirmDialog` in `src/components/ui/Modal.tsx` |
 | Screenshot → todos | `TodoScreenshotImportModal` + `domain/todoOcr.ts` |
+| Phone thumb CTAs | `.thumb-cta-bar` in `index.css` (Todos / Jobs / Markets) |
+| Success feedback | `utils/successFlash.ts` + `.success-haptic-flash` |
 
 ## Form recipe
 

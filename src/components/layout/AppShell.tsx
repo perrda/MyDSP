@@ -22,6 +22,7 @@ import { PullToRefresh } from '../ui/PullToRefresh'
 import { formatDateTime } from '../../utils/format'
 import { useShowBottomNav } from '../../hooks/useShowBottomNav'
 import { useIdlePrefetch } from '../../hooks/useIdlePrefetch'
+import { triggerSuccessFlash } from '../../utils/successFlash'
 
 const titles: Record<string, { eyebrow: string; title: string }> = {
   '/': { eyebrow: 'Portfolio', title: 'Overview' },
@@ -199,6 +200,7 @@ export function AppShell() {
       )
     } else {
       setPriceMsg(st.message ?? 'Devices synced')
+      triggerSuccessFlash()
     }
     window.setTimeout(() => setPriceMsg(null), 4500)
   }, [refreshPrices, refreshFx])

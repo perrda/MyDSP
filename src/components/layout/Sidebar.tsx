@@ -203,7 +203,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         <button
           type="button"
           aria-label="Close menu"
-          className="fixed inset-0 z-40 bg-bg/70 backdrop-blur-sm lg:hidden"
+          className="app-sidebar-backdrop fixed inset-0 z-40 bg-bg/70 backdrop-blur-sm lg:hidden"
           onClick={onClose}
         />
       )}
@@ -211,6 +211,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       <aside
         aria-label="Sidebar navigation"
         className={`
+          app-sidebar
           fixed inset-y-0 left-0 z-50 w-[min(20rem,88%)]
           bg-bg-elevated border-r border-border
           flex flex-col
@@ -235,7 +236,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           </div>
           <button
             type="button"
-            className="lg:hidden w-11 h-11 flex items-center justify-center border border-border-strong text-text-muted hover:text-accent hover:border-accent"
+            className="sidebar-close-btn lg:hidden w-11 h-11 flex items-center justify-center border border-border-strong text-text-muted hover:text-accent hover:border-accent"
             onClick={onClose}
             aria-label="Close sidebar"
           >

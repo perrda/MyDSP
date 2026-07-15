@@ -133,6 +133,7 @@ export function TodosPage() {
   const [editingTodo, setEditingTodo] = useState<TodoItem | undefined>()
   const [editingList, setEditingList] = useState<TodoList | undefined>()
   const [selectedTodos, setSelectedTodos] = useState<Set<number>>(new Set())
+  const [selectMode, setSelectMode] = useState(false)
   const [confirmState, setConfirmState] = useState<{
     title: string
     body: string
@@ -673,7 +674,7 @@ export function TodosPage() {
             : `${stats.total} tasks · ${stats.highPriority} high · ${stats.overdue} overdue`
         }
         action={
-          <div className="flex flex-wrap gap-2 justify-end">
+          <div className="hidden sm:flex flex-wrap gap-2 justify-end">
             <button type="button" onClick={handleCreateItem} className="btn-primary btn-sm" disabled={lists.length === 0}>
               <Plus size={16} /> New Task
             </button>
@@ -690,7 +691,7 @@ export function TodosPage() {
                 }
                 setShowScreenshotImport(true)
               }}
-              className="btn-secondary btn-sm hidden sm:inline-flex"
+              className="btn-secondary btn-sm"
               disabled={lists.length === 0}
             >
               <ImagePlus size={16} /> From Screenshot
@@ -753,9 +754,24 @@ export function TodosPage() {
             ) : (
               <p className="text-xs text-text-subtle">Pick a list · Sort inside the menu to reorder</p>
             )}
-            <button type="button" className="btn-ghost btn-sm text-xs hidden sm:inline-flex" onClick={() => void enableDesktopReminders()}>
-              Enable desktop reminders
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className={`btn-sm ${selectMode ? 'btn-primary' : 'btn-ghost'} text-xs`}
+                aria-pressed={selectMode}
+                onClick={() => {
+                  setSelectMode((v) => {
+                    if (v) setSelectedTodos(new Set())
+                    return !v
+                  })
+                }}
+              >
+                {selectMode ? 'Done' : 'Select'}
+              </button>
+              <button type="button" className="btn-ghost btn-sm text-xs hidden sm:inline-flex" onClick={() => void enableDesktopReminders()}>
+                Enable desktop reminders
+              </button>
+            </div>
           </div>
 
           <TodoListPicker
@@ -930,7 +946,7 @@ export function TodosPage() {
             )}
           </CollapsibleFilters>
 
-          {selectedTodos.size > 0 && (
+          {selectMode && selectedTodos.size > 0 && (
             <div className="flex flex-wrap gap-2 items-center p-3 mb-4 bg-accent/10 rounded-lg border border-accent/20">
               <span className="text-sm font-semibold">{selectedTodos.size} selected</span>
               <button
@@ -938,7 +954,7 @@ export function TodosPage() {
                 onClick={handleBulkComplete}
                 className="btn-sm bg-green-500/20 text-green-500 hover:bg-green-500/30"
               >
-                Complete All
+                Complete
               </button>
               <button
                 type="button"
@@ -968,7 +984,7 @@ export function TodosPage() {
                   disabled={bulkMoveListId === ''}
                   className="btn-sm btn-primary"
                 >
-                  Move
+                  Move list
                 </button>
               </div>
               <button
@@ -976,14 +992,14 @@ export function TodosPage() {
                 onClick={handleBulkDelete}
                 className="btn-sm bg-red-500/20 text-red-500 hover:bg-red-500/30"
               >
-                Delete All
+                Delete
               </button>
               <button
                 type="button"
                 onClick={() => setSelectedTodos(new Set())}
                 className="btn-ghost btn-sm ml-auto"
               >
-                Clear Selection
+                Clear
               </button>
             </div>
           )}
@@ -1025,6 +1041,7 @@ export function TodosPage() {
                         orderNumber={orderNumbers.get(item.id)}
                         listName={!selectedListId ? lists.find((l) => l.id === item.listId)?.name : undefined}
                         selected={selectedTodos.has(item.id)}
+                        selectMode={selectMode}
                         focused={focusTodoId === item.id}
                         justSynced={justSyncedTodos.has(item.id)}
                         showReorderHandle
@@ -1050,6 +1067,7 @@ export function TodosPage() {
                         orderNumber={orderNumbers.get(item.id)}
                         listName={!selectedListId ? lists.find((l) => l.id === item.listId)?.name : undefined}
                         selected={selectedTodos.has(item.id)}
+                        selectMode={selectMode}
                         focused={focusTodoId === item.id}
                         justSynced={justSyncedTodos.has(item.id)}
                         onToggleSelect={handleToggleSelect}
@@ -1087,6 +1105,7 @@ export function TodosPage() {
                           orderNumber={orderNumbers.get(item.id)}
                           listName={!selectedListId ? lists.find((l) => l.id === item.listId)?.name : undefined}
                           selected={selectedTodos.has(item.id)}
+                          selectMode={selectMode}
                           focused={focusTodoId === item.id}
                           justSynced={justSyncedTodos.has(item.id)}
                           onToggleSelect={handleToggleSelect}
@@ -1104,6 +1123,16 @@ export function TodosPage() {
           )}
         </>
       )}
+
+      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary todo actions">
+        <button type="button" onClick={handleCreateItem} className="btn-primary btn-sm" disabled={lists.length === 0}>
+          <Plus size={16} /> New Task
+        </button>
+        <button type="button" onClick={openCreateList} className="btn-secondary btn-sm">
+          <Plus size={16} /> New List
+        </button>
+      </div>
+      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }
@@ -1113,6 +1142,7 @@ function TodoItemCard({
   orderNumber,
   listName,
   selected,
+  selectMode = false,
   focused = false,
   justSynced = false,
   showReorderHandle = false,
@@ -1126,6 +1156,7 @@ function TodoItemCard({
   orderNumber?: number
   listName?: string
   selected: boolean
+  selectMode?: boolean
   focused?: boolean
   justSynced?: boolean
   showReorderHandle?: boolean
@@ -1284,16 +1315,20 @@ function TodoItemCard({
       </div>
 
       <div className="sm:hidden mt-3 flex items-center justify-between gap-2 border-t border-border/70 pt-2.5">
-        <label className="inline-flex items-center gap-2 text-xs text-text-muted min-h-10">
-          <input
-            type="checkbox"
-            checked={selected}
-            onChange={() => onToggleSelect(item.id)}
-            className="w-4 h-4"
-            aria-label={`Select ${item.title}`}
-          />
-          Select
-        </label>
+        {selectMode ? (
+          <label className="inline-flex items-center gap-2 text-xs text-text-muted min-h-10">
+            <input
+              type="checkbox"
+              checked={selected}
+              onChange={() => onToggleSelect(item.id)}
+              className="w-4 h-4"
+              aria-label={`Select ${item.title}`}
+            />
+            Select
+          </label>
+        ) : (
+          <span />
+        )}
         <div className="flex items-center gap-1">
           <button
             type="button"
@@ -1324,18 +1359,20 @@ function TodoItemCard({
         </div>
       </div>
 
-      <div className="hidden sm:flex mt-2.5 items-center gap-2">
-        <label className="inline-flex items-center gap-2 text-xs text-text-subtle">
-          <input
-            type="checkbox"
-            checked={selected}
-            onChange={() => onToggleSelect(item.id)}
-            className="w-3.5 h-3.5"
-            aria-label={`Select ${item.title}`}
-          />
-          Select for bulk actions
-        </label>
-      </div>
+      {selectMode ? (
+        <div className="hidden sm:flex mt-2.5 items-center gap-2">
+          <label className="inline-flex items-center gap-2 text-xs text-text-subtle">
+            <input
+              type="checkbox"
+              checked={selected}
+              onChange={() => onToggleSelect(item.id)}
+              className="w-3.5 h-3.5"
+              aria-label={`Select ${item.title}`}
+            />
+            Select for bulk actions
+          </label>
+        </div>
+      ) : null}
     </article>
   )
 }

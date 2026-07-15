@@ -428,6 +428,8 @@ export function CryptoPage() {
               holdingId: tradeFor.id,
             }),
           )
+          showToast({ type: 'success', title: 'Trade saved', message: tradeFor.symbol })
+          setTradeFor(null)
         }}
       />
 

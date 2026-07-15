@@ -16,6 +16,7 @@ import {
   AlertCircle,
   Archive,
   GripVertical,
+  Columns3,
 } from 'lucide-react'
 import { PageHeader } from '../components/ui/PageHeader'
 import { EmptyState } from '../components/ui/EmptyState'
@@ -67,6 +68,7 @@ export function JobsPage() {
   const [selectedJobs, setSelectedJobs] = useState<Set<number>>(new Set())
   const [bulkStatus, setBulkStatus] = useState<JobStatus | ''>('')
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null)
+  const [columnPickerOpen, setColumnPickerOpen] = useState(false)
   const [confirmState, setConfirmState] = useState<{
     title: string
     body: string
@@ -344,6 +346,12 @@ export function JobsPage() {
     })
   }
 
+  const jumpToKanbanColumn = (title: string) => {
+    const el = document.querySelector<HTMLElement>(`[data-kanban-column="${title}"]`)
+    el?.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' })
+    setColumnPickerOpen(false)
+  }
+
   if (applications.length === 0) {
     return (
       <div>
@@ -397,7 +405,7 @@ export function JobsPage() {
         title="Job Applications"
         description={`${stats.total} applications · ${stats.interviewing} interviewing · ${stats.offers} offers`}
         action={
-          <div className="flex flex-wrap gap-2">
+          <div className="hidden sm:flex flex-wrap gap-2">
             <button type="button" onClick={handleImportFile} className="btn-secondary btn-sm">
               <Upload size={16} /> Import
             </button>
@@ -451,6 +459,16 @@ export function JobsPage() {
         >
           Analytics
         </button>
+        {viewMode === 'kanban' ? (
+          <button
+            type="button"
+            onClick={() => setColumnPickerOpen(true)}
+            className="btn-ghost btn-sm inline-flex items-center gap-1.5 ml-auto"
+            aria-haspopup="dialog"
+          >
+            <Columns3 size={14} /> Columns
+          </button>
+        ) : null}
       </div>
 
       <CollapsibleFilters
@@ -684,6 +702,45 @@ export function JobsPage() {
           </button>
         </div>
       </Modal>
+
+      <Modal
+        open={columnPickerOpen}
+        title="Jump to column"
+        onClose={() => setColumnPickerOpen(false)}
+      >
+        <p className="text-sm text-text-muted font-light mb-4">
+          Pick a board column to scroll into view.
+        </p>
+        <div className="flex flex-col gap-2">
+          {kanbanData.map((column) => (
+            <button
+              key={column.title}
+              type="button"
+              className="btn-secondary w-full justify-between"
+              onClick={() => jumpToKanbanColumn(column.title)}
+            >
+              <span>{column.title}</span>
+              <span className="text-xs text-text-subtle tabular-nums">{column.applications.length}</span>
+            </button>
+          ))}
+        </div>
+      </Modal>
+
+      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary job actions">
+        <button type="button" onClick={handleCreateApplication} className="btn-primary btn-sm">
+          <Plus size={16} /> Add Application
+        </button>
+        {viewMode === 'kanban' ? (
+          <button type="button" onClick={() => setColumnPickerOpen(true)} className="btn-secondary btn-sm">
+            <Columns3 size={16} /> Columns
+          </button>
+        ) : (
+          <button type="button" onClick={handleImportFile} className="btn-secondary btn-sm">
+            <Upload size={16} /> Import
+          </button>
+        )}
+      </div>
+      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }
