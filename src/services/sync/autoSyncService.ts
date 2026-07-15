@@ -2,6 +2,11 @@
  * Automatic multi-device sync over Cloudflare Worker + KV.
  * Pulls when the app resumes / comes online; pushes shortly after local edits.
  * Requires SyncConfig.enabled + remoteUrl + passphrase (session or remembered).
+ *
+ * Timing (not realtime WebSocket sync):
+ * - Push ~8s after the last local edit (debounced)
+ * - Pull on open / focus / online / pull-to-refresh / Sync now / ~60s while open
+ * - Edit/hide cycles pull-before-push when another device wrote the cloud envelope
  */
 
 import { enqueueOfflineJob } from '../offlineQueue'
@@ -22,7 +27,8 @@ import { getSessionSyncPassphrase, hydrateSessionSyncPassphrase } from './sessio
 
 const PUSH_DEBOUNCE_MS = 8_000
 const PULL_MIN_INTERVAL_MS = 12_000
-const PERIODIC_MS = 5 * 60_000
+/** Background pull while the tab/PWA stays open (was 5 min — too slow for multi-device). */
+const PERIODIC_MS = 60_000
 
 export type AutoSyncState =
   | 'idle'
@@ -43,6 +49,8 @@ export interface AutoSyncStatus {
 type CycleReason = 'start' | 'focus' | 'online' | 'interval' | 'edit' | 'manual' | 'hide'
 
 let dirty = false
+/** Local edits that arrived while a remote merge was applying. */
+let dirtyWhileApplying = false
 let busy = false
 let applyingRemote = false
 let started = false
@@ -95,6 +103,10 @@ export function beginApplyingRemote(): void {
 
 export function endApplyingRemote(): void {
   applyingRemote = false
+  if (dirtyWhileApplying) {
+    dirtyWhileApplying = false
+    markLocalDataChanged()
+  }
 }
 
 export function isApplyingRemote(): boolean {
@@ -102,7 +114,10 @@ export function isApplyingRemote(): boolean {
 }
 
 export function markLocalDataChanged(): void {
-  if (applyingRemote) return
+  if (applyingRemote) {
+    dirtyWhileApplying = true
+    return
+  }
   const cfg = loadSyncConfig()
   if (!cfg.enabled || !cfg.remoteUrl) return
   dirty = true
@@ -129,6 +144,28 @@ function updateCfg(patch: Partial<SyncConfig>): SyncConfig {
   const next = { ...loadSyncConfig(), ...patch }
   saveSyncConfig(next)
   return next
+}
+
+/**
+ * Before pushing local edits, pull if another device wrote a newer envelope.
+ * Prevents phone Markets noise / stale local from overwriting a fresh web todo.
+ */
+async function pullBeforePushIfNeeded(cfg: SyncConfig, pass: string): Promise<void> {
+  let meta: Awaited<ReturnType<typeof fetchRemoteMeta>>
+  try {
+    meta = await fetchRemoteMeta(cfg.remoteUrl)
+  } catch {
+    return
+  }
+  if (!meta) return
+
+  const localDevice = getLocalDeviceId()
+  const fromOther = meta.deviceId !== localDevice
+  const seenThis = cfg.lastRemoteExportedAt === meta.exportedAt
+  if (!fromOther || seenThis) return
+
+  // Force past the normal pull throttle — we are about to overwrite the store.
+  await doPull(cfg, pass, 'manual')
 }
 
 async function doPull(cfg: SyncConfig, pass: string, reason: CycleReason): Promise<boolean> {
@@ -296,12 +333,17 @@ export async function runAutoSyncCycle(reason: CycleReason = 'manual'): Promise<
     return
   }
 
-  if (busy) return
+  if (busy) {
+    // Do not drop scheduled work — re-arm push if still dirty
+    if (dirty) schedulePush()
+    return
+  }
   busy = true
   try {
-    // Edits / tab-hide: push only (pull on resume/start/online/interval)
     if (reason === 'edit' || reason === 'hide') {
-      if (dirty) await doPush(cfg, pass)
+      // Pull-before-push when another device wrote cloud — then upload our merge
+      await pullBeforePushIfNeeded(cfg, pass)
+      if (dirty) await doPush(loadSyncConfig(), pass)
     } else {
       await doPull(cfg, pass, reason)
       if (dirty) await doPush(loadSyncConfig(), pass)
@@ -311,6 +353,8 @@ export async function runAutoSyncCycle(reason: CycleReason = 'manual'): Promise<
     }
   } finally {
     busy = false
+    // Edits during this cycle (or a dropped busy return) still need a push
+    if (dirty && !pushTimer) schedulePush()
   }
 }
 

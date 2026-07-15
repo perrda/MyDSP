@@ -4,6 +4,7 @@ import { normalizePortfolio, toStorageShape } from '../../domain/normalize'
 import type { PortfolioData, PortfolioMeta } from '../../domain/types'
 import { captureFullWorkspace } from '../../storage/backupStore'
 import {
+  flushSave,
   getActivePortfolioId,
   listPortfolios,
   loadPortfolio,
@@ -265,6 +266,8 @@ export async function buildEnvelope(
   const portfolioData: PortfolioData[] = []
 
   for (const p of portfolios) {
+    // Debounced savePortfolio is 300ms — flush so the envelope is not stale
+    flushSave(p.id)
     const data = loadPortfolio(p.id)
     portfolioData.push(data)
     const shape = toStorageShape(data)

@@ -78,6 +78,27 @@ describe('Portfolio persistence — jobs & todos', () => {
     expect(merged.todoLists).toHaveLength(2)
   })
 
+  it('collapses same-name todo lists from two devices onto one list', () => {
+    const local = createEmptyPortfolio()
+    const remote = createEmptyPortfolio()
+    const phoneList = createTodoList({ id: 200, name: 'Uncle John' })
+    const webList = createTodoList({ id: 100, name: 'Uncle John' })
+    const phoneItem = createTodoItem({ id: 1, listId: 200, title: 'Older task' })
+    const webItem = createTodoItem({ id: 2, listId: 100, title: 'Latest task' })
+
+    local.todoLists = [phoneList]
+    local.todoItems = [phoneItem]
+    remote.todoLists = [webList]
+    remote.todoItems = [webItem]
+
+    const merged = mergePortfolio(local, remote)
+    expect(merged.todoLists).toHaveLength(1)
+    expect(merged.todoLists[0].id).toBe(200)
+    expect(merged.todoItems).toHaveLength(2)
+    expect(merged.todoItems.every((t) => t.listId === 200)).toBe(true)
+    expect(merged.todoItems.map((t) => t.title).sort()).toEqual(['Latest task', 'Older task'])
+  })
+
   it('persists linkedJobId and job document blob metadata', () => {
     const base = createEmptyPortfolio()
     const list = createTodoList({ name: 'Career' })

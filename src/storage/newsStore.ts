@@ -12,11 +12,7 @@ import {
 const KEY = 'mydsp_news_v1'
 
 function notifyChanged(): void {
-  void import('../services/sync/autoSyncService')
-    .then((m) => m.markLocalDataChanged())
-    .catch(() => {
-      /* sync may be unavailable */
-    })
+  // Workspace-only store — do not dirty portfolio cloud sync (see marketsStore).
   try {
     window.dispatchEvent(new CustomEvent('mydsp-news-changed'))
   } catch {

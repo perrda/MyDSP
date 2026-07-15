@@ -18,11 +18,9 @@ import { quotesMapToRecord, quotesRecordToMap } from '../domain/marketQuotesCach
 const KEY = 'mydsp_markets_v1'
 
 function notifyChanged(): void {
-  void import('../services/sync/autoSyncService')
-    .then((m) => m.markLocalDataChanged())
-    .catch(() => {
-      /* sync may be unavailable */
-    })
+  // Markets / News / YouTube live in workspace stores that are NOT applied on
+  // cloud pull today. Marking portfolio sync dirty here caused phones to push
+  // stale portfolios and overwrite todos/jobs from other devices.
   try {
     window.dispatchEvent(new CustomEvent('mydsp-markets-changed'))
   } catch {

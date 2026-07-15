@@ -1,6 +1,7 @@
 /** Merge helpers for encrypted sync pull. */
 
 import type { HistoryPoint, PortfolioData } from '../../domain/types'
+import type { TodoItem, TodoList } from '../../domain/todo-types'
 import { HISTORY_RETENTION, normalizeHistoryDate } from '../../domain/history'
 
 function pickById<T extends { id: number }>(a: T[], b: T[]): T[] {
@@ -10,6 +11,45 @@ function pickById<T extends { id: number }>(a: T[], b: T[]): T[] {
     if (!map.has(x.id)) map.set(x.id, x)
   }
   return [...map.values()]
+}
+
+function normListName(name: string): string {
+  return name.trim().toLowerCase().replace(/\s+/g, ' ')
+}
+
+/**
+ * Union todo lists/items by id, collapsing same-name lists created independently
+ * on two devices (different ids) so items land on one list.
+ */
+export function mergeTodoListsAndItems(
+  localLists: TodoList[],
+  remoteLists: TodoList[],
+  localItems: TodoItem[],
+  remoteItems: TodoItem[],
+): { todoLists: TodoList[]; todoItems: TodoItem[] } {
+  const lists: TodoList[] = [...localLists]
+  const nameToId = new Map<string, number>()
+  for (const l of lists) nameToId.set(normListName(l.name), l.id)
+
+  const idRemap = new Map<number, number>()
+  for (const rl of remoteLists) {
+    if (lists.some((l) => l.id === rl.id)) continue
+    const key = normListName(rl.name)
+    const existing = nameToId.get(key)
+    if (existing != null) {
+      idRemap.set(rl.id, existing)
+    } else {
+      lists.push(rl)
+      nameToId.set(key, rl.id)
+    }
+  }
+
+  const items = pickById(localItems, remoteItems).map((item) => {
+    const mapped = idRemap.get(item.listId)
+    return mapped != null && mapped !== item.listId ? { ...item, listId: mapped } : item
+  })
+
+  return { todoLists: lists, todoItems: items }
 }
 
 function mergeHistory(a: HistoryPoint[], b: HistoryPoint[]): HistoryPoint[] {
@@ -31,6 +71,12 @@ function mergeHistory(a: HistoryPoint[], b: HistoryPoint[]): HistoryPoint[] {
 }
 
 export function mergePortfolio(local: PortfolioData, remote: PortfolioData): PortfolioData {
+  const todos = mergeTodoListsAndItems(
+    local.todoLists ?? [],
+    remote.todoLists ?? [],
+    local.todoItems ?? [],
+    remote.todoItems ?? [],
+  )
   return {
     ...local,
     crypto: pickById(local.crypto, remote.crypto),
@@ -70,8 +116,8 @@ export function mergePortfolio(local: PortfolioData, remote: PortfolioData): Por
     },
     budgetGoals: { ...local.budgetGoals, ...remote.budgetGoals },
     paidOff: [...local.paidOff, ...remote.paidOff.filter((p) => !local.paidOff.some((x) => x.name === p.name))],
-    todoLists: pickById(local.todoLists ?? [], remote.todoLists ?? []),
-    todoItems: pickById(local.todoItems ?? [], remote.todoItems ?? []),
+    todoLists: todos.todoLists,
+    todoItems: todos.todoItems,
     jobApplications: pickById(local.jobApplications ?? [], remote.jobApplications ?? []),
     // Prefer remote scalars when present so FIRE / income edits sync across devices
     fireInputs: remote.fireInputs ?? local.fireInputs,

@@ -1,14 +1,15 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.15**
+**Current version: 1.2.16**
 
-## Completed (through v1.2.15)
+## Completed (through v1.2.16)
 
 - Markets / News / YouTube, Favourites nav, PIN/Face ID iOS polish
 - Full section QA, empty states, overflow menus, live notification bell
 - Settings Alerts (desktop banners + quiet hours + optional critical beep)
 - Per-portfolio display currency + tax residency (Tax page + Settings)
 - Encrypted sync + conflict handoff to Settings review UI
+- Sync reliability: pull-before-push, todo list name merge, no Markets clobber
 - Full backups, Compare, Jobs/Todos (board columns polished)
 - Markets last-good quote cache + 7-day sparkline fixes
 - Header Search icon redesign
@@ -24,7 +25,7 @@
 
 ## Next (manual / ongoing)
 
-1. Cross-device sync smoke on phone + Mac after every deploy
+1. Cross-device sync smoke on phone + Mac after every deploy (todos + portfolios)
 2. Tune broker aliases from your real IBKR/T212/Coinbase exports
 3. Remittance-basis notes for non-dom packs
 
@@ -32,6 +33,7 @@
 
 - Open banking (PSD2) — informational only in Settings today  
 - OAuth identity — planned; passphrase sync remains primary  
+- Live/WebSocket sync (current design is encrypted batch sync)  
 - Achievement confetti  
 - Full wash-sale / Form 8949 generation  
 - Todo `recurring` flag — use Recurring transactions / Insights instead  
