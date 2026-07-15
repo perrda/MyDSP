@@ -17,7 +17,7 @@ interface ToolbarControlsProps {
 /**
  * Workspace controls: portfolio + currency always visible.
  * Refresh stays one tap away on all breakpoints; Privacy / Theme / Search
- * collapse into More (⋯) on phone/tablet.
+ * collapse into More (⋯) on phone/tablet. Search is always an icon (no label).
  */
 export function ToolbarControls({
   portfolioSelect,
