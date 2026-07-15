@@ -16,12 +16,14 @@ import type { NewsArticle, NewsTag } from '../domain/news'
 import { fetchTaggedNews, fetchTopFinancialNews } from '../services/newsFeeds'
 import {
   addNewsTag,
+  getNewsSeenAt,
   listNewsTags,
   loadNewsState,
   removeNewsTag,
   reorderNewsTags,
   setNewsCollapsed,
   setNewsLastRefresh,
+  setNewsSeenAt,
   updateNewsTag,
 } from '../storage/newsStore'
 import { formatDateTime } from '../utils/format'
@@ -37,24 +39,7 @@ function formatRelative(iso: string): string {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
 }
 
-const NEWS_SEEN_KEY = 'mydsp_news_seen_at'
 const NEWS_PAGE = 8
-
-function loadNewsSeenAt(): string {
-  try {
-    return localStorage.getItem(NEWS_SEEN_KEY) || ''
-  } catch {
-    return ''
-  }
-}
-
-function saveNewsSeenAt(iso: string): void {
-  try {
-    localStorage.setItem(NEWS_SEEN_KEY, iso)
-  } catch {
-    /* ignore */
-  }
-}
 
 function ArticleRow({ article, unread }: { article: NewsArticle; unread?: boolean }) {
   return (
@@ -107,7 +92,7 @@ export function NewsPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [filterTag, setFilterTag] = useState<string | 'all'>('all')
   const [sorting, setSorting] = useState(false)
-  const [seenAt, setSeenAt] = useState(loadNewsSeenAt)
+  const [seenAt, setSeenAt] = useState(getNewsSeenAt)
   const [topVisible, setTopVisible] = useState(NEWS_PAGE)
   const [taggedVisible, setTaggedVisible] = useState(NEWS_PAGE)
   const inFlight = useRef(false)
@@ -119,6 +104,7 @@ export function NewsPage() {
   const reloadList = useCallback(() => {
     setTags(listNewsTags())
     setCollapsed(loadNewsState().collapsed)
+    setSeenAt(getNewsSeenAt())
   }, [])
 
   const refresh = useCallback(async () => {
@@ -184,7 +170,7 @@ export function NewsPage() {
 
   const markNewsRead = () => {
     const now = new Date().toISOString()
-    saveNewsSeenAt(now)
+    setNewsSeenAt(now)
     setSeenAt(now)
   }
 
@@ -259,7 +245,7 @@ export function NewsPage() {
         ) : null}
         {unreadCount > 0 ? (
           <button type="button" className="btn-ghost btn-sm text-xs min-h-9" onClick={markNewsRead}>
-            Mark read
+            Mark all read
           </button>
         ) : null}
       </p>

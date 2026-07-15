@@ -86,6 +86,11 @@ import {
   type NotificationSettings,
 } from '../utils/notifications'
 import {
+  isInQuietWindow,
+  nowPct,
+  quietSegments,
+} from '../domain/quietHoursTimeline'
+import {
   clearServiceWorkerCaches,
   createFullBackup,
   deleteFullBackup,
@@ -2159,6 +2164,49 @@ export function SettingsPage() {
                   onBlur={() => flash('Quiet hours saved.')}
                 />
               </label>
+            </div>
+            <div
+              className="quiet-hours-timeline"
+              aria-label="Quiet hours preview"
+            >
+              {(() => {
+                const start = notifSettings.quietHoursStart ?? '22:00'
+                const end = notifSettings.quietHoursEnd ?? '07:00'
+                const segs = quietSegments(start, end)
+                const marker = nowPct()
+                const quietNow = isInQuietWindow(start, end)
+                return (
+                  <>
+                    <div className="relative h-3 rounded-sm bg-surface-hover border border-border overflow-hidden">
+                      {segs.map((seg, i) => (
+                        <div
+                          key={i}
+                          className="absolute inset-y-0 bg-accent/35"
+                          style={{
+                            left: `${seg.startPct}%`,
+                            width: `${Math.max(0, seg.endPct - seg.startPct)}%`,
+                          }}
+                        />
+                      ))}
+                      <div
+                        className="absolute top-0 bottom-0 w-0.5 bg-text z-10"
+                        style={{ left: `calc(${marker}% - 1px)` }}
+                        title="Now"
+                      />
+                    </div>
+                    <div className="flex justify-between text-[10px] text-text-subtle mt-1 tabular-nums">
+                      <span>00:00</span>
+                      <span>12:00</span>
+                      <span>24:00</span>
+                    </div>
+                    <p className="text-xs text-text-muted mt-1.5 font-light">
+                      {quietNow
+                        ? `Quiet now · banners off until ${end}`
+                        : `Active now · quiet ${start}–${end}`}
+                    </p>
+                  </>
+                )
+              })()}
             </div>
             <p className="text-xs text-text-subtle">
               Desktop banners are suppressed between these times (overnight ranges supported).

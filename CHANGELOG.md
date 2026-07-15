@@ -1,5 +1,19 @@
 # MyDSP Changelog
 
+## [1.2.38] - 2026-07-15
+
+### Improved — Today / productivity (next 25 · 16–20)
+16. Today Focus card: **Mark done** + **Snooze** without leaving Overview (`setData` on `todoItems`)  
+17. Settings → Alerts: quiet-hours **preview timeline** (window vs now)  
+18. Spending: one-line **this week vs last** delta under the month picker  
+19. News / YouTube: **Mark all read**; `seenAt` persisted in news/youtube stores (syncs via workspace extras)  
+20. Today: goals **progress ring** when a deadline is within 30 days  
+
+### Version
+- 1.2.37 → **1.2.38**
+
+---
+
 ## [1.2.37] - 2026-07-15
 
 ### Improved — Mobile interaction (next 25 · 11–15)

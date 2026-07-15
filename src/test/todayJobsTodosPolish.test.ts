@@ -69,11 +69,11 @@ describe('Today / Jobs / Todos polish batch (31–40)', () => {
     const news = readFileSync(resolve(__dirname, '../pages/NewsPage.tsx'), 'utf8')
     expect(news).toMatch(/news-unread-chip/)
     expect(news).toMatch(/Load more/)
-    expect(news).toMatch(/mydsp_news_seen_at/)
+    expect(news).toMatch(/setNewsSeenAt|getNewsSeenAt/)
     const yt = readFileSync(resolve(__dirname, '../pages/YouTubePage.tsx'), 'utf8')
     expect(yt).toMatch(/youtube-unread-chip/)
     expect(yt).toMatch(/Load more/)
-    expect(yt).toMatch(/mydsp_youtube_seen_at/)
+    expect(yt).toMatch(/setYoutubeSeenAt|getYoutubeSeenAt/)
   })
 
   it('40: Trips and Goals use denser cards in iPad landscape', () => {

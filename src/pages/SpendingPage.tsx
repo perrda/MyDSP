@@ -8,6 +8,7 @@ import { CollapsibleFilters } from '../components/ui/CollapsibleFilters'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
 import { usePortfolio } from '../context/PortfolioContext'
 import { formatMonthLabel, monthKey, parseMonthParam, shiftMonth } from '../domain/monthUtils'
+import { formatWeekDeltaLine, weekSpendDelta } from '../domain/spendingWeekDelta'
 import type { SpendingEntry } from '../domain/types'
 import { formatDate, formatGBPPrecise, privacyClass } from '../utils/format'
 
@@ -121,6 +122,11 @@ export function SpendingPage() {
         return matchMonth && matchCat && matchQ
       })
   }, [data.spending, query, category, ym])
+
+  const weekDeltaLine = useMemo(() => {
+    const { thisWeek, lastWeek } = weekSpendDelta(data.spending)
+    return formatWeekDeltaLine(thisWeek, lastWeek, (n) => formatGBPPrecise(n))
+  }, [data.spending])
 
   const addCustomCategory = () => {
     const name = customDraft.trim().toLowerCase()
@@ -267,6 +273,12 @@ export function SpendingPage() {
           </div>
         }
       />
+
+      <p
+        className={`spending-week-delta text-xs text-text-muted font-light mb-3 tabular-nums ${privacyClass(privacy)}`}
+      >
+        {weekDeltaLine}
+      </p>
 
       <SpendingSeriesChart spending={data.spending} privacy={privacy} />
 

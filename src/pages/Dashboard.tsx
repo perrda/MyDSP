@@ -13,6 +13,7 @@ import { buildAlerts } from '../domain/alerts'
 import { worstBudgetOffenders } from '../domain/budgetChart'
 import { appendManualSnapshot } from '../domain/history'
 import { isDueToday, isOverdue } from '../domain/todos'
+import { snoozeDueDateOneDay } from '../domain/todoSnooze'
 import {
   getAutoSyncStatus,
   subscribeAutoSync,
@@ -134,6 +135,57 @@ export function Dashboard() {
     setData((prev) => appendManualSnapshot(prev))
   }
 
+  const markFocusDone = () => {
+    if (!focusTodo) return
+    const now = new Date().toISOString()
+    const id = focusTodo.id
+    setData((prev) => ({
+      ...prev,
+      todoItems: (prev.todoItems ?? []).map((i) =>
+        i.id === id
+          ? { ...i, status: 'done' as const, completedAt: now, updatedAt: now }
+          : i,
+      ),
+    }))
+  }
+
+  const snoozeFocus = () => {
+    if (!focusTodo) return
+    const dueDate = snoozeDueDateOneDay(focusTodo.dueDate)
+    const now = new Date().toISOString()
+    const id = focusTodo.id
+    setData((prev) => ({
+      ...prev,
+      todoItems: (prev.todoItems ?? []).map((i) =>
+        i.id === id ? { ...i, dueDate, updatedAt: now } : i,
+      ),
+    }))
+  }
+
+  /** Soonest active goal with deadline within 30 days (inclusive). */
+  const soonGoal = useMemo(() => {
+    const now = new Date()
+    now.setHours(0, 0, 0, 0)
+    const horizon = new Date(now)
+    horizon.setDate(horizon.getDate() + 30)
+    let best: (typeof data.goals)[number] | null = null
+    let bestDays = Infinity
+    for (const g of data.goals ?? []) {
+      if (!g.deadline) continue
+      const dl = new Date(`${g.deadline.slice(0, 10)}T00:00:00`)
+      if (!Number.isFinite(dl.getTime())) continue
+      if (dl < now || dl > horizon) continue
+      const days = Math.ceil((dl.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+      if (days < bestDays) {
+        bestDays = days
+        best = g
+      }
+    }
+    return best
+  }, [data.goals])
+
+  const soonGoalProgress = soonGoal ? goalProgress(soonGoal) : 0
+
   const syncLine = !syncEnabled
     ? 'Cloud sync off — enable in Settings'
     : syncStatus.state === 'pulling' || syncStatus.state === 'pushing'
@@ -205,22 +257,40 @@ export function Dashboard() {
           )}
         </div>
         {focusTodo ? (
-          <Link
-            to={`/todos?focus=${focusTodo.id}`}
-            className="block group"
-          >
-            <p className="text-[11px] uppercase tracking-wider text-text-subtle mb-1">
-              {isOverdue(focusTodo) ? 'Overdue' : isDueToday(focusTodo) ? 'Due today' : 'Next task'}
-            </p>
-            <p className="text-lg md:text-xl font-bold tracking-tight text-text group-hover:text-accent line-clamp-2">
-              {focusTodo.title}
-            </p>
-            {todayTodos.length > 1 ? (
-              <p className="text-xs text-text-muted mt-2 font-light">
-                +{todayTodos.length - 1} more due today
+          <div>
+            <Link
+              to={`/todos?focus=${focusTodo.id}`}
+              className="block group"
+            >
+              <p className="text-[11px] uppercase tracking-wider text-text-subtle mb-1">
+                {isOverdue(focusTodo) ? 'Overdue' : isDueToday(focusTodo) ? 'Due today' : 'Next task'}
               </p>
-            ) : null}
-          </Link>
+              <p className="text-lg md:text-xl font-bold tracking-tight text-text group-hover:text-accent line-clamp-2">
+                {focusTodo.title}
+              </p>
+              {todayTodos.length > 1 ? (
+                <p className="text-xs text-text-muted mt-2 font-light">
+                  +{todayTodos.length - 1} more due today
+                </p>
+              ) : null}
+            </Link>
+            <div className="today-focus-actions flex flex-wrap gap-2 mt-3">
+              <button
+                type="button"
+                className="btn-primary btn-sm"
+                onClick={markFocusDone}
+              >
+                Mark done
+              </button>
+              <button
+                type="button"
+                className="btn-secondary btn-sm"
+                onClick={snoozeFocus}
+              >
+                Snooze
+              </button>
+            </div>
+          </div>
         ) : topMover ? (
           <Link
             to={`/markets?symbol=${encodeURIComponent(topMover.symbol)}`}
@@ -239,6 +309,54 @@ export function Dashboard() {
           <p className="text-sm text-text-muted font-light">Clear day — nothing due, no movers yet.</p>
         )}
       </div>
+
+      {soonGoal ? (
+        <Link
+          to="/goals"
+          className="today-goal-ring surface p-4 md:p-5 mb-3 rounded-xl md:rounded-none shadow-sm md:shadow-none flex items-center gap-4 group"
+        >
+          <div
+            className="relative shrink-0 w-14 h-14"
+            role="img"
+            aria-label={`${Math.round(soonGoalProgress)}% toward ${soonGoal.name}`}
+          >
+            <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90" aria-hidden>
+              <circle
+                cx="18"
+                cy="18"
+                r="15.5"
+                fill="none"
+                stroke="var(--border)"
+                strokeWidth="3"
+              />
+              <circle
+                cx="18"
+                cy="18"
+                r="15.5"
+                fill="none"
+                stroke="var(--accent)"
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeDasharray={`${(Math.min(soonGoalProgress, 100) / 100) * 97.4} 97.4`}
+              />
+            </svg>
+            <span className="absolute inset-0 flex items-center justify-center text-[11px] font-bold tabular-nums">
+              {Math.round(soonGoalProgress)}%
+            </span>
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs uppercase tracking-wider text-text-subtle font-semibold mb-1">
+              Goal · within 30 days
+            </p>
+            <p className="text-base font-bold tracking-tight group-hover:text-accent line-clamp-1">
+              {soonGoal.name}
+            </p>
+            <p className="text-xs text-text-muted font-light mt-0.5">
+              Due {formatDate(soonGoal.deadline)}
+            </p>
+          </div>
+        </Link>
+      ) : null}
 
       <div className="surface p-4 md:p-5 mb-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
         <div className="flex items-center justify-between mb-3">

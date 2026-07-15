@@ -10,6 +10,8 @@ import {
 } from '../domain/news'
 
 const KEY = 'mydsp_news_v1'
+/** Legacy page-local key — migrated into NewsState.seenAt on first load. */
+const LEGACY_SEEN_KEY = 'mydsp_news_seen_at'
 
 function notifyChanged(opts?: { fromSync?: boolean }): void {
   try {
@@ -49,10 +51,23 @@ function normalizeTag(t: NewsTag, i: number): NewsTag {
   }
 }
 
+function migrateLegacySeenAt(state: NewsState): NewsState {
+  if (state.seenAt) return state
+  try {
+    const legacy = localStorage.getItem(LEGACY_SEEN_KEY)
+    if (legacy) {
+      return { ...state, seenAt: legacy }
+    }
+  } catch {
+    /* ignore */
+  }
+  return state
+}
+
 export function loadNewsState(): NewsState {
   const existing = readRaw()
   if (existing) {
-    return {
+    const normalized: NewsState = migrateLegacySeenAt({
       ...existing,
       version: 1,
       collapsed: {
@@ -60,9 +75,14 @@ export function loadNewsState(): NewsState {
         tagged: Boolean(existing.collapsed?.tagged),
       },
       tags: existing.tags.map(normalizeTag),
+      seenAt: typeof existing.seenAt === 'string' ? existing.seenAt : undefined,
+    })
+    if (normalized.seenAt && !existing.seenAt) {
+      writeState(normalized, { silent: true })
     }
+    return normalized
   }
-  const seeded = createEmptyNewsState()
+  const seeded = migrateLegacySeenAt(createEmptyNewsState())
   writeState(seeded)
   return seeded
 }
@@ -158,6 +178,21 @@ export function setNewsLastRefresh(iso: string): void {
   writeState(state, { silent: true })
 }
 
+export function getNewsSeenAt(): string {
+  return loadNewsState().seenAt ?? ''
+}
+
+export function setNewsSeenAt(iso: string): void {
+  const state = loadNewsState()
+  state.seenAt = iso
+  saveNewsState(state)
+  try {
+    localStorage.setItem(LEGACY_SEEN_KEY, iso)
+  } catch {
+    /* ignore */
+  }
+}
+
 export function exportNewsForBackup(): NewsState {
   return loadNewsState()
 }
@@ -175,6 +210,7 @@ export function importNewsFromBackup(raw: unknown): void {
         tagged: Boolean(parsed.collapsed?.tagged),
       },
       lastRefreshAt: parsed.lastRefreshAt,
+      seenAt: typeof parsed.seenAt === 'string' ? parsed.seenAt : undefined,
     },
     { fromSync: true },
   )

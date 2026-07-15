@@ -31,6 +31,8 @@ export interface NewsState {
   tags: NewsTag[]
   collapsed: NewsCollapsed
   lastRefreshAt?: string
+  /** ISO cutoff — articles newer than this count as unread (syncs via workspace extras). */
+  seenAt?: string
 }
 
 export const DEFAULT_NEWS_TAGS: Omit<NewsTag, 'id' | 'createdAt' | 'sortOrder'>[] = [

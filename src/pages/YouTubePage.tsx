@@ -16,11 +16,13 @@ import { MAX_YOUTUBE_CHANNELS, type YoutubeChannel, type YoutubeVideo } from '..
 import { fetchFavouriteVideos, resolveYoutubeChannel } from '../services/youtubeFeeds'
 import {
   addYoutubeChannel,
+  getYoutubeSeenAt,
   listYoutubeChannels,
   loadYoutubeState,
   removeYoutubeChannel,
   reorderYoutubeChannels,
   setYoutubeLastRefresh,
+  setYoutubeSeenAt,
   updateYoutubeChannel,
 } from '../storage/youtubeStore'
 import { formatDateTime } from '../utils/format'
@@ -36,24 +38,7 @@ function formatRelative(iso: string): string {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
 }
 
-const YT_SEEN_KEY = 'mydsp_youtube_seen_at'
 const YT_PAGE = 6
-
-function loadYtSeenAt(): string {
-  try {
-    return localStorage.getItem(YT_SEEN_KEY) || ''
-  } catch {
-    return ''
-  }
-}
-
-function saveYtSeenAt(iso: string): void {
-  try {
-    localStorage.setItem(YT_SEEN_KEY, iso)
-  } catch {
-    /* ignore */
-  }
-}
 
 export function YouTubePage() {
   const [channels, setChannels] = useState(() => listYoutubeChannels())
@@ -69,12 +54,13 @@ export function YouTubePage() {
   const [formError, setFormError] = useState<string | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [sorting, setSorting] = useState(false)
-  const [seenAt, setSeenAt] = useState(loadYtSeenAt)
+  const [seenAt, setSeenAt] = useState(getYoutubeSeenAt)
   const [visibleCount, setVisibleCount] = useState(YT_PAGE)
   const inFlight = useRef(false)
 
   const reloadList = useCallback(() => {
     setChannels(listYoutubeChannels())
+    setSeenAt(getYoutubeSeenAt())
   }, [])
 
   const refresh = useCallback(async () => {
@@ -126,7 +112,7 @@ export function YouTubePage() {
   const unreadCount = videos.filter((v) => !seenAt || v.publishedAt > seenAt).length
   const markYtRead = () => {
     const now = new Date().toISOString()
-    saveYtSeenAt(now)
+    setYoutubeSeenAt(now)
     setSeenAt(now)
   }
 
@@ -206,7 +192,7 @@ export function YouTubePage() {
         ) : null}
         {unreadCount > 0 ? (
           <button type="button" className="btn-ghost btn-sm text-xs min-h-9" onClick={markYtRead}>
-            Mark read
+            Mark all read
           </button>
         ) : null}
       </p>
