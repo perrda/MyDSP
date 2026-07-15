@@ -274,6 +274,18 @@ async function doPull(cfg: SyncConfig, pass: string, reason: CycleReason): Promi
       lastAt: at,
     })
     try {
+      const { appendSyncActivity } = await import('./syncActivity')
+      appendSyncActivity({
+        source: 'auto',
+        message: `Pulled and merged ${result.merged} portfolio(s)`,
+        merged: result.merged,
+        conflicts: result.conflicts.length,
+        at,
+      })
+    } catch {
+      /* ignore */
+    }
+    try {
       window.dispatchEvent(
         new CustomEvent('mydsp-sync-applied', {
           detail: { merged: result.merged, highlights },
@@ -317,6 +329,16 @@ async function doPush(cfg: SyncConfig, pass: string): Promise<void> {
       lastRemoteExportedAt: meta?.exportedAt ?? at,
     })
     emit({ state: 'idle', message: 'Synced', lastAt: at })
+    try {
+      const { appendSyncActivity } = await import('./syncActivity')
+      appendSyncActivity({
+        source: 'push',
+        message: 'Pushed local changes to cloud',
+        at,
+      })
+    } catch {
+      /* ignore */
+    }
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Push failed'
     updateCfg({ lastSyncError: msg })

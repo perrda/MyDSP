@@ -1,5 +1,5 @@
 /* MyDSP offline shell — network-first for HTML, cache-first for hashed assets + todo reminders */
-const CACHE = 'mydsp-v1.1.0'
+const CACHE = 'mydsp-v1.2.23'
 const REMINDER_DB = 'mydsp_sw_reminders'
 const REMINDER_STORE = 'schedule'
 const FIRED_STORE = 'fired'
@@ -8,9 +8,14 @@ const FIRED_STORE = 'fired'
 const reminderTimers = new Map()
 
 self.addEventListener('install', (event) => {
-  // Activate immediately so we don't keep serving a broken old shell
-  self.skipWaiting()
+  // Do NOT skipWaiting here — let the app show “New version ready” and activate on demand
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(['/favicon.svg', '/manifest.webmanifest'])))
+})
+
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting()
+  }
 })
 
 self.addEventListener('activate', (event) => {

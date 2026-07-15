@@ -13,6 +13,7 @@ import { usePortfolio } from '../context/PortfolioContext'
 import { applyTrade } from '../domain/trades'
 import { equityNeedsUsdToGbp } from '../domain/equityCurrency'
 import { equityUnitPriceGbp } from '../domain/migrateEquityGbp'
+import { applyLastSyncedQuotesToHoldings } from '../domain/lastSyncedHoldings'
 import type { EquityHolding } from '../domain/types'
 import { applySortOrder, sortBySortOrder } from '../utils/reorder'
 import {
@@ -24,6 +25,7 @@ import {
   privacyClass,
 } from '../utils/format'
 import { convertFromGbp } from '../services/fx'
+import { useToasts } from '../components/ToastProvider'
 
 function nextId(items: { id: number }[]): number {
   return items.reduce((m, i) => Math.max(m, i.id), 0) + 1
@@ -33,6 +35,7 @@ const emptyForm = { symbol: '', name: '', shares: '', avgCost: '', livePrice: ''
 
 export function EquitiesPage() {
   const { data, breakdown, privacy, setData, fxRates } = usePortfolio()
+  const { success, error: showError } = useToasts()
   const { equity } = breakdown
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<EquityHolding | null>(null)
@@ -44,6 +47,19 @@ export function EquitiesPage() {
 
   const holdings = useMemo(() => sortBySortOrder(data.equities), [data.equities])
   const displayCcy = getDisplayCurrency()
+
+  const fillFromLastSynced = () => {
+    const result = applyLastSyncedQuotesToHoldings(data, { overwrite: true })
+    if (result.equities === 0) {
+      showError('No cache hits', 'Refresh Markets first, then try again.')
+      return
+    }
+    setData(() => result.data)
+    success(
+      'Filled from last synced',
+      `${result.equities} equity price${result.equities === 1 ? '' : 's'}`,
+    )
+  }
 
   const pieSlices = useMemo(
     () =>
@@ -117,6 +133,15 @@ export function EquitiesPage() {
         }
         action={
           <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="btn-ghost btn-sm"
+              disabled={holdings.length === 0}
+              onClick={fillFromLastSynced}
+              title="Apply last-synced Markets quotes to holdings"
+            >
+              Fill last synced
+            </button>
             <button
               type="button"
               className={`btn-secondary btn-sm inline-flex items-center gap-2 ${sorting ? 'border-accent text-accent' : ''}`}

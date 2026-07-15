@@ -7,13 +7,23 @@ import {
   buildPortfolioComparison,
   comparisonTotals,
 } from '../domain/portfolioCompare'
+import { applyLastSyncedQuotesToHoldings } from '../domain/lastSyncedHoldings'
 import { formatGBP, privacyClass } from '../utils/format'
 import { AllocationRing, type SliceDatum } from '../components/charts/AllocationRing'
+import {
+  getActivePortfolioId,
+  loadPortfolio,
+  savePortfolioImmediate,
+  setActivePortfolioId,
+} from '../storage/portfolioStore'
+import { useToasts } from '../components/ToastProvider'
 
 export function ComparePage() {
   const { privacy, portfolios, activeId, switchPortfolio, reload } = usePortfolio()
+  const { success, error: showError } = useToasts()
   const [selected, setSelected] = useState<string[]>(() => portfolios.map((p) => p.id))
   const [scanToken, setScanToken] = useState(0)
+  const [filling, setFilling] = useState(false)
 
   const rows = useMemo(() => {
     const all = buildPortfolioComparison()
@@ -50,6 +60,40 @@ export function ComparePage() {
     setScanToken((n) => n + 1)
   }
 
+  const fillFromLastSynced = () => {
+    setFilling(true)
+    try {
+      const previous = getActivePortfolioId()
+      let cryptoN = 0
+      let equitiesN = 0
+      for (const id of selected) {
+        const data = loadPortfolio(id)
+        const result = applyLastSyncedQuotesToHoldings(data, { overwrite: true })
+        if (result.crypto + result.equities > 0) {
+          savePortfolioImmediate(result.data, id)
+          cryptoN += result.crypto
+          equitiesN += result.equities
+        }
+      }
+      setActivePortfolioId(previous)
+      reload()
+      switchPortfolio(activeId)
+      setScanToken((n) => n + 1)
+      if (cryptoN + equitiesN === 0) {
+        showError('No cache hits', 'Refresh Markets first, then try again.')
+      } else {
+        success(
+          'Filled from last synced',
+          `${cryptoN} crypto · ${equitiesN} equities updated`,
+        )
+      }
+    } catch (e) {
+      showError('Fill failed', e instanceof Error ? e.message : 'Unknown error')
+    } finally {
+      setFilling(false)
+    }
+  }
+
   return (
     <div>
       <PageHeader
@@ -57,9 +101,20 @@ export function ComparePage() {
         title="Compare portfolios"
         description="Side-by-side net worth and allocation across David and family workspaces."
         action={
-          <button type="button" className="btn-secondary btn-sm" onClick={refresh}>
-            Refresh
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="btn-ghost btn-sm"
+              disabled={filling || selected.length === 0}
+              onClick={fillFromLastSynced}
+              title="Apply last-synced Markets quotes to holdings in selected portfolios"
+            >
+              {filling ? 'Filling…' : 'Fill from last synced'}
+            </button>
+            <button type="button" className="btn-secondary btn-sm" onClick={refresh}>
+              Refresh
+            </button>
+          </div>
         }
       />
 

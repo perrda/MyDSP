@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import {
   ArrowUpDown,
   ChevronDown,
@@ -288,6 +288,7 @@ function freshnessLabel(q: MarketQuote | undefined): string | null {
 
 export function MarketsPage() {
   const { data, privacy } = usePortfolio()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [tickers, setTickers] = useState(() => listMarketTickers())
   const [collapsed, setCollapsed] = useState(() => loadMarketsState().collapsed)
   const [quotes, setQuotes] = useState<Map<string, MarketQuote>>(() => {
@@ -304,9 +305,61 @@ export function MarketsPage() {
   const [addKind, setAddKind] = useState<MarketAssetKind | null>(null)
   const [sorting, setSorting] = useState(false)
   const [density, setDensity] = useState<'comfortable' | 'compact'>(() => getMarketsDensity())
+  const [focusSymbol, setFocusSymbol] = useState<string | null>(null)
   const refreshInFlight = useRef(false)
   const quotesRef = useRef(quotes)
   quotesRef.current = quotes
+
+  // Deep-link: /markets?symbol=BTC expands section + scrolls to row
+  useEffect(() => {
+    const raw = searchParams.get('symbol')
+    if (!raw) return
+    const want = raw.trim().toUpperCase()
+    const hit = tickers.find(
+      (t) =>
+        t.symbol.toUpperCase() === want ||
+        t.symbol.replace('^', '').toUpperCase() === want.replace('^', ''),
+    )
+    setSearchParams({}, { replace: true })
+    if (!hit) return
+    const section =
+      hit.kind === 'crypto'
+        ? 'crypto'
+        : hit.kind === 'equity'
+          ? 'equities'
+          : hit.kind === 'index'
+            ? 'indices'
+            : hit.kind === 'fx'
+              ? 'fx'
+              : 'crosses'
+    setCollapsed((prev) => {
+      if (!prev[section]) return prev
+      const next = { ...prev, [section]: false }
+      setMarketsCollapsed(section, false)
+      return next
+    })
+    setFocusSymbol(hit.symbol)
+  }, [searchParams, tickers, setSearchParams])
+
+  useEffect(() => {
+    if (!focusSymbol) return
+    const id = `market-${focusSymbol.replace(/[^a-zA-Z0-9]/g, '_')}`
+    const tryScroll = () => {
+      const el = document.getElementById(id)
+      if (!el) return false
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      return true
+    }
+    if (tryScroll()) {
+      const clear = window.setTimeout(() => setFocusSymbol(null), 2500)
+      return () => window.clearTimeout(clear)
+    }
+    const retry = window.setTimeout(() => {
+      tryScroll()
+      window.setTimeout(() => setFocusSymbol(null), 2500)
+    }, 120)
+    return () => window.clearTimeout(retry)
+  }, [focusSymbol, collapsed, tickers])
 
   const bySection = useMemo(
     () => ({
@@ -584,11 +637,13 @@ export function MarketsPage() {
                   const trend = sparklineTrendFromSeries(q?.sparkline ?? [])
                   const showSpark = Boolean(q && q.sparkline.length > 1)
                   const compact = density === 'compact'
+                  const focused = focusSymbol === t.symbol
                   return (
                     <div
+                      id={`market-${t.symbol.replace(/[^a-zA-Z0-9]/g, '_')}`}
                       className={`px-4 sm:px-5 flex items-center gap-2 sm:gap-4 ${
                         compact ? 'py-2' : 'py-3.5'
-                      }`}
+                      } ${focused ? 'ring-2 ring-inset ring-accent bg-accent/5' : ''}`}
                     >
                       {sorting ? <ReorderHandle label={`Reorder ${t.symbol}`} /> : null}
                       <div className="min-w-0 flex-1">

@@ -1,9 +1,13 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.22**
+**Current version: 1.2.23**
 
-## Completed (through v1.2.22)
+## Completed (through v1.2.23)
 
+- On-launch Overview default + Settings preference (web/tablet/phone)
+- Separate `mydsp-quote` Worker proxy; PWA update banner; sync conflict plain-English + activity log
+- Markets watchlist union merge; Today deep links; price alerts; fill-from-last-synced holdings
+- Jobs↔Todos focus deep links; idle/hover prefetch for heavy pages
 - Sync Markets/News/YouTube on pull; Favourites sync; clearer sync chip + Sync now
 - Faster auto-sync cadence; Markets CORS race (Worker /api/quote deferred for CI)
 - Markets live vs last-synced labels; tablet bottom nav; Overview Today; offline queue banner
@@ -35,13 +39,13 @@
 ## Next (manual / ongoing)
 
 1. Cross-device sync smoke after deploy (todos + portfolios + Favourites + Markets watchlist)
-2. Hard-refresh PWA so `/api/quote` Worker route is live
+2. Deploy quote Worker once: `npm run deploy:quote`
+3. Hard-refresh / reopen PWA so update banner + new SW activate
 
 ## Low priority
 
 - Tune broker aliases from real IBKR/T212/Coinbase exports
 - Remittance-basis notes / deepen non-UK tax packs
-- Same-origin `/api/quote` Worker (SPA + API) once Workers Builds is wired for `main`
 
 ## Parking lot
 

@@ -1,0 +1,6 @@
+# Deploy with: npm run deploy:quote
+# (or: cd quote-endpoint && npx wrangler deploy)
+name = "mydsp-quote"
+main = "worker.js"
+compatibility_date = "2026-07-01"
+workers_dev = true

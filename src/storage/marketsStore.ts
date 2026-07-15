@@ -263,16 +263,47 @@ export function importMarketsFromBackup(raw: unknown): void {
   if (!raw || typeof raw !== 'object') return
   const parsed = raw as MarketsState
   if (parsed.version !== 1 || !Array.isArray(parsed.tickers)) return
+
+  const local = readRaw()
+  const remoteTickers = parsed.tickers.map(normalizeTicker)
+  const keyOf = (t: MarketTicker) => `${t.kind}:${normalizeMarketSymbol(t.symbol)}`
+
+  // Union watchlists: keep local ticker when both have the same kind+symbol;
+  // append remote-only tickers so a phone wipe cannot drop Mac-only crosses.
+  const byKey = new Map<string, MarketTicker>()
+  const localList = local?.tickers?.map(normalizeTicker) ?? []
+  for (const t of localList) byKey.set(keyOf(t), t)
+  let nextOrder =
+    localList.reduce((m, t) => Math.max(m, typeof t.sortOrder === 'number' ? t.sortOrder : 0), 0) + 1
+  for (const t of remoteTickers) {
+    const k = keyOf(t)
+    if (byKey.has(k)) continue
+    byKey.set(k, { ...t, sortOrder: nextOrder++ })
+  }
+
+  const collapsedLocal = local?.collapsed
+  const collapsedRemote = parsed.collapsed
+  const collapsed: MarketsCollapsed = {
+    crypto: Boolean(collapsedRemote?.crypto ?? collapsedLocal?.crypto),
+    equities: Boolean(collapsedRemote?.equities ?? collapsedLocal?.equities),
+    indices: Boolean(
+      (collapsedRemote as MarketsCollapsed | undefined)?.indices ??
+        (collapsedLocal as MarketsCollapsed | undefined)?.indices,
+    ),
+    fx: Boolean(
+      (collapsedRemote as MarketsCollapsed | undefined)?.fx ??
+        (collapsedLocal as MarketsCollapsed | undefined)?.fx,
+    ),
+    crosses: Boolean(
+      (collapsedRemote as MarketsCollapsed | undefined)?.crosses ??
+        (collapsedLocal as MarketsCollapsed | undefined)?.crosses,
+    ),
+  }
+
   const { state } = mergeDefaultTickers({
-    ...parsed,
-    collapsed: {
-      crypto: Boolean(parsed.collapsed?.crypto),
-      equities: Boolean(parsed.collapsed?.equities),
-      indices: Boolean((parsed.collapsed as MarketsCollapsed | undefined)?.indices),
-      fx: Boolean((parsed.collapsed as MarketsCollapsed | undefined)?.fx),
-      crosses: Boolean((parsed.collapsed as MarketsCollapsed | undefined)?.crosses),
-    },
-    tickers: parsed.tickers.map(normalizeTicker),
+    version: 1,
+    tickers: [...byKey.values()],
+    collapsed,
   })
   writeState(state, { fromSync: true })
 }

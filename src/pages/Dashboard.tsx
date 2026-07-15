@@ -125,7 +125,7 @@ export function Dashboard() {
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-text-subtle">
           <span>{syncLine}</span>
           <Link to="/markets" className="hover:text-accent">
-            {marketsCount} Markets ticker{marketsCount === 1 ? '' : 's'}
+            {marketsCount} Markets ticker{marketsCount === 1 ? '' : 's'} →
           </Link>
         </div>
       </div>
@@ -145,7 +145,7 @@ export function Dashboard() {
               {todayTodos.map((t) => (
                 <li key={t.id}>
                   <Link
-                    to="/todos"
+                    to={`/todos?focus=${t.id}`}
                     className="text-sm font-medium text-text hover:text-accent line-clamp-1"
                   >
                     {isOverdue(t) ? 'Overdue · ' : ''}

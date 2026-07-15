@@ -38,6 +38,7 @@ import {
 import { setDisplayCurrency } from '../utils/format'
 import { migrateEquityLivePricesToGbp, repairEquityLivePricesToGbp, EQUITY_GBP_VERSION } from '../domain/migrateEquityGbp'
 import { equityNeedsUsdToGbp } from '../domain/equityCurrency'
+import { applyLastSyncedQuotesToHoldings } from '../domain/lastSyncedHoldings'
 import {
   bootstrapFamilyPortfolios,
   canCreatePortfolio,
@@ -387,11 +388,14 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
               : {}),
           },
         }
+        // Fill any still-zero holdings from last-synced Markets quotes
+        const filled = applyLastSyncedQuotesToHoldings(next, { overwrite: false })
+        next = filled.data
         const holdingUpdates = [
-          ...crypto
+          ...next.crypto
             .filter((c) => c.price > 0)
             .map((c) => ({ kind: 'crypto' as const, symbol: c.symbol, price: c.price })),
-          ...equities
+          ...next.equities
             .filter((e) => e.livePrice > 0)
             .map((e) => ({ kind: 'equity' as const, symbol: e.symbol, price: e.livePrice })),
         ]

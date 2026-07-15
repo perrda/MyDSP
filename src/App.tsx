@@ -6,6 +6,8 @@ import { SecurityProvider } from './components/SecurityProvider'
 import { ToastProvider } from './components/ToastProvider'
 import { AchievementWatcher } from './components/AchievementWatcher'
 import { InstallPrompt } from './components/InstallPrompt'
+import { LaunchRedirect } from './components/LaunchRedirect'
+import { UpdateBanner } from './components/UpdateBanner'
 import { SkipToContent, ScreenReaderAnnouncer } from './components/Accessibility'
 import { ScrollToTop } from './components/ScrollToTop'
 import { AppShell } from './components/layout/AppShell'
@@ -67,11 +69,13 @@ export default function App() {
           <SecurityProvider>
             <BrowserRouter basename={__BASE_PATH__ === '/' ? undefined : __BASE_PATH__.replace(/\/$/, '')}>
               <ScrollToTop />
+              <LaunchRedirect />
               <SkipToContent />
               <ScreenReaderAnnouncer />
               <ToastProvider>
                 <AchievementWatcher />
                 <InstallPrompt />
+                <UpdateBanner />
                 <Suspense fallback={<LoadingSpinner />}>
                   <Routes>
                     <Route element={<AppShell />}>
