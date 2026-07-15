@@ -388,7 +388,7 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
               : {}),
           },
         }
-        // Fill any still-zero holdings from last-synced Markets quotes
+        // Fill any still-zero holdings from Markets last-synced quotes (do not clobber live)
         const filled = applyLastSyncedQuotesToHoldings(next, { overwrite: false })
         next = filled.data
         const holdingUpdates = [

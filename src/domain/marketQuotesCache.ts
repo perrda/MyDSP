@@ -40,7 +40,7 @@ function isDegraded(q: MarketQuote): boolean {
 
 /**
  * Prefer a fresh live print; keep prior sparkline / day-change when live is
- * spot-only or otherwise degraded so the UI does not lose 7-day charts.
+ * spot-only or otherwise degraded so the UI does not lose 24h charts.
  * When live returns no usable price, keep the last synced quote.
  */
 export function mergeMarketQuotes(

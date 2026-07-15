@@ -64,14 +64,14 @@ export function createSamplePortfolio(): PortfolioData {
   return {
     version: 1,
     crypto: [
-      { id: 1, symbol: 'ADA', name: 'Cardano', qty: 481942, price: 0.31, cost: 521196 },
-      { id: 2, symbol: 'BTC', name: 'Bitcoin', qty: 0.615, price: 69467, cost: 25000 },
-      { id: 3, symbol: 'USDC', name: 'USD Coin', qty: 44560, price: 0.79, cost: 35200 },
-      { id: 4, symbol: 'NIGHT', name: 'Midnight', qty: 260000, price: 0.0635, cost: 0 },
+      { id: 1, symbol: 'ADA', name: 'Cardano', qty: 481942, price: 0, cost: 521196 },
+      { id: 2, symbol: 'BTC', name: 'Bitcoin', qty: 0.615, price: 0, cost: 25000 },
+      { id: 3, symbol: 'USDC', name: 'USD Coin', qty: 44560, price: 0, cost: 35200 },
+      { id: 4, symbol: 'NIGHT', name: 'Midnight', qty: 260000, price: 0, cost: 0 },
     ],
     equities: [
-      { id: 1, symbol: 'TSLA', name: 'Tesla Inc', shares: 3149, avgCost: 37.87, livePrice: 260 },
-      { id: 2, symbol: 'MSTR', name: 'Strategy Inc', shares: 2872, avgCost: 151.16, livePrice: 244 },
+      { id: 1, symbol: 'TSLA', name: 'Tesla Inc', shares: 3149, avgCost: 37.87, livePrice: 0 },
+      { id: 2, symbol: 'MSTR', name: 'Strategy Inc', shares: 2872, avgCost: 151.16, livePrice: 0 },
     ],
     creditCards: [
       { id: 1, name: 'Lloyds Bank (3353)', balance: 2386, apr: 33.9, minPay: 1580, limit: 5000 },

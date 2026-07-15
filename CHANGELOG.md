@@ -2,6 +2,9 @@
 
 ## [1.2.34] - 2026-07-15
 
+### Merged — Markets 24h / live prices (item 4)
+- Markets % and sparklines aligned to **24h**; live equity valuations on refresh
+
 ### Improved — Sync / a11y / perf polish (backlog 41–50)
 41. Skeleton shimmer on Markets / Equities / Crypto first paint & refresh  
 42. Prefetch Markets quotes when bottom-nav Markets is focused/hovered  
