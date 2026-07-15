@@ -5,7 +5,7 @@
 ## Completed (through v1.2.22)
 
 - Sync Markets/News/YouTube on pull; Favourites sync; clearer sync chip + Sync now
-- Faster auto-sync cadence; same-origin `/api/quote` Worker proxy
+- Faster auto-sync cadence; Markets CORS race (Worker /api/quote deferred for CI)
 - Markets live vs last-synced labels; tablet bottom nav; Overview Today; offline queue banner
 - Sidebar Favourites / Others order synced via fullArchive + backups across devices
 - Markets: race Yahoo CORS proxies; Frankfurter FX sparklines; last-synced fallback for all tickers
@@ -41,6 +41,7 @@
 
 - Tune broker aliases from real IBKR/T212/Coinbase exports
 - Remittance-basis notes / deepen non-UK tax packs
+- Same-origin `/api/quote` Worker (SPA + API) once Workers Builds is wired for `main`
 
 ## Parking lot
 

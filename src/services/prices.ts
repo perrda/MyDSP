@@ -115,19 +115,11 @@ async function fetchJson<T>(
   }
 }
 
-/** Prefer same-origin Worker proxy, then public CORS relays. */
+/** Prefer working CORS relays; corsproxy.io often returns HTML interstitial pages.
+ * Same-origin /api/quote Worker proxy is deferred — adding `main` to wrangler broke
+ * Cloudflare Workers Builds for this SPA-only pipeline. Race public relays instead.
+ */
 function proxyCandidatesFor(url: string): string[] {
-  const sameOriginProxy = (() => {
-    try {
-      if (typeof window === 'undefined' || !window.location?.origin) return null
-      // GitHub Pages has no Worker — skip same-origin proxy there
-      if (window.location.hostname.includes('github.io')) return null
-      return `${window.location.origin}/api/quote?url=${encodeURIComponent(url)}`
-    } catch {
-      return null
-    }
-  })()
-
   const wrap = (target: string) => [
     `https://api.allorigins.win/raw?url=${encodeURIComponent(target)}`,
     `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(target)}`,
@@ -140,7 +132,6 @@ function proxyCandidatesFor(url: string): string[] {
   }
 
   const out: string[] = []
-  if (sameOriginProxy) out.push(sameOriginProxy)
   for (const target of targets) {
     out.push(...wrap(target))
     out.push(target)
