@@ -4,6 +4,7 @@ import { Wallet } from 'lucide-react'
 import { SpendingSeriesChart } from '../components/charts/SpendingSeriesChart'
 import { EmptyState } from '../components/ui/EmptyState'
 import { PageHeader } from '../components/ui/PageHeader'
+import { CollapsibleFilters } from '../components/ui/CollapsibleFilters'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
 import { usePortfolio } from '../context/PortfolioContext'
 import { formatMonthLabel, monthKey, parseMonthParam, shiftMonth } from '../domain/monthUtils'
@@ -232,8 +233,22 @@ export function SpendingPage() {
 
       <SpendingSeriesChart spending={data.spending} privacy={privacy} />
 
-      <div className="surface p-5 sm:p-6 mb-px">
-        <div className="flex flex-col sm:flex-row gap-3 mb-5">
+      <CollapsibleFilters
+        id="spending-filters"
+        title="Filters & search"
+        summary={
+          [
+            category !== 'All' ? category : null,
+            query.trim()
+              ? `“${query.trim().slice(0, 16)}${query.trim().length > 16 ? '…' : ''}”`
+              : null,
+          ]
+            .filter(Boolean)
+            .join(' · ') || 'None active'
+        }
+        activeCount={(category !== 'All' ? 1 : 0) + (query.trim() ? 1 : 0)}
+      >
+        <div className="flex flex-col sm:flex-row gap-3 mb-3">
           <input
             type="text"
             placeholder="New custom category…"
@@ -277,7 +292,7 @@ export function SpendingPage() {
             </select>
           </div>
         </div>
-      </div>
+      </CollapsibleFilters>
 
       {/* Mobile card list — no horizontal scroll */}
       <div className="sm:hidden space-y-2 mb-4">
