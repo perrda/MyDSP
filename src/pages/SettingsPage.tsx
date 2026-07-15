@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { DataExportPanel } from '../components/DataExportPanel'
+import { SettingsSection } from '../components/SettingsSection'
 import { PageHeader } from '../components/ui/PageHeader'
+import { openSettingsSection, setAllSettingsSectionsOpen } from '../storage/settingsSectionsStore'
 import { ConfirmDialog } from '../components/ui/Modal'
 import { useSecurity } from '../components/SecurityProvider'
 import { usePortfolio } from '../context/PortfolioContext'
@@ -92,6 +94,29 @@ const TRADE_TEMPLATES = [
   { symbol: 'BTC', kind: 'crypto' as const, href: 'data/templates/trades-BTC.csv' },
 ]
 
+/** Stable Settings accordion ids — used for expand/collapse-all + deep links. */
+const SETTINGS_SECTION_IDS = [
+  'sync',
+  'appearance',
+  'layout',
+  'fcc',
+  'display',
+  'trade-history',
+  'price-history',
+  'security',
+  'alerts',
+  'income',
+  'prices',
+  'devices',
+  'account',
+  'portfolios',
+  'full-backup',
+  'export',
+  'reports',
+  'versions',
+  'danger',
+] as const
+
 const TAX_RESIDENCIES = [
   { code: 'GB', label: 'United Kingdom' },
   { code: 'US', label: 'United States' },
@@ -177,10 +202,11 @@ export function SettingsPage() {
     if (!location.hash) return
     const id = location.hash.replace(/^#/, '')
     if (!id) return
+    openSettingsSection(id)
     const scroll = () => {
       document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
-    const t = window.setTimeout(scroll, 80)
+    const t = window.setTimeout(scroll, 120)
     return () => window.clearTimeout(t)
   }, [location.hash, location.pathname])
 
@@ -391,8 +417,25 @@ export function SettingsPage() {
       <PageHeader
         eyebrow="System"
         title="Settings & data"
-        description="Cloud Sync is first below — turn it on so Mac, iPhone, and iPad stay aligned automatically."
+        description="Sections start collapsed — tap a header (Sync, Display, Security…) to expand. Cloud Sync is first."
       />
+
+      <div className="flex flex-wrap gap-2 mb-4" role="group" aria-label="Settings sections">
+        <button
+          type="button"
+          className="btn-secondary btn-sm"
+          onClick={() => setAllSettingsSectionsOpen([...SETTINGS_SECTION_IDS], true)}
+        >
+          Expand all
+        </button>
+        <button
+          type="button"
+          className="btn-ghost btn-sm"
+          onClick={() => setAllSettingsSectionsOpen([...SETTINGS_SECTION_IDS], false)}
+        >
+          Collapse all
+        </button>
+      </div>
 
       {message && (
         <div className="surface border-l-2 border-l-accent px-5 py-4 mb-6" role="status">
@@ -401,9 +444,7 @@ export function SettingsPage() {
       )}
 
       <div className="grid grid-cols-1 gap-px">
-        <section id="sync" className="surface p-6 sm:p-8 scroll-mt-24">
-          <p className="eyebrow mb-3">Sync</p>
-          <h3 className="text-lg font-bold tracking-tight mb-3">Encrypted cloud sync</h3>
+        <SettingsSection id="sync" eyebrow="Sync" title="Encrypted cloud sync">
           <p className="text-sm text-text-muted font-light mb-4 max-w-2xl">
             On iPhone / iPad: pull down on any screen to sync across devices. Same Remote URL +
             passphrase on Mac, iPhone, and iPad. Turn on{' '}
@@ -1060,12 +1101,10 @@ export function SettingsPage() {
               })}
             </div>
           )}
-        </section>
+        </SettingsSection>
 
 
-        <section className="surface p-6 sm:p-8">
-          <p className="eyebrow mb-3">Appearance</p>
-          <h3 className="text-lg font-bold tracking-tight mb-3">Light &amp; dark mode</h3>
+        <SettingsSection id="appearance" eyebrow="Appearance" title="Light & dark mode">
           <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
             <span className="text-text font-medium">Auto</span> follows your computer clock —
             light after approximate sunrise, dark after sunset (local time). Choose Light or Dark
@@ -1101,11 +1140,9 @@ export function SettingsPage() {
             Now showing: <span className="text-text font-medium uppercase">{theme}</span>
             {preference === 'auto' ? ' · Auto' : ' · Manual'}
           </p>
-        </section>
+        </SettingsSection>
 
-        <section className="surface p-6 sm:p-8">
-          <p className="eyebrow mb-3">Layout</p>
-          <h3 className="text-lg font-bold tracking-tight mb-3">Sidebar Favourites</h3>
+        <SettingsSection id="layout" eyebrow="Layout" title="Sidebar Favourites">
           <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
             Open the menu and tap <span className="text-text font-medium">Sort</span> to show grab
             handles and ★ controls. Pin sections to Favourites (always on top); everything else
@@ -1121,11 +1158,9 @@ export function SettingsPage() {
           >
             Reset sidebar Favourites
           </button>
-        </section>
+        </SettingsSection>
 
-        <section className="surface p-6 sm:p-8">
-          <p className="eyebrow mb-3">FCC bridge</p>
-          <h3 className="text-lg font-bold tracking-tight mb-3">Import your Financial Command Centre data</h3>
+        <SettingsSection id="fcc" eyebrow="FCC bridge" title="Import your Financial Command Centre data">
           <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
             MyDSP reads the same <code className="text-accent">dfc_data_v3</code> key FCC uses.
             {fccDataPresent
@@ -1151,11 +1186,9 @@ export function SettingsPage() {
               }}
             />
           </div>
-        </section>
+        </SettingsSection>
 
-        <section className="surface p-6 sm:p-8">
-          <p className="eyebrow mb-3">Display</p>
-          <h3 className="text-lg font-bold tracking-tight mb-3">Currency &amp; tax residency</h3>
+        <SettingsSection id="display" eyebrow="Display" title="Currency & tax residency">
           <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
             Stored per active portfolio. Amounts stay in GBP internally; display currency uses FX.
             Tax residency flags CGT / reporting context for this workspace.
@@ -1204,11 +1237,9 @@ export function SettingsPage() {
               ? ` · GBP/USD ${fxRates.USD.toFixed(4)} (1 GBP = ${fxRates.USD.toFixed(2)} USD)`
               : ''}
           </p>
-        </section>
+        </SettingsSection>
 
-        <section className="surface p-6 sm:p-8" id="trade-history">
-          <p className="eyebrow mb-3">David · holdings</p>
-          <h3 className="text-lg font-bold tracking-tight mb-3">TSLA / MSTR / BTC trade history</h3>
+        <SettingsSection id="trade-history" eyebrow="David · holdings" title="TSLA / MSTR / BTC trade history">
           <p className="text-sm text-text-muted font-light mb-4 max-w-2xl">
             Download a CSV template, fill your dated buys/sells (GBP unit prices), then open the
             holding → <strong className="text-text">Import history</strong>. Pre-2014 BTC dates use
@@ -1243,11 +1274,9 @@ export function SettingsPage() {
             <li>Equities → TSLA / MSTR or Crypto → BTC → Import history</li>
             <li>Paste CSV or use multi-row entry; journal rebuilds cost basis</li>
           </ol>
-        </section>
+        </SettingsSection>
 
-        <section className="surface p-6 sm:p-8" id="price-history">
-          <p className="eyebrow mb-3">Markets</p>
-          <h3 className="text-lg font-bold tracking-tight mb-3">Historical prices &amp; OTC</h3>
+        <SettingsSection id="price-history" eyebrow="Markets" title="Historical prices & OTC">
           <p className="text-sm text-text-muted font-light mb-4 max-w-2xl">
             Bundled daily closes: <strong className="text-text">TSLA</strong> /{' '}
             <strong className="text-text">MSTR</strong> (USD→GBP via GBPUSD),{' '}
@@ -1319,11 +1348,9 @@ export function SettingsPage() {
             file under <code className="text-accent">public/data/prices/</code>. HTTPS host: see{' '}
             <code className="text-accent">DEPLOY.md</code>.
           </p>
-        </section>
+        </SettingsSection>
 
-        <section className="surface p-6 sm:p-8" id="security">
-          <p className="eyebrow mb-3">Security</p>
-          <h3 className="text-lg font-bold tracking-tight mb-3">PIN &amp; biometrics</h3>
+        <SettingsSection id="security" eyebrow="Security" title="PIN & biometrics">
           <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
             Lock MyDSP with a 4-digit PIN. On iPhone and iPad (HTTPS / Add to Home Screen), unlock
             with {getBiometricLabel()} via WebAuthn. Security stays on this device and is not
@@ -1472,11 +1499,9 @@ export function SettingsPage() {
               ? `Tap “Unlock with ${getBiometricLabel()}” on the lock screen (iOS requires a tap — Face ID will not auto-start).`
               : 'Biometrics unavailable here — use an HTTPS host (e.g. workers.dev) and Add to Home Screen on iPhone/iPad.'}
           </p>
-        </section>
+        </SettingsSection>
 
-        <section className="surface p-6 sm:p-8" id="alerts">
-          <p className="eyebrow mb-3">Alerts</p>
-          <h3 className="text-lg font-bold tracking-tight mb-3">Notifications</h3>
+        <SettingsSection id="alerts" eyebrow="Alerts" title="Notifications">
           <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
             The header bell lists portfolio alerts. Optional desktop/OS banners fire only for new{' '}
             <strong className="text-text font-medium">critical</strong> items by default (budget
@@ -1570,11 +1595,9 @@ export function SettingsPage() {
               Desktop banners are suppressed between these times (overnight ranges supported).
             </p>
           </div>
-        </section>
+        </SettingsSection>
 
-        <section className="surface p-6 sm:p-8">
-          <p className="eyebrow mb-3">Income</p>
-          <h3 className="text-lg font-bold tracking-tight mb-3">Monthly income</h3>
+        <SettingsSection id="income" eyebrow="Income" title="Monthly income">
           <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
             Used by Monthly review for surplus calculations.
           </p>
@@ -1596,11 +1619,9 @@ export function SettingsPage() {
               flash('Monthly income saved.')
             }}
           />
-        </section>
+        </SettingsSection>
 
-        <section className="surface p-6 sm:p-8">
-          <p className="eyebrow mb-3">Prices</p>
-          <h3 className="text-lg font-bold tracking-tight mb-3">Live market data</h3>
+        <SettingsSection id="prices" eyebrow="Prices" title="Live market data">
           <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
             Crypto prices use CoinGecko (no key). Equities use Finnhub if you add a free API key,
             otherwise Yahoo via a CORS proxy. Use the Prices button in the header to refresh.
@@ -1631,11 +1652,9 @@ export function SettingsPage() {
               }}
             />
           </div>
-        </section>
+        </SettingsSection>
 
-        <section className="surface p-6 sm:p-8">
-          <p className="eyebrow mb-3">Devices</p>
-          <h3 className="text-lg font-bold tracking-tight mb-3">Install on iPhone &amp; iPad</h3>
+        <SettingsSection id="devices" eyebrow="Devices" title="Install on iPhone & iPad">
           <p className="text-sm text-text-muted font-light mb-4 max-w-2xl leading-relaxed">
             Pin MyDSP as a home-screen app so it opens full-screen with the orange icon. Data on
             each device is local-first (same browser origin). Use{' '}
@@ -1663,11 +1682,9 @@ export function SettingsPage() {
             On desktop Chrome/Edge, use the install banner or the browser&apos;s Install app menu.
             Android: browser menu → Install app / Add to Home screen.
           </p>
-        </section>
+        </SettingsSection>
 
-        <section className="surface p-6 sm:p-8">
-          <p className="eyebrow mb-3">Account</p>
-          <h3 className="text-lg font-bold tracking-tight mb-3">Cloud account (preview)</h3>
+        <SettingsSection id="account" eyebrow="Account" title="Cloud account (preview)">
           <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
             Optional email for a future cloud account. Sync remains passphrase-based — no OAuth yet.
           </p>
@@ -1690,11 +1707,9 @@ export function SettingsPage() {
               }
             }}
           />
-        </section>
+        </SettingsSection>
 
-        <section className="surface p-6 sm:p-8" id="portfolios">
-          <p className="eyebrow mb-3">Portfolios</p>
-          <h3 className="text-lg font-bold tracking-tight mb-2">Family portfolios</h3>
+        <SettingsSection id="portfolios" eyebrow="Portfolios" title="Family portfolios">
           <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
             Up to {maxPortfolios} workspaces — <strong className="text-text">David</strong>{' '}
             plus {maxPortfolios - 1} others. Names must be unique. New portfolios start empty so you
@@ -1863,11 +1878,9 @@ export function SettingsPage() {
               Ensures one entry per name (max {maxPortfolios}) and pushes so iPhone / Mac / iPad match.
             </p>
           </div>
-        </section>
+        </SettingsSection>
 
-        <section className="surface p-6 sm:p-8" id="full-backup">
-          <p className="eyebrow mb-3">Backup</p>
-          <h3 className="text-lg font-bold tracking-tight mb-2">Full MyDSP backup</h3>
+        <SettingsSection id="full-backup" eyebrow="Backup" title="Full MyDSP backup">
           <p className="text-sm text-text-muted font-light mb-4 max-w-2xl">
             Snapshots <strong className="text-text">every portfolio</strong> automatically once per
             day (keeps the last {MAX_BACKUPS}). You can also back up manually, download a file, or
@@ -2093,11 +2106,9 @@ export function SettingsPage() {
               ))}
             </ul>
           )}
-        </section>
+        </SettingsSection>
 
-        <section className="surface p-6 sm:p-8">
-          <p className="eyebrow mb-3">Export</p>
-          <h3 className="text-lg font-bold tracking-tight mb-3">Active portfolio only</h3>
+        <SettingsSection id="export" eyebrow="Export" title="Active portfolio only">
           <p className="text-sm text-text-muted font-light mb-6">
             Active: <strong>{portfolios.find((p) => p.id === activeId)?.name}</strong> ·{' '}
             {data.crypto.length} crypto · {data.equities.length} equities ·{' '}
@@ -2114,21 +2125,17 @@ export function SettingsPage() {
               Reload from storage
             </button>
           </div>
-        </section>
+        </SettingsSection>
 
-        <section className="surface p-6 sm:p-8" id="reports">
-          <p className="eyebrow mb-3">Reports</p>
-          <h3 className="text-lg font-bold tracking-tight mb-2">PDF &amp; spreadsheet exports</h3>
+        <SettingsSection id="reports" eyebrow="Reports" title="PDF & spreadsheet exports">
           <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
             Print-ready PDFs and CSV downloads for portfolio, spending, goals, jobs, and todos —
             separate from encrypted full backups above.
           </p>
           <DataExportPanel />
-        </section>
+        </SettingsSection>
 
-        <section className="surface p-6 sm:p-8" id="versions">
-          <p className="eyebrow mb-3">Versions</p>
-          <h3 className="text-lg font-bold tracking-tight mb-2">App version &amp; rollback</h3>
+        <SettingsSection id="versions" eyebrow="Versions" title="App version & rollback">
           <p className="text-sm text-text-muted font-light mb-4 max-w-2xl">
             Running <strong className="text-text">v{__APP_VERSION__}</strong>. Full backups store
             the app version they were taken under. To roll back the <em>app code</em>, redeploy a
@@ -2154,11 +2161,9 @@ export function SettingsPage() {
           >
             Clear SW cache &amp; reload
           </button>
-        </section>
+        </SettingsSection>
 
-        <section className="surface p-6 sm:p-8">
-          <p className="eyebrow mb-3">Danger zone</p>
-          <h3 className="text-lg font-bold tracking-tight mb-3">Reset active portfolio</h3>
+        <SettingsSection id="danger" eyebrow="Danger zone" title="Reset active portfolio">
           <p className="text-sm text-text-muted font-light mb-6">
             Affects only the active portfolio. Prefer a full backup first.
           </p>
@@ -2199,7 +2204,7 @@ export function SettingsPage() {
               Clear portfolio
             </button>
           </div>
-        </section>
+        </SettingsSection>
       </div>
 
       <ConfirmDialog

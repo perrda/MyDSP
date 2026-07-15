@@ -1,5 +1,19 @@
 # MyDSP Changelog
 
+## [1.2.8] - 2026-07-15
+
+### Improved — Settings sections
+- Every Settings block (Sync, Appearance, Display, Markets, Security, Alerts, …) is **collapsible**
+- Tap the orange header name to expand/collapse; sections start **collapsed** so the full list is easy to scan
+- **Expand all** / **Collapse all** controls under the page title
+- Deep links (`/settings#sync`, `#alerts`, `#trade-history`, …) still open and scroll to the right section
+- Open/closed state remembered in this browser
+
+### Version
+- 1.2.7 → **1.2.8**
+
+---
+
 ## [1.2.7] - 2026-07-15
 
 ### Improved — To Do Lists picker
