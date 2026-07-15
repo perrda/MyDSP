@@ -106,6 +106,30 @@ describe('mergeMarketQuotes', () => {
     expect(merged.get('t_fx')?.changePct).toBe(0.4)
   })
 
+  it('keeps last-synced index print when live refresh returns empty', () => {
+    const previous = new Map([
+      [
+        't_gspc',
+        q({
+          symbol: '^GSPC',
+          kind: 'index',
+          last: 7500,
+          changePct: 0.5,
+          sparkline: [7400, 7450, 7500],
+          source: 'yahoo',
+          unit: 'pts',
+        }),
+      ],
+    ])
+    const next = new Map([
+      ['t_gspc', q({ symbol: '^GSPC', kind: 'index', last: 0, source: 'none', unit: 'pts' })],
+    ])
+    const merged = mergeMarketQuotes(previous, next)
+    expect(merged.get('t_gspc')?.last).toBe(7500)
+    expect(merged.get('t_gspc')?.sparkline.length).toBeGreaterThan(1)
+    expect(merged.get('t_gspc')?.source).toBe('stale:yahoo')
+  })
+
   it('round-trips cache serialization without zeros', () => {
     const map = new Map([
       ['t_btc', q({ symbol: 'BTC', kind: 'crypto', last: 50000 })],

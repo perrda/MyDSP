@@ -14,6 +14,7 @@ import {
   fetchCryptoGbpSparkline,
   fetchCryptoMarketQuotesGbp,
   fetchEquityMarketQuote,
+  fetchFrankfurterFxQuote,
   fetchFxPairQuote,
   fetchIndexQuote,
   type CryptoMarketQuoteGbp,
@@ -234,6 +235,43 @@ export async function refreshMarketQuotes(
         out.set(t.id, emptyQuote(t, now, pair.quote, rateDecimals(pair.quote), 'error'))
       }
     }),
+  )
+
+  // Fill missing FX 7d sparklines via Frankfurter (same idea as crypto Yahoo fill)
+  await mapPool(
+    fiatFx.filter((t) => (out.get(t.id)?.last ?? 0) > 0 && (out.get(t.id)?.sparkline.length ?? 0) < 2),
+    SPARKLINE_CONCURRENCY,
+    async (t) => {
+      const existing = out.get(t.id)
+      const pair = parseRatePair(t.symbol)
+      if (!existing || !pair) return
+      try {
+        const frank = await fetchFrankfurterFxQuote(pair.base, pair.quote)
+        if (!frank || frank.sparkline.length < 2) return
+        const previousClose = frank.previousClose > 0 ? frank.previousClose : frank.last
+        const changeAbs =
+          Math.abs(existing.changePct) > 0.0001
+            ? existing.changeAbs
+            : existing.last - previousClose
+        const changePct =
+          Math.abs(existing.changePct) > 0.0001
+            ? existing.changePct
+            : previousClose > 0
+              ? (changeAbs / previousClose) * 100
+              : frank.changePct
+        out.set(t.id, {
+          ...existing,
+          sparkline: frank.sparkline,
+          changeAbs,
+          changePct,
+          source: existing.source.includes('frankfurter')
+            ? existing.source
+            : `${existing.source}+frankfurter`,
+        })
+      } catch {
+        /* optional */
+      }
+    },
   )
 
   await Promise.all(

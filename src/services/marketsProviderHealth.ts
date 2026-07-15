@@ -113,7 +113,7 @@ export function providerFromQuoteSource(source: string): MarketsProviderId | nul
   if (s.includes('finnhub')) return 'finnhub'
   if (s.includes('coincap')) return 'coincap'
   if (s.includes('coinbase')) return 'coinbase'
-  if (s.includes('exchangerate') || s === 'fx') return 'fx'
+  if (s.includes('exchangerate') || s.includes('frankfurter') || s === 'fx') return 'fx'
   if (s.includes('yahoo')) return 'yahoo'
   // Derived / error / none / manual / portfolio / stale — not a live provider hit
   return null

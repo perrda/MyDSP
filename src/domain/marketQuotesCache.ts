@@ -9,6 +9,7 @@ const DEGRADED_SOURCES = new Set([
   'manual',
   'default',
   'portfolio',
+  'fx-cache',
   'none',
   'error',
   'invalid',
@@ -26,12 +27,21 @@ function hasMeaningfulChange(q: MarketQuote | undefined): boolean {
 function isDegraded(q: MarketQuote): boolean {
   const src = (q.source || '').toLowerCase()
   if (src.startsWith('stale:')) return false
+  if (
+    src.includes('frankfurter') ||
+    src.includes('yahoo') ||
+    src === 'finnhub' ||
+    src === 'coingecko'
+  ) {
+    return false
+  }
   return DEGRADED_SOURCES.has(src)
 }
 
 /**
  * Prefer a fresh live print; keep prior sparkline / day-change when live is
  * spot-only or otherwise degraded so the UI does not lose 7-day charts.
+ * When live returns no usable price, keep the last synced quote.
  */
 export function mergeMarketQuotes(
   previous: Map<string, MarketQuote>,
@@ -52,8 +62,12 @@ export function mergeMarketQuotes(
         merged = { ...merged, sparkline: [...prior!.sparkline] }
       }
 
-      // Keep prior day-change when live is spot-only / degraded and prior had movement
-      if (!hasMeaningfulChange(merged) && hasMeaningfulChange(prior) && isDegraded(live)) {
+      // Keep prior day-change when live is spot-only / flat and prior had movement
+      if (
+        !hasMeaningfulChange(merged) &&
+        hasMeaningfulChange(prior) &&
+        (isDegraded(live) || !hasSpark(live))
+      ) {
         merged = {
           ...merged,
           changeAbs: prior!.changeAbs,
@@ -66,7 +80,10 @@ export function mergeMarketQuotes(
     }
 
     if (prior && prior.last > 0) {
-      const alreadyStale = prior.source.startsWith('stale:') || prior.source === 'portfolio'
+      const alreadyStale =
+        prior.source.startsWith('stale:') ||
+        prior.source === 'portfolio' ||
+        prior.source === 'fx-cache'
       out.set(id, {
         ...prior,
         source: alreadyStale ? prior.source : `stale:${prior.source || 'cache'}`,

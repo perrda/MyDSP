@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.19**
+**Current version: 1.2.20**
 
-## Completed (through v1.2.19)
+## Completed (through v1.2.20)
 
+- Markets: race Yahoo CORS proxies; Frankfurter FX sparklines; last-synced fallback for all tickers
 - Markets: preserve sparklines/day-change on degraded live merges; Finnhub/Yahoo resilience
 - Fix Getting started checklist hooks crash (ErrorBoundary flash on Overview)
 - Standout polish Top 10 (sync chip, just-added pulse, motion, empty CTAs, Markets density, tax strip, PDF brand, bottom-nav favourites, getting started)
