@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { Sparkline } from '../components/charts/Sparkline'
 import { PageHeader } from '../components/ui/PageHeader'
+import { EmptyStateInline } from '../components/ui/EmptyState'
 import { ConfirmDialog, Field, Modal } from '../components/ui/Modal'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
 import { usePortfolio } from '../context/PortfolioContext'
@@ -38,6 +39,8 @@ import {
   reorderMarketTickersInKind,
   saveMarketQuotesCache,
   setMarketsCollapsed,
+  setMarketsDensity,
+  getMarketsDensity,
   setMarketsLastRefresh,
   updateMarketTicker,
 } from '../storage/marketsStore'
@@ -244,6 +247,7 @@ export function MarketsPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [addKind, setAddKind] = useState<MarketAssetKind | null>(null)
   const [sorting, setSorting] = useState(false)
+  const [density, setDensity] = useState<'comfortable' | 'compact'>(() => getMarketsDensity())
   const refreshInFlight = useRef(false)
   const quotesRef = useRef(quotes)
   quotesRef.current = quotes
@@ -500,9 +504,10 @@ export function MarketsPage() {
         {!isCollapsed && (
           <>
             {items.length === 0 ? (
-              <p className="px-4 sm:px-5 py-8 text-sm text-text-muted text-center">
-                No {meta.emptyLabel} yet — tap Add below to start this section.
-              </p>
+              <EmptyStateInline
+                message={`No ${meta.emptyLabel} yet — add one to start this section.`}
+                action={{ label: meta.addLabel, onClick: () => openCreate(meta.kind) }}
+              />
             ) : (
               <ReorderList
                 items={items}
@@ -521,19 +526,26 @@ export function MarketsPage() {
                   const pct = q?.changePct ?? 0
                   const trend = sparklineTrendFromSeries(q?.sparkline ?? [])
                   const showSpark = Boolean(q && q.sparkline.length > 1)
+                  const compact = density === 'compact'
                   return (
-                    <div className="px-4 sm:px-5 py-3.5 flex items-center gap-2 sm:gap-4">
+                    <div
+                      className={`px-4 sm:px-5 flex items-center gap-2 sm:gap-4 ${
+                        compact ? 'py-2' : 'py-3.5'
+                      }`}
+                    >
                       {sorting ? <ReorderHandle label={`Reorder ${t.symbol}`} /> : null}
                       <div className="min-w-0 flex-1">
                         <p className="font-semibold text-text tracking-tight">{t.symbol}</p>
-                        <p className="text-xs text-text-muted truncate">{t.name}</p>
+                        {!compact ? (
+                          <p className="text-xs text-text-muted truncate">{t.name}</p>
+                        ) : null}
                       </div>
 
                       {showSpark ? (
                         <div className="w-14 sm:w-16 shrink-0">
                           <Sparkline
                             data={q!.sparkline}
-                            height={28}
+                            height={compact ? 20 : 28}
                             showGradient={false}
                             trend={trend}
                           />
@@ -651,15 +663,29 @@ export function MarketsPage() {
         title="Markets"
         description="Live equities, crypto, indices (S&P 500, Nasdaq, FTSE), FX, and crypto crosses. Auto-refreshes about every 30s; header refresh forces an update. Last synced prices stay visible if a live source is slow."
         action={
-          <button
-            type="button"
-            className={`btn-secondary inline-flex items-center gap-2 ${sorting ? 'border-accent text-accent' : ''}`}
-            aria-pressed={sorting}
-            onClick={() => setSorting((v) => !v)}
-          >
-            <ArrowUpDown size={14} strokeWidth={1.75} />
-            {sorting ? 'Done' : 'Sort'}
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className={`btn-ghost btn-sm ${density === 'compact' ? 'border-accent text-accent' : ''}`}
+              aria-pressed={density === 'compact'}
+              onClick={() => {
+                const next = density === 'compact' ? 'comfortable' : 'compact'
+                setMarketsDensity(next)
+                setDensity(next)
+              }}
+            >
+              {density === 'compact' ? 'Comfortable' : 'Compact'}
+            </button>
+            <button
+              type="button"
+              className={`btn-secondary inline-flex items-center gap-2 ${sorting ? 'border-accent text-accent' : ''}`}
+              aria-pressed={sorting}
+              onClick={() => setSorting((v) => !v)}
+            >
+              <ArrowUpDown size={14} strokeWidth={1.75} />
+              {sorting ? 'Done' : 'Sort'}
+            </button>
+          </div>
         }
       />
 

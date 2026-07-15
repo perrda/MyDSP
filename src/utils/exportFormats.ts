@@ -59,16 +59,19 @@ export function generatePdfHtml(content: string, options: PdfOptions): string {
       font-size: 20pt;
       font-weight: 700;
       margin-bottom: 0.5em;
-      color: #0066cc;
-      border-bottom: 2px solid #0066cc;
+      color: #111;
+      border-bottom: 2px solid #F7931A;
       padding-bottom: 0.5em;
+      letter-spacing: -0.02em;
     }
     h2 {
       font-size: 14pt;
       font-weight: 600;
       margin-top: 1.5em;
       margin-bottom: 0.5em;
-      color: #333;
+      color: #111;
+      border-left: 3px solid #F7931A;
+      padding-left: 0.5em;
     }
     table {
       width: 100%;
@@ -79,12 +82,15 @@ export function generatePdfHtml(content: string, options: PdfOptions): string {
     th, td {
       text-align: left;
       padding: 8px;
-      border-bottom: 1px solid #ddd;
+      border-bottom: 1px solid #e5e5e5;
     }
     th {
-      background-color: #f5f5f5;
+      background-color: #fafafa;
       font-weight: 600;
       color: #333;
+      text-transform: uppercase;
+      font-size: 8pt;
+      letter-spacing: 0.04em;
     }
     tr:hover {
       background-color: #f9f9f9;
@@ -100,8 +106,8 @@ export function generatePdfHtml(content: string, options: PdfOptions): string {
       color: #666;
     }
     .summary-card {
-      background: #f8f9fa;
-      border-left: 4px solid #0066cc;
+      background: #fafafa;
+      border-left: 4px solid #F7931A;
       padding: 1em;
       margin: 1em 0;
     }

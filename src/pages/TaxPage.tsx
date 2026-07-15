@@ -192,14 +192,33 @@ export function TaxPage() {
         }
       />
 
+      <div
+        className="flex flex-wrap items-center gap-2 mb-4 text-xs text-text-muted"
+        role="status"
+        aria-label="Tax residency"
+      >
+        <span className="sync-chip sync-chip--ok !no-underline cursor-default">
+          <span className="sync-chip-dot" aria-hidden />
+          <span className="sync-chip-label">
+            {pack.label} · {pack.code}
+            {pack.hasCgt
+              ? ` · ${pack.yearKind === 'calendar' ? 'calendar year' : 'UK tax year'}`
+              : ' · no CGT computed'}
+          </span>
+        </span>
+        <Link to="/settings#display" className="text-accent hover:underline min-h-11 inline-flex items-center">
+          Change in Settings
+        </Link>
+      </div>
+
       <div className="surface border-l-2 border-l-accent px-5 py-4 mb-6">
         <p className="text-sm text-text-muted font-light">
           {pack.disclaimer}{' '}
           {!isUkTax ? (
             <>
               Update residency in{' '}
-              <Link to="/settings" className="text-accent hover:underline">
-                Settings
+              <Link to="/settings#display" className="text-accent hover:underline">
+                Settings → Display
               </Link>
               .
             </>

@@ -24,6 +24,7 @@ import {
 } from './syncService'
 import { conflictKey, type ConflictChoice } from './conflicts'
 import { getSessionSyncPassphrase, hydrateSessionSyncPassphrase } from './sessionPassphrase'
+import { collectSyncHighlights, setSyncHighlights } from './syncHighlights'
 
 const PUSH_DEBOUNCE_MS = 8_000
 const PULL_MIN_INTERVAL_MS = 12_000
@@ -245,6 +246,12 @@ async function doPull(cfg: SyncConfig, pass: string, reason: CycleReason): Promi
   beginApplyingRemote()
   let removedDupes = 0
   try {
+    const highlights = collectSyncHighlights(
+      preview.portfolios.map((p) => ({ local: p.local, remote: p.remote })),
+    )
+    const hasHighlights = Object.values(highlights).some((ids) => (ids?.length ?? 0) > 0)
+    if (hasHighlights) setSyncHighlights(highlights)
+
     const result = await applyMergePreview(preview, resolutions)
     removedDupes = result.removedDupes
     const at = new Date().toISOString()
@@ -267,7 +274,11 @@ async function doPull(cfg: SyncConfig, pass: string, reason: CycleReason): Promi
       lastAt: at,
     })
     try {
-      window.dispatchEvent(new CustomEvent('mydsp-sync-applied', { detail: { merged: result.merged } }))
+      window.dispatchEvent(
+        new CustomEvent('mydsp-sync-applied', {
+          detail: { merged: result.merged, highlights },
+        }),
+      )
     } catch {
       /* ignore */
     }

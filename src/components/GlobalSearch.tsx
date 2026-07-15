@@ -171,8 +171,14 @@ export function GlobalSearch() {
           {results.length === 0 && !query && (
             <div className="p-8 text-center text-text-muted">
               <Search className="w-12 h-12 mx-auto mb-2 opacity-50" aria-hidden />
-              <p>Start typing to search…</p>
+              <p>Search holdings, tasks, jobs, spending…</p>
               <p className="mt-2 text-xs text-text-subtle">Shortcut {shortcut}</p>
+              <p className="mt-3 text-[11px] uppercase tracking-widest text-text-subtle hidden sm:block">
+                ↑↓ navigate · ↵ open · esc close
+              </p>
+              <p className="mt-3 text-[11px] uppercase tracking-widest text-text-subtle sm:hidden">
+                Open Search from More on phone
+              </p>
             </div>
           )}
           {results.map((result, index) => (
