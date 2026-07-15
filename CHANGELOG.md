@@ -1,5 +1,23 @@
 # MyDSP Changelog
 
+## [1.2.19] - 2026-07-15
+
+### Fixed — Markets live quotes & 7-day sparklines
+- **Merge quality:** live spot-only quotes (CoinGecko without spark / FX exchangerate-api) no longer wipe a good prior sparkline or day-change
+- Crypto sparklines: Yahoo + CoinGecko race in parallel; fill concurrency 2 → 5
+- Yahoo chart: prefer corsproxy, also try query2 host
+- Equities: Finnhub candle sparkline fallback when Yahoo chart proxies fail
+- Indices: Finnhub quote fallback (SPX / IXIC / UKX) when Yahoo returns empty
+- Auto-refresh interval 30s → 45s (less proxy hammering)
+
+### Fixed — Overview ErrorBoundary flash
+- Getting started checklist Rules of Hooks crash on dismiss/complete
+
+### Version
+- 1.2.18 → **1.2.19**
+
+---
+
 ## [1.2.18] - 2026-07-15
 
 ### Added — Standout polish (Top 10)

@@ -115,18 +115,27 @@ async function fetchJson<T>(
   }
 }
 
-async function fetchViaProxies<T>(url: string, timeoutMs = 10000): Promise<T | null> {
-  const proxies = [
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-    `https://corsproxy.io/?${encodeURIComponent(url)}`,
-    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+async function fetchViaProxies<T>(url: string, timeoutMs = 12000): Promise<T | null> {
+  const wrap = (target: string) => [
+    `https://corsproxy.io/?${encodeURIComponent(target)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(target)}`,
+    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(target)}`,
   ]
-  for (const proxy of proxies) {
-    const { data } = await fetchJson<T>(proxy, timeoutMs)
-    if (data) return data
+
+  const targets = [url]
+  if (url.includes('query1.finance.yahoo.com')) {
+    targets.push(url.replace('query1.finance.yahoo.com', 'query2.finance.yahoo.com'))
   }
-  const { data } = await fetchJson<T>(url, timeoutMs)
-  return data
+
+  for (const target of targets) {
+    for (const proxy of wrap(target)) {
+      const { data } = await fetchJson<T>(proxy, timeoutMs)
+      if (data) return data
+    }
+    const direct = await fetchJson<T>(target, timeoutMs)
+    if (direct.data) return direct.data
+  }
+  return null
 }
 
 /** Prefer direct CoinGecko (CORS *), fall back to proxies on failure / 429. */
@@ -272,7 +281,10 @@ export async function fetchEquityMarketQuote(
       const changeAbs = data.d ?? data.c - previousClose
       const changePct =
         data.dp ?? (previousClose > 0 ? ((data.c - previousClose) / previousClose) * 100 : 0)
-      const spark = await fetchYahooSparkline(sym)
+      let spark = await fetchYahooSparkline(sym)
+      if (spark.length < 2) {
+        spark = await fetchFinnhubSparkline(sym, finnhubKey.trim())
+      }
       return {
         price: data.c,
         previousClose,
@@ -285,6 +297,22 @@ export async function fetchEquityMarketQuote(
   }
 
   return fetchYahooChartQuote(sym)
+}
+
+/** Finnhub daily candles → 7d sparkline (when Yahoo chart proxies fail). */
+async function fetchFinnhubSparkline(symbol: string, finnhubKey: string): Promise<number[]> {
+  try {
+    const to = Math.floor(Date.now() / 1000)
+    const from = to - SPARKLINE_DAYS * 24 * 60 * 60
+    const url =
+      `https://finnhub.io/api/v1/stock/candle?symbol=${encodeURIComponent(symbol)}` +
+      `&resolution=D&from=${from}&to=${to}&token=${encodeURIComponent(finnhubKey)}`
+    const { data } = await fetchJson<{ c?: number[]; s?: string }>(url)
+    if (data?.s !== 'ok' || !Array.isArray(data.c)) return []
+    return data.c.filter((n): n is number => typeof n === 'number' && n > 0).slice(-SPARKLINE_DAYS)
+  } catch {
+    return []
+  }
 }
 
 async function fetchYahooChartQuote(sym: string): Promise<EquityMarketQuoteNative | null> {
@@ -689,9 +717,48 @@ export async function fetchFxPairQuote(base: string, quote: string): Promise<Rat
 }
 
 /** Index quote (S&P 500, Nasdaq, FTSE) in native points — not converted to GBP. */
-export async function fetchIndexQuote(symbol: string): Promise<EquityMarketQuoteNative | null> {
+export async function fetchIndexQuote(
+  symbol: string,
+  finnhubKey = '',
+): Promise<EquityMarketQuoteNative | null> {
   const sym = normalizeYahooEquitySymbol(symbol)
-  return fetchYahooChartQuote(sym)
+  const yahoo = await fetchYahooChartQuote(sym)
+  if (yahoo && yahoo.price > 0) return yahoo
+
+  // Finnhub index symbols (no caret): e.g. ^GSPC → SPX when mapped below
+  if (finnhubKey.trim()) {
+    const fhSym = finnhubIndexSymbol(sym)
+    if (fhSym) {
+      const url = `https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(fhSym)}&token=${encodeURIComponent(finnhubKey.trim())}`
+      const { data } = await fetchJson<{ c?: number; d?: number; dp?: number; pc?: number }>(url)
+      if (data?.c && data.c > 0) {
+        const previousClose = data.pc && data.pc > 0 ? data.pc : data.c - (data.d ?? 0)
+        const changeAbs = data.d ?? data.c - previousClose
+        const changePct =
+          data.dp ?? (previousClose > 0 ? ((data.c - previousClose) / previousClose) * 100 : 0)
+        let spark = await fetchYahooSparkline(sym)
+        if (spark.length < 2) spark = await fetchFinnhubSparkline(fhSym, finnhubKey.trim())
+        return {
+          price: data.c,
+          previousClose,
+          changeAbs,
+          changePct,
+          sparkline: spark,
+          source: 'finnhub',
+        }
+      }
+    }
+  }
+  return null
+}
+
+function finnhubIndexSymbol(yahooSym: string): string | null {
+  const map: Record<string, string> = {
+    '^GSPC': 'SPX',
+    '^IXIC': 'IXIC',
+    '^FTSE': 'UKX',
+  }
+  return map[yahooSym.toUpperCase()] ?? null
 }
 
 /** Crypto cross e.g. ADA/BTC via CoinGecko (quote in BTC) + 7d sparkline. */
@@ -802,25 +869,40 @@ export async function fetchCryptoCrossQuote(
 
 /**
  * Optional 7d GBP sparkline for a single crypto.
- * Prefers Yahoo (no CoinGecko quota); CoinGecko market_chart only as last resort.
+ * Tries Yahoo and CoinGecko (whichever returns first with enough points).
  */
 export async function fetchCryptoGbpSparkline(
   symbol: string,
   coingeckoId?: string,
 ): Promise<number[]> {
-  try {
-    const yahoo = await fetchCryptoYahooQuoteGbp(symbol)
-    if (yahoo?.sparkline && yahoo.sparkline.length > 1) return yahoo.sparkline
-  } catch {
-    /* try gecko */
-  }
+  const yahooAttempt = (async () => {
+    try {
+      const yahoo = await fetchCryptoYahooQuoteGbp(symbol)
+      if (yahoo?.sparkline && yahoo.sparkline.length > 1) return yahoo.sparkline
+    } catch {
+      /* ignore */
+    }
+    return [] as number[]
+  })()
 
-  if (geckoCoolingDown()) return []
-  const id = GECKO_IDS[symbol.toUpperCase()] || coingeckoId?.trim() || (await lookupGeckoId(symbol))
-  if (!id) return []
-  const chartUrl = `https://api.coingecko.com/api/v3/coins/${encodeURIComponent(id)}/market_chart?vs_currency=gbp&days=${SPARKLINE_DAYS}`
-  const chart = await fetchGeckoJson<{ prices?: Array<[number, number]> }>(chartUrl, 12000)
-  return downsampleGeckoPricesToDaily(chart?.prices, SPARKLINE_DAYS)
+  const geckoAttempt = (async () => {
+    try {
+      if (geckoCoolingDown()) return [] as number[]
+      const id =
+        GECKO_IDS[symbol.toUpperCase()] || coingeckoId?.trim() || (await lookupGeckoId(symbol))
+      if (!id) return [] as number[]
+      const chartUrl = `https://api.coingecko.com/api/v3/coins/${encodeURIComponent(id)}/market_chart?vs_currency=gbp&days=${SPARKLINE_DAYS}`
+      const chart = await fetchGeckoJson<{ prices?: Array<[number, number]> }>(chartUrl, 12000)
+      return downsampleGeckoPricesToDaily(chart?.prices, SPARKLINE_DAYS)
+    } catch {
+      return [] as number[]
+    }
+  })()
+
+  const [yahoo, gecko] = await Promise.all([yahooAttempt, geckoAttempt])
+  if (yahoo.length > 1) return yahoo
+  if (gecko.length > 1) return gecko
+  return []
 }
 
 /** @deprecated use fetchYahooSparkline — kept for callers expecting intraday */

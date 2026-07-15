@@ -20,7 +20,7 @@ import {
 } from './prices'
 import { recordMarketsRefreshHealth } from './marketsProviderHealth'
 
-const SPARKLINE_CONCURRENCY = 2
+const SPARKLINE_CONCURRENCY = 5
 
 function emptyQuote(
   t: MarketTicker,
@@ -182,7 +182,7 @@ export async function refreshMarketQuotes(
   await Promise.all(
     indices.map(async (t) => {
       try {
-        const q = await fetchIndexQuote(t.symbol)
+        const q = await fetchIndexQuote(t.symbol, finnhubKey)
         if (!q || !(q.price > 0)) {
           out.set(t.id, emptyQuote(t, now, 'pts', 2, 'none'))
           return
