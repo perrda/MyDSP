@@ -3,13 +3,14 @@ import { AlertCircle, CheckCircle, Upload, X } from 'lucide-react'
 import { PageHeader } from '../components/ui/PageHeader'
 import { usePortfolio } from '../context/PortfolioContext'
 import { useToasts } from '../components/ToastProvider'
-import { parseBankCsv } from '../services/csvImport'
 import type { ParsedBankRow } from '../services/csvImport'
 import {
   BANK_PRESETS,
   detectBankPreset,
+  parseRowsWithBankPreset,
   type BankPreset,
 } from '../services/enhancedCsvImport'
+import { resolveCategory } from '../domain/merchantRules'
 import { formatGBP, formatGBPPrecise } from '../utils/format'
 
 type ImportStep = 'upload' | 'preview' | 'mapping' | 'confirm'
@@ -70,16 +71,19 @@ export function EnhancedImportPage() {
       showError('No preset selected', 'Please select a bank preset')
       return
     }
-    
-    // Use existing parser with detected preset
-    const text = csvData.map(row => 
-      headers.map(h => row[h]).join(',')
-    ).join('\n')
-    const fullCsv = [headers.join(','), text].join('\n')
-    
-    const convention = selectedPreset.amountConvention === 'positive_income' ? 'monzo' : 'positive_expense'
-    const parsed = parseBankCsv(fullCsv, data.merchantRules, { convention })
-    
+
+    const parsed = parseRowsWithBankPreset(
+      csvData as Record<string, string>[],
+      headers,
+      selectedPreset,
+      (description) => resolveCategory(description, data.merchantRules),
+    )
+
+    if (parsed.length === 0) {
+      showError('No transactions found', 'Check the bank preset matches your CSV columns.')
+      return
+    }
+
     setRows(parsed)
     setStep('confirm')
   }
@@ -187,9 +191,9 @@ export function EnhancedImportPage() {
             />
           </label>
 
-          <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+          <div className="mt-6 p-4 bg-accent/10 border border-accent/20">
             <h4 className="text-sm font-bold mb-2 flex items-center gap-2">
-              <AlertCircle size={16} className="text-blue-500" />
+              <AlertCircle size={16} className="text-accent" />
               Supported Banks
             </h4>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">

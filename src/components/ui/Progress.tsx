@@ -17,7 +17,7 @@ const COLORS = {
   accent: 'bg-accent',
   green: 'bg-green-500',
   red: 'bg-red-500',
-  blue: 'bg-blue-500',
+  blue: 'bg-accent',
 }
 
 export function ProgressBar({

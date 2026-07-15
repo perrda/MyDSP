@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { ArrowUpDown, Target } from 'lucide-react'
+import { EmptyState } from '../components/ui/EmptyState'
 import { PageHeader } from '../components/ui/PageHeader'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
@@ -31,6 +33,7 @@ export function GoalsPage() {
   const [noteGoalId, setNoteGoalId] = useState<number | null>(null)
   const [noteText, setNoteText] = useState('')
   const [editingNote, setEditingNote] = useState<ProgressCommentary | null>(null)
+  const [sorting, setSorting] = useState(false)
 
   const goals = useMemo(() => sortBySortOrder(data.goals), [data.goals])
   const noteGoal = goals.find((g) => g.id === noteGoalId) ?? null
@@ -102,7 +105,11 @@ export function GoalsPage() {
       <PageHeader
         eyebrow="Targets"
         title="Financial goals"
-        description="CRUD goals with RAG, commentary, and drag-reorder. Linked to live portfolio metrics."
+        description={
+          sorting
+            ? 'Drag ⋮⋮ to reorder — order is saved with this portfolio.'
+            : 'Track net-worth, debt, and investment targets with RAG status.'
+        }
         action={
           <div className="flex flex-wrap gap-2">
             <Link to="/liabilities" className="btn-ghost btn-sm">
@@ -111,6 +118,16 @@ export function GoalsPage() {
             <Link to="/fire" className="btn-ghost btn-sm">
               FIRE
             </Link>
+            <button
+              type="button"
+              className={`btn-secondary btn-sm inline-flex items-center gap-2 ${sorting ? 'border-accent text-accent' : ''}`}
+              aria-pressed={sorting}
+              disabled={goals.length === 0}
+              onClick={() => setSorting((v) => !v)}
+            >
+              <ArrowUpDown size={14} strokeWidth={1.75} />
+              {sorting ? 'Done' : 'Sort'}
+            </button>
             <button type="button" className="btn-primary btn-sm" onClick={openCreate}>
               Add goal
             </button>
@@ -119,9 +136,12 @@ export function GoalsPage() {
       />
 
       {goals.length === 0 ? (
-        <div className="surface p-12 text-center text-text-subtle font-light">
-          No goals yet — add a net-worth, debt, or investment target.
-        </div>
+        <EmptyState
+          icon={<Target size={40} strokeWidth={1.25} />}
+          title="No goals yet"
+          description="Set a net-worth, debt, or investment target and track progress with RAG status."
+          action={{ label: 'Add goal', onClick: openCreate }}
+        />
       ) : (
         <ReorderList
           items={goals}
@@ -136,7 +156,7 @@ export function GoalsPage() {
             return (
               <div className="surface p-5 sm:p-8">
                 <div className="flex gap-3 mb-4">
-                  <ReorderHandle label={`Reorder ${g.name}`} />
+                  {sorting ? <ReorderHandle label={`Reorder ${g.name}`} /> : null}
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2 mb-2">
                       <span className={ragClass(g.ragStatus)}>{ragLabel(g.ragStatus)}</span>
@@ -153,7 +173,7 @@ export function GoalsPage() {
                     <p className="text-2xl font-bold tabular-nums text-accent">{progress.toFixed(0)}%</p>
                   </div>
                 </div>
-                <div className="progress-track mb-4" role="progressbar" aria-valuenow={progress}>
+                <div className="progress-track mb-4" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}>
                   <div className="progress-fill" style={{ width: `${Math.min(progress, 100)}%` }} />
                 </div>
                 <div className={`flex justify-between text-sm mb-4 ${privacyClass(privacy)}`}>

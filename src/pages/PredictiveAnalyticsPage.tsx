@@ -275,18 +275,18 @@ export function PredictiveAnalyticsPage() {
             {anomalies.slice(0, 10).map((anomaly) => (
               <div
                 key={anomaly.id}
-                className={`p-3 rounded-lg border-l-4 ${
+                className={`p-3 border-l-4 ${
                   anomaly.severity === 'high' ? 'border-l-red-500 bg-red-500/10' :
-                  anomaly.severity === 'medium' ? 'border-l-yellow-500 bg-yellow-500/10' :
-                  'border-l-blue-500 bg-blue-500/10'
+                  anomaly.severity === 'medium' ? 'border-l-amber-500 bg-amber-500/10' :
+                  'border-l-accent/60 bg-accent/5'
                 }`}
               >
                 <div className="flex items-start justify-between mb-1">
                   <p className="text-sm font-medium">{anomaly.description}</p>
-                  <span className={`text-xs px-2 py-1 rounded ${
+                  <span className={`text-xs px-2 py-1 ${
                     anomaly.severity === 'high' ? 'bg-red-500 text-white' :
-                    anomaly.severity === 'medium' ? 'bg-yellow-500 text-white' :
-                    'bg-blue-500 text-white'
+                    anomaly.severity === 'medium' ? 'bg-amber-500 text-white' :
+                    'bg-accent text-white'
                   }`}>
                     {anomaly.severity}
                   </span>

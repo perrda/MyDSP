@@ -58,17 +58,17 @@ export function SmartInsightsPage() {
     switch (priority) {
       case 'high': return 'border-l-red-500 bg-red-500/10'
       case 'medium': return 'border-l-yellow-500 bg-yellow-500/10'
-      case 'low': return 'border-l-blue-500 bg-blue-500/10'
+      case 'low': return 'border-l-accent/60 bg-accent/5'
       default: return 'border-l-accent bg-accent/10'
     }
   }
 
   const getPriorityIcon = (type: string) => {
     switch (type) {
-      case 'recurring': return <Calendar size={20} className="text-purple-500" />
-      case 'category': return <Tag size={20} className="text-blue-500" />
-      case 'budget': return <TrendingUp size={20} className="text-orange-500" />
-      case 'goal': return <Target size={20} className="text-green-500" />
+      case 'recurring': return <Calendar size={20} className="text-accent" />
+      case 'category': return <Tag size={20} className="text-amber-500" />
+      case 'budget': return <TrendingUp size={20} className="text-accent" />
+      case 'goal': return <Target size={20} className="text-emerald-500" />
       default: return <AlertCircle size={20} className="text-accent" />
     }
   }
@@ -104,10 +104,10 @@ export function SmartInsightsPage() {
                   <div className="flex-1">
                     <div className="flex items-start justify-between mb-1">
                       <h4 className="font-medium">{suggestion.title}</h4>
-                      <span className={`text-xs px-2 py-1 rounded ${
+                      <span className={`text-xs px-2 py-1 ${
                         suggestion.priority === 'high' ? 'bg-red-500 text-white' :
-                        suggestion.priority === 'medium' ? 'bg-yellow-500 text-white' :
-                        'bg-blue-500 text-white'
+                        suggestion.priority === 'medium' ? 'bg-amber-500 text-white' :
+                        'bg-accent text-white'
                       }`}>
                         {suggestion.priority}
                       </span>
@@ -134,7 +134,7 @@ export function SmartInsightsPage() {
       {recurringPatterns.length > 0 && (
         <div className="surface p-6 mb-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
           <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-            <Calendar size={20} className="text-purple-500" />
+            <Calendar size={20} className="text-accent" />
             Recurring Patterns Detected
           </h3>
           
@@ -177,7 +177,7 @@ export function SmartInsightsPage() {
       {categoryCorrections.length > 0 && (
         <div className="surface p-6 mb-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
           <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-            <Tag size={20} className="text-blue-500" />
+            <Tag size={20} className="text-accent" />
             Category Suggestions
           </h3>
           

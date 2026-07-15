@@ -31,14 +31,14 @@ const STYLES = {
   success: 'border-l-green-500 bg-green-950/10',
   error: 'border-l-red-500 bg-red-950/10',
   warning: 'border-l-amber-500 bg-amber-950/10',
-  info: 'border-l-blue-500 bg-blue-950/10',
+  info: 'border-l-accent bg-accent/5',
 }
 
 const ICON_COLORS = {
   success: 'text-green-500',
   error: 'text-red-500',
   warning: 'text-amber-500',
-  info: 'text-blue-500',
+  info: 'text-accent',
 }
 
 export function ToastItem({ toast, onDismiss }: ToastItemProps) {

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { Wallet } from 'lucide-react'
 import { SpendingSeriesChart } from '../components/charts/SpendingSeriesChart'
+import { EmptyState } from '../components/ui/EmptyState'
 import { PageHeader } from '../components/ui/PageHeader'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
 import { usePortfolio } from '../context/PortfolioContext'
@@ -314,11 +316,19 @@ export function SpendingPage() {
           </div>
         ))}
         {filtered.length === 0 && (
-          <div className="surface p-8 text-center text-text-subtle font-light rounded-xl">
-            {data.spending.length === 0
-              ? 'No spending yet — tap Add expense.'
-              : 'No transactions match your filters.'}
-          </div>
+          data.spending.length === 0 ? (
+            <EmptyState
+              icon={<Wallet size={40} strokeWidth={1.25} />}
+              title="No spending yet"
+              description="Log expenses or import a bank CSV to track cash flow by category."
+              action={{ label: 'Add expense', onClick: openCreate }}
+              secondaryAction={{ label: 'Import CSV', to: '/import' }}
+            />
+          ) : (
+            <div className="surface p-8 text-center text-text-subtle font-light">
+              No transactions match your filters.
+            </div>
+          )
         )}
       </div>
 

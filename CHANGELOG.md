@@ -1,5 +1,85 @@
 # MyDSP Changelog
 
+## [1.2.5] - 2026-07-15
+
+### Improved — Density & alerts
+- Crypto / Equities / Goals: **Sort** toggle — reorder handles only while sorting (matches News/YouTube)
+- Holding detail: Buy/Sell stay visible; Import history + Platform fold into **⋯** on phone
+- Settings → **Alerts**: desktop/OS banners, priority threshold, quiet hours (persisted)
+- New high/critical portfolio alerts can raise a desktop banner (when permitted)
+- Notification settings persist in `localStorage`; silent sound stub (no console noise)
+
+### Version
+- 1.2.4 → **1.2.5**
+
+---
+
+## [1.2.4] - 2026-07-15
+
+### Improved — Follow-up polish pass
+- Crypto / Equities: phone rows keep Buy/Sell visible; Edit / NW / Delete move into a **⋯** overflow menu
+- Settings → **Reports**: wired PDF/CSV `DataExportPanel` (portfolio, spending, goals, jobs, todos)
+- Toolbar **Notifications** bell: live portfolio alerts (budgets, debt RAG, utilisation) with deep links
+- Analytics: Advanced insights dashboard restyled and shown on the Analytics page
+- Liabilities: EmptyState CTAs for cards and loans
+- YouTube empty state no longer double-nests a surface card
+- Brand cleanup: notification chrome, advanced analytics, loading/mail accents
+
+### Version
+- 1.2.3 → **1.2.4**
+
+---
+
+## [1.2.3] - 2026-07-15
+
+### Fixed — Section QA (web / tablet / phone)
+- Header refresh always updates Markets / News / YouTube feeds (even in privacy or throttle mode)
+- Pull-to-refresh refreshes feeds first, then cloud-syncs when configured
+- Budget projections use days elapsed in the selected month (past/future months no longer skew)
+- Disable PIN now requires verifying the current PIN
+- News Sort disabled when there are no tags (matches YouTube)
+
+### Improved — Navigation & shell
+- Mobile bottom nav: Overview · Markets · Spending · Goals · Settings
+- Refresh stays one-tap on phone; More (⋯) holds Privacy / Theme / Search
+- Sidebar Cloud Sync vs Settings active state follows `#sync` hash
+- Job Tracker / CSV Import shell titles; share-card growth averages crypto + equity %
+
+### Improved — Empty states & design tokens
+- Shared EmptyState on Crypto, Equities, Spending, Goals (with CTAs)
+- Brand cleanup: Smart Insights, Predictive Analytics, API Automation, Enhanced Import, Data Export, Jobs kanban, Todos priority — blue/purple → accent / semantic colours
+- Typography floor: bare `10px` labels bumped to `11px`; RAG chips meet 44px touch targets
+- Markets edit/delete touch targets enlarged; native currency defaults to 2 dp (JPY/KRW 0)
+
+### Version
+- 1.2.2 → **1.2.3**
+
+---
+
+## [1.2.2] - 2026-07-14
+
+### Fixed — PIN & biometrics (iPhone / iPad)
+- Face ID / Touch ID no longer auto-fires on lock (iOS requires a user tap) — prominent **Unlock with Face ID** button
+- PIN lockout persists in `sessionStorage` (refresh no longer bypasses the 30s lockout)
+- Enabling PIN locks the app immediately; biometrics can be disabled independently
+- WebAuthn: ES256 + RS256, `residentKey: preferred`, safer `rp.id` on localhost
+- Branded lock screen with safe-area padding and clearer iPhone/iPad copy
+
+### Fixed — Enhanced CSV import
+- Lloyds / Nationwide **separate debit/credit** columns now parse correctly (was mis-routed through a single-amount parser)
+
+### Improved — App Store polish pass
+- Error boundary restyled to MyDSP design tokens (no generic blue/gray card)
+- YouTube empty states use shared EmptyState + correct header-refresh copy
+- Removed dead recursive `ui/GlobalSearch.tsx`
+- AppShell titles for Opening balances / Legacy CSV
+- Unit tests: PIN security, enhanced CSV presets
+
+### Version
+- 1.2.1 → **1.2.2**
+
+---
+
 ## [1.2.1] - 2026-07-14
 
 ### Fixed — YouTube crash (lucide / react-vendor chunk collision)

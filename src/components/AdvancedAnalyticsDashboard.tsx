@@ -253,50 +253,47 @@ export function AdvancedAnalyticsDashboard() {
   }
 
   const colorMap = {
-    high: 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700 text-red-900 dark:text-red-100',
-    medium: 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700 text-yellow-900 dark:text-yellow-100',
-    low: 'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700 text-blue-900 dark:text-blue-100'
+    high: 'border-l-red-500 bg-red-500/10 text-text',
+    medium: 'border-l-amber-500 bg-amber-500/10 text-text',
+    low: 'border-l-accent/60 bg-accent/5 text-text',
   }
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold mb-2">Advanced Analytics</h2>
-        <p className="text-gray-600 dark:text-gray-400">
-          AI-powered insights and predictions based on your financial data
+        <h2 className="text-xl font-bold tracking-tight mb-1">Advanced insights</h2>
+        <p className="text-sm text-text-muted font-light">
+          Trend, anomaly, and projection signals from your history and spending.
         </p>
       </div>
 
       {insights.length === 0 ? (
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-8 text-center">
-          <Lightbulb className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-          <p className="text-gray-600 dark:text-gray-400">
-            Not enough data yet. Keep tracking your finances to unlock AI-powered insights!
+        <div className="surface p-8 text-center border border-border">
+          <Lightbulb className="w-10 h-10 mx-auto mb-3 text-text-subtle opacity-40" />
+          <p className="text-sm text-text-muted">
+            Not enough history yet. Keep tracking to unlock trend and anomaly insights.
           </p>
         </div>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid gap-3">
           {insights.map((insight, index) => (
             <div
               key={index}
-              className={`p-6 rounded-lg border-2 ${colorMap[insight.impact]}`}
+              className={`p-5 border border-border border-l-4 ${colorMap[insight.impact]}`}
             >
               <div className="flex items-start gap-4">
-                <div className="flex-shrink-0 mt-1">
-                  {iconMap[insight.type]}
-                </div>
+                <div className="flex-shrink-0 mt-1 text-accent">{iconMap[insight.type]}</div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2 mb-2">
-                    <h3 className="font-semibold text-lg">{insight.title}</h3>
-                    <span className="text-xs font-medium px-2 py-1 rounded bg-white dark:bg-gray-700 opacity-75">
-                      {(insight.confidence * 100).toFixed(0)}% confident
+                    <h3 className="font-semibold text-base">{insight.title}</h3>
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-text-subtle shrink-0">
+                      {(insight.confidence * 100).toFixed(0)}% conf.
                     </span>
                   </div>
-                  <p className="text-sm opacity-90">{insight.description}</p>
-                  
-                  <div className="mt-3 flex items-center gap-2 text-xs opacity-75">
+                  <p className="text-sm text-text-muted">{insight.description}</p>
+                  <div className="mt-3 flex items-center gap-2 text-[11px] uppercase tracking-wider text-text-subtle">
                     <span className="capitalize">{insight.type}</span>
-                    <span>•</span>
+                    <span>·</span>
                     <span className="capitalize">{insight.impact} impact</span>
                   </div>
                 </div>

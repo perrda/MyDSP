@@ -40,8 +40,8 @@ const titles: Record<string, { eyebrow: string; title: string }> = {
   '/history': { eyebrow: 'Insights', title: 'History' },
   '/documents': { eyebrow: 'Vault', title: 'Documents' },
   '/todos': { eyebrow: 'Tasks', title: 'To Do Lists' },
-  '/jobs': { eyebrow: 'Career', title: 'Job Applications' },
-  '/import': { eyebrow: 'Import', title: 'Bank CSV' },
+  '/jobs': { eyebrow: 'Career', title: 'Job Tracker' },
+  '/import': { eyebrow: 'Import', title: 'CSV Import' },
   '/rules': { eyebrow: 'Import', title: 'Merchant rules' },
   '/optimizer': { eyebrow: 'Planning', title: 'Debt optimizer' },
   '/fire': { eyebrow: 'Planning', title: 'FIRE' },
@@ -53,6 +53,8 @@ const titles: Record<string, { eyebrow: string; title: string }> = {
   '/compare': { eyebrow: 'Compare', title: 'Compare Portfolios' },
   '/api': { eyebrow: 'Integration', title: 'API & Automation' },
   '/insights': { eyebrow: 'Intelligence', title: 'Smart Insights' },
+  '/setup/opening': { eyebrow: 'Setup', title: 'Opening balances' },
+  '/import/legacy': { eyebrow: 'Import', title: 'Legacy CSV' },
   '/settings': { eyebrow: 'System', title: 'Settings' },
 }
 
@@ -113,19 +115,21 @@ export function AppShell() {
   }, [])
 
   const onRefresh = async () => {
+    // Always refresh Markets / News / YouTube feeds — even when prices are
+    // gated by privacy mode or throttle (those pages do not need holdings prices).
+    try {
+      window.dispatchEvent(new CustomEvent('mydsp-global-refresh'))
+    } catch {
+      /* ignore */
+    }
+
     const r = await refreshPrices()
     if (r.skipped === 'privacy') {
-      setPriceMsg('Turn off privacy mode to refresh live prices')
+      setPriceMsg('Feeds updated · turn off privacy to refresh live prices')
     } else if (r.skipped === 'throttle') {
-      setPriceMsg(lastPriceError ?? 'Please wait before refreshing again')
+      setPriceMsg(lastPriceError ?? 'Feeds updated · please wait before refreshing prices again')
     } else {
       await refreshFx()
-      // Notify Markets / News / YouTube (and any other listeners) to refresh too
-      try {
-        window.dispatchEvent(new CustomEvent('mydsp-global-refresh'))
-      } catch {
-        /* ignore */
-      }
       setPriceMsg(`Updated ${r.crypto} crypto · ${r.equities} equities · FX`)
     }
     window.setTimeout(() => setPriceMsg(null), 4000)
@@ -139,21 +143,26 @@ export function AppShell() {
     return candidates.sort((a, b) => a.localeCompare(b)).at(-1) ?? null
   })()
 
-  /** Pull-down on iPhone/iPad → cloud sync (pull then push). */
+  /** Pull-down on iPhone/iPad → refresh feeds + cloud sync when configured. */
   const onPullToSync = useCallback(async () => {
+    try {
+      window.dispatchEvent(new CustomEvent('mydsp-global-refresh'))
+    } catch {
+      /* ignore */
+    }
+
     const cfg = loadSyncConfig()
-    if (!cfg.remoteUrl.trim()) {
-      setPriceMsg('Set Remote URL in Settings → Cloud Sync')
-      window.setTimeout(() => setPriceMsg(null), 4500)
-      return
-    }
-    if (!cfg.enabled) {
-      setPriceMsg('Turn on Automatic sync in Settings')
-      window.setTimeout(() => setPriceMsg(null), 4500)
-      return
-    }
-    if (!getSessionSyncPassphrase()) {
-      setPriceMsg('Enter passphrase in Settings (enable Remember)')
+    if (!cfg.remoteUrl.trim() || !cfg.enabled || !getSessionSyncPassphrase()) {
+      // Still refresh prices/FX locally when sync isn't ready
+      const r = await refreshPrices()
+      if (!r.skipped) await refreshFx()
+      setPriceMsg(
+        !cfg.remoteUrl.trim()
+          ? 'Feeds refreshed · set Remote URL in Cloud Sync'
+          : !cfg.enabled
+            ? 'Feeds refreshed · turn on Automatic sync'
+            : 'Feeds refreshed · enter sync passphrase in Settings',
+      )
       window.setTimeout(() => setPriceMsg(null), 4500)
       return
     }
@@ -167,7 +176,7 @@ export function AppShell() {
       setPriceMsg(st.message ?? 'Devices synced')
     }
     window.setTimeout(() => setPriceMsg(null), 4500)
-  }, [])
+  }, [refreshPrices, refreshFx])
 
   return (
     <div className="app-shell">

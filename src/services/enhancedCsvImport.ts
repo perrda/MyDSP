@@ -416,3 +416,94 @@ export function analyzeImportData(
     topCategories,
   }
 }
+
+export interface EnhancedParsedRow {
+  date: string
+  description: string
+  amount: number
+  category: string
+  selected: boolean
+  isIncome: boolean
+}
+
+function parseUkDate(dateStr: string): string {
+  const cleaned = (dateStr || '').trim()
+  if (!cleaned) return ''
+  const iso = new Date(cleaned)
+  if (!Number.isNaN(iso.getTime())) return iso.toISOString().slice(0, 10)
+  const parts = cleaned.split(/[/\-.\s]+/)
+  if (parts.length >= 3) {
+    const months: Record<string, string> = {
+      jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06',
+      jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12',
+    }
+    const mon = months[parts[1].toLowerCase().slice(0, 3)]
+    if (mon) {
+      const day = parts[0].padStart(2, '0')
+      const year = parts[2].length === 2 ? `20${parts[2]}` : parts[2]
+      return `${year}-${mon}-${day}`
+    }
+    if (parts[0].length <= 2) {
+      const uk = new Date(`${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`)
+      if (!Number.isNaN(uk.getTime())) return uk.toISOString().slice(0, 10)
+    }
+  }
+  return cleaned
+}
+
+/**
+ * Convert already-split CSV objects into import rows using bank preset mapping.
+ * Handles separate debit/credit columns (Lloyds, Nationwide).
+ */
+export function parseRowsWithBankPreset(
+  rows: Record<string, string>[],
+  headers: string[],
+  preset: BankPreset,
+  resolveCategory: (description: string) => string = () => 'Other',
+): EnhancedParsedRow[] {
+  const mapping = autoMapColumns(headers, preset)
+  const out: EnhancedParsedRow[] = []
+
+  for (const row of rows) {
+    const dateRaw = mapping.date ? row[mapping.date] || '' : ''
+    const description = (mapping.description ? row[mapping.description] || '' : '').trim() || 'Transaction'
+    let signed = 0
+
+    if (preset.amountConvention === 'separate_columns') {
+      const debitRaw = mapping.amountDebit ? row[mapping.amountDebit] || '' : ''
+      const creditRaw = mapping.amountCredit ? row[mapping.amountCredit] || '' : ''
+      const debit = parseFloat(String(debitRaw).replace(/[£$€,\s]/g, '')) || 0
+      const credit = parseFloat(String(creditRaw).replace(/[£$€,\s]/g, '')) || 0
+      if (debit === 0 && credit === 0) continue
+      // Internal sign: expenses negative, income positive
+      signed = credit - debit
+    } else if (mapping.amount) {
+      const raw = parseFloat(String(row[mapping.amount] || '0').replace(/[£$€,\s]/g, ''))
+      if (!Number.isFinite(raw) || raw === 0) continue
+      if (preset.amountConvention === 'positive_expense') {
+        signed = -raw
+      } else {
+        signed = raw
+      }
+    } else {
+      continue
+    }
+
+    const isIncome = signed > 0
+    const category =
+      mapping.category && row[mapping.category]
+        ? String(row[mapping.category]).trim() || resolveCategory(description)
+        : resolveCategory(description)
+
+    out.push({
+      date: parseUkDate(dateRaw),
+      description,
+      amount: Math.abs(signed),
+      category,
+      selected: !isIncome,
+      isIncome,
+    })
+  }
+
+  return out
+}

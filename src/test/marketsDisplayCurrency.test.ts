@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { setDisplayCurrency, formatGBPMarket, formatGBPPrecise } from '../utils/format'
+import { setDisplayCurrency, formatGBPMarket, formatGBPPrecise, formatNativeCurrency } from '../utils/format'
 
 describe('formatGBPMarket display currency', () => {
   it('converts small crypto GBP prints to USD with extra decimals', () => {
@@ -24,5 +24,17 @@ describe('formatGBPMarket display currency', () => {
     expect(btc).toMatch(/US\$|\$/)
     expect(btc).not.toMatch(/£/)
     expect(btc).toMatch(/62,500/)
+  })
+})
+
+describe('formatNativeCurrency', () => {
+  it('defaults to 2 decimal places for GBP/USD', () => {
+    expect(formatNativeCurrency(12.5, 'GBP')).toMatch(/12\.50/)
+    expect(formatNativeCurrency(12.5, 'USD')).toMatch(/12\.50/)
+  })
+
+  it('uses 0 decimals for JPY and KRW', () => {
+    expect(formatNativeCurrency(1234.6, 'JPY')).toMatch(/1,235|1235/)
+    expect(formatNativeCurrency(1234.6, 'KRW')).not.toMatch(/\.\d/)
   })
 })

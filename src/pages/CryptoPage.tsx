@@ -1,7 +1,10 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { ArrowUpDown, Coins } from 'lucide-react'
 import { AllocationRing } from '../components/charts/AllocationRing'
 import { PortfolioSeriesChart } from '../components/charts/PortfolioSeriesChart'
+import { EmptyState } from '../components/ui/EmptyState'
+import { OverflowMenu } from '../components/ui/OverflowMenu'
 import { PageHeader } from '../components/ui/PageHeader'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
 import { TradeModal } from '../components/ui/TradeModal'
@@ -33,6 +36,7 @@ export function CryptoPage() {
   const [deleteId, setDeleteId] = useState<number | null>(null)
   const [tradeFor, setTradeFor] = useState<CryptoHolding | null>(null)
   const [tradeSide, setTradeSide] = useState<'buy' | 'sell'>('buy')
+  const [sorting, setSorting] = useState(false)
 
   const holdings = useMemo(() => sortBySortOrder(data.crypto), [data.crypto])
 
@@ -101,11 +105,27 @@ export function CryptoPage() {
       <PageHeader
         eyebrow="Holdings"
         title="Crypto portfolio"
-        description="Drag ⋮⋮ to reorder holdings (saved). Totals respect include/exclude."
+        description={
+          sorting
+            ? 'Drag ⋮⋮ to reorder — order is saved with this portfolio.'
+            : 'Tap Sort to rearrange. Totals respect include/exclude.'
+        }
         action={
-          <button type="button" className="btn-primary btn-sm" onClick={openCreate}>
-            Add crypto
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className={`btn-secondary btn-sm inline-flex items-center gap-2 ${sorting ? 'border-accent text-accent' : ''}`}
+              aria-pressed={sorting}
+              disabled={holdings.length === 0}
+              onClick={() => setSorting((v) => !v)}
+            >
+              <ArrowUpDown size={14} strokeWidth={1.75} />
+              {sorting ? 'Done' : 'Sort'}
+            </button>
+            <button type="button" className="btn-primary btn-sm" onClick={openCreate}>
+              Add crypto
+            </button>
+          </div>
         }
       />
 
@@ -151,9 +171,12 @@ export function CryptoPage() {
       </div>
 
       {holdings.length === 0 ? (
-        <div className="surface p-12 text-center text-text-subtle">
-          No crypto holdings yet. Click Add crypto.
-        </div>
+        <EmptyState
+          icon={<Coins size={40} strokeWidth={1.25} />}
+          title="No crypto holdings yet"
+          description="Add BTC, ETH, or any coin to track quantity, live price, and P&amp;L."
+          action={{ label: 'Add crypto', onClick: openCreate }}
+        />
       ) : (
         <ReorderList
           items={holdings}
@@ -171,7 +194,7 @@ export function CryptoPage() {
                   included ? '' : 'opacity-50'
                 }`}
               >
-                <ReorderHandle label={`Reorder ${c.symbol}`} />
+                {sorting ? <ReorderHandle label={`Reorder ${c.symbol}`} /> : null}
                 <Link to={`/crypto/${c.id}`} className="min-w-0 flex-1 hover:text-accent transition-colors">
                   <p className="font-semibold text-base">{c.symbol}</p>
                   <p className="text-xs text-text-subtle truncate mt-0.5">{c.name}</p>
@@ -189,43 +212,49 @@ export function CryptoPage() {
                 >
                   {formatPct(c.cost > 0 ? (pnl / c.cost) * 100 : 0)}
                 </p>
-                <div className="flex flex-wrap gap-2 ml-auto md:ml-0">
-                  <button
-                    type="button"
-                    className="btn-primary btn-sm min-h-[44px] md:min-h-[36px]"
-                    onClick={() => {
-                      setTradeFor(c)
-                      setTradeSide('buy')
-                    }}
-                  >
-                    Buy
-                  </button>
-                  <button
-                    type="button"
-                    className="btn-secondary btn-sm min-h-[44px] md:min-h-[36px]"
-                    onClick={() => {
-                      setTradeFor(c)
-                      setTradeSide('sell')
-                    }}
-                  >
-                    Sell
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => toggle(c.id)}
-                    className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 border min-h-[44px] md:min-h-[36px] ${
-                      included ? 'border-accent text-accent' : 'border-border-strong text-text-subtle'
-                    }`}
-                  >
-                    {included ? 'In NW' : 'Off'}
-                  </button>
-                  <button type="button" className="btn-ghost btn-sm min-h-[44px] md:min-h-[36px]" onClick={() => openEdit(c)}>
-                    Edit
-                  </button>
-                  <button type="button" className="btn-ghost btn-sm min-h-[44px] md:min-h-[36px]" onClick={() => setDeleteId(c.id)}>
-                    Delete
-                  </button>
-                </div>
+                <OverflowMenu
+                  label={`More actions for ${c.symbol}`}
+                  className="ml-auto md:ml-0"
+                  leading={
+                    <>
+                      <button
+                        type="button"
+                        className="btn-primary btn-sm min-h-11 md:min-h-9"
+                        onClick={() => {
+                          setTradeFor(c)
+                          setTradeSide('buy')
+                        }}
+                      >
+                        Buy
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-secondary btn-sm min-h-11 md:min-h-9"
+                        onClick={() => {
+                          setTradeFor(c)
+                          setTradeSide('sell')
+                        }}
+                      >
+                        Sell
+                      </button>
+                    </>
+                  }
+                  items={[
+                    {
+                      id: 'nw',
+                      label: included ? 'In net worth' : 'Excluded from NW',
+                      active: included,
+                      onClick: () => toggle(c.id),
+                    },
+                    { id: 'edit', label: 'Edit', onClick: () => openEdit(c) },
+                    {
+                      id: 'delete',
+                      label: 'Delete',
+                      destructive: true,
+                      onClick: () => setDeleteId(c.id),
+                    },
+                  ]}
+                />
               </div>
             )
           }}

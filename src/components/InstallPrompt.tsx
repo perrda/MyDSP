@@ -68,7 +68,7 @@ export function InstallPrompt() {
 
   return (
     <div className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-[max(1rem,env(safe-area-inset-left))] right-[max(1rem,env(safe-area-inset-right))] sm:right-auto z-[1400] max-w-sm surface border border-border-strong border-l-2 border-l-accent px-4 py-3">
-      <p className="text-[10px] font-bold uppercase tracking-widest text-accent mb-1">Install</p>
+      <p className="text-[11px] font-bold uppercase tracking-widest text-accent mb-1">Install</p>
       <p className="text-sm font-semibold mb-1">Add MyDSP to your home screen</p>
       {iosHint ? (
         <p className="text-xs text-text-subtle mb-3 leading-relaxed">

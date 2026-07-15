@@ -2,6 +2,7 @@
 
 const SECURITY_KEY = 'fcc_security'
 const BIOMETRIC_KEY = 'fcc_biometric_cred'
+const LOCKOUT_KEY = 'mydsp_pin_lockout'
 const SALT = 'fcc_secure_salt_2026_v2'
 const MAX_ATTEMPTS = 5
 const LOCKOUT_MS = 30_000
@@ -65,32 +66,56 @@ export async function hashPin(pin: string): Promise<string> {
 
 export async function verifyPin(pin: string, hash: string): Promise<boolean> {
   if (!hash) return false
+  if (!/^\d{4}$/.test(pin)) return false
   const a = await hashPin(pin)
   if (a === hash) return true
   // Legacy fallback compare
   return fallbackHash(pin) === hash
 }
 
-let attempts = 0
-let lockoutUntil = 0
+function readLockout(): { attempts: number; lockoutUntil: number } {
+  try {
+    const raw = sessionStorage.getItem(LOCKOUT_KEY)
+    if (!raw) return { attempts: 0, lockoutUntil: 0 }
+    const parsed = JSON.parse(raw) as { attempts?: number; lockoutUntil?: number }
+    return {
+      attempts: typeof parsed.attempts === 'number' ? parsed.attempts : 0,
+      lockoutUntil: typeof parsed.lockoutUntil === 'number' ? parsed.lockoutUntil : 0,
+    }
+  } catch {
+    return { attempts: 0, lockoutUntil: 0 }
+  }
+}
+
+function writeLockout(attempts: number, lockoutUntil: number): void {
+  try {
+    sessionStorage.setItem(LOCKOUT_KEY, JSON.stringify({ attempts, lockoutUntil }))
+  } catch {
+    /* private mode — in-memory only this session */
+  }
+}
 
 export function getLockoutRemaining(): number {
+  const { lockoutUntil } = readLockout()
   return Math.max(0, lockoutUntil - Date.now())
 }
 
 export function recordFailedAttempt(): { locked: boolean; remainingMs: number } {
-  attempts++
+  const state = readLockout()
+  let attempts = state.attempts + 1
+  let lockoutUntil = state.lockoutUntil
   if (attempts >= MAX_ATTEMPTS) {
     lockoutUntil = Date.now() + LOCKOUT_MS
     attempts = 0
+    writeLockout(attempts, lockoutUntil)
     return { locked: true, remainingMs: LOCKOUT_MS }
   }
+  writeLockout(attempts, lockoutUntil)
   return { locked: false, remainingMs: getLockoutRemaining() }
 }
 
 export function clearAttempts(): void {
-  attempts = 0
-  lockoutUntil = 0
+  writeLockout(0, 0)
 }
 
 export function loadBiometricCred(): string | null {
@@ -119,31 +144,70 @@ function base64ToBuffer(b64: string): ArrayBuffer {
   return bytes.buffer
 }
 
+/** True when WebAuthn platform authenticators are available (HTTPS / secure context). */
+export function isBiometricSupported(): boolean {
+  return (
+    typeof window !== 'undefined' &&
+    window.isSecureContext === true &&
+    typeof window.PublicKeyCredential === 'function'
+  )
+}
+
+/**
+ * Friendly label for the platform authenticator.
+ * iPhone/iPad Safari → Face ID; older Touch ID devices → Touch ID.
+ */
+export function getBiometricLabel(): string {
+  if (typeof navigator === 'undefined') return 'Biometrics'
+  const ua = navigator.userAgent
+  const isIOS = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  if (isIOS) {
+    // iPhone X+ / recent iPad → Face ID; older → Touch ID. UA alone is imperfect;
+    // Face ID is the dominant unlock method on current App Store devices.
+    return 'Face ID'
+  }
+  if (/Macintosh|Mac OS X/i.test(ua)) return 'Touch ID'
+  if (/Windows/i.test(ua)) return 'Windows Hello'
+  if (/Android/i.test(ua)) return 'Biometrics'
+  return 'Biometrics'
+}
+
 export async function registerBiometric(): Promise<boolean> {
-  if (!window.PublicKeyCredential) return false
-  const challenge = crypto.getRandomValues(new Uint8Array(32))
-  const userId = crypto.getRandomValues(new Uint8Array(16))
-  const cred = (await navigator.credentials.create({
-    publicKey: {
-      challenge,
-      rp: { name: 'MyDSP', id: window.location.hostname },
-      user: { id: userId, name: 'mydsp-user', displayName: 'MyDSP' },
-      pubKeyCredParams: [{ type: 'public-key', alg: -7 }],
-      authenticatorSelection: {
-        authenticatorAttachment: 'platform',
-        userVerification: 'required',
+  if (!isBiometricSupported()) return false
+  try {
+    const challenge = crypto.getRandomValues(new Uint8Array(32))
+    const userId = crypto.getRandomValues(new Uint8Array(16))
+    // localhost / 127.0.0.1: omit rp.id so the browser uses the effective domain
+    const host = window.location.hostname
+    const rpId = host === 'localhost' || host === '127.0.0.1' ? undefined : host
+    const cred = (await navigator.credentials.create({
+      publicKey: {
+        challenge,
+        rp: rpId ? { name: 'MyDSP', id: rpId } : { name: 'MyDSP' },
+        user: { id: userId, name: 'mydsp-user', displayName: 'MyDSP' },
+        pubKeyCredParams: [
+          { type: 'public-key', alg: -7 }, // ES256
+          { type: 'public-key', alg: -257 }, // RS256
+        ],
+        authenticatorSelection: {
+          authenticatorAttachment: 'platform',
+          userVerification: 'required',
+          residentKey: 'preferred',
+        },
+        timeout: 60000,
       },
-      timeout: 60000,
-    },
-  })) as PublicKeyCredential | null
-  if (!cred) return false
-  saveBiometricCred(bufferToBase64(cred.rawId))
-  return true
+    })) as PublicKeyCredential | null
+    if (!cred) return false
+    saveBiometricCred(bufferToBase64(cred.rawId))
+    return true
+  } catch {
+    return false
+  }
 }
 
 export async function triggerBiometric(): Promise<boolean> {
   const stored = loadBiometricCred()
-  if (!stored || !window.PublicKeyCredential) return false
+  if (!stored || !isBiometricSupported()) return false
   try {
     const challenge = crypto.getRandomValues(new Uint8Array(32))
     const assertion = await navigator.credentials.get({

@@ -1,8 +1,9 @@
-// Error Boundary component for graceful error handling
+// Error Boundary — branded MyDSP fallback
 
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { logger } from '../utils/logger'
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react'
+import { BrandMark } from './BrandMark'
 
 interface Props {
   children: ReactNode
@@ -34,15 +35,9 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // Log error to our logging system
     logger.error('React Error Boundary caught an error', error, 'ui')
-
-    // Call custom error handler if provided
     this.props.onError?.(error, errorInfo)
-
-    this.setState({
-      errorInfo,
-    })
+    this.setState({ errorInfo })
   }
 
   handleReset = () => {
@@ -59,65 +54,62 @@ export class ErrorBoundary extends Component<Props, State> {
       error: null,
       errorInfo: null,
     })
-    window.location.assign('/')
+    const base = typeof __BASE_PATH__ === 'string' ? __BASE_PATH__ : '/'
+    window.location.assign(base === '/' ? '/' : base)
   }
 
   render() {
     if (this.state.hasError) {
-      // Custom fallback if provided
       if (this.props.fallback) {
         return this.props.fallback
       }
 
-      // Default error UI
       return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
-          <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8">
-            <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 bg-red-100 dark:bg-red-900/30 rounded-full">
-              <AlertTriangle className="w-8 h-8 text-red-600 dark:text-red-400" />
+        <div className="min-h-[100dvh] bg-bg flex items-center justify-center p-6 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
+          <div className="max-w-md w-full border border-border-strong bg-bg-elevated p-8 sm:p-10">
+            <div className="flex justify-center mb-6">
+              <BrandMark size="md" />
             </div>
-            
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white text-center mb-2">
-              Oops! Something went wrong
+            <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 border border-border-strong text-accent">
+              <AlertTriangle className="w-6 h-6" strokeWidth={1.75} />
+            </div>
+
+            <h1 className="text-2xl font-bold tracking-tight text-text text-center mb-2">
+              Something went wrong
             </h1>
-            
-            <p className="text-gray-600 dark:text-gray-400 text-center mb-6">
-              We encountered an unexpected error. Don't worry, your data is safe.
+
+            <p className="text-sm text-text-muted text-center mb-6 font-light leading-relaxed">
+              Don&apos;t worry — your data stays on this device. Try again, or return to Overview.
             </p>
 
-            {import.meta.env.DEV && this.state.error && (
-              <div className="mb-6 p-4 bg-gray-100 dark:bg-gray-700 rounded-lg">
-                <p className="text-sm font-mono text-red-600 dark:text-red-400 mb-2">
-                  {this.state.error.toString()}
-                </p>
-                {this.state.errorInfo && (
-                  <details className="mt-2">
-                    <summary className="text-sm text-gray-600 dark:text-gray-400 cursor-pointer">
-                      Component Stack
-                    </summary>
-                    <pre className="mt-2 text-xs text-gray-600 dark:text-gray-400 overflow-auto max-h-40">
-                      {this.state.errorInfo.componentStack}
-                    </pre>
-                  </details>
-                )}
+            {import.meta.env.DEV && this.state.error ? (
+              <div className="mb-6 p-4 border border-border bg-surface overflow-auto max-h-40">
+                <p className="text-xs font-mono text-accent mb-2">{this.state.error.toString()}</p>
+                {this.state.errorInfo ? (
+                  <pre className="text-[10px] text-text-subtle whitespace-pre-wrap">
+                    {this.state.errorInfo.componentStack}
+                  </pre>
+                ) : null}
               </div>
-            )}
+            ) : null}
 
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
               <button
+                type="button"
                 onClick={this.handleReset}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                className="btn-primary flex-1 inline-flex items-center justify-center gap-2 min-h-12"
               >
-                <RefreshCw className="w-4 h-4" />
-                Try Again
+                <RefreshCw className="w-4 h-4" strokeWidth={1.75} />
+                Try again
               </button>
-              
+
               <button
+                type="button"
                 onClick={this.handleGoHome}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
+                className="btn-secondary flex-1 inline-flex items-center justify-center gap-2 min-h-12"
               >
-                <Home className="w-4 h-4" />
-                Go Home
+                <Home className="w-4 h-4" strokeWidth={1.75} />
+                Go home
               </button>
             </div>
           </div>
@@ -129,10 +121,9 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 }
 
-// Functional wrapper for easier use
 export function withErrorBoundary<P extends object>(
   Component: React.ComponentType<P>,
-  fallback?: ReactNode
+  fallback?: ReactNode,
 ) {
   return function ErrorBoundaryWrapper(props: P) {
     return (

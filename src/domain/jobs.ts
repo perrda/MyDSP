@@ -442,15 +442,15 @@ export const STATUS_LABELS: Record<JobStatus, string> = {
 }
 
 export const STATUS_COLORS: Record<JobStatus, string> = {
-  wishlist: 'bg-gray-500/10 text-gray-500',
-  researching: 'bg-blue-500/10 text-blue-500',
-  applying: 'bg-cyan-500/10 text-cyan-500',
-  applied: 'bg-purple-500/10 text-purple-500',
-  screening: 'bg-indigo-500/10 text-indigo-500',
-  interviewing: 'bg-amber-500/10 text-amber-500',
-  offer: 'bg-green-500/10 text-green-500',
-  accepted: 'bg-green-600/10 text-green-600',
+  wishlist: 'bg-border/40 text-text-muted',
+  researching: 'bg-accent/10 text-accent',
+  applying: 'bg-amber-500/10 text-amber-500',
+  applied: 'bg-amber-500/15 text-amber-600',
+  screening: 'bg-accent/15 text-accent',
+  interviewing: 'bg-emerald-500/10 text-emerald-500',
+  offer: 'bg-emerald-500/15 text-emerald-600',
+  accepted: 'bg-emerald-600/10 text-emerald-600',
   rejected: 'bg-red-500/10 text-red-500',
-  withdrawn: 'bg-gray-600/10 text-gray-600',
-  archived: 'bg-gray-700/10 text-gray-700',
+  withdrawn: 'bg-border/40 text-text-subtle',
+  archived: 'bg-border/30 text-text-subtle',
 }

@@ -178,17 +178,17 @@ export function DataExportPanel() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold mb-2">Data Export & Reporting</h2>
-        <p className="text-gray-600 dark:text-gray-400">
-          Export your financial data in multiple formats
+        <h2 className="text-xl font-bold tracking-tight mb-1">Export formats</h2>
+        <p className="text-sm text-text-muted font-light">
+          Choose a dataset, then export as PDF or spreadsheet.
         </p>
       </div>
 
       {lastExport && (
-        <div className="bg-green-50 dark:bg-green-900/20 border border-green-300 dark:border-green-700 rounded-lg p-4 flex items-center gap-3">
-          <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
-          <span className="text-green-900 dark:text-green-100">
-            Successfully exported {lastExport.type} as {lastExport.format.toUpperCase()}
+        <div className="bg-emerald-500/10 border border-emerald-500/30 p-4 flex items-center gap-3">
+          <CheckCircle className="w-5 h-5 text-emerald-500" />
+          <span className="text-sm text-text">
+            Exported {lastExport.type} as {lastExport.format.toUpperCase()}
           </span>
         </div>
       )}
@@ -197,11 +197,11 @@ export function DataExportPanel() {
         {exportOptions.map(option => (
           <div
             key={option.type}
-            className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700"
+            className="surface p-6 border border-border"
           >
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <div className="text-blue-600 dark:text-blue-400">
+                <div className="text-accent">
                   {option.icon}
                 </div>
                 <h3 className="font-semibold text-lg">{option.label}</h3>
@@ -212,7 +212,7 @@ export function DataExportPanel() {
               <button
                 onClick={() => handleExport(option.type, 'pdf')}
                 disabled={exporting}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg transition-colors"
+                className="btn-primary flex-1 inline-flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 <Printer className="w-4 h-4" />
                 Export PDF
@@ -221,7 +221,7 @@ export function DataExportPanel() {
               <button
                 onClick={() => handleExport(option.type, 'excel')}
                 disabled={exporting}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded-lg transition-colors"
+                className="btn-secondary flex-1 inline-flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 <Download className="w-4 h-4" />
                 Export Excel/CSV
@@ -231,9 +231,9 @@ export function DataExportPanel() {
         ))}
       </div>
 
-      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-300 dark:border-blue-700 rounded-lg p-4">
-        <p className="text-sm text-blue-900 dark:text-blue-100">
-          <strong>Note:</strong> PDF exports will open in a new window for printing or saving. 
+      <div className="bg-accent/10 border border-accent/20 p-4">
+        <p className="text-sm text-text-muted">
+          <strong className="text-text">Note:</strong> PDF exports will open in a new window for printing or saving. 
           Excel/CSV exports will download directly to your device.
         </p>
       </div>

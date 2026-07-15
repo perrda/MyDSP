@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard,
   Coins,
@@ -104,6 +104,9 @@ function pathsToItems(paths: string[]): NavItem[] {
 export function Sidebar({ open, onClose }: SidebarProps) {
   const [layout, setLayout] = useState<NavLayout>(() => loadNavLayout(DEFAULT_PATHS))
   const [sorting, setSorting] = useState(false)
+  const { pathname, hash } = useLocation()
+  const syncActive = pathname === '/settings' && hash === '#sync'
+  const settingsActive = pathname === '/settings' && hash !== '#sync'
 
   useEffect(() => {
     const sync = () => setLayout(loadNavLayout(DEFAULT_PATHS))
@@ -215,11 +218,11 @@ export function Sidebar({ open, onClose }: SidebarProps) {
               <p className="wordmark text-lg leading-none text-text">
                 M<span className="text-[0.85em] font-semibold tracking-normal">y</span>DSP
               </p>
-              <span className="text-[10px] font-light text-white light:text-black/50 tabular-nums shrink-0">
+              <span className="text-[11px] font-light text-white light:text-black/50 tabular-nums shrink-0">
                 v{__APP_VERSION__}
               </span>
             </div>
-            <p className="label-uppercase mt-1.5 text-[10px]">Personal finance</p>
+            <p className="label-uppercase mt-1.5 text-[11px]">Personal finance</p>
           </div>
           <button
             type="button"
@@ -235,7 +238,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           <NavLink
             to="/settings#sync"
             onClick={onClose}
-            className={({ isActive }) => `nav-link nav-link-flex ${isActive ? 'active' : ''}`}
+            className={`nav-link nav-link-flex ${syncActive ? 'active' : ''}`}
           >
             <RefreshCw size={16} strokeWidth={1.5} />
             Cloud Sync
@@ -244,7 +247,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             to="/settings"
             end
             onClick={onClose}
-            className={({ isActive }) => `nav-link nav-link-flex ${isActive ? 'active' : ''}`}
+            className={`nav-link nav-link-flex ${settingsActive ? 'active' : ''}`}
           >
             <Settings size={16} strokeWidth={1.5} />
             Settings
@@ -252,7 +255,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         </div>
 
         <div className="px-3 pt-3 pb-2 flex items-center justify-between gap-2">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-text-subtle px-2">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-text-subtle px-2">
             Menu
           </p>
           <button

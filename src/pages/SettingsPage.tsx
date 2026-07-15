@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import { DataExportPanel } from '../components/DataExportPanel'
 import { PageHeader } from '../components/ui/PageHeader'
 import { ConfirmDialog } from '../components/ui/Modal'
 import { useSecurity } from '../components/SecurityProvider'
@@ -38,12 +39,20 @@ import {
 } from '../services/sync/syncService'
 import {
   clearBiometricCred,
+  getBiometricLabel,
   hashPin,
+  isBiometricSupported,
   loadSecurity,
   registerBiometric,
   saveSecurity,
+  verifyPin,
   type SecurityState,
 } from '../security/pin'
+import {
+  notificationManager,
+  type NotificationPriority,
+  type NotificationSettings,
+} from '../utils/notifications'
 import {
   clearServiceWorkerCaches,
   createFullBackup,
@@ -136,6 +145,9 @@ export function SettingsPage() {
   const [backfillBusy, setBackfillBusy] = useState(false)
   const [queue, setQueue] = useState<OfflineJob[]>(() => loadOfflineQueue())
   const [sec, setSec] = useState<SecurityState>(() => loadSecurity())
+  const [notifSettings, setNotifSettings] = useState<NotificationSettings>(() =>
+    notificationManager.getSettings(),
+  )
   const [syncCfg, setSyncCfg] = useState(loadSyncConfig)
   const [syncPass, setSyncPass] = useState(() => getSessionSyncPassphrase() ?? '')
   const [autoSyncStatus, setAutoSyncStatus] = useState<AutoSyncStatus>(() => getAutoSyncStatus())
@@ -162,11 +174,12 @@ export function SettingsPage() {
 
   const location = useLocation()
   useEffect(() => {
-    if (location.hash !== '#sync') return
+    if (!location.hash) return
+    const id = location.hash.replace(/^#/, '')
+    if (!id) return
     const scroll = () => {
-      document.getElementById('sync')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
-    // Wait a tick for layout (PWA / iOS)
     const t = window.setTimeout(scroll, 80)
     return () => window.clearTimeout(t)
   }, [location.hash, location.pathname])
@@ -180,6 +193,8 @@ export function SettingsPage() {
   useEffect(() => {
     refreshBackupList()
   }, [])
+
+  useEffect(() => notificationManager.subscribeSettings(setNotifSettings), [])
 
   const flash = (msg: string) => {
     setMessage(msg)
@@ -398,7 +413,7 @@ export function SettingsPage() {
           </p>
           <div className="border border-border p-4 mb-6 max-w-2xl space-y-4">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-text-subtle mb-3">
+              <p className="text-[11px] font-bold uppercase tracking-widest text-text-subtle mb-3">
                 First-time Cloudflare setup
               </p>
               <ol className="text-sm text-text-muted font-light space-y-2 list-decimal pl-5">
@@ -419,7 +434,7 @@ export function SettingsPage() {
               </ol>
             </div>
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-text-subtle mb-3">
+              <p className="text-[11px] font-bold uppercase tracking-widest text-text-subtle mb-3">
                 Connect this device (once)
               </p>
               <ol className="text-sm text-text-muted font-light space-y-2 list-decimal pl-5">
@@ -875,7 +890,7 @@ export function SettingsPage() {
           {queue.length > 0 && (
             <div className="border border-border p-4 mt-6 max-w-2xl">
               <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-text-subtle">
+                <p className="text-[11px] font-bold uppercase tracking-widest text-text-subtle">
                   Offline queue · {queue.length}
                 </p>
                 <div className="flex gap-2">
@@ -990,10 +1005,10 @@ export function SettingsPage() {
                     className="text-sm border border-border/60 rounded-lg p-3 space-y-2"
                   >
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="uppercase text-[10px] tracking-widest text-text-subtle font-bold">
+                      <span className="uppercase text-[11px] tracking-widest text-text-subtle font-bold">
                         {c.collection}
                       </span>
-                      <span className="text-[10px] text-text-subtle">{c.portfolioId}</span>
+                      <span className="text-[11px] text-text-subtle">{c.portfolioId}</span>
                       <span className="font-medium">{c.localLabel}</span>
                       <span className="text-text-subtle">vs</span>
                       <span className="text-text-muted">{c.remoteLabel}</span>
@@ -1306,11 +1321,13 @@ export function SettingsPage() {
           </p>
         </section>
 
-        <section className="surface p-6 sm:p-8">
+        <section className="surface p-6 sm:p-8" id="security">
           <p className="eyebrow mb-3">Security</p>
-          <h3 className="text-lg font-bold tracking-tight mb-3">PIN lock</h3>
+          <h3 className="text-lg font-bold tracking-tight mb-3">PIN &amp; biometrics</h3>
           <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
-            4-digit PIN with optional biometrics and auto-lock. Compatible with FCC security keys.
+            Lock MyDSP with a 4-digit PIN. On iPhone and iPad (HTTPS / Add to Home Screen), unlock
+            with {getBiometricLabel()} via WebAuthn. Security stays on this device and is not
+            included in cloud backups.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 max-w-lg">
             <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle">
@@ -1318,6 +1335,7 @@ export function SettingsPage() {
               <input
                 type="password"
                 inputMode="numeric"
+                autoComplete="off"
                 maxLength={4}
                 className="mt-2"
                 value={pinDraft}
@@ -1329,6 +1347,7 @@ export function SettingsPage() {
               <input
                 type="password"
                 inputMode="numeric"
+                autoComplete="off"
                 maxLength={4}
                 className="mt-2"
                 value={pinConfirm}
@@ -1350,7 +1369,8 @@ export function SettingsPage() {
                   persistSecurity({ ...sec, pinEnabled: true, pinHash })
                   setPinDraft('')
                   setPinConfirm('')
-                  flash('PIN enabled.')
+                  flash('PIN enabled — locking now.')
+                  lock()
                 })()
               }}
             >
@@ -1362,14 +1382,23 @@ export function SettingsPage() {
                   type="button"
                   className="btn-ghost"
                   onClick={() => {
-                    persistSecurity({
-                      ...sec,
-                      pinEnabled: false,
-                      pinHash: '',
-                      biometricEnabled: false,
-                    })
-                    clearBiometricCred()
-                    flash('PIN disabled.')
+                    void (async () => {
+                      const entered = window.prompt('Enter your current 4-digit PIN to disable lock:')
+                      if (entered == null) return
+                      const ok = await verifyPin(entered.trim(), sec.pinHash)
+                      if (!ok) {
+                        flash('Incorrect PIN — lock not disabled.')
+                        return
+                      }
+                      persistSecurity({
+                        ...sec,
+                        pinEnabled: false,
+                        pinHash: '',
+                        biometricEnabled: false,
+                      })
+                      clearBiometricCred()
+                      flash('PIN disabled.')
+                    })()
                   }}
                 >
                   Disable PIN
@@ -1384,7 +1413,7 @@ export function SettingsPage() {
             Auto-lock (minutes)
           </label>
           <select
-            className="max-w-xs mb-6"
+            className="max-w-xs mb-2"
             value={sec.autoLockMinutes}
             onChange={(e) => {
               const autoLockMinutes = Number(e.target.value)
@@ -1394,30 +1423,149 @@ export function SettingsPage() {
           >
             {[0, 1, 5, 15, 30].map((m) => (
               <option key={m} value={m}>
-                {m === 0 ? 'Off' : `${m} min`}
+                {m === 0 ? 'Off (manual lock only)' : `${m} min`}
               </option>
             ))}
           </select>
-          <div>
+          <p className="text-xs text-text-subtle mb-6 max-w-xl">
+            When auto-lock is on, MyDSP also locks when you leave the app (iPhone/iPad app switcher).
+          </p>
+          <div className="flex flex-wrap gap-3 items-start">
             <button
               type="button"
               className="btn-secondary"
-              disabled={!sec.pinEnabled}
+              disabled={!sec.pinEnabled || !isBiometricSupported()}
               onClick={() => {
                 void (async () => {
+                  if (!isBiometricSupported()) {
+                    flash('Biometrics need HTTPS (or localhost). Open the installed PWA.')
+                    return
+                  }
                   const ok = await registerBiometric()
                   if (ok) {
                     persistSecurity({ ...sec, biometricEnabled: true })
-                    flash('Biometrics registered.')
-                  } else flash('Biometrics unavailable or cancelled.')
+                    flash(`${getBiometricLabel()} registered.`)
+                  } else flash(`${getBiometricLabel()} unavailable or cancelled.`)
                 })()
               }}
             >
-              {sec.biometricEnabled ? 'Re-register biometrics' : 'Enable biometrics'}
+              {sec.biometricEnabled
+                ? `Re-register ${getBiometricLabel()}`
+                : `Enable ${getBiometricLabel()}`}
             </button>
-            <p className="text-xs text-text-subtle mt-3 max-w-xl">
-              Face ID / Touch ID (WebAuthn) requires a secure context — use an HTTPS PWA host, not
-              plain HTTP LAN.
+            {sec.biometricEnabled ? (
+              <button
+                type="button"
+                className="btn-ghost"
+                onClick={() => {
+                  clearBiometricCred()
+                  persistSecurity({ ...sec, biometricEnabled: false })
+                  flash(`${getBiometricLabel()} disabled.`)
+                }}
+              >
+                Disable {getBiometricLabel()}
+              </button>
+            ) : null}
+          </div>
+          <p className="text-xs text-text-subtle mt-3 max-w-xl">
+            {isBiometricSupported()
+              ? `Tap “Unlock with ${getBiometricLabel()}” on the lock screen (iOS requires a tap — Face ID will not auto-start).`
+              : 'Biometrics unavailable here — use an HTTPS host (e.g. workers.dev) and Add to Home Screen on iPhone/iPad.'}
+          </p>
+        </section>
+
+        <section className="surface p-6 sm:p-8" id="alerts">
+          <p className="eyebrow mb-3">Alerts</p>
+          <h3 className="text-lg font-bold tracking-tight mb-3">Notifications</h3>
+          <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
+            The header bell shows budget and debt alerts. Optional desktop/OS banners fire for new
+            high-priority items (works best on desktop browsers; iOS Safari is limited).
+          </p>
+
+          <div className="space-y-4 max-w-xl">
+            <label className="flex items-center justify-between gap-4 min-h-11">
+              <span className="text-sm font-medium">In-app alerts</span>
+              <input
+                type="checkbox"
+                className="h-5 w-5 accent-[var(--accent)]"
+                checked={notifSettings.enabled}
+                onChange={(e) => {
+                  notificationManager.updateSettings({ enabled: e.target.checked })
+                  flash(e.target.checked ? 'Alerts enabled.' : 'Alerts muted.')
+                }}
+              />
+            </label>
+
+            <label className="flex items-center justify-between gap-4 min-h-11">
+              <span className="text-sm font-medium">Desktop / OS banners</span>
+              <input
+                type="checkbox"
+                className="h-5 w-5 accent-[var(--accent)]"
+                checked={notifSettings.desktopEnabled}
+                onChange={(e) => {
+                  if (e.target.checked) {
+                    void notificationManager.requestDesktopPermission().then((ok) => {
+                      flash(
+                        ok
+                          ? 'Desktop notifications enabled.'
+                          : 'Permission denied — enable notifications in the browser.',
+                      )
+                    })
+                  } else {
+                    notificationManager.updateSettings({ desktopEnabled: false })
+                    flash('Desktop banners off.')
+                  }
+                }}
+              />
+            </label>
+
+            <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle">
+              Minimum priority for banners
+              <select
+                className="mt-2 w-full"
+                value={notifSettings.priorityThreshold}
+                onChange={(e) => {
+                  notificationManager.updateSettings({
+                    priorityThreshold: e.target.value as NotificationPriority,
+                  })
+                  flash('Priority threshold saved.')
+                }}
+              >
+                <option value="low">All (low+)</option>
+                <option value="medium">Medium+</option>
+                <option value="high">High+</option>
+                <option value="critical">Critical only</option>
+              </select>
+            </label>
+
+            <div className="grid grid-cols-2 gap-3">
+              <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle">
+                Quiet hours start
+                <input
+                  type="time"
+                  className="mt-2"
+                  value={notifSettings.quietHoursStart ?? '22:00'}
+                  onChange={(e) => {
+                    notificationManager.updateSettings({ quietHoursStart: e.target.value })
+                  }}
+                  onBlur={() => flash('Quiet hours saved.')}
+                />
+              </label>
+              <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle">
+                Quiet hours end
+                <input
+                  type="time"
+                  className="mt-2"
+                  value={notifSettings.quietHoursEnd ?? '07:00'}
+                  onChange={(e) => {
+                    notificationManager.updateSettings({ quietHoursEnd: e.target.value })
+                  }}
+                  onBlur={() => flash('Quiet hours saved.')}
+                />
+              </label>
+            </div>
+            <p className="text-xs text-text-subtle">
+              Desktop banners are suppressed between these times (overnight ranges supported).
             </p>
           </div>
         </section>
@@ -1964,6 +2112,16 @@ export function SettingsPage() {
               Reload from storage
             </button>
           </div>
+        </section>
+
+        <section className="surface p-6 sm:p-8" id="reports">
+          <p className="eyebrow mb-3">Reports</p>
+          <h3 className="text-lg font-bold tracking-tight mb-2">PDF &amp; spreadsheet exports</h3>
+          <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
+            Print-ready PDFs and CSV downloads for portfolio, spending, goals, jobs, and todos —
+            separate from encrypted full backups above.
+          </p>
+          <DataExportPanel />
         </section>
 
         <section className="surface p-6 sm:p-8" id="versions">

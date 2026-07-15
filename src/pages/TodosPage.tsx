@@ -44,13 +44,13 @@ import { privacyClass, formatDate } from '../utils/format'
 const PRIORITY_COLORS = {
   high: 'border-l-red-500 bg-red-950/10',
   medium: 'border-l-amber-500 bg-amber-950/10',
-  low: 'border-l-blue-500 bg-blue-950/10',
+  low: 'border-l-accent/60 bg-accent/5',
 }
 
 const PRIORITY_TEXT_COLORS = {
   high: 'text-red-500',
   medium: 'text-amber-500',
-  low: 'text-blue-500',
+  low: 'text-accent',
 }
 
 const PRIORITY_CHIP_LABEL: Record<TodoItem['priority'], string> = {
@@ -762,7 +762,7 @@ export function TodosPage() {
                     key: 'low' as const,
                     label: 'Low',
                     title: 'Low',
-                    active: 'bg-blue-500/25 text-blue-400 ring-blue-500/50',
+                    active: 'bg-accent/25 text-accent ring-accent/50',
                   },
                 ] as const
               ).map((chip) => {

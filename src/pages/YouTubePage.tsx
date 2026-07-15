@@ -9,6 +9,7 @@ import {
   Video,
 } from 'lucide-react'
 import { PageHeader } from '../components/ui/PageHeader'
+import { EmptyState, EmptyStateInline } from '../components/ui/EmptyState'
 import { ConfirmDialog, Field, Modal } from '../components/ui/Modal'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
 import { MAX_YOUTUBE_CHANNELS, type YoutubeChannel, type YoutubeVideo } from '../domain/youtube'
@@ -177,7 +178,7 @@ export function YouTubePage() {
             <p className="text-xl sm:text-2xl font-bold tracking-tight text-text mb-1">
               Favourite channels
             </p>
-            <p className="label-uppercase text-[10px] text-text-subtle">
+            <p className="label-uppercase text-[11px] text-text-subtle">
               {sorting ? 'Drag ⋮⋮ to reorder' : 'Full CRUD'}
             </p>
           </div>
@@ -193,9 +194,12 @@ export function YouTubePage() {
         </div>
 
         {channels.length === 0 ? (
-          <p className="px-4 sm:px-5 py-10 text-sm text-text-muted text-center">
-            Add up to {MAX_YOUTUBE_CHANNELS} channels — paste a YouTube URL, @handle, or UC… id.
-          </p>
+          <EmptyState
+            icon={<Video size={40} strokeWidth={1.25} className="text-red-500" />}
+            title="No channels yet"
+            description={`Add up to ${MAX_YOUTUBE_CHANNELS} favourite finance channels. Paste a YouTube URL, @handle, or UC… id — no API key required.`}
+            action={{ label: 'Add channel', onClick: openCreate }}
+          />
         ) : (
           <ReorderList
             items={channels}
@@ -257,18 +261,21 @@ export function YouTubePage() {
       <section className="border border-border bg-bg-elevated mb-6 overflow-hidden">
         <div className="px-4 sm:px-5 pt-4 pb-3 border-b border-border">
           <p className="text-xl sm:text-2xl font-bold tracking-tight text-text mb-1">Latest videos</p>
-          <p className="label-uppercase text-[10px] text-text-subtle tabular-nums">
+          <p className="label-uppercase text-[11px] text-text-subtle tabular-nums">
             {videos.length} from your favourites
           </p>
         </div>
         {videos.length === 0 ? (
-          <p className="px-4 sm:px-5 py-10 text-sm text-text-muted text-center">
-            {refreshing
-              ? 'Loading videos…'
-              : channels.length === 0
-                ? 'Add a channel to see new uploads here.'
-                : 'No videos yet — tap Refresh.'}
-          </p>
+          <EmptyStateInline
+            icon={<Video size={28} strokeWidth={1.25} className="text-red-500" />}
+            message={
+              refreshing
+                ? 'Loading videos…'
+                : channels.length === 0
+                  ? 'Add a channel to see new uploads here.'
+                  : 'No videos yet — use the header refresh to pull latest uploads.'
+            }
+          />
         ) : (
           <ul className="divide-y divide-border">
             {videos.map((v) => (

@@ -192,6 +192,7 @@ export function NewsPage() {
             className={`btn-secondary inline-flex items-center gap-2 ${sorting ? 'border-accent text-accent' : ''}`}
             aria-pressed={sorting}
             onClick={() => setSorting((v) => !v)}
+            disabled={tags.length === 0}
           >
             <ArrowUpDown size={14} strokeWidth={1.75} />
             {sorting ? 'Done' : 'Sort'}
@@ -209,7 +210,7 @@ export function NewsPage() {
         <div className="px-4 sm:px-5 pt-4 pb-3 flex items-start justify-between gap-3 border-b border-border">
           <div className="min-w-0">
             <p className="text-xl sm:text-2xl font-bold tracking-tight text-text mb-1">Top news</p>
-            <p className="label-uppercase text-[10px] text-text-subtle tabular-nums">
+            <p className="label-uppercase text-[11px] text-text-subtle tabular-nums">
               {top.length} headline{top.length === 1 ? '' : 's'} today
             </p>
           </div>
@@ -240,7 +241,7 @@ export function NewsPage() {
         <div className="px-4 sm:px-5 pt-4 pb-3 flex items-start justify-between gap-3 border-b border-border">
           <div className="min-w-0">
             <p className="text-xl sm:text-2xl font-bold tracking-tight text-text mb-1">By ticker</p>
-            <p className="label-uppercase text-[10px] text-text-subtle tabular-nums">
+            <p className="label-uppercase text-[11px] text-text-subtle tabular-nums">
               {tags.length} tag{tags.length === 1 ? '' : 's'} · {taggedFlat.length} stor
               {taggedFlat.length === 1 ? 'y' : 'ies'}
             </p>
@@ -292,7 +293,9 @@ export function NewsPage() {
                 {sorting ? 'Meta-tags · drag ⋮⋮ to reorder' : 'Meta-tags'}
               </p>
               {tags.length === 0 ? (
-                <p className="text-sm text-text-muted mb-3">No tags yet. Add TSLA, BTC, ADA…</p>
+                <p className="text-sm text-text-muted mb-3">
+                  No tags yet. Add tickers like TSLA, BTC, or ADA to filter headlines.
+                </p>
               ) : (
                 <ReorderList
                   items={tags}

@@ -347,7 +347,7 @@ export function MarketsPage() {
           <div className="min-w-0">
             <p className="text-xl sm:text-2xl font-bold tracking-tight text-text mb-1">{meta.title}</p>
             <div className={`flex flex-wrap items-baseline gap-x-3 gap-y-1 ${privacyClass(privacy)}`}>
-              <p className="label-uppercase text-[10px] text-text-subtle tabular-nums">
+              <p className="label-uppercase text-[11px] text-text-subtle tabular-nums">
                 {isRateSection
                   ? items.length > 0
                     ? `${items.length} ${section === 'indices' ? 'index' : 'rate'}${items.length === 1 ? '' : section === 'indices' ? 'es' : 's'}`
@@ -359,7 +359,7 @@ export function MarketsPage() {
                       : '—'}
               </p>
               <p
-                className={`text-[10px] font-medium tabular-nums ${
+                className={`text-[11px] font-medium tabular-nums ${
                   totals.changePct > 0
                     ? 'text-emerald-500'
                     : totals.changePct < 0
@@ -389,7 +389,7 @@ export function MarketsPage() {
           <>
             {items.length === 0 ? (
               <p className="px-4 sm:px-5 py-8 text-sm text-text-muted text-center">
-                No {meta.emptyLabel} items yet.
+                No {meta.emptyLabel} yet — tap Add below to start this section.
               </p>
             ) : (
               <ReorderList
@@ -435,20 +435,20 @@ export function MarketsPage() {
                           {formatLastDisplay(q)}
                         </p>
                         {q && !(q.last > 0) ? (
-                          <p className="text-[10px] text-text-subtle mt-0.5">No live quote</p>
+                          <p className="text-[11px] text-text-subtle mt-0.5">No live quote</p>
                         ) : null}
                         <div className="mt-1 flex flex-col items-end gap-0.5">
                           <ChangeBadge pct={pct} />
                           {(section === 'fx' || section === 'crosses' || section === 'indices') &&
                           q &&
                           q.last > 0 ? (
-                            <span className="text-[10px] text-text-subtle tabular-nums">
+                            <span className="text-[11px] text-text-subtle tabular-nums">
                               {formatMarketChangeAbs(q)}
                             </span>
                           ) : null}
                           {q?.extendedHours ? (
                             <span
-                              className={`inline-flex items-center gap-1 text-[10px] tabular-nums ${
+                              className={`inline-flex items-center gap-1 text-[11px] tabular-nums ${
                                 q.extendedHours.changePct >= 0
                                   ? 'text-emerald-500'
                                   : 'text-red-500'
@@ -468,7 +468,7 @@ export function MarketsPage() {
                       <div className="flex flex-col sm:flex-row gap-1 shrink-0">
                         <button
                           type="button"
-                          className="btn-ghost btn-sm p-2 min-h-9 min-w-9"
+                          className="btn-ghost btn-sm p-2 min-h-11 min-w-11"
                           aria-label={`Edit ${t.symbol}`}
                           onClick={() => openEdit(t)}
                         >
@@ -476,7 +476,7 @@ export function MarketsPage() {
                         </button>
                         <button
                           type="button"
-                          className="btn-ghost btn-sm p-2 min-h-9 min-w-9 text-red-500"
+                          className="btn-ghost btn-sm p-2 min-h-11 min-w-11 text-red-500"
                           aria-label={`Remove ${t.symbol}`}
                           onClick={() => setDeleteId(t.id)}
                         >

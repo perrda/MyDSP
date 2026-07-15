@@ -1,7 +1,10 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { ArrowUpDown, Landmark } from 'lucide-react'
 import { AllocationRing } from '../components/charts/AllocationRing'
 import { PortfolioSeriesChart } from '../components/charts/PortfolioSeriesChart'
+import { EmptyState } from '../components/ui/EmptyState'
+import { OverflowMenu } from '../components/ui/OverflowMenu'
 import { PageHeader } from '../components/ui/PageHeader'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
 import { TradeModal } from '../components/ui/TradeModal'
@@ -37,6 +40,7 @@ export function EquitiesPage() {
   const [deleteId, setDeleteId] = useState<number | null>(null)
   const [tradeFor, setTradeFor] = useState<EquityHolding | null>(null)
   const [tradeSide, setTradeSide] = useState<'buy' | 'sell'>('buy')
+  const [sorting, setSorting] = useState(false)
 
   const holdings = useMemo(() => sortBySortOrder(data.equities), [data.equities])
   const displayCcy = getDisplayCurrency()
@@ -106,11 +110,27 @@ export function EquitiesPage() {
       <PageHeader
         eyebrow="Holdings"
         title="Equity / SIPP"
-        description="Drag ⋮⋮ to reorder holdings (saved). Totals respect include/exclude. Use Buy/Sell for dated trades."
+        description={
+          sorting
+            ? 'Drag ⋮⋮ to reorder — order is saved with this portfolio.'
+            : 'Tap Sort to rearrange. Use Buy/Sell for dated trades.'
+        }
         action={
-          <button type="button" className="btn-primary btn-sm" onClick={openCreate}>
-            Add equity
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className={`btn-secondary btn-sm inline-flex items-center gap-2 ${sorting ? 'border-accent text-accent' : ''}`}
+              aria-pressed={sorting}
+              disabled={holdings.length === 0}
+              onClick={() => setSorting((v) => !v)}
+            >
+              <ArrowUpDown size={14} strokeWidth={1.75} />
+              {sorting ? 'Done' : 'Sort'}
+            </button>
+            <button type="button" className="btn-primary btn-sm" onClick={openCreate}>
+              Add equity
+            </button>
+          </div>
         }
       />
 
@@ -156,9 +176,12 @@ export function EquitiesPage() {
       </div>
 
       {holdings.length === 0 ? (
-        <div className="surface p-12 text-center text-text-subtle rounded-xl md:rounded-none shadow-sm md:shadow-none">
-          No equity holdings yet. Click Add equity.
-        </div>
+        <EmptyState
+          icon={<Landmark size={40} strokeWidth={1.25} />}
+          title="No equity holdings yet"
+          description="Add stocks or ETFs to track shares, cost basis, and live P&amp;L."
+          action={{ label: 'Add equity', onClick: openCreate }}
+        />
       ) : (
         <ReorderList
           items={holdings}
@@ -182,7 +205,7 @@ export function EquitiesPage() {
                   included ? '' : 'opacity-50'
                 }`}
               >
-                <ReorderHandle label={`Reorder ${e.symbol}`} />
+                {sorting ? <ReorderHandle label={`Reorder ${e.symbol}`} /> : null}
                 <Link to={`/equities/${e.id}`} className="min-w-0 flex-1 hover:text-accent transition-colors">
                   <p className="font-semibold text-base">{e.symbol}</p>
                   <p className="text-xs text-text-muted truncate mt-0.5">{e.name}</p>
@@ -193,7 +216,7 @@ export function EquitiesPage() {
                     {formatQty(e.shares)} × {formatGBPPrecise(priceGbp)}
                   </p>
                   {usdSpot != null && displayCcy === 'GBP' && (
-                    <p className="text-[10px] text-text-subtle tabular-nums">
+                    <p className="text-[11px] text-text-subtle tabular-nums">
                       US ${usdSpot.toLocaleString('en-GB', { maximumFractionDigits: 2 })}
                     </p>
                   )}
@@ -205,43 +228,49 @@ export function EquitiesPage() {
                 >
                   {formatPct(cost > 0 ? (pnl / cost) * 100 : 0)}
                 </p>
-                <div className="flex flex-wrap gap-2 ml-auto md:ml-0">
-                  <button
-                    type="button"
-                    className="btn-primary btn-sm min-h-[44px] md:min-h-[36px]"
-                    onClick={() => {
-                      setTradeFor(e)
-                      setTradeSide('buy')
-                    }}
-                  >
-                    Buy
-                  </button>
-                  <button
-                    type="button"
-                    className="btn-secondary btn-sm min-h-[44px] md:min-h-[36px]"
-                    onClick={() => {
-                      setTradeFor(e)
-                      setTradeSide('sell')
-                    }}
-                  >
-                    Sell
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => toggle(e.id)}
-                    className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 border min-h-[44px] md:min-h-[36px] ${
-                      included ? 'border-accent text-accent' : 'border-border-strong text-text-subtle'
-                    }`}
-                  >
-                    {included ? 'In NW' : 'Off'}
-                  </button>
-                  <button type="button" className="btn-ghost btn-sm min-h-[44px] md:min-h-[36px]" onClick={() => openEdit(e)}>
-                    Edit
-                  </button>
-                  <button type="button" className="btn-ghost btn-sm min-h-[44px] md:min-h-[36px]" onClick={() => setDeleteId(e.id)}>
-                    Delete
-                  </button>
-                </div>
+                <OverflowMenu
+                  label={`More actions for ${e.symbol}`}
+                  className="ml-auto md:ml-0"
+                  leading={
+                    <>
+                      <button
+                        type="button"
+                        className="btn-primary btn-sm min-h-11 md:min-h-9"
+                        onClick={() => {
+                          setTradeFor(e)
+                          setTradeSide('buy')
+                        }}
+                      >
+                        Buy
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-secondary btn-sm min-h-11 md:min-h-9"
+                        onClick={() => {
+                          setTradeFor(e)
+                          setTradeSide('sell')
+                        }}
+                      >
+                        Sell
+                      </button>
+                    </>
+                  }
+                  items={[
+                    {
+                      id: 'nw',
+                      label: included ? 'In net worth' : 'Excluded from NW',
+                      active: included,
+                      onClick: () => toggle(e.id),
+                    },
+                    { id: 'edit', label: 'Edit', onClick: () => openEdit(e) },
+                    {
+                      id: 'delete',
+                      label: 'Delete',
+                      destructive: true,
+                      onClick: () => setDeleteId(e.id),
+                    },
+                  ]}
+                />
               </div>
             )
           }}
