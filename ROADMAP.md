@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.25**
+**Current version: 1.2.26**
 
-## Completed (through v1.2.25)
+## Completed (through v1.2.26)
 
+- Sync chip without Now; Top 10: quote path, sync smoke doc, price alerts fire, tax export labels, broker aliases, Today movers, Glass polish, online queue banner, Compare cache age, Settings search
 - Glass Mode toggle (Settings + toolbar); soft rounded edges via CSS tokens; circular notification badge
 - Collapsible Filters & search on Todos / Jobs / Spending (defaults collapsed; preference persisted)
 - On-launch Overview default + Settings preference (web/tablet/phone)
@@ -40,14 +41,14 @@
 
 ## Next (manual / ongoing)
 
-1. Cross-device sync smoke after deploy (todos + portfolios + Favourites + Markets watchlist)
-2. Deploy quote Worker once: `npm run deploy:quote`
+1. Run `scripts/SYNC_SMOKE.md` after each deploy (todos + portfolios + Favourites + Markets)
+2. Keep quote Worker live: `npm run deploy:quote` when Markets proxies stall
 3. Hard-refresh / reopen PWA so update banner + new SW activate
 
 ## Low priority
 
-- Tune broker aliases from real IBKR/T212/Coinbase exports
-- Remittance-basis notes / deepen non-UK tax packs
+- Tune broker aliases from more real IBKR/T212/Coinbase exports
+- Remittance-basis notes / deepen non-UK tax packs further
 
 ## Parking lot
 
@@ -57,3 +58,4 @@
 - Achievement confetti  
 - Full wash-sale / Form 8949 generation  
 - Todo `recurring` flag — use Recurring transactions / Insights instead  
+- Same-origin SPA+API `/api/quote` on Workers Builds (optional path already probed)

@@ -7,7 +7,7 @@ import {
   buildPortfolioComparison,
   comparisonTotals,
 } from '../domain/portfolioCompare'
-import { applyLastSyncedQuotesToHoldings } from '../domain/lastSyncedHoldings'
+import { applyLastSyncedQuotesToHoldings, lastSyncedHoldingPrices } from '../domain/lastSyncedHoldings'
 import { formatGBP, privacyClass } from '../utils/format'
 import { AllocationRing, type SliceDatum } from '../components/charts/AllocationRing'
 import {
@@ -24,6 +24,18 @@ export function ComparePage() {
   const [selected, setSelected] = useState<string[]>(() => portfolios.map((p) => p.id))
   const [scanToken, setScanToken] = useState(0)
   const [filling, setFilling] = useState(false)
+
+  const cacheAgeLabel = useMemo(() => {
+    const { updatedAt } = lastSyncedHoldingPrices()
+    if (!updatedAt) return null
+    const t = new Date(updatedAt).getTime()
+    if (!Number.isFinite(t)) return null
+    const sec = Math.round((Date.now() - t) / 1000)
+    if (sec < 45) return 'cache · just now'
+    if (sec < 3600) return `cache · ${Math.max(1, Math.round(sec / 60))}m ago`
+    if (sec < 86400) return `cache · ${Math.max(1, Math.round(sec / 3600))}h ago`
+    return `cache · ${Math.max(1, Math.round(sec / 86400))}d ago`
+  }, [scanToken, filling])
 
   const rows = useMemo(() => {
     const all = buildPortfolioComparison()
@@ -107,9 +119,17 @@ export function ComparePage() {
               className="btn-ghost btn-sm"
               disabled={filling || selected.length === 0}
               onClick={fillFromLastSynced}
-              title="Apply last-synced Markets quotes to holdings in selected portfolios"
+              title={
+                cacheAgeLabel
+                  ? `Apply last-synced Markets quotes (${cacheAgeLabel})`
+                  : 'Apply last-synced Markets quotes to holdings in selected portfolios'
+              }
             >
-              {filling ? 'Filling…' : 'Fill from last synced'}
+              {filling
+                ? 'Filling…'
+                : cacheAgeLabel
+                  ? `Fill from last synced (${cacheAgeLabel})`
+                  : 'Fill from last synced'}
             </button>
             <button type="button" className="btn-secondary btn-sm" onClick={refresh}>
               Refresh

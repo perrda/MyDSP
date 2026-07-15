@@ -115,7 +115,7 @@ async function fetchJson<T>(
   }
 }
 
-/** Prefer dedicated quote Worker, then public CORS relays. */
+/** Prefer dedicated quote Worker, then same-origin /api/quote (when wired), then public CORS relays. */
 function proxyCandidatesFor(url: string): string[] {
   const quoteProxyBase = (() => {
     try {
@@ -133,12 +133,23 @@ function proxyCandidatesFor(url: string): string[] {
     }
   })()
 
-  const wrap = (target: string) => [
-    `${quoteProxyBase}/quote?url=${encodeURIComponent(target)}`,
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(target)}`,
-    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(target)}`,
-    `https://corsproxy.io/?${encodeURIComponent(target)}`,
-  ]
+  const sameOriginApi =
+    typeof window !== 'undefined' && window.location?.origin
+      ? `${window.location.origin}/api/quote`
+      : ''
+
+  const wrap = (target: string) => {
+    const encoded = encodeURIComponent(target)
+    const list = [
+      `${quoteProxyBase}/quote?url=${encoded}`,
+      // Same-origin when SPA+API Worker is configured (optional; fails fast if absent)
+      ...(sameOriginApi ? [`${sameOriginApi}?url=${encoded}`] : []),
+      `https://api.allorigins.win/raw?url=${encoded}`,
+      `https://api.codetabs.com/v1/proxy?quest=${encoded}`,
+      `https://corsproxy.io/?${encoded}`,
+    ]
+    return list
+  }
 
   const targets = [url]
   if (url.includes('query1.finance.yahoo.com')) {

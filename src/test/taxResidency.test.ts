@@ -27,6 +27,7 @@ describe('tax jurisdiction packs', () => {
     const pack = getTaxPack('GB')
     expect(pack.matching).toBe('uk-section104')
     expect(pack.yearKind).toBe('uk-apr')
+    expect(pack.exportLabel).toMatch(/UK/)
     expect(getCurrentPackYear(pack, new Date('2026-07-15'))).toBe('2026/27')
     expect(listPackYears(pack)[0]).toMatch(/^\d{4}\/\d{2}$/)
   })
@@ -35,6 +36,7 @@ describe('tax jurisdiction packs', () => {
     const pack = getTaxPack('US')
     expect(pack.yearKind).toBe('calendar')
     expect(pack.rate).toBe(0.15)
+    expect(pack.exportLabel).toMatch(/not Form 8949/)
     expect(getCurrentPackYear(pack, new Date('2026-07-15'))).toBe('2026')
     const matched = matchDisposalsSimple(
       [

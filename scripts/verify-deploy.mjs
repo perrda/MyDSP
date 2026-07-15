@@ -29,6 +29,14 @@ if (!existsSync(dist) || !existsSync(index)) {
 const favicon = join(root, 'public', 'favicon.svg')
 if (!existsSync(favicon)) notes.push('Warning: public/favicon.svg missing')
 
+const syncSmoke = join(root, 'scripts', 'SYNC_SMOKE.md')
+if (!existsSync(syncSmoke)) notes.push('Warning: scripts/SYNC_SMOKE.md missing')
+
+const quoteToml = join(root, 'quote-endpoint', 'wrangler.toml')
+if (existsSync(quoteToml)) {
+  notes.push('Quote Worker project present — deploy once with: npm run deploy:quote')
+}
+
 console.log(`MyDSP v${pkg.version} — deploy verify`)
 for (const n of notes) console.log(`  · ${n}`)
 
@@ -42,15 +50,17 @@ console.log(`
 OK — ready to deploy.
 
   Live Worker (production):  https://mydspv1.dave-perry.workers.dev
+  Quote Worker (Markets):    https://mydsp-quote.dave-perry.workers.dev
   Sync Worker (if used):     see Settings → Cloud Sync / DEPLOY.md
 
-  Deploy app:   npm run deploy
-  Deploy sync:  npm run deploy:sync
+  Deploy app:    npm run deploy
+  Deploy sync:   npm run deploy:sync
+  Deploy quote:  npm run deploy:quote
 
-  After deploy, smoke on iPhone:
-    1. Hard-refresh / re-open PWA
-    2. Sort grips on Crypto, header bell, Settings → Alerts
-    3. Tax nav label matches residency
-    4. Pull-to-refresh + Face ID lock
+  After deploy:
+    1. Hard-refresh / re-open PWA (update banner → Reload)
+    2. Cross-device sync smoke — see scripts/SYNC_SMOKE.md
+    3. Markets live quotes + header sync chip (no “Now” next to “Synced · Xm ago”)
+    4. Settings search → Sync / Alerts / Glass
 `)
 process.exit(0)

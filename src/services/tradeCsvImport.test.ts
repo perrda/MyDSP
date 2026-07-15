@@ -54,8 +54,8 @@ describe('tradeCsvImport', () => {
     expect(r.errors.some((e) => e.includes('skipped'))).toBe(true)
   })
 
-  it('parses IBKR sample fixture with US date order', () => {
-    const csv = loadFixture('broker-ibkr-TSLA.csv')
+  it('parses IBKR Flex-style Trade Price / IBCommission aliases', () => {
+    const csv = loadFixture('broker-ibkr-flex-TSLA.csv')
     const headers = csv
       .split(/\r?\n/)
       .find((l) => l.trim() && !l.trim().startsWith('#'))!
@@ -64,9 +64,10 @@ describe('tradeCsvImport', () => {
     expect(detectBrokerPreset(headers).id).toBe('ibkr')
     const r = parseTradeCsv(csv, { kind: 'equity', symbol: 'TSLA', dateOrder: 'mdy' })
     expect(r.broker?.id).toBe('ibkr')
-    expect(r.trades).toHaveLength(3)
-    expect(r.trades.map((t) => t.date)).toEqual(['2024-03-15', '2024-06-02', '2024-11-12'])
-    expect(r.trades[2].side).toBe('sell')
+    expect(r.errors).toEqual([])
+    expect(r.trades).toHaveLength(2)
+    expect(r.trades[0].price).toBe(180.5)
+    expect(r.trades[0].fees).toBe(1)
   })
 
   it('parses Trading 212 sample fixture with UK date order', () => {

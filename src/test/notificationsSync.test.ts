@@ -70,18 +70,27 @@ describe('notificationManager.syncCategory', () => {
     expect(notificationManager.getAll()).toHaveLength(0)
   })
 
-  it('persists notification settings', () => {
-    notificationManager.updateSettings({
-      desktopEnabled: true,
-      quietHoursStart: '23:00',
-      quietHoursEnd: '06:30',
-      priorityThreshold: 'critical',
-    })
-    const raw = localStorage.getItem('mydsp_notification_settings')
-    expect(raw).toBeTruthy()
-    const parsed = JSON.parse(raw!) as { quietHoursStart: string; priorityThreshold: string }
-    expect(parsed.quietHoursStart).toBe('23:00')
-    expect(parsed.priorityThreshold).toBe('critical')
-    expect(notificationManager.getSettings().desktopEnabled).toBe(true)
+  it('clears muted categories from the bell', () => {
+    notificationManager.syncCategory('price-alerts', [
+      {
+        id: 'price-btc',
+        type: 'warning',
+        priority: 'high',
+        title: 'BTC up',
+        message: '+4%',
+      },
+    ])
+    expect(notificationManager.getAll()).toHaveLength(1)
+    notificationManager.updateSettings({ categories: { 'price-alerts': false } })
+    notificationManager.syncCategory('price-alerts', [
+      {
+        id: 'price-btc',
+        type: 'warning',
+        priority: 'high',
+        title: 'BTC up',
+        message: '+4%',
+      },
+    ])
+    expect(notificationManager.getAll()).toHaveLength(0)
   })
 })

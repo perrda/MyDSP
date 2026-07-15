@@ -23,6 +23,8 @@ export interface TaxJurisdictionPack {
   /** False for jurisdictions with no personal CGT (e.g. SG, TH). */
   hasCgt: boolean
   disclaimer: string
+  /** Short label for CSV / PDF export chrome (avoids implying UK SA108 outside GB). */
+  exportLabel: string
 }
 
 const CALENDAR_YEARS = ['2026', '2025', '2024', '2023', '2022'] as const
@@ -44,6 +46,7 @@ const PACKS: Record<string, TaxJurisdictionPack> = {
     hasCgt: true,
     disclaimer:
       'UK CGT with §104 pooling from journal buys. Same-day / B&B heuristics when journal acquisitions exist. Not formal tax advice.',
+    exportLabel: 'UK CGT / SA108 worksheet',
   },
   US: {
     code: 'US',
@@ -54,7 +57,8 @@ const PACKS: Record<string, TaxJurisdictionPack> = {
     allowances: calendarAllowances(0),
     hasCgt: true,
     disclaimer:
-      'Simplified US long-term capital gains at a flat 15% reference rate (no wash-sale / Form 8949). Calendar tax year. Not formal tax advice.',
+      'Simplified US long-term capital gains at a flat 15% reference rate. Short-term ordinary rates, wash-sale, and Form 8949 are not modelled — export the journal for tax software. Calendar tax year. Not formal tax advice.',
+    exportLabel: 'US gains estimate (not Form 8949)',
   },
   IE: {
     code: 'IE',
@@ -65,7 +69,8 @@ const PACKS: Record<string, TaxJurisdictionPack> = {
     allowances: calendarAllowances(1270),
     hasCgt: true,
     disclaimer:
-      'Simplified Irish CGT at 33% with a flat annual exemption reference. Calendar tax year. Not formal tax advice.',
+      'Simplified Irish CGT at 33% with a flat annual exemption reference. Share identification / remittance nuances are not modelled. Calendar tax year. Not formal tax advice.',
+    exportLabel: 'IE CGT estimate export',
   },
   AU: {
     code: 'AU',
@@ -76,7 +81,8 @@ const PACKS: Record<string, TaxJurisdictionPack> = {
     allowances: calendarAllowances(0),
     hasCgt: true,
     disclaimer:
-      'Simplified Australian CGT at a flat reference rate (no 50% discount modelling). Calendar year. Not formal tax advice.',
+      'Simplified Australian CGT at a flat reference rate. The 50% CGT discount for assets held >12 months is not modelled — treat figures as pre-discount estimates. Calendar year. Not formal tax advice.',
+    exportLabel: 'AU CGT estimate (no discount)',
   },
   CA: {
     code: 'CA',
@@ -87,7 +93,8 @@ const PACKS: Record<string, TaxJurisdictionPack> = {
     allowances: calendarAllowances(0),
     hasCgt: true,
     disclaimer:
-      'Simplified Canadian capital gains at a flat reference rate (inclusion rate not modelled). Calendar year. Not formal tax advice.',
+      'Simplified Canadian capital gains at a flat reference rate. Inclusion-rate changes and superficial-loss rules are not modelled. Calendar year. Not formal tax advice.',
+    exportLabel: 'CA gains estimate export',
   },
   SG: {
     code: 'SG',
@@ -99,6 +106,7 @@ const PACKS: Record<string, TaxJurisdictionPack> = {
     hasCgt: false,
     disclaimer:
       'Singapore generally does not levy personal capital gains tax on investment disposals. MyDSP keeps a disposal journal for records only.',
+    exportLabel: 'SG disposal journal',
   },
   TH: {
     code: 'TH',
@@ -109,7 +117,8 @@ const PACKS: Record<string, TaxJurisdictionPack> = {
     allowances: calendarAllowances(0),
     hasCgt: false,
     disclaimer:
-      'Thailand personal capital gains treatment depends on residency and asset class. MyDSP does not compute Thai CGT — journal only.',
+      'Thailand personal capital gains treatment depends on residency and asset class (including remittance-basis considerations for foreign assets). MyDSP does not compute Thai CGT — journal only.',
+    exportLabel: 'TH disposal journal',
   },
   XX: {
     code: 'XX',
@@ -121,6 +130,7 @@ const PACKS: Record<string, TaxJurisdictionPack> = {
     hasCgt: true,
     disclaimer:
       'Generic calendar-year gain/loss tracker with no jurisdiction rate applied. Set a specific residency in Settings when available.',
+    exportLabel: 'Generic gains journal',
   },
 }
 

@@ -1,0 +1,20 @@
+# Cross-device sync smoke (manual)
+
+Run after every production deploy (`npm run deploy` + `npm run deploy:sync` if sync Worker changed).
+
+## Prerequisites
+- Two devices (e.g. Mac Safari/Chrome + iPhone PWA) on the **same** Remote URL + passphrase
+- Automatic sync ON and Remember passphrase ON on both
+
+## Checklist
+1. **Portfolios** — rename active portfolio on device A → within ~30s device B shows the new name (or after pull-to-refresh / Settings → Sync now)
+2. **Favourites** — reorder Favourites / Others on A → B matches after sync
+3. **Markets watchlist** — add a ticker on A only → B keeps its own tickers **and** gains A’s (union merge)
+4. **Todos** — create a todo on A → appears on B; complete on B → done on A
+5. **Jobs** — move a card between columns on A → B reflects status
+6. **Conflicts** — if Conflicts chip appears, open Settings → Sync and resolve (Keep local / Keep remote / Keep all remote)
+7. **Offline queue** — turn airplane mode on A, edit a todo, go online → banner/chip clears after flush; B receives the edit
+8. **Quote Worker** — Markets live prints update (or “Last synced”) without CORS blank rows; if live fails, Confirm `npm run deploy:quote` was run once
+
+## Pass criteria
+All eight steps succeed without clearing site data. If any fail, capture the Sync activity log (Settings → Devices / Sync) before retrying.
