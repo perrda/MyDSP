@@ -20,6 +20,8 @@ import {
   defaultNameForPair,
   formatMarketChangeAbs,
   formatMarketLast,
+  parseRatePair,
+  rateDecimals,
   type MarketAssetKind,
   type MarketQuote,
   type MarketTicker,
@@ -44,6 +46,7 @@ import {
   setMarketsLastRefresh,
   updateMarketTicker,
 } from '../storage/marketsStore'
+import { loadCachedFxRates } from '../services/fx'
 import { formatGBP, formatGBPMarket, formatGBPPrecise, formatPct, privacyClass } from '../utils/format'
 import type { PortfolioData } from '../domain/types'
 
@@ -177,7 +180,7 @@ function namePlaceholder(kind: MarketAssetKind): string {
   return 'Cardano / Bitcoin'
 }
 
-/** Seed missing watchlist prints from portfolio holdings so first paint is never blank. */
+/** Seed missing watchlist prints from portfolio / FX cache so first paint is never blank. */
 function seedQuotesFromPortfolio(
   tickers: MarketTicker[],
   data: PortfolioData,
@@ -185,6 +188,7 @@ function seedQuotesFromPortfolio(
 ): Map<string, MarketQuote> {
   const now = new Date().toISOString()
   const out = new Map(base)
+  const fxRates = loadCachedFxRates()
   for (const t of tickers) {
     if (out.get(t.id)?.last && (out.get(t.id)?.last ?? 0) > 0) continue
     if (t.kind === 'crypto') {
@@ -220,6 +224,29 @@ function seedQuotesFromPortfolio(
           updatedAt: now,
         })
       }
+    } else if (t.kind === 'fx') {
+      const pair = parseRatePair(t.symbol)
+      if (!pair) continue
+      let rate = 0
+      if (pair.base === 'GBP' && (fxRates[pair.quote] ?? 0) > 0) {
+        rate = fxRates[pair.quote]!
+      } else if (pair.quote === 'GBP' && (fxRates[pair.base] ?? 0) > 0) {
+        rate = 1 / fxRates[pair.base]!
+      }
+      if (rate > 0) {
+        out.set(t.id, {
+          symbol: t.symbol,
+          kind: 'fx',
+          last: rate,
+          changeAbs: 0,
+          changePct: 0,
+          sparkline: [],
+          unit: pair.quote,
+          decimals: rateDecimals(pair.quote),
+          source: 'fx-cache',
+          updatedAt: now,
+        })
+      }
     }
   }
   return out
@@ -227,7 +254,11 @@ function seedQuotesFromPortfolio(
 
 function isStaleQuote(q: MarketQuote | undefined): boolean {
   if (!q) return false
-  return q.source.startsWith('stale:') || q.source === 'portfolio'
+  return (
+    q.source.startsWith('stale:') ||
+    q.source === 'portfolio' ||
+    q.source === 'fx-cache'
+  )
 }
 
 export function MarketsPage() {
@@ -662,7 +693,7 @@ export function MarketsPage() {
       <PageHeader
         eyebrow="Watchlist"
         title="Markets"
-        description="Live equities, crypto, indices (S&P 500, Nasdaq, FTSE), FX, and crypto crosses. Auto-refreshes about every 30s; header refresh forces an update. Last synced prices stay visible if a live source is slow."
+        description="Live equities, crypto, indices (S&P 500, Nasdaq, FTSE), FX, and crypto crosses. Auto-refreshes about every 45s; header refresh forces an update. Last synced prices and 7-day sparklines stay visible if a live source is slow."
         action={
           <div className="flex flex-wrap gap-2">
             <button

@@ -115,11 +115,12 @@ async function fetchJson<T>(
   }
 }
 
-async function fetchViaProxies<T>(url: string, timeoutMs = 12000): Promise<T | null> {
+/** Prefer working CORS relays; corsproxy.io often returns HTML interstitial pages. */
+function proxyCandidatesFor(url: string): string[] {
   const wrap = (target: string) => [
-    `https://corsproxy.io/?${encodeURIComponent(target)}`,
     `https://api.allorigins.win/raw?url=${encodeURIComponent(target)}`,
     `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(target)}`,
+    `https://corsproxy.io/?${encodeURIComponent(target)}`,
   ]
 
   const targets = [url]
@@ -127,15 +128,40 @@ async function fetchViaProxies<T>(url: string, timeoutMs = 12000): Promise<T | n
     targets.push(url.replace('query1.finance.yahoo.com', 'query2.finance.yahoo.com'))
   }
 
+  const out: string[] = []
   for (const target of targets) {
-    for (const proxy of wrap(target)) {
-      const { data } = await fetchJson<T>(proxy, timeoutMs)
-      if (data) return data
-    }
-    const direct = await fetchJson<T>(target, timeoutMs)
-    if (direct.data) return direct.data
+    out.push(...wrap(target))
+    out.push(target)
   }
-  return null
+  return out
+}
+
+/**
+ * Race proxy + direct candidates; first valid JSON wins.
+ * Avoids sequential stalls when one relay hangs or returns HTML.
+ */
+async function fetchViaProxies<T>(url: string, timeoutMs = 10000): Promise<T | null> {
+  const candidates = proxyCandidatesFor(url)
+  return new Promise((resolve) => {
+    let remaining = candidates.length
+    let settled = false
+    if (remaining === 0) {
+      resolve(null)
+      return
+    }
+    for (const candidate of candidates) {
+      void fetchJson<T>(candidate, timeoutMs).then(({ data }) => {
+        if (settled) return
+        if (data && typeof data === 'object') {
+          settled = true
+          resolve(data)
+          return
+        }
+        remaining -= 1
+        if (remaining === 0) resolve(null)
+      })
+    }
+  })
 }
 
 /** Prefer direct CoinGecko (CORS *), fall back to proxies on failure / 429. */
@@ -660,6 +686,83 @@ export interface RateMarketQuote {
   source: string
 }
 
+/** ECB daily FX via Frankfurter (CORS) — spot + ~7d sparkline without Yahoo proxies. */
+export async function fetchFrankfurterFxQuote(
+  base: string,
+  quote: string,
+): Promise<RateMarketQuote | null> {
+  const b = base.toUpperCase()
+  const q = quote.toUpperCase()
+  if (b === q) {
+    return {
+      last: 1,
+      previousClose: 1,
+      changeAbs: 0,
+      changePct: 0,
+      sparkline: [1, 1, 1, 1, 1, 1, 1],
+      source: 'frankfurter',
+    }
+  }
+
+  const end = new Date()
+  const start = new Date()
+  start.setUTCDate(start.getUTCDate() - 16)
+  const startIso = start.toISOString().slice(0, 10)
+  const endIso = end.toISOString().slice(0, 10)
+  const path = `${startIso}..${endIso}?from=${encodeURIComponent(b)}&to=${encodeURIComponent(q)}`
+  const urls = [
+    `https://api.frankfurter.app/${path}`,
+    `https://api.frankfurter.dev/v1/${path}`,
+  ]
+
+  let rates: Record<string, Record<string, number>> | undefined
+  for (const url of urls) {
+    const { data } = await fetchJson<{ rates?: Record<string, Record<string, number>> }>(url, 10000)
+    if (data?.rates && Object.keys(data.rates).length > 0) {
+      rates = data.rates
+      break
+    }
+  }
+  if (!rates) return null
+
+  const dates = Object.keys(rates).sort()
+  const closes = dates
+    .map((d) => rates![d]?.[q])
+    .filter((n): n is number => typeof n === 'number' && n > 0)
+  const sparkline = takeLastSparklinePoints(closes, SPARKLINE_DAYS)
+  if (sparkline.length < 1) return null
+
+  const last = sparkline[sparkline.length - 1]!
+  const previousClose =
+    sparkline.length >= 2 ? sparkline[sparkline.length - 2]! : last
+  const changeAbs = last - previousClose
+  const changePct = previousClose > 0 ? (changeAbs / previousClose) * 100 : 0
+
+  return {
+    last,
+    previousClose,
+    changeAbs,
+    changePct,
+    sparkline: sparkline.length > 1 ? sparkline : [],
+    source: 'frankfurter',
+  }
+}
+
+async function fetchExchangerateApiSpot(
+  base: string,
+  quote: string,
+): Promise<number | null> {
+  try {
+    const { data: fx } = await fetchJson<{ rates?: Record<string, number> }>(
+      `https://api.exchangerate-api.com/v4/latest/${encodeURIComponent(base.toUpperCase())}`,
+    )
+    const rate = fx?.rates?.[quote.toUpperCase()]
+    return rate && rate > 0 ? rate : null
+  } catch {
+    return null
+  }
+}
+
 export async function fetchFxPairQuote(base: string, quote: string): Promise<RateMarketQuote | null> {
   const ySym = yahooFxSymbol(base, quote)
   const yahoo = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ySym)}?interval=1d&range=${YAHOO_SPARKLINE_RANGE}`
@@ -678,42 +781,76 @@ export async function fetchFxPairQuote(base: string, quote: string): Promise<Rat
 
   const result = data?.chart?.result?.[0]
   const meta = result?.meta
-  const price = meta?.regularMarketPrice
-  if (!price || !(price > 0)) {
-    // exchangerate-api fallback (spot only)
-    try {
-      const { data: fx } = await fetchJson<{ rates?: Record<string, number> }>(
-        `https://api.exchangerate-api.com/v4/latest/${encodeURIComponent(base.toUpperCase())}`,
-      )
-      const rate = fx?.rates?.[quote.toUpperCase()]
-      if (rate && rate > 0) {
-        return {
-          last: rate,
-          previousClose: rate,
-          changeAbs: 0,
-          changePct: 0,
-          sparkline: [],
-          source: 'exchangerate-api',
-        }
-      }
-    } catch {
-      /* ignore */
-    }
-    return null
-  }
-  const previousClose = meta?.chartPreviousClose || meta?.previousClose || price
-  const changeAbs = price - previousClose
-  const changePct = previousClose > 0 ? (changeAbs / previousClose) * 100 : 0
-  const closes = yahooSparklineFromCloses(result?.indicators?.quote?.[0]?.close || [])
+  const yahooPrice = meta?.regularMarketPrice
+  const yahooSpark = yahooSparklineFromCloses(result?.indicators?.quote?.[0]?.close || [])
 
-  return {
-    last: price,
-    previousClose,
-    changeAbs,
-    changePct,
-    sparkline: closes,
-    source: 'yahoo',
+  if (yahooPrice && yahooPrice > 0 && yahooSpark.length > 1) {
+    const previousClose = meta?.chartPreviousClose || meta?.previousClose || yahooPrice
+    const changeAbs = yahooPrice - previousClose
+    const changePct = previousClose > 0 ? (changeAbs / previousClose) * 100 : 0
+    return {
+      last: yahooPrice,
+      previousClose,
+      changeAbs,
+      changePct,
+      sparkline: yahooSpark,
+      source: 'yahoo',
+    }
   }
+
+  // Frankfurter: CORS daily series (fills spark + day-change when Yahoo proxies fail)
+  const frank = await fetchFrankfurterFxQuote(base, quote)
+  const spot = await fetchExchangerateApiSpot(base, quote)
+
+  if (yahooPrice && yahooPrice > 0) {
+    const previousClose = meta?.chartPreviousClose || meta?.previousClose || yahooPrice
+    let changeAbs = yahooPrice - previousClose
+    let changePct = previousClose > 0 ? (changeAbs / previousClose) * 100 : 0
+    let sparkline = yahooSpark
+    let source = 'yahoo'
+    if (sparkline.length < 2 && frank && frank.sparkline.length > 1) {
+      sparkline = frank.sparkline
+      changeAbs = frank.changeAbs
+      changePct = frank.changePct
+      source = 'yahoo+frankfurter'
+    }
+    return {
+      last: yahooPrice,
+      previousClose,
+      changeAbs,
+      changePct,
+      sparkline,
+      source,
+    }
+  }
+
+  if (spot && spot > 0) {
+    if (frank && frank.sparkline.length > 1) {
+      const previousClose = frank.previousClose > 0 ? frank.previousClose : frank.last
+      const changeAbs = spot - previousClose
+      const changePct = previousClose > 0 ? (changeAbs / previousClose) * 100 : frank.changePct
+      return {
+        last: spot,
+        previousClose,
+        changeAbs,
+        changePct,
+        sparkline: frank.sparkline,
+        source: 'exchangerate-api+frankfurter',
+      }
+    }
+    return {
+      last: spot,
+      previousClose: frank?.last && frank.last > 0 ? frank.last : spot,
+      changeAbs: frank && frank.last > 0 ? spot - frank.last : 0,
+      changePct:
+        frank && frank.last > 0 ? ((spot - frank.last) / frank.last) * 100 : 0,
+      sparkline: frank?.sparkline ?? [],
+      source: frank ? 'exchangerate-api+frankfurter' : 'exchangerate-api',
+    }
+  }
+
+  if (frank && frank.last > 0) return frank
+  return null
 }
 
 /** Index quote (S&P 500, Nasdaq, FTSE) in native points — not converted to GBP. */
@@ -723,7 +860,17 @@ export async function fetchIndexQuote(
 ): Promise<EquityMarketQuoteNative | null> {
   const sym = normalizeYahooEquitySymbol(symbol)
   const yahoo = await fetchYahooChartQuote(sym)
-  if (yahoo && yahoo.price > 0) return yahoo
+  if (yahoo && yahoo.price > 0) {
+    // If Yahoo returned a print but no spark, still try Finnhub candles when keyed
+    if (yahoo.sparkline.length < 2 && finnhubKey.trim()) {
+      const fhSym = finnhubIndexSymbol(sym)
+      if (fhSym) {
+        const spark = await fetchFinnhubSparkline(fhSym, finnhubKey.trim())
+        if (spark.length > 1) return { ...yahoo, sparkline: spark }
+      }
+    }
+    return yahoo
+  }
 
   // Finnhub index symbols (no caret): e.g. ^GSPC → SPX when mapped below
   if (finnhubKey.trim()) {

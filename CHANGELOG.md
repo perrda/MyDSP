@@ -1,5 +1,19 @@
 # MyDSP Changelog
 
+## [1.2.20] - 2026-07-15
+
+### Fixed — Markets last-synced fallback for FX, indices & equities
+- Yahoo CORS: race allorigins / codetabs / corsproxy / query1+query2 in parallel (corsproxy HTML no longer stalls every quote)
+- FX: Frankfurter ECB daily series fills 7-day sparklines + day-change when Yahoo fails; exchangerate-api spot still used for the live print
+- FX / equities / indices: keep last synced price + sparkline + % when a live refresh returns empty
+- Seed blank FX rows from the app FX cache until live data arrives
+- Markets status copy: last synced prices **and** sparklines stay visible
+
+### Version
+- 1.2.19 → **1.2.20**
+
+---
+
 ## [1.2.19] - 2026-07-15
 
 ### Fixed — Markets live quotes & 7-day sparklines
