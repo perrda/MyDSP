@@ -43,7 +43,7 @@ const DEFAULT_SETTINGS: NotificationSettings = {
   soundEnabled: false,
   desktopEnabled: false,
   categories: {},
-  priorityThreshold: 'high',
+  priorityThreshold: 'critical',
   quietHoursStart: '22:00',
   quietHoursEnd: '07:00',
 }
@@ -146,10 +146,11 @@ class NotificationManager {
     this.notifications = [...next, ...kept].slice(0, 100)
     this.notifyListeners()
 
-    // Desktop/OS alert for newly appeared high/critical items only
+    // Desktop/OS alert only for newly appeared *critical* items
+    // (budget overrun, RAG red, high utilisation — mapped from AppAlert severity red).
     for (const n of next) {
       if (previousIds.has(n.id)) continue
-      if (n.priority === 'high' || n.priority === 'critical') {
+      if (n.priority === 'critical') {
         void this.showNotification(n)
       }
     }
@@ -339,129 +340,3 @@ export function notifyReminder(title: string, message: string, actionUrl?: strin
   })
 }
 
-// === SMART NOTIFICATIONS ===
-
-export interface SmartNotificationRule {
-  id: string
-  name: string
-  condition: () => boolean
-  notification: Omit<Notification, 'id' | 'timestamp' | 'read'>
-  cooldown?: number // milliseconds
-  enabled: boolean
-}
-
-class SmartNotificationEngine {
-  private rules: Map<string, SmartNotificationRule> = new Map()
-  private lastTriggered: Map<string, number> = new Map()
-  private checkInterval?: number
-  
-  addRule(rule: SmartNotificationRule): void {
-    this.rules.set(rule.id, rule)
-  }
-  
-  removeRule(id: string): void {
-    this.rules.delete(id)
-  }
-  
-  startMonitoring(intervalMs: number = 60000): void {
-    if (this.checkInterval) {
-      window.clearInterval(this.checkInterval)
-    }
-    
-    this.checkInterval = window.setInterval(() => {
-      this.checkRules()
-    }, intervalMs)
-  }
-  
-  stopMonitoring(): void {
-    if (this.checkInterval) {
-      window.clearInterval(this.checkInterval)
-      this.checkInterval = undefined
-    }
-  }
-  
-  private checkRules(): void {
-    const now = Date.now()
-    
-    this.rules.forEach(rule => {
-      if (!rule.enabled) return
-      
-      // Check cooldown
-      const lastTrigger = this.lastTriggered.get(rule.id) || 0
-      if (rule.cooldown && now - lastTrigger < rule.cooldown) return
-      
-      // Check condition
-      try {
-        if (rule.condition()) {
-          notificationManager.add(rule.notification)
-          this.lastTriggered.set(rule.id, now)
-        }
-      } catch (error) {
-        console.error(`Error checking rule ${rule.id}:`, error)
-      }
-    })
-  }
-}
-
-export const smartNotificationEngine = new SmartNotificationEngine()
-
-// === PRESET NOTIFICATION RULES ===
-
-export function setupFinancialNotifications(data: {
-  getBudgetUsage: (category: string) => number
-  getCreditCardUtilization: () => number
-  getUpcomingGoals: () => number
-}): void {
-  smartNotificationEngine.addRule({
-    id: 'budget-warning',
-    name: 'Budget Warning',
-    condition: () => {
-      const usage = data.getBudgetUsage('total')
-      return usage > 0.8 && usage < 1.0
-    },
-    notification: {
-      type: 'warning',
-      priority: 'medium',
-      title: 'Budget Alert',
-      message: 'You have used 80% of your monthly budget',
-      category: 'budget'
-    },
-    cooldown: 86400000, // 24 hours
-    enabled: true
-  })
-  
-  smartNotificationEngine.addRule({
-    id: 'credit-utilization',
-    name: 'High Credit Utilization',
-    condition: () => {
-      return data.getCreditCardUtilization() > 0.7
-    },
-    notification: {
-      type: 'warning',
-      priority: 'high',
-      title: 'Credit Card Alert',
-      message: 'Credit card utilization is above 70%',
-      category: 'debt'
-    },
-    cooldown: 86400000,
-    enabled: true
-  })
-  
-  smartNotificationEngine.addRule({
-    id: 'upcoming-goals',
-    name: 'Goal Deadline Reminder',
-    condition: () => {
-      return data.getUpcomingGoals() > 0
-    },
-    notification: {
-      type: 'reminder',
-      priority: 'medium',
-      title: 'Goal Deadline Approaching',
-      message: 'You have goals with deadlines in the next 30 days',
-      category: 'goals',
-      actionUrl: '/goals'
-    },
-    cooldown: 604800000, // 7 days
-    enabled: true
-  })
-}

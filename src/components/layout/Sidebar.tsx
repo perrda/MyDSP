@@ -39,6 +39,7 @@ import {
   ArrowUpDown,
   type LucideIcon,
 } from 'lucide-react'
+import { usePortfolio } from '../../context/PortfolioContext'
 import { BrandMark } from '../BrandMark'
 import { ReorderHandle, ReorderList } from '../ui/Reorderable'
 import {
@@ -82,7 +83,7 @@ const DEFAULT_LINKS: NavItem[] = [
   { to: '/fire', label: 'FIRE', icon: Flame },
   { to: '/planning', label: 'Rebalance / MC', icon: LineChart },
   { to: '/achievements', label: 'Achievements', icon: Trophy },
-  { to: '/tax', label: 'UK CGT', icon: Receipt },
+  { to: '/tax', label: 'Capital gains', icon: Receipt },
   { to: '/analytics', label: 'Analytics', icon: BarChart3 },
   { to: '/insights', label: 'Smart Insights', icon: LineChart },
   { to: '/api', label: 'API & Automation', icon: Layers },
@@ -105,6 +106,9 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const [layout, setLayout] = useState<NavLayout>(() => loadNavLayout(DEFAULT_PATHS))
   const [sorting, setSorting] = useState(false)
   const { pathname, hash } = useLocation()
+  const { data } = usePortfolio()
+  const taxLabel =
+    (data.settings.taxResidency || 'GB') === 'GB' ? 'UK CGT' : `Tax (${data.settings.taxResidency})`
   const syncActive = pathname === '/settings' && hash === '#sync'
   const settingsActive = pathname === '/settings' && hash !== '#sync'
 
@@ -157,9 +161,10 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const renderRow = (link: NavItem, zone: 'favourites' | 'others') => {
     const Icon = link.icon
     const isFav = zone === 'favourites'
+    const label = link.to === '/tax' ? taxLabel : link.label
     return (
       <div className={`nav-reorder-item ${sorting ? 'is-sorting' : ''}`}>
-        {sorting ? <ReorderHandle label={`Reorder ${link.label}`} /> : null}
+        {sorting ? <ReorderHandle label={`Reorder ${label}`} /> : null}
         <NavLink
           to={link.to}
           end={link.end}
@@ -167,13 +172,13 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           className={({ isActive }) => `nav-link nav-link-flex ${isActive ? 'active' : ''}`}
         >
           <Icon size={16} strokeWidth={1.5} />
-          {link.label}
+          {label}
         </NavLink>
         {sorting ? (
           <button
             type="button"
             className={`nav-fav-toggle ${isFav ? 'is-fav' : ''}`}
-            aria-label={isFav ? `Remove ${link.label} from Favourites` : `Add ${link.label} to Favourites`}
+            aria-label={isFav ? `Remove ${label} from Favourites` : `Add ${label} to Favourites`}
             title={isFav ? 'Remove from Favourites' : 'Add to Favourites'}
             onClick={(e) => {
               e.preventDefault()

@@ -9,7 +9,7 @@ describe('notificationManager.syncCategory', () => {
       enabled: true,
       soundEnabled: false,
       desktopEnabled: false,
-      priorityThreshold: 'high',
+      priorityThreshold: 'critical',
       quietHoursStart: '22:00',
       quietHoursEnd: '07:00',
       categories: {},

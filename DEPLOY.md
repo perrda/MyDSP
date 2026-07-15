@@ -4,7 +4,24 @@ MyDSP is a static Vite SPA. **GitHub Pages** is the recommended permanent host (
 
 ## Live URL (after setup)
 
-`https://perrda.github.io/MyDSP/`
+- **GitHub Pages:** `https://perrda.github.io/MyDSP/`
+- **Cloudflare Worker (current prod):** `https://mydspv1.dave-perry.workers.dev`
+
+## Cloudflare Worker deploy (primary for this repo)
+
+Requires `wrangler login` once on your machine (this cloud agent cannot hold your CF token).
+
+```bash
+cd ~/AI_Projects/MyDSP   # or this repo
+git pull origin main
+npm ci
+npm run deploy           # build + verify + wrangler deploy → mydspv1
+# optional:
+npm run deploy:sync      # sync-endpoint Worker
+npm run deploy:check     # build + verify only (no auth needed)
+```
+
+After deploy: hard-refresh the PWA / re-open from Home Screen so SW picks up the new build.
 
 ## First-time: push to GitHub + enable Pages
 

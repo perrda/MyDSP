@@ -47,7 +47,7 @@ const titles: Record<string, { eyebrow: string; title: string }> = {
   '/fire': { eyebrow: 'Planning', title: 'FIRE' },
   '/planning': { eyebrow: 'Planning', title: 'Rebalance & Monte Carlo' },
   '/achievements': { eyebrow: 'Progress', title: 'Achievements' },
-  '/tax': { eyebrow: 'Tax', title: 'UK CGT' },
+  '/tax': { eyebrow: 'Tax', title: 'Capital gains' },
   '/analytics': { eyebrow: 'Insights', title: 'Analytics' },
   '/analytics/predictive': { eyebrow: 'Insights', title: 'Predictive Analytics' },
   '/compare': { eyebrow: 'Compare', title: 'Compare Portfolios' },
@@ -61,18 +61,6 @@ const titles: Record<string, { eyebrow: string; title: string }> = {
 export function AppShell() {
   const [open, setOpen] = useState(false)
   const { pathname } = useLocation()
-  const meta =
-    titles[pathname] ??
-    (pathname.startsWith('/liabilities/')
-      ? { eyebrow: 'Debt', title: 'Liability detail' }
-      : pathname.startsWith('/crypto/')
-        ? { eyebrow: 'Holdings', title: 'Crypto detail' }
-        : pathname.startsWith('/equities/')
-          ? { eyebrow: 'Holdings', title: 'Equity detail' }
-          : pathname.startsWith('/jobs/')
-            ? { eyebrow: 'Career', title: 'Job Application' }
-            : { eyebrow: 'MyDSP', title: 'App' })
-  const [syncCfg, setSyncCfg] = useState(() => loadSyncConfig())
   const {
     portfolios,
     activeId,
@@ -86,6 +74,29 @@ export function AppShell() {
     setCurrency,
     refreshFx,
   } = usePortfolio()
+
+  const meta = (() => {
+    if (pathname === '/tax') {
+      const residency = data.settings.taxResidency || 'GB'
+      return {
+        eyebrow: 'Tax',
+        title: residency === 'GB' ? 'UK CGT' : `Capital gains (${residency})`,
+      }
+    }
+    return (
+      titles[pathname] ??
+      (pathname.startsWith('/liabilities/')
+        ? { eyebrow: 'Debt', title: 'Liability detail' }
+        : pathname.startsWith('/crypto/')
+          ? { eyebrow: 'Holdings', title: 'Crypto detail' }
+          : pathname.startsWith('/equities/')
+            ? { eyebrow: 'Holdings', title: 'Equity detail' }
+            : pathname.startsWith('/jobs/')
+              ? { eyebrow: 'Career', title: 'Job Application' }
+              : { eyebrow: 'MyDSP', title: 'App' })
+    )
+  })()
+  const [syncCfg, setSyncCfg] = useState(() => loadSyncConfig())
   const [priceMsg, setPriceMsg] = useState<string | null>(null)
 
   useEffect(() => {

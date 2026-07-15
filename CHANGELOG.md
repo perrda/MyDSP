@@ -1,5 +1,32 @@
 # MyDSP Changelog
 
+## [1.2.6] - 2026-07-15
+
+### Deploy helpers
+- `npm run deploy` runs build + `scripts/verify-deploy.mjs` before Wrangler
+- `npm run deploy:check` validates `dist/` without Cloudflare auth
+- DEPLOY.md documents Worker URL `https://mydspv1.dave-perry.workers.dev`
+
+### Alerts
+- Desktop/OS banners default to **critical only** (budget overrun, RAG red, high utilisation)
+- Settings copy clarifies iOS limits vs desktop browsers
+
+### Tax residency
+- Sidebar / header titles follow portfolio residency (UK CGT vs Tax (XX))
+- SA108 export hidden for non-GB; UK matching stats labelled as reference
+- Empty/sample portfolios default `taxResidency: 'GB'`
+
+### Cleanup
+- Removed unused UI kits (Skeleton, Collapsible, Progress, KeyboardShortcuts, Loading)
+- Removed orphan hooks/utils + dead SmartNotificationEngine
+- Trimmed Accessibility + PerformanceMonitor to live exports only
+- ROADMAP refreshed for post-1.2.5
+
+### Version
+- 1.2.5 → **1.2.6**
+
+---
+
 ## [1.2.5] - 2026-07-15
 
 ### Improved — Density & alerts
