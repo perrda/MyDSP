@@ -4,6 +4,16 @@ import { notificationManager } from '../utils/notifications'
 describe('notificationManager.syncCategory', () => {
   beforeEach(() => {
     notificationManager.clear()
+    localStorage.removeItem('mydsp_notification_settings')
+    notificationManager.updateSettings({
+      enabled: true,
+      soundEnabled: false,
+      desktopEnabled: false,
+      priorityThreshold: 'high',
+      quietHoursStart: '22:00',
+      quietHoursEnd: '07:00',
+      categories: {},
+    })
   })
 
   it('inserts alerts and preserves read state on re-sync', () => {
@@ -58,5 +68,20 @@ describe('notificationManager.syncCategory', () => {
     ])
     notificationManager.syncCategory('portfolio-alerts', [])
     expect(notificationManager.getAll()).toHaveLength(0)
+  })
+
+  it('persists notification settings', () => {
+    notificationManager.updateSettings({
+      desktopEnabled: true,
+      quietHoursStart: '23:00',
+      quietHoursEnd: '06:30',
+      priorityThreshold: 'critical',
+    })
+    const raw = localStorage.getItem('mydsp_notification_settings')
+    expect(raw).toBeTruthy()
+    const parsed = JSON.parse(raw!) as { quietHoursStart: string; priorityThreshold: string }
+    expect(parsed.quietHoursStart).toBe('23:00')
+    expect(parsed.priorityThreshold).toBe('critical')
+    expect(notificationManager.getSettings().desktopEnabled).toBe(true)
   })
 })

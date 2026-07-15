@@ -183,6 +183,13 @@ export function NotificationCenter() {
                 <p className="text-xs text-text-subtle mt-1">
                   Budget, debt, and goal alerts appear here when something needs attention.
                 </p>
+                <a
+                  href="/settings#alerts"
+                  className="inline-block mt-3 text-xs font-semibold text-accent hover:underline min-h-11 leading-[2.75rem]"
+                  onClick={() => setIsOpen(false)}
+                >
+                  Alert settings
+                </a>
               </div>
             ) : (
               <div className="divide-y divide-border">

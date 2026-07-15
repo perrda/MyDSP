@@ -49,6 +49,11 @@ import {
   type SecurityState,
 } from '../security/pin'
 import {
+  notificationManager,
+  type NotificationPriority,
+  type NotificationSettings,
+} from '../utils/notifications'
+import {
   clearServiceWorkerCaches,
   createFullBackup,
   deleteFullBackup,
@@ -140,6 +145,9 @@ export function SettingsPage() {
   const [backfillBusy, setBackfillBusy] = useState(false)
   const [queue, setQueue] = useState<OfflineJob[]>(() => loadOfflineQueue())
   const [sec, setSec] = useState<SecurityState>(() => loadSecurity())
+  const [notifSettings, setNotifSettings] = useState<NotificationSettings>(() =>
+    notificationManager.getSettings(),
+  )
   const [syncCfg, setSyncCfg] = useState(loadSyncConfig)
   const [syncPass, setSyncPass] = useState(() => getSessionSyncPassphrase() ?? '')
   const [autoSyncStatus, setAutoSyncStatus] = useState<AutoSyncStatus>(() => getAutoSyncStatus())
@@ -166,11 +174,12 @@ export function SettingsPage() {
 
   const location = useLocation()
   useEffect(() => {
-    if (location.hash !== '#sync') return
+    if (!location.hash) return
+    const id = location.hash.replace(/^#/, '')
+    if (!id) return
     const scroll = () => {
-      document.getElementById('sync')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
-    // Wait a tick for layout (PWA / iOS)
     const t = window.setTimeout(scroll, 80)
     return () => window.clearTimeout(t)
   }, [location.hash, location.pathname])
@@ -184,6 +193,8 @@ export function SettingsPage() {
   useEffect(() => {
     refreshBackupList()
   }, [])
+
+  useEffect(() => notificationManager.subscribeSettings(setNotifSettings), [])
 
   const flash = (msg: string) => {
     setMessage(msg)
@@ -1461,6 +1472,102 @@ export function SettingsPage() {
               ? `Tap “Unlock with ${getBiometricLabel()}” on the lock screen (iOS requires a tap — Face ID will not auto-start).`
               : 'Biometrics unavailable here — use an HTTPS host (e.g. workers.dev) and Add to Home Screen on iPhone/iPad.'}
           </p>
+        </section>
+
+        <section className="surface p-6 sm:p-8" id="alerts">
+          <p className="eyebrow mb-3">Alerts</p>
+          <h3 className="text-lg font-bold tracking-tight mb-3">Notifications</h3>
+          <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
+            The header bell shows budget and debt alerts. Optional desktop/OS banners fire for new
+            high-priority items (works best on desktop browsers; iOS Safari is limited).
+          </p>
+
+          <div className="space-y-4 max-w-xl">
+            <label className="flex items-center justify-between gap-4 min-h-11">
+              <span className="text-sm font-medium">In-app alerts</span>
+              <input
+                type="checkbox"
+                className="h-5 w-5 accent-[var(--accent)]"
+                checked={notifSettings.enabled}
+                onChange={(e) => {
+                  notificationManager.updateSettings({ enabled: e.target.checked })
+                  flash(e.target.checked ? 'Alerts enabled.' : 'Alerts muted.')
+                }}
+              />
+            </label>
+
+            <label className="flex items-center justify-between gap-4 min-h-11">
+              <span className="text-sm font-medium">Desktop / OS banners</span>
+              <input
+                type="checkbox"
+                className="h-5 w-5 accent-[var(--accent)]"
+                checked={notifSettings.desktopEnabled}
+                onChange={(e) => {
+                  if (e.target.checked) {
+                    void notificationManager.requestDesktopPermission().then((ok) => {
+                      flash(
+                        ok
+                          ? 'Desktop notifications enabled.'
+                          : 'Permission denied — enable notifications in the browser.',
+                      )
+                    })
+                  } else {
+                    notificationManager.updateSettings({ desktopEnabled: false })
+                    flash('Desktop banners off.')
+                  }
+                }}
+              />
+            </label>
+
+            <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle">
+              Minimum priority for banners
+              <select
+                className="mt-2 w-full"
+                value={notifSettings.priorityThreshold}
+                onChange={(e) => {
+                  notificationManager.updateSettings({
+                    priorityThreshold: e.target.value as NotificationPriority,
+                  })
+                  flash('Priority threshold saved.')
+                }}
+              >
+                <option value="low">All (low+)</option>
+                <option value="medium">Medium+</option>
+                <option value="high">High+</option>
+                <option value="critical">Critical only</option>
+              </select>
+            </label>
+
+            <div className="grid grid-cols-2 gap-3">
+              <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle">
+                Quiet hours start
+                <input
+                  type="time"
+                  className="mt-2"
+                  value={notifSettings.quietHoursStart ?? '22:00'}
+                  onChange={(e) => {
+                    notificationManager.updateSettings({ quietHoursStart: e.target.value })
+                  }}
+                  onBlur={() => flash('Quiet hours saved.')}
+                />
+              </label>
+              <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle">
+                Quiet hours end
+                <input
+                  type="time"
+                  className="mt-2"
+                  value={notifSettings.quietHoursEnd ?? '07:00'}
+                  onChange={(e) => {
+                    notificationManager.updateSettings({ quietHoursEnd: e.target.value })
+                  }}
+                  onBlur={() => flash('Quiet hours saved.')}
+                />
+              </label>
+            </div>
+            <p className="text-xs text-text-subtle">
+              Desktop banners are suppressed between these times (overnight ranges supported).
+            </p>
+          </div>
         </section>
 
         <section className="surface p-6 sm:p-8">

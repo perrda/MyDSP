@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Landmark } from 'lucide-react'
+import { ArrowUpDown, Landmark } from 'lucide-react'
 import { AllocationRing } from '../components/charts/AllocationRing'
 import { PortfolioSeriesChart } from '../components/charts/PortfolioSeriesChart'
 import { EmptyState } from '../components/ui/EmptyState'
@@ -40,6 +40,7 @@ export function EquitiesPage() {
   const [deleteId, setDeleteId] = useState<number | null>(null)
   const [tradeFor, setTradeFor] = useState<EquityHolding | null>(null)
   const [tradeSide, setTradeSide] = useState<'buy' | 'sell'>('buy')
+  const [sorting, setSorting] = useState(false)
 
   const holdings = useMemo(() => sortBySortOrder(data.equities), [data.equities])
   const displayCcy = getDisplayCurrency()
@@ -109,11 +110,27 @@ export function EquitiesPage() {
       <PageHeader
         eyebrow="Holdings"
         title="Equity / SIPP"
-        description="Drag ⋮⋮ to reorder holdings (saved). Totals respect include/exclude. Use Buy/Sell for dated trades."
+        description={
+          sorting
+            ? 'Drag ⋮⋮ to reorder — order is saved with this portfolio.'
+            : 'Tap Sort to rearrange. Use Buy/Sell for dated trades.'
+        }
         action={
-          <button type="button" className="btn-primary btn-sm" onClick={openCreate}>
-            Add equity
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className={`btn-secondary btn-sm inline-flex items-center gap-2 ${sorting ? 'border-accent text-accent' : ''}`}
+              aria-pressed={sorting}
+              disabled={holdings.length === 0}
+              onClick={() => setSorting((v) => !v)}
+            >
+              <ArrowUpDown size={14} strokeWidth={1.75} />
+              {sorting ? 'Done' : 'Sort'}
+            </button>
+            <button type="button" className="btn-primary btn-sm" onClick={openCreate}>
+              Add equity
+            </button>
+          </div>
         }
       />
 
@@ -188,7 +205,7 @@ export function EquitiesPage() {
                   included ? '' : 'opacity-50'
                 }`}
               >
-                <ReorderHandle label={`Reorder ${e.symbol}`} />
+                {sorting ? <ReorderHandle label={`Reorder ${e.symbol}`} /> : null}
                 <Link to={`/equities/${e.id}`} className="min-w-0 flex-1 hover:text-accent transition-colors">
                   <p className="font-semibold text-base">{e.symbol}</p>
                   <p className="text-xs text-text-muted truncate mt-0.5">{e.name}</p>

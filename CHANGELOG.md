@@ -1,5 +1,19 @@
 # MyDSP Changelog
 
+## [1.2.5] - 2026-07-15
+
+### Improved — Density & alerts
+- Crypto / Equities / Goals: **Sort** toggle — reorder handles only while sorting (matches News/YouTube)
+- Holding detail: Buy/Sell stay visible; Import history + Platform fold into **⋯** on phone
+- Settings → **Alerts**: desktop/OS banners, priority threshold, quiet hours (persisted)
+- New high/critical portfolio alerts can raise a desktop banner (when permitted)
+- Notification settings persist in `localStorage`; silent sound stub (no console noise)
+
+### Version
+- 1.2.4 → **1.2.5**
+
+---
+
 ## [1.2.4] - 2026-07-15
 
 ### Improved — Follow-up polish pass

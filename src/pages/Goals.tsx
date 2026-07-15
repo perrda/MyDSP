@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Target } from 'lucide-react'
+import { ArrowUpDown, Target } from 'lucide-react'
 import { EmptyState } from '../components/ui/EmptyState'
 import { PageHeader } from '../components/ui/PageHeader'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
@@ -33,6 +33,7 @@ export function GoalsPage() {
   const [noteGoalId, setNoteGoalId] = useState<number | null>(null)
   const [noteText, setNoteText] = useState('')
   const [editingNote, setEditingNote] = useState<ProgressCommentary | null>(null)
+  const [sorting, setSorting] = useState(false)
 
   const goals = useMemo(() => sortBySortOrder(data.goals), [data.goals])
   const noteGoal = goals.find((g) => g.id === noteGoalId) ?? null
@@ -104,7 +105,11 @@ export function GoalsPage() {
       <PageHeader
         eyebrow="Targets"
         title="Financial goals"
-        description="CRUD goals with RAG, commentary, and drag-reorder. Linked to live portfolio metrics."
+        description={
+          sorting
+            ? 'Drag ⋮⋮ to reorder — order is saved with this portfolio.'
+            : 'Track net-worth, debt, and investment targets with RAG status.'
+        }
         action={
           <div className="flex flex-wrap gap-2">
             <Link to="/liabilities" className="btn-ghost btn-sm">
@@ -113,6 +118,16 @@ export function GoalsPage() {
             <Link to="/fire" className="btn-ghost btn-sm">
               FIRE
             </Link>
+            <button
+              type="button"
+              className={`btn-secondary btn-sm inline-flex items-center gap-2 ${sorting ? 'border-accent text-accent' : ''}`}
+              aria-pressed={sorting}
+              disabled={goals.length === 0}
+              onClick={() => setSorting((v) => !v)}
+            >
+              <ArrowUpDown size={14} strokeWidth={1.75} />
+              {sorting ? 'Done' : 'Sort'}
+            </button>
             <button type="button" className="btn-primary btn-sm" onClick={openCreate}>
               Add goal
             </button>
@@ -141,7 +156,7 @@ export function GoalsPage() {
             return (
               <div className="surface p-5 sm:p-8">
                 <div className="flex gap-3 mb-4">
-                  <ReorderHandle label={`Reorder ${g.name}`} />
+                  {sorting ? <ReorderHandle label={`Reorder ${g.name}`} /> : null}
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2 mb-2">
                       <span className={ragClass(g.ragStatus)}>{ragLabel(g.ragStatus)}</span>

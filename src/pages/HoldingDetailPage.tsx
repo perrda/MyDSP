@@ -3,6 +3,7 @@ import { Link, useLocation, useParams } from 'react-router-dom'
 import { ArrowLeft, ExternalLink } from 'lucide-react'
 import { PortfolioSeriesChart } from '../components/charts/PortfolioSeriesChart'
 import { HoldingPriceChart } from '../components/charts/HoldingPriceChart'
+import { OverflowMenu } from '../components/ui/OverflowMenu'
 import { PageHeader } from '../components/ui/PageHeader'
 import { ConfirmDialog, Field, Modal } from '../components/ui/Modal'
 import { TradeHistoryModal } from '../components/ui/TradeHistoryModal'
@@ -153,7 +154,7 @@ export function HoldingDetailPage() {
       <div className="liability-workspace-bar">
         <Link
           to={isCrypto ? '/crypto' : '/equities'}
-          className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-text-muted hover:text-accent"
+          className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-text-muted hover:text-accent"
         >
           <ArrowLeft size={14} strokeWidth={1.5} /> Back
         </Link>
@@ -165,43 +166,50 @@ export function HoldingDetailPage() {
         title={`${item.symbol} · ${item.name}`}
         description="P&L, dated buys/sells, price history, and commentary."
         action={
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              className="btn-primary btn-sm"
-              onClick={() => {
-                setEditingTrade(null)
-                setTradeSide('buy')
-                setTradeOpen(true)
-              }}
-            >
-              Buy
-            </button>
-            <button
-              type="button"
-              className="btn-secondary btn-sm"
-              onClick={() => {
-                setEditingTrade(null)
-                setTradeSide('sell')
-                setTradeOpen(true)
-              }}
-            >
-              Sell
-            </button>
-            <button type="button" className="btn-ghost btn-sm" onClick={() => setHistoryOpen(true)}>
-              Import history
-            </button>
-            <button
-              type="button"
-              className="btn-ghost btn-sm"
-              onClick={() => {
-                setMeta({ platform: item.platform ?? '', contactUrl: item.contactUrl ?? '' })
-                setMetaOpen(true)
-              }}
-            >
-              Platform / URL
-            </button>
-          </div>
+          <OverflowMenu
+            label={`More actions for ${item.symbol}`}
+            leading={
+              <>
+                <button
+                  type="button"
+                  className="btn-primary btn-sm min-h-11 md:min-h-9"
+                  onClick={() => {
+                    setEditingTrade(null)
+                    setTradeSide('buy')
+                    setTradeOpen(true)
+                  }}
+                >
+                  Buy
+                </button>
+                <button
+                  type="button"
+                  className="btn-secondary btn-sm min-h-11 md:min-h-9"
+                  onClick={() => {
+                    setEditingTrade(null)
+                    setTradeSide('sell')
+                    setTradeOpen(true)
+                  }}
+                >
+                  Sell
+                </button>
+              </>
+            }
+            items={[
+              {
+                id: 'history',
+                label: 'Import history',
+                onClick: () => setHistoryOpen(true),
+              },
+              {
+                id: 'meta',
+                label: 'Platform / URL',
+                onClick: () => {
+                  setMeta({ platform: item.platform ?? '', contactUrl: item.contactUrl ?? '' })
+                  setMetaOpen(true)
+                },
+              },
+            ]}
+          />
         }
       />
 

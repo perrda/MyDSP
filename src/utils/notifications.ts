@@ -36,18 +36,48 @@ export interface NotificationSettings {
   quietHoursEnd?: string // HH:MM
 }
 
+const SETTINGS_KEY = 'mydsp_notification_settings'
+
+const DEFAULT_SETTINGS: NotificationSettings = {
+  enabled: true,
+  soundEnabled: false,
+  desktopEnabled: false,
+  categories: {},
+  priorityThreshold: 'high',
+  quietHoursStart: '22:00',
+  quietHoursEnd: '07:00',
+}
+
+function loadPersistedSettings(): NotificationSettings {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY)
+    if (!raw) return { ...DEFAULT_SETTINGS }
+    const parsed = JSON.parse(raw) as Partial<NotificationSettings>
+    return {
+      ...DEFAULT_SETTINGS,
+      ...parsed,
+      categories: { ...DEFAULT_SETTINGS.categories, ...(parsed.categories ?? {}) },
+    }
+  } catch {
+    return { ...DEFAULT_SETTINGS }
+  }
+}
+
+function persistSettings(settings: NotificationSettings): void {
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings))
+  } catch {
+    /* ignore quota */
+  }
+}
+
 // === NOTIFICATION STORE ===
 
 class NotificationManager {
   private notifications: Notification[] = []
   private listeners: Array<(notifications: Notification[]) => void> = []
-  private settings: NotificationSettings = {
-    enabled: true,
-    soundEnabled: true,
-    desktopEnabled: false,
-    categories: {},
-    priorityThreshold: 'low'
-  }
+  private settings: NotificationSettings = loadPersistedSettings()
+  private settingsListeners: Array<(settings: NotificationSettings) => void> = []
   
   add(notification: Omit<Notification, 'id' | 'timestamp' | 'read'>): Notification {
     const newNotification: Notification = {
@@ -102,6 +132,7 @@ class NotificationManager {
     items: Array<Omit<Notification, 'timestamp' | 'read' | 'category'> & { id: string }>,
   ): void {
     const previous = this.notifications.filter((n) => n.category === category)
+    const previousIds = new Set(previous.map((p) => p.id))
     const kept = this.notifications.filter((n) => n.category !== category)
     const next: Notification[] = items.map((item) => {
       const prev = previous.find((p) => p.id === item.id)
@@ -114,6 +145,14 @@ class NotificationManager {
     })
     this.notifications = [...next, ...kept].slice(0, 100)
     this.notifyListeners()
+
+    // Desktop/OS alert for newly appeared high/critical items only
+    for (const n of next) {
+      if (previousIds.has(n.id)) continue
+      if (n.priority === 'high' || n.priority === 'critical') {
+        void this.showNotification(n)
+      }
+    }
   }
   
   get(id: string): Notification | undefined {
@@ -209,22 +248,13 @@ class NotificationManager {
     return priorityIndex >= thresholdIndex
   }
   
-  private getIconForType(type: NotificationType): string {
-    const icons: Record<NotificationType, string> = {
-      info: '🔵',
-      success: '✅',
-      warning: '⚠️',
-      error: '❌',
-      reminder: '⏰',
-      achievement: '🏆'
-    }
-    return icons[type]
+  private getIconForType(_type: NotificationType): string {
+    // Prefer app icon when available; browsers ignore data URLs inconsistently
+    return '/favicon.svg'
   }
   
-  private playNotificationSound(priority: NotificationPriority): void {
-    // Placeholder for sound playing logic
-    // In a real app, you'd play different sounds for different priorities
-    console.log(`🔊 Playing ${priority} priority notification sound`)
+  private playNotificationSound(_priority: NotificationPriority): void {
+    // Intentionally silent — OS notification + in-app bell are enough
   }
   
   updateSettings(settings: Partial<NotificationSettings>): void {
@@ -235,19 +265,33 @@ class NotificationManager {
         ? { ...this.settings.categories, ...settings.categories }
         : this.settings.categories,
     }
+    persistSettings(this.settings)
+    this.settingsListeners.forEach((l) => l(this.getSettings()))
   }
   
   getSettings(): NotificationSettings {
-    return { ...this.settings }
+    return { ...this.settings, categories: { ...this.settings.categories } }
+  }
+
+  subscribeSettings(listener: (settings: NotificationSettings) => void): () => void {
+    this.settingsListeners.push(listener)
+    return () => {
+      this.settingsListeners = this.settingsListeners.filter((l) => l !== listener)
+    }
   }
   
   async requestDesktopPermission(): Promise<boolean> {
     if (!('Notification' in window)) return false
     
-    if (Notification.permission === 'granted') return true
+    if (Notification.permission === 'granted') {
+      this.updateSettings({ desktopEnabled: true })
+      return true
+    }
     
     const permission = await Notification.requestPermission()
-    return permission === 'granted'
+    const granted = permission === 'granted'
+    this.updateSettings({ desktopEnabled: granted })
+    return granted
   }
 }
 
