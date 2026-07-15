@@ -1,5 +1,19 @@
 # MyDSP Changelog
 
+## [1.2.7] - 2026-07-15
+
+### Improved — To Do Lists picker
+- Replaced horizontal scrolling list chips with a **portfolio-style vertical dropdown**
+- Menu includes **All lists** + every list (icon, colour, count); expands/collapses cleanly
+- **Sort** inside the menu shows drag handles to reorder lists without crowding the page
+- Edit / Delete stay as one-tap icons beside the trigger when a list is selected
+- Touch targets ≥44px; works on phone, tablet, and web
+
+### Version
+- 1.2.6 → **1.2.7**
+
+---
+
 ## [1.2.6] - 2026-07-15
 
 ### Deploy helpers
