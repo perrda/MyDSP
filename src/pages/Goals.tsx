@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Target } from 'lucide-react'
+import { EmptyState } from '../components/ui/EmptyState'
 import { PageHeader } from '../components/ui/PageHeader'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
@@ -119,9 +121,12 @@ export function GoalsPage() {
       />
 
       {goals.length === 0 ? (
-        <div className="surface p-12 text-center text-text-subtle font-light">
-          No goals yet — add a net-worth, debt, or investment target.
-        </div>
+        <EmptyState
+          icon={<Target size={40} strokeWidth={1.25} />}
+          title="No goals yet"
+          description="Set a net-worth, debt, or investment target and track progress with RAG status."
+          action={{ label: 'Add goal', onClick: openCreate }}
+        />
       ) : (
         <ReorderList
           items={goals}
@@ -153,7 +158,7 @@ export function GoalsPage() {
                     <p className="text-2xl font-bold tabular-nums text-accent">{progress.toFixed(0)}%</p>
                   </div>
                 </div>
-                <div className="progress-track mb-4" role="progressbar" aria-valuenow={progress}>
+                <div className="progress-track mb-4" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}>
                   <div className="progress-fill" style={{ width: `${Math.min(progress, 100)}%` }} />
                 </div>
                 <div className={`flex justify-between text-sm mb-4 ${privacyClass(privacy)}`}>

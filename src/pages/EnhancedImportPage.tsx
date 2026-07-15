@@ -191,9 +191,9 @@ export function EnhancedImportPage() {
             />
           </label>
 
-          <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+          <div className="mt-6 p-4 bg-accent/10 border border-accent/20">
             <h4 className="text-sm font-bold mb-2 flex items-center gap-2">
-              <AlertCircle size={16} className="text-blue-500" />
+              <AlertCircle size={16} className="text-accent" />
               Supported Banks
             </h4>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">

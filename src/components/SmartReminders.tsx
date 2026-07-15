@@ -277,7 +277,7 @@ export function RemindersPanel() {
         const colorClass = 
           reminder.priority === 'high' ? 'border-l-red-500 bg-red-500/5' :
           reminder.priority === 'medium' ? 'border-l-amber-500 bg-amber-500/5' :
-          'border-l-blue-500 bg-blue-500/5'
+          'border-l-accent/60 bg-accent/5'
 
         return (
           <div
@@ -289,7 +289,7 @@ export function RemindersPanel() {
               <Icon size={20} className={`flex-shrink-0 mt-0.5 ${
                 reminder.priority === 'high' ? 'text-red-500' :
                 reminder.priority === 'medium' ? 'text-amber-500' :
-                'text-blue-500'
+                'text-accent'
               }`} />
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-sm">{reminder.title}</p>

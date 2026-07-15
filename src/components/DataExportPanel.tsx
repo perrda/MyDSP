@@ -197,11 +197,11 @@ export function DataExportPanel() {
         {exportOptions.map(option => (
           <div
             key={option.type}
-            className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700"
+            className="surface p-6 border border-border"
           >
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <div className="text-blue-600 dark:text-blue-400">
+                <div className="text-accent">
                   {option.icon}
                 </div>
                 <h3 className="font-semibold text-lg">{option.label}</h3>
@@ -212,7 +212,7 @@ export function DataExportPanel() {
               <button
                 onClick={() => handleExport(option.type, 'pdf')}
                 disabled={exporting}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg transition-colors"
+                className="btn-primary flex-1 inline-flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 <Printer className="w-4 h-4" />
                 Export PDF
@@ -221,7 +221,7 @@ export function DataExportPanel() {
               <button
                 onClick={() => handleExport(option.type, 'excel')}
                 disabled={exporting}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded-lg transition-colors"
+                className="btn-secondary flex-1 inline-flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 <Download className="w-4 h-4" />
                 Export Excel/CSV
@@ -231,9 +231,9 @@ export function DataExportPanel() {
         ))}
       </div>
 
-      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-300 dark:border-blue-700 rounded-lg p-4">
-        <p className="text-sm text-blue-900 dark:text-blue-100">
-          <strong>Note:</strong> PDF exports will open in a new window for printing or saving. 
+      <div className="bg-accent/10 border border-accent/20 p-4">
+        <p className="text-sm text-text-muted">
+          <strong className="text-text">Note:</strong> PDF exports will open in a new window for printing or saving. 
           Excel/CSV exports will download directly to your device.
         </p>
       </div>

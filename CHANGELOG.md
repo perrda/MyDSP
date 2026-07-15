@@ -1,5 +1,31 @@
 # MyDSP Changelog
 
+## [1.2.3] - 2026-07-15
+
+### Fixed — Section QA (web / tablet / phone)
+- Header refresh always updates Markets / News / YouTube feeds (even in privacy or throttle mode)
+- Pull-to-refresh refreshes feeds first, then cloud-syncs when configured
+- Budget projections use days elapsed in the selected month (past/future months no longer skew)
+- Disable PIN now requires verifying the current PIN
+- News Sort disabled when there are no tags (matches YouTube)
+
+### Improved — Navigation & shell
+- Mobile bottom nav: Overview · Markets · Spending · Goals · Settings
+- Refresh stays one-tap on phone; More (⋯) holds Privacy / Theme / Search
+- Sidebar Cloud Sync vs Settings active state follows `#sync` hash
+- Job Tracker / CSV Import shell titles; share-card growth averages crypto + equity %
+
+### Improved — Empty states & design tokens
+- Shared EmptyState on Crypto, Equities, Spending, Goals (with CTAs)
+- Brand cleanup: Smart Insights, Predictive Analytics, API Automation, Enhanced Import, Data Export, Jobs kanban, Todos priority — blue/purple → accent / semantic colours
+- Typography floor: bare `10px` labels bumped to `11px`; RAG chips meet 44px touch targets
+- Markets edit/delete touch targets enlarged; native currency defaults to 2 dp (JPY/KRW 0)
+
+### Version
+- 1.2.2 → **1.2.3**
+
+---
+
 ## [1.2.2] - 2026-07-14
 
 ### Fixed — PIN & biometrics (iPhone / iPad)

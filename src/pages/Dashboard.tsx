@@ -255,7 +255,7 @@ export function Dashboard() {
         <PortfolioShareCard
           data={{
             netWorth,
-            monthlyGrowth: crypto.pct + equity.pct,
+            monthlyGrowth: (crypto.pct + equity.pct) / 2,
             portfolioSize: data.crypto.length + data.equities.length,
           }}
         />
@@ -269,7 +269,7 @@ export function Dashboard() {
         </div>
         {recentJournal.length === 0 && recentSpend.length === 0 ? (
           <p className="text-sm text-text-muted font-light py-4">
-            No journal or spending entries yet. Import from FCC or add data as features land.
+            No journal or spending entries yet. Import a bank CSV or add spending to get started.
           </p>
         ) : (
           <ul className="divide-y divide-border">

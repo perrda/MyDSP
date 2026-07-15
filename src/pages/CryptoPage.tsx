@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Coins } from 'lucide-react'
 import { AllocationRing } from '../components/charts/AllocationRing'
 import { PortfolioSeriesChart } from '../components/charts/PortfolioSeriesChart'
+import { EmptyState } from '../components/ui/EmptyState'
 import { PageHeader } from '../components/ui/PageHeader'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
 import { TradeModal } from '../components/ui/TradeModal'
@@ -151,9 +153,12 @@ export function CryptoPage() {
       </div>
 
       {holdings.length === 0 ? (
-        <div className="surface p-12 text-center text-text-subtle">
-          No crypto holdings yet. Click Add crypto.
-        </div>
+        <EmptyState
+          icon={<Coins size={40} strokeWidth={1.25} />}
+          title="No crypto holdings yet"
+          description="Add BTC, ETH, or any coin to track quantity, live price, and P&amp;L."
+          action={{ label: 'Add crypto', onClick: openCreate }}
+        />
       ) : (
         <ReorderList
           items={holdings}
@@ -213,7 +218,7 @@ export function CryptoPage() {
                   <button
                     type="button"
                     onClick={() => toggle(c.id)}
-                    className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 border min-h-[44px] md:min-h-[36px] ${
+                    className={`text-[11px] font-bold uppercase tracking-widest px-2 py-1 border min-h-[44px] md:min-h-[36px] ${
                       included ? 'border-accent text-accent' : 'border-border-strong text-text-subtle'
                     }`}
                   >

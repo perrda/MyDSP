@@ -178,7 +178,7 @@ export function YouTubePage() {
             <p className="text-xl sm:text-2xl font-bold tracking-tight text-text mb-1">
               Favourite channels
             </p>
-            <p className="label-uppercase text-[10px] text-text-subtle">
+            <p className="label-uppercase text-[11px] text-text-subtle">
               {sorting ? 'Drag ⋮⋮ to reorder' : 'Full CRUD'}
             </p>
           </div>
@@ -263,7 +263,7 @@ export function YouTubePage() {
       <section className="border border-border bg-bg-elevated mb-6 overflow-hidden">
         <div className="px-4 sm:px-5 pt-4 pb-3 border-b border-border">
           <p className="text-xl sm:text-2xl font-bold tracking-tight text-text mb-1">Latest videos</p>
-          <p className="label-uppercase text-[10px] text-text-subtle tabular-nums">
+          <p className="label-uppercase text-[11px] text-text-subtle tabular-nums">
             {videos.length} from your favourites
           </p>
         </div>

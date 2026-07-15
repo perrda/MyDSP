@@ -6,7 +6,7 @@ import { PageHeader } from '../components/ui/PageHeader'
 import { Field, Modal, ConfirmDialog, parseNum } from '../components/ui/Modal'
 import { usePortfolio } from '../context/PortfolioContext'
 import { useToasts } from '../components/ToastProvider'
-import { formatMonthLabel, monthKey, parseMonthParam, shiftMonth } from '../domain/monthUtils'
+import { formatMonthLabel, monthKey, parseMonthParam, shiftMonth, daysElapsedInMonth, daysInMonth } from '../domain/monthUtils'
 import { formatGBP, formatGBPPrecise, pct, privacyClass } from '../utils/format'
 
 export function BudgetsPage() {
@@ -62,9 +62,10 @@ export function BudgetsPage() {
         const over = limit > 0 && spent > limit
         const near = limit > 0 && !over && spent / limit >= 0.8
         const remaining = limit - spent
-        const dailyAvg = spent / new Date().getDate()
-        const daysInMonth = new Date(Number(ym.slice(0, 4)), Number(ym.slice(5, 7)), 0).getDate()
-        const projectedTotal = dailyAvg * daysInMonth
+        const dim = daysInMonth(ym)
+        const daysElapsed = daysElapsedInMonth(ym)
+        const dailyAvg = spent / daysElapsed
+        const projectedTotal = dailyAvg * dim
         const onTrack = limit > 0 && projectedTotal <= limit
         return { category, limit, spent, progress, over, near, remaining, dailyAvg, projectedTotal, onTrack }
       })
@@ -154,11 +155,21 @@ export function BudgetsPage() {
         description={`${formatMonthLabel(ym)} · ${rows.length} categories tracked`}
         action={
           <div className="flex flex-wrap gap-2 items-center">
-            <button type="button" className="btn-ghost btn-sm" onClick={() => setYm(shiftMonth(ym, -1))}>
+            <button
+              type="button"
+              className="btn-ghost btn-sm min-h-11"
+              aria-label="Previous month"
+              onClick={() => setYm(shiftMonth(ym, -1))}
+            >
               Prev
             </button>
             <span className="text-sm font-semibold tabular-nums px-1">{ym}</span>
-            <button type="button" className="btn-ghost btn-sm" onClick={() => setYm(shiftMonth(ym, 1))}>
+            <button
+              type="button"
+              className="btn-ghost btn-sm min-h-11"
+              aria-label="Next month"
+              onClick={() => setYm(shiftMonth(ym, 1))}
+            >
               Next
             </button>
             {ym !== monthKey() && (
@@ -329,7 +340,7 @@ export function BudgetsPage() {
                     Daily avg: {formatGBP(r.dailyAvg)}
                   </p>
                   <p className={privacyClass(privacy)}>
-                    Projected: {formatGBP(r.projectedTotal)} {!r.onTrack && '⚠️ Over projection'}
+                    Projected: {formatGBP(r.projectedTotal)} {!r.onTrack && '· Over projection'}
                   </p>
                 </div>
               </>

@@ -44,6 +44,7 @@ import {
   loadSecurity,
   registerBiometric,
   saveSecurity,
+  verifyPin,
   type SecurityState,
 } from '../security/pin'
 import {
@@ -400,7 +401,7 @@ export function SettingsPage() {
           </p>
           <div className="border border-border p-4 mb-6 max-w-2xl space-y-4">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-text-subtle mb-3">
+              <p className="text-[11px] font-bold uppercase tracking-widest text-text-subtle mb-3">
                 First-time Cloudflare setup
               </p>
               <ol className="text-sm text-text-muted font-light space-y-2 list-decimal pl-5">
@@ -421,7 +422,7 @@ export function SettingsPage() {
               </ol>
             </div>
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-text-subtle mb-3">
+              <p className="text-[11px] font-bold uppercase tracking-widest text-text-subtle mb-3">
                 Connect this device (once)
               </p>
               <ol className="text-sm text-text-muted font-light space-y-2 list-decimal pl-5">
@@ -877,7 +878,7 @@ export function SettingsPage() {
           {queue.length > 0 && (
             <div className="border border-border p-4 mt-6 max-w-2xl">
               <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-text-subtle">
+                <p className="text-[11px] font-bold uppercase tracking-widest text-text-subtle">
                   Offline queue · {queue.length}
                 </p>
                 <div className="flex gap-2">
@@ -992,10 +993,10 @@ export function SettingsPage() {
                     className="text-sm border border-border/60 rounded-lg p-3 space-y-2"
                   >
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="uppercase text-[10px] tracking-widest text-text-subtle font-bold">
+                      <span className="uppercase text-[11px] tracking-widest text-text-subtle font-bold">
                         {c.collection}
                       </span>
-                      <span className="text-[10px] text-text-subtle">{c.portfolioId}</span>
+                      <span className="text-[11px] text-text-subtle">{c.portfolioId}</span>
                       <span className="font-medium">{c.localLabel}</span>
                       <span className="text-text-subtle">vs</span>
                       <span className="text-text-muted">{c.remoteLabel}</span>
@@ -1369,14 +1370,23 @@ export function SettingsPage() {
                   type="button"
                   className="btn-ghost"
                   onClick={() => {
-                    persistSecurity({
-                      ...sec,
-                      pinEnabled: false,
-                      pinHash: '',
-                      biometricEnabled: false,
-                    })
-                    clearBiometricCred()
-                    flash('PIN disabled.')
+                    void (async () => {
+                      const entered = window.prompt('Enter your current 4-digit PIN to disable lock:')
+                      if (entered == null) return
+                      const ok = await verifyPin(entered.trim(), sec.pinHash)
+                      if (!ok) {
+                        flash('Incorrect PIN — lock not disabled.')
+                        return
+                      }
+                      persistSecurity({
+                        ...sec,
+                        pinEnabled: false,
+                        pinHash: '',
+                        biometricEnabled: false,
+                      })
+                      clearBiometricCred()
+                      flash('PIN disabled.')
+                    })()
                   }}
                 >
                   Disable PIN

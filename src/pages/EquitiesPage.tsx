@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Landmark } from 'lucide-react'
 import { AllocationRing } from '../components/charts/AllocationRing'
 import { PortfolioSeriesChart } from '../components/charts/PortfolioSeriesChart'
+import { EmptyState } from '../components/ui/EmptyState'
 import { PageHeader } from '../components/ui/PageHeader'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
 import { TradeModal } from '../components/ui/TradeModal'
@@ -156,9 +158,12 @@ export function EquitiesPage() {
       </div>
 
       {holdings.length === 0 ? (
-        <div className="surface p-12 text-center text-text-subtle rounded-xl md:rounded-none shadow-sm md:shadow-none">
-          No equity holdings yet. Click Add equity.
-        </div>
+        <EmptyState
+          icon={<Landmark size={40} strokeWidth={1.25} />}
+          title="No equity holdings yet"
+          description="Add stocks or ETFs to track shares, cost basis, and live P&amp;L."
+          action={{ label: 'Add equity', onClick: openCreate }}
+        />
       ) : (
         <ReorderList
           items={holdings}
@@ -193,7 +198,7 @@ export function EquitiesPage() {
                     {formatQty(e.shares)} × {formatGBPPrecise(priceGbp)}
                   </p>
                   {usdSpot != null && displayCcy === 'GBP' && (
-                    <p className="text-[10px] text-text-subtle tabular-nums">
+                    <p className="text-[11px] text-text-subtle tabular-nums">
                       US ${usdSpot.toLocaleString('en-GB', { maximumFractionDigits: 2 })}
                     </p>
                   )}
@@ -229,7 +234,7 @@ export function EquitiesPage() {
                   <button
                     type="button"
                     onClick={() => toggle(e.id)}
-                    className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 border min-h-[44px] md:min-h-[36px] ${
+                    className={`text-[11px] font-bold uppercase tracking-widest px-2 py-1 border min-h-[44px] md:min-h-[36px] ${
                       included ? 'border-accent text-accent' : 'border-border-strong text-text-subtle'
                     }`}
                   >

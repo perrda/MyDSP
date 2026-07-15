@@ -96,7 +96,7 @@ export function ApiAutomationPage() {
             onClick={() => handleExportJSON('summary')}
             className="flex items-center gap-3 p-4 bg-surface-hover rounded-lg hover:bg-surface transition-colors text-left"
           >
-            <FileJson size={24} className="text-blue-500" />
+            <FileJson size={24} className="text-accent" />
             <div>
               <p className="font-medium">Portfolio Summary</p>
               <p className="text-xs text-text-muted">Net worth, assets, liabilities (JSON)</p>
@@ -132,7 +132,7 @@ export function ApiAutomationPage() {
             onClick={() => handleExportJSON('goals')}
             className="flex items-center gap-3 p-4 bg-surface-hover rounded-lg hover:bg-surface transition-colors text-left"
           >
-            <FileJson size={24} className="text-purple-500" />
+            <FileJson size={24} className="text-accent" />
             <div>
               <p className="font-medium">Goals Progress</p>
               <p className="text-xs text-text-muted">All goals with progress tracking (JSON)</p>
@@ -170,8 +170,8 @@ export function ApiAutomationPage() {
             <div key={i} className="p-4 bg-surface-hover rounded-lg">
               <div className="flex items-start justify-between mb-2">
                 <div className="flex items-center gap-3">
-                  <span className={`text-xs font-mono px-2 py-1 rounded ${
-                    endpoint.method === 'GET' ? 'bg-blue-500/20 text-blue-500' : 'bg-green-500/20 text-green-500'
+                  <span className={`text-xs font-mono px-2 py-1 ${
+                    endpoint.method === 'GET' ? 'bg-accent/20 text-accent' : 'bg-emerald-500/20 text-emerald-500'
                   }`}>
                     {endpoint.method}
                   </span>
@@ -260,7 +260,7 @@ export function ApiAutomationPage() {
           </div>
         </div>
         
-        <div className="mt-4 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+        <div className="mt-4 p-4 bg-accent/10 border border-accent/20">
           <p className="text-sm font-medium mb-2">Coming Soon</p>
           <p className="text-xs text-text-muted">
             Webhook configuration will allow you to integrate MyDSP with external services like 

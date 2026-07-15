@@ -46,10 +46,10 @@ import { applySortOrder, sortBySortOrder } from '../utils/reorder'
 import { formatNativeCurrency, privacyClass } from '../utils/format'
 
 const KANBAN_COLUMNS: Array<{ status: JobStatus[]; title: string; color: string }> = [
-  { status: ['wishlist', 'researching'], title: 'Wishlist', color: 'border-gray-500' },
-  { status: ['applying'], title: 'Applying', color: 'border-blue-500' },
-  { status: ['applied', 'screening'], title: 'Applied', color: 'border-purple-500' },
-  { status: ['interviewing'], title: 'Interviewing', color: 'border-amber-500' },
+  { status: ['wishlist', 'researching'], title: 'Wishlist', color: 'border-border-strong' },
+  { status: ['applying'], title: 'Applying', color: 'border-accent' },
+  { status: ['applied', 'screening'], title: 'Applied', color: 'border-amber-500' },
+  { status: ['interviewing'], title: 'Interviewing', color: 'border-emerald-500' },
   { status: ['offer', 'accepted'], title: 'Offers', color: 'border-green-500' },
   { status: ['rejected', 'withdrawn', 'archived'], title: 'Closed', color: 'border-red-500' },
 ]
@@ -560,7 +560,7 @@ export function JobsPage() {
                 <h3 className="font-bold uppercase text-xs tracking-wider">
                   {column.title} ({column.applications.length})
                 </h3>
-                <p className="text-[10px] text-text-subtle mt-1">
+                <p className="text-[11px] text-text-subtle mt-1">
                   Drag grip to move columns · reorder handle to sort
                 </p>
               </div>

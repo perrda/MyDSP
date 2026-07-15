@@ -14,8 +14,9 @@ interface ToolbarControlsProps {
 }
 
 /**
- * Workspace controls: portfolio + currency always visible;
- * action icons inline on lg+, collapsed into a More menu on phone/tablet.
+ * Workspace controls: portfolio + currency always visible.
+ * Refresh stays one tap away on all breakpoints; Privacy / Theme / Search
+ * collapse into More (⋯) on phone/tablet.
  */
 export function ToolbarControls({
   portfolioSelect,
@@ -48,7 +49,6 @@ export function ToolbarControls({
     }
   }, [moreOpen])
 
-  // Close overflow when viewport grows to desktop
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 1024px)')
     const onChange = () => {
@@ -79,15 +79,15 @@ export function ToolbarControls({
       {portfolioSelect}
       {currencySelect}
 
-      {/* Desktop / large tablet: full icon row */}
+      {/* Always visible — one-tap refresh on phone too */}
+      {refreshBtn}
+
       <div className="toolbar-actions-desktop">
-        {refreshBtn}
         <PrivacyToggle privacy={privacy} onToggle={onPrivacyToggle} />
         <ThemeToggle />
         <GlobalSearch />
       </div>
 
-      {/* Phone / small tablet: one More control */}
       <div className="toolbar-actions-mobile relative">
         <button
           type="button"
@@ -110,17 +110,11 @@ export function ToolbarControls({
             className="toolbar-more-menu"
           >
             <div className="toolbar-more-row" role="none">
-              {refreshBtn}
-              <PrivacyToggle
-                privacy={privacy}
-                onToggle={() => {
-                  onPrivacyToggle()
-                }}
-              />
+              <PrivacyToggle privacy={privacy} onToggle={onPrivacyToggle} />
               <ThemeToggle />
               <GlobalSearch />
             </div>
-            <p className="toolbar-more-hint">Refresh · Privacy · Theme · Search</p>
+            <p className="toolbar-more-hint">Privacy · Theme · Search</p>
           </div>
         ) : null}
       </div>

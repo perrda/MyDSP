@@ -90,12 +90,12 @@ export function formatNativeCurrency(
   const code = (currency || 'GBP').toUpperCase()
   if (code === 'BTC') return formatBtc(n, opts)
   const abs = Math.abs(n)
-  const digits = opts?.digits ?? (code === 'JPY' ? 0 : 0)
+  const digits = opts?.digits ?? (code === 'JPY' || code === 'KRW' ? 0 : 2)
   const formatted = new Intl.NumberFormat('en-GB', {
     style: 'currency',
     currency: code.length === 3 ? code : 'GBP',
     maximumFractionDigits: digits,
-    minimumFractionDigits: 0,
+    minimumFractionDigits: digits === 0 ? 0 : Math.min(2, digits),
   }).format(abs)
   if (opts?.signed) {
     if (n > 0) return `+${formatted}`
