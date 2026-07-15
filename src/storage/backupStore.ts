@@ -13,6 +13,7 @@ import {
 import { STORAGE } from './keys'
 import { exportMarketsForBackup, importMarketsFromBackup } from './marketsStore'
 import { exportNewsForBackup, importNewsFromBackup } from './newsStore'
+import { exportNavLayoutForBackup, importNavLayoutFromBackup } from './navOrder'
 import { exportYoutubeForBackup, importYoutubeFromBackup } from './youtubeStore'
 
 // Lazy import to avoid circular deps - sync service imports backupStore
@@ -59,6 +60,8 @@ export interface FullBackupRecord extends FullBackupMeta {
   news?: unknown
   /** Optional YouTube favourite channels (workspace-level) */
   youtube?: unknown
+  /** Optional sidebar Favourites / Others layout (workspace-level) */
+  navLayout?: unknown
   /** Optional file attachments (CV/PDFs) as base64 payloads */
   documentBlobs?: import('./documentBlobStore').DocumentBlobPayload[]
   documentBlobsSkipped?: number[]
@@ -109,6 +112,7 @@ export function captureFullWorkspace(): Omit<
     markets: exportMarketsForBackup(),
     news: exportNewsForBackup(),
     youtube: exportYoutubeForBackup(),
+    navLayout: exportNavLayoutForBackup() ?? undefined,
   }
 }
 
@@ -286,6 +290,9 @@ export async function restoreFullWorkspace(record: FullBackupRecord): Promise<vo
   if (record.youtube) {
     importYoutubeFromBackup(record.youtube)
   }
+  if (record.navLayout) {
+    importNavLayoutFromBackup(record.navLayout)
+  }
 }
 
 function fullBackupPayload(record: FullBackupRecord) {
@@ -308,6 +315,7 @@ function fullBackupPayload(record: FullBackupRecord) {
     ...(record.markets ? { markets: record.markets } : {}),
     ...(record.news ? { news: record.news } : {}),
     ...(record.youtube ? { youtube: record.youtube } : {}),
+    ...(record.navLayout ? { navLayout: record.navLayout } : {}),
   }
 }
 
@@ -453,6 +461,7 @@ export function parseFullBackupFile(raw: unknown): FullBackupRecord | null {
     markets: o.markets,
     news: o.news,
     youtube: o.youtube,
+    navLayout: o.navLayout,
   }
 }
 
