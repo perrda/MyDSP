@@ -28,7 +28,7 @@ export function InstallPrompt() {
     typeof navigator !== 'undefined' ? !navigator.onLine : false,
   )
   const [queueLen, setQueueLen] = useState(() => loadOfflineQueue().length)
-  const [lastBackupDay, setLastBackupDay] = useState<string | null>(() => {
+  const [lastBackupDay] = useState<string | null>(() => {
     try {
       return localStorage.getItem(LAST_BACKUP_KEY)
     } catch {
