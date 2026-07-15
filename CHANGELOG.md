@@ -1,5 +1,18 @@
 # MyDSP Changelog
 
+## [1.2.8] - 2026-07-15
+
+### Improved — Bottom nav (desktop web)
+- Hide the Overview / Markets / Spending / Goals / Settings tab bar on **desktop web**
+- Still shown on **phone and tablet** (touch layouts); desktop uses the sidebar instead
+- Also hides in narrow desktop browser windows (mouse-only), where the old `lg:` breakpoint left it visible
+- Bottom content padding only applies when the tab bar is actually shown
+
+### Version
+- 1.2.7 → **1.2.8**
+
+---
+
 ## [1.2.7] - 2026-07-15
 
 ### Improved — To Do Lists picker

@@ -456,6 +456,18 @@ html.theme-transitioning *::after {
   .app-content { padding: 2.5rem 3rem calc(2.5rem + env(safe-area-inset-bottom)); }
 }
 
+/* Extra bottom inset while the touch BottomNav is mounted (phone + tablet). */
+.app-content.app-content-with-bottom-nav {
+  padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* Desktop sidebar layout: hide bottom tabs (JS also unmounts for mouse-only windows). */
+@media (min-width: 1024px) {
+  .bottom-nav {
+    display: none !important;
+  }
+}
+
 /* Touch-friendly tables on small screens */
 .surface.overflow-x-auto,
 .overflow-x-auto {
@@ -1045,11 +1057,6 @@ select:focus {
     height: 2.75rem;
     min-width: 2.75rem;
     min-height: 2.75rem;
-  }
-
-  /* Clear fixed BottomNav + home indicator so last list items stay tappable */
-  .app-content.app-content-with-bottom-nav {
-    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
   }
 
   .app-content {
