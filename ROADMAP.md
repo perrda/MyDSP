@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.39**
+**Current version: 1.2.40**
 
-## Completed (through v1.2.39)
+## Completed (through v1.2.40)
 
+- Sync / backup trust (next25b 1–5): pull/push latency on Today, full-backup checksum, passphrase strength meter, multi-device activity hints, pause auto-sync 1 hour
 - Polish / a11y (next25 21–25): EmptyIllustration, Accessibility panel, colour-blind charts, axe CI gate (`test:a11y`), `/smoke` checklist
 - Today / productivity (next25 16–20): Focus Mark done/Snooze, quiet-hours timeline, spending week delta, News/YouTube mark-all-read + synced seenAt, Goals ring on Today
 - Mobile interaction (next25 11–15): bottom-nav Favourites reorder sheet, Jobs Kanban touch drag, Todos swipe Complete/Snooze, iPad Today|Markets two-pane, larger text mode

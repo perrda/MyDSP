@@ -133,10 +133,14 @@ import {
   clearPendingAutoSyncConflicts,
   getAutoSyncStatus,
   getPendingAutoSyncConflicts,
+  isAutoSyncPaused,
+  pauseAutoSync,
+  resumeAutoSync,
   subscribeAutoSync,
   syncNow,
   type AutoSyncStatus,
 } from '../services/sync/autoSyncService'
+import { scorePassphraseStrength } from '../services/sync/passphraseStrength'
 
 const TRADE_TEMPLATES = [
   { symbol: 'TSLA', kind: 'equity' as const, href: 'data/templates/trades-TSLA.csv' },
@@ -818,7 +822,7 @@ export function SettingsPage() {
           <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle mb-2">
             Passphrase
           </label>
-          <div className="flex flex-wrap gap-2 mb-3 max-w-md items-stretch">
+          <div className="flex flex-wrap gap-2 mb-1 max-w-md items-stretch">
             <input
               type={showSyncPass ? 'text' : 'password'}
               className="flex-1 min-h-11"
@@ -840,6 +844,39 @@ export function SettingsPage() {
               {showSyncPass ? 'Hide' : 'Show'}
             </button>
           </div>
+          {(() => {
+            const strength = scorePassphraseStrength(syncPass)
+            const pct = (strength.score / 4) * 100
+            return (
+              <div className="passphrase-strength mb-3 max-w-md" aria-live="polite">
+                <div
+                  className="h-1.5 w-full bg-border/60 overflow-hidden"
+                  role="meter"
+                  aria-label="Passphrase strength"
+                  aria-valuemin={0}
+                  aria-valuemax={4}
+                  aria-valuenow={strength.score}
+                  aria-valuetext={strength.label}
+                >
+                  <div
+                    className={`h-full transition-[width] duration-200 ${
+                      strength.score <= 1
+                        ? 'bg-accent/70'
+                        : strength.score === 2
+                          ? 'bg-amber-500'
+                          : 'bg-emerald-500'
+                    }`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+                {syncPass ? (
+                  <p className="text-[10px] text-text-subtle mt-1 font-medium tracking-wide uppercase">
+                    Strength: {strength.label}
+                  </p>
+                ) : null}
+              </div>
+            )
+          })()}
           <div className="flex flex-col gap-3 mb-6 max-w-2xl">
             <label className="flex items-start gap-3 cursor-pointer">
               <input
@@ -992,7 +1029,42 @@ export function SettingsPage() {
                     Last error: {syncCfg.lastSyncError}
                   </li>
                 ) : null}
+                {isAutoSyncPaused(syncCfg) ? (
+                  <li>
+                    Paused until{' '}
+                    <span className="text-text font-medium">
+                      {new Date(syncCfg.pausedUntil!).toLocaleString('en-GB')}
+                    </span>
+                  </li>
+                ) : null}
               </ul>
+              <div className="pt-1">
+                {isAutoSyncPaused(syncCfg) ? (
+                  <button
+                    type="button"
+                    className="btn-secondary btn-sm"
+                    onClick={() => {
+                      const next = resumeAutoSync()
+                      setSyncCfg(next)
+                      flash('Auto-sync resumed.')
+                    }}
+                  >
+                    Resume
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn-ghost btn-sm"
+                    onClick={() => {
+                      const next = pauseAutoSync(3_600_000)
+                      setSyncCfg(next)
+                      flash('Auto-sync paused for 1 hour.')
+                    }}
+                  >
+                    Pause 1 hour
+                  </button>
+                )}
+              </div>
             </div>
           )}
           {(syncCfg.enabled || autoSyncStatus.state !== 'disabled') && (
@@ -1336,6 +1408,9 @@ export function SettingsPage() {
                     </span>
                     {' · '}
                     {e.message}
+                    {e.deviceHint ? (
+                      <span className="text-text-subtle"> · {e.deviceHint.slice(0, 12)}</span>
+                    ) : null}
                     {e.conflicts ? ` · ${e.conflicts} conflict(s)` : ''}
                   </li>
                 ))}

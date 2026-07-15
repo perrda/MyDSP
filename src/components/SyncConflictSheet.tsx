@@ -2,13 +2,20 @@
 
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { getPendingAutoSyncConflicts } from '../services/sync/autoSyncService'
+import {
+  getPendingAutoSyncConflicts,
+  isAutoSyncPaused,
+  pauseAutoSync,
+  resumeAutoSync,
+} from '../services/sync/autoSyncService'
 import { summarizeConflictBatch } from '../services/sync/conflicts'
+import { loadSyncConfig } from '../services/sync/syncService'
 import type { MergePreview } from '../services/sync/syncService'
 
 export function SyncConflictSheet() {
   const [preview, setPreview] = useState<MergePreview | null>(null)
   const [dismissed, setDismissed] = useState(false)
+  const [paused, setPaused] = useState(() => isAutoSyncPaused())
 
   useEffect(() => {
     const hydrate = () => {
@@ -19,13 +26,16 @@ export function SyncConflictSheet() {
       } else {
         setPreview(null)
       }
+      setPaused(isAutoSyncPaused(loadSyncConfig()))
     }
     hydrate()
     window.addEventListener('mydsp-sync-conflicts', hydrate)
     window.addEventListener('mydsp-sync-applied', hydrate)
+    window.addEventListener('mydsp-autosync', hydrate)
     return () => {
       window.removeEventListener('mydsp-sync-conflicts', hydrate)
       window.removeEventListener('mydsp-sync-applied', hydrate)
+      window.removeEventListener('mydsp-autosync', hydrate)
     }
   }, [])
 
@@ -66,6 +76,29 @@ export function SyncConflictSheet() {
           <button type="button" className="btn-ghost btn-sm min-h-11" onClick={() => setDismissed(true)}>
             Later
           </button>
+          {paused ? (
+            <button
+              type="button"
+              className="btn-secondary btn-sm min-h-11"
+              onClick={() => {
+                resumeAutoSync()
+                setPaused(false)
+              }}
+            >
+              Resume
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="btn-ghost btn-sm min-h-11"
+              onClick={() => {
+                pauseAutoSync(3_600_000)
+                setPaused(true)
+              }}
+            >
+              Pause 1 hour
+            </button>
+          )}
         </div>
       </div>
     </div>

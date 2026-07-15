@@ -16,6 +16,7 @@ import { isDueToday, isOverdue } from '../domain/todos'
 import { snoozeDueDateOneDay } from '../domain/todoSnooze'
 import {
   getAutoSyncStatus,
+  getLastSyncLatencyKind,
   subscribeAutoSync,
   type AutoSyncStatus,
 } from '../services/sync/autoSyncService'
@@ -25,6 +26,11 @@ import { LAST_BACKUP_KEY } from '../storage/backupStore'
 import { listMarketTickers, loadMarketQuotesCache } from '../storage/marketsStore'
 import { buildPriceAlertNotifications } from '../domain/priceAlerts'
 import { formatDate, formatGBP, formatPct, privacyClass } from '../utils/format'
+
+function formatSyncLatencyMs(ms: number): string {
+  if (ms < 1000) return `${ms}ms`
+  return `${Math.round(ms / 1000)}s`
+}
 
 const ALERT_BORDER: Record<string, string> = {
   red: 'border-l-[var(--text-subtle)]',
@@ -195,7 +201,22 @@ export function Dashboard() {
       : queueLen > 0
         ? `${queueLen} change(s) queued offline`
         : syncStatus.lastAt
-          ? `Last sync ${new Date(syncStatus.lastAt).toLocaleString()}`
+          ? (() => {
+              const kind = getLastSyncLatencyKind()
+              if (kind === 'pull' && syncStatus.lastPullMs != null) {
+                return `Synced · ${formatSyncLatencyMs(syncStatus.lastPullMs)} pull`
+              }
+              if (kind === 'push' && syncStatus.lastPushMs != null) {
+                return `Synced · ${formatSyncLatencyMs(syncStatus.lastPushMs)} push`
+              }
+              if (syncStatus.lastPullMs != null) {
+                return `Synced · ${formatSyncLatencyMs(syncStatus.lastPullMs)} pull`
+              }
+              if (syncStatus.lastPushMs != null) {
+                return `Synced · ${formatSyncLatencyMs(syncStatus.lastPushMs)} push`
+              }
+              return `Last sync ${new Date(syncStatus.lastAt).toLocaleString()}`
+            })()
           : 'Ready to sync'
 
   return (

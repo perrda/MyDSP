@@ -1,5 +1,19 @@
 # MyDSP Changelog
 
+## [1.2.40] - 2026-07-15
+
+### Improved — Sync / backup trust (next 25b · 1–5)
+1. Today sync line shows last pull/push latency (`Synced · 12s pull`) via `AutoSyncStatus.lastPullMs` / `lastPushMs`  
+2. Full backup **checksum** (SHA-256 prefix, same as sync crypto) — verified on restore; included in export payload  
+3. Settings sync passphrase **strength meter** (length + variety bar)  
+4. Sync activity records **deviceHint** (local / remote device id); shown in Settings activity list  
+5. **Pause auto-sync 1 hour** (`SyncConfig.pausedUntil`) — gated in `runAutoSyncCycle`; controls on Sync conflict sheet + Sync health  
+
+### Version
+- 1.2.39 → **1.2.40**
+
+---
+
 ## [1.2.39] - 2026-07-15
 
 ### Improved — Polish / accessibility (next 25 · 21–25)

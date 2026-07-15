@@ -45,6 +45,10 @@ export interface AutoSyncStatus {
   message?: string
   lastAt?: string
   pendingConflicts?: number
+  /** Wall-clock ms of the last successful pull (timed in doPull) */
+  lastPullMs?: number
+  /** Wall-clock ms of the last successful push (timed in doPush) */
+  lastPushMs?: number
 }
 
 type CycleReason = 'start' | 'focus' | 'online' | 'interval' | 'edit' | 'manual' | 'hide'
@@ -60,23 +64,67 @@ let periodicTimer: ReturnType<typeof setInterval> | null = null
 let lastPullAttempt = 0
 let status: AutoSyncStatus = { state: 'idle' }
 let pendingConflictPreview: MergePreview | null = null
+/** Preserved across emit() so latency survives idle/error transitions. */
+let lastPullMs: number | undefined
+let lastPushMs: number | undefined
+let lastLatencyKind: 'pull' | 'push' | undefined
 
 const listeners = new Set<(s: AutoSyncStatus) => void>()
 
+function withLatency(next: AutoSyncStatus): AutoSyncStatus {
+  return {
+    ...next,
+    lastPullMs: next.lastPullMs ?? lastPullMs,
+    lastPushMs: next.lastPushMs ?? lastPushMs,
+  }
+}
+
 function emit(next: AutoSyncStatus): void {
-  status = next
+  if (typeof next.lastPullMs === 'number') {
+    lastPullMs = next.lastPullMs
+    lastLatencyKind = 'pull'
+  }
+  if (typeof next.lastPushMs === 'number') {
+    lastPushMs = next.lastPushMs
+    lastLatencyKind = 'push'
+  }
+  status = withLatency(next)
   for (const fn of listeners) {
     try {
-      fn(next)
+      fn(status)
     } catch {
       /* ignore */
     }
   }
   try {
-    window.dispatchEvent(new CustomEvent('mydsp-autosync', { detail: next }))
+    window.dispatchEvent(new CustomEvent('mydsp-autosync', { detail: status }))
   } catch {
     /* ignore */
   }
+}
+
+/** Which latency was recorded last — for Today syncLine. */
+export function getLastSyncLatencyKind(): 'pull' | 'push' | undefined {
+  return lastLatencyKind
+}
+
+/** Pause automatic sync for `ms` (default 1 hour). */
+export function pauseAutoSync(ms = 3_600_000): SyncConfig {
+  return updateCfg({ pausedUntil: new Date(Date.now() + ms).toISOString() })
+}
+
+/** Clear pausedUntil so auto-sync resumes. */
+export function resumeAutoSync(): SyncConfig {
+  const cfg = loadSyncConfig()
+  const next = { ...cfg }
+  delete next.pausedUntil
+  saveSyncConfig(next)
+  return next
+}
+
+export function isAutoSyncPaused(cfg: SyncConfig = loadSyncConfig()): boolean {
+  if (!cfg.pausedUntil) return false
+  return new Date(cfg.pausedUntil).getTime() > Date.now()
 }
 
 export function getAutoSyncStatus(): AutoSyncStatus {
@@ -175,6 +223,7 @@ async function doPull(cfg: SyncConfig, pass: string, reason: CycleReason): Promi
     return false
   }
   lastPullAttempt = now
+  const pullStarted = Date.now()
 
   emit({ state: 'pulling', message: 'Checking cloud…', lastAt: status.lastAt })
 
@@ -255,6 +304,7 @@ async function doPull(cfg: SyncConfig, pass: string, reason: CycleReason): Promi
     const result = await applyMergePreview(preview, resolutions)
     removedDupes = result.removedDupes
     const at = new Date().toISOString()
+    const pullMs = Date.now() - pullStarted
     updateCfg({
       lastSyncAt: at,
       lastSyncError: undefined,
@@ -272,6 +322,7 @@ async function doPull(cfg: SyncConfig, pass: string, reason: CycleReason): Promi
           ? `Merged ${result.merged} portfolio(s); cleaned duplicate portfolio names`
           : `Merged ${result.merged} portfolio(s)`,
       lastAt: at,
+      lastPullMs: pullMs,
     })
     try {
       const { appendSyncActivity } = await import('./syncActivity')
@@ -281,6 +332,7 @@ async function doPull(cfg: SyncConfig, pass: string, reason: CycleReason): Promi
         merged: result.merged,
         conflicts: result.conflicts.length,
         at,
+        deviceHint: meta.deviceId || getLocalDeviceId(),
       })
     } catch {
       /* ignore */
@@ -316,11 +368,13 @@ async function doPush(cfg: SyncConfig, pass: string): Promise<void> {
     return
   }
 
+  const pushStarted = Date.now()
   emit({ state: 'pushing', message: 'Pushing to cloud…', lastAt: status.lastAt })
   try {
     await pushSync(cfg.remoteUrl, pass)
     dirty = false
     const at = new Date().toISOString()
+    const pushMs = Date.now() - pushStarted
     // After push, remote matches us — record so we don't immediately re-pull ourselves
     const meta = await fetchRemoteMeta(cfg.remoteUrl).catch(() => null)
     updateCfg({
@@ -328,13 +382,14 @@ async function doPush(cfg: SyncConfig, pass: string): Promise<void> {
       lastSyncError: undefined,
       lastRemoteExportedAt: meta?.exportedAt ?? at,
     })
-    emit({ state: 'idle', message: 'Synced', lastAt: at })
+    emit({ state: 'idle', message: 'Synced', lastAt: at, lastPushMs: pushMs })
     try {
       const { appendSyncActivity } = await import('./syncActivity')
       appendSyncActivity({
         source: 'push',
         message: 'Pushed local changes to cloud',
         at,
+        deviceHint: getLocalDeviceId(),
       })
     } catch {
       /* ignore */
@@ -354,6 +409,20 @@ export async function runAutoSyncCycle(reason: CycleReason = 'manual'): Promise<
   if (!cfg.enabled || !cfg.remoteUrl.trim()) {
     emit({ state: 'disabled', message: 'Automatic sync is off' })
     return
+  }
+
+  if (isAutoSyncPaused(cfg)) {
+    emit({
+      state: 'idle',
+      message: `Auto-sync paused until ${new Date(cfg.pausedUntil!).toLocaleString()}`,
+      lastAt: cfg.lastSyncAt ?? status.lastAt,
+    })
+    return
+  }
+
+  // Clear expired pause marker
+  if (cfg.pausedUntil) {
+    updateCfg({ pausedUntil: undefined })
   }
 
   hydrateSessionSyncPassphrase()
