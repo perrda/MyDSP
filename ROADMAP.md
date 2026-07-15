@@ -1,8 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.34**
+**Current version: 1.2.35**
 
-## Completed (through v1.2.34)
+## Completed (through v1.2.35)
+
+- Sync / reliability (next25 1–5): health dashboard, conflict export/share, offline cancel+backoff, Markets 24h merge, quote failover banner
 
 - Sync / a11y / perf polish (41–50): Markets shimmer, nav quote prefetch, reduced-motion sparklines/modals, muted text contrast, landmark labels, Glass focus rings, lazy Dashboard charts, Quote Worker health badge, weekly backup nudge, iPhone/iPad Playwright smoke
 - Today / Jobs / Todos polish (31–40): Focus card, todo focus pulse, Kanban snap, job sticky bar, spending month picker, Filters sheet, OCR empty CTA, completed collapse, News/YouTube unread + load-more, Trips/Goals iPad density

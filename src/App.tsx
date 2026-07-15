@@ -7,6 +7,7 @@ import { SecurityProvider } from './components/SecurityProvider'
 import { ToastProvider } from './components/ToastProvider'
 import { AchievementWatcher } from './components/AchievementWatcher'
 import { InstallPrompt } from './components/InstallPrompt'
+import { QuoteFailoverBanner } from './components/QuoteFailoverBanner'
 import { SyncConflictSheet } from './components/SyncConflictSheet'
 import { KeyboardShortcutsHelp } from './components/KeyboardShortcutsHelp'
 import { LaunchRedirect } from './components/LaunchRedirect'
@@ -79,6 +80,7 @@ export default function App() {
                 <ToastProvider>
                   <AchievementWatcher />
                   <InstallPrompt />
+                  <QuoteFailoverBanner />
                   <SyncConflictSheet />
                   <KeyboardShortcutsHelp />
                   <UpdateBanner />

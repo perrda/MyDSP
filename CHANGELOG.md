@@ -1,5 +1,19 @@
 # MyDSP Changelog
 
+## [1.2.35] - 2026-07-15
+
+### Improved — Sync / reliability (next 25 · 1–5)
+1. Sync health dashboard in Settings → Sync  
+2. Conflict summary Export / Share (plaintext)  
+3. Offline queue Cancel + exponential backoff on failed flush  
+4. Merged Markets 24h / live equity valuations into the polish stack  
+5. Quote Worker failover banner when markets feeds degrade  
+
+### Version
+- 1.2.34 → **1.2.35**
+
+---
+
 ## [1.2.34] - 2026-07-15
 
 ### Merged — Markets 24h / live prices (item 4)

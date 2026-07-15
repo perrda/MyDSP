@@ -15,8 +15,11 @@ import { registerStaticPriceFile } from '../domain/staticPrices'
 import {
   clearOfflineQueue,
   enqueueOfflineJob,
+  isOfflineJobReady,
   isOnline,
+  jobsReadyToFlush,
   loadOfflineQueue,
+  markOfflineJobFailed,
   removeOfflineJob,
   type OfflineJob,
 } from '../services/offlineQueue'
@@ -29,6 +32,7 @@ import {
   type ConflictChoice,
   type SyncConflict,
 } from '../services/sync/conflicts'
+import { downloadConflictSummary, shareConflictSummary } from '../services/sync/conflictExport'
 import { loadSyncActivity, type SyncActivityEntry } from '../services/sync/syncActivity'
 import {
   formatMarketsProviderHealthHint,
@@ -866,7 +870,67 @@ export function SettingsPage() {
             </label>
           </div>
           {(syncCfg.enabled || autoSyncStatus.state !== 'disabled') && (
-            <p className="text-xs text-text-subtle mb-4" role="status">
+            <div
+              className="sync-health-dashboard mb-4 max-w-2xl border border-border p-4 space-y-2"
+              role="region"
+              aria-label="Sync health"
+            >
+              <p className="text-[11px] font-bold uppercase tracking-widest text-text-subtle">
+                Sync health
+              </p>
+              <ul className="text-xs text-text-muted space-y-1.5 font-light">
+                <li>
+                  Status:{' '}
+                  <span className="text-text font-medium">
+                    {autoSyncStatus.state}
+                    {autoSyncStatus.message ? ` — ${autoSyncStatus.message}` : ''}
+                  </span>
+                </li>
+                <li>
+                  Last sync:{' '}
+                  <span className="text-text font-medium">
+                    {syncCfg.lastSyncAt
+                      ? new Date(syncCfg.lastSyncAt).toLocaleString('en-GB')
+                      : 'Never'}
+                  </span>
+                  {autoSyncStatus.lastAt && syncCfg.lastSyncAt !== autoSyncStatus.lastAt
+                    ? ` · auto ${new Date(autoSyncStatus.lastAt).toLocaleString('en-GB')}`
+                    : ''}
+                </li>
+                <li>
+                  Passphrase:{' '}
+                  <span className="text-text font-medium">
+                    {syncPass || getSessionSyncPassphrase()
+                      ? syncCfg.rememberPassphrase
+                        ? 'In session · remembered'
+                        : 'In session'
+                      : 'Not set this session'}
+                  </span>
+                </li>
+                <li>
+                  Offline queue:{' '}
+                  <span className="text-text font-medium">
+                    {queue.length === 0
+                      ? 'Empty'
+                      : `${queue.length} job(s) · ${jobsReadyToFlush(queue).length} ready`}
+                  </span>
+                </li>
+                <li>
+                  Quote Worker:{' '}
+                  <span className="text-text font-medium">
+                    {quoteHealthHint ?? (quoteHealthOk ? 'Healthy' : 'No recent checks')}
+                  </span>
+                </li>
+                {syncCfg.lastSyncError ? (
+                  <li className="text-accent" role="alert">
+                    Last error: {syncCfg.lastSyncError}
+                  </li>
+                ) : null}
+              </ul>
+            </div>
+          )}
+          {(syncCfg.enabled || autoSyncStatus.state !== 'disabled') && (
+            <p className="text-xs text-text-subtle mb-4 sr-only" role="status">
               Auto-sync status:{' '}
               <span className="text-text">
                 {autoSyncStatus.state}
@@ -1232,10 +1296,13 @@ export function SettingsPage() {
                         let flushed = 0
                         let failed = false
                         let quotesSkipped = 0
+                        let deferred = 0
                         for (const job of loadOfflineQueue()) {
+                          if (!isOfflineJobReady(job)) {
+                            deferred++
+                            continue
+                          }
                           if (job.type === 'quote_refresh') {
-                            // Quote refresh is handled on reconnect by PortfolioContext;
-                            // drop stale queue entries rather than pretending we refreshed.
                             removeOfflineJob(job.id)
                             quotesSkipped++
                             continue
@@ -1252,7 +1319,11 @@ export function SettingsPage() {
                               removeOfflineJob(job.id)
                               flushed++
                             } catch (e) {
-                              flash(e instanceof Error ? e.message : 'Flush failed')
+                              markOfflineJobFailed(
+                                job.id,
+                                e instanceof Error ? e.message : 'Flush failed',
+                              )
+                              flash(e instanceof Error ? e.message : 'Flush failed — will retry with backoff')
                               failed = true
                               break
                             }
@@ -1261,7 +1332,8 @@ export function SettingsPage() {
                         setQueue(loadOfflineQueue())
                         if (!failed) {
                           const bits = [`Flushed ${flushed} sync job(s)`]
-                          if (quotesSkipped) bits.push(`cleared ${quotesSkipped} quote job(s) (auto-refresh on reconnect)`)
+                          if (quotesSkipped) bits.push(`cleared ${quotesSkipped} quote job(s)`)
+                          if (deferred) bits.push(`${deferred} waiting on backoff`)
                           flash(bits.join(' · ') + '.')
                         }
                       })()
@@ -1281,11 +1353,24 @@ export function SettingsPage() {
                   </button>
                 </div>
               </div>
-              <ul className="text-sm text-text-muted space-y-1">
+              <ul className="text-sm text-text-muted space-y-2">
                 {queue.map((j) => (
-                  <li key={j.id}>
-                    {j.type.replace('_', ' ')} · {new Date(j.createdAt).toLocaleString('en-GB')}
-                    {j.note ? ` — ${j.note}` : ''}
+                  <li key={j.id} className="flex flex-wrap items-center justify-between gap-2">
+                    <span>
+                      {j.type.replace('_', ' ')} · {new Date(j.createdAt).toLocaleString('en-GB')}
+                      {j.attempts ? ` · try ${j.attempts}` : ''}
+                      {j.nextRetryAt && !isOfflineJobReady(j)
+                        ? ` · retry after ${new Date(j.nextRetryAt).toLocaleTimeString('en-GB')}`
+                        : ''}
+                      {j.note ? ` — ${j.note}` : ''}
+                    </span>
+                    <button
+                      type="button"
+                      className="btn-ghost btn-sm min-h-11"
+                      onClick={() => setQueue(removeOfflineJob(j.id))}
+                    >
+                      Cancel
+                    </button>
                   </li>
                 ))}
               </ul>
@@ -1321,6 +1406,29 @@ export function SettingsPage() {
                   }}
                 >
                   Keep all remote (newest from other device)
+                </button>
+                <button
+                  type="button"
+                  className="btn-secondary btn-sm"
+                  onClick={() => {
+                    downloadConflictSummary(conflicts)
+                    flash('Downloaded conflict summary.')
+                  }}
+                >
+                  Export summary
+                </button>
+                <button
+                  type="button"
+                  className="btn-ghost btn-sm"
+                  onClick={() => {
+                    void (async () => {
+                      const r = await shareConflictSummary(conflicts)
+                      if (r === 'shared') flash('Shared conflict summary.')
+                      else if (r === 'downloaded') flash('Downloaded conflict summary.')
+                    })()
+                  }}
+                >
+                  Share summary
                 </button>
               </div>
               {conflicts.map((c) => {
