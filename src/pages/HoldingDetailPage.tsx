@@ -31,6 +31,7 @@ import type {
   ProgressCommentary,
   RagStatus,
 } from '../domain/types'
+import { listMarketTickers } from '../storage/marketsStore'
 import { formatDate, formatDateTime, formatGBP, formatGBPPrecise, formatPct, formatQty, privacyClass } from '../utils/format'
 
 export function HoldingDetailPage() {
@@ -100,6 +101,17 @@ export function HoldingDetailPage() {
   const commentaries = [...(item.commentaries ?? [])].sort((a, b) =>
     (b.createdAt ?? '').localeCompare(a.createdAt ?? ''),
   )
+
+  let yieldPct: number | undefined
+  if (!isCrypto) {
+    if (equity?.yieldPct != null && equity.yieldPct > 0) yieldPct = equity.yieldPct
+    else {
+      const t = listMarketTickers('equity').find(
+        (x) => x.symbol.toUpperCase() === item.symbol.toUpperCase(),
+      )
+      if (t?.yieldPct != null && t.yieldPct > 0) yieldPct = t.yieldPct
+    }
+  }
 
   const unitCost = isCrypto
     ? crypto && crypto.qty > 0
@@ -240,6 +252,11 @@ export function HoldingDetailPage() {
         <p className={`mt-1 text-sm font-semibold tabular-nums ${pnl >= 0 ? 'text-accent' : 'text-text-muted'}`}>
           {formatGBP(pnl, { signed: true })} · {formatPct(cost > 0 ? (pnl / cost) * 100 : 0)}
         </p>
+        {yieldPct != null ? (
+          <p className="mt-2 text-sm text-text-muted tabular-nums">
+            Dividend yield {yieldPct.toFixed(yieldPct >= 10 ? 1 : 2)}%
+          </p>
+        ) : null}
       </div>
 
       <div className={`grid grid-cols-2 lg:grid-cols-4 gap-px mb-6 ${privacyClass(privacy)}`}>

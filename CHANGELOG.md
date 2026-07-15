@@ -1,5 +1,19 @@
 # MyDSP Changelog
 
+## [1.2.41] - 2026-07-15
+
+### Improved — Markets / portfolio (next 25b · 6–10)
+6. Markets **Open/Closed** session chip on equity/index rows (US RTH + UK/FTSE hours, timezone-aware)  
+7. **Holdings drift** alert when Markets live ≠ holding price by &gt;X% (default 5%; Settings → Alerts) — amber banner + row on Equities/Crypto  
+8. Watchlist **tags** (`Core` / `Speculative` / `Income` / `Other`) on `MarketTicker` — filter chips + edit modal  
+9. Optional **dividend yield %** stub on equities (`MarketTicker.yieldPct` / holding) — Markets rows + holding detail; edit in Markets modal  
+10. Compare **Week Δ** column from localStorage previous-week net-worth snapshot per portfolio  
+
+### Version
+- 1.2.40 → **1.2.41**
+
+---
+
 ## [1.2.40] - 2026-07-15
 
 ### Improved — Sync / backup trust (next 25b · 1–5)

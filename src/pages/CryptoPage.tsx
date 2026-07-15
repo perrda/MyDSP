@@ -14,6 +14,11 @@ import { SwipeHoldingRow } from '../components/ui/SwipeHoldingRow'
 import { usePortfolio } from '../context/PortfolioContext'
 import { applyTrade } from '../domain/trades'
 import { applyLastSyncedQuotesToHoldings } from '../domain/lastSyncedHoldings'
+import {
+  cryptoDriftHits,
+  isSymbolDrifting,
+  loadHoldingsDriftThresholdPct,
+} from '../domain/holdingsDrift'
 import type { CryptoHolding } from '../domain/types'
 import { applySortOrder, sortBySortOrder } from '../utils/reorder'
 import { formatGBP, formatGBPPrecise, formatPct, formatQty, privacyClass } from '../utils/format'
@@ -45,6 +50,8 @@ export function CryptoPage() {
 
   const holdings = useMemo(() => sortBySortOrder(data.crypto), [data.crypto])
   const showSkeleton = refreshing && holdings.length === 0
+  const driftHits = useMemo(() => cryptoDriftHits(holdings), [holdings, data.settings.lastPriceUpdate])
+  const driftThreshold = loadHoldingsDriftThresholdPct()
 
   const fillFromLastSynced = () => {
     const snapshot = data
@@ -164,6 +171,16 @@ export function CryptoPage() {
         }
       />
 
+      {driftHits.length > 0 ? (
+        <div
+          className="mb-4 px-4 py-3 border border-amber-500/40 bg-amber-500/10 text-sm text-amber-800 dark:text-amber-200"
+          role="status"
+        >
+          Markets live ≠ holding price by &gt;{driftThreshold}% on{' '}
+          {driftHits.map((h) => h.symbol).join(', ')}. Refresh Markets or fill last synced.
+        </div>
+      ) : null}
+
       <div className={`grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-px mb-6 ${privacyClass(privacy)}`}>
         <div className="surface p-4 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
           <p className="text-xs uppercase tracking-wider text-text-subtle mb-2 font-semibold">Value</p>
@@ -231,6 +248,7 @@ export function CryptoPage() {
             const value = c.qty * c.price
             const pnl = value - c.cost
             const included = c.includeInPortfolio !== false
+            const drifting = isSymbolDrifting(driftHits, c.symbol)
             return (
               <SwipeHoldingRow
                 onBuy={() => {
@@ -243,12 +261,17 @@ export function CryptoPage() {
               <div
                 className={`surface p-4 md:p-5 flex flex-wrap md:flex-nowrap items-center gap-3 rounded-xl md:rounded-none shadow-sm md:shadow-none ${
                   included ? '' : 'opacity-50'
-                }`}
+                } ${drifting ? 'ring-1 ring-inset ring-amber-500/50 bg-amber-500/5' : ''}`}
               >
                 {sorting ? <ReorderHandle label={`Reorder ${c.symbol}`} /> : null}
                 <Link to={`/crypto/${c.id}`} className="min-w-0 flex-1 hover:text-accent transition-colors">
                   <p className="font-semibold text-base">{c.symbol}</p>
                   <p className="text-xs text-text-subtle truncate mt-0.5">{c.name}</p>
+                  {drifting ? (
+                    <p className="text-[11px] text-amber-700 dark:text-amber-300 mt-0.5">
+                      Price drift vs Markets
+                    </p>
+                  ) : null}
                 </Link>
                 <div className={`text-sm tabular-nums ${privacyClass(privacy)}`}>
                   <p className="font-semibold">{formatGBP(value)}</p>

@@ -70,6 +70,11 @@ import {
   type PriceAlertThreshold,
 } from '../domain/priceAlerts'
 import {
+  DEFAULT_HOLDINGS_DRIFT_PCT,
+  loadHoldingsDriftThresholdPct,
+  saveHoldingsDriftThresholdPct,
+} from '../domain/holdingsDrift'
+import {
   allConflictsResolved,
   applyMergePreview,
   downloadEncryptedBackup,
@@ -208,7 +213,7 @@ const SETTINGS_SECTION_SEARCH: Record<(typeof SETTINGS_SECTION_IDS)[number], str
   'trade-history': 'Broker CSV IBKR Trading 212 Coinbase trades',
   'price-history': 'Holding price history import',
   security: 'PIN Face ID lock',
-  alerts: 'Notifications quiet hours price alerts desktop sound',
+  alerts: 'Notifications quiet hours price alerts desktop sound holdings drift',
   income: 'Income honesty',
   prices: 'Price refresh providers',
   devices: 'Devices sync activity log smoke checklist install PWA',
@@ -295,6 +300,7 @@ export function SettingsPage() {
   const [priceThresholds, setPriceThresholds] = useState<PriceAlertThreshold[]>(() =>
     loadPriceAlertThresholds(),
   )
+  const [driftPct, setDriftPct] = useState(() => loadHoldingsDriftThresholdPct())
   const [syncActivity, setSyncActivity] = useState<SyncActivityEntry[]>(() => loadSyncActivity())
   const [quoteHealthHint, setQuoteHealthHint] = useState<string | null>(() =>
     formatMarketsProviderHealthHint(),
@@ -2578,6 +2584,47 @@ export function SettingsPage() {
                   }}
                 >
                   Reset defaults
+                </button>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-border">
+              <p className="text-xs font-bold uppercase tracking-widest text-text-subtle mb-2">
+                Holdings drift alert
+              </p>
+              <p className="text-xs text-text-muted font-light mb-3">
+                Amber banner on Equities / Crypto when Markets live differs from the holding price by
+                more than this % (default {DEFAULT_HOLDINGS_DRIFT_PCT}%).
+              </p>
+              <div className="flex flex-wrap items-center gap-3">
+                <label className="text-sm font-medium inline-flex items-center gap-2">
+                  Threshold %
+                  <input
+                    type="number"
+                    min={0.5}
+                    max={50}
+                    step={0.5}
+                    className="w-20 text-sm"
+                    value={driftPct}
+                    aria-label="Holdings drift threshold percent"
+                    onChange={(e) => setDriftPct(Number(e.target.value) || DEFAULT_HOLDINGS_DRIFT_PCT)}
+                    onBlur={() => {
+                      saveHoldingsDriftThresholdPct(driftPct)
+                      setDriftPct(loadHoldingsDriftThresholdPct())
+                      flash('Drift threshold saved.')
+                    }}
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="btn-ghost btn-sm"
+                  onClick={() => {
+                    saveHoldingsDriftThresholdPct(DEFAULT_HOLDINGS_DRIFT_PCT)
+                    setDriftPct(DEFAULT_HOLDINGS_DRIFT_PCT)
+                    flash('Drift threshold reset.')
+                  }}
+                >
+                  Reset {DEFAULT_HOLDINGS_DRIFT_PCT}%
                 </button>
               </div>
             </div>

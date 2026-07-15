@@ -4,6 +4,16 @@ import { formatGBP, formatGBPMarket } from '../utils/format'
 
 export type MarketAssetKind = 'crypto' | 'equity' | 'fx' | 'cross' | 'index'
 
+/** Optional watchlist folder / tag for filter chips on Markets. */
+export type MarketTickerTag = 'Core' | 'Speculative' | 'Income' | 'Other'
+
+export const MARKET_TICKER_TAGS: MarketTickerTag[] = [
+  'Core',
+  'Speculative',
+  'Income',
+  'Other',
+]
+
 export interface MarketTicker {
   id: string
   kind: MarketAssetKind
@@ -15,6 +25,10 @@ export interface MarketTicker {
   coingeckoId?: string
   /** Optional watch reason / personal note */
   notes?: string
+  /** Optional folder/tag for watchlist filtering */
+  tag?: MarketTickerTag
+  /** Optional dividend yield % (equities) — manual stub */
+  yieldPct?: number
   createdAt: string
   sortOrder: number
 }

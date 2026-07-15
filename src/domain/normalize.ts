@@ -66,6 +66,11 @@ function normalizeCrypto(raw: unknown): CryptoHolding[] {
 function normalizeEquities(raw: unknown): EquityHolding[] {
   return asArray(raw).map((item, i) => {
     const r = (item ?? {}) as Record<string, unknown>
+    const yieldRaw = r.yieldPct
+    const yieldPct =
+      typeof yieldRaw === 'number' && Number.isFinite(yieldRaw) && yieldRaw > 0
+        ? yieldRaw
+        : undefined
     return {
       id: num(r.id, i + 1),
       symbol: str(r.symbol, '???').toUpperCase(),
@@ -79,6 +84,7 @@ function normalizeEquities(raw: unknown): EquityHolding[] {
       commentaries: (() => { const c = normalizeCommentaries(r.commentaries); return c.length ? c : undefined })(),
       platform: optionalContact(r.platform),
       contactUrl: optionalContact(r.contactUrl),
+      yieldPct,
     }
   })
 }

@@ -7,9 +7,11 @@ import {
   newMarketTickerId,
   normalizeMarketSymbol,
   parseRatePair,
+  MARKET_TICKER_TAGS,
   type MarketAssetKind,
   type MarketQuote,
   type MarketTicker,
+  type MarketTickerTag,
   type MarketsCollapsed,
   type MarketsState,
 } from '../domain/markets'
@@ -49,9 +51,22 @@ function writeState(state: MarketsState, opts?: { silent?: boolean; fromSync?: b
   if (!opts?.silent) notifyChanged({ fromSync: opts?.fromSync })
 }
 
+function normalizeTag(raw: unknown): MarketTickerTag | undefined {
+  if (typeof raw !== 'string') return undefined
+  const t = raw.trim()
+  return (MARKET_TICKER_TAGS as string[]).includes(t) ? (t as MarketTickerTag) : undefined
+}
+
+function normalizeYieldPct(raw: unknown): number | undefined {
+  if (typeof raw !== 'number' || !Number.isFinite(raw) || raw <= 0) return undefined
+  return Math.min(100, raw)
+}
+
 function normalizeTicker(t: MarketTicker, i: number): MarketTicker {
   const notes =
     typeof t.notes === 'string' && t.notes.trim() ? t.notes.trim() : undefined
+  const tag = normalizeTag(t.tag)
+  const yieldPct = normalizeYieldPct(t.yieldPct)
   return {
     ...t,
     kind: (['crypto', 'equity', 'fx', 'cross', 'index'].includes(t.kind)
@@ -60,6 +75,8 @@ function normalizeTicker(t: MarketTicker, i: number): MarketTicker {
     symbol: normalizeMarketSymbol(t.symbol),
     sortOrder: typeof t.sortOrder === 'number' ? t.sortOrder : i,
     notes,
+    tag,
+    yieldPct,
   }
 }
 
@@ -123,6 +140,8 @@ export function addMarketTicker(input: {
   name: string
   coingeckoId?: string
   notes?: string
+  tag?: MarketTickerTag | ''
+  yieldPct?: number | null
 }): MarketTicker {
   const symbol = validateSymbol(input.kind, input.symbol)
   const state = loadMarketsState()
@@ -138,6 +157,9 @@ export function addMarketTicker(input: {
     name: input.name.trim() || defaultNameForPair(input.kind, symbol),
     coingeckoId: input.coingeckoId?.trim() || undefined,
     notes: input.notes?.trim() || undefined,
+    tag: normalizeTag(input.tag),
+    yieldPct:
+      input.kind === 'equity' ? normalizeYieldPct(input.yieldPct ?? undefined) : undefined,
     createdAt: new Date().toISOString(),
     sortOrder: maxOrder + 1,
   }
@@ -148,7 +170,15 @@ export function addMarketTicker(input: {
 
 export function updateMarketTicker(
   id: string,
-  patch: Partial<Pick<MarketTicker, 'symbol' | 'name' | 'coingeckoId' | 'kind' | 'notes'>>,
+  patch: {
+    symbol?: string
+    name?: string
+    coingeckoId?: string
+    kind?: MarketAssetKind
+    notes?: string
+    tag?: MarketTickerTag | ''
+    yieldPct?: number | null
+  },
 ): MarketTicker {
   const state = loadMarketsState()
   const idx = state.tickers.findIndex((t) => t.id === id)
@@ -177,6 +207,13 @@ export function updateMarketTicker(
       patch.notes !== undefined
         ? patch.notes.trim() || undefined
         : current.notes,
+    tag: patch.tag !== undefined ? normalizeTag(patch.tag) : current.tag,
+    yieldPct:
+      nextKind !== 'equity'
+        ? undefined
+        : patch.yieldPct !== undefined
+          ? normalizeYieldPct(patch.yieldPct ?? undefined)
+          : current.yieldPct,
   }
   state.tickers[idx] = updated
   saveMarketsState(state)

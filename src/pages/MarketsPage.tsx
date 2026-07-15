@@ -24,13 +24,16 @@ import {
   defaultNameForPair,
   formatMarketChangeAbs,
   formatMarketLast,
+  MARKET_TICKER_TAGS,
   parseRatePair,
   rateDecimals,
   type MarketAssetKind,
   type MarketQuote,
   type MarketTicker,
+  type MarketTickerTag,
   type MarketsCollapsed,
 } from '../domain/markets'
+import { marketSessionStatus } from '../domain/marketSession'
 import { mergeMarketQuotes } from '../domain/marketQuotesCache'
 import { sparklineTrendFromSeries } from '../domain/sparklineSeries'
 import { refreshMarketQuotes } from '../services/marketsQuotes'
@@ -67,6 +70,8 @@ type FormState = {
   name: string
   coingeckoId: string
   notes: string
+  tag: MarketTickerTag | ''
+  yieldPct: string
 }
 
 const emptyForm: FormState = {
@@ -75,6 +80,8 @@ const emptyForm: FormState = {
   name: '',
   coingeckoId: '',
   notes: '',
+  tag: '',
+  yieldPct: '',
 }
 
 type SectionKey = keyof MarketsCollapsed
@@ -359,6 +366,7 @@ export function MarketsPage() {
     null,
   )
   const [fxExplainerOpen, setFxExplainerOpen] = useState(false)
+  const [tagFilter, setTagFilter] = useState<MarketTickerTag | 'All'>('All')
   const longPressTimer = useRef<number | null>(null)
   const refreshInFlight = useRef(false)
   const quotesRef = useRef(quotes)
@@ -416,14 +424,18 @@ export function MarketsPage() {
   }, [focusSymbol, collapsed, tickers])
 
   const bySection = useMemo(
-    () => ({
-      crypto: tickers.filter((t) => t.kind === 'crypto'),
-      equities: tickers.filter((t) => t.kind === 'equity'),
-      indices: tickers.filter((t) => t.kind === 'index'),
-      fx: tickers.filter((t) => t.kind === 'fx'),
-      crosses: tickers.filter((t) => t.kind === 'cross'),
-    }),
-    [tickers],
+    () => {
+      const tagged =
+        tagFilter === 'All' ? tickers : tickers.filter((t) => t.tag === tagFilter)
+      return {
+        crypto: tagged.filter((t) => t.kind === 'crypto'),
+        equities: tagged.filter((t) => t.kind === 'equity'),
+        indices: tagged.filter((t) => t.kind === 'index'),
+        fx: tagged.filter((t) => t.kind === 'fx'),
+        crosses: tagged.filter((t) => t.kind === 'cross'),
+      }
+    },
+    [tickers, tagFilter],
   )
 
   const statusHint = useMemo(() => {
@@ -571,6 +583,8 @@ export function MarketsPage() {
       name: t.name,
       coingeckoId: t.coingeckoId ?? '',
       notes: t.notes ?? '',
+      tag: t.tag ?? '',
+      yieldPct: t.yieldPct != null && t.yieldPct > 0 ? String(t.yieldPct) : '',
     })
     setFormError(null)
     setModalOpen(true)
@@ -580,6 +594,12 @@ export function MarketsPage() {
     try {
       const name =
         form.name.trim() || defaultNameForPair(form.kind, form.symbol)
+      const yieldNum =
+        form.yieldPct.trim() === '' ? null : Number(form.yieldPct)
+      if (form.kind === 'equity' && form.yieldPct.trim() !== '' && !(yieldNum != null && yieldNum > 0)) {
+        setFormError('Yield % must be a positive number.')
+        return
+      }
       if (editing) {
         updateMarketTicker(editing.id, {
           kind: form.kind,
@@ -587,6 +607,8 @@ export function MarketsPage() {
           name,
           coingeckoId: form.coingeckoId,
           notes: form.notes,
+          tag: form.tag,
+          yieldPct: form.kind === 'equity' ? yieldNum : null,
         })
       } else {
         addMarketTicker({
@@ -595,6 +617,8 @@ export function MarketsPage() {
           name,
           coingeckoId: form.coingeckoId || undefined,
           notes: form.notes || undefined,
+          tag: form.tag,
+          yieldPct: form.kind === 'equity' ? yieldNum : null,
         })
       }
       setModalOpen(false)
@@ -790,13 +814,42 @@ export function MarketsPage() {
                     >
                       {sorting ? <ReorderHandle label={`Reorder ${t.symbol}`} /> : null}
                       <div className="min-w-0 flex-1">
-                        <p className="font-semibold text-text tracking-tight">{t.symbol}</p>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <p className="font-semibold text-text tracking-tight">{t.symbol}</p>
+                          {(t.kind === 'equity' || t.kind === 'index') &&
+                            (() => {
+                              const session = marketSessionStatus(t.symbol, t.kind)
+                              if (!session) return null
+                              return (
+                                <span
+                                  className={`text-[10px] uppercase tracking-wider font-semibold px-1.5 py-0.5 border ${
+                                    session.open
+                                      ? 'border-emerald-500/40 text-emerald-600 dark:text-emerald-400'
+                                      : 'border-border text-text-subtle'
+                                  }`}
+                                  title={session.hint}
+                                >
+                                  {session.label}
+                                </span>
+                              )
+                            })()}
+                          {t.tag ? (
+                            <span className="text-[10px] uppercase tracking-wider text-text-subtle">
+                              {t.tag}
+                            </span>
+                          ) : null}
+                        </div>
                         {!compact ? (
                           <p className="text-xs text-text-muted truncate">{t.name}</p>
                         ) : null}
                         {t.notes ? (
                           <p className="text-[11px] text-text-subtle truncate mt-0.5" title={t.notes}>
                             {t.notes}
+                          </p>
+                        ) : null}
+                        {t.kind === 'equity' && t.yieldPct != null && t.yieldPct > 0 ? (
+                          <p className="text-[11px] text-text-subtle tabular-nums mt-0.5">
+                            Yield {t.yieldPct.toFixed(t.yieldPct >= 10 ? 1 : 2)}%
                           </p>
                         ) : null}
                       </div>
@@ -991,6 +1044,27 @@ export function MarketsPage() {
 
       <p className="text-xs text-text-subtle mb-4">{statusHint}</p>
 
+      <div
+        className="flex flex-wrap gap-2 mb-5"
+        role="group"
+        aria-label="Filter watchlist by tag"
+      >
+        {(['All', ...MARKET_TICKER_TAGS] as const).map((tag) => {
+          const on = tagFilter === tag
+          return (
+            <button
+              key={tag}
+              type="button"
+              className={`btn-sm ${on ? 'btn-primary' : 'btn-ghost'}`}
+              aria-pressed={on}
+              onClick={() => setTagFilter(tag)}
+            >
+              {tag}
+            </button>
+          )
+        })}
+      </div>
+
       {(initialLoad || refreshing) &&
       ![...quotes.values()].some((q) => q.last > 0) ? (
         <MarketsHoldingsSkeleton rows={5} label="Loading market quotes" className="mb-6" />
@@ -1087,6 +1161,39 @@ export function MarketsPage() {
               maxLength={280}
             />
           </Field>
+          <Field label="Tag / folder (optional)" hint="Filter chips: Core · Speculative · Income · Other">
+            <select
+              className="w-full"
+              value={form.tag}
+              onChange={(e) =>
+                setForm((f) => ({
+                  ...f,
+                  tag: e.target.value as MarketTickerTag | '',
+                }))
+              }
+            >
+              <option value="">None</option>
+              {MARKET_TICKER_TAGS.map((tag) => (
+                <option key={tag} value={tag}>
+                  {tag}
+                </option>
+              ))}
+            </select>
+          </Field>
+          {form.kind === 'equity' ? (
+            <Field label="Dividend yield % (optional)" hint="Manual stub — shown on Markets equity rows">
+              <input
+                className="w-full"
+                type="number"
+                min={0}
+                step={0.01}
+                inputMode="decimal"
+                value={form.yieldPct}
+                onChange={(e) => setForm((f) => ({ ...f, yieldPct: e.target.value }))}
+                placeholder="e.g. 2.4"
+              />
+            </Field>
+          ) : null}
           {formError ? (
             <p className="text-sm text-red-500" role="alert">
               {formError}

@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.40**
+**Current version: 1.2.41**
 
-## Completed (through v1.2.40)
+## Completed (through v1.2.41)
 
+- Markets / portfolio (next25b 6–10): session Open/Closed chips, holdings drift alert, watchlist tags, dividend yield stub, Compare week-Δ
 - Sync / backup trust (next25b 1–5): pull/push latency on Today, full-backup checksum, passphrase strength meter, multi-device activity hints, pause auto-sync 1 hour
 - Polish / a11y (next25 21–25): EmptyIllustration, Accessibility panel, colour-blind charts, axe CI gate (`test:a11y`), `/smoke` checklist
 - Today / productivity (next25 16–20): Focus Mark done/Snooze, quiet-hours timeline, spending week delta, News/YouTube mark-all-read + synced seenAt, Goals ring on Today

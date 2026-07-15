@@ -16,7 +16,13 @@ import { applyTrade } from '../domain/trades'
 import { equityNeedsUsdToGbp } from '../domain/equityCurrency'
 import { equityUnitPriceGbp } from '../domain/migrateEquityGbp'
 import { applyLastSyncedQuotesToHoldings } from '../domain/lastSyncedHoldings'
+import {
+  equityDriftHits,
+  isSymbolDrifting,
+  loadHoldingsDriftThresholdPct,
+} from '../domain/holdingsDrift'
 import type { EquityHolding } from '../domain/types'
+import { listMarketTickers } from '../storage/marketsStore'
 import { applySortOrder, sortBySortOrder } from '../utils/reorder'
 import {
   formatGBP,
@@ -50,6 +56,18 @@ export function EquitiesPage() {
   const holdings = useMemo(() => sortBySortOrder(data.equities), [data.equities])
   const displayCcy = getDisplayCurrency()
   const showSkeleton = refreshing && holdings.length === 0
+  const driftHits = useMemo(() => equityDriftHits(holdings), [holdings, data.settings.lastPriceUpdate])
+  const driftThreshold = loadHoldingsDriftThresholdPct()
+  const yieldBySymbol = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const t of listMarketTickers('equity')) {
+      if (t.yieldPct != null && t.yieldPct > 0) map.set(t.symbol.toUpperCase(), t.yieldPct)
+    }
+    for (const e of holdings) {
+      if (e.yieldPct != null && e.yieldPct > 0) map.set(e.symbol.toUpperCase(), e.yieldPct)
+    }
+    return map
+  }, [holdings])
 
   const fillFromLastSynced = () => {
     const snapshot = data
@@ -169,6 +187,16 @@ export function EquitiesPage() {
         }
       />
 
+      {driftHits.length > 0 ? (
+        <div
+          className="mb-4 px-4 py-3 border border-amber-500/40 bg-amber-500/10 text-sm text-amber-800 dark:text-amber-200"
+          role="status"
+        >
+          Markets live ≠ holding price by &gt;{driftThreshold}% on{' '}
+          {driftHits.map((h) => h.symbol).join(', ')}. Refresh Markets or fill last synced.
+        </div>
+      ) : null}
+
       <div className={`grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-px mb-6 ${privacyClass(privacy)}`}>
         <div className="surface p-4 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
           <p className="text-xs uppercase tracking-wider text-text-subtle mb-2 font-semibold">Value</p>
@@ -242,6 +270,8 @@ export function EquitiesPage() {
               equityNeedsUsdToGbp(e.symbol) && priceGbp > 0
                 ? convertFromGbp(priceGbp, 'USD', fxRates)
                 : null
+            const drifting = isSymbolDrifting(driftHits, e.symbol)
+            const yieldPct = yieldBySymbol.get(e.symbol.toUpperCase())
             return (
               <SwipeHoldingRow
                 onBuy={() => {
@@ -254,12 +284,22 @@ export function EquitiesPage() {
               <div
                 className={`surface p-4 md:p-5 flex flex-wrap md:flex-nowrap items-center gap-3 rounded-xl md:rounded-none shadow-sm md:shadow-none ${
                   included ? '' : 'opacity-50'
-                }`}
+                } ${drifting ? 'ring-1 ring-inset ring-amber-500/50 bg-amber-500/5' : ''}`}
               >
                 {sorting ? <ReorderHandle label={`Reorder ${e.symbol}`} /> : null}
                 <Link to={`/equities/${e.id}`} className="min-w-0 flex-1 hover:text-accent transition-colors">
                   <p className="font-semibold text-base">{e.symbol}</p>
                   <p className="text-xs text-text-muted truncate mt-0.5">{e.name}</p>
+                  {drifting ? (
+                    <p className="text-[11px] text-amber-700 dark:text-amber-300 mt-0.5">
+                      Price drift vs Markets
+                    </p>
+                  ) : null}
+                  {yieldPct != null ? (
+                    <p className="text-[11px] text-text-subtle tabular-nums mt-0.5">
+                      Yield {yieldPct.toFixed(yieldPct >= 10 ? 1 : 2)}%
+                    </p>
+                  ) : null}
                 </Link>
                 <div className={`text-sm tabular-nums min-w-[8.5rem] ${privacyClass(privacy)}`}>
                   <p className="font-semibold">{formatGBP(value)}</p>

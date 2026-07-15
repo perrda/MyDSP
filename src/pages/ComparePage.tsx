@@ -7,6 +7,10 @@ import {
   buildPortfolioComparison,
   comparisonTotals,
 } from '../domain/portfolioCompare'
+import {
+  syncCompareWeekSnapshots,
+  weekOverWeekDelta,
+} from '../domain/compareWeekSnapshot'
 import { applyLastSyncedQuotesToHoldings, lastSyncedHoldingPrices } from '../domain/lastSyncedHoldings'
 import { formatGBP, privacyClass } from '../utils/format'
 import { AllocationRing, type SliceDatum } from '../components/charts/AllocationRing'
@@ -42,6 +46,13 @@ export function ComparePage() {
     const set = new Set(selected)
     return all.filter((r) => set.has(r.id))
   }, [selected, scanToken])
+
+  const weekSnap = useMemo(() => {
+    const all = buildPortfolioComparison()
+    const byId: Record<string, number> = {}
+    for (const r of all) byId[r.id] = r.netWorth
+    return syncCompareWeekSnapshots(byId)
+  }, [scanToken, portfolios])
 
   const totals = useMemo(() => comparisonTotals(rows), [rows])
   const maxNw = Math.max(1, ...rows.map((r) => Math.abs(r.netWorth)))
@@ -126,7 +137,7 @@ export function ComparePage() {
       <PageHeader
         eyebrow="Family"
         title="Compare portfolios"
-        description="Side-by-side net worth and allocation across David and family workspaces."
+        description="Side-by-side net worth and allocation across David and family workspaces. Week Δ uses a local previous-week snapshot."
         action={
           <div className="flex flex-wrap gap-2">
             <button
@@ -196,6 +207,9 @@ export function ComparePage() {
             <tr className="border-b border-border text-left">
               <th className="p-4 label-uppercase font-bold table-sticky-col" scope="col">Portfolio</th>
               <th className="p-4 label-uppercase font-bold text-right" scope="col">Net worth</th>
+              <th className="p-4 label-uppercase font-bold text-right" scope="col" title="Change vs previous week snapshot">
+                Week Δ
+              </th>
               <th className="p-4 label-uppercase font-bold text-right" scope="col">Crypto</th>
               <th className="p-4 label-uppercase font-bold text-right" scope="col">Equities</th>
               <th className="p-4 label-uppercase font-bold text-right" scope="col">Debt</th>
@@ -204,7 +218,9 @@ export function ComparePage() {
             </tr>
           </thead>
           <tbody className={privacyClass(privacy)}>
-            {rows.map((r) => (
+            {rows.map((r) => {
+              const wow = weekOverWeekDelta(r.id, r.netWorth, weekSnap)
+              return (
               <tr
                 key={r.id}
                 className={`border-b border-border/60 ${r.id === activeId ? 'bg-accent/5' : ''}`}
@@ -235,6 +251,18 @@ export function ComparePage() {
                 <td className="p-4 text-right tabular-nums font-medium">
                   {formatGBP(r.netWorth)}
                 </td>
+                <td
+                  className={`p-4 text-right tabular-nums ${
+                    wow == null
+                      ? 'text-text-subtle'
+                      : wow >= 0
+                        ? 'text-accent'
+                        : 'text-text-muted'
+                  }`}
+                  title={wow == null ? 'No previous-week snapshot yet' : 'vs previous week'}
+                >
+                  {wow == null ? '—' : formatGBP(wow, { signed: true })}
+                </td>
                 <td className="p-4 text-right tabular-nums text-text-muted">
                   {formatGBP(r.crypto)}
                 </td>
@@ -256,10 +284,11 @@ export function ComparePage() {
                   </span>
                 </td>
               </tr>
-            ))}
+              )
+            })}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={7} className="p-8 text-center text-text-muted font-light">
+                <td colSpan={8} className="p-8 text-center text-text-muted font-light">
                   Select at least one portfolio above.
                 </td>
               </tr>
