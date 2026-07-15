@@ -22,6 +22,12 @@ export function titleCaseHeader(title: string): string {
     .join('')
 }
 
+/**
+ * Page intro chrome.
+ * Phone: full eyebrow + title (shell title is hidden).
+ * ≥sm: shell sticky title is visible — hide duplicate heading; keep description + actions.
+ * Actions sit beside the text block from sm up so CTAs stay near the top.
+ */
 export function PageHeader({ eyebrow, title, description, action }: PageHeaderProps) {
   const display = titleCaseHeader(title)
   const lastSpace = display.lastIndexOf(' ')
@@ -30,10 +36,10 @@ export function PageHeader({ eyebrow, title, description, action }: PageHeaderPr
   const accent = hasAccentSplit ? display.slice(lastSpace + 1) : display
 
   return (
-    <div className="flex flex-col gap-3 md:gap-4 mb-6 md:mb-8">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4 mb-6 md:mb-8">
       <div className="min-w-0 flex-1">
-        <p className="eyebrow mb-2 md:mb-3 text-xs md:text-sm">{eyebrow}</p>
-        <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight leading-tight">
+        <p className="eyebrow mb-2 md:mb-3 text-xs md:text-sm sm:hidden">{eyebrow}</p>
+        <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight leading-tight sm:hidden">
           {hasAccentSplit ? (
             <>
               {lead}{' '}
@@ -44,12 +50,17 @@ export function PageHeader({ eyebrow, title, description, action }: PageHeaderPr
           )}
         </h2>
         {description && (
-          <p className="mt-2 md:mt-3 text-xs md:text-sm text-text-muted font-light leading-relaxed max-w-2xl">
+          <p
+            className={`text-xs md:text-sm text-text-muted font-light leading-relaxed max-w-2xl ${
+              /* On sm+ the shell owns the title — description is the first page copy */
+              'mt-2 md:mt-3 sm:mt-0'
+            }`}
+          >
             {description}
           </p>
         )}
       </div>
-      {action && <div className="shrink-0 self-start md:self-end">{action}</div>}
+      {action && <div className="shrink-0 self-start">{action}</div>}
     </div>
   )
 }

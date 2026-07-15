@@ -14,6 +14,7 @@ import { Sparkline } from '../components/charts/Sparkline'
 import { PageHeader } from '../components/ui/PageHeader'
 import { EmptyStateInline } from '../components/ui/EmptyState'
 import { ConfirmDialog, Field, Modal } from '../components/ui/Modal'
+import { OverflowMenu } from '../components/ui/OverflowMenu'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
 import { usePortfolio } from '../context/PortfolioContext'
 import {
@@ -569,9 +570,9 @@ export function MarketsPage() {
         key={section}
         className="border border-border bg-bg-elevated mb-6 overflow-hidden"
       >
-        <div className="px-4 sm:px-5 pt-4 pb-3 flex items-start justify-between gap-3 border-b border-border">
+        <div className={`px-4 sm:px-5 flex items-start justify-between gap-3 border-b border-border ${density === 'compact' ? 'pt-3 pb-2' : 'pt-4 pb-3'}`}>
           <div className="min-w-0">
-            <p className="text-xl sm:text-2xl font-bold tracking-tight text-text mb-1">{meta.title}</p>
+            <p className={`font-bold tracking-tight text-text mb-1 ${density === 'compact' ? 'text-base sm:text-lg' : 'text-xl sm:text-2xl'}`}>{meta.title}</p>
             <div className={`flex flex-wrap items-baseline gap-x-3 gap-y-1 ${privacyClass(privacy)}`}>
               <p className="label-uppercase text-[11px] text-text-subtle tabular-nums">
                 {isRateSection
@@ -716,23 +717,44 @@ export function MarketsPage() {
                         </div>
                       </div>
 
-                      <div className="flex flex-col sm:flex-row gap-1 shrink-0">
-                        <button
-                          type="button"
-                          className="btn-ghost btn-sm p-2 min-h-11 min-w-11"
-                          aria-label={`Edit ${t.symbol}`}
-                          onClick={() => openEdit(t)}
-                        >
-                          <Pencil size={14} strokeWidth={1.5} />
-                        </button>
-                        <button
-                          type="button"
-                          className="btn-ghost btn-sm p-2 min-h-11 min-w-11 text-red-500"
-                          aria-label={`Remove ${t.symbol}`}
-                          onClick={() => setDeleteId(t.id)}
-                        >
-                          <Trash2 size={14} strokeWidth={1.5} />
-                        </button>
+                      <div className="shrink-0">
+                        {compact ? (
+                          <OverflowMenu
+                            label={`Actions for ${t.symbol}`}
+                            items={[
+                              {
+                                id: 'edit',
+                                label: 'Edit',
+                                onClick: () => openEdit(t),
+                              },
+                              {
+                                id: 'remove',
+                                label: 'Remove',
+                                destructive: true,
+                                onClick: () => setDeleteId(t.id),
+                              },
+                            ]}
+                          />
+                        ) : (
+                          <div className="flex flex-row gap-1">
+                            <button
+                              type="button"
+                              className="btn-ghost btn-sm p-2 min-h-11 min-w-11"
+                              aria-label={`Edit ${t.symbol}`}
+                              onClick={() => openEdit(t)}
+                            >
+                              <Pencil size={14} strokeWidth={1.5} />
+                            </button>
+                            <button
+                              type="button"
+                              className="btn-ghost btn-sm p-2 min-h-11 min-w-11 text-red-500"
+                              aria-label={`Remove ${t.symbol}`}
+                              onClick={() => setDeleteId(t.id)}
+                            >
+                              <Trash2 size={14} strokeWidth={1.5} />
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )
@@ -785,7 +807,7 @@ export function MarketsPage() {
       <PageHeader
         eyebrow="Watchlist"
         title="Markets"
-        description="Live equities, crypto, indices (S&P 500, Nasdaq, FTSE), FX, and crypto crosses. Auto-refreshes about every 45s; header refresh forces an update. Last synced prices and 7-day sparklines stay visible if a live source is slow."
+        description="Live equities, crypto, indices, FX, and crosses. Auto-refreshes ~45s; header refresh forces an update."
         action={
           <div className="flex flex-wrap gap-2">
             <button

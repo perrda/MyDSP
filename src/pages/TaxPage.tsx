@@ -312,13 +312,17 @@ export function TaxPage() {
       ) : null}
 
       {matchedRows.length > 0 && pack.hasCgt && (
-        <div className="surface overflow-x-auto mb-8">
+        <div className="table-wrap surface overflow-x-auto mb-8">
           <table className="w-full text-left min-w-[720px]" aria-label="Matched disposals">
             <caption className="sr-only">Matched disposal rules and gains for {taxYear}</caption>
             <thead>
               <tr className="border-b border-border">
-                {['Date', 'Symbol', 'Rule', 'Allowable cost', 'Gain', 'Note'].map((h) => (
-                  <th key={h} className="px-5 py-4 label-uppercase" scope="col">
+                {['Date', 'Symbol', 'Rule', 'Allowable cost', 'Gain', 'Note'].map((h, i) => (
+                  <th
+                    key={h}
+                    className={`px-5 py-4 label-uppercase${i === 0 ? ' table-sticky-col' : ''}`}
+                    scope="col"
+                  >
                     {h}
                   </th>
                 ))}
@@ -327,7 +331,7 @@ export function TaxPage() {
             <tbody>
               {matchedRows.map((m) => (
                 <tr key={`m-${m.disposal.id}`} className="border-b border-border last:border-0">
-                  <td className="px-5 py-3 text-sm">{formatDate(m.disposal.date)}</td>
+                  <td className="px-5 py-3 text-sm table-sticky-col">{formatDate(m.disposal.date)}</td>
                   <td className="px-5 py-3 font-semibold">{m.disposal.symbol}</td>
                   <td className="px-5 py-3 text-xs uppercase tracking-wider text-text-subtle">
                     {m.matchedRule}
@@ -384,13 +388,17 @@ export function TaxPage() {
       </div>
       ) : null}
 
-      <div className="surface overflow-x-auto">
+      <div className="table-wrap surface overflow-x-auto">
         <table className="w-full text-left min-w-[720px]" aria-label="Disposals list">
           <caption className="sr-only">All disposals in {taxYear}</caption>
           <thead>
             <tr className="border-b border-border">
-              {['Date', 'Asset', 'Type', 'Qty', 'Proceeds', 'Cost', 'Gain / loss', ''].map((h) => (
-                <th key={h || 'a'} className="px-5 py-4 label-uppercase" scope="col">
+              {['Date', 'Asset', 'Type', 'Qty', 'Proceeds', 'Cost', 'Gain / loss', ''].map((h, i) => (
+                <th
+                  key={h || 'a'}
+                  className={`px-5 py-4 label-uppercase${i === 0 ? ' table-sticky-col' : ''}`}
+                  scope="col"
+                >
                   {h}
                 </th>
               ))}
@@ -403,7 +411,7 @@ export function TaxPage() {
               const cost = matched?.allowableCost ?? d.cost
               return (
                 <tr key={d.id} className="border-b border-border last:border-0">
-                  <td className="px-5 py-3 text-sm">{formatDate(d.date)}</td>
+                  <td className="px-5 py-3 text-sm table-sticky-col">{formatDate(d.date)}</td>
                   <td className="px-5 py-3 font-semibold">{d.symbol}</td>
                   <td className="px-5 py-3 text-sm text-text-subtle">{d.assetType}</td>
                   <td className="px-5 py-3 text-sm tabular-nums">{d.qty}</td>

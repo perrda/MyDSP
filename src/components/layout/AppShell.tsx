@@ -64,6 +64,11 @@ const titles: Record<string, { eyebrow: string; title: string }> = {
 export function AppShell() {
   const [open, setOpen] = useState(false)
   const showBottomNav = useShowBottomNav()
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('has-bottom-nav', showBottomNav)
+    return () => document.documentElement.classList.remove('has-bottom-nav')
+  }, [showBottomNav])
   useIdlePrefetch()
   const { pathname } = useLocation()
   const {

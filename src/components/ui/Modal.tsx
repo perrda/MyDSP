@@ -75,8 +75,8 @@ export function Modal({ open, title, onClose, children, size = 'default' }: Moda
 
   const panelClass =
     size === 'full'
-      ? 'modal modal-full relative z-10 w-full h-[100dvh] max-h-[100dvh] sm:h-auto sm:max-h-[min(92vh,56rem)] sm:max-w-3xl overflow-y-auto border border-border-strong'
-      : 'modal relative z-10 w-full sm:max-w-lg max-h-[min(92dvh,90vh)] overflow-y-auto border border-border-strong'
+      ? 'modal modal-enter modal-full relative z-10 w-full h-[100dvh] max-h-[100dvh] sm:h-auto sm:max-h-[min(92vh,56rem)] sm:max-w-3xl overflow-y-auto border border-border-strong'
+      : 'modal modal-enter relative z-10 w-full sm:max-w-lg max-h-[min(92dvh,90vh)] overflow-y-auto border border-border-strong'
 
   return (
     <div
@@ -97,7 +97,7 @@ export function Modal({ open, title, onClose, children, size = 'default' }: Moda
         aria-labelledby={titleId}
         className={panelClass}
       >
-        <div className="sticky top-0 z-10 flex items-center justify-between gap-4 px-4 sm:px-6 py-4 sm:py-5 border-b border-border bg-bg-elevated pt-[max(1rem,env(safe-area-inset-top))]">
+        <div className="sticky top-0 z-10 modal-sticky-header flex items-center justify-between gap-4 px-4 sm:px-6 py-4 sm:py-5 border-b border-border bg-bg-elevated pt-[max(1rem,env(safe-area-inset-top))]">
           <h2 id={titleId} className="text-base sm:text-lg font-bold tracking-tight truncate">
             {title}
           </h2>

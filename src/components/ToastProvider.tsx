@@ -74,7 +74,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={value}>
       {children}
       <div
-        className="fixed bottom-4 right-4 z-[1500] flex flex-col gap-3 max-w-sm w-[calc(100%-2rem)]"
+        className="floating-banner floating-banner--toast fixed right-4 z-[1500] flex flex-col gap-3 max-w-sm w-[calc(100%-2rem)]"
         aria-live="polite"
       >
         {/* Regular toasts */}

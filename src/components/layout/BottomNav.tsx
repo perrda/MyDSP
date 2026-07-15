@@ -46,9 +46,9 @@ export function BottomNav() {
             to={item.to}
             end={item.to === '/'}
             className={({ isActive }) =>
-              `flex flex-col items-center gap-0.5 py-2 min-h-11 transition-colors ${
+              `bottom-nav-link relative flex flex-col items-center gap-0.5 py-2 min-h-11 transition-colors ${
                 tablet ? 'px-4 min-w-[4.5rem] flex-1' : 'px-2 min-w-[3.5rem]'
-              } ${isActive ? 'text-accent' : 'text-text-muted'}`
+              } ${isActive ? 'text-accent bottom-nav-link--active' : 'text-text-muted'}`
             }
           >
             {({ isActive }) => (

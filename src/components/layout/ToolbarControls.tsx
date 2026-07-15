@@ -18,9 +18,9 @@ interface ToolbarControlsProps {
 /**
  * Workspace controls — designed so a ~390px phone header never overflows.
  *
- * Mobile row: Portfolio · Currency · Notifications · More
- * More menu: Refresh · Privacy · Theme · Search
- * Desktop: all controls in one row (refresh stays one-tap).
+ * Phone (&lt;768px): Portfolio · Currency · Notifications · More
+ * More menu: Refresh · Privacy · Theme · Glass · Search
+ * Tablet / desktop (≥768px): full strip (refresh one-tap).
  */
 export function ToolbarControls({
   portfolioSelect,
@@ -54,7 +54,7 @@ export function ToolbarControls({
   }, [moreOpen])
 
   useEffect(() => {
-    const mq = window.matchMedia('(min-width: 1024px)')
+    const mq = window.matchMedia('(min-width: 768px)')
     const onChange = () => {
       if (mq.matches) setMoreOpen(false)
     }
@@ -84,7 +84,7 @@ export function ToolbarControls({
       {portfolioSelect}
       {currencySelect}
 
-      {/* Desktop / large: full strip */}
+      {/* Tablet / desktop: full strip */}
       <div className="toolbar-actions-desktop">
         {refreshBtn()}
         <NotificationCenter />
@@ -94,7 +94,7 @@ export function ToolbarControls({
         <GlobalSearch />
       </div>
 
-      {/* Phone / tablet: bell + More only — refresh lives in the menu */}
+      {/* Phone only: bell + More — refresh lives in the menu */}
       <div className="toolbar-actions-mobile">
         <NotificationCenter />
         <div className="toolbar-more-wrap">
