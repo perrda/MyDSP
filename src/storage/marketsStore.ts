@@ -8,10 +8,12 @@ import {
   normalizeMarketSymbol,
   parseRatePair,
   type MarketAssetKind,
+  type MarketQuote,
   type MarketTicker,
   type MarketsCollapsed,
   type MarketsState,
 } from '../domain/markets'
+import { quotesMapToRecord, quotesRecordToMap } from '../domain/marketQuotesCache'
 
 const KEY = 'mydsp_markets_v1'
 
@@ -218,6 +220,27 @@ export function setMarketsLastRefresh(iso: string): void {
   const state = loadMarketsState()
   state.lastRefreshAt = iso
   writeState(state, { silent: true })
+}
+
+const QUOTES_KEY = 'mydsp_markets_quotes_v1'
+
+/** Last-good Markets quotes (by ticker id) — survives reloads and failed refreshes. */
+export function loadMarketQuotesCache(): Map<string, MarketQuote> {
+  try {
+    const raw = localStorage.getItem(QUOTES_KEY)
+    if (!raw) return new Map()
+    return quotesRecordToMap(JSON.parse(raw))
+  } catch {
+    return new Map()
+  }
+}
+
+export function saveMarketQuotesCache(map: Map<string, MarketQuote>): void {
+  try {
+    localStorage.setItem(QUOTES_KEY, JSON.stringify(quotesMapToRecord(map)))
+  } catch {
+    /* quota / private mode */
+  }
 }
 
 export function exportMarketsForBackup(): MarketsState {
