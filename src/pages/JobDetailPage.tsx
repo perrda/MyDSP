@@ -360,7 +360,7 @@ export function JobDetailPage() {
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
   return (
-    <div className={privacyClass(privacy)}>
+    <div className={`${privacyClass(privacy)} pb-20 sm:pb-0`}>
       {showInterviewModal && (
         <InterviewModal
           interview={editingInterview}
@@ -435,7 +435,7 @@ export function JobDetailPage() {
         title={application.jobTitle}
         description={application.companyName}
         action={
-          <div className="flex gap-2">
+          <div className="hidden sm:flex gap-2">
             <button type="button" onClick={() => setShowJobForm(true)} className="btn-ghost btn-sm">
               <Edit2 size={14} /> Edit Details
             </button>
@@ -451,6 +451,23 @@ export function JobDetailPage() {
           </div>
         }
       />
+
+      {/* Sticky Save / action bar — above bottom nav, safe-area aware */}
+      <div className="job-detail-action-bar" role="toolbar" aria-label="Job actions">
+        <button type="button" onClick={() => setShowJobForm(true)} className="btn-ghost btn-sm min-h-11">
+          <Edit2 size={14} /> Edit
+        </button>
+        <button type="button" onClick={() => handleCreateLinkedTodo()} className="btn-secondary btn-sm min-h-11">
+          <Plus size={14} /> Todo
+        </button>
+        <button
+          type="button"
+          onClick={() => setEditMode(!editMode)}
+          className={`btn-sm min-h-11 ${editMode ? 'btn-primary' : 'btn-ghost'}`}
+        >
+          {editMode ? <X size={14} /> : <Edit2 size={14} />} {editMode ? 'Save' : 'Quick Edit'}
+        </button>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Column */}

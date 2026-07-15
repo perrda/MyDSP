@@ -571,11 +571,11 @@ export function JobsPage() {
       ) : viewMode === 'analytics' ? (
         <JobAnalytics applications={filteredApplications} privacy={privacy} />
       ) : viewMode === 'kanban' ? (
-        <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
+        <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory kanban-snap-scroll">
           {kanbanData.map((column) => (
             <div
               key={column.title}
-              className={`flex-shrink-0 w-80 rounded-lg transition-colors ${
+              className={`flex-shrink-0 w-[min(80vw,20rem)] sm:w-80 rounded-lg transition-colors snap-start snap-always ${
                 dragOverColumn === column.title ? 'bg-accent/10 ring-2 ring-accent' : ''
               }`}
               onDragOver={(e) => {

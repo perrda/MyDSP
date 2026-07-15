@@ -37,7 +37,26 @@ function formatRelative(iso: string): string {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
 }
 
-function ArticleRow({ article }: { article: NewsArticle }) {
+const NEWS_SEEN_KEY = 'mydsp_news_seen_at'
+const NEWS_PAGE = 8
+
+function loadNewsSeenAt(): string {
+  try {
+    return localStorage.getItem(NEWS_SEEN_KEY) || ''
+  } catch {
+    return ''
+  }
+}
+
+function saveNewsSeenAt(iso: string): void {
+  try {
+    localStorage.setItem(NEWS_SEEN_KEY, iso)
+  } catch {
+    /* ignore */
+  }
+}
+
+function ArticleRow({ article, unread }: { article: NewsArticle; unread?: boolean }) {
   return (
     <a
       href={article.link}
@@ -46,7 +65,12 @@ function ArticleRow({ article }: { article: NewsArticle }) {
       className="px-4 sm:px-5 py-3.5 flex items-start gap-3 hover:bg-surface-hover/60 transition-colors"
     >
       <div className="min-w-0 flex-1">
-        <p className="font-semibold text-text tracking-tight leading-snug">{article.title}</p>
+        <p className="font-semibold text-text tracking-tight leading-snug">
+          {unread ? (
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-accent mr-2 align-middle" aria-hidden />
+          ) : null}
+          {article.title}
+        </p>
         <p className="text-xs text-text-muted mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
           <span>{article.source}</span>
           <span aria-hidden>·</span>
@@ -83,7 +107,14 @@ export function NewsPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [filterTag, setFilterTag] = useState<string | 'all'>('all')
   const [sorting, setSorting] = useState(false)
+  const [seenAt, setSeenAt] = useState(loadNewsSeenAt)
+  const [topVisible, setTopVisible] = useState(NEWS_PAGE)
+  const [taggedVisible, setTaggedVisible] = useState(NEWS_PAGE)
   const inFlight = useRef(false)
+
+  useEffect(() => {
+    setTaggedVisible(NEWS_PAGE)
+  }, [filterTag])
 
   const reloadList = useCallback(() => {
     setTags(listNewsTags())
@@ -143,6 +174,22 @@ export function NewsPage() {
     return rows.filter((a) => a.tag === filterTag)
   }, [tags, byTag, filterTag])
 
+  const unreadCount = useMemo(() => {
+    if (!seenAt) return top.length + taggedFlat.length
+    const cutoff = seenAt
+    const topN = top.filter((a) => a.publishedAt > cutoff).length
+    const tagN = taggedFlat.filter((a) => a.publishedAt > cutoff).length
+    return topN + tagN
+  }, [top, taggedFlat, seenAt])
+
+  const markNewsRead = () => {
+    const now = new Date().toISOString()
+    saveNewsSeenAt(now)
+    setSeenAt(now)
+  }
+
+  const isUnread = (a: NewsArticle) => !seenAt || a.publishedAt > seenAt
+
   const openCreate = () => {
     setEditing(null)
     setFormTag('')
@@ -200,9 +247,21 @@ export function NewsPage() {
         }
       />
 
-      <p className="text-xs text-text-subtle mb-4">
-        {refreshing ? 'Updating headlines…' : lastAt ? `Last update ${formatDateTime(lastAt)}` : 'Headlines not loaded yet'}
-        {error ? ` · ${error}` : ''}
+      <p className="text-xs text-text-subtle mb-4 flex flex-wrap items-center gap-2">
+        <span>
+          {refreshing ? 'Updating headlines…' : lastAt ? `Last update ${formatDateTime(lastAt)}` : 'Headlines not loaded yet'}
+          {error ? ` · ${error}` : ''}
+        </span>
+        {unreadCount > 0 ? (
+          <span className="news-unread-chip inline-flex items-center gap-1 text-[11px] font-bold tabular-nums px-2 py-0.5 bg-accent/15 text-accent border border-accent/30 rounded-full">
+            {unreadCount} new
+          </span>
+        ) : null}
+        {unreadCount > 0 ? (
+          <button type="button" className="btn-ghost btn-sm text-xs min-h-9" onClick={markNewsRead}>
+            Mark read
+          </button>
+        ) : null}
       </p>
 
       {/* Top news */}
@@ -230,7 +289,22 @@ export function NewsPage() {
                 {refreshing ? 'Loading headlines…' : 'No top headlines yet.'}
               </p>
             ) : (
-              top.map((a) => <ArticleRow key={a.id} article={a} />)
+              <>
+                {top.slice(0, topVisible).map((a) => (
+                  <ArticleRow key={a.id} article={a} unread={isUnread(a)} />
+                ))}
+                {topVisible < top.length ? (
+                  <div className="px-4 sm:px-5 py-3">
+                    <button
+                      type="button"
+                      className="btn-secondary btn-sm w-full min-h-11"
+                      onClick={() => setTopVisible((n) => n + NEWS_PAGE)}
+                    >
+                      Load more ({top.length - topVisible} left)
+                    </button>
+                  </div>
+                ) : null}
+              </>
             )}
           </div>
         )}
@@ -284,7 +358,22 @@ export function NewsPage() {
                   {refreshing ? 'Loading tagged news…' : 'No stories for these tags yet.'}
                 </p>
               ) : (
-                taggedFlat.map((a) => <ArticleRow key={`${a.tag}-${a.id}`} article={a} />)
+                <>
+                  {taggedFlat.slice(0, taggedVisible).map((a) => (
+                    <ArticleRow key={`${a.tag}-${a.id}`} article={a} unread={isUnread(a)} />
+                  ))}
+                  {taggedVisible < taggedFlat.length ? (
+                    <div className="px-4 sm:px-5 py-3">
+                      <button
+                        type="button"
+                        className="btn-secondary btn-sm w-full min-h-11"
+                        onClick={() => setTaggedVisible((n) => n + NEWS_PAGE)}
+                      >
+                        Load more ({taggedFlat.length - taggedVisible} left)
+                      </button>
+                    </div>
+                  ) : null}
+                </>
               )}
             </div>
 

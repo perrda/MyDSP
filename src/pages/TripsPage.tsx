@@ -154,14 +154,14 @@ export function TripsPage() {
                   ],
                 }))
               }
-              className="grid grid-cols-1 md:grid-cols-2 gap-px mb-8"
+              className="grid grid-cols-1 md:grid-cols-2 gap-px mb-8 trips-list-density"
             >
               {(t) => {
                 const spent = tripSpend(data.spending, t.id)
                 const budget = t.budget ?? 0
                 const over = budget > 0 && spent > budget
                 return (
-                  <div className="surface p-6 sm:p-8">
+                  <div className="surface p-6 sm:p-8 trips-density-card">
                     <div className="flex items-start gap-2 mb-3">
                       <ReorderHandle label={`Reorder ${t.name}`} />
                       <div className="flex-1 min-w-0 flex justify-between gap-3">

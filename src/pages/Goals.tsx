@@ -147,14 +147,14 @@ export function GoalsPage() {
           items={goals}
           getId={(g) => String(g.id)}
           onReorder={(next) => setData((prev) => ({ ...prev, goals: applySortOrder(next) }))}
-          className="flex flex-col gap-px"
+          className="flex flex-col gap-px goals-list-density"
         >
           {(g) => {
             const current = goalCurrent(g.metric)
             const progress = goalProgress(g)
             const notes = g.commentaries?.length ?? 0
             return (
-              <div className="surface p-5 sm:p-8">
+              <div className="surface p-5 sm:p-8 goals-density-card">
                 <div className="flex gap-3 mb-4">
                   {sorting ? <ReorderHandle label={`Reorder ${g.name}`} /> : null}
                   <div className="min-w-0 flex-1">

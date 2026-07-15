@@ -187,7 +187,8 @@ export function SpendingPage() {
         description={`${formatMonthLabel(ym)} · filter by category, search, or jump to budgets.`}
         action={
           <div className="flex flex-wrap gap-2 items-center w-full sm:w-auto">
-            <div className="flex items-center gap-1.5 w-full sm:w-auto">
+            {/* Phone: compact month picker */}
+            <div className="flex items-center gap-1.5 w-full sm:hidden">
               <button
                 type="button"
                 className="btn-ghost btn-sm min-h-11 min-w-11"
@@ -196,7 +197,18 @@ export function SpendingPage() {
               >
                 Prev
               </button>
-              <span className="text-sm font-semibold tabular-nums flex-1 text-center sm:flex-none">{ym}</span>
+              <label className="flex-1 min-w-0">
+                <span className="sr-only">Month</span>
+                <input
+                  type="month"
+                  value={ym}
+                  onChange={(e) => {
+                    const v = e.target.value
+                    if (/^\d{4}-\d{2}$/.test(v)) setYm(v)
+                  }}
+                  className="spending-month-picker w-full min-h-11 px-3 py-2 bg-surface-hover border border-border rounded text-sm font-semibold tabular-nums"
+                />
+              </label>
               <button
                 type="button"
                 className="btn-ghost btn-sm min-h-11 min-w-11"
@@ -206,7 +218,32 @@ export function SpendingPage() {
                 Next
               </button>
               {ym !== monthKey() && (
-                <button type="button" className="btn-ghost btn-sm" onClick={() => setYm(monthKey())}>
+                <button type="button" className="btn-ghost btn-sm min-h-11" onClick={() => setYm(monthKey())}>
+                  Now
+                </button>
+              )}
+            </div>
+            {/* Tablet+: prev / label / next */}
+            <div className="hidden sm:flex items-center gap-1.5">
+              <button
+                type="button"
+                className="btn-ghost btn-sm min-h-11 min-w-11"
+                onClick={() => setYm(shiftMonth(ym, -1))}
+                aria-label="Previous month"
+              >
+                Prev
+              </button>
+              <span className="text-sm font-semibold tabular-nums px-2">{ym}</span>
+              <button
+                type="button"
+                className="btn-ghost btn-sm min-h-11 min-w-11"
+                onClick={() => setYm(shiftMonth(ym, 1))}
+                aria-label="Next month"
+              >
+                Next
+              </button>
+              {ym !== monthKey() && (
+                <button type="button" className="btn-ghost btn-sm min-h-11" onClick={() => setYm(monthKey())}>
                   Now
                 </button>
               )}

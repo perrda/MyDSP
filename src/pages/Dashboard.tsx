@@ -60,6 +60,12 @@ export function Dashboard() {
       .slice(0, 4)
   }, [data.todoItems])
 
+  /** Next incomplete task for the single Focus card (due/overdue first, else any open). */
+  const focusTodo = useMemo(() => {
+    if (todayTodos[0]) return todayTodos[0]
+    return (data.todoItems ?? []).find((t) => t.status !== 'done' && t.status !== 'archived') ?? null
+  }, [todayTodos, data.todoItems])
+
   const marketsCount = useMemo(() => listMarketTickers().length, [syncStatus.lastAt])
 
   const todayMovers = useMemo(() => {
@@ -76,6 +82,7 @@ export function Dashboard() {
       .slice(0, 3)
   }, [syncStatus.lastAt, marketsCount])
 
+  const topMover = todayMovers[0] ?? null
   const todayPriceAlerts = useMemo(() => buildPriceAlertNotifications().slice(0, 2), [syncStatus.lastAt, marketsCount])
 
   const syncCfg = loadSyncConfig()
@@ -146,88 +153,89 @@ export function Dashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-6">
-        <div className="surface p-4 md:p-5 rounded-xl md:rounded-none shadow-sm md:shadow-none">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-xs uppercase tracking-wider text-text-subtle font-semibold">Due today</p>
+      {/* Primary focus — one card: next todo OR top Markets mover */}
+      <div className="today-focus-card surface p-4 md:p-5 mb-3 rounded-xl md:rounded-none shadow-sm md:shadow-none">
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-xs uppercase tracking-wider text-text-subtle font-semibold">Focus</p>
+          {focusTodo ? (
             <Link to="/todos" className="text-xs text-accent font-semibold">
               All todos
             </Link>
-          </div>
-          {todayTodos.length === 0 ? (
-            <p className="text-sm text-text-muted font-light">Nothing due — clear day.</p>
           ) : (
-            <ul className="space-y-2">
-              {todayTodos.map((t) => (
-                <li key={t.id}>
-                  <Link
-                    to={`/todos?focus=${t.id}`}
-                    className="text-sm font-medium text-text hover:text-accent line-clamp-1"
-                  >
-                    {isOverdue(t) ? 'Overdue · ' : ''}
-                    {t.title}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-        <div className="surface p-4 md:p-5 rounded-xl md:rounded-none shadow-sm md:shadow-none">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-xs uppercase tracking-wider text-text-subtle font-semibold">Jump in</p>
-          </div>
-          {todayPriceAlerts.length > 0 ? (
-            <ul className="space-y-1.5 mb-3">
-              {todayPriceAlerts.map((a) => (
-                <li key={a.id}>
-                  <Link to={a.actionUrl ?? '/markets'} className="text-sm font-medium text-accent hover:underline line-clamp-1">
-                    Alert · {a.title}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-          {todayMovers.length > 0 ? (
-            <ul className="space-y-1.5 mb-3">
-              {todayMovers.map((m) => (
-                <li key={m.id}>
-                  <Link
-                    to={`/markets?symbol=${encodeURIComponent(m.symbol)}`}
-                    className="text-sm text-text hover:text-accent inline-flex items-center gap-2"
-                  >
-                    <span className="font-semibold">{m.symbol}</span>
-                    <span className={m.changePct >= 0 ? 'text-emerald-500' : 'text-red-500'}>
-                      {m.changePct >= 0 ? '+' : ''}
-                      {m.changePct.toFixed(2)}%
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-          <div className="flex flex-wrap items-center gap-3">
-            <Link
-              to={QUICK_PRIMARY.to}
-              className="btn-primary btn-sm inline-flex items-center gap-2"
-            >
-              <QUICK_PRIMARY.icon size={16} strokeWidth={1.5} /> {QUICK_PRIMARY.label}
+            <Link to="/markets" className="text-xs text-accent font-semibold">
+              Markets
             </Link>
-            {QUICK_SECONDARY.map((l) => (
-              <Link
-                key={l.to}
-                to={l.to}
-                className="text-sm font-semibold text-accent hover:underline"
-              >
-                {l.label} →
-              </Link>
-            ))}
-          </div>
-          {fccDataPresent ? null : (
-            <p className="text-xs text-text-subtle mt-3 font-light">
-              Sample portfolio — import live data in Settings anytime.
-            </p>
           )}
         </div>
+        {focusTodo ? (
+          <Link
+            to={`/todos?focus=${focusTodo.id}`}
+            className="block group"
+          >
+            <p className="text-[11px] uppercase tracking-wider text-text-subtle mb-1">
+              {isOverdue(focusTodo) ? 'Overdue' : isDueToday(focusTodo) ? 'Due today' : 'Next task'}
+            </p>
+            <p className="text-lg md:text-xl font-bold tracking-tight text-text group-hover:text-accent line-clamp-2">
+              {focusTodo.title}
+            </p>
+            {todayTodos.length > 1 ? (
+              <p className="text-xs text-text-muted mt-2 font-light">
+                +{todayTodos.length - 1} more due today
+              </p>
+            ) : null}
+          </Link>
+        ) : topMover ? (
+          <Link
+            to={`/markets?symbol=${encodeURIComponent(topMover.symbol)}`}
+            className="block group"
+          >
+            <p className="text-[11px] uppercase tracking-wider text-text-subtle mb-1">Top mover</p>
+            <p className="text-lg md:text-xl font-bold tracking-tight inline-flex items-baseline gap-2 flex-wrap">
+              <span className="group-hover:text-accent">{topMover.symbol}</span>
+              <span className={`tabular-nums ${topMover.changePct >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                {topMover.changePct >= 0 ? '+' : ''}
+                {topMover.changePct.toFixed(2)}%
+              </span>
+            </p>
+          </Link>
+        ) : (
+          <p className="text-sm text-text-muted font-light">Clear day — nothing due, no movers yet.</p>
+        )}
+      </div>
+
+      <div className="surface p-4 md:p-5 mb-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-xs uppercase tracking-wider text-text-subtle font-semibold">Jump in</p>
+        </div>
+        {todayPriceAlerts.length > 0 ? (
+          <p className="text-sm mb-3">
+            <Link to={todayPriceAlerts[0].actionUrl ?? '/markets'} className="font-medium text-accent hover:underline line-clamp-1">
+              Alert · {todayPriceAlerts[0].title}
+            </Link>
+          </p>
+        ) : null}
+        <div className="flex flex-wrap items-center gap-3">
+          <Link
+            to={QUICK_PRIMARY.to}
+            className="btn-primary btn-sm inline-flex items-center gap-2"
+          >
+            <QUICK_PRIMARY.icon size={16} strokeWidth={1.5} /> {QUICK_PRIMARY.label}
+          </Link>
+          {QUICK_SECONDARY.map((l) => (
+            <Link
+              key={l.to}
+              to={l.to}
+              className="text-sm font-semibold text-accent hover:underline"
+            >
+              {l.label} →
+            </Link>
+          ))}
+        </div>
+        {fccDataPresent ? null : (
+          <p className="text-xs text-text-subtle mt-3 font-light">
+            Sample portfolio — import live data in Settings anytime.
+          </p>
+        )}
       </div>
 
       <GettingStartedChecklist />

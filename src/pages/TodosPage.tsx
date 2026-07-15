@@ -141,6 +141,10 @@ export function TodosPage() {
   const [showScreenshotImport, setShowScreenshotImport] = useState(false)
   const [bulkMoveListId, setBulkMoveListId] = useState<number | ''>('')
   const [focusTodoId, setFocusTodoId] = useState<number | null>(null)
+  /** Completed section open — collapsed by default on phone (<768). */
+  const [completedOpen, setCompletedOpen] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia('(min-width: 768px)').matches : true,
+  )
 
   const lists = sortBySortOrder(data.todoLists || [])
   const allItems = data.todoItems || []
@@ -183,7 +187,10 @@ export function TodosPage() {
     setFilterBy('all')
     setSearchQuery('')
     setPriorityChips(new Set())
-    if (item.status === 'done' || item.status === 'archived') setShowCompleted(true)
+    if (item.status === 'done' || item.status === 'archived') {
+      setShowCompleted(true)
+      setCompletedOpen(true)
+    }
     setFocusTodoId(id)
     setSearchParams({}, { replace: true })
   }, [searchParams, allItems, setSearchParams])
@@ -288,6 +295,15 @@ export function TodosPage() {
 
     return sortTodoItems(items, sortBy)
   }, [listItems, filterBy, priorityChips, searchQuery, showCompleted, sortBy])
+
+  const incompleteItems = useMemo(
+    () => filteredItems.filter((i) => i.status !== 'done' && i.status !== 'archived'),
+    [filteredItems],
+  )
+  const completedItems = useMemo(
+    () => filteredItems.filter((i) => i.status === 'done' || i.status === 'archived'),
+    [filteredItems],
+  )
 
   const filterActiveCount = useMemo(() => {
     let n = 0
@@ -673,10 +689,17 @@ export function TodosPage() {
         <EmptyState
           icon={<ListChecks size={64} />}
           title="No Lists Yet"
-          description="Create your first todo list to start tracking tasks. Organize by project, category, or any way that works for you."
+          description="Create your first todo list to start tracking tasks. Organize by project, category, or any way that works for you — or import from a screenshot with on-device OCR."
           action={{
             label: 'Create First List',
             onClick: openCreateList,
+          }}
+          secondaryAction={{
+            label: 'From Screenshot (OCR)',
+            onClick: () => {
+              showError('Create a list first', 'You need a list before importing from a screenshot')
+              openCreateList()
+            },
           }}
         />
       ) : (
@@ -753,7 +776,7 @@ export function TodosPage() {
                 <button
                   type="button"
                   onClick={() => setShowScreenshotImport(true)}
-                  className="btn-secondary btn-sm"
+                  className="btn-primary btn-sm"
                 >
                   <ImagePlus size={14} /> Screenshot
                 </button>
@@ -954,53 +977,106 @@ export function TodosPage() {
           {filteredItems.length === 0 ? (
             <EmptyState
               icon={<ListChecks size={48} />}
-              title="No Tasks Found"
-              description="No tasks match your current filters. Try adjusting your search or create a new task."
-              action={{ label: 'New Task', onClick: handleCreateItem }}
+              title={listItems.length === 0 ? 'No Tasks Yet' : 'No Tasks Found'}
+              description={
+                listItems.length === 0
+                  ? 'Add a task or import from a screenshot with on-device OCR.'
+                  : 'No tasks match your current filters. Try adjusting your search or create a new task.'
+              }
+              action={{
+                label: 'From Screenshot (OCR)',
+                onClick: () => setShowScreenshotImport(true),
+              }}
+              secondaryAction={{ label: 'New Task', onClick: handleCreateItem }}
             />
-          ) : canReorderItems && selectedListId != null ? (
-            <ReorderList
-              items={filteredItems}
-              getId={(item) => String(item.id)}
-              onReorder={(next) => handleReorderItems(selectedListId, next)}
-              className="space-y-3"
-            >
-              {(item) => (
-                <TodoItemCard
-                  item={item}
-                  orderNumber={orderNumbers.get(item.id)}
-                  listName={!selectedListId ? lists.find((l) => l.id === item.listId)?.name : undefined}
-                  selected={selectedTodos.has(item.id)}
-                  focused={focusTodoId === item.id}
-                  justSynced={justSyncedTodos.has(item.id)}
-                  showReorderHandle
-                  onToggleSelect={handleToggleSelect}
-                  onToggleComplete={handleToggleComplete}
-                  onEdit={handleEditItem}
-                  onDuplicate={handleDuplicateItem}
-                  onDelete={handleDeleteItem}
-                />
-              )}
-            </ReorderList>
           ) : (
-            <div className="space-y-3">
-              {filteredItems.map((item) => (
-                <TodoItemCard
-                  key={item.id}
-                  item={item}
-                  orderNumber={orderNumbers.get(item.id)}
-                  listName={!selectedListId ? lists.find((l) => l.id === item.listId)?.name : undefined}
-                  selected={selectedTodos.has(item.id)}
-                  focused={focusTodoId === item.id}
-                  justSynced={justSyncedTodos.has(item.id)}
-                  onToggleSelect={handleToggleSelect}
-                  onToggleComplete={handleToggleComplete}
-                  onEdit={handleEditItem}
-                  onDuplicate={handleDuplicateItem}
-                  onDelete={handleDeleteItem}
-                />
-              ))}
-            </div>
+            <>
+              {canReorderItems && selectedListId != null ? (
+                <ReorderList
+                  items={incompleteItems}
+                  getId={(item) => String(item.id)}
+                  onReorder={(next) => {
+                    const merged = showCompleted ? [...next, ...completedItems] : next
+                    handleReorderItems(selectedListId, merged)
+                  }}
+                  className="space-y-3"
+                >
+                  {(item) => (
+                    <TodoItemCard
+                      item={item}
+                      orderNumber={orderNumbers.get(item.id)}
+                      listName={!selectedListId ? lists.find((l) => l.id === item.listId)?.name : undefined}
+                      selected={selectedTodos.has(item.id)}
+                      focused={focusTodoId === item.id}
+                      justSynced={justSyncedTodos.has(item.id)}
+                      showReorderHandle
+                      onToggleSelect={handleToggleSelect}
+                      onToggleComplete={handleToggleComplete}
+                      onEdit={handleEditItem}
+                      onDuplicate={handleDuplicateItem}
+                      onDelete={handleDeleteItem}
+                    />
+                  )}
+                </ReorderList>
+              ) : (
+                <div className="space-y-3">
+                  {incompleteItems.map((item) => (
+                    <TodoItemCard
+                      key={item.id}
+                      item={item}
+                      orderNumber={orderNumbers.get(item.id)}
+                      listName={!selectedListId ? lists.find((l) => l.id === item.listId)?.name : undefined}
+                      selected={selectedTodos.has(item.id)}
+                      focused={focusTodoId === item.id}
+                      justSynced={justSyncedTodos.has(item.id)}
+                      onToggleSelect={handleToggleSelect}
+                      onToggleComplete={handleToggleComplete}
+                      onEdit={handleEditItem}
+                      onDuplicate={handleDuplicateItem}
+                      onDelete={handleDeleteItem}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {showCompleted && completedItems.length > 0 ? (
+                <div className="mt-4 todos-completed-section">
+                  <button
+                    type="button"
+                    className="flex items-center gap-2 w-full min-h-11 px-3 py-2 text-left surface rounded-xl md:rounded-none border border-border mb-2"
+                    aria-expanded={completedOpen}
+                    onClick={() => setCompletedOpen((v) => !v)}
+                  >
+                    <span className="text-sm font-semibold">
+                      Completed ({completedItems.length})
+                    </span>
+                    <span className="text-xs text-text-subtle ml-auto">
+                      {completedOpen ? 'Hide' : 'Show'}
+                    </span>
+                  </button>
+                  {completedOpen ? (
+                    <div className="space-y-3">
+                      {completedItems.map((item) => (
+                        <TodoItemCard
+                          key={item.id}
+                          item={item}
+                          orderNumber={orderNumbers.get(item.id)}
+                          listName={!selectedListId ? lists.find((l) => l.id === item.listId)?.name : undefined}
+                          selected={selectedTodos.has(item.id)}
+                          focused={focusTodoId === item.id}
+                          justSynced={justSyncedTodos.has(item.id)}
+                          onToggleSelect={handleToggleSelect}
+                          onToggleComplete={handleToggleComplete}
+                          onEdit={handleEditItem}
+                          onDuplicate={handleDuplicateItem}
+                          onDelete={handleDeleteItem}
+                        />
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+            </>
           )}
         </>
       )}
@@ -1042,8 +1118,8 @@ function TodoItemCard({
     <article
       id={`todo-${item.id}`}
       className={`surface p-3 sm:p-4 border-l-4 rounded-xl md:rounded-none shadow-sm md:shadow-none ${PRIORITY_COLORS[item.priority]} ${
-        selected || focused ? 'ring-2 ring-accent' : ''
-      } ${syncHighlightClass(justSynced)}`}
+        selected ? 'ring-2 ring-accent' : ''
+      } ${focused ? 'todo-focus-ring ring-2 ring-accent' : ''} ${syncHighlightClass(justSynced)}`}
     >
       <div
         className={`grid gap-x-2.5 sm:gap-x-3 gap-y-2 ${

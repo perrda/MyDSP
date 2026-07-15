@@ -1,5 +1,24 @@
 # MyDSP Changelog
 
+## [1.2.33] - 2026-07-15
+
+### Improved — Today / Jobs / Todos polish (backlog 31–40)
+31. Today hub primary Focus card (next todo or top Markets mover) + leaner Jump-in  
+32. Todos `?focus=id` ring/pulse + scroll-into-view  
+33. Jobs Kanban horizontal scroll-snap on phone  
+34. Job detail sticky Save/action bar above bottom nav (safe-area)  
+35. Spending compact `type=month` picker on phone; month nav min-h-11  
+36. Filters sheet under 640px (`CollapsibleFilters`) + clearer Filters label  
+37. Todos empty state — Screenshot/OCR as primary CTA  
+38. Completed todos collapsed by default on phone (&lt;768)  
+39. News + YouTube unread chip + Load more  
+40. Trips / Goals denser list cards in iPad landscape
+
+### Version
+- 1.2.32 → **1.2.33**
+
+---
+
 ## [1.2.32] - 2026-07-15
 
 ### Improved — Settings / forms polish (backlog 21–30)
