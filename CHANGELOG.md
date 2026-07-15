@@ -1,5 +1,17 @@
 # MyDSP Changelog
 
+## [1.2.12] - 2026-07-15
+
+### Improved — Header search control
+- Removed the cluttered **Search** label from the top toolbar
+- Search is a square icon matching Refresh / Privacy / Theme (⌘K / Ctrl+K stays in the tooltip and modal)
+- Tighter portfolio/currency widths on phone and tablet so controls no longer overlap or clip
+
+### Version
+- 1.2.11 → **1.2.12**
+
+---
+
 ## [1.2.11] - 2026-07-15
 
 ### Fixed — Markets prices never blank

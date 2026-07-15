@@ -1,11 +1,19 @@
 // Global Search Component with Cmd+K shortcut — searches live portfolio data
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Search, X, TrendingUp, Target, CheckSquare, Briefcase, ChevronRight, Coins } from 'lucide-react'
 import { usePortfolio } from '../context/PortfolioContext'
 import { globalSearch, type GlobalSearchResult } from '../utils/search'
 import { logger } from '../utils/logger'
+
+function searchShortcutLabel(): string {
+  if (typeof navigator === 'undefined') return 'Ctrl+K'
+  const platform = navigator.platform || ''
+  const ua = navigator.userAgent || ''
+  const isApple = /Mac|iPhone|iPad|iPod/i.test(platform) || /Mac OS|iPhone|iPad/i.test(ua)
+  return isApple ? '⌘K' : 'Ctrl+K'
+}
 
 export function GlobalSearch() {
   const { data } = usePortfolio()
@@ -15,6 +23,7 @@ export function GlobalSearch() {
   const [selectedIndex, setSelectedIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
   const navigate = useNavigate()
+  const shortcut = useMemo(() => searchShortcutLabel(), [])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -105,24 +114,25 @@ export function GlobalSearch() {
     return (
       <button
         type="button"
-        onClick={() => setIsOpen(true)}
-        className="toolbar-icon sm:flex sm:items-center sm:gap-2 sm:px-3 sm:py-2 sm:w-auto sm:h-auto sm:min-w-0 sm:bg-bg sm:hover:bg-surface-hover sm:rounded-lg sm:transition-colors sm:text-sm sm:text-text-muted sm:border sm:border-border"
-        aria-label="Search"
+        onClick={() => {
+          setIsOpen(true)
+          logger.track('global_search_opened', { trigger: 'toolbar' })
+        }}
+        className="toolbar-icon"
+        aria-label={`Search (${shortcut})`}
+        aria-keyshortcuts="Meta+K Control+K"
+        title={`Search (${shortcut})`}
       >
-        <Search className="w-4 h-4" />
-        <span className="hidden md:inline">Search</span>
-        <kbd className="hidden lg:inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-mono bg-bg-elevated border border-border rounded">
-          ⌘K
-        </kbd>
+        <Search size={18} strokeWidth={1.5} aria-hidden />
       </button>
     )
   }
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-[max(1rem,env(safe-area-inset-top))] sm:pt-20 bg-black/50 backdrop-blur-sm">
-      <div className="w-full max-w-2xl mx-0 sm:mx-3 h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[min(85vh,40rem)] bg-bg-elevated sm:rounded-xl shadow-2xl border-0 sm:border border-border overflow-hidden flex flex-col">
+      <div className="w-full max-w-2xl mx-0 sm:mx-3 h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[min(85vh,40rem)] bg-bg-elevated sm:rounded-none shadow-2xl border-0 sm:border border-border overflow-hidden flex flex-col">
         <div className="flex items-center gap-3 p-4 border-b border-border shrink-0">
-          <Search className="w-5 h-5 text-text-muted" />
+          <Search className="w-5 h-5 text-text-muted shrink-0" aria-hidden />
           <input
             ref={inputRef}
             type="search"
@@ -130,9 +140,16 @@ export function GlobalSearch() {
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Search spending, holdings, goals…"
-            className="flex-1 bg-transparent outline-none text-base sm:text-lg border-0 shadow-none focus:ring-0"
+            className="flex-1 min-w-0 bg-transparent outline-none text-base sm:text-lg border-0 shadow-none focus:ring-0"
             style={{ fontSize: 16 }}
+            aria-label="Search portfolio"
           />
+          <kbd
+            className="hidden sm:inline-flex shrink-0 items-center px-1.5 py-0.5 text-[10px] font-mono text-text-muted border border-border"
+            aria-hidden
+          >
+            {shortcut}
+          </kbd>
           <button
             type="button"
             onClick={() => {
@@ -140,10 +157,10 @@ export function GlobalSearch() {
               setQuery('')
               setResults([])
             }}
-            className="p-2 min-h-11 min-w-11 flex items-center justify-center hover:bg-surface-hover rounded"
+            className="toolbar-icon shrink-0"
             aria-label="Close search"
           >
-            <X className="w-5 h-5" />
+            <X size={18} strokeWidth={1.5} aria-hidden />
           </button>
         </div>
 
@@ -153,8 +170,9 @@ export function GlobalSearch() {
           )}
           {results.length === 0 && !query && (
             <div className="p-8 text-center text-text-muted">
-              <Search className="w-12 h-12 mx-auto mb-2 opacity-50" />
+              <Search className="w-12 h-12 mx-auto mb-2 opacity-50" aria-hidden />
               <p>Start typing to search…</p>
+              <p className="mt-2 text-xs text-text-subtle">Shortcut {shortcut}</p>
             </div>
           )}
           {results.map((result, index) => (
@@ -169,27 +187,27 @@ export function GlobalSearch() {
               <div className="flex items-start gap-3 flex-1 min-w-0">
                 <div className="flex-shrink-0 mt-1 text-accent">{typeIcons[result.type] ?? <Search className="w-4 h-4" />}</div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-medium uppercase text-text-subtle">{result.type}</span>
-                    <span className="text-xs text-text-muted">{(result.score * 100).toFixed(0)}% match</span>
+                  <div className="flex items-center gap-2 mb-1 min-w-0">
+                    <span className="text-xs font-medium uppercase text-text-subtle shrink-0">{result.type}</span>
+                    <span className="text-xs text-text-muted truncate">{(result.score * 100).toFixed(0)}% match</span>
                   </div>
                   <p className="font-medium truncate">{result.title}</p>
                   {result.subtitle && <p className="text-sm text-text-muted truncate mt-1">{result.subtitle}</p>}
                 </div>
               </div>
-              <ChevronRight className="w-5 h-5 text-text-muted flex-shrink-0" />
+              <ChevronRight className="w-5 h-5 text-text-muted flex-shrink-0" aria-hidden />
             </button>
           ))}
         </div>
 
-        <div className="p-3 bg-bg border-t border-border flex items-center justify-between text-xs text-text-muted pb-[max(0.75rem,env(safe-area-inset-bottom))] shrink-0">
-          <div className="hidden sm:flex items-center gap-4">
+        <div className="p-3 bg-bg border-t border-border flex items-center justify-between gap-3 text-xs text-text-muted pb-[max(0.75rem,env(safe-area-inset-bottom))] shrink-0">
+          <div className="hidden sm:flex items-center gap-4 min-w-0">
             <span>↑↓ Navigate</span>
             <span>↵ Select</span>
             <span>esc Close</span>
           </div>
           <span className="sm:hidden">Tap a result</span>
-          <span>{results.length} results</span>
+          <span className="tabular-nums shrink-0">{results.length} results</span>
         </div>
       </div>
     </div>
