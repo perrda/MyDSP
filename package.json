@@ -1,7 +1,7 @@
 {
   "name": "mydsp",
   "private": true,
-  "version": "1.2.38",
+  "version": "1.2.39",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,6 +10,7 @@
     "preview": "npm run build && wrangler dev",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "test:a11y": "playwright test e2e/a11y.spec.ts --project=iphone-14",
     "verify:deploy": "node scripts/verify-deploy.mjs",
     "deploy": "npm run build && node scripts/verify-deploy.mjs && wrangler deploy",
     "deploy:sync": "cd sync-endpoint && wrangler deploy",

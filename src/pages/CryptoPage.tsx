@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowUpDown, Coins } from 'lucide-react'
+import { ArrowUpDown } from 'lucide-react'
 import { AllocationRing } from '../components/charts/AllocationRing'
 import { PortfolioSeriesChart } from '../components/charts/PortfolioSeriesChart'
 import { EmptyState } from '../components/ui/EmptyState'
@@ -215,7 +215,7 @@ export function CryptoPage() {
 
       {holdings.length === 0 ? (
         <EmptyState
-          icon={<Coins size={40} strokeWidth={1.25} />}
+          illustration
           title="No crypto holdings yet"
           description="Add BTC, ETH, or any coin to track quantity, live price, and P&amp;L."
           action={{ label: 'Add crypto', onClick: openCreate }}

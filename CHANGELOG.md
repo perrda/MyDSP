@@ -1,5 +1,19 @@
 # MyDSP Changelog
 
+## [1.2.39] - 2026-07-15
+
+### Improved — Polish / accessibility (next 25 · 21–25)
+21. **EmptyIllustration** geometric accent mark; optional on EmptyState — wired on Todos, Crypto, Equities, Jobs, Markets empties  
+22. Settings → **Accessibility** (`mydsp_a11y_*`): Larger text (linked with Appearance), reduced-motion override, high-contrast muted text; html classes on boot  
+23. Colour-blind safe chart palette (`mydsp_a11y_chart_cb`) for AllocationRing  
+24. Full axe CI gate: Today / Markets / Settings on iphone-14; `npm run test:a11y`  
+25. On-device **smoke checklist** at `/smoke` (sync, Markets refresh, backup, PWA standalone)  
+
+### Version
+- 1.2.38 → **1.2.39**
+
+---
+
 ## [1.2.38] - 2026-07-15
 
 ### Improved — Today / productivity (next 25 · 16–20)

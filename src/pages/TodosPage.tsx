@@ -4,7 +4,6 @@ import {
   Plus,
   Download,
   Upload,
-  ListChecks,
   Clock,
   AlertCircle,
   Edit2,
@@ -702,7 +701,7 @@ export function TodosPage() {
 
       {lists.length === 0 ? (
         <EmptyState
-          icon={<ListChecks size={64} />}
+          illustration
           title="No Lists Yet"
           description="Create your first todo list to start tracking tasks. Organize by project, category, or any way that works for you — or import from a screenshot with on-device OCR."
           action={{
@@ -991,7 +990,7 @@ export function TodosPage() {
 
           {filteredItems.length === 0 ? (
             <EmptyState
-              icon={<ListChecks size={48} />}
+              illustration
               title={listItems.length === 0 ? 'No Tasks Yet' : 'No Tasks Found'}
               description={
                 listItems.length === 0

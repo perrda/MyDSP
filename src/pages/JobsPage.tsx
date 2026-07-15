@@ -4,7 +4,6 @@ import {
   Plus,
   Download,
   Upload,
-  Briefcase,
   DollarSign,
   MapPin,
   Calendar,
@@ -364,7 +363,7 @@ export function JobsPage() {
           description="Track your job search from application to offer"
         />
         <EmptyState
-          icon={<Briefcase size={64} />}
+          illustration
           title="No Applications Yet"
           description="Start tracking your job applications. Save URLs, CVs, track interviews, and manage your entire job search process."
           action={{
@@ -564,7 +563,7 @@ export function JobsPage() {
 
       {filteredApplications.length === 0 ? (
         <EmptyState
-          icon={<Briefcase size={48} />}
+          illustration
           title="No Applications Found"
           description="No applications match your current filters."
         />

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowUpDown, Landmark } from 'lucide-react'
+import { ArrowUpDown } from 'lucide-react'
 import { AllocationRing } from '../components/charts/AllocationRing'
 import { PortfolioSeriesChart } from '../components/charts/PortfolioSeriesChart'
 import { EmptyState } from '../components/ui/EmptyState'
@@ -220,7 +220,7 @@ export function EquitiesPage() {
 
       {holdings.length === 0 ? (
         <EmptyState
-          icon={<Landmark size={40} strokeWidth={1.25} />}
+          illustration
           title="No equity holdings yet"
           description="Add stocks or ETFs to track shares, cost basis, and live P&amp;L."
           action={{ label: 'Add equity', onClick: openCreate }}

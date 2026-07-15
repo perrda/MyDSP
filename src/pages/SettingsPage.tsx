@@ -15,6 +15,19 @@ import {
   loadLargeText,
   saveLargeText,
 } from '../utils/largeText'
+import {
+  A11Y_CHART_CB_KEY,
+  A11Y_HIGH_CONTRAST_KEY,
+  A11Y_REDUCED_MOTION_KEY,
+  applyA11yHighContrastDom,
+  applyA11yReducedMotionDom,
+  loadA11yChartColourBlind,
+  loadA11yHighContrast,
+  loadA11yReducedMotion,
+  saveA11yChartColourBlind,
+  saveA11yHighContrast,
+  saveA11yReducedMotion,
+} from '../utils/a11yPrefs'
 import { holdingHistoryKey, readHoldingHistory } from '../domain/holdingHistory'
 import type { HoldingPricePoint } from '../domain/holdingHistory'
 import { registerStaticPriceFile } from '../domain/staticPrices'
@@ -159,6 +172,7 @@ const BROKER_SAMPLE_TEMPLATES = [
 const SETTINGS_SECTION_IDS = [
   'sync',
   'appearance',
+  'accessibility',
   'layout',
   'fcc',
   'display',
@@ -182,6 +196,8 @@ const SETTINGS_SECTION_IDS = [
 const SETTINGS_SECTION_SEARCH: Record<(typeof SETTINGS_SECTION_IDS)[number], string> = {
   sync: 'Encrypted cloud sync passphrase remote url push pull',
   appearance: 'Light dark glass mode theme larger text accessibility',
+  accessibility:
+    'Accessibility larger text reduced motion high contrast colour blind chart palette a11y',
   layout: 'On launch favourites sidebar bottom nav',
   fcc: 'Sample FCC portfolio',
   display: 'Currency tax residency privacy',
@@ -191,7 +207,7 @@ const SETTINGS_SECTION_SEARCH: Record<(typeof SETTINGS_SECTION_IDS)[number], str
   alerts: 'Notifications quiet hours price alerts desktop sound',
   income: 'Income honesty',
   prices: 'Price refresh providers',
-  devices: 'Devices sync activity log',
+  devices: 'Devices sync activity log smoke checklist install PWA',
   account: 'Cloud account OAuth identity',
   'open-banking': 'Open banking PSD2 bank feed',
   portfolios: 'Create rename delete portfolios',
@@ -238,6 +254,9 @@ export function SettingsPage() {
   const { theme, preference, setPreference } = useTheme()
   const { glass, setGlass } = useGlass()
   const [largeText, setLargeTextState] = useState(() => loadLargeText())
+  const [a11yReducedMotion, setA11yReducedMotion] = useState(() => loadA11yReducedMotion())
+  const [a11yHighContrast, setA11yHighContrast] = useState(() => loadA11yHighContrast())
+  const [a11yChartCb, setA11yChartCb] = useState(() => loadA11yChartColourBlind())
   const [layoutFlash, setLayoutFlash] = useState(false)
 
   const fileRef = useRef<HTMLInputElement>(null)
@@ -374,10 +393,25 @@ export function SettingsPage() {
 
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
-      if (e.key !== LARGE_TEXT_STORAGE_KEY) return
-      const on = e.newValue === '1'
-      applyLargeTextDom(on)
-      setLargeTextState(on)
+      if (e.key === LARGE_TEXT_STORAGE_KEY) {
+        const on = e.newValue === '1'
+        applyLargeTextDom(on)
+        setLargeTextState(on)
+      }
+      if (e.key === A11Y_REDUCED_MOTION_KEY) {
+        const on = e.newValue === '1'
+        applyA11yReducedMotionDom(on)
+        setA11yReducedMotion(on)
+        window.dispatchEvent(new Event('mydsp-a11y-change'))
+      }
+      if (e.key === A11Y_HIGH_CONTRAST_KEY) {
+        const on = e.newValue === '1'
+        applyA11yHighContrastDom(on)
+        setA11yHighContrast(on)
+      }
+      if (e.key === A11Y_CHART_CB_KEY) {
+        setA11yChartCb(e.newValue === '1')
+      }
     }
     window.addEventListener('storage', onStorage)
     return () => window.removeEventListener('storage', onStorage)
@@ -1616,7 +1650,11 @@ export function SettingsPage() {
 
           <p className="text-sm text-text-muted font-light mb-3 mt-8 max-w-2xl">
             <span className="text-text font-medium">Larger text</span> scales prices, holdings, and
-            Markets figures for easier reading (Dynamic Type–style).
+            Markets figures for easier reading (Dynamic Type–style). Also in{' '}
+            <a href="#accessibility" className="text-accent font-medium">
+              Accessibility
+            </a>
+            .
           </p>
           <div className="flex flex-wrap gap-2" role="group" aria-label="Larger text">
             <button
@@ -1644,6 +1682,151 @@ export function SettingsPage() {
               }}
             >
               Larger text Off
+            </button>
+          </div>
+        </SettingsSection>
+
+        <SettingsSection id="accessibility" eyebrow="Accessibility" title="Reading & motion">
+          <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
+            Preferences persist as <span className="text-text font-medium">mydsp_a11y_*</span> keys
+            and apply html classes on load. Larger text also lives under Appearance.
+          </p>
+
+          <p className="text-sm text-text-muted font-light mb-3 max-w-2xl">
+            <span className="text-text font-medium">Larger text</span> — same control as{' '}
+            <a href="#appearance" className="text-accent font-medium">
+              Appearance
+            </a>
+            .
+          </p>
+          <div className="flex flex-wrap gap-2 mb-8" role="group" aria-label="Larger text accessibility">
+            <button
+              type="button"
+              className={largeText ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
+              aria-pressed={largeText}
+              onClick={() => {
+                applyLargeTextDom(true)
+                saveLargeText(true)
+                setLargeTextState(true)
+                flash('Larger text on.')
+              }}
+            >
+              On
+            </button>
+            <button
+              type="button"
+              className={!largeText ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
+              aria-pressed={!largeText}
+              onClick={() => {
+                applyLargeTextDom(false)
+                saveLargeText(false)
+                setLargeTextState(false)
+                flash('Larger text off.')
+              }}
+            >
+              Off
+            </button>
+          </div>
+
+          <p className="text-sm text-text-muted font-light mb-3 max-w-2xl">
+            <span className="text-text font-medium">Respect reduced motion</span> overrides system
+            preference and disables animations app-wide (
+            <code className="text-xs">mydsp_a11y_reduced_motion</code>).
+          </p>
+          <div className="flex flex-wrap gap-2 mb-8" role="group" aria-label="Reduced motion override">
+            <button
+              type="button"
+              className={a11yReducedMotion ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
+              aria-pressed={a11yReducedMotion}
+              onClick={() => {
+                saveA11yReducedMotion(true)
+                applyA11yReducedMotionDom(true)
+                setA11yReducedMotion(true)
+                window.dispatchEvent(new Event('mydsp-a11y-change'))
+                flash('Reduced motion override on.')
+              }}
+            >
+              On
+            </button>
+            <button
+              type="button"
+              className={!a11yReducedMotion ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
+              aria-pressed={!a11yReducedMotion}
+              onClick={() => {
+                saveA11yReducedMotion(false)
+                applyA11yReducedMotionDom(false)
+                setA11yReducedMotion(false)
+                window.dispatchEvent(new Event('mydsp-a11y-change'))
+                flash('Reduced motion override off.')
+              }}
+            >
+              Off
+            </button>
+          </div>
+
+          <p className="text-sm text-text-muted font-light mb-3 max-w-2xl">
+            <span className="text-text font-medium">High contrast muted text</span> strengthens
+            secondary copy contrast (
+            <code className="text-xs">mydsp_a11y_high_contrast</code>).
+          </p>
+          <div className="flex flex-wrap gap-2 mb-8" role="group" aria-label="High contrast muted text">
+            <button
+              type="button"
+              className={a11yHighContrast ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
+              aria-pressed={a11yHighContrast}
+              onClick={() => {
+                saveA11yHighContrast(true)
+                applyA11yHighContrastDom(true)
+                setA11yHighContrast(true)
+                flash('High contrast muted text on.')
+              }}
+            >
+              On
+            </button>
+            <button
+              type="button"
+              className={!a11yHighContrast ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
+              aria-pressed={!a11yHighContrast}
+              onClick={() => {
+                saveA11yHighContrast(false)
+                applyA11yHighContrastDom(false)
+                setA11yHighContrast(false)
+                flash('High contrast muted text off.')
+              }}
+            >
+              Off
+            </button>
+          </div>
+
+          <p className="text-sm text-text-muted font-light mb-3 max-w-2xl">
+            <span className="text-text font-medium">Colour-blind safe charts</span> switches
+            allocation rings to a blue / orange / vermillion-safe palette (
+            <code className="text-xs">mydsp_a11y_chart_cb</code>).
+          </p>
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Colour-blind safe charts">
+            <button
+              type="button"
+              className={a11yChartCb ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
+              aria-pressed={a11yChartCb}
+              onClick={() => {
+                saveA11yChartColourBlind(true)
+                setA11yChartCb(true)
+                flash('Colour-blind safe chart palette on — reopen charts to apply.')
+              }}
+            >
+              On
+            </button>
+            <button
+              type="button"
+              className={!a11yChartCb ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
+              aria-pressed={!a11yChartCb}
+              onClick={() => {
+                saveA11yChartColourBlind(false)
+                setA11yChartCb(false)
+                flash('Default chart palette restored.')
+              }}
+            >
+              Off
             </button>
           </div>
         </SettingsSection>
@@ -2407,6 +2590,13 @@ export function SettingsPage() {
               <span className="text-text font-medium">Remember passphrase</span>.
             </li>
           </ol>
+          <p className="text-sm text-text-muted font-light mb-4 max-w-2xl">
+            Run the on-device{' '}
+            <Link to="/smoke" className="text-accent font-medium">
+              smoke checklist
+            </Link>{' '}
+            to verify sync, Markets refresh, backup, and PWA install.
+          </p>
           <p className="text-xs text-text-subtle leading-relaxed max-w-2xl">
             On desktop Chrome/Edge, use the install banner or the browser&apos;s Install app menu.
             Android: browser menu → Install app / Add to Home screen.

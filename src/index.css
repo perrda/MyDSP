@@ -2156,6 +2156,27 @@ html.large-text .markets-section-sticky .font-bold.tracking-tight {
   font-size: 1.15em;
 }
 
+/* Accessibility overrides (Settings → Accessibility / mydsp_a11y_*) */
+html.a11y-high-contrast.dark,
+html.a11y-high-contrast:root,
+html.dark.a11y-high-contrast {
+  --text-muted: #f9fafb;
+  --text-subtle: #f3f4f6;
+}
+html.light.a11y-high-contrast {
+  --text-muted: #111827;
+  --text-subtle: #1f2937;
+}
+
+html.a11y-reduce-motion *,
+html.a11y-reduce-motion *::before,
+html.a11y-reduce-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
 .today-two-pane .today-markets-pane {
   border-left: 3px solid color-mix(in srgb, var(--accent) 55%, transparent);
 }

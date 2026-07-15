@@ -1,0 +1,170 @@
+/** On-device smoke checklist — Sync / Markets / Backup / PWA. */
+
+import { useCallback, useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { Check, Circle, RefreshCw } from 'lucide-react'
+import { PageHeader } from '../components/ui/PageHeader'
+import { loadSyncConfig } from '../services/sync/syncService'
+import {
+  getSessionSyncPassphrase,
+  hasRememberedSyncPassphrase,
+} from '../services/sync/sessionPassphrase'
+import { loadMarketsState } from '../storage/marketsStore'
+import { LAST_BACKUP_KEY, listFullBackups } from '../storage/backupStore'
+
+type CheckId = 'sync' | 'markets' | 'backup' | 'pwa'
+
+type SmokeItem = {
+  id: CheckId
+  label: string
+  detail: string
+  to?: string
+  done: boolean
+}
+
+function isStandalonePwa(): boolean {
+  if (typeof window === 'undefined') return false
+  return (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    Boolean((navigator as Navigator & { standalone?: boolean }).standalone)
+  )
+}
+
+function syncConfigured(): boolean {
+  const cfg = loadSyncConfig()
+  const passOk = Boolean(getSessionSyncPassphrase() || hasRememberedSyncPassphrase())
+  return Boolean(cfg.enabled && cfg.remoteUrl.trim() && passOk)
+}
+
+function marketsRefreshed(): boolean {
+  const at = loadMarketsState().lastRefreshAt
+  return Boolean(at && !Number.isNaN(Date.parse(at)))
+}
+
+function backupExistsLocal(): boolean {
+  try {
+    return Boolean(localStorage.getItem(LAST_BACKUP_KEY))
+  } catch {
+    return false
+  }
+}
+
+async function backupExistsIndexed(): Promise<boolean> {
+  try {
+    const list = await listFullBackups()
+    return list.length > 0
+  } catch {
+    return backupExistsLocal()
+  }
+}
+
+export function SmokePage() {
+  const [items, setItems] = useState<SmokeItem[]>([])
+  const [busy, setBusy] = useState(false)
+
+  const runChecks = useCallback(async () => {
+    setBusy(true)
+    const backupOk = (await backupExistsIndexed()) || backupExistsLocal()
+    const next: SmokeItem[] = [
+      {
+        id: 'sync',
+        label: 'Sync configured',
+        detail: 'Automatic sync on, remote URL set, passphrase available',
+        to: '/settings#sync',
+        done: syncConfigured(),
+      },
+      {
+        id: 'markets',
+        label: 'Markets refreshed',
+        detail: 'Markets store has a lastRefreshAt timestamp',
+        to: '/markets',
+        done: marketsRefreshed(),
+      },
+      {
+        id: 'backup',
+        label: 'Backup exists',
+        detail: 'IndexedDB full backup or last-backup day marker present',
+        to: '/settings#full-backup',
+        done: backupOk,
+      },
+      {
+        id: 'pwa',
+        label: 'Install / PWA standalone',
+        detail: 'Running as installed home-screen app (display-mode: standalone)',
+        to: '/settings#devices',
+        done: isStandalonePwa(),
+      },
+    ]
+    setItems(next)
+    setBusy(false)
+  }, [])
+
+  useEffect(() => {
+    void runChecks()
+  }, [runChecks])
+
+  const doneCount = items.filter((i) => i.done).length
+
+  return (
+    <div>
+      <PageHeader
+        eyebrow="QA"
+        title="On-device smoke"
+        description="Interactive checks against sync, Markets, backup, and PWA install state."
+        action={
+          <button
+            type="button"
+            className="btn-secondary btn-sm"
+            onClick={() => void runChecks()}
+            disabled={busy}
+            aria-busy={busy}
+          >
+            <RefreshCw size={14} className={busy ? 'animate-spin' : undefined} />
+            Re-check
+          </button>
+        }
+      />
+
+      <p className="text-sm text-text-muted font-light mb-6">
+        {doneCount}/{items.length || 4} checks passing ·{' '}
+        <Link to="/settings#accessibility" className="text-accent font-medium">
+          Accessibility
+        </Link>
+      </p>
+
+      <ul className="space-y-3" aria-label="Smoke checklist">
+        {items.map((item) => (
+          <li key={item.id} className="surface p-4 md:p-5 border border-border">
+            <div className="flex items-start gap-3">
+              <span
+                className={`mt-0.5 shrink-0 ${item.done ? 'text-accent' : 'text-text-subtle'}`}
+                aria-hidden
+              >
+                {item.done ? <Check size={20} strokeWidth={2.5} /> : <Circle size={20} />}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="font-bold tracking-tight">
+                  {item.label}
+                  <span className="sr-only"> — {item.done ? 'pass' : 'fail'}</span>
+                </p>
+                <p className="text-sm text-text-muted mt-1">{item.detail}</p>
+                {item.to && !item.done ? (
+                  <Link to={item.to} className="inline-block mt-3 text-sm text-accent font-medium">
+                    Fix in app →
+                  </Link>
+                ) : null}
+              </div>
+              <span
+                className={`text-[11px] uppercase tracking-wider font-semibold shrink-0 ${
+                  item.done ? 'text-accent' : 'text-text-subtle'
+                }`}
+              >
+                {item.done ? 'OK' : 'Todo'}
+              </span>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}

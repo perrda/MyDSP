@@ -694,6 +694,7 @@ export function MarketsPage() {
             {items.length === 0 ? (
               <div className="px-4 py-4 space-y-3">
                 <EmptyStateInline
+                  illustration
                   message={`No ${meta.emptyLabel} yet — add one or seed a preset.`}
                   action={{ label: meta.addLabel, onClick: () => openCreate(meta.kind) }}
                 />

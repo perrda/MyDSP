@@ -154,10 +154,10 @@ describe('next25 today / productivity', () => {
     expect(src).toMatch(/strokeDasharray/)
   })
 
-  it('package version is 1.2.38', () => {
+  it('package version is 1.2.39', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8')) as {
       version: string
     }
-    expect(pkg.version).toBe('1.2.38')
+    expect(pkg.version).toBe('1.2.39')
   })
 })
