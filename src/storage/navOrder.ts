@@ -224,15 +224,8 @@ export function importNavLayoutFromBackup(raw: unknown): void {
 }
 
 async function notifyNavLayoutChangedForSync(): Promise<void> {
-  try {
-    const { isApplyingRemote, markLocalDataChanged } = await import(
-      '../services/sync/autoSyncService'
-    )
-    if (isApplyingRemote()) return
-    markLocalDataChanged()
-  } catch {
-    /* sync module unavailable in some test contexts */
-  }
+  const { markWorkspaceChangedForSync } = await import('../services/sync/workspaceDirty')
+  await markWorkspaceChangedForSync()
 }
 
 export function resetNavOrder(): void {

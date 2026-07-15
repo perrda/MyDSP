@@ -1,4 +1,7 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { LAST_BACKUP_KEY } from '../storage/backupStore'
+import { loadOfflineQueue } from '../services/offlineQueue'
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>
@@ -21,16 +24,29 @@ export function InstallPrompt() {
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null)
   const [visible, setVisible] = useState(false)
   const [iosHint, setIosHint] = useState(false)
-  const [offline, setOffline] = useState(!navigator.onLine)
+  const [offline, setOffline] = useState(() =>
+    typeof navigator !== 'undefined' ? !navigator.onLine : false,
+  )
+  const [queueLen, setQueueLen] = useState(() => loadOfflineQueue().length)
+  const [lastBackupDay] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem(LAST_BACKUP_KEY)
+    } catch {
+      return null
+    }
+  })
 
   useEffect(() => {
     const onOnline = () => setOffline(false)
     const onOffline = () => setOffline(true)
+    const onQueue = () => setQueueLen(loadOfflineQueue().length)
     window.addEventListener('online', onOnline)
     window.addEventListener('offline', onOffline)
+    window.addEventListener('mydsp-offline-queue', onQueue)
     return () => {
       window.removeEventListener('online', onOnline)
       window.removeEventListener('offline', onOffline)
+      window.removeEventListener('mydsp-offline-queue', onQueue)
     }
   }, [])
 
@@ -54,11 +70,20 @@ export function InstallPrompt() {
 
   if (offline) {
     return (
-      <div className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-[max(1rem,env(safe-area-inset-left))] z-[1400] max-w-xs surface border border-border-strong px-4 py-3">
+      <div className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-[max(1rem,env(safe-area-inset-left))] z-[1400] max-w-sm surface border border-border-strong border-l-2 border-l-accent px-4 py-3">
         <p className="text-sm font-semibold">Offline</p>
-        <p className="text-xs text-text-subtle mt-1">
+        <p className="text-xs text-text-subtle mt-1 leading-relaxed">
           Cached shell available. Live prices need a connection.
+          {queueLen > 0
+            ? ` ${queueLen} edit(s) queued — they sync when you are back online.`
+            : ' Edits will queue automatically.'}
         </p>
+        {lastBackupDay ? (
+          <p className="text-[11px] text-text-subtle mt-2">Last local backup day: {lastBackupDay}</p>
+        ) : null}
+        <Link to="/settings#sync" className="text-xs text-accent font-semibold mt-2 inline-block">
+          Sync & backups
+        </Link>
       </div>
     )
   }

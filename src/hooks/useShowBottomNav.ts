@@ -1,37 +1,57 @@
 import { useEffect, useState } from 'react'
 
+export type LayoutMode = 'phone' | 'tablet' | 'desktop'
+
 /**
- * Bottom tab bar is for phone + tablet touch layouts.
- * Hide on desktop web when the sidebar is permanent (≥1024px), or when the
- * device is mouse-only (no touch points) — so narrow desktop windows don't
- * keep a redundant tab bar.
+ * Layout mode for chrome:
+ * - desktop (≥1024px): permanent sidebar, no bottom nav
+ * - tablet (768–1023px, or touch + mid width): bottom nav with roomier tabs
+ * - phone (<768px): compact bottom nav
  */
-function shouldShowBottomNav(): boolean {
-  if (typeof window === 'undefined') return true
+function detectLayoutMode(): LayoutMode {
+  if (typeof window === 'undefined') return 'phone'
   const wideDesktop = window.matchMedia('(min-width: 1024px)').matches
-  if (wideDesktop) return false
+  if (wideDesktop) return 'desktop'
+  const tabletWidth = window.matchMedia('(min-width: 768px)').matches
   const mouseOnly =
     window.matchMedia('(hover: hover) and (pointer: fine)').matches &&
     navigator.maxTouchPoints === 0
-  return !mouseOnly
+  if (mouseOnly && !tabletWidth) return 'phone'
+  if (tabletWidth || navigator.maxTouchPoints > 0) {
+    return tabletWidth ? 'tablet' : 'phone'
+  }
+  return 'phone'
+}
+
+/** Bottom tab bar for phone + tablet touch layouts (hidden on desktop sidebar). */
+function shouldShowBottomNav(): boolean {
+  return detectLayoutMode() !== 'desktop'
+}
+
+export function useLayoutMode(): LayoutMode {
+  const [mode, setMode] = useState<LayoutMode>(detectLayoutMode)
+  useEffect(() => {
+    const wideMq = window.matchMedia('(min-width: 1024px)')
+    const midMq = window.matchMedia('(min-width: 768px)')
+    const pointerMq = window.matchMedia('(hover: hover) and (pointer: fine)')
+    const update = () => setMode(detectLayoutMode())
+    update()
+    wideMq.addEventListener('change', update)
+    midMq.addEventListener('change', update)
+    pointerMq.addEventListener('change', update)
+    return () => {
+      wideMq.removeEventListener('change', update)
+      midMq.removeEventListener('change', update)
+      pointerMq.removeEventListener('change', update)
+    }
+  }, [])
+  return mode
 }
 
 /** True when the mobile/tablet bottom tab bar should be shown. */
 export function useShowBottomNav(): boolean {
-  const [show, setShow] = useState(shouldShowBottomNav)
-
-  useEffect(() => {
-    const wideMq = window.matchMedia('(min-width: 1024px)')
-    const pointerMq = window.matchMedia('(hover: hover) and (pointer: fine)')
-    const update = () => setShow(shouldShowBottomNav())
-    update()
-    wideMq.addEventListener('change', update)
-    pointerMq.addEventListener('change', update)
-    return () => {
-      wideMq.removeEventListener('change', update)
-      pointerMq.removeEventListener('change', update)
-    }
-  }, [])
-
-  return show
+  const mode = useLayoutMode()
+  return mode !== 'desktop'
 }
+
+export { shouldShowBottomNav }

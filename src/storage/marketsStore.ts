@@ -17,14 +17,18 @@ import { quotesMapToRecord, quotesRecordToMap } from '../domain/marketQuotesCach
 
 const KEY = 'mydsp_markets_v1'
 
-function notifyChanged(): void {
-  // Markets / News / YouTube live in workspace stores that are NOT applied on
-  // cloud pull today. Marking portfolio sync dirty here caused phones to push
-  // stale portfolios and overwrite todos/jobs from other devices.
+function notifyChanged(opts?: { fromSync?: boolean }): void {
+  // Markets edits mark workspace sync dirty so watchlists replicate across devices.
+  // Pull-before-push still protects portfolio todos from being overwritten by stale phones.
   try {
     window.dispatchEvent(new CustomEvent('mydsp-markets-changed'))
   } catch {
     /* ignore */
+  }
+  if (!opts?.fromSync) {
+    void import('../services/sync/workspaceDirty').then((m) =>
+      m.markWorkspaceChangedForSync(),
+    )
   }
 }
 
@@ -40,9 +44,9 @@ function readRaw(): MarketsState | null {
   }
 }
 
-function writeState(state: MarketsState, opts?: { silent?: boolean }): void {
+function writeState(state: MarketsState, opts?: { silent?: boolean; fromSync?: boolean }): void {
   localStorage.setItem(KEY, JSON.stringify(state))
-  if (!opts?.silent) notifyChanged()
+  if (!opts?.silent) notifyChanged({ fromSync: opts?.fromSync })
 }
 
 function normalizeTicker(t: MarketTicker, i: number): MarketTicker {
@@ -270,5 +274,5 @@ export function importMarketsFromBackup(raw: unknown): void {
     },
     tickers: parsed.tickers.map(normalizeTicker),
   })
-  saveMarketsState(state)
+  writeState(state, { fromSync: true })
 }

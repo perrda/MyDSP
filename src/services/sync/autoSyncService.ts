@@ -4,8 +4,8 @@
  * Requires SyncConfig.enabled + remoteUrl + passphrase (session or remembered).
  *
  * Timing (not realtime WebSocket sync):
- * - Push ~8s after the last local edit (debounced)
- * - Pull on open / focus / online / pull-to-refresh / Sync now / ~60s while open
+ * - Push ~4s after the last local edit (debounced)
+ * - Pull on open / focus / online / pull-to-refresh / Sync now / ~30s while open
  * - Edit/hide cycles pull-before-push when another device wrote the cloud envelope
  */
 
@@ -26,10 +26,10 @@ import { conflictKey, type ConflictChoice } from './conflicts'
 import { getSessionSyncPassphrase, hydrateSessionSyncPassphrase } from './sessionPassphrase'
 import { collectSyncHighlights, setSyncHighlights } from './syncHighlights'
 
-const PUSH_DEBOUNCE_MS = 8_000
-const PULL_MIN_INTERVAL_MS = 12_000
-/** Background pull while the tab/PWA stays open (was 5 min — too slow for multi-device). */
-const PERIODIC_MS = 60_000
+const PUSH_DEBOUNCE_MS = 4_000
+const PULL_MIN_INTERVAL_MS = 8_000
+/** Background pull while the tab/PWA stays open. */
+const PERIODIC_MS = 30_000
 
 export type AutoSyncState =
   | 'idle'

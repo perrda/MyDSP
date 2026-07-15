@@ -10,12 +10,16 @@ import {
 
 const KEY = 'mydsp_youtube_v1'
 
-function notifyChanged(): void {
-  // Workspace-only store — do not dirty portfolio cloud sync (see marketsStore).
+function notifyChanged(opts?: { fromSync?: boolean }): void {
   try {
     window.dispatchEvent(new CustomEvent('mydsp-youtube-changed'))
   } catch {
     /* ignore */
+  }
+  if (!opts?.fromSync) {
+    void import('../services/sync/workspaceDirty').then((m) =>
+      m.markWorkspaceChangedForSync(),
+    )
   }
 }
 
@@ -31,9 +35,9 @@ function readRaw(): YoutubeState | null {
   }
 }
 
-function writeState(state: YoutubeState, opts?: { silent?: boolean }): void {
+function writeState(state: YoutubeState, opts?: { silent?: boolean; fromSync?: boolean }): void {
   localStorage.setItem(KEY, JSON.stringify(state))
-  if (!opts?.silent) notifyChanged()
+  if (!opts?.silent) notifyChanged({ fromSync: opts?.fromSync })
 }
 
 function normalizeChannel(c: YoutubeChannel, i: number): YoutubeChannel {
@@ -156,9 +160,12 @@ export function importYoutubeFromBackup(raw: unknown): void {
   const parsed = raw as YoutubeState
   if (parsed.version !== 1 || !Array.isArray(parsed.channels)) return
   const channels = parsed.channels.map(normalizeChannel).slice(0, MAX_YOUTUBE_CHANNELS)
-  saveYoutubeState({
-    version: 1,
-    channels,
-    lastRefreshAt: parsed.lastRefreshAt,
-  })
+  writeState(
+    {
+      version: 1,
+      channels,
+      lastRefreshAt: parsed.lastRefreshAt,
+    },
+    { fromSync: true },
+  )
 }

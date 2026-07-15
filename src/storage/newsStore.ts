@@ -11,12 +11,16 @@ import {
 
 const KEY = 'mydsp_news_v1'
 
-function notifyChanged(): void {
-  // Workspace-only store — do not dirty portfolio cloud sync (see marketsStore).
+function notifyChanged(opts?: { fromSync?: boolean }): void {
   try {
     window.dispatchEvent(new CustomEvent('mydsp-news-changed'))
   } catch {
     /* ignore */
+  }
+  if (!opts?.fromSync) {
+    void import('../services/sync/workspaceDirty').then((m) =>
+      m.markWorkspaceChangedForSync(),
+    )
   }
 }
 
@@ -32,9 +36,9 @@ function readRaw(): NewsState | null {
   }
 }
 
-function writeState(state: NewsState, opts?: { silent?: boolean }): void {
+function writeState(state: NewsState, opts?: { silent?: boolean; fromSync?: boolean }): void {
   localStorage.setItem(KEY, JSON.stringify(state))
-  if (!opts?.silent) notifyChanged()
+  if (!opts?.silent) notifyChanged({ fromSync: opts?.fromSync })
 }
 
 function normalizeTag(t: NewsTag, i: number): NewsTag {
@@ -162,13 +166,16 @@ export function importNewsFromBackup(raw: unknown): void {
   if (!raw || typeof raw !== 'object') return
   const parsed = raw as NewsState
   if (parsed.version !== 1 || !Array.isArray(parsed.tags)) return
-  saveNewsState({
-    version: 1,
-    tags: parsed.tags.map(normalizeTag),
-    collapsed: {
-      top: Boolean(parsed.collapsed?.top),
-      tagged: Boolean(parsed.collapsed?.tagged),
+  writeState(
+    {
+      version: 1,
+      tags: parsed.tags.map(normalizeTag),
+      collapsed: {
+        top: Boolean(parsed.collapsed?.top),
+        tagged: Boolean(parsed.collapsed?.tagged),
+      },
+      lastRefreshAt: parsed.lastRefreshAt,
     },
-    lastRefreshAt: parsed.lastRefreshAt,
-  })
+    { fromSync: true },
+  )
 }

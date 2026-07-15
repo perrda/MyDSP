@@ -115,7 +115,10 @@ async function fetchJson<T>(
   }
 }
 
-/** Prefer working CORS relays; corsproxy.io often returns HTML interstitial pages. */
+/** Prefer working CORS relays; corsproxy.io often returns HTML interstitial pages.
+ * Same-origin /api/quote Worker proxy is deferred — adding `main` to wrangler broke
+ * Cloudflare Workers Builds for this SPA-only pipeline. Race public relays instead.
+ */
 function proxyCandidatesFor(url: string): string[] {
   const wrap = (target: string) => [
     `https://api.allorigins.win/raw?url=${encodeURIComponent(target)}`,
