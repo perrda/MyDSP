@@ -24,19 +24,24 @@ import {
   type MarketTicker,
   type MarketsCollapsed,
 } from '../domain/markets'
+import { mergeMarketQuotes } from '../domain/marketQuotesCache'
+import { sparklineTrendFromSeries } from '../domain/sparklineSeries'
 import { refreshMarketQuotes } from '../services/marketsQuotes'
 import { KNOWN_CRYPTO_SYMBOLS } from '../services/prices'
 import {
   addMarketTicker,
   listMarketTickers,
+  loadMarketQuotesCache,
   loadMarketsState,
   removeMarketTicker,
   reorderMarketTickersInKind,
+  saveMarketQuotesCache,
   setMarketsCollapsed,
   setMarketsLastRefresh,
   updateMarketTicker,
 } from '../storage/marketsStore'
 import { formatGBP, formatGBPMarket, formatGBPPrecise, formatPct, privacyClass } from '../utils/format'
+import type { PortfolioData } from '../domain/types'
 
 type FormState = {
   kind: MarketAssetKind
@@ -168,11 +173,67 @@ function namePlaceholder(kind: MarketAssetKind): string {
   return 'Cardano / Bitcoin'
 }
 
+/** Seed missing watchlist prints from portfolio holdings so first paint is never blank. */
+function seedQuotesFromPortfolio(
+  tickers: MarketTicker[],
+  data: PortfolioData,
+  base: Map<string, MarketQuote>,
+): Map<string, MarketQuote> {
+  const now = new Date().toISOString()
+  const out = new Map(base)
+  for (const t of tickers) {
+    if (out.get(t.id)?.last && (out.get(t.id)?.last ?? 0) > 0) continue
+    if (t.kind === 'crypto') {
+      const h = data.crypto.find((c) => c.symbol.toUpperCase() === t.symbol.toUpperCase())
+      if (h && h.price > 0) {
+        out.set(t.id, {
+          symbol: t.symbol,
+          kind: 'crypto',
+          last: h.price,
+          changeAbs: 0,
+          changePct: 0,
+          sparkline: [],
+          unit: 'GBP',
+          decimals: h.price < 1 ? 4 : 2,
+          source: 'portfolio',
+          updatedAt: now,
+        })
+      }
+    } else if (t.kind === 'equity') {
+      const h = data.equities.find((e) => e.symbol.toUpperCase() === t.symbol.toUpperCase())
+      const px = h && h.livePrice > 0 ? h.livePrice : h && h.avgCost > 0 ? h.avgCost : 0
+      if (h && px > 0) {
+        out.set(t.id, {
+          symbol: t.symbol,
+          kind: 'equity',
+          last: px,
+          changeAbs: 0,
+          changePct: 0,
+          sparkline: [],
+          unit: 'GBP',
+          decimals: 2,
+          source: 'portfolio',
+          updatedAt: now,
+        })
+      }
+    }
+  }
+  return out
+}
+
+function isStaleQuote(q: MarketQuote | undefined): boolean {
+  if (!q) return false
+  return q.source.startsWith('stale:') || q.source === 'portfolio'
+}
+
 export function MarketsPage() {
   const { data, privacy } = usePortfolio()
   const [tickers, setTickers] = useState(() => listMarketTickers())
   const [collapsed, setCollapsed] = useState(() => loadMarketsState().collapsed)
-  const [quotes, setQuotes] = useState<Map<string, MarketQuote>>(() => new Map())
+  const [quotes, setQuotes] = useState<Map<string, MarketQuote>>(() => {
+    const cached = loadMarketQuotesCache()
+    return seedQuotesFromPortfolio(listMarketTickers(), data, cached)
+  })
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
@@ -183,6 +244,8 @@ export function MarketsPage() {
   const [addKind, setAddKind] = useState<MarketAssetKind | null>(null)
   const [sorting, setSorting] = useState(false)
   const refreshInFlight = useRef(false)
+  const quotesRef = useRef(quotes)
+  quotesRef.current = quotes
 
   const bySection = useMemo(
     () => ({
@@ -224,6 +287,7 @@ export function MarketsPage() {
     const list = listMarketTickers()
     if (list.length === 0) {
       setQuotes(new Map())
+      saveMarketQuotesCache(new Map())
       return
     }
     if (refreshInFlight.current) return
@@ -237,20 +301,51 @@ export function MarketsPage() {
         finnhubKey,
         manualCryptoPrices: data.settings.manualCryptoPrices,
       })
-      setQuotes(next)
+      const previous = seedQuotesFromPortfolio(list, data, quotesRef.current)
+      const merged = mergeMarketQuotes(previous, next)
+      setQuotes(merged)
+      saveMarketQuotesCache(merged)
       const at = new Date().toISOString()
       setMarketsLastRefresh(at)
+      const liveCount = [...merged.values()].filter((q) => q.last > 0 && !isStaleQuote(q)).length
+      const shown = [...merged.values()].filter((q) => q.last > 0).length
+      if (shown < list.length) {
+        setError(
+          `Showing ${shown}/${list.length} prices` +
+            (liveCount < shown ? ` (${shown - liveCount} cached)` : '') +
+            ' — retrying sources shortly.',
+        )
+      }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Price refresh failed')
+      // Keep last-good quotes on total failure
+      setError(e instanceof Error ? e.message : 'Price refresh failed — showing last synced prices')
     } finally {
       refreshInFlight.current = false
       setRefreshing(false)
     }
-  }, [data.settings.finnhubKey, data.settings.manualCryptoPrices])
+  }, [data])
 
   useEffect(() => {
     void refresh()
   }, [refresh])
+
+  // If holdings load after first paint, seed any still-blank rows from portfolio prices
+  useEffect(() => {
+    setQuotes((prev) => {
+      const seeded = seedQuotesFromPortfolio(tickers, data, prev)
+      let changed = false
+      for (const [id, q] of seeded) {
+        const old = prev.get(id)
+        if ((!old || !(old.last > 0)) && q.last > 0) {
+          changed = true
+          break
+        }
+      }
+      if (!changed) return prev
+      saveMarketQuotesCache(seeded)
+      return seeded
+    })
+  }, [data, tickers])
 
   useEffect(() => {
     const onChanged = () => reloadList()
@@ -267,7 +362,7 @@ export function MarketsPage() {
   useEffect(() => {
     const id = window.setInterval(() => {
       if (document.visibilityState === 'visible') void refresh()
-    }, 60_000)
+    }, 30_000)
     return () => window.clearInterval(id)
   }, [refresh])
 
@@ -407,7 +502,7 @@ export function MarketsPage() {
                 {(t) => {
                   const q = quotes.get(t.id)
                   const pct = q?.changePct ?? 0
-                  const trend = pct > 0 ? 'up' : pct < 0 ? 'down' : 'neutral'
+                  const trend = sparklineTrendFromSeries(q?.sparkline ?? [])
                   const showSpark = Boolean(q && q.sparkline.length > 1)
                   return (
                     <div className="px-4 sm:px-5 py-3.5 flex items-center gap-2 sm:gap-4">
@@ -434,8 +529,11 @@ export function MarketsPage() {
                         <p className="text-sm font-medium tabular-nums text-text">
                           {formatLastDisplay(q)}
                         </p>
+                        {q && q.last > 0 && isStaleQuote(q) ? (
+                          <p className="text-[11px] text-text-subtle mt-0.5">Last synced</p>
+                        ) : null}
                         {q && !(q.last > 0) ? (
-                          <p className="text-[11px] text-text-subtle mt-0.5">No live quote</p>
+                          <p className="text-[11px] text-text-subtle mt-0.5">Fetching…</p>
                         ) : null}
                         <div className="mt-1 flex flex-col items-end gap-0.5">
                           <ChangeBadge pct={pct} />
@@ -534,7 +632,7 @@ export function MarketsPage() {
       <PageHeader
         eyebrow="Watchlist"
         title="Markets"
-        description="Live equities, crypto, indices (S&P 500, Nasdaq, FTSE), FX, and crypto crosses. Quotes refresh about every minute — use the header refresh to force an update."
+        description="Live equities, crypto, indices (S&P 500, Nasdaq, FTSE), FX, and crypto crosses. Auto-refreshes about every 30s; header refresh forces an update. Last synced prices stay visible if a live source is slow."
         action={
           <button
             type="button"
