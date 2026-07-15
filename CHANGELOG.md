@@ -1,5 +1,20 @@
 # MyDSP Changelog
 
+## [1.2.11] - 2026-07-15
+
+### Fixed — Markets prices never blank
+- Persist **last-good quotes** in the browser; remount / failed refreshes keep showing them
+- Live refresh **merges** into cache — a zero/miss no longer wipes a good print
+- Seed from portfolio holdings when a watchlist symbol has no cached quote yet
+- Extra crypto fallbacks: **CoinCap** + **Coinbase** after CoinGecko / Yahoo
+- Auto-refresh every **30s** (was 60s); stale rows labelled “Last synced”
+- Status explains partial coverage instead of leaving rows as “—”
+
+### Version
+- 1.2.10 → **1.2.11**
+
+---
+
 ## [1.2.10] - 2026-07-15
 
 ### Improved — Back navigation
