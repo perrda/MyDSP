@@ -4,7 +4,10 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Check, Circle, X } from 'lucide-react'
 import { loadSyncConfig } from '../services/sync/syncService'
-import { hasRememberedSyncPassphrase, getSessionSyncPassphrase } from '../services/sync/sessionPassphrase'
+import {
+  hasRememberedSyncPassphrase,
+  getSessionSyncPassphrase,
+} from '../services/sync/sessionPassphrase'
 import { usePortfolio } from '../context/PortfolioContext'
 
 const DISMISS_KEY = 'mydsp_getting_started_dismissed'
@@ -32,19 +35,7 @@ export function dismissGettingStarted(): void {
   }
 }
 
-export function GettingStartedChecklist() {
-  const { data } = usePortfolio()
-  const [dismissed, setDismissed] = useState(loadDismissed)
-  const [, bump] = useState(0)
-
-  useEffect(() => {
-    const onSync = () => bump((n) => n + 1)
-    window.addEventListener('mydsp-autosync', onSync)
-    return () => window.removeEventListener('mydsp-autosync', onSync)
-  }, [])
-
-  if (dismissed) return null
-
+function buildSteps(data: ReturnType<typeof usePortfolio>['data']): Step[] {
   const cfg = loadSyncConfig()
   const passOk = Boolean(getSessionSyncPassphrase() || hasRememberedSyncPassphrase())
   const syncOk = Boolean(cfg.enabled && cfg.remoteUrl.trim() && passOk && cfg.rememberPassphrase)
@@ -52,7 +43,7 @@ export function GettingStartedChecklist() {
   const hasTrades = (data.journal?.length ?? 0) > 0 || (data.disposals?.length ?? 0) > 0
   const hasTodos = (data.todoItems?.length ?? 0) > 0
 
-  const steps: Step[] = [
+  return [
     {
       id: 'sync',
       label: 'Turn on Automatic sync + Remember passphrase',
@@ -78,17 +69,32 @@ export function GettingStartedChecklist() {
       done: hasTodos,
     },
   ]
+}
 
+export function GettingStartedChecklist() {
+  const { data } = usePortfolio()
+  const [dismissed, setDismissed] = useState(loadDismissed)
+  const [, bump] = useState(0)
+
+  const steps = buildSteps(data)
   const doneCount = steps.filter((s) => s.done).length
+  const complete = doneCount === steps.length
+
+  // Hooks must run unconditionally (no early return above this line).
+  useEffect(() => {
+    const onSync = () => bump((n) => n + 1)
+    window.addEventListener('mydsp-autosync', onSync)
+    return () => window.removeEventListener('mydsp-autosync', onSync)
+  }, [])
 
   useEffect(() => {
-    if (doneCount === steps.length && !dismissed) {
+    if (complete && !dismissed) {
       dismissGettingStarted()
       setDismissed(true)
     }
-  }, [doneCount, steps.length, dismissed])
+  }, [complete, dismissed])
 
-  if (dismissed || doneCount === steps.length) return null
+  if (dismissed || complete) return null
 
   return (
     <section

@@ -1,5 +1,16 @@
 # MyDSP Changelog
 
+## [1.2.19] - 2026-07-15
+
+### Fixed — Overview ErrorBoundary flash
+- Getting started checklist called `useEffect` after an early `return` (Rules of Hooks) when the list completed or was dismissed — showed “Something went wrong” until Try again
+- Hooks now run unconditionally; checklist still auto-hides when done
+
+### Version
+- 1.2.18 → **1.2.19**
+
+---
+
 ## [1.2.18] - 2026-07-15
 
 ### Added — Standout polish (Top 10)

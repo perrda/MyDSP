@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.18**
+**Current version: 1.2.19**
 
-## Completed (through v1.2.18)
+## Completed (through v1.2.19)
 
+- Fix Getting started checklist hooks crash (ErrorBoundary flash on Overview)
 - Standout polish Top 10 (sync chip, just-added pulse, motion, empty CTAs, Markets density, tax strip, PDF brand, bottom-nav favourites, getting started)
 - Markets / News / YouTube, Favourites nav, PIN/Face ID iOS polish
 - Full section QA, empty states, overflow menus, live notification bell
