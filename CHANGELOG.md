@@ -1,5 +1,21 @@
 # MyDSP Changelog
 
+## [1.2.15] - 2026-07-15
+
+### Added — Broker sample CSV fixtures
+- Public templates: IBKR (TSLA), Trading 212 (TSLA), Coinbase (BTC)
+- Settings → Trade history download links for the samples
+- Fixture-backed parser tests (UK vs US date order, Coinbase Send skip)
+
+### Added — Markets provider health
+- Session-scoped health after each Markets refresh (CoinGecko / Yahoo / Finnhub / FX, …)
+- Status line hint when a feed fails twice in a row (`Feeds struggling · …`)
+
+### Version
+- 1.2.14 → **1.2.15**
+
+---
+
 ## [1.2.14] - 2026-07-15
 
 ### Fixed — Sync conflict handoff

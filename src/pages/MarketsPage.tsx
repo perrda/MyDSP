@@ -27,6 +27,7 @@ import {
 import { mergeMarketQuotes } from '../domain/marketQuotesCache'
 import { sparklineTrendFromSeries } from '../domain/sparklineSeries'
 import { refreshMarketQuotes } from '../services/marketsQuotes'
+import { formatMarketsProviderHealthHint } from '../services/marketsProviderHealth'
 import { KNOWN_CRYPTO_SYMBOLS } from '../services/prices'
 import {
   addMarketTicker,
@@ -257,6 +258,22 @@ export function MarketsPage() {
     }),
     [tickers],
   )
+
+  const statusHint = useMemo(() => {
+    const health = formatMarketsProviderHealthHint()
+    if (refreshing) {
+      return `Updating quotes…${error ? ` · ${error}` : ''}`
+    }
+    if (error) {
+      return health ? `${error} · ${health}` : error
+    }
+    if (sorting) {
+      return health
+        ? `Drag ⋮⋮ to reorder tickers within each section. · ${health}`
+        : 'Drag ⋮⋮ to reorder tickers within each section.'
+    }
+    return health ?? 'Quotes refreshed'
+  }, [refreshing, error, sorting, quotes])
 
   const cryptoHoldingsValue = useMemo(() => {
     const map = new Map<string, number>()
@@ -646,11 +663,7 @@ export function MarketsPage() {
         }
       />
 
-      <p className="text-xs text-text-subtle mb-4">
-        {refreshing ? 'Updating quotes…' : null}
-        {error ? `${refreshing ? ' · ' : ''}${error}` : null}
-        {!refreshing && !error ? (sorting ? 'Drag ⋮⋮ to reorder tickers within each section.' : null) : null}
-      </p>
+      <p className="text-xs text-text-subtle mb-4">{statusHint}</p>
 
       {renderSection('crypto')}
       {renderSection('equities')}

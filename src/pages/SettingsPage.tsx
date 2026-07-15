@@ -96,6 +96,25 @@ const TRADE_TEMPLATES = [
   { symbol: 'BTC', kind: 'crypto' as const, href: 'data/templates/trades-BTC.csv' },
 ]
 
+/** Illustrative broker exports for Import history header detection. */
+const BROKER_SAMPLE_TEMPLATES = [
+  {
+    label: 'IBKR sample (TSLA)',
+    href: 'data/templates/broker-ibkr-TSLA.csv',
+    download: 'broker-ibkr-TSLA.csv',
+  },
+  {
+    label: 'Trading 212 sample (TSLA)',
+    href: 'data/templates/broker-trading212-TSLA.csv',
+    download: 'broker-trading212-TSLA.csv',
+  },
+  {
+    label: 'Coinbase sample (BTC)',
+    href: 'data/templates/broker-coinbase-BTC.csv',
+    download: 'broker-coinbase-BTC.csv',
+  },
+]
+
 /** Stable Settings accordion ids — used for expand/collapse-all + deep links. */
 const SETTINGS_SECTION_IDS = [
   'sync',
@@ -1333,6 +1352,22 @@ export function SettingsPage() {
             <Link to="/compare" className="btn-ghost btn-sm">
               Compare portfolios
             </Link>
+          </div>
+          <p className="text-xs text-text-muted font-light mb-2 max-w-2xl">
+            Broker sample exports (illustrative — convert unit prices to GBP before saving for UK cost
+            basis):
+          </p>
+          <div className="flex flex-wrap gap-3 mb-4">
+            {BROKER_SAMPLE_TEMPLATES.map((t) => (
+              <a
+                key={t.download}
+                className="btn-ghost btn-sm"
+                href={`${import.meta.env.BASE_URL}${t.href}`}
+                download={t.download}
+              >
+                {t.label}
+              </a>
+            ))}
           </div>
           <ol className="text-sm text-text-muted font-light space-y-2 list-decimal pl-5 max-w-2xl">
             <li>

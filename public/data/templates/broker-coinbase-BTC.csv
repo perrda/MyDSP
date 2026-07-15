@@ -1,0 +1,6 @@
+Timestamp,Transaction Type,Quantity Transacted,Spot Price at Transaction,Fees and/or Commission
+# Coinbase–style export (illustrative). Prices should be converted to GBP before using for UK cost basis.
+2024-01-10T12:00:00Z,Buy,0.01,45000,1.50
+2024-03-16T09:30:00Z,Buy,0.005,62000,2.00
+2024-08-01T14:00:00Z,Sell,0.004,58000,1.25
+2024-08-02T10:00:00Z,Send,0.001,59000,0

@@ -18,6 +18,7 @@ import {
   fetchIndexQuote,
   type CryptoMarketQuoteGbp,
 } from './prices'
+import { recordMarketsRefreshHealth } from './marketsProviderHealth'
 
 const SPARKLINE_CONCURRENCY = 2
 
@@ -266,5 +267,6 @@ export async function refreshMarketQuotes(
     }),
   )
 
+  recordMarketsRefreshHealth(out.values())
   return out
 }
