@@ -1,0 +1,5 @@
+Trade Date,Buy/Sell,Quantity,T. Price,Comm/Fee
+# Interactive Brokers–style activity export (illustrative). Unit prices should be GBP for MyDSP cost basis.
+03/15/2024,BUY,10,180.50,1.00
+06/02/2024,BUY,5,210.00,1.00
+11/12/2024,SELL,3,340.25,1.00

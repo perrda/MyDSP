@@ -1,0 +1,5 @@
+Action,Time,No. of shares,Price / share
+# Trading 212–style export (illustrative). Dates are D/M/Y.
+Buy,15/03/2024,10,180.50
+Buy,02/06/2024,5,210.00
+Sell,12/11/2024,3,340.25
