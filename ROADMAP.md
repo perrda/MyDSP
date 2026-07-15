@@ -1,11 +1,12 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.16**
+**Current version: 1.2.17**
 
-## Completed (through v1.2.16)
+## Completed (through v1.2.17)
 
 - Markets / News / YouTube, Favourites nav, PIN/Face ID iOS polish
 - Full section QA, empty states, overflow menus, live notification bell
+- Mobile header toolbar: lean RH cluster (no overlapping icons)
 - Settings Alerts (desktop banners + quiet hours + optional critical beep)
 - Per-portfolio display currency + tax residency (Tax page + Settings)
 - Encrypted sync + conflict handoff to Settings review UI

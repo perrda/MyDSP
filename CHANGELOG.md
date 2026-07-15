@@ -1,5 +1,19 @@
 # MyDSP Changelog
 
+## [1.2.17] - 2026-07-15
+
+### Fixed — Mobile header toolbar overflow
+- Phone RH cluster no longer stacks overlapping bordered boxes
+- Mobile primary strip: Portfolio · Currency · Notifications · More
+- Refresh moved into More (with Privacy / Theme / Search); desktop unchanged
+- Compact portfolio/currency widths; icons stay 2.5rem; removed `overflow: hidden` clipping
+- Notification badge inset inside the bell button so it does not bleed onto neighbours
+
+### Version
+- 1.2.16 → **1.2.17**
+
+---
+
 ## [1.2.16] - 2026-07-15
 
 ### Fixed — Multi-device sync reliability
