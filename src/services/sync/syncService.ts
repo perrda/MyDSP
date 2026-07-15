@@ -3,7 +3,10 @@
 import { normalizePortfolio, toStorageShape } from '../../domain/normalize'
 import type { PortfolioData, PortfolioMeta } from '../../domain/types'
 import { captureFullWorkspace } from '../../storage/backupStore'
+import { importMarketsFromBackup } from '../../storage/marketsStore'
+import { importNewsFromBackup } from '../../storage/newsStore'
 import { importNavLayoutFromBackup } from '../../storage/navOrder'
+import { importYoutubeFromBackup } from '../../storage/youtubeStore'
 import {
   flushSave,
   getActivePortfolioId,
@@ -90,11 +93,15 @@ export interface MergePreview {
   /** Remote registry had duplicate names or exceeded the cap — push cleaned local after merge. */
   remoteHadDuplicateNames?: boolean
   /**
-   * Workspace extras from encrypted fullArchive (Favourites layout).
-   * Markets/News/YouTube stay local-only on pull to avoid clobber.
+   * Workspace extras from encrypted fullArchive (Favourites + Markets/News/YouTube).
+   * Applied last-write-wins on pull. Local Markets edits no longer skip sync —
+   * they mark dirty so other devices receive the watchlist.
    */
   workspaceExtras?: {
     navLayout?: unknown
+    markets?: unknown
+    news?: unknown
+    youtube?: unknown
   }
 }
 
@@ -420,9 +427,12 @@ async function decryptEnvelope(
   let workspaceExtras: MergePreview['workspaceExtras'] | undefined
   if (archivePlain && typeof archivePlain === 'object') {
     const a = archivePlain as Record<string, unknown>
-    if (a.navLayout != null) {
-      workspaceExtras = { navLayout: a.navLayout }
-    }
+    const extras: NonNullable<MergePreview['workspaceExtras']> = {}
+    if (a.navLayout != null) extras.navLayout = a.navLayout
+    if (a.markets != null) extras.markets = a.markets
+    if (a.news != null) extras.news = a.news
+    if (a.youtube != null) extras.youtube = a.youtube
+    if (Object.keys(extras).length > 0) workspaceExtras = extras
   }
 
   return { remoteByPortfolio, documentBlobs: documentBlobsPlain, workspaceExtras }
@@ -601,6 +611,15 @@ export async function applyMergePreview(
 
   if (preview.workspaceExtras?.navLayout != null) {
     importNavLayoutFromBackup(preview.workspaceExtras.navLayout)
+  }
+  if (preview.workspaceExtras?.markets != null) {
+    importMarketsFromBackup(preview.workspaceExtras.markets)
+  }
+  if (preview.workspaceExtras?.news != null) {
+    importNewsFromBackup(preview.workspaceExtras.news)
+  }
+  if (preview.workspaceExtras?.youtube != null) {
+    importYoutubeFromBackup(preview.workspaceExtras.youtube)
   }
 
   return { merged, conflicts: preview.conflicts, removedDupes: removed.length }

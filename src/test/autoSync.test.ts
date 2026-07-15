@@ -154,7 +154,7 @@ describe('autoSync dirty marking', () => {
     markLocalDataChanged()
     // Still applying — should not schedule yet
     endApplyingRemote()
-    // endApplyingRemote should call markLocalDataChanged → schedule 8s push
+    // endApplyingRemote should call markLocalDataChanged → schedule debounced push
     expect(getAutoSyncStatus().state).toBeTruthy()
     vi.useRealTimers()
   })

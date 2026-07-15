@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
-import { ArrowRight, RefreshCw, Target, Landmark, ListChecks } from 'lucide-react'
-import { useMemo } from 'react'
+import { ArrowRight, RefreshCw, Target, Landmark, ListChecks, CandlestickChart } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 import { GettingStartedChecklist } from '../components/GettingStartedChecklist'
 import { AllocationRing } from '../components/charts/AllocationRing'
 import { BudgetSparkline } from '../components/charts/BudgetSparkline'
@@ -13,6 +13,15 @@ import { evaluateAchievements } from '../domain/achievements'
 import { buildAlerts } from '../domain/alerts'
 import { worstBudgetOffenders } from '../domain/budgetChart'
 import { appendManualSnapshot } from '../domain/history'
+import { isDueToday, isOverdue } from '../domain/todos'
+import {
+  getAutoSyncStatus,
+  subscribeAutoSync,
+  type AutoSyncStatus,
+} from '../services/sync/autoSyncService'
+import { loadSyncConfig } from '../services/sync/syncService'
+import { loadOfflineQueue } from '../services/offlineQueue'
+import { listMarketTickers } from '../storage/marketsStore'
 import { formatDate, formatGBP, formatPct, privacyClass } from '../utils/format'
 
 const ALERT_BORDER: Record<string, string> = {
@@ -23,16 +32,38 @@ const ALERT_BORDER: Record<string, string> = {
 }
 
 const QUICK_LINKS = [
+  { to: '/markets', label: 'Markets', icon: CandlestickChart },
+  { to: '/todos', label: 'To Do', icon: ListChecks },
   { to: '/liabilities', label: 'Liabilities', icon: Landmark },
   { to: '/goals', label: 'Goals', icon: Target },
-  { to: '/budgets', label: 'Budgets', icon: ListChecks },
-  { to: '/settings#sync', label: 'Sync settings', icon: RefreshCw },
+  { to: '/settings#sync', label: 'Sync', icon: RefreshCw },
 ]
 
 export function Dashboard() {
   const { data, breakdown, privacy, fccDataPresent, setData, goalProgress } = usePortfolio()
   const { netWorth, assets, liabilities, crypto, equity, liability } = breakdown
   const { reminders } = useSmartReminders()
+  const [syncStatus, setSyncStatus] = useState<AutoSyncStatus>(() => getAutoSyncStatus())
+  const [queueLen, setQueueLen] = useState(() => loadOfflineQueue().length)
+
+  useEffect(() => subscribeAutoSync(setSyncStatus), [])
+  useEffect(() => {
+    const refresh = () => setQueueLen(loadOfflineQueue().length)
+    window.addEventListener('mydsp-offline-queue', refresh)
+    return () => window.removeEventListener('mydsp-offline-queue', refresh)
+  }, [])
+
+  const todayTodos = useMemo(() => {
+    return (data.todoItems ?? [])
+      .filter((t) => t.status !== 'done' && t.status !== 'archived')
+      .filter((t) => isDueToday(t) || isOverdue(t))
+      .slice(0, 4)
+  }, [data.todoItems])
+
+  const marketsCount = useMemo(() => listMarketTickers().length, [syncStatus.lastAt])
+
+  const syncCfg = loadSyncConfig()
+  const syncEnabled = Boolean(syncCfg.enabled && syncCfg.remoteUrl.trim())
 
   const recentJournal = [...(data.journal ?? [])]
     .sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''))
@@ -57,16 +88,24 @@ export function Dashboard() {
     setData((prev) => appendManualSnapshot(prev))
   }
 
+  const syncLine = !syncEnabled
+    ? 'Cloud sync off — enable in Settings'
+    : syncStatus.state === 'pulling' || syncStatus.state === 'pushing'
+      ? syncStatus.state === 'pulling'
+        ? 'Syncing from other devices…'
+        : 'Pushing local changes…'
+      : queueLen > 0
+        ? `${queueLen} change(s) queued offline`
+        : syncStatus.lastAt
+          ? `Last sync ${new Date(syncStatus.lastAt).toLocaleString()}`
+          : 'Ready to sync'
+
   return (
     <div className="pb-8 md:pb-0">
       <PageHeader
-        eyebrow="Net worth"
-        title="Financial overview"
-        description={
-          fccDataPresent
-            ? 'Live portfolio data loaded from your FCC storage (dfc_data_v3).'
-            : 'Showing FCC sample portfolio. Import your live FCC backup in Settings anytime.'
-        }
+        eyebrow="MyDSP"
+        title="Today"
+        description="Net worth, tasks due now, sync health, and Markets — act first, explore below."
         action={
           <Link to="/settings#sync" className="btn-secondary btn-sm inline-flex">
             Cloud Sync <ArrowRight size={14} strokeWidth={1.5} />
@@ -74,9 +113,75 @@ export function Dashboard() {
         }
       />
 
+      {/* First viewport: one composition — brand pulse + act */}
+      <div className={`surface p-5 md:p-6 mb-4 rounded-xl md:rounded-none shadow-sm md:shadow-none ${privacyClass(privacy)}`}>
+        <p className="text-xs uppercase tracking-wider text-text-subtle mb-1 font-semibold">Net worth</p>
+        <p className="text-3xl md:text-4xl font-bold tabular-nums tracking-tight mb-1 break-words">
+          {formatGBP(netWorth)}
+        </p>
+        <p className="text-sm text-text-muted font-light mb-4">
+          Assets {formatGBP(assets)} · Debt {formatGBP(liabilities)}
+        </p>
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-text-subtle">
+          <span>{syncLine}</span>
+          <Link to="/markets" className="hover:text-accent">
+            {marketsCount} Markets ticker{marketsCount === 1 ? '' : 's'}
+          </Link>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-6">
+        <div className="surface p-4 md:p-5 rounded-xl md:rounded-none shadow-sm md:shadow-none">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs uppercase tracking-wider text-text-subtle font-semibold">Due today</p>
+            <Link to="/todos" className="text-xs text-accent font-semibold">
+              All todos
+            </Link>
+          </div>
+          {todayTodos.length === 0 ? (
+            <p className="text-sm text-text-muted font-light">Nothing due — clear day.</p>
+          ) : (
+            <ul className="space-y-2">
+              {todayTodos.map((t) => (
+                <li key={t.id}>
+                  <Link
+                    to="/todos"
+                    className="text-sm font-medium text-text hover:text-accent line-clamp-1"
+                  >
+                    {isOverdue(t) ? 'Overdue · ' : ''}
+                    {t.title}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <div className="surface p-4 md:p-5 rounded-xl md:rounded-none shadow-sm md:shadow-none">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs uppercase tracking-wider text-text-subtle font-semibold">Jump in</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {QUICK_LINKS.map((l) => (
+              <Link
+                key={l.to}
+                to={l.to}
+                className="btn-ghost btn-sm inline-flex items-center gap-2"
+              >
+                <l.icon size={16} strokeWidth={1.5} /> {l.label}
+              </Link>
+            ))}
+          </div>
+          {fccDataPresent ? null : (
+            <p className="text-xs text-text-subtle mt-3 font-light">
+              Sample portfolio — import live data in Settings anytime.
+            </p>
+          )}
+        </div>
+      </div>
+
       <GettingStartedChecklist />
 
-      {/* Mobile: Stacked stat cards with better spacing */}
+      {/* Secondary stats */}
       <div className={`grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-px mb-6 ${privacyClass(privacy)}`}>
         <div className="surface p-4 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none col-span-2 md:col-span-1">
           <p className="text-xs uppercase tracking-wider text-text-subtle mb-2 md:mb-1 font-semibold">Net worth</p>
@@ -115,19 +220,6 @@ export function Dashboard() {
           ))}
         </div>
       )}
-
-      {/* Quick links - horizontal scroll on mobile */}
-      <div className="flex gap-2 mb-6 overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 pb-2 md:pb-0 scrollbar-hide">
-        {QUICK_LINKS.map((l) => (
-          <Link
-            key={l.to}
-            to={l.to}
-            className="btn-ghost btn-sm inline-flex items-center gap-2 whitespace-nowrap flex-shrink-0"
-          >
-            <l.icon size={16} strokeWidth={1.5} /> {l.label}
-          </Link>
-        ))}
-      </div>
 
       {/* Smart Reminders */}
       {reminders.length > 0 && (

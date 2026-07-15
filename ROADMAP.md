@@ -1,9 +1,12 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.21**
+**Current version: 1.2.22**
 
-## Completed (through v1.2.21)
+## Completed (through v1.2.22)
 
+- Sync Markets/News/YouTube on pull; Favourites sync; clearer sync chip + Sync now
+- Faster auto-sync cadence; same-origin `/api/quote` Worker proxy
+- Markets live vs last-synced labels; tablet bottom nav; Overview Today; offline queue banner
 - Sidebar Favourites / Others order synced via fullArchive + backups across devices
 - Markets: race Yahoo CORS proxies; Frankfurter FX sparklines; last-synced fallback for all tickers
 - Markets: preserve sparklines/day-change on degraded live merges; Finnhub/Yahoo resilience
@@ -15,7 +18,7 @@
 - Settings Alerts (desktop banners + quiet hours + optional critical beep)
 - Per-portfolio display currency + tax residency (Tax page + Settings)
 - Encrypted sync + conflict handoff to Settings review UI
-- Sync reliability: pull-before-push, todo list name merge, no Markets clobber
+- Sync reliability: pull-before-push, todo list name merge
 - Full backups, Compare, Jobs/Todos (board columns polished)
 - Markets last-good quote cache + 7-day sparkline fixes
 - Header Search icon redesign
@@ -31,9 +34,13 @@
 
 ## Next (manual / ongoing)
 
-1. Cross-device sync smoke on phone + Mac after every deploy (todos + portfolios + Favourites)
-2. Tune broker aliases from your real IBKR/T212/Coinbase exports
-3. Remittance-basis notes for non-dom packs
+1. Cross-device sync smoke after deploy (todos + portfolios + Favourites + Markets watchlist)
+2. Hard-refresh PWA so `/api/quote` Worker route is live
+
+## Low priority
+
+- Tune broker aliases from real IBKR/T212/Coinbase exports
+- Remittance-basis notes / deepen non-UK tax packs
 
 ## Parking lot
 

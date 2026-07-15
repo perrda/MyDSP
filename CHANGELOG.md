@@ -1,5 +1,26 @@
 # MyDSP Changelog
 
+## [1.2.22] - 2026-07-15
+
+### Added — Sync completeness, Markets proxy, polish (Top 8)
+1. **Markets / News / YouTube sync on pull** — workspace stores apply from encrypted `fullArchive` (last-write-wins); local edits mark auto-sync dirty
+2. **Clearer sync UX** — chip shows relative time + offline queue; one-tap **Now** beside the chip
+3. **Faster multi-device convergence** — push debounce 8s→4s; periodic pull 60s→30s; pull throttle 12s→8s
+4. **Same-origin `/api/quote` Worker proxy** — Yahoo/Finnhub/etc. via app Worker first (CORS relays remain fallback)
+5. **Markets live vs last-synced labels** — per-row Live / Last synced · Xm ago
+6. **Tablet bottom nav** — roomier tabs at 768–1023px (`bottom-nav--tablet`)
+7. **Overview “Today” composition** — net worth pulse, due todos, sync line, Markets jump-ins
+8. **Offline confidence** — banner shows queued edits + last backup day + Sync link
+
+### Low priority (deferred)
+- Broker CSV alias tuning
+- Tax residency pack deepening
+
+### Version
+- 1.2.21 → **1.2.22**
+
+---
+
 ## [1.2.21] - 2026-07-15
 
 ### Added — Sidebar Favourites sync across devices

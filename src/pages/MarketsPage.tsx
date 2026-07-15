@@ -261,6 +261,31 @@ function isStaleQuote(q: MarketQuote | undefined): boolean {
   )
 }
 
+function freshnessLabel(q: MarketQuote | undefined): string | null {
+  if (!q || !(q.last > 0)) return null
+  if (isStaleQuote(q)) {
+    try {
+      const t = new Date(q.updatedAt).getTime()
+      if (Number.isFinite(t)) {
+        const mins = Math.round((Date.now() - t) / 60_000)
+        if (mins < 2) return 'Last synced · just now'
+        if (mins < 60) return `Last synced · ${mins}m ago`
+        const hrs = Math.round(mins / 60)
+        if (hrs < 48) return `Last synced · ${hrs}h ago`
+      }
+    } catch {
+      /* ignore */
+    }
+    return 'Last synced'
+  }
+  const src = (q.source || '').toLowerCase()
+  if (src.includes('yahoo') || src.includes('finnhub') || src.includes('coingecko') || src.includes('frankfurter')) {
+    return 'Live'
+  }
+  if (src.includes('exchangerate')) return 'Live · spot'
+  return null
+}
+
 export function MarketsPage() {
   const { data, privacy } = usePortfolio()
   const [tickers, setTickers] = useState(() => listMarketTickers())
@@ -590,12 +615,24 @@ export function MarketsPage() {
                         <p className="text-sm font-medium tabular-nums text-text">
                           {formatLastDisplay(q)}
                         </p>
-                        {q && q.last > 0 && isStaleQuote(q) ? (
-                          <p className="text-[11px] text-text-subtle mt-0.5">Last synced</p>
-                        ) : null}
-                        {q && !(q.last > 0) ? (
-                          <p className="text-[11px] text-text-subtle mt-0.5">Fetching…</p>
-                        ) : null}
+                        {(() => {
+                          const label = freshnessLabel(q)
+                          if (!label) {
+                            return q && !(q.last > 0) ? (
+                              <p className="text-[11px] text-text-subtle mt-0.5">Fetching…</p>
+                            ) : null
+                          }
+                          const stale = isStaleQuote(q)
+                          return (
+                            <p
+                              className={`text-[11px] mt-0.5 ${
+                                stale ? 'text-text-subtle' : 'text-emerald-600/80 dark:text-emerald-400/80'
+                              }`}
+                            >
+                              {label}
+                            </p>
+                          )
+                        })()}
                         <div className="mt-1 flex flex-col items-end gap-0.5">
                           <ChangeBadge pct={pct} />
                           {(section === 'fx' || section === 'crosses' || section === 'indices') &&
