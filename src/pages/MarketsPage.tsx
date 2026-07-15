@@ -819,7 +819,7 @@ export function MarketsPage() {
                       )}
 
                       <div className={`text-right shrink-0 ${privacyClass(privacy)}`}>
-                        <p className="text-sm font-medium tabular-nums text-text">
+                        <p className="markets-quote-price text-sm font-medium tabular-nums text-text">
                           {formatLastDisplay(q)}
                         </p>
                         {(() => {

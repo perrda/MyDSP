@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.36**
+**Current version: 1.2.37**
 
-## Completed (through v1.2.36)
+## Completed (through v1.2.37)
 
+- Mobile interaction (next25 11–15): bottom-nav Favourites reorder sheet, Jobs Kanban touch drag, Todos swipe Complete/Snooze, iPad Today|Markets two-pane, larger text mode
 - Markets / money clarity (next25 6–10): As-of sticky headers, ticker notes, cost·P&L rows, FX conversion explainer, tax exports meaning panel
 - Sync / reliability (next25 1–5): health dashboard, conflict export/share, offline cancel+backoff, Markets 24h merge, quote failover banner
 

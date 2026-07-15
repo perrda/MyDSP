@@ -49,6 +49,9 @@
             if (localStorage.getItem('mydsp_glass_mode') === '1') {
               document.documentElement.classList.add('glass');
             }
+            if (localStorage.getItem('mydsp_large_text') === '1') {
+              document.documentElement.classList.add('large-text');
+            }
           } catch (e2) { /* ignore */ }
         } catch (e) { /* private mode — keep html.dark */ }
       })();

@@ -45,12 +45,23 @@ export function Dashboard() {
   const { reminders } = useSmartReminders()
   const [syncStatus, setSyncStatus] = useState<AutoSyncStatus>(() => getAutoSyncStatus())
   const [queueLen, setQueueLen] = useState(() => loadOfflineQueue().length)
+  /** iPad / wide Stage Manager: Today | Markets two-pane when ≥900px. */
+  const [twoPane, setTwoPane] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia('(min-width: 900px)').matches : false,
+  )
 
   useEffect(() => subscribeAutoSync(setSyncStatus), [])
   useEffect(() => {
     const refresh = () => setQueueLen(loadOfflineQueue().length)
     window.addEventListener('mydsp-offline-queue', refresh)
     return () => window.removeEventListener('mydsp-offline-queue', refresh)
+  }, [])
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 900px)')
+    const sync = () => setTwoPane(mq.matches)
+    sync()
+    mq.addEventListener('change', sync)
+    return () => mq.removeEventListener('change', sync)
   }, [])
 
   const todayTodos = useMemo(() => {
@@ -160,10 +171,12 @@ export function Dashboard() {
         </div>
       ) : null}
 
+      <div className={twoPane ? 'today-two-pane grid grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)] gap-4 mb-4 items-start' : ''}>
+        <div className={twoPane ? 'min-w-0' : ''}>
       {/* First viewport: one composition — brand pulse + act */}
       <div className={`surface p-5 md:p-6 mb-4 rounded-xl md:rounded-none shadow-sm md:shadow-none ${privacyClass(privacy)}`}>
         <p className="text-xs uppercase tracking-wider text-text-subtle mb-1 font-semibold">Net worth</p>
-        <p className="text-3xl md:text-4xl font-bold tabular-nums tracking-tight mb-1 break-words">
+        <p className="today-net-worth-value text-3xl md:text-4xl font-bold tabular-nums tracking-tight mb-1 break-words">
           {formatGBP(netWorth)}
         </p>
         <p className="text-sm text-text-muted font-light mb-4">
@@ -260,6 +273,49 @@ export function Dashboard() {
             Sample portfolio — import live data in Settings anytime.
           </p>
         )}
+      </div>
+        </div>
+
+        {twoPane ? (
+          <aside
+            className="today-markets-pane surface p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none sticky top-20"
+            aria-label="Markets snapshot"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs uppercase tracking-wider text-text-subtle font-semibold">Markets</p>
+              <Link to="/markets" className="text-xs text-accent font-semibold">
+                Open
+              </Link>
+            </div>
+            {todayMovers.length === 0 ? (
+              <p className="text-sm text-text-muted font-light">No movers yet — open Markets to refresh.</p>
+            ) : (
+              <ul className="space-y-2">
+                {todayMovers.map((m) => (
+                  <li key={m.id}>
+                    <Link
+                      to={`/markets?symbol=${encodeURIComponent(m.symbol)}`}
+                      className="flex items-baseline justify-between gap-2 hover:text-accent"
+                    >
+                      <span className="font-semibold tracking-tight">{m.symbol}</span>
+                      <span
+                        className={`tabular-nums text-sm markets-quote-price ${
+                          m.changePct >= 0 ? 'text-emerald-500' : 'text-red-500'
+                        }`}
+                      >
+                        {m.changePct >= 0 ? '+' : ''}
+                        {m.changePct.toFixed(2)}%
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="text-[11px] text-text-subtle mt-3 font-light">
+              {marketsCount} ticker{marketsCount === 1 ? '' : 's'} watched
+            </p>
+          </aside>
+        ) : null}
       </div>
 
       <GettingStartedChecklist />

@@ -24,7 +24,9 @@ import { ConfirmDialog } from '../components/ui/Modal'
 import { TodoModal } from '../components/TodoModal'
 import { TodoListModal } from '../components/TodoListModal'
 import { ReorderList, ReorderHandle } from '../components/ui/Reorderable'
+import { SwipeTodoRow } from '../components/ui/SwipeTodoRow'
 import { applySortOrder, sortBySortOrder } from '../utils/reorder'
+import { snoozeDueDateOneDay } from '../domain/todoSnooze'
 import { checkTodoReminders, ensureDesktopNotificationPermission } from '../domain/todoReminders'
 import { TodoScreenshotImportModal } from '../components/TodoScreenshotImportModal'
 import { TodoListPicker } from '../components/TodoListPicker'
@@ -516,6 +518,19 @@ export function TodosPage() {
     }))
   }
 
+  const handleSnooze = (item: TodoItem) => {
+    if (item.status === 'done' || item.status === 'archived') return
+    const dueDate = snoozeDueDateOneDay(item.dueDate)
+    const now = new Date().toISOString()
+    setData((prev) => ({
+      ...prev,
+      todoItems: (prev.todoItems ?? []).map((i) =>
+        i.id === item.id ? { ...i, dueDate, updatedAt: now } : i,
+      ),
+    }))
+    success('Snoozed', `Due ${dueDate}`)
+  }
+
   const handleScreenshotImport = (items: TodoItem[]) => {
     setData((prev) => {
       let existing = prev.todoItems ?? []
@@ -1002,39 +1017,49 @@ export function TodosPage() {
                   className="space-y-3"
                 >
                   {(item) => (
-                    <TodoItemCard
-                      item={item}
-                      orderNumber={orderNumbers.get(item.id)}
-                      listName={!selectedListId ? lists.find((l) => l.id === item.listId)?.name : undefined}
-                      selected={selectedTodos.has(item.id)}
-                      focused={focusTodoId === item.id}
-                      justSynced={justSyncedTodos.has(item.id)}
-                      showReorderHandle
-                      onToggleSelect={handleToggleSelect}
-                      onToggleComplete={handleToggleComplete}
-                      onEdit={handleEditItem}
-                      onDuplicate={handleDuplicateItem}
-                      onDelete={handleDeleteItem}
-                    />
+                    <SwipeTodoRow
+                      onComplete={() => handleToggleComplete(item)}
+                      onSnooze={() => handleSnooze(item)}
+                    >
+                      <TodoItemCard
+                        item={item}
+                        orderNumber={orderNumbers.get(item.id)}
+                        listName={!selectedListId ? lists.find((l) => l.id === item.listId)?.name : undefined}
+                        selected={selectedTodos.has(item.id)}
+                        focused={focusTodoId === item.id}
+                        justSynced={justSyncedTodos.has(item.id)}
+                        showReorderHandle
+                        onToggleSelect={handleToggleSelect}
+                        onToggleComplete={handleToggleComplete}
+                        onEdit={handleEditItem}
+                        onDuplicate={handleDuplicateItem}
+                        onDelete={handleDeleteItem}
+                      />
+                    </SwipeTodoRow>
                   )}
                 </ReorderList>
               ) : (
                 <div className="space-y-3">
                   {incompleteItems.map((item) => (
-                    <TodoItemCard
+                    <SwipeTodoRow
                       key={item.id}
-                      item={item}
-                      orderNumber={orderNumbers.get(item.id)}
-                      listName={!selectedListId ? lists.find((l) => l.id === item.listId)?.name : undefined}
-                      selected={selectedTodos.has(item.id)}
-                      focused={focusTodoId === item.id}
-                      justSynced={justSyncedTodos.has(item.id)}
-                      onToggleSelect={handleToggleSelect}
-                      onToggleComplete={handleToggleComplete}
-                      onEdit={handleEditItem}
-                      onDuplicate={handleDuplicateItem}
-                      onDelete={handleDeleteItem}
-                    />
+                      onComplete={() => handleToggleComplete(item)}
+                      onSnooze={() => handleSnooze(item)}
+                    >
+                      <TodoItemCard
+                        item={item}
+                        orderNumber={orderNumbers.get(item.id)}
+                        listName={!selectedListId ? lists.find((l) => l.id === item.listId)?.name : undefined}
+                        selected={selectedTodos.has(item.id)}
+                        focused={focusTodoId === item.id}
+                        justSynced={justSyncedTodos.has(item.id)}
+                        onToggleSelect={handleToggleSelect}
+                        onToggleComplete={handleToggleComplete}
+                        onEdit={handleEditItem}
+                        onDuplicate={handleDuplicateItem}
+                        onDelete={handleDeleteItem}
+                      />
+                    </SwipeTodoRow>
                   ))}
                 </div>
               )}

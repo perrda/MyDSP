@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Plus,
@@ -575,6 +575,7 @@ export function JobsPage() {
           {kanbanData.map((column) => (
             <div
               key={column.title}
+              data-kanban-column={column.title}
               className={`flex-shrink-0 w-[min(80vw,20rem)] sm:w-80 rounded-lg transition-colors snap-start snap-always ${
                 dragOverColumn === column.title ? 'bg-accent/10 ring-2 ring-accent' : ''
               }`}
@@ -620,6 +621,8 @@ export function JobsPage() {
                     privacy={privacy}
                     draggable
                     showReorderHandle
+                    onKanbanColumnDrop={handleKanbanDrop}
+                    onKanbanDragOverColumn={setDragOverColumn}
                   />
                 )}
               </ReorderList>
@@ -698,6 +701,8 @@ function JobCard({
   expanded = false,
   draggable = false,
   showReorderHandle = false,
+  onKanbanColumnDrop,
+  onKanbanDragOverColumn,
 }: {
   application: JobApplication
   onStatusChange: (id: number, status: JobStatus) => void
@@ -710,10 +715,55 @@ function JobCard({
   expanded?: boolean
   draggable?: boolean
   showReorderHandle?: boolean
+  onKanbanColumnDrop?: (columnTitle: string, appId: number) => void
+  onKanbanDragOverColumn?: (columnTitle: string | null) => void
 }) {
   const daysSince = getDaysSinceApplied(application)
   const nextInterview = getNextInterview(application)
   const deadlineApproaching = isDeadlineApproaching(application)
+
+  const onStatusGripPointerDown = (e: ReactPointerEvent<HTMLButtonElement>) => {
+    if (!draggable || !onKanbanColumnDrop || e.button !== 0) return
+    // Mouse / trackpad keep HTML5 DnD; touch uses pointer events between columns
+    if (e.pointerType === 'mouse') return
+    e.preventDefault()
+    e.stopPropagation()
+    const target = e.currentTarget
+    target.setPointerCapture(e.pointerId)
+    let overCol: string | null = null
+    let moved = false
+
+    const onMove = (ev: PointerEvent) => {
+      const dx = Math.abs(ev.clientX - e.clientX)
+      const dy = Math.abs(ev.clientY - e.clientY)
+      if (dx + dy > 6) moved = true
+      const el = document.elementFromPoint(ev.clientX, ev.clientY)
+      const col = el?.closest<HTMLElement>('[data-kanban-column]')
+      const title = col?.dataset.kanbanColumn ?? null
+      if (title !== overCol) {
+        overCol = title
+        onKanbanDragOverColumn?.(title)
+      }
+    }
+
+    const onUp = (ev: PointerEvent) => {
+      try {
+        target.releasePointerCapture(ev.pointerId)
+      } catch {
+        /* already released */
+      }
+      target.removeEventListener('pointermove', onMove)
+      target.removeEventListener('pointerup', onUp)
+      target.removeEventListener('pointercancel', onUp)
+      const dropCol = overCol
+      onKanbanDragOverColumn?.(null)
+      if (moved && dropCol) onKanbanColumnDrop(dropCol, application.id)
+    }
+
+    target.addEventListener('pointermove', onMove)
+    target.addEventListener('pointerup', onUp)
+    target.addEventListener('pointercancel', onUp)
+  }
 
   return (
     <div
@@ -728,11 +778,13 @@ function JobCard({
             <button
               type="button"
               className="mt-1 p-1 text-text-subtle hover:text-accent cursor-grab active:cursor-grabbing"
+              style={{ touchAction: 'none' }}
               draggable
               onDragStart={(e) => {
                 e.dataTransfer.setData('text/job-id', String(application.id))
                 e.dataTransfer.effectAllowed = 'move'
               }}
+              onPointerDown={onStatusGripPointerDown}
               aria-label="Drag to change status"
               title="Drag to another column"
             >

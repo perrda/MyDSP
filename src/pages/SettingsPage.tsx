@@ -9,6 +9,12 @@ import { useSecurity } from '../components/SecurityProvider'
 import { usePortfolio } from '../context/PortfolioContext'
 import { useTheme, type ThemePreference } from '../context/ThemeContext'
 import { useGlass } from '../context/GlassContext'
+import {
+  applyLargeTextDom,
+  LARGE_TEXT_STORAGE_KEY,
+  loadLargeText,
+  saveLargeText,
+} from '../utils/largeText'
 import { holdingHistoryKey, readHoldingHistory } from '../domain/holdingHistory'
 import type { HoldingPricePoint } from '../domain/holdingHistory'
 import { registerStaticPriceFile } from '../domain/staticPrices'
@@ -170,7 +176,7 @@ const SETTINGS_SECTION_IDS = [
 
 const SETTINGS_SECTION_SEARCH: Record<(typeof SETTINGS_SECTION_IDS)[number], string> = {
   sync: 'Encrypted cloud sync passphrase remote url push pull',
-  appearance: 'Light dark glass mode theme',
+  appearance: 'Light dark glass mode theme larger text accessibility',
   layout: 'On launch favourites sidebar bottom nav',
   fcc: 'Sample FCC portfolio',
   display: 'Currency tax residency privacy',
@@ -226,6 +232,8 @@ export function SettingsPage() {
   const { refreshSecurity, lock, pinEnabled } = useSecurity()
   const { theme, preference, setPreference } = useTheme()
   const { glass, setGlass } = useGlass()
+  const [largeText, setLargeTextState] = useState(() => loadLargeText())
+  const [layoutFlash, setLayoutFlash] = useState(false)
 
   const fileRef = useRef<HTMLInputElement>(null)
   const priceFileRef = useRef<HTMLInputElement>(null)
@@ -348,8 +356,27 @@ export function SettingsPage() {
       document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
     const t = window.setTimeout(scroll, 120)
-    return () => window.clearTimeout(t)
+    let flashClear: number | undefined
+    if (id === 'layout') {
+      setLayoutFlash(true)
+      flashClear = window.setTimeout(() => setLayoutFlash(false), 1800)
+    }
+    return () => {
+      window.clearTimeout(t)
+      if (flashClear) window.clearTimeout(flashClear)
+    }
   }, [location.hash, location.pathname])
+
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== LARGE_TEXT_STORAGE_KEY) return
+      const on = e.newValue === '1'
+      applyLargeTextDom(on)
+      setLargeTextState(on)
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [])
 
   const refreshBackupList = () => {
     void listFullBackups()
@@ -1581,9 +1608,47 @@ export function SettingsPage() {
               Glass Off
             </button>
           </div>
+
+          <p className="text-sm text-text-muted font-light mb-3 mt-8 max-w-2xl">
+            <span className="text-text font-medium">Larger text</span> scales prices, holdings, and
+            Markets figures for easier reading (Dynamic Type–style).
+          </p>
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Larger text">
+            <button
+              type="button"
+              className={largeText ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
+              aria-pressed={largeText}
+              onClick={() => {
+                applyLargeTextDom(true)
+                saveLargeText(true)
+                setLargeTextState(true)
+                flash('Larger text on.')
+              }}
+            >
+              Larger text On
+            </button>
+            <button
+              type="button"
+              className={!largeText ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
+              aria-pressed={!largeText}
+              onClick={() => {
+                applyLargeTextDom(false)
+                saveLargeText(false)
+                setLargeTextState(false)
+                flash('Larger text off.')
+              }}
+            >
+              Larger text Off
+            </button>
+          </div>
         </SettingsSection>
 
-        <SettingsSection id="layout" eyebrow="Layout" title="Sidebar Favourites">
+        <SettingsSection
+          id="layout"
+          eyebrow="Layout"
+          title="Sidebar Favourites"
+          className={layoutFlash ? 'settings-section-flash' : ''}
+        >
           <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
             Open the menu and tap <span className="text-text font-medium">Sort</span> to show grab
             handles and ★ controls. Pin sections to Favourites (always on top); everything else

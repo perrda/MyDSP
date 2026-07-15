@@ -1,5 +1,19 @@
 # MyDSP Changelog
 
+## [1.2.37] - 2026-07-15
+
+### Improved — Mobile interaction (next 25 · 11–15)
+11. Bottom-nav long-press opens a Favourites reorder sheet (navOrder APIs) with deep-link to Settings → Layout  
+12. Jobs Kanban: touch pointer drag between columns (HTML5 DnD kept for mouse)  
+13. Todos swipe Complete / Snooze (`SwipeTodoRow`, +1 day due date)  
+14. iPad / wide (≥900px): Dashboard two-pane Today | Markets snapshot  
+15. Settings Appearance **Larger text** (`mydsp_large_text` → `html.large-text`) scales prices / holdings / Markets  
+
+### Version
+- 1.2.36 → **1.2.37**
+
+---
+
 ## [1.2.36] - 2026-07-15
 
 ### Improved — Markets / money clarity (next 25 · 6–10)
