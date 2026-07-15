@@ -2,7 +2,37 @@
 
 import type { MarketQuote } from '../domain/markets'
 
-/** Prefer a fresh live print; otherwise keep the previous good value (marked stale). */
+/** Sources that often return spot-only (no day-change / no sparkline). */
+const DEGRADED_SOURCES = new Set([
+  'exchangerate-api',
+  'coinbase',
+  'manual',
+  'default',
+  'portfolio',
+  'none',
+  'error',
+  'invalid',
+])
+
+function hasSpark(q: MarketQuote | undefined): boolean {
+  return Boolean(q && q.sparkline.length > 1)
+}
+
+function hasMeaningfulChange(q: MarketQuote | undefined): boolean {
+  if (!q) return false
+  return Math.abs(q.changePct) > 0.0001 || Math.abs(q.changeAbs) > 0.0000001
+}
+
+function isDegraded(q: MarketQuote): boolean {
+  const src = (q.source || '').toLowerCase()
+  if (src.startsWith('stale:')) return false
+  return DEGRADED_SOURCES.has(src)
+}
+
+/**
+ * Prefer a fresh live print; keep prior sparkline / day-change when live is
+ * spot-only or otherwise degraded so the UI does not lose 7-day charts.
+ */
 export function mergeMarketQuotes(
   previous: Map<string, MarketQuote>,
   next: Map<string, MarketQuote>,
@@ -15,7 +45,23 @@ export function mergeMarketQuotes(
     const prior = previous.get(id)
 
     if (live && live.last > 0) {
-      out.set(id, live)
+      let merged: MarketQuote = { ...live }
+
+      // Keep a good prior sparkline when live has none (CoinGecko/FX spot/etc.)
+      if (!hasSpark(merged) && hasSpark(prior)) {
+        merged = { ...merged, sparkline: [...prior!.sparkline] }
+      }
+
+      // Keep prior day-change when live is spot-only / degraded and prior had movement
+      if (!hasMeaningfulChange(merged) && hasMeaningfulChange(prior) && isDegraded(live)) {
+        merged = {
+          ...merged,
+          changeAbs: prior!.changeAbs,
+          changePct: prior!.changePct,
+        }
+      }
+
+      out.set(id, merged)
       continue
     }
 

@@ -381,9 +381,10 @@ export function MarketsPage() {
   }, [refresh])
 
   useEffect(() => {
+    // Back off slightly vs 30s to reduce Yahoo CORS-proxy hammering while tabs stay open
     const id = window.setInterval(() => {
       if (document.visibilityState === 'visible') void refresh()
-    }, 30_000)
+    }, 45_000)
     return () => window.clearInterval(id)
   }, [refresh])
 

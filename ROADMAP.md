@@ -4,6 +4,7 @@
 
 ## Completed (through v1.2.19)
 
+- Markets: preserve sparklines/day-change on degraded live merges; Finnhub/Yahoo resilience
 - Fix Getting started checklist hooks crash (ErrorBoundary flash on Overview)
 - Standout polish Top 10 (sync chip, just-added pulse, motion, empty CTAs, Markets density, tax strip, PDF brand, bottom-nav favourites, getting started)
 - Markets / News / YouTube, Favourites nav, PIN/Face ID iOS polish

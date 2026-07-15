@@ -2,6 +2,14 @@
 
 ## [1.2.19] - 2026-07-15
 
+### Fixed — Markets live quotes & 7-day sparklines
+- **Merge quality:** live spot-only quotes (CoinGecko without spark / FX exchangerate-api) no longer wipe a good prior sparkline or day-change
+- Crypto sparklines: Yahoo + CoinGecko race in parallel; fill concurrency 2 → 5
+- Yahoo chart: prefer corsproxy, also try query2 host
+- Equities: Finnhub candle sparkline fallback when Yahoo chart proxies fail
+- Indices: Finnhub quote fallback (SPX / IXIC / UKX) when Yahoo returns empty
+- Auto-refresh interval 30s → 45s (less proxy hammering)
+
 ### Fixed — Overview ErrorBoundary flash
 - Getting started checklist called `useEffect` after an early `return` (Rules of Hooks) when the list completed or was dismissed — showed “Something went wrong” until Try again
 - Hooks now run unconditionally; checklist still auto-hides when done
