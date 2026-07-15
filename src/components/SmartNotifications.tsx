@@ -146,14 +146,21 @@ export function NotificationCenter() {
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className="toolbar-icon relative"
-        aria-label="Notifications"
+        aria-label={
+          unreadCount > 0
+            ? `Notifications, ${unreadCount} unread`
+            : 'Notifications'
+        }
         aria-expanded={isOpen}
         aria-controls={menuId}
       >
         <BellIcon size={18} strokeWidth={1.75} />
         {unreadCount > 0 && (
-          <span className="toolbar-icon-badge" aria-hidden>
-            {unreadCount > 9 ? '9+' : unreadCount}
+          <span
+            className={`toolbar-icon-badge${unreadCount === 1 ? ' is-dot' : ''}`}
+            aria-hidden
+          >
+            {unreadCount > 1 ? (unreadCount > 9 ? '9+' : unreadCount) : null}
           </span>
         )}
       </button>

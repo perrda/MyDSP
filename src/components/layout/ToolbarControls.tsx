@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { Ellipsis, RefreshCw } from 'lucide-react'
 import { PrivacyToggle } from '../PrivacyToggle'
 import { ThemeToggle } from '../ThemeToggle'
+import { GlassToggle } from '../GlassToggle'
 import { GlobalSearch } from '../GlobalSearch'
 import { NotificationCenter } from '../SmartNotifications'
 
@@ -89,6 +90,7 @@ export function ToolbarControls({
         <NotificationCenter />
         <PrivacyToggle privacy={privacy} onToggle={onPrivacyToggle} />
         <ThemeToggle />
+        <GlassToggle />
         <GlobalSearch />
       </div>
 
@@ -120,9 +122,10 @@ export function ToolbarControls({
                 {refreshBtn({ inMenu: true })}
                 <PrivacyToggle privacy={privacy} onToggle={onPrivacyToggle} />
                 <ThemeToggle />
+                <GlassToggle />
                 <GlobalSearch />
               </div>
-              <p className="toolbar-more-hint">Refresh · Privacy · Theme · Search</p>
+              <p className="toolbar-more-hint">Refresh · Privacy · Theme · Glass · Search</p>
             </div>
           ) : null}
         </div>

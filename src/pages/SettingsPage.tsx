@@ -8,6 +8,7 @@ import { ConfirmDialog } from '../components/ui/Modal'
 import { useSecurity } from '../components/SecurityProvider'
 import { usePortfolio } from '../context/PortfolioContext'
 import { useTheme, type ThemePreference } from '../context/ThemeContext'
+import { useGlass } from '../context/GlassContext'
 import { holdingHistoryKey, readHoldingHistory } from '../domain/holdingHistory'
 import type { HoldingPricePoint } from '../domain/holdingHistory'
 import { registerStaticPriceFile } from '../domain/staticPrices'
@@ -188,6 +189,7 @@ export function SettingsPage() {
   } = usePortfolio()
   const { refreshSecurity, lock, pinEnabled } = useSecurity()
   const { theme, preference, setPreference } = useTheme()
+  const { glass, setGlass } = useGlass()
 
   const fileRef = useRef<HTMLInputElement>(null)
   const priceFileRef = useRef<HTMLInputElement>(null)
@@ -1243,7 +1245,7 @@ export function SettingsPage() {
         </SettingsSection>
 
 
-        <SettingsSection id="appearance" eyebrow="Appearance" title="Light & dark mode">
+        <SettingsSection id="appearance" eyebrow="Appearance" title="Light, dark & glass">
           <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
             <span className="text-text font-medium">Auto</span> follows your computer clock —
             light after approximate sunrise, dark after sunset (local time). Choose Light or Dark
@@ -1275,10 +1277,40 @@ export function SettingsPage() {
               </button>
             ))}
           </div>
-          <p className="text-xs text-text-subtle">
+          <p className="text-xs text-text-subtle mb-6">
             Now showing: <span className="text-text font-medium uppercase">{theme}</span>
             {preference === 'auto' ? ' · Auto' : ' · Manual'}
           </p>
+
+          <p className="text-sm text-text-muted font-light mb-3 max-w-2xl">
+            <span className="text-text font-medium">Glass Mode</span> frosts panels with a soft
+            blur (Apple-style liquid glass). Works with Light or Dark. Header glass icon toggles
+            the same setting.
+          </p>
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Glass Mode">
+            <button
+              type="button"
+              className={glass ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
+              aria-pressed={glass}
+              onClick={() => {
+                setGlass(true)
+                flash('Glass Mode on.')
+              }}
+            >
+              Glass On
+            </button>
+            <button
+              type="button"
+              className={!glass ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
+              aria-pressed={!glass}
+              onClick={() => {
+                setGlass(false)
+                flash('Glass Mode off.')
+              }}
+            >
+              Glass Off
+            </button>
+          </div>
         </SettingsSection>
 
         <SettingsSection id="layout" eyebrow="Layout" title="Sidebar Favourites">

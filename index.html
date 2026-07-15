@@ -45,6 +45,11 @@
           }
           document.documentElement.classList.remove('dark', 'light');
           document.documentElement.classList.add(theme);
+          try {
+            if (localStorage.getItem('mydsp_glass_mode') === '1') {
+              document.documentElement.classList.add('glass');
+            }
+          } catch (e2) { /* ignore */ }
         } catch (e) { /* private mode — keep html.dark */ }
       })();
     </script>
