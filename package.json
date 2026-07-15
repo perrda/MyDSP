@@ -1,7 +1,7 @@
 {
   "name": "mydsp",
   "private": true,
-  "version": "1.2.43",
+  "version": "1.2.44",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -12,10 +12,11 @@
     "test:e2e": "playwright test",
     "test:a11y": "playwright test e2e/a11y.spec.ts --project=iphone-14",
     "verify:deploy": "node scripts/verify-deploy.mjs",
+    "verify:bundle": "node scripts/verify-bundle.mjs",
     "deploy": "npm run build && node scripts/verify-deploy.mjs && wrangler deploy",
     "deploy:sync": "cd sync-endpoint && wrangler deploy",
     "deploy:quote": "cd quote-endpoint && wrangler deploy",
-    "deploy:check": "npm run build && npm run verify:deploy"
+    "deploy:check": "npm run build && npm run verify:deploy && npm run verify:bundle"
   },
   "dependencies": {
     "lucide-react": "^1.24.0",

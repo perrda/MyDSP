@@ -21,6 +21,10 @@ import {
   setActivePortfolioId,
 } from '../storage/portfolioStore'
 import { useToasts } from '../components/ToastProvider'
+import {
+  printHouseholdSnapshot,
+  shareHouseholdSnapshot,
+} from '../domain/householdSnapshot'
 
 export function ComparePage() {
   const { privacy, portfolios, activeId, switchPortfolio, reload } = usePortfolio()
@@ -132,6 +136,32 @@ export function ComparePage() {
     }
   }
 
+  const exportHouseholdSnapshot = async () => {
+    const input = {
+      title: 'Household snapshot',
+      netWorth: totals.netWorth,
+      assets: totals.assets,
+      liabilities: totals.liabilities,
+      crypto: totals.crypto,
+      equity: totals.equity,
+      portfolios: rows.map((r) => ({ name: r.name, netWorth: r.netWorth })),
+    }
+    try {
+      const result = await shareHouseholdSnapshot(input)
+      if (result === 'printed') {
+        showToast({
+          type: 'info',
+          title: 'Snapshot ready',
+          message: 'Print / save as PDF from the dialog.',
+        })
+      } else if (result === 'shared') {
+        showToast({ type: 'success', title: 'Snapshot shared' })
+      }
+    } catch {
+      printHouseholdSnapshot(input)
+    }
+  }
+
   return (
     <div>
       <PageHeader
@@ -140,6 +170,15 @@ export function ComparePage() {
         description="Side-by-side net worth and allocation across David and family workspaces. Week Δ uses a local previous-week snapshot."
         action={
           <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="btn-ghost btn-sm household-snapshot-btn"
+              disabled={rows.length === 0}
+              onClick={() => void exportHouseholdSnapshot()}
+              title="Print or share a one-page net worth + allocation snapshot"
+            >
+              Snapshot PDF
+            </button>
             <button
               type="button"
               className="btn-ghost btn-sm"

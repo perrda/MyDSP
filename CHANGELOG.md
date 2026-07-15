@@ -1,5 +1,19 @@
 # MyDSP Changelog
 
+## [1.2.44] - 2026-07-15
+
+### Improved — Quality / ops (next 25b · 21–25)
+21. Settings **fuzzy search** + **recent jumps** chips (localStorage section ids; startsWith/includes scoring)  
+22. Compare **household snapshot PDF** — one-page NW + allocation via `generatePdfHtml` / print / share  
+23. Markets **Cached mode** banner when offline or all quotes stale  
+24. Perf budget **`npm run verify:bundle`** — fails if dist main chunk &gt; 650 KB (documented in script)  
+25. PWA **UpdateBanner** shows 3 bullets from `RELEASE_NOTES` when a new version is ready  
+
+### Version
+- 1.2.43 → **1.2.44**
+
+---
+
 ## [1.2.43] - 2026-07-15
 
 ### Improved — Today / planning (next 25b · 16–20)

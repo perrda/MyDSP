@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import { getServiceWorkerManager } from '../services/serviceWorker'
+import { releaseNotesBullets } from '../domain/releaseNotes'
 
 export function UpdateBanner() {
   const [waiting, setWaiting] = useState(false)
+  const notes = releaseNotesBullets(3)
 
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return
@@ -53,9 +55,16 @@ export function UpdateBanner() {
   return (
     <div className="fixed top-[max(0.75rem,env(safe-area-inset-top))] left-1/2 -translate-x-1/2 z-[1500] max-w-sm w-[calc(100%-2rem)] surface border border-border-strong border-l-2 border-l-accent px-4 py-3 shadow-lg">
       <p className="text-sm font-semibold">New version ready</p>
-      <p className="text-xs text-text-subtle mt-1 mb-3">
+      <p className="text-xs text-text-subtle mt-1 mb-2">
         Reload to get the latest MyDSP build on this device.
       </p>
+      {notes.length > 0 ? (
+        <ul className="update-banner-release-notes text-xs text-text-muted mb-3 list-disc pl-4 space-y-0.5">
+          {notes.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+      ) : null}
       <div className="flex gap-2">
         <button
           type="button"

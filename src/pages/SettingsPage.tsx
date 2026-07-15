@@ -147,6 +147,12 @@ import {
   type AutoSyncStatus,
 } from '../services/sync/autoSyncService'
 import { scorePassphraseStrength } from '../services/sync/passphraseStrength'
+import {
+  loadRecentSettingsJumps,
+  rankSettingsSections,
+  recordSettingsJump,
+  settingsSectionLabel,
+} from '../domain/settingsSearch'
 
 const TRADE_TEMPLATES = [
   { symbol: 'TSLA', kind: 'equity' as const, href: 'data/templates/trades-TSLA.csv' },
@@ -310,6 +316,18 @@ export function SettingsPage() {
     getMarketsProviderHealth().every((p) => p.consecutiveFailures === 0),
   )
   const [settingsQuery, setSettingsQuery] = useState('')
+  const [recentJumps, setRecentJumps] = useState<string[]>(() => loadRecentSettingsJumps())
+
+  const jumpToSettingsSection = (id: string) => {
+    openSettingsSection(id)
+    setRecentJumps(recordSettingsJump(id))
+    requestAnimationFrame(() => {
+      document.getElementById(id)?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      })
+    })
+  }
   const [cloudEmail, setCloudEmail] = useState(() => {
     try {
       return localStorage.getItem('mydsp_cloud_email') ?? ''
@@ -657,20 +675,16 @@ export function SettingsPage() {
           onChange={(e) => {
             const q = e.target.value
             setSettingsQuery(q)
-            const needle = q.trim().toLowerCase()
+            const needle = q.trim()
             if (needle.length < 2) return
-            const hit = SETTINGS_SECTION_IDS.find((id) => {
-              const hay = `${id} ${SETTINGS_SECTION_SEARCH[id]}`.toLowerCase()
-              return hay.includes(needle)
-            })
+            const ranked = rankSettingsSections(
+              needle,
+              SETTINGS_SECTION_IDS,
+              SETTINGS_SECTION_SEARCH,
+            )
+            const hit = ranked[0]?.id
             if (!hit) return
-            openSettingsSection(hit)
-            requestAnimationFrame(() => {
-              document.getElementById(hit)?.scrollIntoView({
-                behavior: 'smooth',
-                block: 'start',
-              })
-            })
+            jumpToSettingsSection(hit)
           }}
           autoComplete="off"
         />
@@ -688,6 +702,27 @@ export function SettingsPage() {
         >
           Collapse all
         </button>
+        {recentJumps.length > 0 ? (
+          <div
+            className="settings-recent-jumps flex flex-wrap gap-1.5 w-full basis-full mt-1"
+            role="group"
+            aria-label="Recent settings sections"
+          >
+            <span className="text-[11px] uppercase tracking-wider text-text-subtle font-semibold self-center mr-1">
+              Recent
+            </span>
+            {recentJumps.map((id) => (
+              <button
+                key={id}
+                type="button"
+                className="btn-ghost btn-sm min-h-9 text-xs"
+                onClick={() => jumpToSettingsSection(id)}
+              >
+                {settingsSectionLabel(id)}
+              </button>
+            ))}
+          </div>
+        ) : null}
       </div>
 
       {message && (

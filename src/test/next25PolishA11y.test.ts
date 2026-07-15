@@ -159,10 +159,10 @@ describe('next25 polish / a11y', () => {
     expect(app).toMatch(/SmokePage/)
   })
 
-  it('package version is 1.2.43', () => {
+  it('package version is 1.2.44', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8')) as {
       version: string
     }
-    expect(pkg.version).toBe('1.2.43')
+    expect(pkg.version).toBe('1.2.44')
   })
 })

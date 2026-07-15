@@ -34,7 +34,9 @@ import {
   type MarketsCollapsed,
 } from '../domain/markets'
 import { marketSessionStatus } from '../domain/marketSession'
+import { shouldShowCachedMode } from '../domain/marketsCachedMode'
 import { mergeMarketQuotes } from '../domain/marketQuotesCache'
+import { isOnline } from '../services/offlineQueue'
 import { sparklineTrendFromSeries } from '../domain/sparklineSeries'
 import { refreshMarketQuotes } from '../services/marketsQuotes'
 import { formatMarketsProviderHealthHint } from '../services/marketsProviderHealth'
@@ -367,10 +369,27 @@ export function MarketsPage() {
   )
   const [fxExplainerOpen, setFxExplainerOpen] = useState(false)
   const [tagFilter, setTagFilter] = useState<MarketTickerTag | 'All'>('All')
+  const [online, setOnline] = useState(() => isOnline())
   const longPressTimer = useRef<number | null>(null)
   const refreshInFlight = useRef(false)
   const quotesRef = useRef(quotes)
   quotesRef.current = quotes
+
+  useEffect(() => {
+    const onOnline = () => setOnline(true)
+    const onOffline = () => setOnline(false)
+    window.addEventListener('online', onOnline)
+    window.addEventListener('offline', onOffline)
+    return () => {
+      window.removeEventListener('online', onOnline)
+      window.removeEventListener('offline', onOffline)
+    }
+  }, [])
+
+  const cachedMode = useMemo(
+    () => shouldShowCachedMode(online, quotes.values()),
+    [online, quotes],
+  )
 
   // Deep-link: /markets?symbol=BTC expands section + scrolls to row
   useEffect(() => {
@@ -1043,6 +1062,21 @@ export function MarketsPage() {
       />
 
       <p className="text-xs text-text-subtle mb-4">{statusHint}</p>
+
+      {cachedMode ? (
+        <div
+          className="markets-cached-mode-banner mb-4 px-3 py-2.5 text-sm border border-amber-500/45 bg-amber-500/10 text-amber-900 dark:text-amber-100 rounded-lg md:rounded-none"
+          role="status"
+          aria-live="polite"
+        >
+          <p className="font-semibold">Cached mode</p>
+          <p className="text-xs mt-0.5 opacity-90">
+            {!online
+              ? 'You are offline — showing last-good quotes from cache.'
+              : 'Live quotes unavailable or stale — showing last-good cached prices.'}
+          </p>
+        </div>
+      ) : null}
 
       <div
         className="flex flex-wrap gap-2 mb-5"
