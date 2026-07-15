@@ -3,6 +3,7 @@
 import { normalizePortfolio, toStorageShape } from '../../domain/normalize'
 import type { PortfolioData, PortfolioMeta } from '../../domain/types'
 import { captureFullWorkspace } from '../../storage/backupStore'
+import { importNavLayoutFromBackup } from '../../storage/navOrder'
 import {
   flushSave,
   getActivePortfolioId,
@@ -88,6 +89,13 @@ export interface MergePreview {
   conflicts: SyncConflict[]
   /** Remote registry had duplicate names or exceeded the cap — push cleaned local after merge. */
   remoteHadDuplicateNames?: boolean
+  /**
+   * Workspace extras from encrypted fullArchive (Favourites layout).
+   * Markets/News/YouTube stay local-only on pull to avoid clobber.
+   */
+  workspaceExtras?: {
+    navLayout?: unknown
+  }
 }
 
 export function loadSyncConfig(): SyncConfig {
@@ -356,6 +364,7 @@ async function decryptEnvelope(
 ): Promise<{
   remoteByPortfolio: Map<string, PortfolioData>
   documentBlobs?: DocumentBlobPayload[]
+  workspaceExtras?: MergePreview['workspaceExtras']
 }> {
   if (envelope.app !== 'mydsp') throw new Error('Not a MyDSP sync file')
   if (envelope.v !== 1 && envelope.v !== 2 && envelope.v !== 3) {
@@ -408,7 +417,15 @@ async function decryptEnvelope(
     if (expected !== envelope.checksum) throw new Error('Checksum mismatch')
   }
 
-  return { remoteByPortfolio, documentBlobs: documentBlobsPlain }
+  let workspaceExtras: MergePreview['workspaceExtras'] | undefined
+  if (archivePlain && typeof archivePlain === 'object') {
+    const a = archivePlain as Record<string, unknown>
+    if (a.navLayout != null) {
+      workspaceExtras = { navLayout: a.navLayout }
+    }
+  }
+
+  return { remoteByPortfolio, documentBlobs: documentBlobsPlain, workspaceExtras }
 }
 
 function buildMergePreview(
@@ -416,6 +433,7 @@ function buildMergePreview(
   envelope: SyncEnvelope,
   remoteByPortfolio: Map<string, PortfolioData>,
   documentBlobs?: DocumentBlobPayload[],
+  workspaceExtras?: MergePreview['workspaceExtras'],
 ): MergePreview {
   const portfolios: MergePreview['portfolios'] = []
   const conflicts: SyncConflict[] = []
@@ -481,6 +499,7 @@ function buildMergePreview(
     documentBlobsSkipped: envelope.documentBlobsSkipped,
     conflicts,
     remoteHadDuplicateNames,
+    workspaceExtras,
   }
 }
 
@@ -517,10 +536,14 @@ export async function previewPull(url: string, passphrase: string): Promise<Merg
   if (!res.ok) throw new Error(`Pull failed (${res.status})`)
   setSessionSyncPassphrase(passphrase)
   const envelope = (await res.json()) as SyncEnvelope
-  const { remoteByPortfolio, documentBlobs } = await decryptEnvelope(envelope, passphrase, {
-    verifyChecksum: true,
-  })
-  return buildMergePreview('pull', envelope, remoteByPortfolio, documentBlobs)
+  const { remoteByPortfolio, documentBlobs, workspaceExtras } = await decryptEnvelope(
+    envelope,
+    passphrase,
+    {
+      verifyChecksum: true,
+    },
+  )
+  return buildMergePreview('pull', envelope, remoteByPortfolio, documentBlobs, workspaceExtras)
 }
 
 export async function previewImport(file: File, passphrase: string): Promise<MergePreview> {
@@ -528,10 +551,15 @@ export async function previewImport(file: File, passphrase: string): Promise<Mer
   const envelope = JSON.parse(text) as SyncEnvelope
   setSessionSyncPassphrase(passphrase)
   // Import files may be older / missing checksum — verify when present
-  const { remoteByPortfolio, documentBlobs } = await decryptEnvelope(envelope, passphrase, {
-    verifyChecksum: Boolean(envelope.checksum) && (envelope.v === 1 || envelope.v === 2 || envelope.v === 3),
-  })
-  return buildMergePreview('import', envelope, remoteByPortfolio, documentBlobs)
+  const { remoteByPortfolio, documentBlobs, workspaceExtras } = await decryptEnvelope(
+    envelope,
+    passphrase,
+    {
+      verifyChecksum:
+        Boolean(envelope.checksum) && (envelope.v === 1 || envelope.v === 2 || envelope.v === 3),
+    },
+  )
+  return buildMergePreview('import', envelope, remoteByPortfolio, documentBlobs, workspaceExtras)
 }
 
 /** Persist a reviewed merge plan. Uses resolutions for same-id conflicts. */
@@ -569,6 +597,10 @@ export async function applyMergePreview(
   if (preview.documentBlobs && preview.documentBlobs.length > 0) {
     const { importDocumentBlobs } = await import('../../storage/documentBlobStore')
     await importDocumentBlobs(preview.documentBlobs)
+  }
+
+  if (preview.workspaceExtras?.navLayout != null) {
+    importNavLayoutFromBackup(preview.workspaceExtras.navLayout)
   }
 
   return { merged, conflicts: preview.conflicts, removedDupes: removed.length }

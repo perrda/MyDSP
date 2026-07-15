@@ -1235,7 +1235,8 @@ export function SettingsPage() {
           <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
             Open the menu and tap <span className="text-text font-medium">Sort</span> to show grab
             handles and ★ controls. Pin sections to Favourites (always on top); everything else
-            lives in a collapsible Others list. Layout is saved in this browser.
+            lives in a collapsible Others list. Favourites order is saved with cloud sync and full
+            backups so phone, tablet, and web stay aligned.
           </p>
           <button
             type="button"

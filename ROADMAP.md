@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.20**
+**Current version: 1.2.21**
 
-## Completed (through v1.2.20)
+## Completed (through v1.2.21)
 
+- Sidebar Favourites / Others order synced via fullArchive + backups across devices
 - Markets: race Yahoo CORS proxies; Frankfurter FX sparklines; last-synced fallback for all tickers
 - Markets: preserve sparklines/day-change on degraded live merges; Finnhub/Yahoo resilience
 - Fix Getting started checklist hooks crash (ErrorBoundary flash on Overview)
@@ -30,7 +31,7 @@
 
 ## Next (manual / ongoing)
 
-1. Cross-device sync smoke on phone + Mac after every deploy (todos + portfolios)
+1. Cross-device sync smoke on phone + Mac after every deploy (todos + portfolios + Favourites)
 2. Tune broker aliases from your real IBKR/T212/Coinbase exports
 3. Remittance-basis notes for non-dom packs
 

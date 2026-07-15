@@ -1,5 +1,18 @@
 # MyDSP Changelog
 
+## [1.2.21] - 2026-07-15
+
+### Added — Sidebar Favourites sync across devices
+- Favourites / Others order is included in full workspace backups and the encrypted sync `fullArchive`
+- Cloud pull / merge applies remote Favourites layout so phone, tablet, and web stay aligned
+- Editing Favourites marks auto-sync dirty so the change pushes (~8s) without waiting for a portfolio edit
+- Settings copy updated (no longer “saved in this browser only”)
+
+### Version
+- 1.2.20 → **1.2.21**
+
+---
+
 ## [1.2.20] - 2026-07-15
 
 ### Fixed — Markets last-synced fallback for FX, indices & equities

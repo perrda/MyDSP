@@ -1,7 +1,9 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   createDefaultNavLayout,
   DEFAULT_FAVOURITE_PATHS,
+  exportNavLayoutForBackup,
+  importNavLayoutFromBackup,
   loadNavLayout,
   normalizeNavLayout,
   resetNavOrder,
@@ -50,6 +52,7 @@ describe('nav layout favourites', () => {
 
   afterEach(() => {
     mem.clear()
+    vi.restoreAllMocks()
   })
 
   it('defaults with seeded favourites and settings excluded', () => {
@@ -98,7 +101,51 @@ describe('nav layout favourites', () => {
       othersCollapsed: false,
     })
     resetNavOrder()
-    expect(localStorage.getItem('mydsp_nav_layout')).toBeNull()
     expect(localStorage.getItem('mydsp_nav_order')).toBeNull()
+    const layout = loadNavLayout(ALL)
+    expect(layout.favourites).toEqual(
+      DEFAULT_FAVOURITE_PATHS.filter((p) => ALL.includes(p)),
+    )
+    expect(layout.others).toContain('/todos')
+  })
+
+  it('round-trips favourites order through backup export/import', () => {
+    saveNavLayout(
+      {
+        version: 1,
+        favourites: ['/todos', '/markets', '/crypto'],
+        others: ['/goals', '/spending', '/'],
+        othersCollapsed: false,
+      },
+      { fromSync: true },
+    )
+    const exported = exportNavLayoutForBackup()
+    expect(exported?.favourites).toEqual(['/todos', '/markets', '/crypto'])
+    expect(exported?.others[0]).toBe('/goals')
+
+    localStorage.removeItem('mydsp_nav_layout')
+    localStorage.removeItem('mydsp_nav_order')
+    expect(exportNavLayoutForBackup()).toBeNull()
+
+    importNavLayoutFromBackup(exported)
+    const loaded = loadNavLayout(ALL)
+    expect(loaded.favourites).toEqual(['/todos', '/markets', '/crypto'])
+    expect(loaded.others[0]).toBe('/goals')
+    expect(loaded.othersCollapsed).toBe(false)
+  })
+
+  it('import preserves order and drops /settings + duplicates', () => {
+    importNavLayoutFromBackup({
+      version: 1,
+      favourites: ['/crypto', '/crypto', '/settings', '/todos'],
+      others: ['/markets', '/crypto', '/settings'],
+      othersCollapsed: true,
+    })
+    const loaded = loadNavLayout(ALL)
+    expect(loaded.favourites).toEqual(['/crypto', '/todos'])
+    expect(loaded.others).toContain('/markets')
+    expect(loaded.favourites).not.toContain('/settings')
+    expect(loaded.others).not.toContain('/settings')
+    expect(loaded.others).not.toContain('/crypto')
   })
 })
