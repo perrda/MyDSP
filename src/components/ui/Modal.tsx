@@ -97,15 +97,17 @@ export function Modal({ open, title, onClose, children, size = 'default' }: Moda
         aria-labelledby={titleId}
         className={panelClass}
       >
-        <div className="sticky top-0 z-10 modal-sticky-header flex items-center justify-between gap-4 px-4 sm:px-6 py-4 sm:py-5 border-b border-border bg-bg-elevated pt-[max(1rem,env(safe-area-inset-top))]">
+        <div className="sticky top-0 z-10 modal-sticky-header flex items-center justify-between gap-4 px-4 sm:px-6 py-4 sm:py-5 border-b border-border bg-bg-elevated pt-[max(1rem,env(safe-area-inset-top,0px))] pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))]">
           <h2 id={titleId} className="text-base sm:text-lg font-bold tracking-tight truncate">
             {title}
           </h2>
-          <button type="button" className="btn-ghost btn-sm shrink-0" onClick={onClose}>
+          <button type="button" className="btn-ghost btn-sm shrink-0 min-h-11 min-w-11" onClick={onClose}>
             Close
           </button>
         </div>
-        <div className="p-4 sm:p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">{children}</div>
+        <div className="p-4 sm:p-6 pb-[max(1.5rem,env(safe-area-inset-bottom,0px))] pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))]">
+          {children}
+        </div>
       </div>
     </div>
   )

@@ -1,5 +1,24 @@
 # MyDSP Changelog
 
+## [1.2.30] - 2026-07-15
+
+### Improved — Nav / PWA polish (backlog 1–10)
+1. Modal safe-area insets on all edges (notched iPhone sheets)
+2. Bottom-nav favourites label truncation + title tooltips
+3. Landscape phone: icon-only bottom nav
+4. iPad / Stage Manager mid-width content padding
+5. A2HS coachmark after first successful sync (+ deferred iOS hint)
+6. Press feedback on primary CTAs / toolbar / tabs (reduce-motion safe)
+7. Pull-to-refresh accent progress ring
+8. Shorter offline / queue banners on phone
+9. Sync conflict bottom sheet → Settings resolve
+10. Keyboard shortcuts cheat-sheet (`?` / Shift+/) on web
+
+### Version
+- 1.2.27 → **1.2.30**
+
+---
+
 ## [1.2.27] - 2026-07-15
 
 ### Improved — UI polish Top 10

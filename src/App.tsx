@@ -7,6 +7,8 @@ import { SecurityProvider } from './components/SecurityProvider'
 import { ToastProvider } from './components/ToastProvider'
 import { AchievementWatcher } from './components/AchievementWatcher'
 import { InstallPrompt } from './components/InstallPrompt'
+import { SyncConflictSheet } from './components/SyncConflictSheet'
+import { KeyboardShortcutsHelp } from './components/KeyboardShortcutsHelp'
 import { LaunchRedirect } from './components/LaunchRedirect'
 import { UpdateBanner } from './components/UpdateBanner'
 import { SkipToContent, ScreenReaderAnnouncer } from './components/Accessibility'
@@ -77,6 +79,8 @@ export default function App() {
                 <ToastProvider>
                   <AchievementWatcher />
                   <InstallPrompt />
+                  <SyncConflictSheet />
+                  <KeyboardShortcutsHelp />
                   <UpdateBanner />
                   <Suspense fallback={<LoadingSpinner />}>
                     <Routes>

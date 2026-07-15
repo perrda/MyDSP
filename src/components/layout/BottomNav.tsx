@@ -55,9 +55,10 @@ export function BottomNav() {
               <>
                 <item.icon size={tablet ? 22 : 20} strokeWidth={isActive ? 2.25 : 1.75} />
                 <span
-                  className={`font-semibold leading-tight tracking-tight ${
+                  className={`bottom-nav-link-label font-semibold leading-tight tracking-tight ${
                     tablet ? 'text-xs' : 'text-[11px]'
                   }`}
+                  title={item.label}
                 >
                   {item.label}
                 </span>
