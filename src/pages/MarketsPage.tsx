@@ -52,6 +52,7 @@ import { sparklineTrendFromSeries } from '../domain/sparklineSeries'
 import { refreshMarketQuotes } from '../services/marketsQuotes'
 import { formatMarketsProviderHealthHint } from '../services/marketsProviderHealth'
 import { KNOWN_CRYPTO_SYMBOLS } from '../services/prices'
+import { MARKET_TIMEFRAMES, type MarketTimeframe } from '../domain/marketTimeframe'
 import {
   addMarketTicker,
   listMarketTickers,
@@ -63,6 +64,8 @@ import {
   setMarketsCollapsed,
   setMarketsDensity,
   getMarketsDensity,
+  setMarketsTimeframe,
+  getMarketsTimeframe,
   setMarketsLastRefresh,
   updateMarketTicker,
 } from '../storage/marketsStore'
@@ -422,6 +425,7 @@ export function MarketsPage() {
   const [addKind, setAddKind] = useState<MarketAssetKind | null>(null)
   const [sorting, setSorting] = useState(false)
   const [density, setDensity] = useState<MarketsDensity>(() => getMarketsDensity())
+  const [timeframe, setTimeframe] = useState<MarketTimeframe>(() => getMarketsTimeframe())
   const [sectionRefreshing, setSectionRefreshing] = useState<SectionKey | null>(null)
   const [focusSymbol, setFocusSymbol] = useState<string | null>(null)
   const [quoteDetail, setQuoteDetail] = useState<{ ticker: MarketTicker; quote?: MarketQuote } | null>(
@@ -638,6 +642,7 @@ export function MarketsPage() {
       const next = await refreshMarketQuotes(list, {
         finnhubKey,
         manualCryptoPrices: data.settings.manualCryptoPrices,
+        timeframe,
       })
       const allTickers = listMarketTickers()
       const previous = seedQuotesFromPortfolio(allTickers, data, quotesRef.current)
@@ -665,7 +670,7 @@ export function MarketsPage() {
       setRefreshing(false)
       setInitialLoad(false)
     }
-  }, [data, setData])
+  }, [data, setData, timeframe])
 
   const refreshSection = useCallback(
     async (section: SectionKey) => {
@@ -1129,7 +1134,7 @@ export function MarketsPage() {
                         <button
                           type="button"
                           className="w-14 sm:w-16 shrink-0 rounded-md hover:bg-surface-hover/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
-                          aria-label={`${t.symbol} 24h sparkline detail`}
+                          aria-label={`${t.symbol} ${timeframe} sparkline detail`}
                           onClick={() => setQuoteDetail({ ticker: t, quote: q })}
                         >
                           <Sparkline
@@ -1279,7 +1284,9 @@ export function MarketsPage() {
                 </Link>
               ) : (
                 <span className="text-xs text-text-subtle">
-                  {sorting ? 'Drag ⋮⋮ to reorder · 24h sparkline' : '24h % · 24h sparkline'}
+                  {sorting
+                    ? `Drag ⋮⋮ to reorder · ${timeframe} sparkline`
+                    : `${timeframe} % · ${timeframe} sparkline`}
                 </span>
               )}
             </div>
@@ -1366,6 +1373,32 @@ export function MarketsPage() {
                 Clear
               </button>
             ) : null}
+          </div>
+          <div
+            className="mt-2.5 flex flex-wrap items-center gap-1.5"
+            role="group"
+            aria-label="Sparkline and percent change timeframe"
+          >
+            {MARKET_TIMEFRAMES.map((tf) => (
+              <button
+                key={tf}
+                type="button"
+                className={`btn-sm min-h-9 px-2.5 tabular-nums ${
+                  timeframe === tf ? 'btn-secondary border-accent text-accent' : 'btn-ghost'
+                }`}
+                aria-pressed={timeframe === tf}
+                onClick={() => {
+                  if (tf === timeframe) return
+                  setMarketsTimeframe(tf)
+                  setTimeframe(tf)
+                }}
+              >
+                {tf}
+              </button>
+            ))}
+            <span className="text-[11px] text-text-subtle ml-1">
+              % and sparkline use the same {timeframe} series
+            </span>
           </div>
           <p className="mt-1.5 text-[11px] text-text-subtle">
             {searchQuery

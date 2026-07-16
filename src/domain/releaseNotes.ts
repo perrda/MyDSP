@@ -29,6 +29,15 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.66',
+    date: '2026-07-16',
+    bullets: [
+      { text: 'News Top 10 + By ticker via quote Worker (same path as prices)', to: '/news' },
+      { text: 'Markets list style restored · 24H/1W/1M/12M sparklines + %', to: '/markets' },
+      'USD shown as USD (never US$) sitewide',
+    ],
+  },
+  {
     version: '1.2.65',
     date: '2026-07-16',
     bullets: [
@@ -76,16 +85,7 @@ export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
       'Weekly digest in-app modal foundation',
     ],
   },
-  {
-    version: '1.2.60',
-    date: '2026-07-16',
-    bullets: [
-      { text: 'Settings lazy-loaded · windowed Equities/Crypto lists', to: '/settings' },
-      { text: 'Axe gates for Equities / Tax / Todos · offline-queue smoke', to: '/smoke' },
-      { text: 'Sync chip long-press + UI conventions for next25e', to: '/settings#sync' },
-    ],
-  },
-]
+] as const
 
 /** Return up to `n` bullets from the latest version (banner). */
 export function releaseNotesBullets(n = 3): ReleaseBullet[] {

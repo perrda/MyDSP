@@ -16,6 +16,7 @@ import {
   type MarketsDensity,
   type MarketsState,
 } from '../domain/markets'
+import { isMarketTimeframe, type MarketTimeframe } from '../domain/marketTimeframe'
 import { quotesMapToRecord, quotesRecordToMap } from '../domain/marketQuotesCache'
 
 const KEY = 'mydsp_markets_v1'
@@ -98,6 +99,9 @@ export function loadMarketsState(): MarketsState {
       },
       tickers: existing.tickers.map(normalizeTicker),
       density: existing.density === 'compact' ? 'compact' : 'comfortable',
+      timeframe: isMarketTimeframe((existing as MarketsState).timeframe)
+        ? (existing as MarketsState).timeframe
+        : '24H',
     }
     const { state, added } = mergeDefaultTickers(normalized)
     if (added.length > 0 || hadLegacyHeatDensity) writeState(state)
@@ -278,6 +282,17 @@ export function getMarketsDensity(): MarketsDensity {
   const d = loadMarketsState().density
   if (d === 'compact') return d
   return 'comfortable'
+}
+
+export function setMarketsTimeframe(timeframe: MarketTimeframe): void {
+  const state = loadMarketsState()
+  state.timeframe = timeframe
+  saveMarketsState(state)
+}
+
+export function getMarketsTimeframe(): MarketTimeframe {
+  const tf = loadMarketsState().timeframe
+  return isMarketTimeframe(tf) ? tf : '24H'
 }
 
 export function setMarketsLastRefresh(iso: string): void {
