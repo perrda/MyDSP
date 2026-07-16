@@ -9,6 +9,7 @@ import { SwipeBillRow } from '../components/ui/SwipeBillRow'
 import { PageHeader } from '../components/ui/PageHeader'
 import { RemindersPanel, useSmartReminders } from '../components/SmartReminders'
 import { PortfolioShareCard } from '../components/SocialShare'
+import { useToasts } from '../components/ToastProvider'
 import { usePortfolio } from '../context/PortfolioContext'
 import { evaluateAchievements } from '../domain/achievements'
 import { buildAlerts } from '../domain/alerts'
@@ -48,9 +49,10 @@ import {
 import { buildPriceAlertNotifications } from '../domain/priceAlerts'
 import { formatDate, formatGBP, formatPct, privacyClass } from '../utils/format'
 import {
-  downloadWeeklyDigest,
   weekDeltaFromHistory,
+  type WeeklyDigestInput,
 } from '../domain/weeklyDigest'
+import { WeeklyDigestModal } from '../components/WeeklyDigestModal'
 
 function formatSyncLatencyMs(ms: number): string {
   if (ms < 1000) return `${ms}ms`
@@ -70,6 +72,31 @@ const QUICK_SECONDARY = [
   { to: '/liabilities', label: 'Liabilities' },
   { to: '/goals', label: 'Goals' },
 ] as const
+
+const ISA_ALLOWANCE_GBP = 20_000
+const ISA_REMAINING_KEY = 'mydsp_isa_remaining_gbp'
+const ISA_LOW_REMAINING_THRESHOLD_GBP = 2_000
+
+function weekStartKey(now = new Date()): string {
+  const d = new Date(now)
+  const day = d.getDay()
+  const diff = day === 0 ? 6 : day - 1
+  d.setDate(d.getDate() - diff)
+  d.setHours(0, 0, 0, 0)
+  return d.toISOString().slice(0, 10)
+}
+
+function loadIsaRemaining(): number | null {
+  try {
+    const raw = localStorage.getItem(ISA_REMAINING_KEY)
+    if (!raw?.trim()) return null
+    const n = Number(raw)
+    if (!Number.isFinite(n)) return null
+    return Math.max(0, Math.min(ISA_ALLOWANCE_GBP, n))
+  } catch {
+    return null
+  }
+}
 
 type TodayPanelId = 'today-next-action' | 'today-bills' | 'today-goals'
 
@@ -161,6 +188,9 @@ export function Dashboard() {
   const { data, breakdown, privacy, fccDataPresent, setData, goalProgress } = usePortfolio()
   const { netWorth, assets, liabilities, crypto, equity, liability } = breakdown
   const { reminders } = useSmartReminders()
+  const { success: toastSuccess } = useToasts()
+  const [digestOpen, setDigestOpen] = useState(false)
+  const [digestInput, setDigestInput] = useState<WeeklyDigestInput | null>(null)
   const [syncStatus, setSyncStatus] = useState<AutoSyncStatus>(() => getAutoSyncStatus())
   const [queueLen, setQueueLen] = useState(() => loadOfflineQueue().length)
   const [nwSparkDays, setNwSparkDays] = useState<NwSparkWindow>(7)
@@ -274,6 +304,14 @@ export function Dashboard() {
     }
   }, [data.spending, data.budgetGoals])
 
+  const weekToDateSpend = useMemo(() => {
+    const start = weekStartKey()
+    const spent = (data.spending ?? [])
+      .filter((s) => (s.date ?? '').slice(0, 10) >= start)
+      .reduce((sum, s) => sum + Math.abs(s.amount), 0)
+    return { spent, start }
+  }, [data.spending])
+
   const cashRunway = useMemo(() => {
     const monthlyRecurring = (data.recurringTransactions ?? []).reduce((sum, r) => {
       if (r.frequency === 'weekly') return sum + (r.amount * 52) / 12
@@ -293,6 +331,72 @@ export function Dashboard() {
     if (!data.fireInputs) return null
     return calcFire(netWorth, data.fireInputs, 'regular')
   }, [data.fireInputs, netWorth])
+
+  const isaRemainingLow = (() => {
+    const remaining = loadIsaRemaining()
+    if (remaining == null || remaining >= ISA_LOW_REMAINING_THRESHOLD_GBP) return null
+    return remaining
+  })()
+
+  const digestHighlights = useMemo(() => {
+    const lines = [
+      todayTodos.length
+        ? `${todayTodos.length} todo${todayTodos.length === 1 ? '' : 's'} due today`
+        : 'No todos due today',
+      todayMovers[0]
+        ? `Top mover ${todayMovers[0].symbol} ${formatPct(todayMovers[0].changePct)}`
+        : 'No Markets movers cached',
+    ]
+    if (monthlyBudgetPulse) {
+      lines.push(
+        `Budget pulse ${formatGBP(monthlyBudgetPulse.spent)} / ${formatGBP(monthlyBudgetPulse.totalBudget)} (${Math.round(monthlyBudgetPulse.ratio * 100)}% used)`,
+      )
+    }
+    if (weekToDateSpend.spent > 0) {
+      lines.push(`Week-to-date spend ${formatGBP(weekToDateSpend.spent)}`)
+    }
+    if (cashRunway) {
+      lines.push(
+        `Cash runway ${cashRunway.months >= 99 ? '99+' : cashRunway.months.toFixed(cashRunway.months < 10 ? 1 : 0)} months`,
+      )
+    }
+    if (fireChip) {
+      lines.push(`FIRE ${Math.round(fireChip.progress)}% of target · age ${fireChip.ageAtFire}`)
+    }
+    if (isaRemainingLow != null) {
+      lines.push(`ISA remaining low: ${formatGBP(isaRemainingLow)} left this tax year`)
+    }
+    return lines
+  }, [
+    cashRunway,
+    fireChip,
+    isaRemainingLow,
+    monthlyBudgetPulse,
+    todayMovers,
+    todayTodos.length,
+    weekToDateSpend.spent,
+  ])
+
+  const openWeeklyDigest = () => {
+    setDigestInput({
+      title: 'MyDSP weekly digest',
+      netWorth,
+      assets,
+      liabilities,
+      crypto: crypto.value,
+      equity: equity.value,
+      weekDelta: weekDeltaFromHistory(data.history ?? [], netWorth),
+      privacy,
+      highlights: digestHighlights,
+    })
+    setDigestOpen(true)
+  }
+
+  useEffect(() => {
+    const open = () => openWeeklyDigest()
+    window.addEventListener('mydsp-open-weekly-digest', open)
+    return () => window.removeEventListener('mydsp-open-weekly-digest', open)
+  })
 
   const onSnapshot = () => {
     setData((prev) => appendManualSnapshot(prev))
@@ -411,6 +515,12 @@ export function Dashboard() {
 
   return (
     <div className="pb-8 md:pb-0">
+      <WeeklyDigestModal
+        open={digestOpen}
+        input={digestInput}
+        onClose={() => setDigestOpen(false)}
+        onFlash={(msg) => toastSuccess(msg)}
+      />
       <PageHeader
         eyebrow="MyDSP"
         title="Today"
@@ -420,28 +530,10 @@ export function Dashboard() {
             <button
               type="button"
               className="btn-ghost btn-sm weekly-digest-btn"
-              onClick={() => {
-                downloadWeeklyDigest({
-                  title: 'MyDSP weekly digest',
-                  netWorth,
-                  assets,
-                  liabilities,
-                  crypto: crypto.value,
-                  equity: equity.value,
-                  weekDelta: weekDeltaFromHistory(data.history ?? [], netWorth),
-                  highlights: [
-                    todayTodos.length
-                      ? `${todayTodos.length} todo${todayTodos.length === 1 ? '' : 's'} due today`
-                      : 'No todos due today',
-                    todayMovers[0]
-                      ? `Top mover ${todayMovers[0].symbol} ${formatPct(todayMovers[0].changePct)}`
-                      : 'No Markets movers cached',
-                  ],
-                })
-              }}
-              title="Download email-ready weekly HTML digest (not sent)"
+              onClick={openWeeklyDigest}
+              title="Preview and share weekly HTML digest (not emailed)"
             >
-              Weekly digest
+              Digest Preview/Share
             </button>
             <Link to="/settings#sync" className="btn-secondary btn-sm inline-flex">
               Cloud Sync <ArrowRight size={14} strokeWidth={1.5} />
@@ -514,7 +606,7 @@ export function Dashboard() {
             {marketsCount} Markets ticker{marketsCount === 1 ? '' : 's'} →
           </Link>
         </div>
-        {(monthlyBudgetPulse || cashRunway || fireChip) ? (
+        {(monthlyBudgetPulse || weekToDateSpend.spent > 0 || cashRunway || fireChip) ? (
           <div className="today-pulse-chips mt-4 flex flex-wrap gap-2">
             {monthlyBudgetPulse ? (
               <Link
@@ -531,6 +623,21 @@ export function Dashboard() {
                 <span className="block text-text-subtle">
                   {Math.round(monthlyBudgetPulse.ratio * 100)}% used →
                 </span>
+              </Link>
+            ) : null}
+            {weekToDateSpend.spent > 0 ? (
+              <Link
+                to="/spending"
+                className={`today-week-to-date-spend border border-border bg-surface-hover/60 px-3 py-2 text-xs hover:border-accent ${privacyClass(privacy)}`}
+                title={`Spend since ${weekToDateSpend.start}`}
+              >
+                <span className="block uppercase tracking-wider text-text-subtle font-semibold">
+                  WTD spend
+                </span>
+                <span className="block tabular-nums">
+                  {formatGBP(weekToDateSpend.spent)}
+                </span>
+                <span className="block text-text-subtle">This week →</span>
               </Link>
             ) : null}
             {cashRunway ? (
@@ -859,9 +966,19 @@ export function Dashboard() {
           >
             <div className="flex items-center justify-between mb-3">
               <p className="text-xs uppercase tracking-wider text-text-subtle font-semibold">Markets</p>
-              <Link to="/markets" className="text-xs text-accent font-semibold">
-                Open
-              </Link>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  className="today-two-pane-digest-preview text-xs text-accent font-semibold"
+                  onClick={openWeeklyDigest}
+                  title="Preview and share weekly digest"
+                >
+                  Digest Preview
+                </button>
+                <Link to="/markets" className="text-xs text-accent font-semibold">
+                  Open
+                </Link>
+              </div>
             </div>
             {todayMovers.length === 0 ? (
               <p className="text-sm text-text-muted font-light">No movers yet — open Markets to refresh.</p>

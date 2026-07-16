@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowUpDown } from 'lucide-react'
 import { AllocationRing } from '../components/charts/AllocationRing'
@@ -97,32 +97,65 @@ export function EquitiesPage() {
   const [tradeFor, setTradeFor] = useState<EquityHolding | null>(null)
   const [tradeSide, setTradeSide] = useState<'buy' | 'sell'>('buy')
   const [sorting, setSorting] = useState(false)
+  const [weightSort, setWeightSort] = useState(false)
   const [searchText, setSearchText] = useState('')
   const [selectedHoldingId, setSelectedHoldingId] = useState<number | null>(null)
   const corpActionToastKeyRef = useRef('')
 
   const holdings = useMemo(() => sortBySortOrder(data.equities), [data.equities])
+  const includedPortfolioValue = useMemo(() => includedPortfolioHoldingValue(data), [data])
   const searchQuery = searchText.trim().toLowerCase()
   const filteredHoldings = useMemo(
     () => holdings.filter((holding) => matchesPortfolioSearch(holding, searchQuery)),
     [holdings, searchQuery],
   )
-  const windowed = useWindowedList(filteredHoldings, 40, 30)
+  const weightSortedHoldings = useMemo(
+    () =>
+      weightSort
+        ? [...filteredHoldings].sort((a, b) => {
+            const av =
+              a.includeInPortfolio !== false && includedPortfolioValue > 0
+                ? (a.shares * equityUnitPriceGbp(a)) / includedPortfolioValue
+                : -1
+            const bv =
+              b.includeInPortfolio !== false && includedPortfolioValue > 0
+                ? (b.shares * equityUnitPriceGbp(b)) / includedPortfolioValue
+                : -1
+            if (bv !== av) return bv - av
+            return a.symbol.localeCompare(b.symbol)
+          })
+        : filteredHoldings,
+    [filteredHoldings, includedPortfolioValue, weightSort],
+  )
+  const windowed = useWindowedList(weightSortedHoldings, 40, 30)
   const listHoldings = sorting ? filteredHoldings : windowed.visible
   const selectedHolding = useMemo(
     () =>
-      filteredHoldings.find((e) => e.id === selectedHoldingId) ??
-      filteredHoldings[0] ??
+      weightSortedHoldings.find((e) => e.id === selectedHoldingId) ??
+      weightSortedHoldings[0] ??
       holdings.find((e) => e.id === selectedHoldingId) ??
       holdings[0] ??
       null,
-    [filteredHoldings, holdings, selectedHoldingId],
+    [weightSortedHoldings, holdings, selectedHoldingId],
   )
   const displayCcy = getDisplayCurrency()
   const showSkeleton = refreshing && holdings.length === 0
   const driftHits = useMemo(() => equityDriftHits(holdings), [holdings, data.settings.lastPriceUpdate])
   const driftThreshold = loadHoldingsDriftThresholdPct()
-  const includedPortfolioValue = useMemo(() => includedPortfolioHoldingValue(data), [data])
+  const holdingsIncludedSummary = useMemo(() => {
+    let includedValue = 0
+    let includedCount = 0
+    let excludedCount = 0
+    for (const e of holdings) {
+      if (e.includeInPortfolio === false) {
+        excludedCount++
+        continue
+      }
+      includedCount++
+      includedValue += e.shares * equityUnitPriceGbp(e)
+    }
+    return { includedValue, includedCount, excludedCount }
+  }, [holdings])
   const concentrationThreshold = loadPortfolioConcentrationThresholdPct()
   const concentrationHits = useMemo(
     () => portfolioConcentrationHits(data, concentrationThreshold),
@@ -302,6 +335,21 @@ export function EquitiesPage() {
     }
   }
 
+  const selectAdjacentHolding = (direction: -1 | 1) => {
+    if (filteredHoldings.length === 0) return
+    const currentId = selectedHolding?.id ?? filteredHoldings[0]!.id
+    const currentIndex = Math.max(0, filteredHoldings.findIndex((e) => e.id === currentId))
+    const nextIndex = Math.min(filteredHoldings.length - 1, Math.max(0, currentIndex + direction))
+    setSelectedHoldingId(filteredHoldings[nextIndex]!.id)
+  }
+
+  const onHoldingsMasterKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return
+    if (typeof window !== 'undefined' && !window.matchMedia('(min-width: 900px)').matches) return
+    event.preventDefault()
+    selectAdjacentHolding(event.key === 'ArrowDown' ? 1 : -1)
+  }
+
   return (
     <div>
       <PageHeader
@@ -338,10 +386,26 @@ export function EquitiesPage() {
               className={`btn-secondary btn-sm inline-flex items-center gap-2 ${sorting ? 'border-accent text-accent' : ''}`}
               aria-pressed={sorting}
               disabled={holdings.length === 0}
-              onClick={() => setSorting((v) => !v)}
+              onClick={() => {
+                setWeightSort(false)
+                setSorting((v) => !v)
+              }}
             >
               <ArrowUpDown size={14} strokeWidth={1.75} />
               {sorting ? 'Done' : 'Sort'}
+            </button>
+            <button
+              type="button"
+              className={`btn-secondary btn-sm ${weightSort ? 'border-accent text-accent' : ''}`}
+              aria-pressed={weightSort}
+              disabled={holdings.length === 0}
+              onClick={() => {
+                setSorting(false)
+                setWeightSort((v) => !v)
+              }}
+              title="Sort holdings by portfolio weight percent"
+            >
+              Weight %
             </button>
             <button type="button" className="btn-primary btn-sm" onClick={openCreate}>
               Add equity
@@ -375,6 +439,21 @@ export function EquitiesPage() {
               ? `${filteredHoldings.length}/${holdings.length} equity holding match${filteredHoldings.length === 1 ? '' : 'es'}`
               : `${holdings.length} equity holding${holdings.length === 1 ? '' : 's'}`}
           </p>
+        </div>
+      </div>
+
+      <div
+        className={`holdings-included-value-bar sticky top-[4.5rem] z-[8] -mx-1 mb-4 border border-border bg-bg-elevated/95 px-3 py-2 text-xs text-text-muted shadow-sm backdrop-blur supports-[backdrop-filter]:bg-bg-elevated/85 ${privacyClass(privacy)}`}
+        role="status"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="font-semibold text-text">
+            Included equity value {formatGBP(holdingsIncludedSummary.includedValue)}
+          </span>
+          <span className="tabular-nums">
+            {holdingsIncludedSummary.includedCount} in NW · {holdingsIncludedSummary.excludedCount} excluded
+            {weightSort ? ' · sorted by portfolio weight %' : ''}
+          </span>
         </div>
       </div>
 
@@ -474,7 +553,12 @@ export function EquitiesPage() {
           No equity holdings match "{searchText.trim()}".
         </div>
       ) : (
-        <div className="holdings-master-detail equities-master-detail">
+        <div
+          className="holdings-master-detail equities-master-detail"
+          tabIndex={0}
+          onKeyDown={onHoldingsMasterKeyDown}
+          aria-label="Equity holdings master detail. Use up and down arrows to change selected holding on wide screens."
+        >
         <ReorderList
           items={listHoldings}
           getId={(e) => String(e.id)}
@@ -517,6 +601,8 @@ export function EquitiesPage() {
                 } ${drifting ? 'ring-1 ring-inset ring-amber-500/50 bg-amber-500/5' : ''} ${
                   selectedHolding?.id === e.id ? 'holdings-master-row-selected' : ''
                 }`}
+                tabIndex={0}
+                aria-selected={selectedHolding?.id === e.id}
                 onClick={() => setSelectedHoldingId(e.id)}
               >
                 {sorting ? <ReorderHandle label={`Reorder ${e.symbol}`} /> : null}
@@ -643,6 +729,8 @@ export function EquitiesPage() {
           <div
             ref={windowed.sentinelRef}
             className="holdings-window-sentinel py-3 text-center text-xs text-text-subtle"
+            role="status"
+            aria-live="polite"
           >
             Showing {listHoldings.length} of {filteredHoldings.length} · scroll for more
             <button type="button" className="btn-ghost btn-sm ml-2 min-h-9" onClick={windowed.showAll}>
@@ -650,6 +738,9 @@ export function EquitiesPage() {
             </button>
           </div>
         ) : null}
+        <p className="sr-only" aria-live="polite">
+          Showing {listHoldings.length} of {filteredHoldings.length}
+        </p>
         {selectedHolding ? (
           <aside
             className="holdings-master-detail-panel surface p-4 md:p-5 rounded-xl md:rounded-none shadow-sm md:shadow-none"

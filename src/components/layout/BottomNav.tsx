@@ -26,6 +26,10 @@ function prefetchMarketsNav(): void {
   prefetchMarketQuotes()
 }
 
+function isDigestLongPressItem(item: BottomNavItem): boolean {
+  return item.to === '/' || item.label.toLowerCase() === 'today'
+}
+
 export function BottomNav() {
   const show = useShowBottomNav()
   const mode = useLayoutMode()
@@ -57,14 +61,26 @@ export function BottomNav() {
     }
   }
 
-  const startLongPress = () => {
+  const openFavouriteSheet = () => {
+    setMiddleItems(readMiddleItems())
+    setFavSheetOpen(true)
+  }
+
+  const dispatchWeeklyDigestOpen = () => {
+    window.dispatchEvent(new CustomEvent('mydsp-open-weekly-digest'))
+  }
+
+  const startLongPress = (item: BottomNavItem) => {
     longPressFired.current = false
     clearLongPress()
     longPressTimer.current = window.setTimeout(() => {
       longPressFired.current = true
       longPressTimer.current = null
-      setMiddleItems(readMiddleItems())
-      setFavSheetOpen(true)
+      if (isDigestLongPressItem(item)) {
+        dispatchWeeklyDigestOpen()
+      } else {
+        openFavouriteSheet()
+      }
     }, 520)
   }
 
@@ -92,14 +108,9 @@ export function BottomNav() {
         }`}
         aria-label={tablet ? 'Tablet navigation' : 'Mobile navigation'}
         role="navigation"
-        onTouchStart={startLongPress}
-        onTouchEnd={clearLongPress}
-        onTouchMove={clearLongPress}
-        onTouchCancel={clearLongPress}
         onContextMenu={(e) => {
           e.preventDefault()
-          setMiddleItems(readMiddleItems())
-          setFavSheetOpen(true)
+          openFavouriteSheet()
         }}
       >
         <div
@@ -114,6 +125,18 @@ export function BottomNav() {
               end={item.to === '/'}
               onMouseEnter={item.to === '/markets' ? prefetchMarketsNav : undefined}
               onFocus={item.to === '/markets' ? prefetchMarketsNav : undefined}
+              onTouchStart={() => startLongPress(item)}
+              onTouchEnd={clearLongPress}
+              onTouchMove={clearLongPress}
+              onTouchCancel={clearLongPress}
+              onContextMenu={(e) => {
+                if (!isDigestLongPressItem(item)) return
+                e.preventDefault()
+                e.stopPropagation()
+                longPressFired.current = true
+                clearLongPress()
+                dispatchWeeklyDigestOpen()
+              }}
               onClick={(e) => {
                 if (longPressFired.current) {
                   e.preventDefault()

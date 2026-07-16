@@ -27,9 +27,10 @@ import {
   shareHouseholdSnapshot,
 } from '../domain/householdSnapshot'
 import {
-  downloadWeeklyDigest,
   weekDeltaFromHistory,
+  type WeeklyDigestInput,
 } from '../domain/weeklyDigest'
+import { WeeklyDigestModal } from '../components/WeeklyDigestModal'
 
 function quoteAgeLabel(iso?: string): string {
   if (!iso) return 'unknown'
@@ -49,6 +50,8 @@ export function ComparePage() {
   const [scanToken, setScanToken] = useState(0)
   const [filling, setFilling] = useState(false)
   const [inviteOpen, setInviteOpen] = useState(false)
+  const [digestOpen, setDigestOpen] = useState(false)
+  const [digestInput, setDigestInput] = useState<WeeklyDigestInput | null>(null)
 
   const cacheAgeLabel = useMemo(() => {
     const { updatedAt } = lastSyncedHoldingPrices()
@@ -201,7 +204,7 @@ export function ComparePage() {
     } catch {
       weekDelta = null
     }
-    downloadWeeklyDigest({
+    setDigestInput({
       title: 'MyDSP weekly digest',
       netWorth: totals.netWorth,
       assets: totals.assets,
@@ -209,21 +212,24 @@ export function ComparePage() {
       crypto: totals.crypto,
       equity: totals.equity,
       weekDelta,
+      privacy,
       portfolios: rows.map((r) => ({ name: r.name, netWorth: r.netWorth })),
       highlights: [
         `${rows.length} portfolio${rows.length === 1 ? '' : 's'} compared`,
         cacheAgeLabel ? `Holdings cache: ${cacheAgeLabel}` : 'Holdings cache age unknown',
       ],
     })
-    showToast({
-      type: 'success',
-      title: 'Weekly digest downloaded',
-      message: 'Open the HTML file or paste into an email — nothing is sent from the app.',
-    })
+    setDigestOpen(true)
   }
 
   return (
     <div>
+      <WeeklyDigestModal
+        open={digestOpen}
+        input={digestInput}
+        onClose={() => setDigestOpen(false)}
+        onFlash={(msg) => showToast({ type: 'success', title: msg })}
+      />
       <PageHeader
         eyebrow="Family"
         title="Compare portfolios"
@@ -252,9 +258,9 @@ export function ComparePage() {
               className="btn-ghost btn-sm weekly-digest-btn"
               disabled={rows.length === 0}
               onClick={exportWeeklyDigest}
-              title="Download email-ready weekly HTML digest (not sent)"
+              title="Preview and share weekly HTML digest (not emailed)"
             >
-              Weekly digest
+              Digest Preview/Share
             </button>
             <button
               type="button"

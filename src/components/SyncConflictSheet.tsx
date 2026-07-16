@@ -1,7 +1,8 @@
 /** Phone/tablet sheet when auto-sync finds conflicts — deep-links to Settings resolve UI. */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { usePortfolio } from '../context/PortfolioContext'
 import {
   clearPendingAutoSyncConflicts,
   getPendingAutoSyncConflicts,
@@ -12,16 +13,37 @@ import {
 import { loadDeviceNickname } from '../services/sync/deviceNickname'
 import { conflictKey, summarizeConflictBatch, type ConflictChoice } from '../services/sync/conflicts'
 import { buildConflictSummaryText, shareConflictSummary } from '../services/sync/conflictExport'
-import { applyMergePreview, loadSyncConfig } from '../services/sync/syncService'
-import type { MergePreview } from '../services/sync/syncService'
+import {
+  applyMergePreview,
+  captureMergeUndoSnapshot,
+  loadSyncConfig,
+  restoreMergeUndoSnapshot,
+} from '../services/sync/syncService'
+import type { MergePreview, MergeUndoSnapshot } from '../services/sync/syncService'
+
+const BULK_UNDO_MS = 10_000
 
 export function SyncConflictSheet() {
+  const { privacy } = usePortfolio()
   const [preview, setPreview] = useState<MergePreview | null>(null)
   const [dismissed, setDismissed] = useState(false)
   const [paused, setPaused] = useState(() => isAutoSyncPaused())
   const [deviceNick] = useState(() => loadDeviceNickname())
   const [copyHint, setCopyHint] = useState<string | null>(null)
   const [bulkApplying, setBulkApplying] = useState<ConflictChoice | null>(null)
+  const [undo, setUndo] = useState<{
+    snapshot: MergeUndoSnapshot
+    choice: ConflictChoice
+    count: number
+  } | null>(null)
+  const undoTimerRef = useRef<number | null>(null)
+
+  const clearUndoTimer = () => {
+    if (undoTimerRef.current != null) {
+      window.clearTimeout(undoTimerRef.current)
+      undoTimerRef.current = null
+    }
+  }
 
   useEffect(() => {
     const hydrate = () => {
@@ -45,26 +67,79 @@ export function SyncConflictSheet() {
     }
   }, [])
 
-  if (dismissed || !preview?.conflicts?.length) return null
+  useEffect(() => clearUndoTimer, [])
 
-  const count = preview.conflicts.length
+  if (dismissed || (!preview?.conflicts?.length && !undo)) return null
+
+  if (!preview?.conflicts?.length && undo) {
+    return (
+      <div
+        className="fixed inset-x-3 bottom-4 z-[1490] mx-auto max-w-md border border-accent/40 bg-bg-elevated px-4 py-3 shadow-lg"
+        role="status"
+        aria-live="polite"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-text-muted">
+            Kept all {undo.choice === 'local' ? 'local' : 'remote'} changes. Undo available for 10s.
+          </p>
+          <button
+            type="button"
+            className="btn-secondary btn-sm"
+            onClick={() => {
+              clearUndoTimer()
+              restoreMergeUndoSnapshot(undo.snapshot)
+              setUndo(null)
+              try {
+                window.dispatchEvent(new CustomEvent('mydsp-sync-applied', { detail: { undo: true } }))
+                window.dispatchEvent(
+                  new CustomEvent('mydsp-toast', {
+                    detail: {
+                      type: 'info',
+                      title: 'Sync conflict undo',
+                      message: `Restored ${undo.count} pre-merge portfolio snapshot${undo.count === 1 ? '' : 's'}.`,
+                    },
+                  }),
+                )
+              } catch {
+                /* ignore */
+              }
+            }}
+          >
+            Undo
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  const activePreview = preview
+  if (!activePreview || activePreview.conflicts.length === 0) return null
+
+  const count = activePreview.conflicts.length
 
   const applyAll = (choice: ConflictChoice) => {
     const resolutions: Record<string, ConflictChoice> = {}
-    for (const c of preview.conflicts) resolutions[conflictKey(c)] = choice
+    for (const c of activePreview.conflicts) resolutions[conflictKey(c)] = choice
     setBulkApplying(choice)
     void (async () => {
       try {
-        const result = await applyMergePreview(preview, resolutions)
+        const undoSnapshot = captureMergeUndoSnapshot(activePreview)
+        const result = await applyMergePreview(activePreview, resolutions)
         clearPendingAutoSyncConflicts()
         setPreview(null)
-        setDismissed(true)
+        setDismissed(false)
+        clearUndoTimer()
+        setUndo({ snapshot: undoSnapshot, choice, count: activePreview.portfolios.length })
+        undoTimerRef.current = window.setTimeout(() => {
+          setUndo(null)
+          undoTimerRef.current = null
+        }, BULK_UNDO_MS)
         try {
           window.dispatchEvent(
             new CustomEvent('mydsp-sync-applied', {
               detail: {
                 merged: result.merged,
-                conflicts: preview.conflicts.length,
+                conflicts: activePreview.conflicts.length,
                 bulkChoice: choice,
               },
             }),
@@ -74,7 +149,7 @@ export function SyncConflictSheet() {
               detail: {
                 type: 'success',
                 title: 'Sync conflicts applied',
-                message: `Kept all ${choice === 'local' ? 'local' : 'remote'} changes.`,
+                message: `Kept all ${choice === 'local' ? 'local' : 'remote'} changes. Undo for 10s.`,
               },
             }),
           )
@@ -109,12 +184,17 @@ export function SyncConflictSheet() {
           {count} conflict{count === 1 ? '' : 's'} to review
         </h2>
         <p className="text-xs text-text-muted leading-relaxed mb-1">
-          {summarizeConflictBatch(preview.conflicts)} Keep all local or all remote here, or review
+          {summarizeConflictBatch(activePreview.conflicts)} Keep all local or all remote here, or review
           each row in Settings before applying.
         </p>
         <p className="text-xs text-text-subtle mb-4">
           This device: <span className="text-text font-medium">{deviceNick}</span>
         </p>
+        {privacy ? (
+          <p className="mb-3 border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-200" role="alert">
+            Privacy mode is on. Conflict summaries can include amounts or private text, so share/copy is blocked.
+          </p>
+        ) : null}
         <div className="flex flex-wrap gap-2">
           <Link
             to="/settings#sync-conflicts-panel"
@@ -142,19 +222,25 @@ export function SyncConflictSheet() {
           <button
             type="button"
             className="btn-secondary btn-sm min-h-11"
+            disabled={privacy}
             onClick={() => {
               void (async () => {
-                const text = buildConflictSummaryText(preview.conflicts)
+                if (privacy) {
+                  setCopyHint('Privacy blocks sharing')
+                  window.setTimeout(() => setCopyHint(null), 2500)
+                  return
+                }
+                const text = buildConflictSummaryText(activePreview.conflicts)
                 try {
                   if (navigator.clipboard?.writeText) {
                     await navigator.clipboard.writeText(text)
                     setCopyHint('Copied summary')
                   } else {
-                    const result = await shareConflictSummary(preview.conflicts)
+                    const result = await shareConflictSummary(activePreview.conflicts)
                     setCopyHint(result === 'shared' ? 'Shared' : 'Downloaded')
                   }
                 } catch {
-                  const result = await shareConflictSummary(preview.conflicts)
+                  const result = await shareConflictSummary(activePreview.conflicts)
                   setCopyHint(result === 'cancelled' ? null : 'Downloaded')
                 }
                 window.setTimeout(() => setCopyHint(null), 2500)

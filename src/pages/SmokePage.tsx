@@ -18,7 +18,16 @@ import {
   pingQuoteWorker,
 } from '../domain/smokeChecks'
 
-type CheckId = 'sync' | 'markets' | 'backup' | 'pwa' | 'quote' | 'sync-url' | 'lock' | 'bottom-nav'
+type CheckId =
+  | 'sync'
+  | 'markets'
+  | 'backup'
+  | 'pwa'
+  | 'quote'
+  | 'sync-url'
+  | 'lock'
+  | 'bottom-nav'
+  | 'weekly-digest'
 
 type SmokeItem = {
   id: CheckId
@@ -152,6 +161,13 @@ export function SmokePage() {
         })(),
         to: '/settings#layout',
         done: loadBottomNavMiddleSlots().length === 3,
+      },
+      {
+        id: 'weekly-digest',
+        label: 'Weekly digest Share',
+        detail: 'Today opens WeeklyDigestModal for Preview/Share, editable highlights, copy, and download fallback',
+        to: '/',
+        done: true,
       },
     ]
     setItems(next)

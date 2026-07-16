@@ -45,6 +45,7 @@ import {
   oldestOfflineJobAgeMs,
   removeOfflineJob,
   retryOfflineJobNow,
+  shareOfflineJobError,
   type OfflineJob,
 } from '../services/offlineQueue'
 import { DISPLAY_CURRENCIES } from '../services/fx'
@@ -97,6 +98,7 @@ import {
   previewPull,
   pushSync,
   saveSyncConfig,
+  shareSyncDiagnostics,
   type MergePreview,
 } from '../services/sync/syncService'
 import {
@@ -1438,7 +1440,7 @@ export function SettingsPage() {
                   </li>
                 ) : null}
               </ul>
-              <div className="pt-1">
+              <div className="flex flex-wrap gap-2 pt-1">
                 {isAutoSyncPaused(syncCfg) ? (
                   <button
                     type="button"
@@ -1464,6 +1466,25 @@ export function SettingsPage() {
                     Pause 1 hour
                   </button>
                 )}
+                <button
+                  type="button"
+                  className="btn-secondary btn-sm"
+                  onClick={() => {
+                    void (async () => {
+                      try {
+                        const result = await shareSyncDiagnostics(syncCfg, deviceNickname)
+                        if (result === 'shared') flash('Sync diagnostics shared.')
+                        else if (result === 'copied') flash('Sync diagnostics copied.')
+                        else if (result !== 'cancelled') flash('Could not share diagnostics here.')
+                      } catch {
+                        flash('Could not share diagnostics here.')
+                      }
+                    })()
+                  }}
+                  title="Share diagnostics: blob age, encrypted size, device nickname"
+                >
+                  Share diagnostics
+                </button>
               </div>
             </div>
           )}
@@ -2014,7 +2035,7 @@ export function SettingsPage() {
                         : ''}
                       {j.note ? ` — ${j.note}` : ''}
                     </span>
-                    <div className="flex gap-1">
+                    <div className="flex flex-wrap gap-1">
                       {j.nextRetryAt && !isOfflineJobReady(j) ? (
                         <button
                           type="button"
@@ -2022,6 +2043,26 @@ export function SettingsPage() {
                           onClick={() => setQueue(retryOfflineJobNow(j.id))}
                         >
                           Retry now
+                        </button>
+                      ) : null}
+                      {(j.attempts ?? 0) > 0 && j.note ? (
+                        <button
+                          type="button"
+                          className="btn-secondary btn-sm min-h-11"
+                          onClick={() => {
+                            void (async () => {
+                              try {
+                                const result = await shareOfflineJobError(j)
+                                if (result === 'shared') flash('Offline job error shared.')
+                                else if (result === 'copied') flash('Offline job error copied.')
+                                else if (result !== 'cancelled') flash('Could not share offline job error.')
+                              } catch {
+                                flash('Could not share offline job error.')
+                              }
+                            })()
+                          }}
+                        >
+                          Share error
                         </button>
                       ) : null}
                       <button

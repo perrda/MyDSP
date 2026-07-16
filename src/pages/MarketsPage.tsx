@@ -21,6 +21,8 @@ import { OverflowMenu } from '../components/ui/OverflowMenu'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
 import { usePortfolio } from '../context/PortfolioContext'
 import { applyLastSyncedQuotesToHoldings } from '../domain/lastSyncedHoldings'
+import { includedPortfolioHoldingValue } from '../domain/portfolioConcentration'
+import { equityUnitPriceGbp } from '../domain/migrateEquityGbp'
 import {
   defaultNameForPair,
   formatMarketChangeAbs,
@@ -580,6 +582,27 @@ export function MarketsPage() {
     return map
   }, [data.equities])
 
+  const includedPortfolioValue = useMemo(() => includedPortfolioHoldingValue(data), [data])
+
+  const ownedHoldingWeightByKey = useMemo(() => {
+    const map = new Map<string, number>()
+    if (!(includedPortfolioValue > 0)) return map
+    for (const c of data.crypto) {
+      if (c.includeInPortfolio === false) continue
+      const key = `crypto:${normPortfolioSymbol(c.symbol)}`
+      map.set(key, (map.get(key) ?? 0) + c.qty * c.price)
+    }
+    for (const e of data.equities) {
+      if (e.includeInPortfolio === false) continue
+      const key = `equity:${normPortfolioSymbol(e.symbol)}`
+      map.set(key, (map.get(key) ?? 0) + e.shares * equityUnitPriceGbp(e))
+    }
+    for (const [key, value] of map) {
+      map.set(key, value / includedPortfolioValue)
+    }
+    return map
+  }, [data.crypto, data.equities, includedPortfolioValue])
+
   const ownedHoldingRouteByKey = useMemo(() => {
     const map = new Map<string, string>()
     for (const c of sortBySortOrder(data.crypto)) {
@@ -1044,6 +1067,10 @@ export function MarketsPage() {
                     t.kind === 'crypto' || t.kind === 'equity'
                       ? ownedHoldingRouteByKey.get(`${t.kind}:${normPortfolioSymbol(t.symbol)}`)
                       : undefined
+                  const ownedWeight =
+                    t.kind === 'crypto' || t.kind === 'equity'
+                      ? ownedHoldingWeightByKey.get(`${t.kind}:${normPortfolioSymbol(t.symbol)}`)
+                      : undefined
                   return (
                     <div
                       id={`market-${t.symbol.replace(/[^a-zA-Z0-9]/g, '_')}`}
@@ -1103,7 +1130,16 @@ export function MarketsPage() {
                             <Link
                               to={ownedRoute}
                               className="markets-owned-chip text-[10px] uppercase tracking-wider font-semibold px-1.5 py-0.5 border border-accent/40 text-accent hover:bg-accent/10"
-                              aria-label={`Owned holding detail for ${t.symbol}`}
+                              title={
+                                ownedWeight != null
+                                  ? `Owned · ${(ownedWeight * 100).toFixed(1)}% of included portfolio`
+                                  : 'Owned holding'
+                              }
+                              aria-label={
+                                ownedWeight != null
+                                  ? `Owned holding detail for ${t.symbol}, ${(ownedWeight * 100).toFixed(1)}% portfolio weight`
+                                  : `Owned holding detail for ${t.symbol}`
+                              }
                             >
                               Owned
                             </Link>

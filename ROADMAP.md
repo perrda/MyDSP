@@ -1,9 +1,15 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.60**
+**Current version: 1.2.65**
 
-## Completed (through v1.2.60)
+## Completed (through v1.2.65)
 
+- Fix: Weekly digest in-app Preview/Share on mobile (no Safari HTML download dead-end)
+- Quality / ops (next25f 21–25): axe Crypto/Spending, digest smoke, aria-live windowing, docs
+- Today / money / tax (next25f 16–20): editable digest highlights, auto chips, privacy mask, ISA/WTD
+- Mobile / tablet UX (next25f 11–15): digest share modal, tablet preview rail, ↑↓ holdings, Spending sticky search, bottom-nav digest
+- Markets / portfolio (next25f 6–10): weight sort, detail share, sticky totals, Owned weight, swipe NW
+- Sync / security (next25f 1–5): share diagnostics, conflict Undo, offline Share error, privacy gate
 - Quality / ops (next25e 21–25): lazy Settings, axe Equities/Tax/Todos, offline-queue smoke, windowed holdings, docs
 - Today / money / tax (next25e 16–20): budget pulse, cash runway, Spending search, sell→Tax CTA, FIRE chip
 - Mobile / tablet UX (next25e 11–15): master–detail, Today accordions, TradeModal sheet, Markets jumps, Jobs split

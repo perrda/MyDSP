@@ -40,6 +40,25 @@ function normPortfolioSymbol(symbol: string): string {
   return symbol.trim().toUpperCase().replace(/^\^/, '')
 }
 
+async function shareHoldingSummaryLine(text: string): Promise<'shared' | 'copied' | 'cancelled' | 'unavailable'> {
+  if (typeof navigator !== 'undefined' && 'share' in navigator) {
+    try {
+      await navigator.share({
+        title: 'MyDSP holding summary',
+        text,
+      })
+      return 'shared'
+    } catch (e) {
+      if (e instanceof Error && e.name === 'AbortError') return 'cancelled'
+    }
+  }
+  if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text)
+    return 'copied'
+  }
+  return 'unavailable'
+}
+
 export function HoldingDetailPage() {
   const { kind: kindParam, id: idParam } = useParams()
   const { pathname } = useLocation()
@@ -73,6 +92,7 @@ export function HoldingDetailPage() {
   const [historyOpen, setHistoryOpen] = useState(false)
   const [editingTrade, setEditingTrade] = useState<JournalEntry | null>(null)
   const [deleteTradeId, setDeleteTradeId] = useState<number | null>(null)
+  const [shareHint, setShareHint] = useState<string | null>(null)
 
   const trades = useMemo(
     () => (item ? journalForSymbol(data, item.symbol).filter((j) => isTradeType(j.type)) : []),
@@ -145,6 +165,24 @@ export function HoldingDetailPage() {
     price,
     unitCost,
   )
+
+  const holdingSummaryLine = privacy
+    ? `MyDSP ${item.symbol} (${isCrypto ? 'crypto' : 'equity'}): privacy mode is on; amounts hidden.`
+    : `MyDSP ${item.symbol}: ${formatQty(qty)} @ ${formatGBPPrecise(price)} = ${formatGBP(value)}; P&L ${formatGBP(pnl, { signed: true })} (${formatPct(pnlPct)}).`
+
+  const onShareSummary = () => {
+    void (async () => {
+      try {
+        const result = await shareHoldingSummaryLine(holdingSummaryLine)
+        if (result === 'shared') setShareHint('Shared')
+        else if (result === 'copied') setShareHint('Copied')
+        else if (result !== 'cancelled') setShareHint('Unavailable')
+      } catch {
+        setShareHint('Unavailable')
+      }
+      window.setTimeout(() => setShareHint(null), 2500)
+    })()
+  }
 
   const patch = (p: Partial<CryptoHolding & EquityHolding>) => {
     setData((prev) => {
@@ -229,6 +267,11 @@ export function HoldingDetailPage() {
             }
             items={[
               {
+                id: 'share-summary',
+                label: shareHint ?? 'Share summary',
+                onClick: onShareSummary,
+              },
+              {
                 id: 'history',
                 label: 'Import history',
                 onClick: () => setHistoryOpen(true),
@@ -303,6 +346,14 @@ export function HoldingDetailPage() {
             ) : null}
           </div>
         ) : null}
+        <button
+          type="button"
+          className="holding-summary-share mt-4 btn-secondary btn-sm"
+          onClick={onShareSummary}
+          title="Share/copy one-line holding summary"
+        >
+          {shareHint ?? 'Share summary'}
+        </button>
         {yieldPct != null ? (
           <p className="mt-2 text-sm text-text-muted tabular-nums">
             Dividend yield {yieldPct.toFixed(yieldPct >= 10 ? 1 : 2)}%

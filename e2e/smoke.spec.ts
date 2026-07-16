@@ -35,7 +35,9 @@ test.describe('MyDSP smoke', () => {
 
   test('goals route renders', async ({ page }) => {
     await page.goto('/goals')
-    await expect(page.getByText(/financial goals/i).first()).toBeVisible({ timeout: 20_000 })
+    await expect(page.getByRole('heading', { name: 'Goals' }).first()).toBeVisible({
+      timeout: 20_000,
+    })
   })
 
   test('Today → Markets → Settings navigation', async ({ page }) => {
@@ -56,11 +58,28 @@ test.describe('MyDSP smoke', () => {
     await expect(page.getByText(/Encrypted cloud sync|Cloud Sync|Sync/i).first()).toBeVisible()
   })
 
+  test('weekly digest Preview/Share modal opens from Today', async ({ page }) => {
+    await page.goto('/')
+    await expect(page.getByRole('button', { name: /Digest Preview\/Share/i })).toBeVisible({
+      timeout: 20_000,
+    })
+    await page.getByRole('button', { name: /Digest Preview\/Share/i }).click()
+    const dialog = page.getByRole('dialog', { name: 'Weekly digest' })
+    await expect(dialog).toBeVisible()
+    await expect(dialog.getByRole('heading', { name: 'Weekly digest', level: 2 })).toBeVisible()
+    await expect(page.getByText(/Preview below/i)).toBeVisible()
+    await expect(page.getByLabel(/Highlights to include/i)).toBeVisible()
+    await expect(page.getByRole('button', { name: /Share|Copy HTML/i }).first()).toBeVisible()
+  })
+
   test('smoke checklist includes lock and bottom-nav checks', async ({ page }) => {
     await page.goto('/smoke')
-    await expect(page.getByText(/On-device smoke|smoke/i).first()).toBeVisible({ timeout: 20_000 })
+    await expect(page.getByRole('list', { name: 'Smoke checklist' })).toBeVisible({
+      timeout: 20_000,
+    })
     await expect(page.getByText(/PIN \/ Face ID lock/i).first()).toBeVisible()
     await expect(page.getByText(/Bottom nav middle slots/i).first()).toBeVisible()
+    await expect(page.getByText(/Weekly digest Share/i).first()).toBeVisible()
   })
 
   test('offline queue enqueue surfaces in Settings Sync', async ({ page }) => {

@@ -1,5 +1,78 @@
 # MyDSP Changelog
 
+## [1.2.65] - 2026-07-16
+
+### Fixed — Weekly digest on mobile
+- **Weekly digest** opens an in-app **Preview** sheet with **Share / Copy HTML / Download** instead of dumping a raw HTML file into Safari’s download viewer (iPhone/iPad)
+
+### Improved — Quality / ops (next 25f · 21–25)
+21. Axe CI for **Crypto / Spending** (+ holding detail where covered)  
+22. Playwright smoke covers digest **Preview/Share**  
+23. `/smoke` checklist — Weekly digest Share  
+24. Windowed holdings **aria-live** Showing N of M  
+25. Docs — WeeklyDigestModal Share/Preview conventions  
+
+### Version
+- 1.2.64 → **1.2.65**
+
+---
+
+## [1.2.64] - 2026-07-16
+
+### Improved — Today / money / tax (next 25f · 16–20)
+16. Digest **editable highlights** before share  
+17. Auto-highlights from budget / runway / FIRE / WTD  
+18. Digest **privacy** masks £ amounts  
+19. Low **ISA remaining** → Today digest highlight  
+20. Today **week-to-date spend** chip  
+
+### Version
+- 1.2.63 → **1.2.64**
+
+---
+
+## [1.2.63] - 2026-07-16
+
+### Improved — Mobile / tablet UX (next 25f · 11–15)
+11. Weekly digest **native Share** path (modal)  
+12. Tablet Today **digest Preview** in two-pane rail  
+13. Holdings master–detail **↑↓ keyboard** select  
+14. Spending sticky merchant search (landscape tablet)  
+15. Bottom-nav long-press Overview → open digest  
+
+### Version
+- 1.2.62 → **1.2.63**
+
+---
+
+## [1.2.62] - 2026-07-16
+
+### Improved — Markets / portfolio (next 25f · 6–10)
+6. Holdings sort by **weight %**  
+7. Holding detail **share/copy summary**  
+8. Sticky **included-value** totals bar  
+9. Markets **Owned** chip shows weight %  
+10. Swipe **Include/Exclude from NW** polish  
+
+### Version
+- 1.2.61 → **1.2.62**
+
+---
+
+## [1.2.61] - 2026-07-16
+
+### Improved — Sync / security (next 25f · 1–5)
+1. Sync health **Share diagnostics**  
+2. Conflict Keep-all **10s Undo**  
+3. Offline job **Share error**  
+4. Privacy blocks conflict summary share  
+5. Digest modal foundation (preview/share)  
+
+### Version
+- 1.2.60 → **1.2.61**
+
+---
+
 ## [1.2.60] - 2026-07-16
 
 ### Improved — Quality / ops (next 25e · 21–25)

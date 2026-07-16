@@ -371,66 +371,68 @@ export function SpendingPage() {
         </div>
       ) : null}
 
-      <CollapsibleFilters
-        id="spending-filters"
-        title="Filters & search"
-        summary={
-          [
-            category !== 'All' ? category : null,
-            query.trim()
-              ? `“${query.trim().slice(0, 16)}${query.trim().length > 16 ? '…' : ''}”`
-              : null,
-          ]
-            .filter(Boolean)
-            .join(' · ') || 'None active'
-        }
-        activeCount={(category !== 'All' ? 1 : 0) + (query.trim() ? 1 : 0)}
-      >
-        <div className="flex flex-col sm:flex-row gap-3 mb-3">
-          <input
-            type="text"
-            placeholder="New custom category…"
-            value={customDraft}
-            onChange={(e) => setCustomDraft(e.target.value)}
-            className="flex-1"
-          />
-          <button type="button" className="btn-secondary btn-sm" onClick={addCustomCategory}>
-            Add category
-          </button>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1">
-            <label
-              htmlFor="sp-search"
-              className="block text-xs font-bold uppercase tracking-widest text-text-subtle mb-2"
-            >
-              Search
-            </label>
+      <div className="spending-merchant-search-bar">
+        <CollapsibleFilters
+          id="spending-filters"
+          title="Filters & search"
+          summary={
+            [
+              category !== 'All' ? category : null,
+              query.trim()
+                ? `“${query.trim().slice(0, 16)}${query.trim().length > 16 ? '…' : ''}”`
+                : null,
+            ]
+              .filter(Boolean)
+              .join(' · ') || 'None active'
+          }
+          activeCount={(category !== 'All' ? 1 : 0) + (query.trim() ? 1 : 0)}
+        >
+          <div className="flex flex-col sm:flex-row gap-3 mb-3">
             <input
-              id="sp-search"
-              type="search"
-              placeholder="Merchant / description / category…"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              type="text"
+              placeholder="New custom category…"
+              value={customDraft}
+              onChange={(e) => setCustomDraft(e.target.value)}
+              className="flex-1"
             />
+            <button type="button" className="btn-secondary btn-sm" onClick={addCustomCategory}>
+              Add category
+            </button>
           </div>
-          <div className="sm:w-56">
-            <label
-              htmlFor="sp-cat"
-              className="block text-xs font-bold uppercase tracking-widest text-text-subtle mb-2"
-            >
-              Category
-            </label>
-            <select id="sp-cat" value={category} onChange={(e) => setCategory(e.target.value)}>
-              {categories.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1">
+              <label
+                htmlFor="sp-search"
+                className="block text-xs font-bold uppercase tracking-widest text-text-subtle mb-2"
+              >
+                Search
+              </label>
+              <input
+                id="sp-search"
+                type="search"
+                placeholder="Merchant / description / category…"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+            </div>
+            <div className="sm:w-56">
+              <label
+                htmlFor="sp-cat"
+                className="block text-xs font-bold uppercase tracking-widest text-text-subtle mb-2"
+              >
+                Category
+              </label>
+              <select id="sp-cat" value={category} onChange={(e) => setCategory(e.target.value)}>
+                {categories.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
-        </div>
-      </CollapsibleFilters>
+        </CollapsibleFilters>
+      </div>
 
       {/* Mobile card list — no horizontal scroll */}
       <div className="sm:hidden space-y-2 mb-4">

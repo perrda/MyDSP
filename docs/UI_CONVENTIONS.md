@@ -25,6 +25,7 @@ Cursor agents (and future you) need a single source of truth for forms. The livi
 | TradeModal phone sheet | `TradeModal` + `Modal` `sheet` on &lt;640px |
 | Sell → Tax disposal CTA | TradeModal toast → `/tax?disposal=1&symbol=` |
 | Concentration banner | `domain/portfolioConcentration.ts` + Settings threshold |
+| Weekly digest Preview/Share | `WeeklyDigestModal` — preview first, editable highlights, native Share/copy/download fallback |
 
 ## Form recipe
 
@@ -34,6 +35,8 @@ Cursor agents (and future you) need a single source of truth for forms. The livi
 - **Layout:** `grid grid-cols-1 md:grid-cols-2 gap-4` under bold section titles
 - **Actions:** Cancel (`btn-ghost`) + Save (`btn-primary`)
 - **Deletes / danger:** always `ConfirmDialog` — never `window.confirm`
+- **Digest sharing:** enhance `WeeklyDigestModal` for weekly digest flows. Dashboard/Compare should open
+  the modal for Preview/Share and pass `WeeklyDigestInput.privacy`; avoid page-level direct downloads.
 
 ## Cursor rules & skills
 
