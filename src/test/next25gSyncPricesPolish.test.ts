@@ -56,16 +56,16 @@ describe('next25g — sync prices polish tip (1–25 → v1.2.70)', () => {
     mem.clear()
   })
 
-  it('package + release notes tip is current (1.2.73+)', () => {
+  it('package + release notes tip is current (1.2.75+)', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.73')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.73')
+    expect(pkg.version).toBe('1.2.75')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.75')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.75',
       '1.2.73',
       '1.2.72',
       '1.2.71',
       '1.2.70',
-      '1.2.69',
     ])
   })
 
@@ -168,11 +168,12 @@ describe('next25g — sync prices polish tip (1–25 → v1.2.70)', () => {
     expect(q.changePct).toBe(3.5)
   })
 
-  it('9: provider health strip includes commodity → yahoo', () => {
+  it('9: provider health maps commodity → yahoo (Settings / banners; Markets chrome stripped)', () => {
     const health = readFileSync(resolve(__dirname, '../services/marketsProviderHealth.ts'), 'utf8')
     expect(health).toMatch(/commodity: 'yahoo'/)
     const page = readFileSync(resolve(__dirname, '../pages/MarketsPage.tsx'), 'utf8')
-    expect(page).toMatch(/markets-provider-health/)
+    expect(page).toMatch(/getMarketsProviderHealth/)
+    expect(page).not.toMatch(/markets-provider-health/)
   })
 
   it('10: Markets refresh applies quotes to holdings', () => {
@@ -182,7 +183,7 @@ describe('next25g — sync prices polish tip (1–25 → v1.2.70)', () => {
 
   it('11–15: UI polish — tight header, PTR no jump, mixed CTA, drag ghost, long-press Sections', () => {
     const page = readFileSync(resolve(__dirname, '../pages/MarketsPage.tsx'), 'utf8')
-    expect(page).toMatch(/Sync prices now pushes last-good quotes/)
+    expect(page).toMatch(/Sync prices now — refresh quotes and push to other devices/)
     expect(page).toMatch(/markets-section-mixed/)
     expect(page).toMatch(/Retry unavailable/)
     expect(page).toMatch(/sectionLongPressTimer/)

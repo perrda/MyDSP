@@ -1,5 +1,15 @@
 # MyDSP Changelog
 
+## [1.2.75] - 2026-07-16
+
+### Improved — Markets watchlist clarity
+1. **Quieter Markets chrome** — drop Watchlist eyebrow blurb, “Updating quotes…”, and provider OK strip; Sync spinner CTA remains  
+2. **Hide tag + Yield % chips** — Core / Speculative / Income / Other / Yield % gated (`SHOW_MARKETS_TAG_YIELD_CHIPS`); prefs + tags still stored for later  
+3. **Sticky section jump chips** — Crypto / Equities / Commodities / Indices / FX / Crosses stay with search while scrolling sections  
+
+### Version
+- Tip **1.2.75**
+
 ## [1.2.73] - 2026-07-16
 
 ### Improved — Sync / trust (next 25j · 1–5)

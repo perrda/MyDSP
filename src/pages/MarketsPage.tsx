@@ -59,10 +59,7 @@ import { mergeMarketQuotes } from '../domain/marketQuotesCache'
 import { isOnline } from '../services/offlineQueue'
 import { sparklineTrendFromSeries } from '../domain/sparklineSeries'
 import { refreshMarketQuotes } from '../services/marketsQuotes'
-import {
-  formatMarketsProviderHealthHint,
-  getMarketsProviderHealth,
-} from '../services/marketsProviderHealth'
+import { getMarketsProviderHealth } from '../services/marketsProviderHealth'
 import { syncNow } from '../services/sync/autoSyncService'
 import { loadSyncConfig } from '../services/sync/syncService'
 import { KNOWN_CRYPTO_SYMBOLS } from '../services/prices'
@@ -126,6 +123,12 @@ const emptyForm: FormState = {
   avgCostGbp: '',
   includeInNetWorth: false,
 }
+
+/**
+ * Tag chips (Core / Speculative / Income / Other) + Yield % sort — hidden for now.
+ * Prefs + ticker.tag still persist; reintroduce via ROADMAP low-priority item.
+ */
+const SHOW_MARKETS_TAG_YIELD_CHIPS = false
 
 function unavailableReason(q: MarketQuote | undefined): string {
   const src = (q?.source || '').toLowerCase()
@@ -608,29 +611,29 @@ export function MarketsPage() {
 
   const searchQuery = searchText.trim().toLowerCase()
 
+  const activeTagFilter = SHOW_MARKETS_TAG_YIELD_CHIPS ? tagFilter : 'All'
+  const activeYieldSort = SHOW_MARKETS_TAG_YIELD_CHIPS ? yieldSort : false
+
   const bySection = useMemo(
     () => {
       const tagged =
-        tagFilter === 'All' ? tickers : tickers.filter((t) => t.tag === tagFilter)
+        activeTagFilter === 'All'
+          ? tickers
+          : tickers.filter((t) => t.tag === activeTagFilter)
       const filtered = searchQuery
         ? tagged.filter((t) => matchesMarketsSearch(t, searchQuery))
         : tagged
       const equities = filtered.filter((t) => t.kind === 'equity')
       return {
         crypto: filtered.filter((t) => t.kind === 'crypto'),
-        equities: yieldSort ? sortByYieldDesc(equities) : equities,
+        equities: activeYieldSort ? sortByYieldDesc(equities) : equities,
         commodities: filtered.filter((t) => t.kind === 'commodity'),
         indices: filtered.filter((t) => t.kind === 'index'),
         fx: filtered.filter((t) => t.kind === 'fx'),
         crosses: filtered.filter((t) => t.kind === 'cross'),
       }
     },
-    [tickers, tagFilter, searchQuery, yieldSort],
-  )
-
-  const filteredTickerCount = useMemo(
-    () => Object.values(bySection).reduce((sum, items) => sum + items.length, 0),
-    [bySection],
+    [tickers, activeTagFilter, searchQuery, activeYieldSort],
   )
 
   const fxTriangleHits = useMemo(() => {
@@ -649,25 +652,15 @@ export function MarketsPage() {
   )
 
   const statusHint = useMemo(() => {
-    const health = formatMarketsProviderHealthHint()
-    if (refreshing) {
-      return `Updating quotes…${error ? ` · ${error}` : ''}`
-    }
-    if (error) {
-      return health ? `${error} · ${health}` : error
-    }
+    if (error) return error
     if (sectionSorting) {
-      return health
-        ? `Drag ⋮⋮ on section headers to reorder My Crypto / Equities / … · ${health}`
-        : 'Drag ⋮⋮ on section headers to reorder My Crypto / Equities / …'
+      return 'Drag ⋮⋮ on section headers to reorder My Crypto / Equities / …'
     }
     if (sorting) {
-      return health
-        ? `Drag ⋮⋮ to reorder tickers within each section. · ${health}`
-        : 'Drag ⋮⋮ to reorder tickers within each section.'
+      return 'Drag ⋮⋮ to reorder tickers within each section.'
     }
-    return health ?? 'Quotes refreshed'
-  }, [refreshing, error, sorting, sectionSorting, quotes])
+    return null
+  }, [error, sorting, sectionSorting])
 
   const cryptoHoldingsValue = useMemo(() => {
     const map = new Map<string, number>()
@@ -1134,7 +1127,7 @@ export function MarketsPage() {
         className={`border border-border bg-bg-elevated overflow-hidden ${sectionSorting ? '' : 'mb-6'}`}
       >
         <div
-          className={`markets-section-sticky sticky top-0 z-[5] bg-bg-elevated px-4 sm:px-5 flex items-start justify-between gap-3 border-b border-border ${density === 'compact' ? 'pt-3 pb-2' : 'pt-4 pb-3'}`}
+          className={`markets-section-sticky sticky z-[5] bg-bg-elevated px-4 sm:px-5 flex items-start justify-between gap-3 border-b border-border ${density === 'compact' ? 'pt-3 pb-2' : 'pt-4 pb-3'}`}
           onContextMenu={(e) => {
             if (sectionSorting) return
             e.preventDefault()
@@ -1253,18 +1246,18 @@ export function MarketsPage() {
                   message={
                     searchQuery
                       ? `No ${meta.emptyLabel} matches "${searchText.trim()}".`
-                      : tagFilter !== 'All'
-                        ? `No ${meta.emptyLabel} tagged ${tagFilter}.`
+                      : activeTagFilter !== 'All'
+                        ? `No ${meta.emptyLabel} tagged ${activeTagFilter}.`
                         : `No ${meta.emptyLabel} yet — add one or seed a preset.`
                   }
                   action={
-                    searchQuery || tagFilter !== 'All'
+                    searchQuery || activeTagFilter !== 'All'
                       ? undefined
                       : { label: meta.addLabel, onClick: () => openCreate(meta.kind) }
                   }
                 />
                 {!searchQuery &&
-                tagFilter === 'All' &&
+                activeTagFilter === 'All' &&
                 (section === 'crypto' ||
                   section === 'equities' ||
                   section === 'commodities' ||
@@ -1727,9 +1720,8 @@ export function MarketsPage() {
   return (
     <div>
       <PageHeader
-        eyebrow="Watchlist"
+        eyebrow="Prices"
         title="Markets"
-        description="Live watchlist · auto ~45s · Sync prices now pushes last-good quotes to other devices."
         action={
           <div className="hidden sm:flex flex-wrap gap-2">
             <button
@@ -1744,7 +1736,7 @@ export function MarketsPage() {
                 strokeWidth={1.75}
                 className={refreshing || syncingPrices ? 'animate-spin' : undefined}
               />
-              {syncingPrices ? 'Syncing…' : 'Sync prices now'}
+              {syncingPrices || refreshing ? 'Syncing…' : 'Sync prices'}
             </button>
             <button
               type="button"
@@ -1797,7 +1789,11 @@ export function MarketsPage() {
         }
       />
 
-      <p className="text-xs text-text-subtle mb-2">{statusHint}</p>
+      {statusHint ? (
+        <p className="text-xs text-text-subtle mb-2" role="status">
+          {statusHint}
+        </p>
+      ) : null}
       {finnhubMissing ? (
         <div
           className="markets-finnhub-missing-chip mb-3 px-3 py-2 text-xs border border-amber-500/45 bg-amber-500/10 text-amber-900 dark:text-amber-100 rounded-lg md:rounded-none"
@@ -1833,33 +1829,8 @@ export function MarketsPage() {
           </button>
         </div>
       ) : null}
-      <div
-        className="markets-provider-health mb-4 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-text-subtle"
-        aria-label="Markets provider health this session"
-      >
-        {providerHealth.map((row) => {
-          const ok = row.consecutiveFailures === 0 && Boolean(row.lastSuccessAt)
-          const bad = row.consecutiveFailures >= 2
-          return (
-            <span
-              key={row.id}
-              className={
-                bad
-                  ? 'text-amber-700 dark:text-amber-300 font-medium'
-                  : ok
-                    ? 'text-emerald-700/90 dark:text-emerald-400/90'
-                    : undefined
-              }
-            >
-              {row.id}
-              {ok ? ' · OK' : bad ? ` · ${row.consecutiveFailures}× fail` : ''}
-            </span>
-          )
-        })}
-      </div>
-
-      <div className="markets-in-list-search sticky top-0 z-[9] -mx-1 mb-3 bg-bg/95 px-1 py-1.5 backdrop-blur supports-[backdrop-filter]:bg-bg/80">
-        <div className="surface border border-border-strong px-3 py-2">
+      <div className="markets-sticky-toolbar sticky z-[9] -mx-1 mb-3 bg-bg/95 px-1 py-1.5 backdrop-blur supports-[backdrop-filter]:bg-bg/80">
+        <div className="markets-in-list-search surface border border-border-strong px-3 py-2">
           <label className="sr-only" htmlFor="markets-search-input">
             Search watchlist
           </label>
@@ -1900,16 +1871,22 @@ export function MarketsPage() {
                 {tf}
               </button>
             ))}
-            <span className="text-[11px] text-text-subtle ml-1">
-              % and sparkline use the same {timeframe} series
-            </span>
           </div>
-          <p className="mt-1.5 text-[11px] text-text-subtle">
-            {searchQuery
-              ? `${filteredTickerCount}/${tickers.length} watchlist match${filteredTickerCount === 1 ? '' : 'es'}`
-              : `${tickers.length} watchlist item${tickers.length === 1 ? '' : 's'}`}
-          </p>
         </div>
+        <nav
+          className="markets-section-jump-chips"
+          aria-label="Jump to market section"
+        >
+          {sectionOrder.map((section) => (
+            <a
+              key={section}
+              href={`#markets-section-${section}`}
+              className="markets-section-jump-chip btn-ghost btn-sm"
+            >
+              {SECTION_JUMP_LABEL[section]}
+            </a>
+          ))}
+        </nav>
       </div>
 
       {cachedMode ? (
@@ -1959,57 +1936,44 @@ export function MarketsPage() {
         </div>
       ) : null}
 
-      <div
-        className="flex flex-wrap gap-2 mb-5"
-        role="group"
-        aria-label="Filter and sort watchlist"
-      >
-        {(['All', ...MARKET_TICKER_TAGS] as const).map((tag) => {
-          const on = tagFilter === tag
-          return (
-            <button
-              key={tag}
-              type="button"
-              className={`btn-sm ${on ? 'btn-primary' : 'btn-ghost'}`}
-              aria-pressed={on}
-              onClick={() => {
-                setTagFilter(tag)
-                setMarketsTagFilter(tag)
-              }}
-            >
-              {tag}
-            </button>
-          )
-        })}
-        <button
-          type="button"
-          className={`btn-sm ${yieldSort ? 'btn-primary' : 'btn-ghost'}`}
-          aria-pressed={yieldSort}
-          onClick={() => {
-            applyYieldSort(!yieldSort)
-            setSorting(false)
-            setSectionSorting(false)
-          }}
-          title="Sort equity watchlist by dividend yield"
+      {SHOW_MARKETS_TAG_YIELD_CHIPS ? (
+        <div
+          className="flex flex-wrap gap-2 mb-5"
+          role="group"
+          aria-label="Filter and sort watchlist"
         >
-          Yield %
-        </button>
-      </div>
-
-      <nav
-        className="markets-section-jump-chips"
-        aria-label="Jump to market section"
-      >
-        {sectionOrder.map((section) => (
-          <a
-            key={section}
-            href={`#markets-section-${section}`}
-            className="markets-section-jump-chip btn-ghost btn-sm"
+          {(['All', ...MARKET_TICKER_TAGS] as const).map((tag) => {
+            const on = tagFilter === tag
+            return (
+              <button
+                key={tag}
+                type="button"
+                className={`btn-sm ${on ? 'btn-primary' : 'btn-ghost'}`}
+                aria-pressed={on}
+                onClick={() => {
+                  setTagFilter(tag)
+                  setMarketsTagFilter(tag)
+                }}
+              >
+                {tag}
+              </button>
+            )
+          })}
+          <button
+            type="button"
+            className={`btn-sm ${yieldSort ? 'btn-primary' : 'btn-ghost'}`}
+            aria-pressed={yieldSort}
+            onClick={() => {
+              applyYieldSort(!yieldSort)
+              setSorting(false)
+              setSectionSorting(false)
+            }}
+            title="Sort equity watchlist by dividend yield"
           >
-            {SECTION_JUMP_LABEL[section]}
-          </a>
-        ))}
-      </nav>
+            Yield %
+          </button>
+        </div>
+      ) : null}
 
       {(initialLoad || refreshing) &&
       ![...quotes.values()].some((q) => q.last > 0) ? (
@@ -2371,7 +2335,7 @@ export function MarketsPage() {
             strokeWidth={2}
             className={refreshing || syncingPrices ? 'animate-spin' : undefined}
           />
-          {syncingPrices ? 'Syncing…' : 'Sync prices'}
+          {syncingPrices || refreshing ? 'Syncing…' : 'Sync prices'}
         </button>
         <button
           type="button"

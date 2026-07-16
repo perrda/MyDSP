@@ -8,16 +8,16 @@ describe('next25d markets / portfolio items 6-10', () => {
     expect(markets).toMatch(/markets-in-list-search/)
     expect(markets).toMatch(/Search watchlist by symbol or name/)
     expect(markets).toMatch(/matchesMarketsSearch/)
-    expect(markets).toMatch(/filteredTickerCount/)
+    expect(markets).toMatch(/markets-sticky-toolbar/)
     expect(markets).toMatch(/No \$\{meta\.emptyLabel\} matches/)
   })
 
-  it('7: watchlist dividend yield displays and can sort by yield', () => {
+  it('7: watchlist dividend yield displays; Yield % chip gated behind SHOW_MARKETS_TAG_YIELD_CHIPS', () => {
     const markets = readFileSync(resolve(__dirname, '../pages/MarketsPage.tsx'), 'utf8')
     expect(markets).toMatch(/sortByYieldDesc/)
     expect(markets).toMatch(/yieldSort/)
+    expect(markets).toMatch(/SHOW_MARKETS_TAG_YIELD_CHIPS/)
     expect(markets).toMatch(/Sort equity watchlist by dividend yield/)
-    expect(markets).toMatch(/>\s*Yield %\s*</)
     expect(markets).toMatch(/Yield \{t\.yieldPct\.toFixed/)
   })
 

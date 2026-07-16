@@ -1,8 +1,8 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.73**
+**Current version: 1.2.75**
 
-## Completed (through v1.2.73)
+## Completed (through v1.2.75)
 
 - Sync / Today polish (next25j tip 1–25): Compare week-Δ sync, What arrived extras, digest persist, paper NW in Compare/history, News unread Jump-in + bottom-nav dots, Tax/Recurring thumb+PTR, Today SLA/429/partial chips, smoke News allowlist, axe Liabilities/Import
 - Sync / media / polish (next25i tip 1–25): ISA override + YT video cache + alert thresholds sync, Finnhub 429 chip, paper commodity NW, PTR Tax/Compare, News/YouTube master–detail, bill commentary, YouTube unread Jump-in, smoke allowlist/ISA/PTR, axe Jobs/Goals/Trips, device-local prefs matrix
@@ -95,6 +95,7 @@
 
 ## Low priority
 
+- **Reintroduce Markets tag chips + Yield % sort** (Core / Speculative / Income / Other) — hidden in 1.2.75 via `SHOW_MARKETS_TAG_YIELD_CHIPS`; prefs + `ticker.tag` still persist
 - Tune broker aliases from more real IBKR/T212/Coinbase exports
 - Remittance-basis notes / deepen non-UK tax packs further
 - Optional: dedicated `/commodities` holdings page (qty · cost · P&L) beyond Markets watchlist

@@ -39,15 +39,17 @@ describe('next25e mobile / tablet items 11-15', () => {
     expect(modal).toMatch(/rounded-t-2xl sm:rounded-none/)
   })
 
-  it('14: Markets exposes sticky section jump chips for landscape navigation', () => {
+  it('14: Markets sticky toolbar keeps section jump chips available while scrolling', () => {
     const markets = readFileSync(resolve(__dirname, '../pages/MarketsPage.tsx'), 'utf8')
     const css = readFileSync(resolve(__dirname, '../index.css'), 'utf8')
 
     expect(markets).toMatch(/sectionOrder/)
+    expect(markets).toMatch(/markets-sticky-toolbar/)
     expect(markets).toMatch(/markets-section-jump-chips/)
     expect(markets).toMatch(/id=\{`markets-section-\$\{section\}`\}/)
     expect(markets).toMatch(/Crosses/)
-    expect(css).toMatch(/@media \(orientation: landscape\)[\s\S]*\.markets-section-jump-chips/)
+    expect(css).toMatch(/\.markets-sticky-toolbar/)
+    expect(css).toMatch(/top: var\(--app-header-offset/)
   })
 
   it('15: Jobs has a >=900 landscape list|Kanban split plus sticky column jump chips', () => {

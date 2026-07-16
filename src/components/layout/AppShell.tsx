@@ -37,7 +37,7 @@ function allowPullToRefresh(pathname: string): boolean {
 
 const titles: Record<string, { eyebrow: string; title: string }> = {
   '/': { eyebrow: 'Portfolio', title: 'Overview' },
-  '/markets': { eyebrow: 'Watchlist', title: 'Markets' },
+  '/markets': { eyebrow: 'Prices', title: 'Markets' },
   '/news': { eyebrow: 'Insights', title: 'News' },
   '/youtube': { eyebrow: 'Media', title: 'YouTube' },
   '/crypto': { eyebrow: 'Holdings', title: 'Crypto' },
