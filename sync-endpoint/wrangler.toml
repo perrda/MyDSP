@@ -1,4 +1,6 @@
-# Deploy with: cd sync-endpoint && npx wrangler deploy
+# Deploy with: npm run deploy:sync
+# Must pass --config (see package.json). Plain `cd sync-endpoint && wrangler deploy`
+# can walk up to the SPA wrangler.jsonc + .wrangler/deploy redirect and redeploy mydspv1.
 name = "mydsp-sync"
 main = "worker.js"
 compatibility_date = "2026-07-01"

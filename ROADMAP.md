@@ -1,8 +1,8 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.73**
+**Current version: 1.2.74**
 
-## Completed (through v1.2.73)
+## Completed (through v1.2.74)
 
 - Sync / Today polish (next25j tip 1–25): Compare week-Δ sync, What arrived extras, digest persist, paper NW in Compare/history, News unread Jump-in + bottom-nav dots, Tax/Recurring thumb+PTR, Today SLA/429/partial chips, smoke News allowlist, axe Liabilities/Import
 - Sync / media / polish (next25i tip 1–25): ISA override + YT video cache + alert thresholds sync, Finnhub 429 chip, paper commodity NW, PTR Tax/Compare, News/YouTube master–detail, bill commentary, YouTube unread Jump-in, smoke allowlist/ISA/PTR, axe Jobs/Goals/Trips, device-local prefs matrix
