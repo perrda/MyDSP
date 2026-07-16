@@ -204,7 +204,7 @@ export async function refreshMarketQuotes(
   await Promise.all(
     commodities.map(async (t) => {
       try {
-        const native = await fetchCommodityMarketQuote(t.symbol)
+        const native = await fetchCommodityMarketQuote(t.symbol, timeframe)
         if (!native || !(native.price > 0)) {
           out.set(t.id, emptyQuote(t, now, 'GBP', 2, 'none'))
           return

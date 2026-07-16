@@ -6,6 +6,7 @@ import {
   mergeDefaultTickers,
   newMarketTickerId,
   normalizeMarketSymbol,
+  normalizeSectionOrder,
   parseRatePair,
   MARKET_TICKER_TAGS,
   type MarketAssetKind,
@@ -14,6 +15,7 @@ import {
   type MarketTickerTag,
   type MarketsCollapsed,
   type MarketsDensity,
+  type MarketsSectionKey,
   type MarketsState,
 } from '../domain/markets'
 import { isMarketTimeframe, type MarketTimeframe } from '../domain/marketTimeframe'
@@ -98,6 +100,7 @@ export function loadMarketsState(): MarketsState {
         fx: Boolean((existing.collapsed as MarketsCollapsed | undefined)?.fx),
         crosses: Boolean((existing.collapsed as MarketsCollapsed | undefined)?.crosses),
       },
+      sectionOrder: normalizeSectionOrder((existing as MarketsState).sectionOrder),
       tickers: existing.tickers.map(normalizeTicker),
       density: existing.density === 'compact' ? 'compact' : 'comfortable',
       timeframe: isMarketTimeframe((existing as MarketsState).timeframe)
@@ -105,7 +108,8 @@ export function loadMarketsState(): MarketsState {
         : '24H',
     }
     const { state, added } = mergeDefaultTickers(normalized)
-    if (added.length > 0 || hadLegacyHeatDensity) writeState(state)
+    const hadNoSectionOrder = !Array.isArray((existing as MarketsState).sectionOrder)
+    if (added.length > 0 || hadLegacyHeatDensity || hadNoSectionOrder) writeState(state)
     return state
   }
   const seeded = createEmptyMarketsState()
@@ -269,6 +273,17 @@ export function reorderMarketTickersInKind(kind: MarketAssetKind, orderedIds: st
   saveMarketsState(state)
 }
 
+export function getMarketSectionOrder(): MarketsSectionKey[] {
+  return normalizeSectionOrder(loadMarketsState().sectionOrder)
+}
+
+/** Persist top→bottom order of Markets section cards (My Crypto, My Equities, …). */
+export function reorderMarketSections(ordered: MarketsSectionKey[]): void {
+  const state = loadMarketsState()
+  state.sectionOrder = normalizeSectionOrder(ordered)
+  saveMarketsState(state)
+}
+
 export function setMarketsCollapsed(
   section: keyof MarketsCollapsed,
   collapsed: boolean,
@@ -378,10 +393,30 @@ export function importMarketsFromBackup(raw: unknown): void {
     ),
   }
 
+  const remoteOrder = normalizeSectionOrder((parsed as MarketsState).sectionOrder)
+  const localOrder = normalizeSectionOrder((local as MarketsState | null)?.sectionOrder)
+  // Prefer remote section order when the other device customized it; else keep local.
+  const remoteCustomized =
+    JSON.stringify(remoteOrder) !==
+    JSON.stringify(normalizeSectionOrder(undefined))
+  const sectionOrder = remoteCustomized ? remoteOrder : localOrder
+
+  const density =
+    (parsed as MarketsState).density === 'compact' ||
+    (local as MarketsState | null)?.density === 'compact'
+      ? ('compact' as const)
+      : ('comfortable' as const)
+  const timeframeRaw =
+    (parsed as MarketsState).timeframe ?? (local as MarketsState | null)?.timeframe
+  const timeframe = isMarketTimeframe(timeframeRaw) ? timeframeRaw : '24H'
+
   const { state } = mergeDefaultTickers({
     version: 1,
     tickers: [...byKey.values()],
     collapsed,
+    sectionOrder,
+    density,
+    timeframe,
   })
   writeState(state, { fromSync: true })
 }

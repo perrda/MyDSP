@@ -509,10 +509,11 @@ async function fetchYahooChartQuote(
 /** Commodity futures/spot via Yahoo (native USD typically) — same chart path as equities. */
 export async function fetchCommodityMarketQuote(
   symbol: string,
+  timeframe: MarketTimeframe = DEFAULT_MARKET_TF,
 ): Promise<EquityMarketQuoteNative | null> {
   const sym = normalizeCommoditySymbol(symbol)
   if (!sym) return null
-  return fetchYahooChartQuote(sym)
+  return fetchYahooChartQuote(sym, timeframe)
 }
 
 /** Normalize equity / index symbols for Yahoo (SPX → ^GSPC, etc.). */

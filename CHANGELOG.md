@@ -1,5 +1,17 @@
 # MyDSP Changelog
 
+## [1.2.69] - 2026-07-16
+
+### Improved — Markets / portfolio (next 25g · 6–8)
+6. **Draggable Markets sections** — **Sections** Sort mode with ⋮⋮ handles on My Crypto / Equities / Commodities / Indices / FX / Crosses; order persisted + synced; jump chips follow  
+7. **Commodity timeframe** — 24H / 1W / 1M / 12M drives Gold / Silver / Copper Yahoo series (same as equities)  
+8. **No eternal Fetching…** — failed commodity (and other) quotes show **Unavailable** instead of spinning forever  
+
+### Version
+- 1.2.68 → **1.2.69**
+
+---
+
 ## [1.2.68] - 2026-07-16
 
 ### Added — My Commodities

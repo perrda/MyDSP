@@ -34,8 +34,8 @@ import {
   type MarketQuote,
   type MarketTicker,
   type MarketTickerTag,
-  type MarketsCollapsed,
   type MarketsDensity,
+  type MarketsSectionKey,
 } from '../domain/markets'
 import { addHoldingsMissingFromWatchlist, holdingsMissingFromWatchlist } from '../domain/addHoldingsToWatchlist'
 import {
@@ -57,10 +57,12 @@ import { KNOWN_CRYPTO_SYMBOLS } from '../services/prices'
 import { MARKET_TIMEFRAMES, type MarketTimeframe } from '../domain/marketTimeframe'
 import {
   addMarketTicker,
+  getMarketSectionOrder,
   listMarketTickers,
   loadMarketQuotesCache,
   loadMarketsState,
   removeMarketTicker,
+  reorderMarketSections,
   reorderMarketTickersInKind,
   saveMarketQuotesCache,
   setMarketsCollapsed,
@@ -103,7 +105,7 @@ const emptyForm: FormState = {
   yieldPct: '',
 }
 
-type SectionKey = keyof MarketsCollapsed
+type SectionKey = MarketsSectionKey
 
 const SECTION_META: Record<
   SectionKey,
@@ -149,7 +151,6 @@ const SECTION_META: Record<
   },
 }
 
-const SECTION_ORDER: SectionKey[] = ['crypto', 'equities', 'commodities', 'indices', 'fx', 'crosses']
 const SECTION_JUMP_LABEL: Record<SectionKey, string> = {
   crypto: 'Crypto',
   equities: 'Equities',
@@ -416,11 +417,31 @@ function freshnessLabel(q: MarketQuote | undefined): string | null {
   return null
 }
 
+/** Row status under price — avoid eternal “Fetching…” when Yahoo returned empty. */
+function quoteAvailabilityLabel(
+  q: MarketQuote | undefined,
+  opts: { refreshing: boolean },
+): string | null {
+  const live = freshnessLabel(q)
+  if (live) return live
+  if (q && !(q.last > 0)) {
+    const src = (q.source || '').toLowerCase()
+    if (src === 'none' || src === 'error' || src === 'invalid' || src.startsWith('stale:')) {
+      return 'Unavailable'
+    }
+    if (opts.refreshing) return 'Fetching…'
+    return 'Unavailable'
+  }
+  if (opts.refreshing) return 'Fetching…'
+  return null
+}
+
 export function MarketsPage() {
   const { data, privacy, setData } = usePortfolio()
   const [searchParams, setSearchParams] = useSearchParams()
   const [tickers, setTickers] = useState(() => listMarketTickers())
   const [collapsed, setCollapsed] = useState(() => loadMarketsState().collapsed)
+  const [sectionOrder, setSectionOrder] = useState<SectionKey[]>(() => getMarketSectionOrder())
   const [quotes, setQuotes] = useState<Map<string, MarketQuote>>(() => {
     const cached = loadMarketQuotesCache()
     return seedQuotesFromPortfolio(listMarketTickers(), data, cached)
@@ -435,6 +456,7 @@ export function MarketsPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [addKind, setAddKind] = useState<MarketAssetKind | null>(null)
   const [sorting, setSorting] = useState(false)
+  const [sectionSorting, setSectionSorting] = useState(false)
   const [density, setDensity] = useState<MarketsDensity>(() => getMarketsDensity())
   const [timeframe, setTimeframe] = useState<MarketTimeframe>(() => getMarketsTimeframe())
   const [sectionRefreshing, setSectionRefreshing] = useState<SectionKey | null>(null)
@@ -586,13 +608,18 @@ export function MarketsPage() {
     if (error) {
       return health ? `${error} · ${health}` : error
     }
+    if (sectionSorting) {
+      return health
+        ? `Drag ⋮⋮ on section headers to reorder My Crypto / Equities / … · ${health}`
+        : 'Drag ⋮⋮ on section headers to reorder My Crypto / Equities / …'
+    }
     if (sorting) {
       return health
         ? `Drag ⋮⋮ to reorder tickers within each section. · ${health}`
         : 'Drag ⋮⋮ to reorder tickers within each section.'
     }
     return health ?? 'Quotes refreshed'
-  }, [refreshing, error, sorting, quotes])
+  }, [refreshing, error, sorting, sectionSorting, quotes])
 
   const cryptoHoldingsValue = useMemo(() => {
     const map = new Map<string, number>()
@@ -650,7 +677,9 @@ export function MarketsPage() {
 
   const reloadList = useCallback(() => {
     setTickers(listMarketTickers())
-    setCollapsed(loadMarketsState().collapsed)
+    const state = loadMarketsState()
+    setCollapsed(state.collapsed)
+    setSectionOrder(getMarketSectionOrder())
   }, [])
 
   const refresh = useCallback(async (kind?: MarketAssetKind) => {
@@ -881,17 +910,29 @@ export function MarketsPage() {
     const isCollapsed = searchQuery ? false : collapsed[section]
     const isRateSection = section === 'fx' || section === 'crosses' || section === 'indices'
     const asOf = sectionAsOfLabel(items, quotes, loadMarketsState().lastRefreshAt)
+    const sectionBusy = sectionRefreshing === section || refreshing
 
     return (
       <section
         key={section}
         id={`markets-section-${section}`}
-        className="border border-border bg-bg-elevated mb-6 overflow-hidden"
+        className={`border border-border bg-bg-elevated overflow-hidden ${sectionSorting ? '' : 'mb-6'}`}
       >
         <div
           className={`markets-section-sticky sticky top-0 z-[5] bg-bg-elevated px-4 sm:px-5 flex items-start justify-between gap-3 border-b border-border ${density === 'compact' ? 'pt-3 pb-2' : 'pt-4 pb-3'}`}
+          onContextMenu={(e) => {
+            if (sectionSorting) return
+            e.preventDefault()
+            setSorting(false)
+            setYieldSort(false)
+            setSectionSorting(true)
+          }}
         >
-          <div className="min-w-0">
+          <div className="min-w-0 flex items-start gap-2">
+            {sectionSorting ? (
+              <ReorderHandle label={`Reorder ${meta.title} section`} />
+            ) : null}
+            <div className="min-w-0">
             <p className={`font-bold tracking-tight text-text mb-1 ${density === 'compact' ? 'text-base sm:text-lg' : 'text-xl sm:text-2xl'}`}>{meta.title}</p>
             <div className={`flex flex-wrap items-baseline gap-x-3 gap-y-1 ${privacyClass(privacy)}`}>
               <p className="label-uppercase text-[11px] text-text-subtle tabular-nums">
@@ -924,6 +965,7 @@ export function MarketsPage() {
                 <p className="markets-section-asof text-[11px] text-text-subtle tabular-nums">{asOf}</p>
               ) : null}
             </div>
+            </div>
           </div>
           <div className="flex items-center gap-1 shrink-0">
             {section === 'fx' ? (
@@ -940,7 +982,7 @@ export function MarketsPage() {
               type="button"
               className="btn-ghost btn-sm p-2 min-h-10 min-w-10"
               aria-label={`Refresh ${meta.title}`}
-              disabled={sectionRefreshing === section || refreshing}
+              disabled={sectionBusy}
               onClick={() => void refreshSection(section)}
             >
               <RefreshCw
@@ -1191,19 +1233,20 @@ export function MarketsPage() {
                           {formatLastDisplay(q)}
                         </p>
                         {(() => {
-                          const label = freshnessLabel(q)
-                          if (!label) {
-                            return q && !(q.last > 0) ? (
-                              <p className="text-[11px] text-text-subtle mt-0.5">Fetching…</p>
-                            ) : null
-                          }
+                          const label = quoteAvailabilityLabel(q, {
+                            refreshing: sectionBusy && !(q != null && q.last > 0),
+                          })
+                          if (!label) return null
                           const stale = isStaleQuote(q)
+                          const unavailable = label === 'Unavailable'
                           return (
                             <p
                               className={`text-[11px] mt-0.5 ${
-                                stale
-                                  ? 'text-amber-600 dark:text-amber-400 font-semibold'
-                                  : 'text-emerald-600/80 dark:text-emerald-400/80'
+                                unavailable
+                                  ? 'text-text-subtle'
+                                  : stale
+                                    ? 'text-amber-600 dark:text-amber-400 font-semibold'
+                                    : 'text-emerald-600/80 dark:text-emerald-400/80'
                               }`}
                             >
                               {label}
@@ -1382,11 +1425,26 @@ export function MarketsPage() {
               aria-pressed={sorting}
               onClick={() => {
                 setYieldSort(false)
+                setSectionSorting(false)
                 setSorting((v) => !v)
               }}
             >
               <ArrowUpDown size={14} strokeWidth={1.75} />
               {sorting ? 'Done' : 'Sort'}
+            </button>
+            <button
+              type="button"
+              className={`btn-secondary inline-flex items-center gap-2 ${sectionSorting ? 'border-accent text-accent' : ''}`}
+              aria-pressed={sectionSorting}
+              aria-label={sectionSorting ? 'Done reordering sections' : 'Reorder Markets sections'}
+              onClick={() => {
+                setYieldSort(false)
+                setSorting(false)
+                setSectionSorting((v) => !v)
+              }}
+            >
+              <ArrowUpDown size={14} strokeWidth={1.75} />
+              {sectionSorting ? 'Done' : 'Sections'}
             </button>
           </div>
         }
@@ -1521,6 +1579,7 @@ export function MarketsPage() {
           onClick={() => {
             setYieldSort((v) => !v)
             setSorting(false)
+            setSectionSorting(false)
           }}
           title="Sort equity watchlist by dividend yield"
         >
@@ -1532,7 +1591,7 @@ export function MarketsPage() {
         className="markets-section-jump-chips"
         aria-label="Jump to market section"
       >
-        {SECTION_ORDER.map((section) => (
+        {sectionOrder.map((section) => (
           <a
             key={section}
             href={`#markets-section-${section}`}
@@ -1548,7 +1607,22 @@ export function MarketsPage() {
         <MarketsHoldingsSkeleton rows={5} label="Loading market quotes" className="mb-6" />
       ) : null}
 
-      {SECTION_ORDER.map((section) => renderSection(section))}
+      {sectionSorting ? (
+        <ReorderList
+          items={sectionOrder}
+          getId={(s) => s}
+          onReorder={(next) => {
+            reorderMarketSections(next)
+            setSectionOrder(next)
+          }}
+          itemClassName="mb-6"
+          className="markets-section-reorder-list"
+        >
+          {(section) => renderSection(section)}
+        </ReorderList>
+      ) : (
+        sectionOrder.map((section) => renderSection(section))
+      )}
 
       <Modal open={modalOpen} title={modalTitle} onClose={() => setModalOpen(false)}>
         <div className="space-y-4">

@@ -44,7 +44,7 @@ function mockLocalStorage() {
   return mem
 }
 
-describe('My Commodities + Finnhub reminder (v1.2.68)', () => {
+describe('My Commodities + Finnhub reminder (v1.2.69)', () => {
   let mem: Map<string, string>
 
   beforeEach(() => {
@@ -186,9 +186,9 @@ describe('My Commodities + Finnhub reminder (v1.2.68)', () => {
     expect(quotes).toMatch(/kind === 'commodity'/)
   })
 
-  it('package version is 1.2.68', () => {
+  it('package version is 1.2.69', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.68')
+    expect(pkg.version).toBe('1.2.69')
   })
 })
 
