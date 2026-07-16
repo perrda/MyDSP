@@ -81,6 +81,8 @@ describe('next25b sync / backup trust', () => {
       isaRemaining: null,
       priceAlertThresholds: null,
       compareWeekSnapshot: null,
+      digestHighlights: null,
+      compareSelection: null,
       navLayout: null,
       bottomNavSlots: null,
       documentBlobs: null,
