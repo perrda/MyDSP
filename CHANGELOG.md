@@ -1,5 +1,75 @@
 # MyDSP Changelog
 
+## [1.2.60] - 2026-07-16
+
+### Improved — Quality / ops (next 25e · 21–25)
+21. **Lazy-load Settings** — SettingsPage out of main entry chunk  
+22. Axe CI gates for **Equities / Tax / Todos** (iphone-14)  
+23. Playwright **offline-queue** smoke + SYNC_SMOKE long-press / Retry notes  
+24. **Windowed** Equities/Crypto lists (`useWindowedList`, 40 + sentinel)  
+25. Docs — UI conventions + DEVELOPER_DOCS for next25e patterns  
+
+### Version
+- 1.2.59 → **1.2.60**
+
+---
+
+## [1.2.59] - 2026-07-16
+
+### Improved — Today / money / tax (next 25e · 16–20)
+16. Today **budget pulse** vs budget goals  
+17. Today **cash runway** estimate  
+18. Spending **merchant search**  
+19. Sell trade → **Tax disposal** CTA  
+20. Today **FIRE chip** from calcFire  
+
+### Version
+- 1.2.58 → **1.2.59**
+
+---
+
+## [1.2.58] - 2026-07-16
+
+### Improved — Mobile / tablet UX (next 25e · 11–15)
+11. Equities/Crypto **master–detail** ≥900px  
+12. Today **accordions** (next / bills / goals)  
+13. TradeModal **phone bottom-sheet**  
+14. Markets **section jump chips**  
+15. Jobs **list|Kanban** split / jump chips  
+
+### Version
+- 1.2.57 → **1.2.58**
+
+---
+
+## [1.2.57] - 2026-07-16
+
+### Improved — Markets / portfolio (next 25e · 6–10)
+6. Holdings **weight %** of portfolio  
+7. Equities/Crypto sticky **search**  
+8. Markets **Owned** chip → holding detail  
+9. Holding detail **day% + sparkline** from Markets cache  
+10. **Concentration** banner + Settings threshold  
+
+### Version
+- 1.2.56 → **1.2.57**
+
+---
+
+## [1.2.56] - 2026-07-16
+
+### Improved — Sync / security (next 25e · 1–5)
+1. Long-press **sync chip** → Sync now  
+2. Post-pull **What arrived** toast  
+3. Sync health **blob age / size**  
+4. **Passphrase rotate** wizard  
+5. Conflict sheet **Keep all local/remote** quick-resolve  
+
+### Version
+- 1.2.55 → **1.2.56**
+
+---
+
 ## [1.2.55] - 2026-07-16
 
 ### Improved — Quality / ops (next 25d · 21–25)

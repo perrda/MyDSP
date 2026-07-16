@@ -62,4 +62,34 @@ test.describe('MyDSP smoke', () => {
     await expect(page.getByText(/PIN \/ Face ID lock/i).first()).toBeVisible()
     await expect(page.getByText(/Bottom nav middle slots/i).first()).toBeVisible()
   })
+
+  test('offline queue enqueue surfaces in Settings Sync', async ({ page }) => {
+    await page.addInitScript(() => {
+      try {
+        const job = {
+          id: 'q_e2e_offline',
+          type: 'sync_push',
+          createdAt: new Date().toISOString(),
+          remoteUrl: 'https://example.com/sync',
+          note: 'e2e offline',
+          attempts: 1,
+          nextRetryAt: new Date(Date.now() + 60_000).toISOString(),
+        }
+        localStorage.setItem('mydsp_offline_queue', JSON.stringify([job]))
+        localStorage.setItem(
+          'mydsp_sync_config',
+          JSON.stringify({
+            enabled: true,
+            remoteUrl: 'https://example.com/sync',
+            rememberPassphrase: false,
+          }),
+        )
+      } catch {
+        /* ignore */
+      }
+    })
+    await page.goto('/settings#sync')
+    await expect(page.getByText(/Offline queue/i).first()).toBeVisible({ timeout: 20_000 })
+    await expect(page.getByText(/Retry now|e2e offline|sync push/i).first()).toBeVisible()
+  })
 })

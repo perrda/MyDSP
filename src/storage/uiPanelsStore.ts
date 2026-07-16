@@ -42,6 +42,11 @@ export function isUiPanelOpen(id: string): boolean {
   return openMap[id] === true
 }
 
+/** Nullable read for panels that need an explicit default-open first paint. */
+export function getUiPanelOpenState(id: string): boolean | null {
+  return Object.prototype.hasOwnProperty.call(openMap, id) ? openMap[id] === true : null
+}
+
 export function setUiPanelOpen(id: string, open: boolean): void {
   if (openMap[id] === open) return
   openMap = { ...openMap, [id]: open }

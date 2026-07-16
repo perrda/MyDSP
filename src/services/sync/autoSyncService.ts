@@ -25,7 +25,7 @@ import {
 import { getLocalDeviceHint } from './deviceNickname'
 import { conflictKey, type ConflictChoice } from './conflicts'
 import { getSessionSyncPassphrase, hydrateSessionSyncPassphrase } from './sessionPassphrase'
-import { collectSyncHighlights, setSyncHighlights } from './syncHighlights'
+import { collectSyncHighlights, setSyncHighlights, summarizeSyncHighlights } from './syncHighlights'
 
 const PUSH_DEBOUNCE_MS = 4_000
 const PULL_MIN_INTERVAL_MS = 8_000
@@ -407,6 +407,7 @@ async function doPull(cfg: SyncConfig, pass: string, reason: CycleReason): Promi
       lastSyncError: undefined,
       lastMergeCount: result.merged,
       lastRemoteExportedAt: meta.exportedAt,
+      ...(meta.encryptedBytes !== undefined ? { lastRemoteBlobBytes: meta.encryptedBytes } : {}),
     })
     pendingConflictPreview = null
     if (!wasDirty) dirty = false
@@ -443,6 +444,17 @@ async function doPull(cfg: SyncConfig, pass: string, reason: CycleReason): Promi
     } catch {
       /* ignore */
     }
+    if (hasHighlights) {
+      const summary = summarizeSyncHighlights(highlights)
+      if (summary) {
+        emitAppToast({
+          type: 'success',
+          title: 'What arrived',
+          message: summary,
+          duration: 6000,
+        })
+      }
+    }
     return true
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Merge failed'
@@ -468,7 +480,7 @@ async function doPush(cfg: SyncConfig, pass: string): Promise<void> {
   const pushStarted = Date.now()
   emit({ state: 'pushing', message: 'Pushing to cloud…', lastAt: status.lastAt })
   try {
-    await pushSync(cfg.remoteUrl, pass)
+    const pushed = await pushSync(cfg.remoteUrl, pass)
     dirty = false
     const at = new Date().toISOString()
     const pushMs = Date.now() - pushStarted
@@ -477,7 +489,9 @@ async function doPush(cfg: SyncConfig, pass: string): Promise<void> {
     updateCfg({
       lastSyncAt: at,
       lastSyncError: undefined,
-      lastRemoteExportedAt: meta?.exportedAt ?? at,
+      lastRemoteExportedAt: meta?.exportedAt ?? pushed.exportedAt,
+      lastRemoteBlobBytes: meta?.encryptedBytes ?? pushed.bytes,
+      lastPushBytes: pushed.bytes,
     })
     emit({ state: 'idle', message: 'Synced', lastAt: at, lastPushMs: pushMs })
     try {
@@ -613,7 +627,12 @@ export function stopAutoSync(): void {
 }
 
 /** Force an immediate sync cycle (Settings “Sync now”). */
-export async function syncNow(): Promise<void> {
+export async function forceSyncNow(): Promise<void> {
   dirty = true
   await runAutoSyncCycle('manual')
+}
+
+/** Back-compat alias for existing Settings / pull-to-refresh callers. */
+export async function syncNow(): Promise<void> {
+  await forceSyncNow()
 }

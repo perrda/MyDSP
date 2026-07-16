@@ -15,6 +15,15 @@ export type SyncHighlightMap = Partial<Record<SyncHighlightCollection, number[]>
 const KEY = 'mydsp_sync_highlights_v1'
 const TTL_MS = 8_000
 
+const COLLECTION_LABELS: Record<SyncHighlightCollection, [singular: string, plural: string]> = {
+  todoItems: ['to-do', 'to-dos'],
+  todoLists: ['to-do list', 'to-do lists'],
+  jobApplications: ['job application', 'job applications'],
+  spending: ['spending row', 'spending rows'],
+  goals: ['goal', 'goals'],
+  journal: ['journal entry', 'journal entries'],
+}
+
 type Stored = {
   at: number
   ids: SyncHighlightMap
@@ -60,6 +69,22 @@ export function clearSyncHighlights(): void {
   } catch {
     /* ignore */
   }
+}
+
+export function summarizeSyncHighlights(ids: SyncHighlightMap, maxParts = 4): string | null {
+  const parts = (Object.keys(COLLECTION_LABELS) as SyncHighlightCollection[])
+    .map((key) => {
+      const count = ids[key]?.length ?? 0
+      if (count <= 0) return null
+      const [one, many] = COLLECTION_LABELS[key]
+      return `${count} ${count === 1 ? one : many}`
+    })
+    .filter((part): part is string => Boolean(part))
+
+  if (parts.length === 0) return null
+  const shown = parts.slice(0, maxParts)
+  const hidden = parts.length - shown.length
+  return hidden > 0 ? `${shown.join(' · ')} · ${hidden} more` : shown.join(' · ')
 }
 
 /** Diff numeric ids present on remote but not local. */

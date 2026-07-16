@@ -55,6 +55,17 @@ function makeRuleHref(tx: SpendingEntry): string {
   return `/rules?${params.toString()}`
 }
 
+function matchesSpendingMerchantSearch(tx: SpendingEntry, query: string): boolean {
+  if (!query) return true
+  const haystack = [
+    tx.description,
+    tx.category,
+    tx.location ?? '',
+    tx.notes ?? '',
+  ].join(' ').toLowerCase()
+  return haystack.includes(query)
+}
+
 const emptyForm = {
   date: new Date().toISOString().slice(0, 10),
   description: '',
@@ -125,10 +136,7 @@ export function SpendingPage() {
         const matchMonth = (tx.date ?? '').startsWith(ym)
         const matchCat =
           category === 'All' || tx.category.toLowerCase() === category.toLowerCase()
-        const matchQ =
-          !q ||
-          tx.description.toLowerCase().includes(q) ||
-          tx.category.toLowerCase().includes(q)
+        const matchQ = matchesSpendingMerchantSearch(tx, q)
         return matchMonth && matchCat && matchQ
       })
   }, [data.spending, query, category, ym])
@@ -401,7 +409,7 @@ export function SpendingPage() {
             <input
               id="sp-search"
               type="search"
-              placeholder="Description or category…"
+              placeholder="Merchant / description / category…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />

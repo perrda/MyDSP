@@ -74,6 +74,7 @@ import {
   getDisplayCurrency,
   privacyClass,
 } from '../utils/format'
+import { sortBySortOrder } from '../utils/reorder'
 import type { PortfolioData } from '../domain/types'
 
 type FormState = {
@@ -136,6 +137,15 @@ const SECTION_META: Record<
   },
 }
 
+const SECTION_ORDER: SectionKey[] = ['crypto', 'equities', 'indices', 'fx', 'crosses']
+const SECTION_JUMP_LABEL: Record<SectionKey, string> = {
+  crypto: 'Crypto',
+  equities: 'Equities',
+  indices: 'Indices',
+  fx: 'FX',
+  crosses: 'Crosses',
+}
+
 function ChangeBadge({ pct }: { pct: number }) {
   const up = pct > 0
   const flat = Math.abs(pct) < 0.005
@@ -167,6 +177,10 @@ function matchesMarketsSearch(t: MarketTicker, query: string): boolean {
   if (!query) return true
   const haystack = `${t.symbol} ${t.name}`.toLowerCase()
   return haystack.includes(query)
+}
+
+function normPortfolioSymbol(symbol: string): string {
+  return symbol.trim().toUpperCase().replace(/^\^/, '')
 }
 
 function sortByYieldDesc(tickers: MarketTicker[]): MarketTicker[] {
@@ -566,6 +580,19 @@ export function MarketsPage() {
     return map
   }, [data.equities])
 
+  const ownedHoldingRouteByKey = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const c of sortBySortOrder(data.crypto)) {
+      const key = `crypto:${normPortfolioSymbol(c.symbol)}`
+      if (!map.has(key)) map.set(key, `/crypto/${c.id}`)
+    }
+    for (const e of sortBySortOrder(data.equities)) {
+      const key = `equity:${normPortfolioSymbol(e.symbol)}`
+      if (!map.has(key)) map.set(key, `/equities/${e.id}`)
+    }
+    return map
+  }, [data.crypto, data.equities])
+
   const reloadList = useCallback(() => {
     setTickers(listMarketTickers())
     setCollapsed(loadMarketsState().collapsed)
@@ -802,6 +829,7 @@ export function MarketsPage() {
     return (
       <section
         key={section}
+        id={`markets-section-${section}`}
         className="border border-border bg-bg-elevated mb-6 overflow-hidden"
       >
         <div
@@ -1012,6 +1040,10 @@ export function MarketsPage() {
                   const showSpark = Boolean(q && q.sparkline.length > 1)
                   const compact = density === 'compact'
                   const focused = focusSymbol === t.symbol
+                  const ownedRoute =
+                    t.kind === 'crypto' || t.kind === 'equity'
+                      ? ownedHoldingRouteByKey.get(`${t.kind}:${normPortfolioSymbol(t.symbol)}`)
+                      : undefined
                   return (
                     <div
                       id={`market-${t.symbol.replace(/[^a-zA-Z0-9]/g, '_')}`}
@@ -1066,6 +1098,15 @@ export function MarketsPage() {
                             <span className="text-[10px] uppercase tracking-wider text-text-subtle">
                               {t.tag}
                             </span>
+                          ) : null}
+                          {ownedRoute ? (
+                            <Link
+                              to={ownedRoute}
+                              className="markets-owned-chip text-[10px] uppercase tracking-wider font-semibold px-1.5 py-0.5 border border-accent/40 text-accent hover:bg-accent/10"
+                              aria-label={`Owned holding detail for ${t.symbol}`}
+                            >
+                              Owned
+                            </Link>
                           ) : null}
                         </div>
                         {!compact ? (
@@ -1417,16 +1458,27 @@ export function MarketsPage() {
         </button>
       </div>
 
+      <nav
+        className="markets-section-jump-chips"
+        aria-label="Jump to market section"
+      >
+        {SECTION_ORDER.map((section) => (
+          <a
+            key={section}
+            href={`#markets-section-${section}`}
+            className="markets-section-jump-chip btn-ghost btn-sm"
+          >
+            {SECTION_JUMP_LABEL[section]}
+          </a>
+        ))}
+      </nav>
+
       {(initialLoad || refreshing) &&
       ![...quotes.values()].some((q) => q.last > 0) ? (
         <MarketsHoldingsSkeleton rows={5} label="Loading market quotes" className="mb-6" />
       ) : null}
 
-      {renderSection('crypto')}
-      {renderSection('equities')}
-      {renderSection('indices')}
-      {renderSection('fx')}
-      {renderSection('crosses')}
+      {SECTION_ORDER.map((section) => renderSection(section))}
 
       <Modal open={modalOpen} title={modalTitle} onClose={() => setModalOpen(false)}>
         <div className="space-y-4">

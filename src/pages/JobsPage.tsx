@@ -529,6 +529,22 @@ export function JobsPage() {
         ) : null}
       </div>
 
+      {viewMode === 'kanban' ? (
+        <nav className="jobs-kanban-jump-chips" aria-label="Jump to job columns">
+          {kanbanData.map((column) => (
+            <button
+              key={column.id}
+              type="button"
+              className="btn-ghost btn-sm"
+              onClick={() => jumpToKanbanColumn(column.title)}
+            >
+              {column.title}
+              <span className="ml-1 text-text-subtle tabular-nums">({column.applications.length})</span>
+            </button>
+          ))}
+        </nav>
+      ) : null}
+
       <CollapsibleFilters
         id="jobs-filters"
         title="Filters & search"
@@ -655,65 +671,88 @@ export function JobsPage() {
       ) : viewMode === 'analytics' ? (
         <JobAnalytics applications={filteredApplications} privacy={privacy} />
       ) : viewMode === 'kanban' ? (
-        <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory kanban-snap-scroll">
-          {kanbanData.map((column) => (
-            <div
-              key={column.title}
-              data-kanban-stage={column.id}
-              data-kanban-column={column.title}
-              className={`flex-shrink-0 w-[min(80vw,20rem)] sm:w-80 rounded-lg transition-colors snap-start snap-always ${
-                dragOverColumn === column.title ? 'bg-accent/10 ring-2 ring-accent' : ''
-              }`}
-              onDragOver={(e) => {
-                e.preventDefault()
-                setDragOverColumn(column.title)
-              }}
-              onDragLeave={() => setDragOverColumn((c) => (c === column.title ? null : c))}
-              onDrop={(e) => {
-                e.preventDefault()
-                const id = Number(e.dataTransfer.getData('text/job-id'))
-                if (Number.isFinite(id)) handleKanbanDrop(column.title, id)
-              }}
-            >
-              <div className={`surface p-3 mb-3 border-t-4 ${column.color}`}>
-                <h3 className="font-bold uppercase text-xs tracking-wider">
-                  {column.title} ({column.applications.length})
-                </h3>
-                <p className="text-[11px] text-text-subtle mt-1">
-                  Drag grip to change status · reorder handle to sort
-                </p>
-              </div>
-              {column.applications.length === 0 ? (
-                <p className="text-xs text-text-subtle px-2 py-6 text-center border border-dashed border-border">
-                  Drop applications here
-                </p>
-              ) : (
-              <ReorderList
-                items={column.applications}
-                getId={(app) => String(app.id)}
-                onReorder={(next) => handleReorderInColumn(column.status, next)}
-                className="space-y-3 min-h-[80px]"
-              >
-                {(app) => (
-                  <JobCard
-                    application={app}
-                    onStatusChange={handleStatusChange}
-                    onEdit={handleEditApplication}
-                    onDelete={handleDeleteApplication}
-                    onDuplicate={handleDuplicateApplication}
-                    selected={selectedJobs.has(app.id)}
-                    onToggleSelect={toggleJobSelect}
-                    privacy={privacy}
-                    draggable
-                    showReorderHandle
-                    onKanbanColumnDrop={handleKanbanDrop}
-                    onKanbanDragOverColumn={setDragOverColumn}
-                  />
-                )}
-              </ReorderList>
-              )}
+        <div className="jobs-list-kanban-split">
+          <aside className="jobs-list-kanban-split__list" aria-label="Applications list">
+            <div className="surface p-3 mb-3">
+              <p className="label-uppercase mb-1">List</p>
+              <p className="text-xs text-text-muted">Select a card or scan status while Kanban stays open.</p>
             </div>
-          ))}
+            <div className="space-y-3">
+              {filteredApplications.slice(0, 12).map((app) => (
+                <JobCard
+                  key={`split-list-${app.id}`}
+                  application={app}
+                  onStatusChange={handleStatusChange}
+                  onEdit={handleEditApplication}
+                  onDelete={handleDeleteApplication}
+                  onDuplicate={handleDuplicateApplication}
+                  selected={selectedJobs.has(app.id)}
+                  onToggleSelect={toggleJobSelect}
+                  privacy={privacy}
+                />
+              ))}
+            </div>
+          </aside>
+          <div className="jobs-list-kanban-split__kanban flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory kanban-snap-scroll">
+            {kanbanData.map((column) => (
+              <div
+                key={column.title}
+                data-kanban-stage={column.id}
+                data-kanban-column={column.title}
+                className={`flex-shrink-0 w-[min(80vw,20rem)] sm:w-80 rounded-lg transition-colors snap-start snap-always ${
+                  dragOverColumn === column.title ? 'bg-accent/10 ring-2 ring-accent' : ''
+                }`}
+                onDragOver={(e) => {
+                  e.preventDefault()
+                  setDragOverColumn(column.title)
+                }}
+                onDragLeave={() => setDragOverColumn((c) => (c === column.title ? null : c))}
+                onDrop={(e) => {
+                  e.preventDefault()
+                  const id = Number(e.dataTransfer.getData('text/job-id'))
+                  if (Number.isFinite(id)) handleKanbanDrop(column.title, id)
+                }}
+              >
+                <div className={`surface p-3 mb-3 border-t-4 ${column.color}`}>
+                  <h3 className="font-bold uppercase text-xs tracking-wider">
+                    {column.title} ({column.applications.length})
+                  </h3>
+                  <p className="text-[11px] text-text-subtle mt-1">
+                    Drag grip to change status · reorder handle to sort
+                  </p>
+                </div>
+                {column.applications.length === 0 ? (
+                  <p className="text-xs text-text-subtle px-2 py-6 text-center border border-dashed border-border">
+                    Drop applications here
+                  </p>
+                ) : (
+                <ReorderList
+                  items={column.applications}
+                  getId={(app) => String(app.id)}
+                  onReorder={(next) => handleReorderInColumn(column.status, next)}
+                  className="space-y-3 min-h-[80px]"
+                >
+                  {(app) => (
+                    <JobCard
+                      application={app}
+                      onStatusChange={handleStatusChange}
+                      onEdit={handleEditApplication}
+                      onDelete={handleDeleteApplication}
+                      onDuplicate={handleDuplicateApplication}
+                      selected={selectedJobs.has(app.id)}
+                      onToggleSelect={toggleJobSelect}
+                      privacy={privacy}
+                      draggable
+                      showReorderHandle
+                      onKanbanColumnDrop={handleKanbanDrop}
+                      onKanbanDragOverColumn={setDragOverColumn}
+                    />
+                  )}
+                </ReorderList>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       ) : (
         <div className="space-y-3">

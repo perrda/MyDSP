@@ -20,14 +20,46 @@ import {
   isSymbolDrifting,
   loadHoldingsDriftThresholdPct,
 } from '../domain/holdingsDrift'
+import {
+  includedPortfolioHoldingValue,
+  loadPortfolioConcentrationThresholdPct,
+  portfolioConcentrationHits,
+} from '../domain/portfolioConcentration'
 import type { CryptoHolding } from '../domain/types'
 import { addHoldingsMissingFromWatchlist, holdingsMissingFromWatchlist } from '../domain/addHoldingsToWatchlist'
 import { applySortOrder, sortBySortOrder } from '../utils/reorder'
+import { useWindowedList } from '../hooks/useWindowedList'
 import { formatGBP, formatGBPPrecise, formatPct, formatQty, privacyClass } from '../utils/format'
 import { useToasts } from '../components/ToastProvider'
 
 function nextId(items: { id: number }[]): number {
   return items.reduce((m, i) => Math.max(m, i.id), 0) + 1
+}
+
+function matchesPortfolioSearch(holding: { symbol: string; name: string }, query: string): boolean {
+  if (!query) return true
+  return `${holding.symbol} ${holding.name}`.toLowerCase().includes(query)
+}
+
+function mergeVisibleOrder<T extends { id: number }>(all: T[], visibleNext: T[]): T[] {
+  const visibleIds = new Set(visibleNext.map((item) => item.id))
+  const reordered = [...visibleNext]
+  return all.map((item) => (visibleIds.has(item.id) ? reordered.shift() ?? item : item))
+}
+
+function taxDisposalHrefForCrypto(
+  holding: CryptoHolding,
+  vals: { date: string; qty: number; price: number; fees: number },
+): string {
+  const params = new URLSearchParams()
+  const unitCost = holding.qty > 0 ? holding.cost / holding.qty : 0
+  params.set('assetType', 'crypto')
+  params.set('symbol', holding.symbol)
+  params.set('date', vals.date)
+  params.set('qty', String(vals.qty))
+  params.set('proceeds', String(Math.max(0, vals.qty * vals.price - vals.fees)))
+  params.set('cost', String(Math.max(0, vals.qty * unitCost)))
+  return `/tax?${params.toString()}`
 }
 
 const emptyForm = {
@@ -50,11 +82,35 @@ export function CryptoPage() {
   const [tradeFor, setTradeFor] = useState<CryptoHolding | null>(null)
   const [tradeSide, setTradeSide] = useState<'buy' | 'sell'>('buy')
   const [sorting, setSorting] = useState(false)
+  const [searchText, setSearchText] = useState('')
+  const [selectedHoldingId, setSelectedHoldingId] = useState<number | null>(null)
 
   const holdings = useMemo(() => sortBySortOrder(data.crypto), [data.crypto])
+  const searchQuery = searchText.trim().toLowerCase()
+  const filteredHoldings = useMemo(
+    () => holdings.filter((holding) => matchesPortfolioSearch(holding, searchQuery)),
+    [holdings, searchQuery],
+  )
+  const windowed = useWindowedList(filteredHoldings, 40, 30)
+  const listHoldings = sorting ? filteredHoldings : windowed.visible
+  const selectedHolding = useMemo(
+    () =>
+      filteredHoldings.find((c) => c.id === selectedHoldingId) ??
+      filteredHoldings[0] ??
+      holdings.find((c) => c.id === selectedHoldingId) ??
+      holdings[0] ??
+      null,
+    [filteredHoldings, holdings, selectedHoldingId],
+  )
   const showSkeleton = refreshing && holdings.length === 0
   const driftHits = useMemo(() => cryptoDriftHits(holdings), [holdings, data.settings.lastPriceUpdate])
   const driftThreshold = loadHoldingsDriftThresholdPct()
+  const includedPortfolioValue = useMemo(() => includedPortfolioHoldingValue(data), [data])
+  const concentrationThreshold = loadPortfolioConcentrationThresholdPct()
+  const concentrationHits = useMemo(
+    () => portfolioConcentrationHits(data, concentrationThreshold),
+    [data, concentrationThreshold],
+  )
 
   const fillFromLastSynced = () => {
     const snapshot = data
@@ -238,6 +294,34 @@ export function CryptoPage() {
         }
       />
 
+      <div className="holdings-in-list-search sticky top-0 z-[9] -mx-1 mb-4 bg-bg/95 px-1 py-2 backdrop-blur supports-[backdrop-filter]:bg-bg/80">
+        <div className="surface border border-border-strong px-3 py-2.5">
+          <label className="sr-only" htmlFor="crypto-search-input">
+            Search crypto holdings
+          </label>
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              id="crypto-search-input"
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              placeholder="Search crypto holdings by symbol or name"
+              aria-label="Search crypto holdings by symbol or name"
+              className="min-w-[14rem] flex-1"
+            />
+            {searchText ? (
+              <button type="button" className="btn-ghost btn-sm" onClick={() => setSearchText('')}>
+                Clear
+              </button>
+            ) : null}
+          </div>
+          <p className="mt-1.5 text-[11px] text-text-subtle">
+            {searchQuery
+              ? `${filteredHoldings.length}/${holdings.length} crypto holding match${filteredHoldings.length === 1 ? '' : 'es'}`
+              : `${holdings.length} crypto holding${holdings.length === 1 ? '' : 's'}`}
+          </p>
+        </div>
+      </div>
+
       {driftHits.length > 0 ? (
         <div
           className="mb-4 px-4 py-3 border border-amber-500/40 bg-amber-500/10 text-sm text-amber-800 dark:text-amber-200 flex flex-wrap items-center justify-between gap-3"
@@ -250,6 +334,26 @@ export function CryptoPage() {
           <button type="button" className="btn-secondary btn-sm bg-bg-elevated/80" onClick={fillFromLastSynced}>
             Use Markets prices
           </button>
+        </div>
+      ) : null}
+
+      {concentrationHits.length > 0 ? (
+        <div
+          className="portfolio-concentration-banner mb-4 px-4 py-3 border border-amber-500/40 bg-amber-500/10 text-sm text-amber-800 dark:text-amber-200 flex flex-wrap items-center justify-between gap-3"
+          role="status"
+        >
+          <span>
+            Concentration: {concentrationHits[0]!.symbol} is{' '}
+            {concentrationHits[0]!.weightPct.toFixed(1)}% of included portfolio value (threshold{' '}
+            {concentrationThreshold}%)
+            {concentrationHits.length > 1 ? ` · +${concentrationHits.length - 1} more` : ''}.
+          </span>
+          <Link
+            to={`/${concentrationHits[0]!.kind === 'equity' ? 'equities' : 'crypto'}/${concentrationHits[0]!.id}`}
+            className="btn-secondary btn-sm bg-bg-elevated/80"
+          >
+            Review holding
+          </Link>
         </div>
       ) : null}
 
@@ -309,17 +413,29 @@ export function CryptoPage() {
           description="Add BTC, ETH, or any coin to track quantity, live price, and P&amp;L."
           action={{ label: 'Add crypto', onClick: openCreate }}
         />
+      ) : filteredHoldings.length === 0 ? (
+        <div className="surface p-6 text-center text-sm text-text-muted">
+          No crypto holdings match "{searchText.trim()}".
+        </div>
       ) : (
+        <div className="holdings-master-detail crypto-master-detail">
         <ReorderList
-          items={holdings}
+          items={listHoldings}
           getId={(c) => String(c.id)}
-          onReorder={(next) => setData((prev) => ({ ...prev, crypto: applySortOrder(next) }))}
+          onReorder={(next) =>
+            setData((prev) => ({
+              ...prev,
+              crypto: applySortOrder(mergeVisibleOrder(holdings, next)),
+            }))
+          }
           className="flex flex-col gap-3 md:gap-px"
         >
           {(c) => {
             const value = c.qty * c.price
             const pnl = value - c.cost
             const included = c.includeInPortfolio !== false
+            const portfolioWeightPct =
+              included && includedPortfolioValue > 0 ? (value / includedPortfolioValue) * 100 : null
             const driftHit = driftHits.find((h) => isSymbolDrifting([h], c.symbol))
             const drifting = Boolean(driftHit)
             return (
@@ -334,7 +450,10 @@ export function CryptoPage() {
               <div
                 className={`surface p-4 md:p-5 flex flex-wrap md:flex-nowrap items-center gap-3 rounded-xl md:rounded-none shadow-sm md:shadow-none ${
                   included ? '' : 'opacity-50'
-                } ${drifting ? 'ring-1 ring-inset ring-amber-500/50 bg-amber-500/5' : ''}`}
+                } ${drifting ? 'ring-1 ring-inset ring-amber-500/50 bg-amber-500/5' : ''} ${
+                  selectedHolding?.id === c.id ? 'holdings-master-row-selected' : ''
+                }`}
+                onClick={() => setSelectedHoldingId(c.id)}
               >
                 {sorting ? <ReorderHandle label={`Reorder ${c.symbol}`} /> : null}
                 <Link to={`/crypto/${c.id}`} className="min-w-0 flex-1 hover:text-accent transition-colors">
@@ -362,6 +481,10 @@ export function CryptoPage() {
                   </p>
                   <p className="text-[11px] text-text-subtle tabular-nums mt-0.5">
                     Cost {formatGBP(c.cost)} · P&L {formatGBP(pnl, { signed: true })}
+                  </p>
+                  <p className="text-[11px] text-text-subtle tabular-nums mt-0.5">
+                    Portfolio weight{' '}
+                    {portfolioWeightPct == null ? 'Excluded' : `${portfolioWeightPct.toFixed(1)}%`}
                   </p>
                 </div>
                 <p
@@ -419,6 +542,77 @@ export function CryptoPage() {
             )
           }}
         </ReorderList>
+        {!sorting && windowed.hasMore ? (
+          <div
+            ref={windowed.sentinelRef}
+            className="holdings-window-sentinel py-3 text-center text-xs text-text-subtle"
+          >
+            Showing {listHoldings.length} of {filteredHoldings.length} · scroll for more
+            <button type="button" className="btn-ghost btn-sm ml-2 min-h-9" onClick={windowed.showAll}>
+              Show all
+            </button>
+          </div>
+        ) : null}
+        {selectedHolding ? (
+          <aside
+            className="holdings-master-detail-panel surface p-4 md:p-5 rounded-xl md:rounded-none shadow-sm md:shadow-none"
+            aria-label={`Selected crypto detail for ${selectedHolding.symbol}`}
+          >
+            {(() => {
+              const value = selectedHolding.qty * selectedHolding.price
+              const pnl = value - selectedHolding.cost
+              const weight =
+                selectedHolding.includeInPortfolio !== false && includedPortfolioValue > 0
+                  ? (value / includedPortfolioValue) * 100
+                  : null
+              return (
+                <div className={privacyClass(privacy)}>
+                  <p className="label-uppercase mb-1">Selected crypto</p>
+                  <h2 className="text-xl font-bold tracking-tight mb-1">{selectedHolding.symbol}</h2>
+                  <p className="text-sm text-text-muted mb-4">{selectedHolding.name}</p>
+                  <dl className="space-y-3 text-sm">
+                    <div>
+                      <dt className="text-xs uppercase tracking-wider text-text-subtle">Value</dt>
+                      <dd className="font-semibold tabular-nums">{formatGBP(value)}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs uppercase tracking-wider text-text-subtle">P&L</dt>
+                      <dd className={`font-semibold tabular-nums ${pnl >= 0 ? 'text-accent' : 'text-text-muted'}`}>
+                        {formatGBP(pnl, { signed: true })} · {formatPct(selectedHolding.cost > 0 ? (pnl / selectedHolding.cost) * 100 : 0)}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs uppercase tracking-wider text-text-subtle">Holding</dt>
+                      <dd className="tabular-nums">
+                        {formatQty(selectedHolding.qty)} × {formatGBPPrecise(selectedHolding.price)}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs uppercase tracking-wider text-text-subtle">Portfolio weight</dt>
+                      <dd className="tabular-nums">{weight == null ? 'Excluded' : `${weight.toFixed(1)}%`}</dd>
+                    </div>
+                  </dl>
+                  <div className="mt-5 flex flex-wrap gap-2">
+                    <Link to={`/crypto/${selectedHolding.id}`} className="btn-primary btn-sm">
+                      Open detail
+                    </Link>
+                    <button
+                      type="button"
+                      className="btn-secondary btn-sm"
+                      onClick={() => {
+                        setTradeFor(selectedHolding)
+                        setTradeSide('sell')
+                      }}
+                    >
+                      Sell
+                    </button>
+                  </div>
+                </div>
+              )
+            })()}
+          </aside>
+        ) : null}
+        </div>
       )}
 
       <Modal open={open} size="full" title={editing ? 'Edit crypto' : 'Add crypto'} onClose={() => setOpen(false)}>
@@ -514,7 +708,19 @@ export function CryptoPage() {
               holdingId: tradeFor.id,
             }),
           )
-          showToast({ type: 'success', title: 'Trade saved', message: tradeFor.symbol })
+          const taxHref = vals.side === 'sell' ? taxDisposalHrefForCrypto(tradeFor, vals) : null
+          showToast({
+            type: 'success',
+            title: 'Trade saved',
+            message: tradeFor.symbol,
+            duration: taxHref ? 9000 : undefined,
+            action: taxHref
+              ? {
+                  label: 'Tax disposal',
+                  onClick: () => navigate(taxHref),
+                }
+              : undefined,
+          })
         }}
       />
 

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
-import { ArrowRight, CandlestickChart } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { ArrowRight, CandlestickChart, ChevronDown, ChevronUp } from 'lucide-react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { GettingStartedChecklist } from '../components/GettingStartedChecklist'
 import { AllocationRing, NetWorthChart } from '../components/charts/LazyCharts'
 import { BudgetSparkline } from '../components/charts/BudgetSparkline'
@@ -13,6 +13,7 @@ import { usePortfolio } from '../context/PortfolioContext'
 import { evaluateAchievements } from '../domain/achievements'
 import { buildAlerts } from '../domain/alerts'
 import { worstBudgetOffenders } from '../domain/budgetChart'
+import { calcFire } from '../domain/fire'
 import { appendManualSnapshot } from '../domain/history'
 import { nearestGoalProjection, formatGoalProjectionLine } from '../domain/goalProjectedDate'
 import { formatMoneyPulseLine, moneyPulseDelta } from '../domain/moneyPulse'
@@ -39,6 +40,11 @@ import { loadSyncConfig } from '../services/sync/syncService'
 import { loadOfflineQueue } from '../services/offlineQueue'
 import { LAST_BACKUP_KEY } from '../storage/backupStore'
 import { listMarketTickers, loadMarketQuotesCache } from '../storage/marketsStore'
+import {
+  getUiPanelOpenState,
+  setUiPanelOpen,
+  subscribeUiPanels,
+} from '../storage/uiPanelsStore'
 import { buildPriceAlertNotifications } from '../domain/priceAlerts'
 import { formatDate, formatGBP, formatPct, privacyClass } from '../utils/format'
 import {
@@ -65,6 +71,92 @@ const QUICK_SECONDARY = [
   { to: '/goals', label: 'Goals' },
 ] as const
 
+type TodayPanelId = 'today-next-action' | 'today-bills' | 'today-goals'
+
+const TODAY_ACCORDION_QUERY = '(max-width: 639px), (orientation: portrait) and (max-width: 1023px)'
+
+function readTodayPanelOpen(id: TodayPanelId, fallback: boolean): boolean {
+  return getUiPanelOpenState(id) ?? fallback
+}
+
+function useTodayAccordionEnabled(): boolean {
+  const [enabled, setEnabled] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia(TODAY_ACCORDION_QUERY).matches : false,
+  )
+
+  useEffect(() => {
+    const mq = window.matchMedia(TODAY_ACCORDION_QUERY)
+    const sync = () => setEnabled(mq.matches)
+    sync()
+    mq.addEventListener('change', sync)
+    return () => mq.removeEventListener('change', sync)
+  }, [])
+
+  return enabled
+}
+
+function TodayAccordionSection({
+  id,
+  title,
+  action,
+  enabled,
+  defaultOpen = true,
+  className = '',
+  ariaLabel,
+  children,
+}: {
+  id: TodayPanelId
+  title: string
+  action?: ReactNode
+  enabled: boolean
+  defaultOpen?: boolean
+  className?: string
+  ariaLabel?: string
+  children: ReactNode
+}) {
+  const [open, setOpen] = useState(() => readTodayPanelOpen(id, defaultOpen))
+
+  useEffect(
+    () => subscribeUiPanels(() => setOpen(readTodayPanelOpen(id, defaultOpen))),
+    [id, defaultOpen],
+  )
+
+  const expanded = enabled ? open : true
+  const toggle = () => {
+    if (!enabled) return
+    const next = !open
+    setOpen(next)
+    setUiPanelOpen(id, next)
+  }
+
+  return (
+    <section className={`today-accordion-section ${className}`} aria-label={ariaLabel}>
+      <div className="today-accordion-header flex items-center justify-between gap-3 px-0.5 mb-2">
+        <button
+          type="button"
+          className="today-accordion-toggle flex min-w-0 items-center gap-1.5 text-left"
+          aria-expanded={expanded}
+          aria-controls={`${id}-panel`}
+          onClick={toggle}
+        >
+          <span className="text-xs uppercase tracking-wider text-text-subtle font-semibold">
+            {title}
+          </span>
+          <span className="today-accordion-icon text-text-subtle" aria-hidden>
+            {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          </span>
+        </button>
+        {action}
+      </div>
+      {expanded ? (
+        <div id={`${id}-panel`} className="today-accordion-panel">
+          {children}
+        </div>
+      ) : null}
+    </section>
+  )
+}
+
 export function Dashboard() {
   const { data, breakdown, privacy, fccDataPresent, setData, goalProgress } = usePortfolio()
   const { netWorth, assets, liabilities, crypto, equity, liability } = breakdown
@@ -76,6 +168,7 @@ export function Dashboard() {
   const [twoPane, setTwoPane] = useState(() =>
     typeof window !== 'undefined' ? window.matchMedia('(min-width: 900px)').matches : false,
   )
+  const todayAccordionEnabled = useTodayAccordionEnabled()
 
   useEffect(() => subscribeAutoSync(setSyncStatus), [])
   useEffect(() => {
@@ -163,6 +256,43 @@ export function Dashboard() {
     () => worstBudgetOffenders(data.spending, data.budgetGoals).slice(0, 3),
     [data.spending, data.budgetGoals],
   )
+
+  const monthlyBudgetPulse = useMemo(() => {
+    const totalBudget = Object.values(data.budgetGoals ?? {})
+      .filter((v) => v > 0)
+      .reduce((sum, v) => sum + v, 0)
+    if (!(totalBudget > 0)) return null
+    const now = new Date()
+    const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+    const spent = (data.spending ?? [])
+      .filter((s) => (s.date ?? '').startsWith(ym))
+      .reduce((sum, s) => sum + Math.abs(s.amount), 0)
+    return {
+      spent,
+      totalBudget,
+      ratio: totalBudget > 0 ? spent / totalBudget : 0,
+    }
+  }, [data.spending, data.budgetGoals])
+
+  const cashRunway = useMemo(() => {
+    const monthlyRecurring = (data.recurringTransactions ?? []).reduce((sum, r) => {
+      if (r.frequency === 'weekly') return sum + (r.amount * 52) / 12
+      if (r.frequency === 'yearly') return sum + r.amount / 12
+      return sum + r.amount
+    }, 0)
+    if (!(monthlyRecurring > 0)) return null
+    const liquidishNetWorth = Math.max(0, assets - liabilities)
+    return {
+      months: liquidishNetWorth / monthlyRecurring,
+      monthlyRecurring,
+      liquidishNetWorth,
+    }
+  }, [data.recurringTransactions, assets, liabilities])
+
+  const fireChip = useMemo(() => {
+    if (!data.fireInputs) return null
+    return calcFire(netWorth, data.fireInputs, 'regular')
+  }, [data.fireInputs, netWorth])
 
   const onSnapshot = () => {
     setData((prev) => appendManualSnapshot(prev))
@@ -384,19 +514,77 @@ export function Dashboard() {
             {marketsCount} Markets ticker{marketsCount === 1 ? '' : 's'} →
           </Link>
         </div>
+        {(monthlyBudgetPulse || cashRunway || fireChip) ? (
+          <div className="today-pulse-chips mt-4 flex flex-wrap gap-2">
+            {monthlyBudgetPulse ? (
+              <Link
+                to="/budgets"
+                className={`today-budget-pulse border border-border bg-surface-hover/60 px-3 py-2 text-xs hover:border-accent ${privacyClass(privacy)}`}
+                title="This month spent versus all budget goal limits"
+              >
+                <span className="block uppercase tracking-wider text-text-subtle font-semibold">
+                  Budget pulse
+                </span>
+                <span className="block tabular-nums">
+                  {formatGBP(monthlyBudgetPulse.spent)} / {formatGBP(monthlyBudgetPulse.totalBudget)}
+                </span>
+                <span className="block text-text-subtle">
+                  {Math.round(monthlyBudgetPulse.ratio * 100)}% used →
+                </span>
+              </Link>
+            ) : null}
+            {cashRunway ? (
+              <Link
+                to="/recurring"
+                className={`today-cash-runway border border-border bg-surface-hover/60 px-3 py-2 text-xs hover:border-accent ${privacyClass(privacy)}`}
+                title="Liquid-ish net worth divided by monthly recurring bills"
+              >
+                <span className="block uppercase tracking-wider text-text-subtle font-semibold">
+                  Cash runway
+                </span>
+                <span className="block tabular-nums">
+                  {cashRunway.months >= 99 ? '99+' : cashRunway.months.toFixed(cashRunway.months < 10 ? 1 : 0)} mo
+                </span>
+                <span className="block text-text-subtle">
+                  vs {formatGBP(cashRunway.monthlyRecurring)}/mo →
+                </span>
+              </Link>
+            ) : null}
+            {fireChip ? (
+              <Link
+                to="/fire"
+                className={`today-fire-chip border border-border bg-surface-hover/60 px-3 py-2 text-xs hover:border-accent ${privacyClass(privacy)}`}
+                title="Regular FIRE from saved FIRE inputs"
+              >
+                <span className="block uppercase tracking-wider text-text-subtle font-semibold">
+                  FIRE
+                </span>
+                <span className="block tabular-nums">
+                  {Math.round(fireChip.progress)}% of target
+                </span>
+                <span className="block text-text-subtle">
+                  Age {fireChip.ageAtFire} →
+                </span>
+              </Link>
+            ) : null}
+          </div>
+        ) : null}
       </div>
 
       {/* Next-action stack — up to 3: todo / bill / top mover */}
-      <div
+      <TodayAccordionSection
+        id="today-next-action"
+        title="Next"
+        enabled={todayAccordionEnabled}
+        defaultOpen
         className="today-next-action-stack today-focus-card space-y-2 mb-3"
-        aria-label="Next actions"
-      >
-        <div className="flex items-center justify-between px-0.5">
-          <p className="text-xs uppercase tracking-wider text-text-subtle font-semibold">Next</p>
+        ariaLabel="Next actions"
+        action={
           <Link to="/todos" className="text-xs text-accent font-semibold">
             All todos
           </Link>
-        </div>
+        }
+      >
         {nextActions.length === 0 ? (
           <div className="surface p-4 md:p-5 rounded-xl md:rounded-none shadow-sm md:shadow-none">
             <p className="text-sm text-text-muted font-light">Clear day — nothing due, no movers yet.</p>
@@ -493,119 +681,139 @@ export function Dashboard() {
             )
           })
         )}
-      </div>
+      </TodayAccordionSection>
 
       {showBillsStrip.length > 0 ? (
-        <div className="today-bills-strip surface p-3 md:p-4 mb-3 rounded-xl md:rounded-none shadow-sm md:shadow-none">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-xs uppercase tracking-wider text-text-subtle font-semibold">
-              Bills · due in 7 days
-            </p>
+        <TodayAccordionSection
+          id="today-bills"
+          title="Bills · due in 7 days"
+          enabled={todayAccordionEnabled}
+          defaultOpen={false}
+          className="mb-3"
+          action={
             <Link to="/recurring" className="text-xs text-accent font-semibold">
               Recurring
             </Link>
+          }
+        >
+          <div className="today-bills-strip surface p-3 md:p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none">
+            <ul className="flex flex-col gap-1.5">
+              {showBillsStrip.map((r) => (
+                <li key={r.id}>
+                  <SwipeBillRow
+                    onMarkPaid={() => markBillPaid(r.id)}
+                    onSkip={() => skipBill(r.id)}
+                    className="rounded-lg md:rounded-none"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm py-1.5">
+                      <div className="min-w-0">
+                        <span className="block truncate font-medium">{r.name}</span>
+                        <span className={`text-xs text-text-muted tabular-nums ${privacyClass(privacy)}`}>
+                          {formatDate(r.nextDue)} · {formatGBP(r.amount)}
+                        </span>
+                      </div>
+                      <div className="hidden sm:flex shrink-0 gap-1">
+                        <button type="button" className="btn-primary btn-sm" onClick={() => markBillPaid(r.id)}>
+                          Mark paid
+                        </button>
+                        <button type="button" className="btn-ghost btn-sm" onClick={() => skipBill(r.id)}>
+                          Skip
+                        </button>
+                      </div>
+                    </div>
+                  </SwipeBillRow>
+                </li>
+              ))}
+            </ul>
           </div>
-          <ul className="flex flex-col gap-1.5">
-            {showBillsStrip.map((r) => (
-              <li key={r.id}>
-                <SwipeBillRow
-                  onMarkPaid={() => markBillPaid(r.id)}
-                  onSkip={() => skipBill(r.id)}
-                  className="rounded-lg md:rounded-none"
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm py-1.5">
-                    <div className="min-w-0">
-                      <span className="block truncate font-medium">{r.name}</span>
-                      <span className={`text-xs text-text-muted tabular-nums ${privacyClass(privacy)}`}>
-                        {formatDate(r.nextDue)} · {formatGBP(r.amount)}
-                      </span>
-                    </div>
-                    <div className="hidden sm:flex shrink-0 gap-1">
-                      <button type="button" className="btn-primary btn-sm" onClick={() => markBillPaid(r.id)}>
-                        Mark paid
-                      </button>
-                      <button type="button" className="btn-ghost btn-sm" onClick={() => skipBill(r.id)}>
-                        Skip
-                      </button>
-                    </div>
-                  </div>
-                </SwipeBillRow>
-              </li>
-            ))}
-          </ul>
-        </div>
+        </TodayAccordionSection>
       ) : null}
 
-      {soonGoal ? (
-        <div
-          className="today-goal-ring surface p-4 md:p-5 mb-3 rounded-xl md:rounded-none shadow-sm md:shadow-none flex items-center gap-4 group"
+      {soonGoal || goalProjection ? (
+        <TodayAccordionSection
+          id="today-goals"
+          title="Goals"
+          enabled={todayAccordionEnabled}
+          defaultOpen={false}
+          className="mb-3"
+          action={
+            <Link to="/goals" className="text-xs text-accent font-semibold">
+              Goals
+            </Link>
+          }
         >
-          <div
-            className="relative shrink-0 w-14 h-14"
-            role="img"
-            aria-label={`${Math.round(soonGoalProgress)}% toward ${soonGoal.name}`}
-          >
-            <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90" aria-hidden>
-              <circle
-                cx="18"
-                cy="18"
-                r="15.5"
-                fill="none"
-                stroke="var(--border)"
-                strokeWidth="3"
-              />
-              <circle
-                cx="18"
-                cy="18"
-                r="15.5"
-                fill="none"
-                stroke="var(--accent)"
-                strokeWidth="3"
-                strokeLinecap="round"
-                strokeDasharray={`${(Math.min(soonGoalProgress, 100) / 100) * 97.4} 97.4`}
-              />
-            </svg>
-            <span className="absolute inset-0 flex items-center justify-center text-[11px] font-bold tabular-nums">
-              {Math.round(soonGoalProgress)}%
-            </span>
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-xs uppercase tracking-wider text-text-subtle font-semibold mb-1">
-              Goal · within 30 days
-            </p>
-            <Link to="/goals" className="block">
-              <p className="text-base font-bold tracking-tight hover:text-accent line-clamp-1">
-                {soonGoal.name}
+          {soonGoal ? (
+            <div
+              className="today-goal-ring surface p-4 md:p-5 mb-3 rounded-xl md:rounded-none shadow-sm md:shadow-none flex items-center gap-4 group"
+            >
+              <div
+                className="relative shrink-0 w-14 h-14"
+                role="img"
+                aria-label={`${Math.round(soonGoalProgress)}% toward ${soonGoal.name}`}
+              >
+                <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90" aria-hidden>
+                  <circle
+                    cx="18"
+                    cy="18"
+                    r="15.5"
+                    fill="none"
+                    stroke="var(--border)"
+                    strokeWidth="3"
+                  />
+                  <circle
+                    cx="18"
+                    cy="18"
+                    r="15.5"
+                    fill="none"
+                    stroke="var(--accent)"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    strokeDasharray={`${(Math.min(soonGoalProgress, 100) / 100) * 97.4} 97.4`}
+                  />
+                </svg>
+                <span className="absolute inset-0 flex items-center justify-center text-[11px] font-bold tabular-nums">
+                  {Math.round(soonGoalProgress)}%
+                </span>
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs uppercase tracking-wider text-text-subtle font-semibold mb-1">
+                  Goal · within 30 days
+                </p>
+                <Link to="/goals" className="block">
+                  <p className="text-base font-bold tracking-tight hover:text-accent line-clamp-1">
+                    {soonGoal.name}
+                  </p>
+                </Link>
+                <p className="text-xs text-text-muted font-light mt-0.5">
+                  Due {formatDate(soonGoal.deadline)}
+                </p>
+              </div>
+              <Link
+                to={`/goals?note=${soonGoal.id}`}
+                className="today-goal-log-note btn-secondary btn-sm shrink-0"
+              >
+                Log note
+              </Link>
+            </div>
+          ) : null}
+
+          {goalProjection ? (
+            <Link
+              to="/goals"
+              className="today-goal-projection surface p-3 md:p-4 mb-3 rounded-xl md:rounded-none shadow-sm md:shadow-none block group"
+            >
+              <p className="text-xs uppercase tracking-wider text-text-subtle font-semibold mb-1">
+                Goal estimate
+              </p>
+              <p className="text-sm font-semibold tracking-tight group-hover:text-accent line-clamp-1">
+                {goalProjection.goal.name}
+              </p>
+              <p className={`text-xs text-text-muted font-light mt-0.5 ${privacyClass(privacy)}`}>
+                {formatGoalProjectionLine(goalProjection, formatDate)}
               </p>
             </Link>
-            <p className="text-xs text-text-muted font-light mt-0.5">
-              Due {formatDate(soonGoal.deadline)}
-            </p>
-          </div>
-          <Link
-            to={`/goals?note=${soonGoal.id}`}
-            className="today-goal-log-note btn-secondary btn-sm shrink-0"
-          >
-            Log note
-          </Link>
-        </div>
-      ) : null}
-
-      {goalProjection ? (
-        <Link
-          to="/goals"
-          className="today-goal-projection surface p-3 md:p-4 mb-3 rounded-xl md:rounded-none shadow-sm md:shadow-none block group"
-        >
-          <p className="text-xs uppercase tracking-wider text-text-subtle font-semibold mb-1">
-            Goal estimate
-          </p>
-          <p className="text-sm font-semibold tracking-tight group-hover:text-accent line-clamp-1">
-            {goalProjection.goal.name}
-          </p>
-          <p className={`text-xs text-text-muted font-light mt-0.5 ${privacyClass(privacy)}`}>
-            {formatGoalProjectionLine(goalProjection, formatDate)}
-          </p>
-        </Link>
+          ) : null}
+        </TodayAccordionSection>
       ) : null}
 
       <div className="surface p-4 md:p-5 mb-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">

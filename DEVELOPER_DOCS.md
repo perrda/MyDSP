@@ -369,8 +369,9 @@ describe('Portfolio calculations', () => {
 - ✅ **Debouncing**: User input delayed
 - ✅ **Throttling**: Frequent events limited
 - ✅ **Code Splitting**: Dynamic imports ready
-- ✅ **Lazy Loading**: Components on-demand
+- ✅ **Lazy Loading**: Components on-demand (`SettingsPage` lazy in `App.tsx`)
 - ✅ **IndexedDB**: Large data persisted
+- ✅ **Windowed lists**: Equities/Crypto use `useWindowedList` (40 + sentinel) for long portfolios
 
 ### Performance Monitoring
 

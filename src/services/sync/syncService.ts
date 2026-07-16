@@ -54,6 +54,12 @@ export interface SyncConfig {
   lastMergeCount?: number
   /** Last applied remote envelope exportedAt (skip re-pull of same blob) */
   lastRemoteExportedAt?: string
+  /** Approx encrypted remote envelope size from meta/header/push body. */
+  lastRemoteBlobBytes?: number
+  /** Approx encrypted bytes downloaded by the last pull/preview. */
+  lastPullBytes?: number
+  /** Approx encrypted bytes uploaded by the last push. */
+  lastPushBytes?: number
   /** When set (ISO), auto-sync cycles are skipped until this time */
   pausedUntil?: string
 }
@@ -75,6 +81,80 @@ export interface SyncEnvelope {
   /** Blob ids skipped due to size limits (plaintext metadata) */
   documentBlobsSkipped?: number[]
   checksum: string
+}
+
+export interface SyncPushResult {
+  exportedAt: string
+  bytes: number
+}
+
+export interface RemoteSyncMeta {
+  exportedAt: string
+  deviceId: string
+  checksum?: string
+  encryptedBytes?: number
+}
+
+export function estimateSyncPayloadBytes(text: string): number {
+  try {
+    return new TextEncoder().encode(text).byteLength
+  } catch {
+    return text.length
+  }
+}
+
+export function formatSyncPayloadBytes(bytes?: number): string | null {
+  if (typeof bytes !== 'number' || !Number.isFinite(bytes) || bytes < 0) return null
+  if (bytes < 1024) return `${Math.round(bytes)} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(bytes < 10 * 1024 ? 1 : 0)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(bytes < 10 * 1024 * 1024 ? 1 : 0)} MB`
+}
+
+export function formatRemoteBlobAge(exportedAt?: string, now = Date.now()): string | null {
+  if (!exportedAt) return null
+  const t = new Date(exportedAt).getTime()
+  if (!Number.isFinite(t)) return null
+  const sec = Math.max(0, Math.round((now - t) / 1000))
+  if (sec < 45) return 'just now'
+  if (sec < 3600) return `${Math.max(1, Math.round(sec / 60))}m old`
+  if (sec < 86400) return `${Math.max(1, Math.round(sec / 3600))}h old`
+  return `${Math.max(1, Math.round(sec / 86400))}d old`
+}
+
+function optionalFiniteNumber(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : undefined
+}
+
+function responseContentLength(res: Response): number | undefined {
+  const raw = res.headers.get('content-length')
+  if (!raw) return undefined
+  const n = Number(raw)
+  return Number.isFinite(n) && n >= 0 ? n : undefined
+}
+
+function metaByteEstimate(
+  data: Record<string, unknown>,
+  res: Response,
+  opts?: { envelopeResponse?: boolean },
+): number | undefined {
+  const explicit =
+    optionalFiniteNumber(data.encryptedBytes) ??
+    optionalFiniteNumber(data.payloadBytes) ??
+    optionalFiniteNumber(data.bytes) ??
+    optionalFiniteNumber(data.size) ??
+    optionalFiniteNumber(data.contentLength)
+  if (explicit !== undefined) return explicit
+
+  // Content-Length is only the encrypted payload size when the response is the envelope itself.
+  const looksLikeEnvelope = data.app === 'mydsp' && typeof data.blobs === 'object'
+  if (!opts?.envelopeResponse && !looksLikeEnvelope) return undefined
+  return responseContentLength(res)
+}
+
+export function rememberSyncPayloadStats(patch: Partial<SyncConfig>): SyncConfig {
+  const next = { ...loadSyncConfig(), ...patch }
+  saveSyncConfig(next)
+  return next
 }
 
 /** Staged merge plan — no local writes until applyMergePreview. */
@@ -126,6 +206,9 @@ export function loadSyncConfig(): SyncConfig {
         typeof parsed.lastMergeCount === 'number' ? parsed.lastMergeCount : undefined,
       lastRemoteExportedAt:
         typeof parsed.lastRemoteExportedAt === 'string' ? parsed.lastRemoteExportedAt : undefined,
+      lastRemoteBlobBytes: optionalFiniteNumber(parsed.lastRemoteBlobBytes),
+      lastPullBytes: optionalFiniteNumber(parsed.lastPullBytes),
+      lastPushBytes: optionalFiniteNumber(parsed.lastPushBytes),
       pausedUntil: typeof parsed.pausedUntil === 'string' ? parsed.pausedUntil : undefined,
     }
   } catch {
@@ -236,7 +319,7 @@ export function getLocalDeviceId(): string {
  */
 export async function fetchRemoteMeta(
   url: string,
-): Promise<{ exportedAt: string; deviceId: string; checksum?: string } | null> {
+): Promise<RemoteSyncMeta | null> {
   const remote = normalizeSyncRemoteUrl(url)
   let metaUrl = remote
   try {
@@ -262,6 +345,7 @@ export async function fetchRemoteMeta(
     exportedAt: data.exportedAt,
     deviceId: typeof data.deviceId === 'string' ? data.deviceId : '',
     checksum: typeof data.checksum === 'string' ? data.checksum : undefined,
+    encryptedBytes: metaByteEstimate(data, res, { envelopeResponse: metaUrl === remote }),
   }
 }
 
@@ -347,24 +431,32 @@ export async function buildEnvelope(
   }
 }
 
-export async function pushSync(url: string, passphrase: string): Promise<void> {
+export async function pushSync(url: string, passphrase: string): Promise<SyncPushResult> {
   setSessionSyncPassphrase(passphrase)
   const remote = normalizeSyncRemoteUrl(url)
   const envelope = await buildEnvelope(passphrase, { includeFullArchive: true })
+  const body = JSON.stringify(envelope)
+  const bytes = estimateSyncPayloadBytes(body)
   const res = await fetch(remote, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(envelope),
+    body,
   })
   if (!res.ok) {
     // Some hosts only allow POST
     const res2 = await fetch(remote, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(envelope),
+      body,
     })
     if (!res2.ok) throw new Error(pushFailureMessage(url, res.status, res2.status))
   }
+  rememberSyncPayloadStats({
+    lastRemoteExportedAt: envelope.exportedAt,
+    lastRemoteBlobBytes: bytes,
+    lastPushBytes: bytes,
+  })
+  return { exportedAt: envelope.exportedAt, bytes }
 }
 
 async function decryptEnvelope(
@@ -548,7 +640,14 @@ export async function previewPull(url: string, passphrase: string): Promise<Merg
   const res = await fetch(remote)
   if (!res.ok) throw new Error(`Pull failed (${res.status})`)
   setSessionSyncPassphrase(passphrase)
-  const envelope = (await res.json()) as SyncEnvelope
+  const text = await res.text()
+  const bytes = responseContentLength(res) ?? estimateSyncPayloadBytes(text)
+  const envelope = JSON.parse(text) as SyncEnvelope
+  rememberSyncPayloadStats({
+    lastRemoteExportedAt: envelope.exportedAt,
+    lastRemoteBlobBytes: bytes,
+    lastPullBytes: bytes,
+  })
   const { remoteByPortfolio, documentBlobs, workspaceExtras } = await decryptEnvelope(
     envelope,
     passphrase,
