@@ -90,7 +90,7 @@
 
 1. **Add your free Finnhub API key** (Settings → Prices) — high priority for live equity quotes
 2. Run `scripts/SYNC_SMOKE.md` after each deploy (todos + portfolios + Favourites + Markets)
-3. Keep quote Worker live: `npm run deploy:quote` when Markets proxies stall (required for News after 1.2.66)
+3. Keep quote Worker live: `npm run deploy:quote` when Markets proxies stall (required for News after 1.2.66). Success must print Worker **`mydsp-quote`**, not `mydspv1`.
 4. Hard-refresh / reopen PWA so update banner + new SW activate
 
 ## Low priority
