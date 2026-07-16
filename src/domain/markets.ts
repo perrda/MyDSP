@@ -46,9 +46,14 @@ export interface MarketsState {
   tickers: MarketTicker[]
   collapsed: MarketsCollapsed
   lastRefreshAt?: string
-  /** Row density — compact hides names / tightens padding on phone & desktop. */
-  density?: 'comfortable' | 'compact'
+  /**
+   * Row density — compact hides names / tightens padding;
+   * heat shows a colour grid of symbols by % move.
+   */
+  density?: 'comfortable' | 'compact' | 'heat'
 }
+
+export type MarketsDensity = NonNullable<MarketsState['density']>
 
 export interface MarketQuote {
   symbol: string

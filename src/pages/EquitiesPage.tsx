@@ -22,6 +22,7 @@ import {
   loadHoldingsDriftThresholdPct,
 } from '../domain/holdingsDrift'
 import type { EquityHolding } from '../domain/types'
+import { addHoldingsMissingFromWatchlist, holdingsMissingFromWatchlist } from '../domain/addHoldingsToWatchlist'
 import { listMarketTickers } from '../storage/marketsStore'
 import { applySortOrder, sortBySortOrder } from '../utils/reorder'
 import {
@@ -131,6 +132,8 @@ export function EquitiesPage() {
       commentaries: editing?.commentaries,
       platform: editing?.platform,
       contactUrl: editing?.contactUrl,
+      yieldPct: editing?.yieldPct,
+      corporateActionNote: editing?.corporateActionNote,
     }
     setData((prev) => ({
       ...prev,
@@ -148,6 +151,32 @@ export function EquitiesPage() {
         e.id === id ? { ...e, includeInPortfolio: e.includeInPortfolio === false } : e,
       ),
     }))
+  }
+
+  const missingOnMarkets = useMemo(
+    () =>
+      holdingsMissingFromWatchlist(
+        holdings.map((e) => ({ symbol: e.symbol, name: e.name })),
+        'equity',
+      ),
+    [holdings],
+  )
+
+  const addMissingToMarkets = () => {
+    const result = addHoldingsMissingFromWatchlist(
+      holdings.map((e) => ({ symbol: e.symbol, name: e.name })),
+      'equity',
+    )
+    if (result.added.length > 0) {
+      showToast({
+        type: 'success',
+        title: 'Added to Markets',
+        message: `${result.added.length} symbol${result.added.length === 1 ? '' : 's'}`,
+      })
+      window.dispatchEvent(new CustomEvent('mydsp-markets-changed'))
+    } else if (result.errors[0]) {
+      showError('Could not add', result.errors[0])
+    }
   }
 
   return (
@@ -171,6 +200,16 @@ export function EquitiesPage() {
             >
               Fill last synced
             </button>
+            {missingOnMarkets.length > 0 ? (
+              <button
+                type="button"
+                className="btn-ghost btn-sm"
+                onClick={addMissingToMarkets}
+                title="Add portfolio symbols missing from Markets watchlist"
+              >
+                Add from holding ({missingOnMarkets.length})
+              </button>
+            ) : null}
             <button
               type="button"
               className={`btn-secondary btn-sm inline-flex items-center gap-2 ${sorting ? 'border-accent text-accent' : ''}`}
@@ -289,7 +328,17 @@ export function EquitiesPage() {
               >
                 {sorting ? <ReorderHandle label={`Reorder ${e.symbol}`} /> : null}
                 <Link to={`/equities/${e.id}`} className="min-w-0 flex-1 hover:text-accent transition-colors">
-                  <p className="font-semibold text-base">{e.symbol}</p>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <p className="font-semibold text-base">{e.symbol}</p>
+                    {e.corporateActionNote ? (
+                      <span
+                        className="text-[10px] uppercase tracking-wider font-semibold px-1.5 py-0.5 border border-amber-500/45 text-amber-700 dark:text-amber-300"
+                        title={e.corporateActionNote}
+                      >
+                        Corp
+                      </span>
+                    ) : null}
+                  </div>
                   <p className="text-xs text-text-muted truncate mt-0.5">{e.name}</p>
                   {drifting ? (
                     <p className="text-[11px] text-amber-700 dark:text-amber-300 mt-0.5">

@@ -8,6 +8,7 @@ import {
   Moon,
   Pencil,
   Plus,
+  RefreshCw,
   Sun,
   Trash2,
 } from 'lucide-react'
@@ -32,9 +33,13 @@ import {
   type MarketTicker,
   type MarketTickerTag,
   type MarketsCollapsed,
+  type MarketsDensity,
 } from '../domain/markets'
+import { addHoldingsMissingFromWatchlist, holdingsMissingFromWatchlist } from '../domain/addHoldingsToWatchlist'
+import { checkFxTriangles, formatFxTriangleWarning } from '../domain/fxTriangle'
 import { marketSessionStatus } from '../domain/marketSession'
 import { shouldShowCachedMode } from '../domain/marketsCachedMode'
+import { heatColorForChangePct, heatTextClassForChangePct } from '../domain/marketsHeat'
 import { mergeMarketQuotes } from '../domain/marketQuotesCache'
 import { isOnline } from '../services/offlineQueue'
 import { sparklineTrendFromSeries } from '../domain/sparklineSeries'
@@ -362,7 +367,8 @@ export function MarketsPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [addKind, setAddKind] = useState<MarketAssetKind | null>(null)
   const [sorting, setSorting] = useState(false)
-  const [density, setDensity] = useState<'comfortable' | 'compact'>(() => getMarketsDensity())
+  const [density, setDensity] = useState<MarketsDensity>(() => getMarketsDensity())
+  const [sectionRefreshing, setSectionRefreshing] = useState<SectionKey | null>(null)
   const [focusSymbol, setFocusSymbol] = useState<string | null>(null)
   const [quoteDetail, setQuoteDetail] = useState<{ ticker: MarketTicker; quote?: MarketQuote } | null>(
     null,
@@ -457,6 +463,16 @@ export function MarketsPage() {
     [tickers, tagFilter],
   )
 
+  const fxTriangleHits = useMemo(() => {
+    const fxQuotes = bySection.fx
+      .map((t) => {
+        const q = quotes.get(t.id)
+        return q && q.last > 0 ? { symbol: t.symbol, last: q.last } : null
+      })
+      .filter((x): x is { symbol: string; last: number } => x != null)
+    return checkFxTriangles(fxQuotes)
+  }, [bySection.fx, quotes])
+
   const statusHint = useMemo(() => {
     const health = formatMarketsProviderHealthHint()
     if (refreshing) {
@@ -498,13 +514,14 @@ export function MarketsPage() {
     setCollapsed(loadMarketsState().collapsed)
   }, [])
 
-  const refresh = useCallback(async () => {
-    const list = listMarketTickers()
-    if (list.length === 0) {
+  const refresh = useCallback(async (kind?: MarketAssetKind) => {
+    const list = kind ? listMarketTickers(kind) : listMarketTickers()
+    if (!kind && list.length === 0) {
       setQuotes(new Map())
       saveMarketQuotesCache(new Map())
       return
     }
+    if (list.length === 0) return
     if (refreshInFlight.current) return
     refreshInFlight.current = true
     setRefreshing(true)
@@ -516,7 +533,8 @@ export function MarketsPage() {
         finnhubKey,
         manualCryptoPrices: data.settings.manualCryptoPrices,
       })
-      const previous = seedQuotesFromPortfolio(list, data, quotesRef.current)
+      const allTickers = listMarketTickers()
+      const previous = seedQuotesFromPortfolio(allTickers, data, quotesRef.current)
       const merged = mergeMarketQuotes(previous, next)
       setQuotes(merged)
       saveMarketQuotesCache(merged)
@@ -526,9 +544,9 @@ export function MarketsPage() {
       setMarketsLastRefresh(at)
       const liveCount = [...merged.values()].filter((q) => q.last > 0 && !isStaleQuote(q)).length
       const shown = [...merged.values()].filter((q) => q.last > 0).length
-      if (shown < list.length) {
+      if (!kind && shown < allTickers.length) {
         setError(
-          `Showing ${shown}/${list.length} prices` +
+          `Showing ${shown}/${allTickers.length} prices` +
             (liveCount < shown ? ` (${shown - liveCount} cached)` : '') +
             ' — retrying sources shortly.',
         )
@@ -541,7 +559,35 @@ export function MarketsPage() {
       setRefreshing(false)
       setInitialLoad(false)
     }
-  }, [data])
+  }, [data, setData])
+
+  const refreshSection = useCallback(
+    async (section: SectionKey) => {
+      const kind = SECTION_META[section].kind
+      setSectionRefreshing(section)
+      try {
+        await refresh(kind)
+      } finally {
+        setSectionRefreshing(null)
+      }
+    },
+    [refresh],
+  )
+
+  const addFromHoldings = useCallback(
+    (kind: 'equity' | 'crypto') => {
+      const holdings =
+        kind === 'crypto'
+          ? data.crypto.map((c) => ({ symbol: c.symbol, name: c.name }))
+          : data.equities.map((e) => ({ symbol: e.symbol, name: e.name }))
+      const result = addHoldingsMissingFromWatchlist(holdings, kind)
+      reloadList()
+      if (result.added.length > 0) void refresh(kind)
+      else if (result.errors.length > 0) setError(result.errors[0] ?? 'Could not add holdings')
+      else setError('All portfolio symbols are already on this watchlist')
+    },
+    [data.crypto, data.equities, refresh, reloadList],
+  )
 
   useEffect(() => {
     void refresh()
@@ -724,6 +770,19 @@ export function MarketsPage() {
             <button
               type="button"
               className="btn-ghost btn-sm p-2 min-h-10 min-w-10"
+              aria-label={`Refresh ${meta.title}`}
+              disabled={sectionRefreshing === section || refreshing}
+              onClick={() => void refreshSection(section)}
+            >
+              <RefreshCw
+                size={16}
+                strokeWidth={1.75}
+                className={sectionRefreshing === section ? 'animate-spin' : undefined}
+              />
+            </button>
+            <button
+              type="button"
+              className="btn-ghost btn-sm p-2 min-h-10 min-w-10"
               aria-label={isCollapsed ? `Expand ${meta.title}` : `Collapse ${meta.title}`}
               onClick={() => toggleSection(section)}
             >
@@ -779,8 +838,62 @@ export function MarketsPage() {
                         + {preset.symbol}
                       </button>
                     ))}
+                    {section === 'crypto' || section === 'equities' ? (
+                      (() => {
+                        const kind = section === 'crypto' ? 'crypto' : 'equity'
+                        const holdings =
+                          kind === 'crypto'
+                            ? data.crypto.map((c) => ({ symbol: c.symbol, name: c.name }))
+                            : data.equities.map((e) => ({ symbol: e.symbol, name: e.name }))
+                        const missing = holdingsMissingFromWatchlist(holdings, kind)
+                        if (missing.length === 0) return null
+                        return (
+                          <button
+                            type="button"
+                            className="btn-primary btn-sm min-h-11"
+                            onClick={() => addFromHoldings(kind)}
+                          >
+                            Add from holding ({missing.length})
+                          </button>
+                        )
+                      })()
+                    ) : null}
                   </div>
                 ) : null}
+              </div>
+            ) : density === 'heat' ? (
+              <div
+                className="markets-heat-grid grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-1.5 p-3 sm:p-4"
+                role="list"
+                aria-label={`${meta.title} heat map by day change`}
+              >
+                {items.map((t) => {
+                  const q = quotes.get(t.id)
+                  const pct = q?.changePct ?? 0
+                  const focused = focusSymbol === t.symbol
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      role="listitem"
+                      id={`market-${t.symbol.replace(/[^a-zA-Z0-9]/g, '_')}`}
+                      className={`markets-heat-cell min-h-[4.25rem] px-2 py-2 flex flex-col items-center justify-center gap-0.5 text-center transition-colors ${
+                        focused ? 'ring-2 ring-accent' : ''
+                      } ${heatTextClassForChangePct(pct)}`}
+                      style={{ backgroundColor: heatColorForChangePct(pct) }}
+                      title={`${t.symbol} ${formatPct(pct, 2)}`}
+                      aria-label={`${t.symbol} ${formatPct(pct, 2)}`}
+                      onClick={() => setQuoteDetail({ ticker: t, quote: q })}
+                    >
+                      <span className="text-xs font-bold tracking-tight leading-tight truncate max-w-full">
+                        {t.symbol}
+                      </span>
+                      <span className="text-[11px] tabular-nums font-semibold opacity-95">
+                        {formatPct(pct, 1)}
+                      </span>
+                    </button>
+                  )
+                })}
               </div>
             ) : (
               <ReorderList
@@ -989,14 +1102,35 @@ export function MarketsPage() {
             )}
 
             <div className="px-4 sm:px-5 py-3 flex flex-wrap items-center justify-between gap-3 border-t border-border">
-              <button
-                type="button"
-                className="btn-ghost btn-sm text-accent inline-flex items-center gap-1.5"
-                onClick={() => openCreate(meta.kind)}
-              >
-                <Plus size={14} strokeWidth={2} />
-                {meta.addLabel}
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  className="btn-ghost btn-sm text-accent inline-flex items-center gap-1.5"
+                  onClick={() => openCreate(meta.kind)}
+                >
+                  <Plus size={14} strokeWidth={2} />
+                  {meta.addLabel}
+                </button>
+                {(section === 'crypto' || section === 'equities') &&
+                  (() => {
+                    const kind = section === 'crypto' ? 'crypto' : 'equity'
+                    const holdings =
+                      kind === 'crypto'
+                        ? data.crypto.map((c) => ({ symbol: c.symbol, name: c.name }))
+                        : data.equities.map((e) => ({ symbol: e.symbol, name: e.name }))
+                    const missing = holdingsMissingFromWatchlist(holdings, kind)
+                    if (missing.length === 0) return null
+                    return (
+                      <button
+                        type="button"
+                        className="btn-ghost btn-sm text-accent"
+                        onClick={() => addFromHoldings(kind)}
+                      >
+                        Add from holding ({missing.length})
+                      </button>
+                    )
+                  })()}
+              </div>
               {meta.detailsHref ? (
                 <Link
                   to={meta.detailsHref}
@@ -1038,15 +1172,27 @@ export function MarketsPage() {
           <div className="hidden sm:flex flex-wrap gap-2">
             <button
               type="button"
-              className={`btn-ghost btn-sm ${density === 'compact' ? 'border-accent text-accent' : ''}`}
-              aria-pressed={density === 'compact'}
+              className={`btn-ghost btn-sm ${
+                density === 'compact' || density === 'heat' ? 'border-accent text-accent' : ''
+              }`}
+              aria-pressed={density !== 'comfortable'}
+              aria-label={`Density: ${density}. Cycle Comfortable, Compact, Heat`}
               onClick={() => {
-                const next = density === 'compact' ? 'comfortable' : 'compact'
+                const next: MarketsDensity =
+                  density === 'comfortable'
+                    ? 'compact'
+                    : density === 'compact'
+                      ? 'heat'
+                      : 'comfortable'
                 setMarketsDensity(next)
                 setDensity(next)
               }}
             >
-              {density === 'compact' ? 'Comfortable' : 'Compact'}
+              {density === 'comfortable'
+                ? 'Compact'
+                : density === 'compact'
+                  ? 'Heat'
+                  : 'Comfortable'}
             </button>
             <button
               type="button"
@@ -1074,6 +1220,22 @@ export function MarketsPage() {
             {!online
               ? 'You are offline — showing last-good quotes from cache.'
               : 'Live quotes unavailable or stale — showing last-good cached prices.'}
+          </p>
+        </div>
+      ) : null}
+
+      {fxTriangleHits.length > 0 ? (
+        <div
+          className="markets-fx-triangle-banner mb-4 px-3 py-2.5 text-sm border border-amber-500/45 bg-amber-500/10 text-amber-900 dark:text-amber-100 rounded-lg md:rounded-none"
+          role="status"
+          aria-live="polite"
+        >
+          <p className="font-semibold">FX triangle check</p>
+          <p className="text-xs mt-0.5 opacity-90">
+            {formatFxTriangleWarning(fxTriangleHits[0]!)}
+            {fxTriangleHits.length > 1
+              ? ` · +${fxTriangleHits.length - 1} more`
+              : ''}
           </p>
         </div>
       ) : null}

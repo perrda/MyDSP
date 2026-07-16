@@ -264,14 +264,16 @@ export function setMarketsCollapsed(
   saveMarketsState(state)
 }
 
-export function setMarketsDensity(density: 'comfortable' | 'compact'): void {
+export function setMarketsDensity(density: 'comfortable' | 'compact' | 'heat'): void {
   const state = loadMarketsState()
   state.density = density
   saveMarketsState(state)
 }
 
-export function getMarketsDensity(): 'comfortable' | 'compact' {
-  return loadMarketsState().density === 'compact' ? 'compact' : 'comfortable'
+export function getMarketsDensity(): 'comfortable' | 'compact' | 'heat' {
+  const d = loadMarketsState().density
+  if (d === 'compact' || d === 'heat') return d
+  return 'comfortable'
 }
 
 export function setMarketsLastRefresh(iso: string): void {

@@ -203,10 +203,10 @@ describe('next25c sync / security', () => {
     armPauseAutoResumeIfNeeded()
   })
 
-  it('package version is 1.2.45', () => {
+  it('package version is 1.2.46', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8')) as {
       version: string
     }
-    expect(pkg.version).toBe('1.2.45')
+    expect(pkg.version).toBe('1.2.46')
   })
 })

@@ -1,5 +1,19 @@
 # MyDSP Changelog
 
+## [1.2.46] - 2026-07-16
+
+### Improved — Markets / valuations (next 25c · 6–10)
+6. Markets **Compact/Heat** density — Heat shows a colour grid of symbols by day % move  
+7. **Per-section refresh** — refresh only crypto / equities / indices / FX / crosses  
+8. Equity **corporate action note** stub (`corporateActionNote`) — edit on holding detail; Corp badge on list  
+9. **Add from holding** — Equities/Crypto + Markets empty: add portfolio symbols missing from watchlist  
+10. **FX triangle check** — warn when GBP/USD · GBP/EUR · EUR/USD (or similar) disagree beyond 0.5%  
+
+### Version
+- 1.2.45 → **1.2.46**
+
+---
+
 ## [1.2.45] - 2026-07-16
 
 ### Improved — Sync / security (next 25c · 1–5)

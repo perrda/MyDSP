@@ -71,6 +71,7 @@ function normalizeEquities(raw: unknown): EquityHolding[] {
       typeof yieldRaw === 'number' && Number.isFinite(yieldRaw) && yieldRaw > 0
         ? yieldRaw
         : undefined
+    const caNote = str(r.corporateActionNote).trim()
     return {
       id: num(r.id, i + 1),
       symbol: str(r.symbol, '???').toUpperCase(),
@@ -85,6 +86,7 @@ function normalizeEquities(raw: unknown): EquityHolding[] {
       platform: optionalContact(r.platform),
       contactUrl: optionalContact(r.contactUrl),
       yieldPct,
+      corporateActionNote: caNote || undefined,
     }
   })
 }

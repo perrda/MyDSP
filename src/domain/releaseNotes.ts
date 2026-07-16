@@ -3,9 +3,9 @@
  * Keep 3 short bullets aligned with the latest CHANGELOG section.
  */
 export const RELEASE_NOTES: readonly string[] = [
-  'Dry-run pull + device nickname on sync activity',
-  'Biometric unlock timeout: Immediate / 1m / 5m / 15m',
-  'Sync setup URL share (no passphrase) · auto-resume after pause',
+  'Markets Heat density + per-section quote refresh',
+  'Corporate action notes on equities · Add from holding',
+  'FX triangle check when cross rates disagree',
 ]
 
 /** Return up to `n` bullets for the banner. */

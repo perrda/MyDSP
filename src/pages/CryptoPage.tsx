@@ -20,6 +20,7 @@ import {
   loadHoldingsDriftThresholdPct,
 } from '../domain/holdingsDrift'
 import type { CryptoHolding } from '../domain/types'
+import { addHoldingsMissingFromWatchlist, holdingsMissingFromWatchlist } from '../domain/addHoldingsToWatchlist'
 import { applySortOrder, sortBySortOrder } from '../utils/reorder'
 import { formatGBP, formatGBPPrecise, formatPct, formatQty, privacyClass } from '../utils/format'
 import { useToasts } from '../components/ToastProvider'
@@ -134,6 +135,32 @@ export function CryptoPage() {
     }))
   }
 
+  const missingOnMarkets = useMemo(
+    () =>
+      holdingsMissingFromWatchlist(
+        holdings.map((c) => ({ symbol: c.symbol, name: c.name })),
+        'crypto',
+      ),
+    [holdings],
+  )
+
+  const addMissingToMarkets = () => {
+    const result = addHoldingsMissingFromWatchlist(
+      holdings.map((c) => ({ symbol: c.symbol, name: c.name })),
+      'crypto',
+    )
+    if (result.added.length > 0) {
+      showToast({
+        type: 'success',
+        title: 'Added to Markets',
+        message: `${result.added.length} symbol${result.added.length === 1 ? '' : 's'}`,
+      })
+      window.dispatchEvent(new CustomEvent('mydsp-markets-changed'))
+    } else if (result.errors[0]) {
+      showError('Could not add', result.errors[0])
+    }
+  }
+
   return (
     <div>
       <PageHeader
@@ -155,6 +182,16 @@ export function CryptoPage() {
             >
               Fill last synced
             </button>
+            {missingOnMarkets.length > 0 ? (
+              <button
+                type="button"
+                className="btn-ghost btn-sm"
+                onClick={addMissingToMarkets}
+                title="Add portfolio symbols missing from Markets watchlist"
+              >
+                Add from holding ({missingOnMarkets.length})
+              </button>
+            ) : null}
             <button
               type="button"
               className={`btn-secondary btn-sm inline-flex items-center gap-2 ${sorting ? 'border-accent text-accent' : ''}`}
