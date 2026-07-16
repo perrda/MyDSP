@@ -46,7 +46,6 @@ import {
 } from '../domain/fxTriangle'
 import { marketSessionStatus } from '../domain/marketSession'
 import { shouldShowCachedMode } from '../domain/marketsCachedMode'
-import { heatColorForChangePct, heatTextClassForChangePct } from '../domain/marketsHeat'
 import { mergeMarketQuotes } from '../domain/marketQuotesCache'
 import { isOnline } from '../services/offlineQueue'
 import { sparklineTrendFromSeries } from '../domain/sparklineSeries'
@@ -1009,40 +1008,6 @@ export function MarketsPage() {
                   </div>
                 ) : null}
               </div>
-            ) : density === 'heat' ? (
-              <div
-                className="markets-heat-grid grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-1.5 p-3 sm:p-4"
-                role="list"
-                aria-label={`${meta.title} heat map by day change`}
-              >
-                {items.map((t) => {
-                  const q = quotes.get(t.id)
-                  const pct = q?.changePct ?? 0
-                  const focused = focusSymbol === t.symbol
-                  return (
-                    <button
-                      key={t.id}
-                      type="button"
-                      role="listitem"
-                      id={`market-${t.symbol.replace(/[^a-zA-Z0-9]/g, '_')}`}
-                      className={`markets-heat-cell min-h-[4.25rem] px-2 py-2 flex flex-col items-center justify-center gap-0.5 text-center transition-colors ${
-                        focused ? 'ring-2 ring-accent' : ''
-                      } ${heatTextClassForChangePct(pct)}`}
-                      style={{ backgroundColor: heatColorForChangePct(pct) }}
-                      title={`${t.symbol} ${formatPct(pct, 2)}`}
-                      aria-label={`${t.symbol} ${formatPct(pct, 2)}`}
-                      onClick={() => setQuoteDetail({ ticker: t, quote: q })}
-                    >
-                      <span className="text-xs font-bold tracking-tight leading-tight truncate max-w-full">
-                        {t.symbol}
-                      </span>
-                      <span className="text-[11px] tabular-nums font-semibold opacity-95">
-                        {formatPct(pct, 1)}
-                      </span>
-                    </button>
-                  )
-                })}
-              </div>
             ) : (
               <ReorderList
                 items={items}
@@ -1347,26 +1312,22 @@ export function MarketsPage() {
             <button
               type="button"
               className={`btn-ghost btn-sm ${
-                density === 'compact' || density === 'heat' ? 'border-accent text-accent' : ''
+                density === 'compact' ? 'border-accent text-accent' : ''
               }`}
-              aria-pressed={density !== 'comfortable'}
-              aria-label={`Density: ${density}. Cycle Comfortable, Compact, Heat`}
+              aria-pressed={density === 'compact'}
+              aria-label={
+                density === 'comfortable'
+                  ? 'Switch to compact density'
+                  : 'Switch to comfortable density'
+              }
               onClick={() => {
                 const next: MarketsDensity =
-                  density === 'comfortable'
-                    ? 'compact'
-                    : density === 'compact'
-                      ? 'heat'
-                      : 'comfortable'
+                  density === 'comfortable' ? 'compact' : 'comfortable'
                 setMarketsDensity(next)
                 setDensity(next)
               }}
             >
-              {density === 'comfortable'
-                ? 'Compact'
-                : density === 'compact'
-                  ? 'Heat'
-                  : 'Comfortable'}
+              {density === 'comfortable' ? 'Compact' : 'Comfortable'}
             </button>
             <button
               type="button"

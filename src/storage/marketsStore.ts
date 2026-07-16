@@ -13,11 +13,13 @@ import {
   type MarketTicker,
   type MarketTickerTag,
   type MarketsCollapsed,
+  type MarketsDensity,
   type MarketsState,
 } from '../domain/markets'
 import { quotesMapToRecord, quotesRecordToMap } from '../domain/marketQuotesCache'
 
 const KEY = 'mydsp_markets_v1'
+type StoredMarketsState = Omit<MarketsState, 'density'> & { density?: unknown }
 
 function notifyChanged(opts?: { fromSync?: boolean }): void {
   // Markets edits mark workspace sync dirty so watchlists replicate across devices.
@@ -34,11 +36,11 @@ function notifyChanged(opts?: { fromSync?: boolean }): void {
   }
 }
 
-function readRaw(): MarketsState | null {
+function readRaw(): StoredMarketsState | null {
   try {
     const raw = localStorage.getItem(KEY)
     if (!raw) return null
-    const parsed = JSON.parse(raw) as MarketsState
+    const parsed = JSON.parse(raw) as StoredMarketsState
     if (!parsed || parsed.version !== 1 || !Array.isArray(parsed.tickers)) return null
     return parsed
   } catch {
@@ -83,6 +85,7 @@ function normalizeTicker(t: MarketTicker, i: number): MarketTicker {
 export function loadMarketsState(): MarketsState {
   const existing = readRaw()
   if (existing) {
+    const hadLegacyHeatDensity = existing.density === 'heat'
     const normalized: MarketsState = {
       ...existing,
       version: 1,
@@ -94,9 +97,10 @@ export function loadMarketsState(): MarketsState {
         crosses: Boolean((existing.collapsed as MarketsCollapsed | undefined)?.crosses),
       },
       tickers: existing.tickers.map(normalizeTicker),
+      density: existing.density === 'compact' ? 'compact' : 'comfortable',
     }
     const { state, added } = mergeDefaultTickers(normalized)
-    if (added.length > 0) writeState(state)
+    if (added.length > 0 || hadLegacyHeatDensity) writeState(state)
     return state
   }
   const seeded = createEmptyMarketsState()
@@ -264,15 +268,15 @@ export function setMarketsCollapsed(
   saveMarketsState(state)
 }
 
-export function setMarketsDensity(density: 'comfortable' | 'compact' | 'heat'): void {
+export function setMarketsDensity(density: MarketsDensity): void {
   const state = loadMarketsState()
   state.density = density
   saveMarketsState(state)
 }
 
-export function getMarketsDensity(): 'comfortable' | 'compact' | 'heat' {
+export function getMarketsDensity(): MarketsDensity {
   const d = loadMarketsState().density
-  if (d === 'compact' || d === 'heat') return d
+  if (d === 'compact') return d
   return 'comfortable'
 }
 
