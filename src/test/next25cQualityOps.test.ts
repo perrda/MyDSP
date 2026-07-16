@@ -51,15 +51,15 @@ describe('next25c quality / ops (21–25)', () => {
 
   it('21: RELEASE_NOTES archive (5 versions) + UpdateBanner See all + Settings whats-new', () => {
     expect(RELEASE_NOTES.length).toBeGreaterThanOrEqual(5)
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.49')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.50')
     expect(releaseNotesBullets(3)).toHaveLength(3)
     expect(releaseNotesArchive(5)).toHaveLength(5)
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.50',
       '1.2.49',
       '1.2.48',
       '1.2.47',
       '1.2.46',
-      '1.2.45',
     ])
 
     const notes = readFileSync(resolve(__dirname, '../domain/releaseNotes.ts'), 'utf8')
@@ -195,10 +195,10 @@ describe('next25c quality / ops (21–25)', () => {
     expect(compare).toMatch(/downloadWeeklyDigest/)
   })
 
-  it('package version is 1.2.49', () => {
+  it('package version is 1.2.50', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8')) as {
       version: string
     }
-    expect(pkg.version).toBe('1.2.49')
+    expect(pkg.version).toBe('1.2.50')
   })
 })

@@ -1,5 +1,19 @@
 # MyDSP Changelog
 
+## [1.2.50] - 2026-07-16
+
+### Improved — PWA leftovers, Face ID-first unlock, header overlap, bottom nav, Finnhub UX
+- **PWA** — home-screen shortcuts (Today / Markets / Settings); `theme-color` tracks light/dark
+- **Security** — Face ID leads unlock on iPhone & iPad; 4-digit PIN is the fallback; stronger WebAuthn retry
+- **Header** — sync chip moved off the burger row on phone (dedicated strip); anti-overlap flex rules
+- **Bottom nav** — Overview + Settings fixed; Settings → Layout picks the three middle tabs (default Markets · To Do · Equities)
+- **Prices** — Finnhub free-key how-to in Settings; cascade copy + session provider health
+
+### Version
+- 1.2.49 → **1.2.50**
+
+---
+
 ## [1.2.49] - 2026-07-16
 
 ### Improved — Quality / ops (next 25c · 21–25)

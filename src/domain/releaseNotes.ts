@@ -12,6 +12,15 @@ export type ReleaseNotesEntry = {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.50',
+    date: '2026-07-16',
+    bullets: [
+      'Face ID-first unlock · phone sync chip no longer overlaps menu',
+      'Customizable bottom-nav middle tabs · PWA shortcuts + theme-color',
+      'Finnhub key how-to + quote failover health in Settings',
+    ],
+  },
+  {
     version: '1.2.49',
     date: '2026-07-16',
     bullets: [
@@ -54,15 +63,6 @@ export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
       'Sync dry-run pull · device nickname',
       'Biometric unlock timeout · setup URL export',
       'Auto-resume after sync pause',
-    ],
-  },
-  {
-    version: '1.2.44',
-    date: '2026-07-15',
-    bullets: [
-      'Settings fuzzy search + recent jumps',
-      'Household snapshot PDF · Markets Cached mode',
-      'verify:bundle budget · UpdateBanner release notes',
     ],
   },
 ]

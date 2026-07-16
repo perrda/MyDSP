@@ -205,7 +205,7 @@ export async function registerBiometric(): Promise<boolean> {
         authenticatorSelection: {
           authenticatorAttachment: 'platform',
           userVerification: 'required',
-          residentKey: 'preferred',
+          residentKey: 'required',
         },
         timeout: 60000,
       },
@@ -219,16 +219,39 @@ export async function registerBiometric(): Promise<boolean> {
 }
 
 export async function triggerBiometric(): Promise<boolean> {
+  if (!isBiometricSupported()) return false
+  const challenge = crypto.getRandomValues(new Uint8Array(32))
   const stored = loadBiometricCred()
-  if (!stored || !isBiometricSupported()) return false
+
+  // Prefer the registered platform credential (iPhone / iPad Face ID).
+  if (stored) {
+    try {
+      const assertion = await navigator.credentials.get({
+        publicKey: {
+          challenge,
+          allowCredentials: [
+            {
+              type: 'public-key',
+              id: base64ToBuffer(stored),
+              transports: ['internal'],
+            },
+          ],
+          userVerification: 'required',
+          timeout: 60000,
+        },
+      })
+      if (assertion) return true
+    } catch {
+      /* fall through to discoverable / bare platform prompt */
+    }
+  }
+
+  // Fallback: let the platform pick a discoverable credential (helps after
+  // credential id mismatch across A2HS vs Safari tabs on the same host).
   try {
-    const challenge = crypto.getRandomValues(new Uint8Array(32))
     const assertion = await navigator.credentials.get({
       publicKey: {
         challenge,
-        allowCredentials: [
-          { type: 'public-key', id: base64ToBuffer(stored), transports: ['internal'] },
-        ],
         userVerification: 'required',
         timeout: 60000,
       },

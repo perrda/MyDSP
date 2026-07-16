@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.49**
+**Current version: 1.2.50**
 
-## Completed (through v1.2.49)
+## Completed (through v1.2.50)
 
+- PR94: PWA shortcuts + theme-color; Face ID-first unlock (PIN fallback); phone sync-chip anti-overlap; customizable bottom-nav middle slots; Finnhub key how-to + provider health in Settings
 - Quality / ops (next25c 21–25): What’s new archive, ErrorBoundary recovery, skip-link targets, /smoke Quote+Sync checks, weekly HTML digest download
 - Today / money / tax (next25c 16–20): next-action stack, spending category sparklines, tax year progress ring, NW 7d/30d sparkline, Compare invite sheet
 - Mobile / tablet UX (next25c 11–15): page transitions, Jobs pipeline mini-card, Todos NL quick-add, Settings split nav, PTR Today/Markets only

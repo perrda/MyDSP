@@ -42,15 +42,16 @@ describe('syncHighlights', () => {
 })
 
 describe('resolveBottomNavItems', () => {
-  it('pins Settings last and caps at 5 tabs', () => {
-    const items = resolveBottomNavItems(['/todos', '/jobs', '/markets', '/crypto', '/goals', '/spending'])
+  it('pins Overview first, Settings last, and caps at 5 tabs', () => {
+    const items = resolveBottomNavItems(['/todos', '/jobs', '/markets'])
     expect(items).toHaveLength(5)
+    expect(items[0].to).toBe('/')
     expect(items[items.length - 1].to).toBe('/settings')
-    expect(items.map((i) => i.to)).toContain('/todos')
+    expect(items.map((i) => i.to)).toEqual(['/', '/todos', '/jobs', '/markets', '/settings'])
   })
 
-  it('falls back to Overview / Markets / Spending / Goals', () => {
+  it('falls back to Overview / Markets / To Do / Equities / Settings', () => {
     const items = resolveBottomNavItems([])
-    expect(items.map((i) => i.to)).toEqual(['/', '/markets', '/spending', '/goals', '/settings'])
+    expect(items.map((i) => i.to)).toEqual(['/', '/markets', '/todos', '/equities', '/settings'])
   })
 })

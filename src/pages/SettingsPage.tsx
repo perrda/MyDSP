@@ -132,6 +132,13 @@ import {
 } from '../storage/portfolioStore'
 import { resetNavOrder } from '../storage/navOrder'
 import {
+  DEFAULT_BOTTOM_NAV_MIDDLE,
+  loadBottomNavMiddleSlots,
+  resetBottomNavMiddleSlots,
+  saveBottomNavMiddleSlots,
+} from '../storage/bottomNavSlots'
+import { BOTTOM_NAV_CATALOG } from '../domain/bottomNav'
+import {
   getSessionSyncPassphrase,
   hasRememberedSyncPassphrase,
   setSessionSyncPassphrase,
@@ -227,15 +234,15 @@ const SETTINGS_SECTION_SEARCH: Record<(typeof SETTINGS_SECTION_IDS)[number], str
   appearance: 'Light dark glass mode theme larger text accessibility',
   accessibility:
     'Accessibility larger text reduced motion high contrast colour blind chart palette a11y',
-  layout: 'On launch favourites sidebar bottom nav',
+  layout: 'On launch favourites sidebar bottom nav tabs middle slots Overview Settings',
   fcc: 'Sample FCC portfolio',
   display: 'Currency tax residency privacy',
   'trade-history': 'Broker CSV IBKR Trading 212 Coinbase trades',
   'price-history': 'Holding price history import',
-  security: 'PIN Face ID lock biometric unlock timeout',
+  security: 'PIN Face ID lock biometric unlock timeout iPhone iPad',
   alerts: 'Notifications quiet hours price alerts desktop sound holdings drift',
   income: 'Income honesty',
-  prices: 'Price refresh providers',
+  prices: 'Price refresh providers Finnhub CoinGecko Yahoo failover API key',
   devices: 'Devices sync activity log smoke checklist install PWA nickname',
   account: 'Cloud account OAuth identity',
   'open-banking': 'Open banking PSD2 bank feed',
@@ -318,6 +325,7 @@ export function SettingsPage() {
   const [conflictChoices, setConflictChoices] = useState<Record<string, ConflictChoice>>({})
   const [pendingMerge, setPendingMerge] = useState<MergePreview | null>(null)
   const [launchPath, setLaunchPath] = useState(() => loadLaunchPath())
+  const [bottomMiddle, setBottomMiddle] = useState<string[]>(() => loadBottomNavMiddleSlots())
   const [priceThresholds, setPriceThresholds] = useState<PriceAlertThreshold[]>(() =>
     loadPriceAlertThresholds(),
   )
@@ -2126,7 +2134,7 @@ export function SettingsPage() {
         <SettingsSection
           id="layout"
           eyebrow="Layout"
-          title="Sidebar Favourites"
+          title="Sidebar & bottom nav"
           className={layoutFlash ? 'settings-section-flash' : ''}
         >
           <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
@@ -2160,6 +2168,69 @@ export function SettingsPage() {
               Default is Overview on web, tablet, and phone. Applies the next time you open MyDSP.
             </span>
           </label>
+
+          <div className="mb-8 max-w-xl">
+            <p className="label-uppercase mb-2">Bottom navigation (phone &amp; tablet)</p>
+            <p className="text-sm text-text-muted font-light mb-4 leading-relaxed">
+              <span className="text-text font-medium">Overview</span> and{' '}
+              <span className="text-text font-medium">Settings</span> stay fixed at each end. Choose
+              the three middle tabs — default is Markets · To Do · Equities (same on iPhone and
+              iPad).
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+              {([0, 1, 2] as const).map((slot) => (
+                <label key={slot} className="block text-xs font-bold uppercase tracking-widest text-text-subtle">
+                  Slot {slot + 1}
+                  <select
+                    className="mt-2 w-full normal-case tracking-normal font-medium text-sm"
+                    value={bottomMiddle[slot] ?? DEFAULT_BOTTOM_NAV_MIDDLE[slot]}
+                    aria-label={`Bottom nav middle slot ${slot + 1}`}
+                    onChange={(e) => {
+                      const next = [...bottomMiddle]
+                      const chosen = e.target.value
+                      // Swap if the path is already used in another slot
+                      const other = next.findIndex((p, i) => i !== slot && p === chosen)
+                      if (other >= 0) next[other] = next[slot] ?? DEFAULT_BOTTOM_NAV_MIDDLE[slot]
+                      next[slot] = chosen
+                      saveBottomNavMiddleSlots(next)
+                      setBottomMiddle(loadBottomNavMiddleSlots())
+                      flash('Bottom nav updated.')
+                    }}
+                  >
+                    {Object.values(BOTTOM_NAV_CATALOG)
+                      .filter((item) => item.to !== '/' && item.to !== '/settings')
+                      .map((item) => (
+                        <option key={item.to} value={item.to}>
+                          {item.label}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+              ))}
+            </div>
+            <p className="text-xs text-text-subtle mb-3 font-light">
+              Preview:{' '}
+              <span className="text-text font-medium">
+                Overview ·{' '}
+                {bottomMiddle
+                  .map((p) => BOTTOM_NAV_CATALOG[p]?.label ?? p)
+                  .join(' · ')}{' '}
+                · Settings
+              </span>
+            </p>
+            <button
+              type="button"
+              className="btn-ghost btn-sm"
+              onClick={() => {
+                resetBottomNavMiddleSlots()
+                setBottomMiddle(loadBottomNavMiddleSlots())
+                flash('Bottom nav reset to Markets · To Do · Equities.')
+              }}
+            >
+              Reset bottom nav defaults
+            </button>
+          </div>
+
           <button
             type="button"
             className="btn-secondary"
@@ -2383,9 +2454,11 @@ export function SettingsPage() {
 
         <SettingsSection id="security" eyebrow="Security" title="PIN & biometrics">
           <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
-            Lock MyDSP with a 4-digit PIN. On iPhone and iPad (HTTPS / Add to Home Screen), unlock
-            with {getBiometricLabel()} via WebAuthn. Security stays on this device and is not
-            included in cloud backups.
+            Same lock on <span className="text-text font-medium">iPhone and iPad</span>: enable a
+            4-digit PIN, then register {getBiometricLabel()} so unlock leads with Face ID. PIN is
+            always the fallback if Face ID is cancelled or unavailable. Security stays on this
+            device and is not included in cloud backups. Use the installed PWA on HTTPS (e.g.
+            workers.dev) — Face ID needs a secure context.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 max-w-lg">
             <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle">
@@ -2427,8 +2500,7 @@ export function SettingsPage() {
                   persistSecurity({ ...sec, pinEnabled: true, pinHash })
                   setPinDraft('')
                   setPinConfirm('')
-                  flash('PIN enabled — locking now.')
-                  lock()
+                  flash('PIN enabled — register Face ID next, then lock.')
                 })()
               }}
             >
@@ -2498,7 +2570,7 @@ export function SettingsPage() {
           <div className="flex flex-wrap gap-3 items-start">
             <button
               type="button"
-              className="btn-secondary"
+              className="btn-primary"
               disabled={!sec.pinEnabled || !isBiometricSupported()}
               onClick={() => {
                 void (async () => {
@@ -2509,14 +2581,14 @@ export function SettingsPage() {
                   const ok = await registerBiometric()
                   if (ok) {
                     persistSecurity({ ...sec, biometricEnabled: true })
-                    flash(`${getBiometricLabel()} registered.`)
+                    flash(`${getBiometricLabel()} registered — it will lead unlock; PIN is fallback.`)
                   } else flash(`${getBiometricLabel()} unavailable or cancelled.`)
                 })()
               }}
             >
               {sec.biometricEnabled
                 ? `Re-register ${getBiometricLabel()}`
-                : `Enable ${getBiometricLabel()}`}
+                : `Enable ${getBiometricLabel()} (recommended)`}
             </button>
             {sec.biometricEnabled ? (
               <button
@@ -2525,7 +2597,7 @@ export function SettingsPage() {
                 onClick={() => {
                   clearBiometricCred()
                   persistSecurity({ ...sec, biometricEnabled: false })
-                  flash(`${getBiometricLabel()} disabled.`)
+                  flash(`${getBiometricLabel()} disabled — PIN-only unlock.`)
                 }}
               >
                 Disable {getBiometricLabel()}
@@ -2534,7 +2606,9 @@ export function SettingsPage() {
           </div>
           <p className="text-xs text-text-subtle mt-3 max-w-xl">
             {isBiometricSupported()
-              ? `Tap “Unlock with ${getBiometricLabel()}” on the lock screen (iOS requires a tap — Face ID will not auto-start).`
+              ? sec.biometricEnabled
+                ? `Lock screen opens with “Unlock with ${getBiometricLabel()}” first (tap once — iOS requires a gesture). Use PIN if Face ID fails.`
+                : `PIN works now. Tap Enable ${getBiometricLabel()} so Face ID leads unlock on iPhone and iPad.`
               : 'Biometrics unavailable here — use an HTTPS host (e.g. workers.dev) and Add to Home Screen on iPhone/iPad.'}
           </p>
         </SettingsSection>
@@ -2874,19 +2948,67 @@ export function SettingsPage() {
         </SettingsSection>
 
         <SettingsSection id="prices" eyebrow="Prices" title="Live market data">
-          <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
-            Crypto prices use CoinGecko (no key). Equities use Finnhub if you add a free API key,
-            otherwise Yahoo via a CORS proxy. Use the Prices button in the header to refresh.
+          <p className="text-sm text-text-muted font-light mb-4 max-w-2xl leading-relaxed">
+            Quotes always try the best live source first, then fail over automatically:
           </p>
+          <ul className="text-sm text-text-muted font-light mb-6 max-w-2xl list-disc list-inside space-y-1.5 leading-relaxed">
+            <li>
+              <span className="text-text font-medium">Equities</span> — Finnhub (with your free
+              key) → Yahoo Finance via CORS proxies
+            </li>
+            <li>
+              <span className="text-text font-medium">Crypto</span> — CoinGecko → Yahoo / CoinCap /
+              Coinbase
+            </li>
+            <li>
+              <span className="text-text font-medium">Indices &amp; FX</span> — Yahoo first, with
+              Finnhub / Frankfurter backups
+            </li>
+          </ul>
+          <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
+            Markets, holdings refresh, and Compare all share this cascade. Use the header Refresh
+            (or pull-to-refresh on Today / Markets) to pull the latest.
+          </p>
+
+          <div className="surface-nested p-4 mb-6 max-w-2xl">
+            <p className="text-xs font-bold uppercase tracking-widest text-text-subtle mb-2">
+              Get a free Finnhub API key
+            </p>
+            <ol className="text-sm text-text-muted font-light space-y-2 list-decimal list-inside leading-relaxed">
+              <li>
+                Open{' '}
+                <a
+                  href="https://finnhub.io/register"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-accent font-medium hover:underline"
+                >
+                  finnhub.io/register
+                </a>{' '}
+                and create a free account
+              </li>
+              <li>
+                In the Finnhub dashboard, copy your API key (Dashboard → API Key)
+              </li>
+              <li>Paste it below and leave the field — it saves on blur</li>
+              <li>Refresh Markets / prices — equities should prefer Finnhub when the key works</li>
+            </ol>
+            <p className="text-xs text-text-subtle mt-3 leading-relaxed">
+              Free tier is enough for personal use. Without a key, equities still load via Yahoo;
+              crypto never needs Finnhub.
+            </p>
+          </div>
+
           <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle mb-2">
             Finnhub API key
           </label>
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col sm:flex-row gap-3 mb-6">
             <input
               key={`finnhub-${activeId}`}
               type="password"
               autoComplete="off"
-              placeholder="Optional — finnhub.io"
+              placeholder="Paste key from finnhub.io dashboard"
+              className="max-w-md"
               defaultValue={data.settings.finnhubKey ?? ''}
               onBlur={(e) => {
                 const key = e.target.value.trim()
@@ -2900,10 +3022,37 @@ export function SettingsPage() {
                 } catch {
                   /* ignore */
                 }
-                flash(key ? 'Finnhub key saved.' : 'Finnhub key cleared.')
+                flash(key ? 'Finnhub key saved — equities will prefer Finnhub.' : 'Finnhub key cleared.')
               }}
             />
           </div>
+
+          <p className="text-xs font-bold uppercase tracking-widest text-text-subtle mb-2">
+            Provider health (this session)
+          </p>
+          <ul className="text-xs text-text-muted font-light space-y-1 mb-2 max-w-xl">
+            {getMarketsProviderHealth().map((row) => (
+              <li key={row.id} className="flex flex-wrap gap-x-2 gap-y-0.5">
+                <span className="text-text font-medium capitalize min-w-[5.5rem]">{row.id}</span>
+                <span>
+                  {row.consecutiveFailures > 0
+                    ? `${row.consecutiveFailures} fail(s)${row.lastError ? ` — ${row.lastError}` : ''}`
+                    : row.lastSuccessAt
+                      ? `OK · ${new Date(row.lastSuccessAt).toLocaleTimeString()}`
+                      : 'No hits yet'}
+                </span>
+              </li>
+            ))}
+          </ul>
+          {formatMarketsProviderHealthHint() ? (
+            <p className="text-xs text-amber-600 dark:text-amber-400 max-w-xl">
+              {formatMarketsProviderHealthHint()}
+            </p>
+          ) : (
+            <p className="text-xs text-text-subtle max-w-xl">
+              All relays healthy (or not yet sampled this session).
+            </p>
+          )}
         </SettingsSection>
 
         <SettingsSection id="devices" eyebrow="Devices" title="Install on iPhone & iPad">
