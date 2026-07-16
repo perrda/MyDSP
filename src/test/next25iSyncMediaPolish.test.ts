@@ -25,7 +25,7 @@ function mockLocalStorage() {
   return mem
 }
 
-describe('next25i — sync / media / polish tip (1–25 → v1.2.72)', () => {
+describe('next25i — sync / media / polish tip (1–25 → v1.2.73)', () => {
   let mem: Map<string, string>
 
   beforeEach(() => {
@@ -36,16 +36,16 @@ describe('next25i — sync / media / polish tip (1–25 → v1.2.72)', () => {
     mem.clear()
   })
 
-  it('package + release notes are 1.2.72', () => {
+  it('package + release notes are 1.2.73', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.72')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.72')
+    expect(pkg.version).toBe('1.2.73')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.73')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.73',
       '1.2.72',
       '1.2.71',
       '1.2.70',
       '1.2.69',
-      '1.2.68',
     ])
   })
 
@@ -137,7 +137,7 @@ describe('next25i — sync / media / polish tip (1–25 → v1.2.72)', () => {
     expect(paper.cost).toBe(2000)
     expect(paper.count).toBe(1)
     const ctx = readFileSync(resolve(__dirname, '../context/PortfolioContext.tsx'), 'utf8')
-    expect(ctx).toMatch(/paperCommodityValue/)
+    expect(ctx).toMatch(/calcBreakdownWithPaper|paperCommodityValue/)
   })
 
   it('9: offline Retry when online', () => {

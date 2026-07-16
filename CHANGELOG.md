@@ -1,5 +1,47 @@
 # MyDSP Changelog
 
+## [1.2.73] - 2026-07-16
+
+### Improved — Sync / trust (next 25j · 1–5)
+1. **Compare week-Δ snapshots sync** — baselines travel in fullArchive (LWW)  
+2. **What arrived extras** — pull toast covers quotes, News/YT caches, ISA, alerts, week-Δ  
+3. **Launch path + UI panels** documented as device-local (Settings + SYNC_SETUP)  
+4. **Recurring sort + drift %** documented in device-local matrix  
+5. **Digest highlight edits persist** — textarea lines survive reopen  
+
+### Improved — Markets (next 25j · 6–10)
+6. **Compare includes paper commodity NW** — `calcBreakdownWithPaper`  
+7. **History snapshots include paper NW** — chart aligns with Today  
+8. **Quote SLA chip on Today + Compare**  
+9. **Finnhub 429 chip on Today** two-pane / sync row  
+10. **Persist tag filter + yield sort** — Markets prefs LWW  
+
+### Improved — UI (next 25j · 11–15)
+11. **News unread on Jump-in**  
+12. **Bottom-nav unread dots** for News / YouTube  
+13. **YouTube Cached-mode banner**  
+14. **Tax thumb CTA bar**  
+15. **Recurring PTR + thumb CTA**  
+
+### Improved — Today / media / tax (next 25j · 16–20)
+16. **`newsUnreadFromCache` helper**  
+17. **Bill commentary → Recurring** deep-link  
+18. **Persist Compare portfolio selection**  
+19. **Tax re-reads ISA override after sync**  
+20. **Today partial quote-failure chip**  
+
+### Improved — Quality / ops (next 25j · 21–25)
+21. `/smoke` Worker News allowlist probe  
+22. Playwright Compare + Tax routes  
+23. Axe Compare iphone gate  
+24. Axe Liabilities + Import  
+25. Tip tests + SYNC_SETUP Compare week-Δ  
+
+### Version
+- 1.2.72 → **1.2.73**
+
+---
+
 ## [1.2.72] - 2026-07-16
 
 ### Improved — Sync / trust (next 25i · 1–5)

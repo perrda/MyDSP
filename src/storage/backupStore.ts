@@ -42,6 +42,10 @@ import {
   exportPriceAlertThresholdsForBackup,
   importPriceAlertThresholdsFromBackup,
 } from '../domain/priceAlerts'
+import {
+  exportCompareWeekSnapshotForBackup,
+  importCompareWeekSnapshotFromBackup,
+} from '../domain/compareWeekSnapshot'
 
 // Lazy import to avoid circular deps - sync service imports backupStore
 let _pushSyncLazy: ((url: string, pass: string) => Promise<unknown>) | null = null
@@ -97,6 +101,8 @@ export interface FullBackupRecord extends FullBackupMeta {
   isaRemaining?: unknown
   /** Optional price-alert thresholds */
   priceAlertThresholds?: unknown
+  /** Optional Compare week-over-week NW baselines */
+  compareWeekSnapshot?: unknown
   /** Optional sidebar Favourites / Others layout (workspace-level) */
   navLayout?: unknown
   /** Optional phone/tablet bottom-nav middle slots */
@@ -121,6 +127,7 @@ function backupCanonical(record: Pick<
   | 'youtubeVideos'
   | 'isaRemaining'
   | 'priceAlertThresholds'
+  | 'compareWeekSnapshot'
   | 'navLayout'
   | 'bottomNavSlots'
   | 'documentBlobs'
@@ -137,6 +144,7 @@ function backupCanonical(record: Pick<
     youtubeVideos: record.youtubeVideos ?? null,
     isaRemaining: record.isaRemaining ?? null,
     priceAlertThresholds: record.priceAlertThresholds ?? null,
+    compareWeekSnapshot: record.compareWeekSnapshot ?? null,
     navLayout: record.navLayout ?? null,
     bottomNavSlots: record.bottomNavSlots ?? null,
     documentBlobs: record.documentBlobs ?? null,
@@ -158,6 +166,7 @@ export async function computeFullBackupChecksum(
     | 'youtubeVideos'
     | 'isaRemaining'
     | 'priceAlertThresholds'
+    | 'compareWeekSnapshot'
     | 'navLayout'
     | 'bottomNavSlots'
     | 'documentBlobs'
@@ -217,6 +226,7 @@ export function captureFullWorkspace(): Omit<
     youtubeVideos: exportYoutubeVideosForBackup(),
     isaRemaining: exportIsaRemainingForBackup() ?? undefined,
     priceAlertThresholds: exportPriceAlertThresholdsForBackup(),
+    compareWeekSnapshot: exportCompareWeekSnapshotForBackup() ?? undefined,
     navLayout: exportNavLayoutForBackup() ?? undefined,
     bottomNavSlots: exportBottomNavSlotsForBackup() ?? undefined,
   }
@@ -421,6 +431,9 @@ export async function restoreFullWorkspace(record: FullBackupRecord): Promise<vo
   if (record.priceAlertThresholds) {
     importPriceAlertThresholdsFromBackup(record.priceAlertThresholds)
   }
+  if (record.compareWeekSnapshot) {
+    importCompareWeekSnapshotFromBackup(record.compareWeekSnapshot)
+  }
   if (record.navLayout) {
     importNavLayoutFromBackup(record.navLayout)
   }
@@ -456,6 +469,9 @@ function fullBackupPayload(record: FullBackupRecord) {
     ...(record.isaRemaining ? { isaRemaining: record.isaRemaining } : {}),
     ...(record.priceAlertThresholds
       ? { priceAlertThresholds: record.priceAlertThresholds }
+      : {}),
+    ...(record.compareWeekSnapshot
+      ? { compareWeekSnapshot: record.compareWeekSnapshot }
       : {}),
     ...(record.navLayout ? { navLayout: record.navLayout } : {}),
     ...(record.bottomNavSlots ? { bottomNavSlots: record.bottomNavSlots } : {}),

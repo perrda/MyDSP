@@ -3,6 +3,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Modal } from './ui/Modal'
 import {
+  loadDigestHighlightEdits,
+  saveDigestHighlightEdits,
+} from '../domain/digestHighlightsPrefs'
+import {
   buildWeeklyDigestContent,
   canShareWeeklyDigest,
   copyWeeklyDigestHtml,
@@ -22,9 +26,12 @@ export function WeeklyDigestModal({ open, input, onClose, onFlash }: Props) {
   const [busy, setBusy] = useState(false)
   const [highlightsText, setHighlightsText] = useState('')
   useEffect(() => {
-    if (!input) return
-    setHighlightsText((input.highlights ?? []).join('\n'))
-  }, [input])
+    if (!open || !input) return
+    const saved = loadDigestHighlightEdits()
+    setHighlightsText(
+      saved && saved.length > 0 ? saved.join('\n') : (input.highlights ?? []).join('\n'),
+    )
+  }, [open, input])
   const editedInput = useMemo<WeeklyDigestInput | null>(() => {
     if (!input) return null
     return {
@@ -64,7 +71,16 @@ export function WeeklyDigestModal({ open, input, onClose, onFlash }: Props) {
         className="weekly-digest-highlights-textarea w-full mb-4"
         rows={4}
         value={highlightsText}
-        onChange={(e) => setHighlightsText(e.target.value)}
+        onChange={(e) => {
+          const next = e.target.value
+          setHighlightsText(next)
+          saveDigestHighlightEdits(
+            next
+              .split('\n')
+              .map((line) => line.trim())
+              .filter(Boolean),
+          )
+        }}
         placeholder="One highlight per line"
       />
       <div className="flex flex-wrap gap-2">

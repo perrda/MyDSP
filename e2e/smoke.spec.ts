@@ -86,6 +86,7 @@ test.describe('MyDSP smoke', () => {
     await expect(page.getByText(/News tags \/ headlines/i).first()).toBeVisible()
     await expect(page.getByText(/YouTube channels/i).first()).toBeVisible()
     await expect(page.getByText(/Worker YouTube allowlist/i).first()).toBeVisible()
+    await expect(page.getByText(/Worker News allowlist/i).first()).toBeVisible()
     await expect(page.getByText(/ISA remaining override/i).first()).toBeVisible()
     await expect(page.getByText(/PTR YouTube \/ Tax \/ Compare/i).first()).toBeVisible()
   })
@@ -100,6 +101,22 @@ test.describe('MyDSP smoke', () => {
     await expect(page.getByText(/Worker YouTube allowlist/i).first()).toBeVisible({
       timeout: 20_000,
     })
+  })
+
+  test('compare route renders with thumb bar', async ({ page }) => {
+    await page.goto('/compare')
+    await expect(page.getByRole('heading', { name: /Compare portfolios/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await expect(page.locator('.thumb-cta-bar').first()).toBeVisible()
+  })
+
+  test('tax route renders with ISA allowance surface', async ({ page }) => {
+    await page.goto('/tax')
+    await expect(page.getByText(/Capital gains|UK CGT|Tax/i).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await expect(page.locator('.tax-isa-allowance-progress, .thumb-cta-bar').first()).toBeVisible()
   })
 
   test('Markets shows Retry unavailable and Sync prices now', async ({ page }) => {

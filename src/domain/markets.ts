@@ -81,6 +81,10 @@ export interface MarketsState {
   density?: 'comfortable' | 'compact'
   /** Markets % + sparkline window (badge and chart share the same series). */
   timeframe?: import('./marketTimeframe').MarketTimeframe
+  /** Persisted tag filter chip (LWW via prefsUpdatedAt). */
+  tagFilter?: MarketTickerTag | 'All'
+  /** When true, equities section sorts by yield descending. */
+  yieldSort?: boolean
 }
 
 /** Normalize a persisted section order; always returns all six keys exactly once. */

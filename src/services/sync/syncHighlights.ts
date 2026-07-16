@@ -87,6 +87,68 @@ export function summarizeSyncHighlights(ids: SyncHighlightMap, maxParts = 4): st
   return hidden > 0 ? `${shown.join(' · ')} · ${hidden} more` : shown.join(' · ')
 }
 
+/** Human labels for workspace extras applied on pull (quotes, media caches, ISA, …). */
+export type WorkspaceExtrasFlags = {
+  marketQuotes?: boolean
+  newsArticles?: boolean
+  youtubeVideos?: boolean
+  isaRemaining?: boolean
+  priceAlertThresholds?: boolean
+  compareWeekSnapshot?: boolean
+  markets?: boolean
+  news?: boolean
+  youtube?: boolean
+}
+
+const EXTRAS_LABELS: Array<[keyof WorkspaceExtrasFlags, string]> = [
+  ['marketQuotes', 'Markets quotes'],
+  ['newsArticles', 'News headlines'],
+  ['youtubeVideos', 'YouTube videos'],
+  ['isaRemaining', 'ISA override'],
+  ['priceAlertThresholds', 'price alerts'],
+  ['compareWeekSnapshot', 'Compare week-Δ'],
+  ['markets', 'Markets watchlist'],
+  ['news', 'News tags'],
+  ['youtube', 'YouTube channels'],
+]
+
+export function summarizeWorkspaceExtras(
+  extras: WorkspaceExtrasFlags | null | undefined,
+  maxParts = 4,
+): string | null {
+  if (!extras) return null
+  const parts = EXTRAS_LABELS.filter(([k]) => Boolean(extras[k])).map(([, label]) => label)
+  if (parts.length === 0) return null
+  const shown = parts.slice(0, maxParts)
+  const hidden = parts.length - shown.length
+  return hidden > 0 ? `${shown.join(' · ')} · ${hidden} more` : shown.join(' · ')
+}
+
+export function workspaceExtrasFlagsFromPreview(extras: {
+  marketQuotes?: unknown
+  newsArticles?: unknown
+  youtubeVideos?: unknown
+  isaRemaining?: unknown
+  priceAlertThresholds?: unknown
+  compareWeekSnapshot?: unknown
+  markets?: unknown
+  news?: unknown
+  youtube?: unknown
+} | null | undefined): WorkspaceExtrasFlags {
+  if (!extras) return {}
+  return {
+    marketQuotes: extras.marketQuotes != null,
+    newsArticles: extras.newsArticles != null,
+    youtubeVideos: extras.youtubeVideos != null,
+    isaRemaining: extras.isaRemaining != null,
+    priceAlertThresholds: extras.priceAlertThresholds != null,
+    compareWeekSnapshot: extras.compareWeekSnapshot != null,
+    markets: extras.markets != null,
+    news: extras.news != null,
+    youtube: extras.youtube != null,
+  }
+}
+
 /** Diff numeric ids present on remote but not local. */
 export function diffNewIds<T extends { id: number }>(local: T[], remote: T[]): number[] {
   const have = new Set(local.map((x) => x.id))

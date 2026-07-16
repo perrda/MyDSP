@@ -1185,6 +1185,12 @@ export function SettingsPage() {
                   Price-alert notification permission / OS prompts — thresholds sync; permission is
                   per device
                 </li>
+                <li>Launch path (on-open home section) — device-local</li>
+                <li>UI panel open / collapsed prefs — device-local</li>
+                <li>Recurring sort preference — device-local</li>
+                <li>Holdings drift % threshold — device-local</li>
+                <li>Settings recent jumps — device-local (optional)</li>
+                <li>Digest highlight edits — device-local</li>
               </ul>
             </div>
             <label className="flex items-start gap-3 cursor-pointer">

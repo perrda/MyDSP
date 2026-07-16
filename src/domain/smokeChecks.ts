@@ -6,6 +6,10 @@ export const DEFAULT_QUOTE_WORKER_URL = 'https://mydsp-quote.dave-perry.workers.
 export const YOUTUBE_ALLOWLIST_PROBE =
   'https://www.youtube.com/feeds/videos.xml?channel_id=UCYfdidRxbB8Qhf0Nx7ioOYw'
 
+/** Probe target used to confirm Google News RSS is on the Quote Worker allowlist. */
+export const NEWS_ALLOWLIST_PROBE =
+  'https://news.google.com/rss/search?q=finance&hl=en-GB&gl=GB&ceid=GB:en'
+
 const SECRET_QUERY_KEYS = new Set(['key', 'token', 'pass', 'passphrase', 'secret', 'auth'])
 
 /** Strip secret query params so Sync URL probes never send credentials. */
@@ -142,6 +146,50 @@ export async function probeQuoteWorkerYoutubeAllowlist(
       ok: false,
       status: 0,
       detail: e instanceof Error ? e.message : 'YouTube allowlist probe failed',
+    }
+  }
+}
+
+/**
+ * Confirm Quote Worker allowlists Google News RSS (not blocked with Host not allowed).
+ * Upstream 4xx still counts as allowlisted — only 403 "Host not allowed" fails.
+ */
+export async function probeQuoteWorkerNewsAllowlist(
+  baseUrl: string = DEFAULT_QUOTE_WORKER_URL,
+  fetchImpl: typeof fetch = fetch,
+): Promise<ReachabilityResult> {
+  const root = baseUrl.replace(/\/$/, '')
+  const probe = `${root}/quote?url=${encodeURIComponent(NEWS_ALLOWLIST_PROBE)}`
+  try {
+    const res = await fetchImpl(probe, {
+      method: 'GET',
+      mode: 'cors',
+      cache: 'no-store',
+      signal: AbortSignal.timeout(10000),
+    })
+    if (res.status === 403) {
+      let detail = `HTTP 403 — News host may not be allowlisted`
+      try {
+        const body = (await res.json()) as { error?: string }
+        if (body.error) detail = body.error
+      } catch {
+        /* ignore */
+      }
+      return { ok: false, status: 403, detail }
+    }
+    if (res.status > 0) {
+      return {
+        ok: true,
+        status: res.status,
+        detail: `News allowlisted (Worker HTTP ${res.status})`,
+      }
+    }
+    return { ok: false, status: 0, detail: 'Worker returned empty status' }
+  } catch (e) {
+    return {
+      ok: false,
+      status: 0,
+      detail: e instanceof Error ? e.message : 'News allowlist probe failed',
     }
   }
 }
