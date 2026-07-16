@@ -3,9 +3,9 @@
  * Keep 3 short bullets aligned with the latest CHANGELOG section.
  */
 export const RELEASE_NOTES: readonly string[] = [
-  'Page transitions · pull-to-refresh on Today & Markets only',
-  'Jobs pipeline mini-card · Todos “Pay rent Friday” quick-add',
-  'Settings split section nav on iPad (≥900px)',
+  'Today next-action stack · NW 7d/30d sparkline',
+  'Spending category sparklines · Tax year progress ring',
+  'Compare: how to add a second portfolio',
 ]
 
 /** Return up to `n` bullets for the banner. */

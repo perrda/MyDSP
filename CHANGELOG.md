@@ -1,5 +1,19 @@
 # MyDSP Changelog
 
+## [1.2.48] - 2026-07-16
+
+### Improved — Today / money / tax (next 25c · 16–20)
+16. Today **next-action stack** — up to 3 cards (next todo / bill due / top mover); bills strip de-dupes when bill is in the stack  
+17. Spending **category sparklines** for the selected month — top categories with daily bars under the ledger header  
+18. Tax **year progress ring** — days left in tax year + estimated CGT used vs allowance (when tax data / allowance exists)  
+19. Today **net-worth sparkline** — 7d / 30d toggle from history  
+20. Compare **Add a portfolio** invite sheet — steps to create a second family workspace  
+
+### Version
+- 1.2.47 → **1.2.48**
+
+---
+
 ## [1.2.47] - 2026-07-16
 
 ### Improved — Mobile / tablet UX (next 25c · 11–15)

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { GettingStartedChecklist } from '../components/GettingStartedChecklist'
 import { AllocationRing, NetWorthChart } from '../components/charts/LazyCharts'
 import { BudgetSparkline } from '../components/charts/BudgetSparkline'
+import { Sparkline } from '../components/charts/Sparkline'
 import { PageHeader } from '../components/ui/PageHeader'
 import { RemindersPanel, useSmartReminders } from '../components/SmartReminders'
 import { PortfolioShareCard } from '../components/SocialShare'
@@ -14,9 +15,18 @@ import { worstBudgetOffenders } from '../domain/budgetChart'
 import { appendManualSnapshot } from '../domain/history'
 import { nearestGoalProjection, formatGoalProjectionLine } from '../domain/goalProjectedDate'
 import { formatMoneyPulseLine, moneyPulseDelta } from '../domain/moneyPulse'
+import {
+  buildNextActionStack,
+  stackIncludesBill,
+} from '../domain/nextActionStack'
+import {
+  netWorthSparkSeries,
+  type NwSparkWindow,
+} from '../domain/netWorthSparkline'
 import { dueWithinDays } from '../domain/recurringDueStrip'
 import { isDueToday, isOverdue } from '../domain/todos'
 import { snoozeDueDateOneDay } from '../domain/todoSnooze'
+import { sparklineTrendFromSeries } from '../domain/sparklineSeries'
 import {
   getAutoSyncStatus,
   getLastSyncLatencyKind,
@@ -55,6 +65,7 @@ export function Dashboard() {
   const { reminders } = useSmartReminders()
   const [syncStatus, setSyncStatus] = useState<AutoSyncStatus>(() => getAutoSyncStatus())
   const [queueLen, setQueueLen] = useState(() => loadOfflineQueue().length)
+  const [nwSparkDays, setNwSparkDays] = useState<NwSparkWindow>(7)
   /** iPad / wide Stage Manager: Today | Markets two-pane when ≥900px. */
   const [twoPane, setTwoPane] = useState(() =>
     typeof window !== 'undefined' ? window.matchMedia('(min-width: 900px)').matches : false,
@@ -81,12 +92,6 @@ export function Dashboard() {
       .slice(0, 4)
   }, [data.todoItems])
 
-  /** Next incomplete task for the single Focus card (due/overdue first, else any open). */
-  const focusTodo = useMemo(() => {
-    if (todayTodos[0]) return todayTodos[0]
-    return (data.todoItems ?? []).find((t) => t.status !== 'done' && t.status !== 'archived') ?? null
-  }, [todayTodos, data.todoItems])
-
   const marketsCount = useMemo(() => listMarketTickers().length, [syncStatus.lastAt])
 
   const todayMovers = useMemo(() => {
@@ -103,7 +108,20 @@ export function Dashboard() {
       .slice(0, 3)
   }, [syncStatus.lastAt, marketsCount])
 
-  const topMover = todayMovers[0] ?? null
+  /** Next-action stack: todo / bill / top mover (max 3). */
+  const nextActions = useMemo(
+    () =>
+      buildNextActionStack({
+        todoItems: data.todoItems,
+        recurringTransactions: data.recurringTransactions,
+        movers: todayMovers,
+      }),
+    [data.todoItems, data.recurringTransactions, todayMovers],
+  )
+
+  const focusTodoCard = nextActions.find((c) => c.kind === 'todo')
+  const focusTodoItem = focusTodoCard?.kind === 'todo' ? focusTodoCard.todo : null
+
   const todayPriceAlerts = useMemo(() => buildPriceAlertNotifications().slice(0, 2), [syncStatus.lastAt, marketsCount])
 
   const syncCfg = loadSyncConfig()
@@ -145,9 +163,9 @@ export function Dashboard() {
   }
 
   const markFocusDone = () => {
-    if (!focusTodo) return
+    if (!focusTodoItem) return
     const now = new Date().toISOString()
-    const id = focusTodo.id
+    const id = focusTodoItem.id
     setData((prev) => ({
       ...prev,
       todoItems: (prev.todoItems ?? []).map((i) =>
@@ -159,10 +177,10 @@ export function Dashboard() {
   }
 
   const snoozeFocus = () => {
-    if (!focusTodo) return
-    const dueDate = snoozeDueDateOneDay(focusTodo.dueDate)
+    if (!focusTodoItem) return
+    const dueDate = snoozeDueDateOneDay(focusTodoItem.dueDate)
     const now = new Date().toISOString()
-    const id = focusTodo.id
+    const id = focusTodoItem.id
     setData((prev) => ({
       ...prev,
       todoItems: (prev.todoItems ?? []).map((i) =>
@@ -201,10 +219,22 @@ export function Dashboard() {
     return formatMoneyPulseLine(hit.delta, formatGBP)
   }, [data.history, netWorth])
 
+  const nwSpark = useMemo(
+    () => netWorthSparkSeries(data.history, netWorth, nwSparkDays),
+    [data.history, netWorth, nwSparkDays],
+  )
+  const nwSparkTrend = useMemo(() => sparklineTrendFromSeries(nwSpark), [nwSpark])
+
   const billsDueSoon = useMemo(
     () => dueWithinDays(data.recurringTransactions, 7).slice(0, 4),
     [data.recurringTransactions],
   )
+  /** Hide longer bills strip when next bill already sits in the action stack. */
+  const showBillsStrip = billsDueSoon.length > 1 && stackIncludesBill(nextActions)
+    ? billsDueSoon.slice(1)
+    : stackIncludesBill(nextActions)
+      ? []
+      : billsDueSoon
 
   const goalProjection = useMemo(() => nearestGoalProjection(data), [data])
 
@@ -262,7 +292,6 @@ export function Dashboard() {
 
       <div className={twoPane ? 'today-two-pane grid grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)] gap-4 mb-4 items-start' : ''}>
         <div className={twoPane ? 'min-w-0' : ''}>
-      {/* First viewport: one composition — brand pulse + act */}
       <div className={`surface p-5 md:p-6 mb-4 rounded-xl md:rounded-none shadow-sm md:shadow-none ${privacyClass(privacy)}`}>
         <p className="text-xs uppercase tracking-wider text-text-subtle mb-1 font-semibold">Net worth</p>
         <p className="today-net-worth-value text-3xl md:text-4xl font-bold tabular-nums tracking-tight mb-1 break-words">
@@ -272,6 +301,37 @@ export function Dashboard() {
           <p className="today-money-pulse text-sm text-text-muted font-light mb-2 tabular-nums">
             {moneyPulse}
           </p>
+        ) : null}
+        {nwSpark.length >= 2 ? (
+          <div className="today-nw-sparkline mb-3">
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <p className="text-[11px] uppercase tracking-wider text-text-subtle font-semibold">
+                Trend
+              </p>
+              <div
+                className="flex gap-1"
+                role="group"
+                aria-label="Net worth sparkline window"
+              >
+                {([7, 30] as const).map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    className={`btn-ghost btn-sm !min-h-8 !px-2 text-[11px] ${
+                      nwSparkDays === d ? 'text-accent font-bold' : ''
+                    }`}
+                    aria-pressed={nwSparkDays === d}
+                    onClick={() => setNwSparkDays(d)}
+                  >
+                    {d === 7 ? '7d' : '30d'}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="h-10 w-full max-w-xs" aria-hidden>
+              <Sparkline data={nwSpark} height={40} trend={nwSparkTrend} showGradient />
+            </div>
+          </div>
         ) : null}
         <p className="text-sm text-text-muted font-light mb-4">
           Assets {formatGBP(assets)} · Debt {formatGBP(liabilities)}
@@ -284,75 +344,99 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* Primary focus — one card: next todo OR top Markets mover */}
-      <div className="today-focus-card surface p-4 md:p-5 mb-3 rounded-xl md:rounded-none shadow-sm md:shadow-none">
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-xs uppercase tracking-wider text-text-subtle font-semibold">Focus</p>
-          {focusTodo ? (
-            <Link to="/todos" className="text-xs text-accent font-semibold">
-              All todos
-            </Link>
-          ) : (
-            <Link to="/markets" className="text-xs text-accent font-semibold">
-              Markets
-            </Link>
-          )}
-        </div>
-        {focusTodo ? (
-          <div>
-            <Link
-              to={`/todos?focus=${focusTodo.id}`}
-              className="block group"
-            >
-              <p className="text-[11px] uppercase tracking-wider text-text-subtle mb-1">
-                {isOverdue(focusTodo) ? 'Overdue' : isDueToday(focusTodo) ? 'Due today' : 'Next task'}
-              </p>
-              <p className="text-lg md:text-xl font-bold tracking-tight text-text group-hover:text-accent line-clamp-2">
-                {focusTodo.title}
-              </p>
-              {todayTodos.length > 1 ? (
-                <p className="text-xs text-text-muted mt-2 font-light">
-                  +{todayTodos.length - 1} more due today
-                </p>
-              ) : null}
-            </Link>
-            <div className="today-focus-actions flex flex-wrap gap-2 mt-3">
-              <button
-                type="button"
-                className="btn-primary btn-sm"
-                onClick={markFocusDone}
-              >
-                Mark done
-              </button>
-              <button
-                type="button"
-                className="btn-secondary btn-sm"
-                onClick={snoozeFocus}
-              >
-                Snooze
-              </button>
-            </div>
-          </div>
-        ) : topMover ? (
-          <Link
-            to={`/markets?symbol=${encodeURIComponent(topMover.symbol)}`}
-            className="block group"
-          >
-            <p className="text-[11px] uppercase tracking-wider text-text-subtle mb-1">Top mover</p>
-            <p className="text-lg md:text-xl font-bold tracking-tight inline-flex items-baseline gap-2 flex-wrap">
-              <span className="group-hover:text-accent">{topMover.symbol}</span>
-              <span className={`tabular-nums ${topMover.changePct >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
-                {topMover.changePct >= 0 ? '+' : ''}
-                {topMover.changePct.toFixed(2)}%
-              </span>
-            </p>
+      {/* Next-action stack — up to 3: todo / bill / top mover */}
+      <div
+        className="today-next-action-stack today-focus-card space-y-2 mb-3"
+        aria-label="Next actions"
+      >
+        <div className="flex items-center justify-between px-0.5">
+          <p className="text-xs uppercase tracking-wider text-text-subtle font-semibold">Next</p>
+          <Link to="/todos" className="text-xs text-accent font-semibold">
+            All todos
           </Link>
+        </div>
+        {nextActions.length === 0 ? (
+          <div className="surface p-4 md:p-5 rounded-xl md:rounded-none shadow-sm md:shadow-none">
+            <p className="text-sm text-text-muted font-light">Clear day — nothing due, no movers yet.</p>
+          </div>
         ) : (
-          <p className="text-sm text-text-muted font-light">Clear day — nothing due, no movers yet.</p>
+          nextActions.map((card) => {
+            if (card.kind === 'todo') {
+              return (
+                <div
+                  key={`todo-${card.todo.id}`}
+                  className="today-next-action-card surface p-4 md:p-5 rounded-xl md:rounded-none shadow-sm md:shadow-none"
+                >
+                  <Link to={`/todos?focus=${card.todo.id}`} className="block group">
+                    <p className="text-[11px] uppercase tracking-wider text-text-subtle mb-1">
+                      {card.label}
+                    </p>
+                    <p className="text-lg md:text-xl font-bold tracking-tight text-text group-hover:text-accent line-clamp-2">
+                      {card.todo.title}
+                    </p>
+                    {todayTodos.length > 1 ? (
+                      <p className="text-xs text-text-muted mt-2 font-light">
+                        +{todayTodos.length - 1} more due today
+                      </p>
+                    ) : null}
+                  </Link>
+                  <div className="today-focus-actions flex flex-wrap gap-2 mt-3">
+                    <button type="button" className="btn-primary btn-sm" onClick={markFocusDone}>
+                      Mark done
+                    </button>
+                    <button type="button" className="btn-secondary btn-sm" onClick={snoozeFocus}>
+                      Snooze
+                    </button>
+                  </div>
+                </div>
+              )
+            }
+            if (card.kind === 'bill') {
+              return (
+                <Link
+                  key={`bill-${card.bill.id}`}
+                  to="/recurring"
+                  className="today-next-action-card surface p-4 md:p-5 rounded-xl md:rounded-none shadow-sm md:shadow-none block group"
+                >
+                  <p className="text-[11px] uppercase tracking-wider text-text-subtle mb-1">
+                    Bill due
+                  </p>
+                  <p className="text-base md:text-lg font-bold tracking-tight group-hover:text-accent line-clamp-1">
+                    {card.bill.name}
+                  </p>
+                  <p className={`text-xs text-text-muted mt-1 tabular-nums ${privacyClass(privacy)}`}>
+                    {formatDate(card.bill.nextDue)} · {formatGBP(card.bill.amount)}
+                  </p>
+                </Link>
+              )
+            }
+            return (
+              <Link
+                key={`mover-${card.symbol}`}
+                to={`/markets?symbol=${encodeURIComponent(card.symbol)}`}
+                className="today-next-action-card surface p-4 md:p-5 rounded-xl md:rounded-none shadow-sm md:shadow-none block group"
+              >
+                <p className="text-[11px] uppercase tracking-wider text-text-subtle mb-1">
+                  Top mover
+                </p>
+                <p className="text-lg md:text-xl font-bold tracking-tight inline-flex items-baseline gap-2 flex-wrap">
+                  <span className="group-hover:text-accent">{card.symbol}</span>
+                  <span
+                    className={`tabular-nums ${
+                      card.changePct >= 0 ? 'text-emerald-500' : 'text-red-500'
+                    }`}
+                  >
+                    {card.changePct >= 0 ? '+' : ''}
+                    {card.changePct.toFixed(2)}%
+                  </span>
+                </p>
+              </Link>
+            )
+          })
         )}
       </div>
 
-      {billsDueSoon.length > 0 ? (
+      {showBillsStrip.length > 0 ? (
         <div className="today-bills-strip surface p-3 md:p-4 mb-3 rounded-xl md:rounded-none shadow-sm md:shadow-none">
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs uppercase tracking-wider text-text-subtle font-semibold">
@@ -363,7 +447,7 @@ export function Dashboard() {
             </Link>
           </div>
           <ul className="flex flex-col gap-1.5">
-            {billsDueSoon.map((r) => (
+            {showBillsStrip.map((r) => (
               <li key={r.id} className="flex items-baseline justify-between gap-3 text-sm">
                 <span className="min-w-0 truncate font-medium">{r.name}</span>
                 <span className={`shrink-0 tabular-nums text-text-muted ${privacyClass(privacy)}`}>

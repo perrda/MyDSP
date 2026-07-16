@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Wallet } from 'lucide-react'
+import { MiniBarChart } from '../components/charts/Sparkline'
 import { SpendingSeriesChart } from '../components/charts/SpendingSeriesChart'
 import { EmptyState } from '../components/ui/EmptyState'
 import { PageHeader } from '../components/ui/PageHeader'
@@ -8,6 +9,7 @@ import { CollapsibleFilters } from '../components/ui/CollapsibleFilters'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
 import { usePortfolio } from '../context/PortfolioContext'
 import { formatMonthLabel, monthKey, parseMonthParam, shiftMonth } from '../domain/monthUtils'
+import { categorySparklinesForMonth } from '../domain/spendingCategorySparkline'
 import { formatWeekDeltaLine, weekSpendDelta } from '../domain/spendingWeekDelta'
 import type { SpendingEntry } from '../domain/types'
 import { formatDate, formatGBPPrecise, privacyClass } from '../utils/format'
@@ -135,6 +137,11 @@ export function SpendingPage() {
     const { thisWeek, lastWeek } = weekSpendDelta(data.spending)
     return formatWeekDeltaLine(thisWeek, lastWeek, (n) => formatGBPPrecise(n))
   }, [data.spending])
+
+  const categorySparks = useMemo(
+    () => categorySparklinesForMonth(data.spending, ym, 5),
+    [data.spending, ym],
+  )
 
   const addCustomCategory = () => {
     const name = customDraft.trim().toLowerCase()
@@ -289,6 +296,41 @@ export function SpendingPage() {
       </p>
 
       <SpendingSeriesChart spending={data.spending} privacy={privacy} />
+
+      {categorySparks.length > 0 ? (
+        <div
+          className="spending-category-sparklines surface p-4 md:p-5 mb-4 rounded-xl md:rounded-none"
+          aria-label="Category spend this month"
+        >
+          <p className="text-xs uppercase tracking-wider text-text-subtle font-semibold mb-3">
+            Top categories · {formatMonthLabel(ym)}
+          </p>
+          <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {categorySparks.map((row) => (
+              <li key={row.category} className="min-w-0">
+                <button
+                  type="button"
+                  className="w-full text-left group"
+                  onClick={() => setCategory(row.category)}
+                  aria-label={`Filter ${row.category}`}
+                >
+                  <div className="flex items-baseline justify-between gap-2 mb-1">
+                    <span className="text-xs font-bold uppercase tracking-wider text-text-subtle group-hover:text-accent truncate">
+                      {row.category}
+                    </span>
+                    <span className={`text-xs tabular-nums shrink-0 ${privacyClass(privacy)}`}>
+                      {formatGBPPrecise(row.total)}
+                    </span>
+                  </div>
+                  <div className="h-8" aria-hidden>
+                    <MiniBarChart data={row.daily} height={32} color="var(--accent)" />
+                  </div>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       <CollapsibleFilters
         id="spending-filters"

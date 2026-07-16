@@ -3,11 +3,11 @@ import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 describe('Today / Jobs / Todos polish batch (31–40)', () => {
-  it('31: Today hub has one primary focus card and simplified Jump-in', () => {
+  it('31: Today hub has next-action stack (focus upgrade) and simplified Jump-in', () => {
     const src = readFileSync(resolve(__dirname, '../pages/Dashboard.tsx'), 'utf8')
     expect(src).toMatch(/today-focus-card/)
+    expect(src).toMatch(/today-next-action-stack/)
     expect(src).toMatch(/focusTodo/)
-    expect(src).toMatch(/topMover/)
     expect(src).toMatch(/Jump in/)
     expect(src).toMatch(/QUICK_PRIMARY/)
   })

@@ -17,6 +17,8 @@ Cursor agents (and future you) need a single source of truth for forms. The livi
 | Success feedback | `utils/successFlash.ts` + `.success-haptic-flash` |
 | Spending → Rules | `Make rule` link → `/rules?pattern=&category=` prefill |
 | Today money pulse | `domain/moneyPulse.ts` NW Δ since yesterday |
+| Today next-action stack | `domain/nextActionStack.ts` — todo / bill / mover (max 3) |
+| Compare invite sheet | Compare → Add a portfolio modal → Settings `#portfolios` |
 
 ## Form recipe
 

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { GitCompareArrows, ArrowRight } from 'lucide-react'
 import { PageHeader, StatCard } from '../components/ui/PageHeader'
+import { Modal } from '../components/ui/Modal'
 import { usePortfolio } from '../context/PortfolioContext'
 import {
   buildPortfolioComparison,
@@ -32,6 +33,7 @@ export function ComparePage() {
   const [selected, setSelected] = useState<string[]>(() => portfolios.map((p) => p.id))
   const [scanToken, setScanToken] = useState(0)
   const [filling, setFilling] = useState(false)
+  const [inviteOpen, setInviteOpen] = useState(false)
 
   const cacheAgeLabel = useMemo(() => {
     const { updatedAt } = lastSyncedHoldingPrices()
@@ -170,6 +172,14 @@ export function ComparePage() {
         description="Side-by-side net worth and allocation across David and family workspaces. Week Δ uses a local previous-week snapshot."
         action={
           <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="btn-ghost btn-sm compare-invite-btn"
+              onClick={() => setInviteOpen(true)}
+              title="How to add a second portfolio for family compare"
+            >
+              Add a portfolio
+            </button>
             <button
               type="button"
               className="btn-ghost btn-sm household-snapshot-btn"
@@ -404,6 +414,59 @@ export function ComparePage() {
           Trade CSV templates
         </Link>
       </p>
+
+      <Modal open={inviteOpen} title="Add a second portfolio" onClose={() => setInviteOpen(false)}>
+        <div className="compare-invite-sheet space-y-4 text-sm text-text-muted font-light leading-relaxed">
+          <p>
+            Compare works best with two or more family workspaces — for example David and a partner,
+            or a personal and a joint book. Each portfolio keeps its own holdings, currency, and tax
+            residency.
+          </p>
+          <ol className="list-decimal pl-5 space-y-2 text-text">
+            <li>
+              Open{' '}
+              <Link
+                to="/settings#portfolios"
+                className="text-accent hover:underline font-medium"
+                onClick={() => setInviteOpen(false)}
+              >
+                Settings → Portfolios
+              </Link>
+              .
+            </li>
+            <li>Enter a unique name (e.g. “Partner” or “Joint”) and create the portfolio — it starts empty.</li>
+            <li>
+              Switch to it, then add holdings via Markets, import a broker CSV, or run the{' '}
+              <Link
+                to="/setup/opening"
+                className="text-accent hover:underline font-medium"
+                onClick={() => setInviteOpen(false)}
+              >
+                opening-balance wizard
+              </Link>
+              .
+            </li>
+            <li>Return here and tick both portfolios under Include to compare side-by-side.</li>
+          </ol>
+          <p className="text-xs text-text-subtle">
+            Tip: sync is per device — use the same cloud sync passphrase on each phone so family
+            books stay in step. Names must be unique; you can rename or delete portfolios anytime in
+            Settings.
+          </p>
+          <div className="flex flex-wrap gap-2 pt-2">
+            <Link
+              to="/settings#portfolios"
+              className="btn-primary btn-sm"
+              onClick={() => setInviteOpen(false)}
+            >
+              Open Portfolios
+            </Link>
+            <button type="button" className="btn-ghost btn-sm" onClick={() => setInviteOpen(false)}>
+              Close
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }

@@ -20,6 +20,7 @@ import {
   listPackYears,
   matchDisposalsSimple,
 } from '../domain/taxPacks'
+import { taxYearProgress } from '../domain/taxYearProgress'
 import { formatDate, formatGBP, formatGBPPrecise, privacyClass } from '../utils/format'
 
 function nextId(items: { id: number }[]): number {
@@ -78,6 +79,11 @@ export function TaxPage() {
   const summary = useMemo(
     () => calcTaxSummaryForPack(matchedRows, taxYear, pack),
     [matchedRows, taxYear, pack],
+  )
+
+  const yearProgress = useMemo(
+    () => taxYearProgress(pack, taxYear, summary.netGain),
+    [pack, taxYear, summary.netGain],
   )
 
   const ratePct = Math.round(pack.rate * 100)
@@ -323,6 +329,99 @@ export function TaxPage() {
             </option>
           ))}
         </select>
+      </div>
+
+      <div
+        className="tax-year-progress surface p-5 sm:p-6 mb-6 flex flex-wrap items-center gap-5"
+        role="group"
+        aria-label="Tax year progress"
+      >
+        <div
+          className="relative shrink-0 w-16 h-16"
+          role="img"
+          aria-label={`${yearProgress.daysLeft} days left in tax year ${taxYear}`}
+        >
+          <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90" aria-hidden>
+            <circle
+              cx="18"
+              cy="18"
+              r="15.5"
+              fill="none"
+              stroke="var(--border)"
+              strokeWidth="3"
+            />
+            <circle
+              cx="18"
+              cy="18"
+              r="15.5"
+              fill="none"
+              stroke="var(--accent)"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeDasharray={`${yearProgress.yearPct * 97.4} 97.4`}
+            />
+          </svg>
+          <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold tabular-nums leading-tight text-center px-1">
+            {yearProgress.daysLeft}d
+          </span>
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs uppercase tracking-wider text-text-subtle font-semibold mb-1">
+            Tax year · {taxYear}
+          </p>
+          <p className="text-sm font-semibold tracking-tight">
+            {yearProgress.daysLeft === 0
+              ? 'Tax year ended'
+              : `${yearProgress.daysLeft} day${yearProgress.daysLeft === 1 ? '' : 's'} left`}
+          </p>
+          {pack.hasCgt && yearProgress.allowance > 0 ? (
+            <p className={`text-xs text-text-muted font-light mt-1 tabular-nums ${privacyClass(privacy)}`}>
+              Est. CGT used {formatGBP(yearProgress.cgtUsed)} of {formatGBP(yearProgress.allowance)}
+              {yearProgress.cgtUsedPct != null
+                ? ` (${Math.round(Math.min(yearProgress.cgtUsedPct, 9.99) * 100)}%)`
+                : ''}
+            </p>
+          ) : pack.hasCgt ? (
+            <p className={`text-xs text-text-muted font-light mt-1 tabular-nums ${privacyClass(privacy)}`}>
+              Net gain {formatGBP(summary.netGain)} · no annual allowance in this pack
+            </p>
+          ) : (
+            <p className="text-xs text-text-muted font-light mt-1">
+              No personal CGT computed for this residency
+            </p>
+          )}
+        </div>
+        {pack.hasCgt && yearProgress.allowance > 0 ? (
+          <div
+            className="relative shrink-0 w-16 h-16"
+            role="img"
+            aria-label={`CGT allowance ${Math.round(Math.min(yearProgress.cgtUsedPct ?? 0, 1) * 100)}% used`}
+          >
+            <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90" aria-hidden>
+              <circle
+                cx="18"
+                cy="18"
+                r="15.5"
+                fill="none"
+                stroke="var(--border)"
+                strokeWidth="3"
+              />
+              <circle
+                cx="18"
+                cy="18"
+                r="15.5"
+                fill="none"
+                stroke="var(--accent)"
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeDasharray={`${Math.min(yearProgress.cgtUsedPct ?? 0, 1) * 97.4} 97.4`}
+              />
+            </svg>
+            <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold tabular-nums">
+              {Math.round(Math.min(yearProgress.cgtUsedPct ?? 0, 9.99) * 100)}%
+            </span>
+          </div>
+        ) : null}
       </div>
 
       {isUkTax ? (
