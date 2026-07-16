@@ -43,7 +43,7 @@ describe('next25e mobile / tablet items 11-15', () => {
     const markets = readFileSync(resolve(__dirname, '../pages/MarketsPage.tsx'), 'utf8')
     const css = readFileSync(resolve(__dirname, '../index.css'), 'utf8')
 
-    expect(markets).toMatch(/SECTION_ORDER/)
+    expect(markets).toMatch(/sectionOrder/)
     expect(markets).toMatch(/markets-section-jump-chips/)
     expect(markets).toMatch(/id=\{`markets-section-\$\{section\}`\}/)
     expect(markets).toMatch(/Crosses/)

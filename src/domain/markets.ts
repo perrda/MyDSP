@@ -48,15 +48,49 @@ export type MarketsCollapsed = {
   crosses: boolean
 }
 
+/** Markets section cards — My Crypto, My Equities, … (user-reorderable). */
+export type MarketsSectionKey = keyof MarketsCollapsed
+
+export const DEFAULT_SECTION_ORDER: MarketsSectionKey[] = [
+  'crypto',
+  'equities',
+  'commodities',
+  'indices',
+  'fx',
+  'crosses',
+]
+
 export interface MarketsState {
   version: 1
   tickers: MarketTicker[]
   collapsed: MarketsCollapsed
+  /** Top→bottom order of Markets section cards (synced via watchlist backup). */
+  sectionOrder?: MarketsSectionKey[]
   lastRefreshAt?: string
   /** Row density — compact hides names and tightens padding. */
   density?: 'comfortable' | 'compact'
   /** Markets % + sparkline window (badge and chart share the same series). */
   timeframe?: import('./marketTimeframe').MarketTimeframe
+}
+
+/** Normalize a persisted section order; always returns all six keys exactly once. */
+export function normalizeSectionOrder(raw: unknown): MarketsSectionKey[] {
+  const allowed = new Set<string>(DEFAULT_SECTION_ORDER)
+  const seen = new Set<MarketsSectionKey>()
+  const out: MarketsSectionKey[] = []
+  if (Array.isArray(raw)) {
+    for (const item of raw) {
+      if (typeof item !== 'string' || !allowed.has(item)) continue
+      const key = item as MarketsSectionKey
+      if (seen.has(key)) continue
+      seen.add(key)
+      out.push(key)
+    }
+  }
+  for (const key of DEFAULT_SECTION_ORDER) {
+    if (!seen.has(key)) out.push(key)
+  }
+  return out
 }
 
 export type MarketsDensity = NonNullable<MarketsState['density']>
@@ -137,6 +171,7 @@ export function createEmptyMarketsState(): MarketsState {
       sortOrder: i,
     })),
     collapsed: { ...DEFAULT_COLLAPSED },
+    sectionOrder: [...DEFAULT_SECTION_ORDER],
   }
 }
 
@@ -224,7 +259,13 @@ export function mergeDefaultTickers(state: MarketsState): { state: MarketsState;
   }
 
   return {
-    state: { ...state, version: 1, tickers, collapsed },
+    state: {
+      ...state,
+      version: 1,
+      tickers,
+      collapsed,
+      sectionOrder: normalizeSectionOrder(state.sectionOrder),
+    },
     added,
   }
 }

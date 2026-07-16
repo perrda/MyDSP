@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.68**
+**Current version: 1.2.69**
 
-## Completed (through v1.2.68)
+## Completed (through v1.2.69)
 
+- Markets / portfolio (next25g 6–8): draggable section cards, commodity timeframe, Unavailable vs Fetching
 - Markets **My Commodities** (Gold/Silver/Copper + aliases) via Yahoo → GBP; Finnhub key high-priority To Do reminder
 - Recurring sort (due/paid/amount) · monthly total · date-stamped commentary CRUD; Todos → To Do's branding
 - Fix: News Top 10 + By ticker via quote Worker; Markets heatmap reverted; USD not US$; Markets 24H/1W/1M/12M sparklines+%

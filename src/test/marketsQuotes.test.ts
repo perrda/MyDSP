@@ -94,15 +94,16 @@ vi.mock('../services/prices', async (importOriginal) => {
       }
       return null
     }),
-    fetchCommodityMarketQuote: vi.fn(async (symbol: string) => {
+    fetchCommodityMarketQuote: vi.fn(async (symbol: string, timeframe = '24H') => {
       const u = symbol.toUpperCase()
       if (u === 'GC=F') {
+        const scale = timeframe === '12M' ? 1.1 : 1
         return {
-          price: 2540,
-          previousClose: 2500,
+          price: 2540 * scale,
+          previousClose: 2500 * scale,
           changePct: 1.6,
-          changeAbs: 40,
-          sparkline: [2480, 2500, 2540],
+          changeAbs: 40 * scale,
+          sparkline: [2480, 2500, 2540].map((n) => n * scale),
           source: 'yahoo' as const,
         }
       }
@@ -219,5 +220,12 @@ describe('refreshMarketQuotes', () => {
     expect(bySym.get('GC=F')?.unit).toBe('GBP')
     expect(bySym.get('GBP/USD')?.last).toBe(1.27)
     expect(bySym.get('ADA/BTC')?.last).toBeCloseTo(0.42 / 50000, 10)
+  })
+
+  it('passes Markets timeframe into commodity Yahoo quotes', async () => {
+    const { fetchCommodityMarketQuote } = await import('../services/prices')
+    const tickers = listMarketTickers().filter((t) => t.kind === 'commodity')
+    await refreshMarketQuotes(tickers, { timeframe: '12M' })
+    expect(fetchCommodityMarketQuote).toHaveBeenCalledWith('GC=F', '12M')
   })
 })

@@ -29,6 +29,21 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.69',
+    date: '2026-07-16',
+    bullets: [
+      {
+        text: 'Markets: drag ⋮⋮ to reorder My Crypto / Equities / Commodities / …',
+        to: '/markets',
+      },
+      {
+        text: 'Commodities respect 24H/1W/1M/12M · Unavailable instead of stuck Fetching',
+        to: '/markets',
+      },
+      { text: 'Section order syncs with the Markets watchlist backup', to: '/markets' },
+    ],
+  },
+  {
     version: '1.2.68',
     date: '2026-07-16',
     bullets: [
