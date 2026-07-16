@@ -382,8 +382,17 @@ export async function fetchEquityMarketQuote(
   // Finnhub quote + candles for all Markets timeframes (not only 24H).
   if (finnhubKey.trim() && !sym.startsWith('^')) {
     const url = `https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(sym)}&token=${encodeURIComponent(finnhubKey.trim())}`
-    const { data } = await fetchJson<{ c?: number; d?: number; dp?: number; pc?: number }>(url)
-    if (data?.c && data.c > 0) {
+    const { data, status } = await fetchJson<{ c?: number; d?: number; dp?: number; pc?: number }>(
+      url,
+    )
+    if (status === 429) {
+      try {
+        const { recordProviderFailure } = await import('./marketsProviderHealth')
+        recordProviderFailure('finnhub', '429 rate limit / quota')
+      } catch {
+        /* ignore */
+      }
+    } else if (data?.c && data.c > 0) {
       const previousClose = data.pc && data.pc > 0 ? data.pc : data.c - (data.d ?? 0)
       // Prefer Finnhub candles for the selected window; Yahoo spark as backup.
       let spark = await fetchFinnhubSparkline(sym, finnhubKey.trim(), tf)
@@ -422,6 +431,9 @@ export async function probeFinnhubKey(
   try {
     const url = `https://finnhub.io/api/v1/quote?symbol=AAPL&token=${encodeURIComponent(key)}`
     const { data, status } = await fetchJson<{ c?: number; error?: string }>(url)
+    if (status === 429) {
+      return { ok: false, detail: '429 rate limit / quota' }
+    }
     if (status === 401 || status === 403) {
       return { ok: false, detail: 'Finnhub rejected key (401/403)' }
     }

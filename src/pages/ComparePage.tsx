@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { GitCompareArrows, ArrowRight } from 'lucide-react'
+import { GitCompareArrows, ArrowRight, RefreshCw } from 'lucide-react'
 import { PageHeader, StatCard } from '../components/ui/PageHeader'
 import { Modal } from '../components/ui/Modal'
 import { usePortfolio } from '../context/PortfolioContext'
@@ -13,6 +13,7 @@ import {
   weekOverWeekDelta,
 } from '../domain/compareWeekSnapshot'
 import { applyLastSyncedQuotesToHoldings, lastSyncedHoldingPrices } from '../domain/lastSyncedHoldings'
+import { isSyncedRemoteQuote } from '../domain/marketQuotesSync'
 import { formatGBP, privacyClass } from '../utils/format'
 import { AllocationRing, type SliceDatum } from '../components/charts/AllocationRing'
 import {
@@ -21,6 +22,7 @@ import {
   savePortfolioImmediate,
   setActivePortfolioId,
 } from '../storage/portfolioStore'
+import { listMarketTickers, loadMarketQuotesCache } from '../storage/marketsStore'
 import { useToasts } from '../components/ToastProvider'
 import {
   printHouseholdSnapshot,
@@ -41,6 +43,44 @@ function quoteAgeLabel(iso?: string): string {
   if (sec < 3600) return `${Math.max(1, Math.round(sec / 60))}m ago`
   if (sec < 86400) return `${Math.max(1, Math.round(sec / 3600))}h ago`
   return `${Math.max(1, Math.round(sec / 86400))}d ago`
+}
+
+function normCompareSym(s: string): string {
+  return s.trim().toUpperCase().replace(/^\^/, '')
+}
+
+function portfolioSyncQuoteLabel(portfolioId: string): string | null {
+  let data
+  try {
+    data = loadPortfolio(portfolioId)
+  } catch {
+    return null
+  }
+  const quotes = loadMarketQuotesCache()
+  const tickers = listMarketTickers()
+  let newest = 0
+  let found = false
+  const check = (symbol: string, price: number) => {
+    if (!(price > 0)) return
+    const t = tickers.find(
+      (tt) =>
+        (tt.kind === 'crypto' || tt.kind === 'equity') &&
+        normCompareSym(tt.symbol) === normCompareSym(symbol),
+    )
+    if (!t) return
+    const q = quotes.get(t.id)
+    if (!q || !(q.last > 0) || !isSyncedRemoteQuote(q)) return
+    const tol = 0.0001 * Math.max(price, q.last)
+    if (Math.abs(price - q.last) > tol) return
+    found = true
+    const ts = Date.parse(q.updatedAt) || 0
+    if (ts > newest) newest = ts
+  }
+  for (const c of data.crypto) check(c.symbol, c.price)
+  for (const e of data.equities) check(e.symbol, e.livePrice)
+  if (!found) return null
+  const age = newest > 0 ? quoteAgeLabel(new Date(newest).toISOString()) : null
+  return age ? `from other device · ${age}` : 'from other device'
 }
 
 export function ComparePage() {
@@ -84,6 +124,42 @@ export function ComparePage() {
     }
     return ages
   }, [portfolios, scanToken, filling])
+
+  const portfolioSyncAsOf = useMemo(() => {
+    void scanToken
+    void filling
+    const labels = new Map<string, string>()
+    for (const p of portfolios) {
+      const label = portfolioSyncQuoteLabel(p.id)
+      if (label) labels.set(p.id, label)
+    }
+    return labels
+  }, [portfolios, scanToken, filling])
+
+  const compareSyncAsOf = useMemo(() => {
+    void scanToken
+    void filling
+    const quotes = loadMarketQuotesCache()
+    const tickers = listMarketTickers()
+    let newest = 0
+    let syncCount = 0
+    for (const t of tickers) {
+      if (t.kind !== 'crypto' && t.kind !== 'equity') continue
+      const q = quotes.get(t.id)
+      if (!q || !(q.last > 0) || !isSyncedRemoteQuote(q)) continue
+      syncCount += 1
+      const ts = Date.parse(q.updatedAt) || 0
+      if (ts > newest) newest = ts
+    }
+    if (syncCount > 0) {
+      const age = newest > 0 ? quoteAgeLabel(new Date(newest).toISOString()) : null
+      return age ? `Prices from other device · ${age}` : 'Prices from other device'
+    }
+    const { updatedAt } = lastSyncedHoldingPrices()
+    if (!updatedAt) return null
+    const age = quoteAgeLabel(updatedAt)
+    return age ? `Holdings from last synced · ${age}` : 'Holdings from last synced'
+  }, [scanToken, filling])
 
   const weekSnap = useMemo(() => {
     const all = buildPortfolioComparison()
@@ -320,6 +396,12 @@ export function ComparePage() {
         />
       </div>
 
+      {compareSyncAsOf ? (
+        <p className="compare-sync-asof text-[11px] text-accent font-medium mb-3" role="status">
+          {compareSyncAsOf}
+        </p>
+      ) : null}
+
       <div className="table-wrap surface overflow-x-auto mb-8">
         <table className="w-full text-sm min-w-[40rem]" aria-label="Portfolio comparison">
           <caption className="sr-only">
@@ -375,6 +457,14 @@ export function ComparePage() {
                   >
                     as of {portfolioQuoteAges.get(r.id) ?? 'unknown'}
                   </span>
+                  {portfolioSyncAsOf.get(r.id) ? (
+                    <span
+                      className="compare-sync-asof mt-1 block w-fit border border-accent/30 bg-accent/5 px-2 py-0.5 text-[10px] font-semibold text-accent"
+                      title="Holdings priced from quotes synced from another device"
+                    >
+                      {portfolioSyncAsOf.get(r.id)}
+                    </span>
+                  ) : null}
                 </td>
                 <td className="p-4 text-right tabular-nums font-medium">
                   {formatGBP(r.netWorth)}
@@ -546,6 +636,34 @@ export function ComparePage() {
           </div>
         </div>
       </Modal>
+
+      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary compare actions">
+        <button type="button" className="btn-primary btn-sm inline-flex items-center gap-1.5" onClick={refresh}>
+          <RefreshCw size={16} strokeWidth={2} />
+          Refresh
+        </button>
+        <button
+          type="button"
+          className="btn-secondary btn-sm"
+          disabled={filling || selected.length === 0}
+          onClick={fillFromLastSynced}
+          title={
+            cacheAgeLabel
+              ? `Apply last-synced Markets quotes (${cacheAgeLabel})`
+              : 'Apply last-synced Markets quotes to holdings in selected portfolios'
+          }
+        >
+          {filling
+            ? 'Filling…'
+            : cacheAgeLabel
+              ? `Fill synced (${cacheAgeLabel})`
+              : 'Fill from synced'}
+        </button>
+        <button type="button" className="btn-secondary btn-sm" onClick={() => setInviteOpen(true)}>
+          Add portfolio
+        </button>
+      </div>
+      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }

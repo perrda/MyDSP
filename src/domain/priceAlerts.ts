@@ -38,13 +38,51 @@ export function loadPriceAlertThresholds(): PriceAlertThreshold[] {
   }
 }
 
-export function savePriceAlertThresholds(thresholds: PriceAlertThreshold[]): void {
+export function savePriceAlertThresholds(
+  thresholds: PriceAlertThreshold[],
+  opts?: { markDirty?: boolean },
+): void {
   const cleaned = thresholds.filter(
     (t) => t.key.trim() && Number.isFinite(t.changePct) && t.changePct > 0,
   )
   try {
     localStorage.setItem(THRESHOLDS_KEY, JSON.stringify(cleaned.length ? cleaned : DEFAULT_THRESHOLDS))
+    localStorage.setItem(`${THRESHOLDS_KEY}_at`, new Date().toISOString())
     window.dispatchEvent(new CustomEvent('mydsp-price-alerts'))
+  } catch {
+    /* ignore */
+  }
+  if (opts?.markDirty !== false) {
+    void import('../services/sync/workspaceDirty').then((m) => m.markWorkspaceChangedForSync())
+  }
+}
+
+export function exportPriceAlertThresholdsForBackup(): {
+  thresholds: PriceAlertThreshold[]
+  updatedAt: string
+} {
+  return {
+    thresholds: loadPriceAlertThresholds(),
+    updatedAt: new Date().toISOString(),
+  }
+}
+
+export function importPriceAlertThresholdsFromBackup(raw: unknown): void {
+  if (!raw || typeof raw !== 'object') return
+  const parsed = raw as { thresholds?: unknown; updatedAt?: string }
+  if (!Array.isArray(parsed.thresholds)) return
+  // Prefer remote when it has any thresholds (simple LWW via presence + updatedAt)
+  const remoteAt = Date.parse(parsed.updatedAt || '') || 0
+  let localAt = 0
+  try {
+    localAt = Date.parse(localStorage.getItem(`${THRESHOLDS_KEY}_at`) || '') || 0
+  } catch {
+    /* ignore */
+  }
+  if (localAt > remoteAt && localAt > 0) return
+  savePriceAlertThresholds(parsed.thresholds as PriceAlertThreshold[], { markDirty: false })
+  try {
+    localStorage.setItem(`${THRESHOLDS_KEY}_at`, parsed.updatedAt || new Date().toISOString())
   } catch {
     /* ignore */
   }

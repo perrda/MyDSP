@@ -29,7 +29,7 @@ function mockLocalStorage() {
   return mem
 }
 
-describe('next25h — Finnhub / media / polish tip (1–25 → v1.2.71)', () => {
+describe('next25h — Finnhub / media / polish tip (1–25 → v1.2.72)', () => {
   let mem: Map<string, string>
 
   beforeEach(() => {
@@ -40,16 +40,16 @@ describe('next25h — Finnhub / media / polish tip (1–25 → v1.2.71)', () => 
     mem.clear()
   })
 
-  it('package + release notes are 1.2.71', () => {
+  it('package + release notes are 1.2.72', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.71')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.71')
+    expect(pkg.version).toBe('1.2.72')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.72')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.72',
       '1.2.71',
       '1.2.70',
       '1.2.69',
       '1.2.68',
-      '1.2.67',
     ])
   })
 

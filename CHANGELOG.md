@@ -1,5 +1,47 @@
 # MyDSP Changelog
 
+## [1.2.72] - 2026-07-16
+
+### Improved — Sync / trust (next 25i · 1–5)
+1. **ISA remaining override syncs** — Tax override + LWW meta in fullArchive  
+2. **What does not sync expanded** — a11y / Glass / large text / alert permission; SYNC_SETUP matrix  
+3. **YouTube video cache sync** — last-good uploads travel with the workspace  
+4. **Price-alert thresholds sync** — thresholds in fullArchive; OS permission stays local  
+5. **Sync prices partial-failure report** — live vs failed count after Sync prices now  
+
+### Improved — Markets (next 25i · 6–10)
+6. **Finnhub 429 chip** — rate-limit banner while Yahoo covers equities  
+7. **Commodity paper P&L** — qty × last vs avg cost on rows  
+8. **Optional NW include** — paper commodities with `includeInNetWorth` roll into net worth  
+9. **Offline Retry when online** — thumb CTA queues retry until connectivity returns  
+10. **Yield autofill respects manual** — Finnhub never overwrites `yieldManual`  
+
+### Improved — UI (next 25i · 11–15)
+11. **PTR on YouTube / Tax / Compare**  
+12. **Bottom-nav long-press News / YouTube refresh**  
+13. **iPad News / YouTube master–detail** (≥900px)  
+14. **Compare phone thumb CTA**  
+15. **Privacy mask on Today movers**  
+
+### Improved — Today / media / tax (next 25i · 16–20)
+16. **Recurring commentary on Today bills**  
+17. **ISA MV honesty** — market-value estimate, not contributions  
+18. **YouTube unread on Jump-in**  
+19. **News Cached-mode banner**  
+20. **Compare sync-tagged as-of** — from other device  
+
+### Improved — Quality / ops (next 25i · 21–25)
+21. Axe Jobs + Goals + Trips  
+22. `/smoke` Worker YouTube allowlist probe  
+23. `/smoke` ISA remaining + PTR routes  
+24. Playwright YouTube Worker gate  
+25. SYNC_SETUP device-local prefs matrix  
+
+### Version
+- 1.2.71 → **1.2.72**
+
+---
+
 ## [1.2.71] - 2026-07-16
 
 ### Improved — Sync / price trust (next 25h · 1–5)

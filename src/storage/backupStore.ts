@@ -28,7 +28,20 @@ import {
   exportBottomNavSlotsForBackup,
   importBottomNavSlotsFromBackup,
 } from './bottomNavSlots'
-import { exportYoutubeForBackup, importYoutubeFromBackup } from './youtubeStore'
+import {
+  exportYoutubeForBackup,
+  exportYoutubeVideosForBackup,
+  importYoutubeFromBackup,
+  importYoutubeVideosFromBackup,
+} from './youtubeStore'
+import {
+  exportIsaRemainingForBackup,
+  importIsaRemainingFromBackup,
+} from '../domain/isaPrefs'
+import {
+  exportPriceAlertThresholdsForBackup,
+  importPriceAlertThresholdsFromBackup,
+} from '../domain/priceAlerts'
 
 // Lazy import to avoid circular deps - sync service imports backupStore
 let _pushSyncLazy: ((url: string, pass: string) => Promise<unknown>) | null = null
@@ -78,6 +91,12 @@ export interface FullBackupRecord extends FullBackupMeta {
   newsArticles?: unknown
   /** Optional YouTube favourite channels (workspace-level) */
   youtube?: unknown
+  /** Optional last-good YouTube video cache */
+  youtubeVideos?: unknown
+  /** Optional ISA remaining override */
+  isaRemaining?: unknown
+  /** Optional price-alert thresholds */
+  priceAlertThresholds?: unknown
   /** Optional sidebar Favourites / Others layout (workspace-level) */
   navLayout?: unknown
   /** Optional phone/tablet bottom-nav middle slots */
@@ -99,6 +118,9 @@ function backupCanonical(record: Pick<
   | 'news'
   | 'newsArticles'
   | 'youtube'
+  | 'youtubeVideos'
+  | 'isaRemaining'
+  | 'priceAlertThresholds'
   | 'navLayout'
   | 'bottomNavSlots'
   | 'documentBlobs'
@@ -112,6 +134,9 @@ function backupCanonical(record: Pick<
     news: record.news ?? null,
     newsArticles: record.newsArticles ?? null,
     youtube: record.youtube ?? null,
+    youtubeVideos: record.youtubeVideos ?? null,
+    isaRemaining: record.isaRemaining ?? null,
+    priceAlertThresholds: record.priceAlertThresholds ?? null,
     navLayout: record.navLayout ?? null,
     bottomNavSlots: record.bottomNavSlots ?? null,
     documentBlobs: record.documentBlobs ?? null,
@@ -130,6 +155,9 @@ export async function computeFullBackupChecksum(
     | 'news'
     | 'newsArticles'
     | 'youtube'
+    | 'youtubeVideos'
+    | 'isaRemaining'
+    | 'priceAlertThresholds'
     | 'navLayout'
     | 'bottomNavSlots'
     | 'documentBlobs'
@@ -186,6 +214,9 @@ export function captureFullWorkspace(): Omit<
     news: exportNewsForBackup(),
     newsArticles: exportNewsArticlesForBackup(),
     youtube: exportYoutubeForBackup(),
+    youtubeVideos: exportYoutubeVideosForBackup(),
+    isaRemaining: exportIsaRemainingForBackup() ?? undefined,
+    priceAlertThresholds: exportPriceAlertThresholdsForBackup(),
     navLayout: exportNavLayoutForBackup() ?? undefined,
     bottomNavSlots: exportBottomNavSlotsForBackup() ?? undefined,
   }
@@ -381,6 +412,15 @@ export async function restoreFullWorkspace(record: FullBackupRecord): Promise<vo
   if (record.youtube) {
     importYoutubeFromBackup(record.youtube)
   }
+  if (record.youtubeVideos) {
+    importYoutubeVideosFromBackup(record.youtubeVideos)
+  }
+  if (record.isaRemaining) {
+    importIsaRemainingFromBackup(record.isaRemaining)
+  }
+  if (record.priceAlertThresholds) {
+    importPriceAlertThresholdsFromBackup(record.priceAlertThresholds)
+  }
   if (record.navLayout) {
     importNavLayoutFromBackup(record.navLayout)
   }
@@ -412,6 +452,11 @@ function fullBackupPayload(record: FullBackupRecord) {
     ...(record.news ? { news: record.news } : {}),
     ...(record.newsArticles ? { newsArticles: record.newsArticles } : {}),
     ...(record.youtube ? { youtube: record.youtube } : {}),
+    ...(record.youtubeVideos ? { youtubeVideos: record.youtubeVideos } : {}),
+    ...(record.isaRemaining ? { isaRemaining: record.isaRemaining } : {}),
+    ...(record.priceAlertThresholds
+      ? { priceAlertThresholds: record.priceAlertThresholds }
+      : {}),
     ...(record.navLayout ? { navLayout: record.navLayout } : {}),
     ...(record.bottomNavSlots ? { bottomNavSlots: record.bottomNavSlots } : {}),
   }

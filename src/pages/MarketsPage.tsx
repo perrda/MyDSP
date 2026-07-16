@@ -107,6 +107,7 @@ type FormState = {
   yieldPct: string
   quantity: string
   avgCostGbp: string
+  includeInNetWorth: boolean
 }
 
 const emptyForm: FormState = {
@@ -119,6 +120,7 @@ const emptyForm: FormState = {
   yieldPct: '',
   quantity: '',
   avgCostGbp: '',
+  includeInNetWorth: false,
 }
 
 function unavailableReason(q: MarketQuote | undefined): string {
@@ -510,20 +512,18 @@ export function MarketsPage() {
   const longPressTimer = useRef<number | null>(null)
   const sectionLongPressTimer = useRef<number | null>(null)
   const refreshInFlight = useRef(false)
+  const pendingRetryOnline = useRef(false)
   const quotesRef = useRef(quotes)
   quotesRef.current = quotes
+  const tickersRef = useRef(tickers)
+  tickersRef.current = tickers
   const providerHealth = useMemo(() => getMarketsProviderHealth(), [quotes, refreshing])
-
-  useEffect(() => {
-    const onOnline = () => setOnline(true)
-    const onOffline = () => setOnline(false)
-    window.addEventListener('online', onOnline)
-    window.addEventListener('offline', onOffline)
-    return () => {
-      window.removeEventListener('online', onOnline)
-      window.removeEventListener('offline', onOffline)
-    }
-  }, [])
+  const finnhubQuotaLimited = useMemo(() => {
+    const fh = providerHealth.find((p) => p.id === 'finnhub')
+    if (!fh?.lastError || !/429|quota/i.test(fh.lastError)) return false
+    // Show when lastError is a 429/quota hit (including consecutiveFailures >= 1 with that error).
+    return true
+  }, [providerHealth])
 
   /** High-priority Finnhub API key reminder — once per browser session when no key. */
   useEffect(() => {
@@ -809,11 +809,25 @@ export function MarketsPage() {
         window.setTimeout(() => setJustSyncedPulse(false), 2800)
         return
       }
+      const list = listMarketTickers()
+      const latest = loadMarketQuotesCache()
+      let live = 0
+      let failed = 0
+      for (const t of list) {
+        const q = latest.get(t.id) ?? quotesRef.current.get(t.id)
+        if (q && q.last > 0) live++
+        if (quoteAvailabilityLabel(q, { refreshing: false }) === 'Unavailable') failed++
+      }
       const cfg = loadSyncConfig()
       if (cfg.enabled && cfg.remoteUrl.trim()) {
         await syncNow()
+      }
+      if (failed > 0) {
+        setError(`Sync prices: ${live} live · ${failed} failed`)
       } else if (!cfg.enabled || !cfg.remoteUrl.trim()) {
         setError('Prices refreshed locally — enable Cloud Sync in Settings to push to other devices')
+      } else {
+        setError(null)
       }
       setJustSyncedPulse(true)
       window.setTimeout(() => setJustSyncedPulse(false), 2800)
@@ -823,6 +837,12 @@ export function MarketsPage() {
   }, [refresh, syncingPrices])
 
   const retryUnavailable = useCallback(async () => {
+    if (!isOnline()) {
+      pendingRetryOnline.current = true
+      setError('You are offline — retry unavailable quotes when back online')
+      return
+    }
+    pendingRetryOnline.current = false
     const unavailableKinds = new Set<MarketAssetKind>()
     for (const t of tickers) {
       const q = quotes.get(t.id)
@@ -838,6 +858,28 @@ export function MarketsPage() {
       await refresh(kind)
     }
   }, [tickers, quotes, refresh])
+
+  useEffect(() => {
+    const onOnline = () => {
+      setOnline(true)
+      const hasUnavailable = tickersRef.current.some(
+        (t) =>
+          quoteAvailabilityLabel(quotesRef.current.get(t.id), { refreshing: false }) ===
+          'Unavailable',
+      )
+      if (hasUnavailable || pendingRetryOnline.current) {
+        pendingRetryOnline.current = false
+        void retryUnavailable()
+      }
+    }
+    const onOffline = () => setOnline(false)
+    window.addEventListener('online', onOnline)
+    window.addEventListener('offline', onOffline)
+    return () => {
+      window.removeEventListener('online', onOnline)
+      window.removeEventListener('offline', onOffline)
+    }
+  }, [retryUnavailable])
 
   useEffect(() => {
     const onQuotes = () => {
@@ -980,6 +1022,7 @@ export function MarketsPage() {
       yieldPct: t.yieldPct != null && t.yieldPct > 0 ? String(t.yieldPct) : '',
       quantity: t.quantity != null && t.quantity > 0 ? String(t.quantity) : '',
       avgCostGbp: t.avgCostGbp != null && t.avgCostGbp >= 0 ? String(t.avgCostGbp) : '',
+      includeInNetWorth: Boolean(t.includeInNetWorth),
     })
     setFormError(null)
     setModalOpen(true)
@@ -1003,6 +1046,19 @@ export function MarketsPage() {
         setFormError('Quantity must be a positive number.')
         return
       }
+      const origYieldStr =
+        editing && editing.yieldPct != null && editing.yieldPct > 0
+          ? String(editing.yieldPct)
+          : ''
+      const yieldTouched =
+        form.kind === 'equity' &&
+        (editing ? form.yieldPct.trim() !== origYieldStr : form.yieldPct.trim() !== '')
+      const yieldManualPatch =
+        form.kind === 'equity'
+          ? yieldTouched
+            ? true
+            : editing?.yieldManual
+          : undefined
       if (editing) {
         updateMarketTicker(editing.id, {
           kind: form.kind,
@@ -1012,8 +1068,10 @@ export function MarketsPage() {
           notes: form.notes,
           tag: form.tag,
           yieldPct: form.kind === 'equity' ? yieldNum : null,
+          yieldManual: yieldManualPatch,
           quantity: form.kind === 'commodity' ? qtyNum : null,
           avgCostGbp: form.kind === 'commodity' ? costNum : null,
+          includeInNetWorth: form.kind === 'commodity' ? form.includeInNetWorth : null,
         })
       } else {
         addMarketTicker({
@@ -1024,8 +1082,10 @@ export function MarketsPage() {
           notes: form.notes || undefined,
           tag: form.tag,
           yieldPct: form.kind === 'equity' ? yieldNum : null,
+          yieldManual: form.kind === 'equity' ? yieldManualPatch : undefined,
           quantity: form.kind === 'commodity' ? qtyNum ?? undefined : undefined,
           avgCostGbp: form.kind === 'commodity' ? costNum ?? undefined : undefined,
+          includeInNetWorth: form.kind === 'commodity' ? form.includeInNetWorth : undefined,
         })
       }
       setModalOpen(false)
@@ -1498,6 +1558,21 @@ export function MarketsPage() {
                             </p>
                           )
                         })()}
+                        {t.kind === 'commodity' &&
+                        t.quantity != null &&
+                        t.quantity > 0 &&
+                        t.avgCostGbp != null &&
+                        q &&
+                        q.last > 0 ? (
+                          <p
+                            className={`text-[11px] mt-0.5 tabular-nums text-text-subtle ${privacyClass(privacy)}`}
+                          >
+                            Paper P&L{' '}
+                            {formatGBP(t.quantity * q.last - t.quantity * t.avgCostGbp, {
+                              signed: true,
+                            })}
+                          </p>
+                        ) : null}
                         <div className="mt-1 flex flex-col items-end gap-0.5">
                           <ChangeBadge pct={pct} />
                           {(section === 'fx' || section === 'crosses' || section === 'indices') &&
@@ -1724,6 +1799,14 @@ export function MarketsPage() {
           <Link to="/settings#prices" className="font-semibold underline hover:no-underline">
             Add key in Settings
           </Link>
+        </div>
+      ) : null}
+      {finnhubQuotaLimited ? (
+        <div
+          className="markets-finnhub-quota-chip mb-3 px-3 py-2 text-xs border border-amber-500/45 bg-amber-500/10 text-amber-900 dark:text-amber-100 rounded-lg md:rounded-none"
+          role="status"
+        >
+          Finnhub rate-limited (429) — using Yahoo until quota resets
         </div>
       ) : null}
       {slaChip ? (
@@ -2144,6 +2227,16 @@ export function MarketsPage() {
                   placeholder="e.g. 1800"
                 />
               </Field>
+              <label className="flex items-center gap-2 text-sm text-text cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.includeInNetWorth}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, includeInNetWorth: e.target.checked }))
+                  }
+                />
+                Include paper position in net worth
+              </label>
             </>
           ) : null}
           {formError ? (
@@ -2273,10 +2366,12 @@ export function MarketsPage() {
           type="button"
           className="btn-secondary btn-sm inline-flex items-center gap-1.5"
           disabled={refreshing}
-          aria-label="Retry unavailable quotes"
+          aria-label={
+            online ? 'Retry unavailable quotes' : 'Retry when online — queue retry for unavailable quotes'
+          }
           onClick={() => void retryUnavailable()}
         >
-          Retry unavailable
+          {online ? 'Retry unavailable' : 'Retry when online'}
         </button>
         <button
           type="button"
