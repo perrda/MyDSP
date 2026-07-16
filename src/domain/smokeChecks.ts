@@ -34,6 +34,30 @@ export type ReachabilityResult = {
   detail: string
 }
 
+/** Ensure Quote Worker URL points at mydsp-quote (not the SPA host mydspv1). */
+export function assertQuoteWorkerIdentity(
+  baseUrl: string = DEFAULT_QUOTE_WORKER_URL,
+): { ok: boolean; detail: string } {
+  try {
+    const host = new URL(baseUrl).hostname.toLowerCase()
+    if (host.includes('mydspv1')) {
+      return {
+        ok: false,
+        detail: 'Quote Worker URL looks like app host mydspv1 — expect mydsp-quote',
+      }
+    }
+    if (!host.includes('mydsp-quote')) {
+      return {
+        ok: false,
+        detail: `Hostname "${host}" does not include mydsp-quote`,
+      }
+    }
+    return { ok: true, detail: 'Quote Worker identity OK (mydsp-quote)' }
+  } catch {
+    return { ok: false, detail: 'Invalid Quote Worker URL' }
+  }
+}
+
 /** Ping Quote Worker health (`/` JSON) or a `/quote` probe path. */
 export async function pingQuoteWorker(
   baseUrl: string = DEFAULT_QUOTE_WORKER_URL,
@@ -53,7 +77,10 @@ export async function pingQuoteWorker(
     const ct = res.headers.get('content-type') ?? ''
     if (ct.includes('application/json')) {
       const body = (await res.json()) as { ok?: boolean; service?: string }
-      if (body.ok === true || body.service === 'mydsp-quote') {
+      if (body.service === 'mydsp-quote') {
+        return { ok: true, status: res.status, detail: 'Quote Worker healthy (mydsp-quote)' }
+      }
+      if (body.ok === true) {
         return { ok: true, status: res.status, detail: 'Quote Worker healthy' }
       }
     }

@@ -95,6 +95,8 @@ export type WorkspaceExtrasFlags = {
   isaRemaining?: boolean
   priceAlertThresholds?: boolean
   compareWeekSnapshot?: boolean
+  digestHighlights?: boolean
+  compareSelection?: boolean
   markets?: boolean
   news?: boolean
   youtube?: boolean
@@ -107,6 +109,8 @@ const EXTRAS_LABELS: Array<[keyof WorkspaceExtrasFlags, string]> = [
   ['isaRemaining', 'ISA override'],
   ['priceAlertThresholds', 'price alerts'],
   ['compareWeekSnapshot', 'Compare week-Δ'],
+  ['digestHighlights', 'digest highlights'],
+  ['compareSelection', 'Compare selection'],
   ['markets', 'Markets watchlist'],
   ['news', 'News tags'],
   ['youtube', 'YouTube channels'],
@@ -131,6 +135,8 @@ export function workspaceExtrasFlagsFromPreview(extras: {
   isaRemaining?: unknown
   priceAlertThresholds?: unknown
   compareWeekSnapshot?: unknown
+  digestHighlights?: unknown
+  compareSelection?: unknown
   markets?: unknown
   news?: unknown
   youtube?: unknown
@@ -143,6 +149,8 @@ export function workspaceExtrasFlagsFromPreview(extras: {
     isaRemaining: extras.isaRemaining != null,
     priceAlertThresholds: extras.priceAlertThresholds != null,
     compareWeekSnapshot: extras.compareWeekSnapshot != null,
+    digestHighlights: extras.digestHighlights != null,
+    compareSelection: extras.compareSelection != null,
     markets: extras.markets != null,
     news: extras.news != null,
     youtube: extras.youtube != null,

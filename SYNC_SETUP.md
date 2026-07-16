@@ -73,9 +73,9 @@ npx wrangler deploy
 
 That’s it. Edits push about **4 seconds** after you change data (and pull first if another device updated cloud). Opening the app, returning to the tab, pull-to-refresh, or about **every 30 seconds** while open pulls newer cloud data.
 
-**What syncs:** portfolios + holdings, To Do's / Jobs, Favourites/nav layout, Markets **watchlist** (union merge), Markets **last-good quote cache** (prices show on another device before it refreshes), News tags + **last-good headlines cache**, YouTube channels + **video cache**, ISA remaining override, price-alert thresholds, Compare **week-Δ snapshots**, and full-backup extras.
+**What syncs:** portfolios + holdings, To Do's / Jobs, Favourites/nav layout, Markets **watchlist** (union merge), Markets **last-good quote cache** (prices show on another device before it refreshes), News tags + **last-good headlines cache**, YouTube channels + **video cache**, ISA remaining override, price-alert thresholds, Compare **week-Δ snapshots**, Digest **highlight edits**, Compare **selection**, and full-backup extras.
 
-**What does not sync:** Finnhub (and other live provider) API keys, PIN / Face ID credentials, remembered passphrase storage, session-only provider health counters, launch path, UI panel open/collapsed prefs, recurring sort preference, holdings drift % threshold, settings recent jumps, and digest highlight edits. Enter the Finnhub key on each device (Settings → Prices).
+**What does not sync:** Finnhub (and other live provider) API keys, PIN / Face ID credentials, remembered passphrase storage, session-only provider health counters, launch path, UI panel open/collapsed prefs, recurring sort preference, holdings drift % threshold, and settings recent jumps. Enter the Finnhub key on each device (Settings → Prices).
 
 ### Device-local prefs matrix
 
@@ -87,6 +87,8 @@ That’s it. Edits push about **4 seconds** after you change data (and pull firs
 | YouTube channels + video cache | Yes | fullArchive extras |
 | ISA remaining override | Yes | Tax page override (LWW) |
 | Price-alert thresholds | Yes | OS notification permission stays per device |
+| Digest highlight edits | Yes | LWW fullArchive |
+| Compare selection | Yes | LWW fullArchive |
 | Finnhub / provider API keys | No | Enter on each device |
 | PIN / Face ID / unlock timeout | No | Security is device-local |
 | Remembered sync passphrase | No | Stored only in that browser |
@@ -98,7 +100,6 @@ That’s it. Edits push about **4 seconds** after you change data (and pull firs
 | Recurring sort preference | No | Due / paid / amount order |
 | Holdings drift % threshold | No | Crypto / Equities drift alert |
 | Settings recent jumps | No | Optional quick links in Settings |
-| Digest highlight edits | No | Weekly digest textarea lines |
 
 ---
 

@@ -39,25 +39,10 @@ import {
   type WeeklyDigestInput,
 } from '../domain/weeklyDigest'
 import { WeeklyDigestModal } from '../components/WeeklyDigestModal'
-
-const COMPARE_SELECTED_KEY = 'mydsp_compare_selected_v1'
-
-function loadCompareSelected(portfolios: { id: string }[]): string[] {
-  try {
-    const raw = localStorage.getItem(COMPARE_SELECTED_KEY)
-    if (raw) {
-      const ids = JSON.parse(raw) as string[]
-      if (Array.isArray(ids)) {
-        const valid = new Set(portfolios.map((p) => p.id))
-        const filtered = ids.filter((id) => valid.has(id))
-        if (filtered.length > 0) return filtered
-      }
-    }
-  } catch {
-    /* ignore */
-  }
-  return portfolios.map((p) => p.id)
-}
+import {
+  loadCompareSelectedIds,
+  saveCompareSelectedIds,
+} from '../domain/compareSelectionPrefs'
 
 function quoteAgeLabel(iso?: string): string {
   if (!iso) return 'unknown'
@@ -111,7 +96,9 @@ function portfolioSyncQuoteLabel(portfolioId: string): string | null {
 export function ComparePage() {
   const { privacy, portfolios, activeId, switchPortfolio, reload } = usePortfolio()
   const { error: showError, showToast } = useToasts()
-  const [selected, setSelected] = useState<string[]>(() => loadCompareSelected(portfolios))
+  const [selected, setSelected] = useState<string[]>(() =>
+    loadCompareSelectedIds(portfolios.map((p) => p.id)),
+  )
   const [scanToken, setScanToken] = useState(0)
   const [filling, setFilling] = useState(false)
   const [inviteOpen, setInviteOpen] = useState(false)
@@ -128,11 +115,7 @@ export function ComparePage() {
   }, [portfolios])
 
   useEffect(() => {
-    try {
-      localStorage.setItem(COMPARE_SELECTED_KEY, JSON.stringify(selected))
-    } catch {
-      /* ignore */
-    }
+    saveCompareSelectedIds(selected)
   }, [selected])
 
   const cacheAgeLabel = useMemo(() => {

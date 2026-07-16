@@ -889,6 +889,32 @@ export function SettingsPage() {
               {quoteHealthHint ?? (quoteHealthOk ? 'Healthy · markets feeds OK' : 'No recent feed checks')}
             </span>
           </div>
+          {quoteHealthHint || !quoteHealthOk ? (
+            <p className="text-xs text-text-muted font-light mb-4 max-w-2xl">
+              Deploy with{' '}
+              <code
+                className="text-accent font-mono cursor-pointer select-all"
+                title="Click to copy"
+                role="button"
+                tabIndex={0}
+                onClick={() => {
+                  void navigator.clipboard.writeText('npm run deploy:quote').then(
+                    () => flash('Copied: npm run deploy:quote'),
+                    () => flash('Could not copy.'),
+                  )
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    ;(e.currentTarget as HTMLElement).click()
+                  }
+                }}
+              >
+                npm run deploy:quote
+              </code>
+              . Expect Worker mydsp-quote, not mydspv1.
+            </p>
+          ) : null}
           <div className="border border-border p-4 mb-6 max-w-2xl space-y-4">
             <div>
               <p className="text-[11px] font-bold uppercase tracking-widest text-text-subtle mb-3">

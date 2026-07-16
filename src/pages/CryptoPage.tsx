@@ -358,7 +358,7 @@ export function CryptoPage() {
         }
       />
 
-      <div className="holdings-in-list-search sticky top-0 z-[9] -mx-1 mb-4 bg-bg/95 px-1 py-2 backdrop-blur supports-[backdrop-filter]:bg-bg/80">
+      <div className="holdings-in-list-search holdings-sticky-search sticky z-[9] -mx-1 mb-4 bg-bg/95 px-1 py-2 backdrop-blur supports-[backdrop-filter]:bg-bg/80">
         <div className="surface border border-border-strong px-3 py-2.5">
           <label className="sr-only" htmlFor="crypto-search-input">
             Search crypto holdings
@@ -387,7 +387,7 @@ export function CryptoPage() {
       </div>
 
       <div
-        className={`holdings-included-value-bar sticky top-[4.5rem] z-[8] -mx-1 mb-4 border border-border bg-bg-elevated/95 px-3 py-2 text-xs text-text-muted shadow-sm backdrop-blur supports-[backdrop-filter]:bg-bg-elevated/85 ${privacyClass(privacy)}`}
+        className={`holdings-included-value-bar holdings-sticky-totals sticky z-[8] -mx-1 mb-4 border border-border bg-bg-elevated/95 px-3 py-2 text-xs text-text-muted shadow-sm backdrop-blur supports-[backdrop-filter]:bg-bg-elevated/85 ${privacyClass(privacy)}`}
         role="status"
       >
         <div className="flex flex-wrap items-center justify-between gap-2">

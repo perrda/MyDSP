@@ -12,6 +12,7 @@ import { newsUnreadFromCache } from '../../storage/newsStore'
 import { youtubeUnreadFromCache } from '../../storage/youtubeStore'
 import { Modal } from '../ui/Modal'
 import { ReorderHandle, ReorderList } from '../ui/Reorderable'
+import { syncNow } from '../../services/sync/autoSyncService'
 
 function readItems(): BottomNavItem[] {
   return resolveBottomNavItems(loadBottomNavMiddleSlots())
@@ -115,6 +116,8 @@ export function BottomNav() {
         dispatchNewsRefresh()
       } else if (item.to === '/youtube') {
         dispatchYoutubeRefresh()
+      } else if (item.to === '/todos' || item.to === '/jobs') {
+        void syncNow()
       } else {
         openFavouriteSheet()
       }

@@ -1209,7 +1209,7 @@ export function Dashboard() {
 
         {twoPane ? (
           <aside
-            className="today-markets-pane surface p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none sticky top-20"
+            className="today-markets-pane surface p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none sticky"
             aria-label="Markets snapshot"
           >
             <div className="flex items-center justify-between mb-3">

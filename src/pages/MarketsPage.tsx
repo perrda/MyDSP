@@ -2003,7 +2003,7 @@ export function MarketsPage() {
         </div>
         {quoteDetail ? (
           <aside
-            className="markets-master-detail-panel surface p-4 border border-border hidden md:block sticky top-20 self-start"
+            className="markets-master-detail-panel markets-detail-sticky surface p-4 border border-border hidden md:block sticky self-start"
             aria-label={`Selected ${quoteDetail.ticker.symbol} detail`}
           >
             <p className="label-uppercase mb-1">Selected</p>

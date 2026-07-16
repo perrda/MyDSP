@@ -17,6 +17,7 @@ import { LAST_BACKUP_KEY, listFullBackups } from '../storage/backupStore'
 import { loadSecurity } from '../security/pin'
 import { loadBottomNavMiddleSlots, DEFAULT_BOTTOM_NAV_MIDDLE } from '../storage/bottomNavSlots'
 import {
+  assertQuoteWorkerIdentity,
   checkSyncUrlReachable,
   pingQuoteWorker,
   probeQuoteWorkerNewsAllowlist,
@@ -35,6 +36,7 @@ type CheckId =
   | 'backup'
   | 'pwa'
   | 'quote'
+  | 'quote-identity'
   | 'quote-allowlist'
   | 'quote-news-allowlist'
   | 'isa-remaining'
@@ -258,6 +260,13 @@ export function SmokePage() {
         done: quote.ok,
       },
       {
+        id: 'quote-identity',
+        label: 'Quote Worker identity',
+        detail: assertQuoteWorkerIdentity().detail,
+        to: '/settings#sync',
+        done: assertQuoteWorkerIdentity().ok,
+      },
+      {
         id: 'quote-allowlist',
         label: 'Worker YouTube allowlist',
         detail: allowlist.detail,
@@ -280,9 +289,9 @@ export function SmokePage() {
       },
       {
         id: 'ptr-routes',
-        label: 'PTR YouTube / Tax / Compare',
+        label: 'PTR YouTube / Tax / Compare / Todos / Jobs / Spending',
         detail:
-          'Pull-to-refresh is enabled on YouTube, Tax, and Compare (plus Today / Markets / News)',
+          'Pull-to-refresh is enabled on YouTube, Tax, Compare, Todos, Jobs, and Spending (plus Today / Markets / News)',
         to: '/youtube',
         done: true,
       },

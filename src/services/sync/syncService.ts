@@ -249,6 +249,8 @@ export interface MergePreview {
     isaRemaining?: unknown
     priceAlertThresholds?: unknown
     compareWeekSnapshot?: unknown
+    digestHighlights?: unknown
+    compareSelection?: unknown
   }
 }
 
@@ -647,6 +649,8 @@ async function decryptEnvelope(
     if (a.isaRemaining != null) extras.isaRemaining = a.isaRemaining
     if (a.priceAlertThresholds != null) extras.priceAlertThresholds = a.priceAlertThresholds
     if (a.compareWeekSnapshot != null) extras.compareWeekSnapshot = a.compareWeekSnapshot
+    if (a.digestHighlights != null) extras.digestHighlights = a.digestHighlights
+    if (a.compareSelection != null) extras.compareSelection = a.compareSelection
     if (Object.keys(extras).length > 0) workspaceExtras = extras
   }
 
@@ -863,6 +867,18 @@ export async function applyMergePreview(
       '../../domain/compareWeekSnapshot'
     )
     importCompareWeekSnapshotFromBackup(preview.workspaceExtras.compareWeekSnapshot)
+  }
+  if (preview.workspaceExtras?.digestHighlights != null) {
+    const { importDigestHighlightsFromBackup } = await import(
+      '../../domain/digestHighlightsPrefs'
+    )
+    importDigestHighlightsFromBackup(preview.workspaceExtras.digestHighlights)
+  }
+  if (preview.workspaceExtras?.compareSelection != null) {
+    const { importCompareSelectionFromBackup } = await import(
+      '../../domain/compareSelectionPrefs'
+    )
+    importCompareSelectionFromBackup(preview.workspaceExtras.compareSelection)
   }
 
   return { merged, conflicts: preview.conflicts, removedDupes: removed.length }

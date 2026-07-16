@@ -584,7 +584,7 @@ export function NewsPage() {
         </div>
         {selectedArticle ? (
           <aside
-            className="news-master-detail-panel surface p-4 border border-border hidden md:block sticky top-20 self-start"
+            className="news-master-detail-panel surface p-4 border border-border hidden md:block sticky self-start"
             aria-label={`Selected article: ${selectedArticle.title}`}
           >
             <p className="label-uppercase mb-1">Selected</p>

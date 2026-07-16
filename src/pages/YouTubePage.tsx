@@ -437,7 +437,7 @@ export function YouTubePage() {
         </div>
         {selectedVideo ? (
           <aside
-            className="youtube-master-detail-panel surface p-4 border border-border hidden md:block sticky top-20 self-start"
+            className="youtube-master-detail-panel surface p-4 border border-border hidden md:block sticky self-start"
             aria-label={`Selected video: ${selectedVideo.title}`}
           >
             <p className="label-uppercase mb-1">Selected</p>
