@@ -19,9 +19,16 @@ import { BottomNav } from './BottomNav'
 import { ToolbarControls } from './ToolbarControls'
 import { SyncStatusChip } from '../SyncStatusChip'
 import { PullToRefresh } from '../ui/PullToRefresh'
+import { PageRouteTransition } from './PageRouteTransition'
 import { formatDateTime } from '../../utils/format'
 import { useShowBottomNav } from '../../hooks/useShowBottomNav'
 import { useIdlePrefetch } from '../../hooks/useIdlePrefetch'
+import { triggerSuccessFlash } from '../../utils/successFlash'
+
+/** Pull-to-refresh only on Today (index) and Markets — avoids fighting scroll on dense lists. */
+function allowPullToRefresh(pathname: string): boolean {
+  return pathname === '/' || pathname === '/markets'
+}
 
 const titles: Record<string, { eyebrow: string; title: string }> = {
   '/': { eyebrow: 'Portfolio', title: 'Overview' },
@@ -199,6 +206,7 @@ export function AppShell() {
       )
     } else {
       setPriceMsg(st.message ?? 'Devices synced')
+      triggerSuccessFlash()
     }
     window.setTimeout(() => setPriceMsg(null), 4500)
   }, [refreshPrices, refreshFx])
@@ -208,7 +216,7 @@ export function AppShell() {
       <Sidebar open={open} onClose={() => setOpen(false)} />
 
       <div className="app-main">
-        <header className="app-header">
+        <header className="app-header" role="banner" aria-label="App header">
           <div className="app-header-row">
             <MenuButton onClick={() => setOpen(true)} />
             <div className="hidden sm:flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
@@ -292,10 +300,18 @@ export function AppShell() {
 
         <main
           id="main-content"
+          role="main"
+          aria-label="Main content"
           className={`app-content${showBottomNav ? ' app-content-with-bottom-nav' : ''}`}
         >
-          <PullToRefresh onRefresh={onPullToSync} refreshingLabel="Syncing devices…">
-            <Outlet />
+          <PullToRefresh
+            onRefresh={onPullToSync}
+            refreshingLabel="Syncing devices…"
+            disabled={allowPullToRefresh(pathname) ? undefined : true}
+          >
+            <PageRouteTransition>
+              <Outlet />
+            </PageRouteTransition>
           </PullToRefresh>
         </main>
 

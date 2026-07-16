@@ -1,20 +1,29 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { ArrowUpDown, Landmark } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { ArrowUpDown } from 'lucide-react'
 import { AllocationRing } from '../components/charts/AllocationRing'
 import { PortfolioSeriesChart } from '../components/charts/PortfolioSeriesChart'
 import { EmptyState } from '../components/ui/EmptyState'
+import { MarketsHoldingsSkeleton } from '../components/ui/MarketsHoldingsSkeleton'
 import { OverflowMenu } from '../components/ui/OverflowMenu'
 import { PageHeader } from '../components/ui/PageHeader'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
 import { TradeModal } from '../components/ui/TradeModal'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
+import { SwipeHoldingRow } from '../components/ui/SwipeHoldingRow'
 import { usePortfolio } from '../context/PortfolioContext'
 import { applyTrade } from '../domain/trades'
 import { equityNeedsUsdToGbp } from '../domain/equityCurrency'
 import { equityUnitPriceGbp } from '../domain/migrateEquityGbp'
 import { applyLastSyncedQuotesToHoldings } from '../domain/lastSyncedHoldings'
+import {
+  equityDriftHits,
+  isSymbolDrifting,
+  loadHoldingsDriftThresholdPct,
+} from '../domain/holdingsDrift'
 import type { EquityHolding } from '../domain/types'
+import { addHoldingsMissingFromWatchlist, holdingsMissingFromWatchlist } from '../domain/addHoldingsToWatchlist'
+import { listMarketTickers } from '../storage/marketsStore'
 import { applySortOrder, sortBySortOrder } from '../utils/reorder'
 import {
   formatGBP,
@@ -34,8 +43,9 @@ function nextId(items: { id: number }[]): number {
 const emptyForm = { symbol: '', name: '', shares: '', avgCost: '', livePrice: '' }
 
 export function EquitiesPage() {
-  const { data, breakdown, privacy, setData, fxRates } = usePortfolio()
-  const { success, error: showError } = useToasts()
+  const { data, breakdown, privacy, setData, fxRates, refreshing } = usePortfolio()
+  const { error: showError, showToast } = useToasts()
+  const navigate = useNavigate()
   const { equity } = breakdown
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<EquityHolding | null>(null)
@@ -47,18 +57,38 @@ export function EquitiesPage() {
 
   const holdings = useMemo(() => sortBySortOrder(data.equities), [data.equities])
   const displayCcy = getDisplayCurrency()
+  const showSkeleton = refreshing && holdings.length === 0
+  const driftHits = useMemo(() => equityDriftHits(holdings), [holdings, data.settings.lastPriceUpdate])
+  const driftThreshold = loadHoldingsDriftThresholdPct()
+  const yieldBySymbol = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const t of listMarketTickers('equity')) {
+      if (t.yieldPct != null && t.yieldPct > 0) map.set(t.symbol.toUpperCase(), t.yieldPct)
+    }
+    for (const e of holdings) {
+      if (e.yieldPct != null && e.yieldPct > 0) map.set(e.symbol.toUpperCase(), e.yieldPct)
+    }
+    return map
+  }, [holdings])
 
   const fillFromLastSynced = () => {
+    const snapshot = data
     const result = applyLastSyncedQuotesToHoldings(data, { overwrite: true })
     if (result.equities === 0) {
       showError('No cache hits', 'Refresh Markets first, then try again.')
       return
     }
     setData(() => result.data)
-    success(
-      'Filled from last synced',
-      `${result.equities} equity price${result.equities === 1 ? '' : 's'}`,
-    )
+    showToast({
+      type: 'success',
+      title: 'Filled from last synced',
+      message: `${result.equities} equity price${result.equities === 1 ? '' : 's'}`,
+      duration: 8000,
+      action: {
+        label: 'Undo',
+        onClick: () => setData(() => snapshot),
+      },
+    })
   }
 
   const pieSlices = useMemo(
@@ -102,6 +132,8 @@ export function EquitiesPage() {
       commentaries: editing?.commentaries,
       platform: editing?.platform,
       contactUrl: editing?.contactUrl,
+      yieldPct: editing?.yieldPct,
+      corporateActionNote: editing?.corporateActionNote,
     }
     setData((prev) => ({
       ...prev,
@@ -119,6 +151,32 @@ export function EquitiesPage() {
         e.id === id ? { ...e, includeInPortfolio: e.includeInPortfolio === false } : e,
       ),
     }))
+  }
+
+  const missingOnMarkets = useMemo(
+    () =>
+      holdingsMissingFromWatchlist(
+        holdings.map((e) => ({ symbol: e.symbol, name: e.name })),
+        'equity',
+      ),
+    [holdings],
+  )
+
+  const addMissingToMarkets = () => {
+    const result = addHoldingsMissingFromWatchlist(
+      holdings.map((e) => ({ symbol: e.symbol, name: e.name })),
+      'equity',
+    )
+    if (result.added.length > 0) {
+      showToast({
+        type: 'success',
+        title: 'Added to Markets',
+        message: `${result.added.length} symbol${result.added.length === 1 ? '' : 's'}`,
+      })
+      window.dispatchEvent(new CustomEvent('mydsp-markets-changed'))
+    } else if (result.errors[0]) {
+      showError('Could not add', result.errors[0])
+    }
   }
 
   return (
@@ -142,6 +200,16 @@ export function EquitiesPage() {
             >
               Fill last synced
             </button>
+            {missingOnMarkets.length > 0 ? (
+              <button
+                type="button"
+                className="btn-ghost btn-sm"
+                onClick={addMissingToMarkets}
+                title="Add portfolio symbols missing from Markets watchlist"
+              >
+                Add from holding ({missingOnMarkets.length})
+              </button>
+            ) : null}
             <button
               type="button"
               className={`btn-secondary btn-sm inline-flex items-center gap-2 ${sorting ? 'border-accent text-accent' : ''}`}
@@ -158,6 +226,16 @@ export function EquitiesPage() {
           </div>
         }
       />
+
+      {driftHits.length > 0 ? (
+        <div
+          className="mb-4 px-4 py-3 border border-amber-500/40 bg-amber-500/10 text-sm text-amber-800 dark:text-amber-200"
+          role="status"
+        >
+          Markets live ≠ holding price by &gt;{driftThreshold}% on{' '}
+          {driftHits.map((h) => h.symbol).join(', ')}. Refresh Markets or fill last synced.
+        </div>
+      ) : null}
 
       <div className={`grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-px mb-6 ${privacyClass(privacy)}`}>
         <div className="surface p-4 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
@@ -178,6 +256,12 @@ export function EquitiesPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-px mb-6">
+        {showSkeleton ? (
+          <div className="lg:col-span-3">
+            <MarketsHoldingsSkeleton rows={3} label="Loading equity holdings" />
+          </div>
+        ) : (
+          <>
         <div className="surface p-5 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
           <AllocationRing
             data={pieSlices}
@@ -198,11 +282,13 @@ export function EquitiesPage() {
             heightClass="h-56 sm:h-64 lg:h-72"
           />
         </div>
+          </>
+        )}
       </div>
 
       {holdings.length === 0 ? (
         <EmptyState
-          icon={<Landmark size={40} strokeWidth={1.25} />}
+          illustration
           title="No equity holdings yet"
           description="Add stocks or ETFs to track shares, cost basis, and live P&amp;L."
           action={{ label: 'Add equity', onClick: openCreate }}
@@ -224,21 +310,54 @@ export function EquitiesPage() {
               equityNeedsUsdToGbp(e.symbol) && priceGbp > 0
                 ? convertFromGbp(priceGbp, 'USD', fxRates)
                 : null
+            const drifting = isSymbolDrifting(driftHits, e.symbol)
+            const yieldPct = yieldBySymbol.get(e.symbol.toUpperCase())
             return (
+              <SwipeHoldingRow
+                onBuy={() => {
+                  setTradeFor(e)
+                  setTradeSide('buy')
+                }}
+                onToggleNw={() => toggle(e.id)}
+                included={included}
+              >
               <div
                 className={`surface p-4 md:p-5 flex flex-wrap md:flex-nowrap items-center gap-3 rounded-xl md:rounded-none shadow-sm md:shadow-none ${
                   included ? '' : 'opacity-50'
-                }`}
+                } ${drifting ? 'ring-1 ring-inset ring-amber-500/50 bg-amber-500/5' : ''}`}
               >
                 {sorting ? <ReorderHandle label={`Reorder ${e.symbol}`} /> : null}
                 <Link to={`/equities/${e.id}`} className="min-w-0 flex-1 hover:text-accent transition-colors">
-                  <p className="font-semibold text-base">{e.symbol}</p>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <p className="font-semibold text-base">{e.symbol}</p>
+                    {e.corporateActionNote ? (
+                      <span
+                        className="text-[10px] uppercase tracking-wider font-semibold px-1.5 py-0.5 border border-amber-500/45 text-amber-700 dark:text-amber-300"
+                        title={e.corporateActionNote}
+                      >
+                        Corp
+                      </span>
+                    ) : null}
+                  </div>
                   <p className="text-xs text-text-muted truncate mt-0.5">{e.name}</p>
+                  {drifting ? (
+                    <p className="text-[11px] text-amber-700 dark:text-amber-300 mt-0.5">
+                      Price drift vs Markets
+                    </p>
+                  ) : null}
+                  {yieldPct != null ? (
+                    <p className="text-[11px] text-text-subtle tabular-nums mt-0.5">
+                      Yield {yieldPct.toFixed(yieldPct >= 10 ? 1 : 2)}%
+                    </p>
+                  ) : null}
                 </Link>
                 <div className={`text-sm tabular-nums min-w-[8.5rem] ${privacyClass(privacy)}`}>
                   <p className="font-semibold">{formatGBP(value)}</p>
                   <p className="text-xs text-text-muted">
                     {formatQty(e.shares)} × {formatGBPPrecise(priceGbp)}
+                  </p>
+                  <p className="text-[11px] text-text-subtle tabular-nums mt-0.5">
+                    Cost {formatGBP(cost)} · P&L {formatGBP(pnl, { signed: true })}
                   </p>
                   {usdSpot != null && displayCcy === 'GBP' && (
                     <p className="text-[11px] text-text-subtle tabular-nums">
@@ -297,6 +416,7 @@ export function EquitiesPage() {
                   ]}
                 />
               </div>
+              </SwipeHoldingRow>
             )
           }}
         </ReorderList>
@@ -377,7 +497,11 @@ export function EquitiesPage() {
         defaultPrice={tradeFor ? equityUnitPriceGbp(tradeFor) : 0}
         defaultSide={tradeSide}
         data={data}
-        onClose={() => setTradeFor(null)}
+        onClose={(opts) => {
+          const holding = tradeFor
+          setTradeFor(null)
+          if (opts?.saved && holding) navigate(`/equities/${holding.id}`)
+        }}
         onSave={(vals) => {
           if (!tradeFor) return
           setData((prev) =>
@@ -395,6 +519,7 @@ export function EquitiesPage() {
               holdingId: tradeFor.id,
             }),
           )
+          showToast({ type: 'success', title: 'Trade saved', message: tradeFor.symbol })
         }}
       />
 

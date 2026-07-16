@@ -9,6 +9,7 @@ import {
   jobsToExcel,
   todosToExcel,
   downloadExcel,
+  generateExcelCsv,
   printPdf 
 } from '../utils/exportFormats'
 import { buildFullReportHtml } from '../utils/fullReportHtml'
@@ -167,6 +168,23 @@ export function DataExportPanel() {
     }
 
     downloadExcel(excelData, filename)
+
+    // Offer native share when available (iOS / Android)
+    if (typeof navigator !== 'undefined' && 'share' in navigator) {
+      try {
+        const csv = generateExcelCsv(excelData)
+        const file = new File([csv], filename, { type: 'text/csv' })
+        const nav = navigator as Navigator & {
+          canShare?: (d: { files: File[] }) => boolean
+          share: (d: { files: File[]; title?: string }) => Promise<void>
+        }
+        if (!nav.canShare || nav.canShare({ files: [file] })) {
+          await nav.share({ files: [file], title: filename })
+        }
+      } catch {
+        /* cancelled or unsupported — download already happened */
+      }
+    }
   }
 
   const exportOptions = [

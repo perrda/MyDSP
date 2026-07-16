@@ -4,14 +4,21 @@ interface FieldProps {
   label: string
   children: ReactNode
   hint?: string
+  error?: string
 }
 
-export function Field({ label, children, hint }: FieldProps) {
+export function Field({ label, children, hint, error }: FieldProps) {
   return (
     <label className="block">
       <span className="block text-xs text-text-subtle mb-1">{label}</span>
       {children}
-      {hint && <span className="mt-1.5 block text-[11px] text-text-subtle font-light">{hint}</span>}
+      {error ? (
+        <span className="mt-1.5 block text-[11px] text-accent font-medium" role="alert">
+          {error}
+        </span>
+      ) : hint ? (
+        <span className="mt-1.5 block text-[11px] text-text-subtle font-light">{hint}</span>
+      ) : null}
     </label>
   )
 }
@@ -30,6 +37,7 @@ export function Modal({ open, title, onClose, children, size = 'default' }: Moda
   const panelRef = useRef<HTMLDivElement>(null)
   const onCloseRef = useRef(onClose)
   onCloseRef.current = onClose
+  const [kbPad, setKbPad] = useState(0)
 
   // Auto-focus once when opening — never re-run on parent re-renders (that steals caret).
   useEffect(() => {
@@ -71,6 +79,28 @@ export function Modal({ open, title, onClose, children, size = 'default' }: Moda
     }
   }, [open])
 
+  // iOS keyboard avoidance via visualViewport
+  useEffect(() => {
+    if (!open || typeof window === 'undefined' || !window.visualViewport) return
+    const vv = window.visualViewport
+    const sync = () => {
+      const covered = Math.max(0, window.innerHeight - vv.height - vv.offsetTop)
+      setKbPad(covered > 40 ? covered : 0)
+      const active = document.activeElement as HTMLElement | null
+      if (active && panelRef.current?.contains(active) && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
+        window.setTimeout(() => active.scrollIntoView({ block: 'center', behavior: 'smooth' }), 50)
+      }
+    }
+    sync()
+    vv.addEventListener('resize', sync)
+    vv.addEventListener('scroll', sync)
+    return () => {
+      vv.removeEventListener('resize', sync)
+      vv.removeEventListener('scroll', sync)
+      setKbPad(0)
+    }
+  }, [open])
+
   if (!open) return null
 
   const panelClass =
@@ -96,16 +126,19 @@ export function Modal({ open, title, onClose, children, size = 'default' }: Moda
         aria-modal="true"
         aria-labelledby={titleId}
         className={panelClass}
+        style={kbPad > 0 ? { paddingBottom: kbPad } : undefined}
       >
-        <div className="sticky top-0 z-10 modal-sticky-header flex items-center justify-between gap-4 px-4 sm:px-6 py-4 sm:py-5 border-b border-border bg-bg-elevated pt-[max(1rem,env(safe-area-inset-top))]">
+        <div className="sticky top-0 z-10 modal-sticky-header flex items-center justify-between gap-4 px-4 sm:px-6 py-4 sm:py-5 border-b border-border bg-bg-elevated pt-[max(1rem,env(safe-area-inset-top,0px))] pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))]">
           <h2 id={titleId} className="text-base sm:text-lg font-bold tracking-tight truncate">
             {title}
           </h2>
-          <button type="button" className="btn-ghost btn-sm shrink-0" onClick={onClose}>
+          <button type="button" className="btn-ghost btn-sm shrink-0 min-h-11 min-w-11" onClick={onClose}>
             Close
           </button>
         </div>
-        <div className="p-4 sm:p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">{children}</div>
+        <div className="p-4 sm:p-6 pb-[max(1.5rem,env(safe-area-inset-bottom,0px))] pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))]">
+          {children}
+        </div>
       </div>
     </div>
   )
@@ -118,6 +151,8 @@ interface ConfirmProps {
   confirmLabel?: string
   /** Use for destructive actions (delete, clear, overwrite). */
   variant?: 'default' | 'danger'
+  /** On phone, require a press-and-hold before confirming (ms). */
+  holdMs?: number
   onConfirm: () => void
   onClose: () => void
 }
@@ -128,12 +163,54 @@ export function ConfirmDialog({
   body,
   confirmLabel = 'Delete',
   variant = 'danger',
+  holdMs = 0,
   onConfirm,
   onClose,
 }: ConfirmProps) {
+  const [holding, setHolding] = useState(false)
+  const [progress, setProgress] = useState(0)
+  const timerRef = useRef<number | null>(null)
+  const startRef = useRef(0)
+  const requireHold = holdMs > 0 && typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches
+
+  useEffect(() => {
+    if (!open) {
+      setHolding(false)
+      setProgress(0)
+      if (timerRef.current) window.clearInterval(timerRef.current)
+    }
+  }, [open])
+
+  const clearHold = () => {
+    setHolding(false)
+    setProgress(0)
+    if (timerRef.current) {
+      window.clearInterval(timerRef.current)
+      timerRef.current = null
+    }
+  }
+
+  const startHold = () => {
+    if (!requireHold) return
+    setHolding(true)
+    startRef.current = Date.now()
+    timerRef.current = window.setInterval(() => {
+      const p = Math.min(1, (Date.now() - startRef.current) / holdMs)
+      setProgress(p)
+      if (p >= 1) {
+        clearHold()
+        onConfirm()
+        onClose()
+      }
+    }, 32)
+  }
+
   return (
     <Modal open={open} title={title} onClose={onClose}>
       <p className="text-sm text-text-muted mb-6">{body}</p>
+      {requireHold ? (
+        <p className="text-[11px] text-text-subtle mb-3">Press and hold Confirm to continue.</p>
+      ) : null}
       <div className="flex gap-3 pt-4 border-t border-border">
         <button type="button" className="btn-ghost flex-1 min-h-11" onClick={onClose}>
           Cancel
@@ -142,15 +219,27 @@ export function ConfirmDialog({
           type="button"
           className={
             variant === 'danger'
-              ? 'flex-1 min-h-11 px-4 py-2.5 rounded text-sm font-semibold bg-red-600 hover:bg-red-500 text-white'
-              : 'btn-primary flex-1 min-h-11'
+              ? 'relative overflow-hidden flex-1 min-h-11 px-4 py-2.5 rounded text-sm font-semibold bg-red-600 hover:bg-red-500 text-white'
+              : 'relative overflow-hidden btn-primary flex-1 min-h-11'
           }
           onClick={() => {
+            if (requireHold) return
             onConfirm()
             onClose()
           }}
+          onPointerDown={startHold}
+          onPointerUp={clearHold}
+          onPointerLeave={clearHold}
+          onPointerCancel={clearHold}
         >
-          {confirmLabel}
+          {requireHold && holding ? (
+            <span
+              className="absolute inset-y-0 left-0 bg-black/25"
+              style={{ width: `${progress * 100}%` }}
+              aria-hidden
+            />
+          ) : null}
+          <span className="relative z-[1]">{confirmLabel}</span>
         </button>
       </div>
     </Modal>

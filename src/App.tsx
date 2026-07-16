@@ -7,6 +7,9 @@ import { SecurityProvider } from './components/SecurityProvider'
 import { ToastProvider } from './components/ToastProvider'
 import { AchievementWatcher } from './components/AchievementWatcher'
 import { InstallPrompt } from './components/InstallPrompt'
+import { QuoteFailoverBanner } from './components/QuoteFailoverBanner'
+import { SyncConflictSheet } from './components/SyncConflictSheet'
+import { KeyboardShortcutsHelp } from './components/KeyboardShortcutsHelp'
 import { LaunchRedirect } from './components/LaunchRedirect'
 import { UpdateBanner } from './components/UpdateBanner'
 import { SkipToContent, ScreenReaderAnnouncer } from './components/Accessibility'
@@ -61,6 +64,7 @@ const SmartInsightsPage = lazy(() => import('./pages/SmartInsightsPage').then(m 
 const MarketsPage = lazy(() => import('./pages/MarketsPage').then(m => ({ default: m.MarketsPage })))
 const NewsPage = lazy(() => import('./pages/NewsPage').then(m => ({ default: m.NewsPage })))
 const YouTubePage = lazy(() => import('./pages/YouTubePage').then(m => ({ default: m.YouTubePage })))
+const SmokePage = lazy(() => import('./pages/SmokePage').then(m => ({ default: m.SmokePage })))
 
 export default function App() {
   return (
@@ -77,6 +81,9 @@ export default function App() {
                 <ToastProvider>
                   <AchievementWatcher />
                   <InstallPrompt />
+                  <QuoteFailoverBanner />
+                  <SyncConflictSheet />
+                  <KeyboardShortcutsHelp />
                   <UpdateBanner />
                   <Suspense fallback={<LoadingSpinner />}>
                     <Routes>
@@ -120,6 +127,7 @@ export default function App() {
                         <Route path="api" element={<ApiAutomationPage />} />
                         <Route path="insights" element={<SmartInsightsPage />} />
                         <Route path="settings" element={<SettingsPage />} />
+                        <Route path="smoke" element={<SmokePage />} />
                         <Route path="accounts" element={<Navigate to="/crypto" replace />} />
                         <Route path="transactions" element={<Navigate to="/spending" replace />} />
                         <Route path="*" element={<Navigate to="/" replace />} />

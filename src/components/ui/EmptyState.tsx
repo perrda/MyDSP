@@ -1,8 +1,11 @@
 import { type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import { EmptyIllustration } from './EmptyIllustration'
 
 interface EmptyStateProps {
   icon?: ReactNode
+  /** When true, shows the shared EmptyIllustration geometric mark (accent). */
+  illustration?: boolean
   title: string
   description: string
   action?: {
@@ -17,12 +20,28 @@ interface EmptyStateProps {
   }
 }
 
-export function EmptyState({ icon, title, description, action, secondaryAction }: EmptyStateProps) {
+export function EmptyState({
+  icon,
+  illustration,
+  title,
+  description,
+  action,
+  secondaryAction,
+}: EmptyStateProps) {
+  const mark = illustration ? <EmptyIllustration /> : icon
   return (
     <div className="surface p-10 sm:p-12 md:p-16 text-center border border-border animate-fade-in">
-      {icon && (
+      {mark && (
         <div className="flex justify-center mb-4">
-          <div className="text-text-subtle opacity-40 text-6xl">{icon}</div>
+          <div
+            className={
+              illustration
+                ? 'text-accent opacity-90'
+                : 'text-text-subtle opacity-40 text-6xl'
+            }
+          >
+            {mark}
+          </div>
         </div>
       )}
       <h3 className="text-lg font-bold mb-2">{title}</h3>
@@ -61,18 +80,29 @@ export function EmptyState({ icon, title, description, action, secondaryAction }
 
 export function EmptyStateInline({
   icon,
+  illustration,
   message,
   action,
 }: {
   icon?: ReactNode
+  illustration?: boolean
   message: string
   action?: { label: string; onClick?: () => void; to?: string }
 }) {
+  const mark = illustration ? <EmptyIllustration className="w-12 h-12" /> : icon
   return (
     <div className="py-10 sm:py-12 text-center animate-fade-in px-4">
-      {icon && (
+      {mark && (
         <div className="flex justify-center mb-3">
-          <div className="text-text-subtle opacity-30 text-4xl">{icon}</div>
+          <div
+            className={
+              illustration
+                ? 'text-accent opacity-90'
+                : 'text-text-subtle opacity-30 text-4xl'
+            }
+          >
+            {mark}
+          </div>
         </div>
       )}
       <p className="text-sm text-text-muted mb-4">{message}</p>

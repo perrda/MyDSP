@@ -1,18 +1,26 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { ArrowUpDown, Coins } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { ArrowUpDown } from 'lucide-react'
 import { AllocationRing } from '../components/charts/AllocationRing'
 import { PortfolioSeriesChart } from '../components/charts/PortfolioSeriesChart'
 import { EmptyState } from '../components/ui/EmptyState'
+import { MarketsHoldingsSkeleton } from '../components/ui/MarketsHoldingsSkeleton'
 import { OverflowMenu } from '../components/ui/OverflowMenu'
 import { PageHeader } from '../components/ui/PageHeader'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
 import { TradeModal } from '../components/ui/TradeModal'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
+import { SwipeHoldingRow } from '../components/ui/SwipeHoldingRow'
 import { usePortfolio } from '../context/PortfolioContext'
 import { applyTrade } from '../domain/trades'
 import { applyLastSyncedQuotesToHoldings } from '../domain/lastSyncedHoldings'
+import {
+  cryptoDriftHits,
+  isSymbolDrifting,
+  loadHoldingsDriftThresholdPct,
+} from '../domain/holdingsDrift'
 import type { CryptoHolding } from '../domain/types'
+import { addHoldingsMissingFromWatchlist, holdingsMissingFromWatchlist } from '../domain/addHoldingsToWatchlist'
 import { applySortOrder, sortBySortOrder } from '../utils/reorder'
 import { formatGBP, formatGBPPrecise, formatPct, formatQty, privacyClass } from '../utils/format'
 import { useToasts } from '../components/ToastProvider'
@@ -30,8 +38,9 @@ const emptyForm = {
 }
 
 export function CryptoPage() {
-  const { data, breakdown, privacy, setData } = usePortfolio()
-  const { success, error: showError } = useToasts()
+  const { data, breakdown, privacy, setData, refreshing } = usePortfolio()
+  const { error: showError, showToast } = useToasts()
+  const navigate = useNavigate()
   const { crypto } = breakdown
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<CryptoHolding | null>(null)
@@ -42,15 +51,28 @@ export function CryptoPage() {
   const [sorting, setSorting] = useState(false)
 
   const holdings = useMemo(() => sortBySortOrder(data.crypto), [data.crypto])
+  const showSkeleton = refreshing && holdings.length === 0
+  const driftHits = useMemo(() => cryptoDriftHits(holdings), [holdings, data.settings.lastPriceUpdate])
+  const driftThreshold = loadHoldingsDriftThresholdPct()
 
   const fillFromLastSynced = () => {
+    const snapshot = data
     const result = applyLastSyncedQuotesToHoldings(data, { overwrite: true })
     if (result.crypto === 0) {
       showError('No cache hits', 'Refresh Markets first, then try again.')
       return
     }
     setData(() => result.data)
-    success('Filled from last synced', `${result.crypto} crypto price${result.crypto === 1 ? '' : 's'}`)
+    showToast({
+      type: 'success',
+      title: 'Filled from last synced',
+      message: `${result.crypto} crypto price${result.crypto === 1 ? '' : 's'}`,
+      duration: 8000,
+      action: {
+        label: 'Undo',
+        onClick: () => setData(() => snapshot),
+      },
+    })
   }
 
   const pieSlices = useMemo(
@@ -113,6 +135,32 @@ export function CryptoPage() {
     }))
   }
 
+  const missingOnMarkets = useMemo(
+    () =>
+      holdingsMissingFromWatchlist(
+        holdings.map((c) => ({ symbol: c.symbol, name: c.name })),
+        'crypto',
+      ),
+    [holdings],
+  )
+
+  const addMissingToMarkets = () => {
+    const result = addHoldingsMissingFromWatchlist(
+      holdings.map((c) => ({ symbol: c.symbol, name: c.name })),
+      'crypto',
+    )
+    if (result.added.length > 0) {
+      showToast({
+        type: 'success',
+        title: 'Added to Markets',
+        message: `${result.added.length} symbol${result.added.length === 1 ? '' : 's'}`,
+      })
+      window.dispatchEvent(new CustomEvent('mydsp-markets-changed'))
+    } else if (result.errors[0]) {
+      showError('Could not add', result.errors[0])
+    }
+  }
+
   return (
     <div>
       <PageHeader
@@ -134,6 +182,16 @@ export function CryptoPage() {
             >
               Fill last synced
             </button>
+            {missingOnMarkets.length > 0 ? (
+              <button
+                type="button"
+                className="btn-ghost btn-sm"
+                onClick={addMissingToMarkets}
+                title="Add portfolio symbols missing from Markets watchlist"
+              >
+                Add from holding ({missingOnMarkets.length})
+              </button>
+            ) : null}
             <button
               type="button"
               className={`btn-secondary btn-sm inline-flex items-center gap-2 ${sorting ? 'border-accent text-accent' : ''}`}
@@ -150,6 +208,16 @@ export function CryptoPage() {
           </div>
         }
       />
+
+      {driftHits.length > 0 ? (
+        <div
+          className="mb-4 px-4 py-3 border border-amber-500/40 bg-amber-500/10 text-sm text-amber-800 dark:text-amber-200"
+          role="status"
+        >
+          Markets live ≠ holding price by &gt;{driftThreshold}% on{' '}
+          {driftHits.map((h) => h.symbol).join(', ')}. Refresh Markets or fill last synced.
+        </div>
+      ) : null}
 
       <div className={`grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-px mb-6 ${privacyClass(privacy)}`}>
         <div className="surface p-4 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
@@ -170,6 +238,12 @@ export function CryptoPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-px mb-6">
+        {showSkeleton ? (
+          <div className="lg:col-span-3">
+            <MarketsHoldingsSkeleton rows={3} label="Loading crypto holdings" />
+          </div>
+        ) : (
+          <>
         <div className="surface p-5 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
           <AllocationRing
             data={pieSlices}
@@ -190,11 +264,13 @@ export function CryptoPage() {
             heightClass="h-56 sm:h-64 lg:h-72"
           />
         </div>
+          </>
+        )}
       </div>
 
       {holdings.length === 0 ? (
         <EmptyState
-          icon={<Coins size={40} strokeWidth={1.25} />}
+          illustration
           title="No crypto holdings yet"
           description="Add BTC, ETH, or any coin to track quantity, live price, and P&amp;L."
           action={{ label: 'Add crypto', onClick: openCreate }}
@@ -210,21 +286,38 @@ export function CryptoPage() {
             const value = c.qty * c.price
             const pnl = value - c.cost
             const included = c.includeInPortfolio !== false
+            const drifting = isSymbolDrifting(driftHits, c.symbol)
             return (
+              <SwipeHoldingRow
+                onBuy={() => {
+                  setTradeFor(c)
+                  setTradeSide('buy')
+                }}
+                onToggleNw={() => toggle(c.id)}
+                included={included}
+              >
               <div
                 className={`surface p-4 md:p-5 flex flex-wrap md:flex-nowrap items-center gap-3 rounded-xl md:rounded-none shadow-sm md:shadow-none ${
                   included ? '' : 'opacity-50'
-                }`}
+                } ${drifting ? 'ring-1 ring-inset ring-amber-500/50 bg-amber-500/5' : ''}`}
               >
                 {sorting ? <ReorderHandle label={`Reorder ${c.symbol}`} /> : null}
                 <Link to={`/crypto/${c.id}`} className="min-w-0 flex-1 hover:text-accent transition-colors">
                   <p className="font-semibold text-base">{c.symbol}</p>
                   <p className="text-xs text-text-subtle truncate mt-0.5">{c.name}</p>
+                  {drifting ? (
+                    <p className="text-[11px] text-amber-700 dark:text-amber-300 mt-0.5">
+                      Price drift vs Markets
+                    </p>
+                  ) : null}
                 </Link>
                 <div className={`text-sm tabular-nums ${privacyClass(privacy)}`}>
                   <p className="font-semibold">{formatGBP(value)}</p>
                   <p className="text-xs text-text-subtle">
                     {formatQty(c.qty)} · {formatGBPPrecise(c.price)}
+                  </p>
+                  <p className="text-[11px] text-text-subtle tabular-nums mt-0.5">
+                    Cost {formatGBP(c.cost)} · P&L {formatGBP(pnl, { signed: true })}
                   </p>
                 </div>
                 <p
@@ -278,6 +371,7 @@ export function CryptoPage() {
                   ]}
                 />
               </div>
+              </SwipeHoldingRow>
             )
           }}
         </ReorderList>
@@ -354,7 +448,11 @@ export function CryptoPage() {
         defaultPrice={tradeFor?.price}
         defaultSide={tradeSide}
         data={data}
-        onClose={() => setTradeFor(null)}
+        onClose={(opts) => {
+          const holding = tradeFor
+          setTradeFor(null)
+          if (opts?.saved && holding) navigate(`/crypto/${holding.id}`)
+        }}
         onSave={(vals) => {
           if (!tradeFor) return
           setData((prev) =>
@@ -372,6 +470,7 @@ export function CryptoPage() {
               holdingId: tradeFor.id,
             }),
           )
+          showToast({ type: 'success', title: 'Trade saved', message: tradeFor.symbol })
         }}
       />
 

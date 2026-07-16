@@ -9,6 +9,7 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 const DISMISS_KEY = 'mydsp_a2hs_dismissed'
+const SYNC_COACH_KEY = 'mydsp_a2hs_after_sync'
 
 function isIosSafari(): boolean {
   if (typeof navigator === 'undefined') return false
@@ -18,6 +19,14 @@ function isIosSafari(): boolean {
     ('standalone' in navigator && Boolean((navigator as Navigator & { standalone?: boolean }).standalone)) ||
     window.matchMedia('(display-mode: standalone)').matches
   return iOS && !standalone
+}
+
+function isStandalone(): boolean {
+  if (typeof window === 'undefined') return false
+  return (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    Boolean((navigator as Navigator & { standalone?: boolean }).standalone)
+  )
 }
 
 export function InstallPrompt() {
@@ -50,13 +59,44 @@ export function InstallPrompt() {
     }
   }, [])
 
+  // Show A2HS after first successful sync (once), unless already dismissed / installed
+  useEffect(() => {
+    if (localStorage.getItem(DISMISS_KEY) === '1' || isStandalone()) return
+    const onSynced = () => {
+      try {
+        if (localStorage.getItem(SYNC_COACH_KEY) === '1') return
+        localStorage.setItem(SYNC_COACH_KEY, '1')
+      } catch {
+        /* private mode */
+      }
+      if (isIosSafari()) {
+        setIosHint(true)
+        setVisible(true)
+      } else if (deferred) {
+        setVisible(true)
+      } else {
+        // Still show iOS-style hint text as soft coach on browsers without BIP
+        setIosHint(isIosSafari())
+        setVisible(true)
+      }
+    }
+    window.addEventListener('mydsp-sync-applied', onSynced)
+    return () => window.removeEventListener('mydsp-sync-applied', onSynced)
+  }, [deferred])
+
   useEffect(() => {
     if (localStorage.getItem(DISMISS_KEY) === '1') return
 
     if (isIosSafari()) {
-      setIosHint(true)
-      setVisible(true)
-      return
+      // Defer default iOS hint until sync coach or user never synced —
+      // still show if they have not dismissed and no sync coach yet after idle.
+      const t = window.setTimeout(() => {
+        if (localStorage.getItem(SYNC_COACH_KEY) === '1') return
+        if (localStorage.getItem(DISMISS_KEY) === '1') return
+        setIosHint(true)
+        setVisible(true)
+      }, 12_000)
+      return () => window.clearTimeout(t)
     }
 
     const handler = (e: Event) => {
@@ -72,14 +112,20 @@ export function InstallPrompt() {
     return (
       <div className="floating-banner fixed left-[max(1rem,env(safe-area-inset-left))] z-[1400] max-w-sm surface border border-border-strong border-l-2 border-l-accent px-4 py-3">
         <p className="text-sm font-semibold">Offline</p>
-        <p className="text-xs text-text-subtle mt-1 leading-relaxed">
+        <p className="text-xs text-text-subtle mt-1 leading-relaxed md:hidden">
+          Cached shell OK.
+          {queueLen > 0 ? ` ${queueLen} queued.` : ' Edits queue automatically.'}
+        </p>
+        <p className="text-xs text-text-subtle mt-1 leading-relaxed hidden md:block">
           Cached shell available. Live prices need a connection.
           {queueLen > 0
             ? ` ${queueLen} edit(s) queued — they sync when you are back online.`
             : ' Edits will queue automatically.'}
         </p>
         {lastBackupDay ? (
-          <p className="text-[11px] text-text-subtle mt-2">Last local backup day: {lastBackupDay}</p>
+          <p className="text-[11px] text-text-subtle mt-2 hidden md:block">
+            Last local backup day: {lastBackupDay}
+          </p>
         ) : null}
         <Link to="/settings#sync" className="text-xs text-accent font-semibold mt-2 inline-block">
           Sync & backups
@@ -88,14 +134,16 @@ export function InstallPrompt() {
     )
   }
 
-  // Online but leftover queue — surface retry path (not only when offline)
   if (queueLen > 0) {
     return (
       <div className="floating-banner fixed left-[max(1rem,env(safe-area-inset-left))] z-[1400] max-w-sm surface border border-border-strong border-l-2 border-l-accent px-4 py-3">
         <p className="text-sm font-semibold">
           {queueLen} change{queueLen === 1 ? '' : 's'} waiting to sync
         </p>
-        <p className="text-xs text-text-subtle mt-1 leading-relaxed">
+        <p className="text-xs text-text-subtle mt-1 leading-relaxed md:hidden">
+          Open Sync to flush the queue.
+        </p>
+        <p className="text-xs text-text-subtle mt-1 leading-relaxed hidden md:block">
           Open Sync to flush the offline queue or tap Sync now after reconnecting.
         </p>
         <Link to="/settings#sync" className="text-xs text-accent font-semibold mt-2 inline-block">
@@ -127,7 +175,7 @@ export function InstallPrompt() {
         {!iosHint && deferred && (
           <button
             type="button"
-            className="btn-primary btn-sm"
+            className="btn-primary btn-sm min-h-11"
             onClick={() => {
               void (async () => {
                 await deferred.prompt()
@@ -142,7 +190,7 @@ export function InstallPrompt() {
         )}
         <button
           type="button"
-          className="btn-ghost btn-sm"
+          className="btn-ghost btn-sm min-h-11"
           onClick={() => {
             localStorage.setItem(DISMISS_KEY, '1')
             setVisible(false)

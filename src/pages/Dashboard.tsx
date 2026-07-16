@@ -2,9 +2,9 @@ import { Link } from 'react-router-dom'
 import { ArrowRight, CandlestickChart } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { GettingStartedChecklist } from '../components/GettingStartedChecklist'
-import { AllocationRing } from '../components/charts/AllocationRing'
+import { AllocationRing, NetWorthChart } from '../components/charts/LazyCharts'
 import { BudgetSparkline } from '../components/charts/BudgetSparkline'
-import { NetWorthChart } from '../components/charts/NetWorthChart'
+import { Sparkline } from '../components/charts/Sparkline'
 import { PageHeader } from '../components/ui/PageHeader'
 import { RemindersPanel, useSmartReminders } from '../components/SmartReminders'
 import { PortfolioShareCard } from '../components/SocialShare'
@@ -13,17 +13,41 @@ import { evaluateAchievements } from '../domain/achievements'
 import { buildAlerts } from '../domain/alerts'
 import { worstBudgetOffenders } from '../domain/budgetChart'
 import { appendManualSnapshot } from '../domain/history'
+import { nearestGoalProjection, formatGoalProjectionLine } from '../domain/goalProjectedDate'
+import { formatMoneyPulseLine, moneyPulseDelta } from '../domain/moneyPulse'
+import {
+  buildNextActionStack,
+  stackIncludesBill,
+} from '../domain/nextActionStack'
+import {
+  netWorthSparkSeries,
+  type NwSparkWindow,
+} from '../domain/netWorthSparkline'
+import { dueWithinDays } from '../domain/recurringDueStrip'
 import { isDueToday, isOverdue } from '../domain/todos'
+import { snoozeDueDateOneDay } from '../domain/todoSnooze'
+import { sparklineTrendFromSeries } from '../domain/sparklineSeries'
 import {
   getAutoSyncStatus,
+  getLastSyncLatencyKind,
   subscribeAutoSync,
   type AutoSyncStatus,
 } from '../services/sync/autoSyncService'
 import { loadSyncConfig } from '../services/sync/syncService'
 import { loadOfflineQueue } from '../services/offlineQueue'
+import { LAST_BACKUP_KEY } from '../storage/backupStore'
 import { listMarketTickers, loadMarketQuotesCache } from '../storage/marketsStore'
 import { buildPriceAlertNotifications } from '../domain/priceAlerts'
 import { formatDate, formatGBP, formatPct, privacyClass } from '../utils/format'
+import {
+  downloadWeeklyDigest,
+  weekDeltaFromHistory,
+} from '../domain/weeklyDigest'
+
+function formatSyncLatencyMs(ms: number): string {
+  if (ms < 1000) return `${ms}ms`
+  return `${Math.round(ms / 1000)}s`
+}
 
 const ALERT_BORDER: Record<string, string> = {
   red: 'border-l-[var(--text-subtle)]',
@@ -45,12 +69,24 @@ export function Dashboard() {
   const { reminders } = useSmartReminders()
   const [syncStatus, setSyncStatus] = useState<AutoSyncStatus>(() => getAutoSyncStatus())
   const [queueLen, setQueueLen] = useState(() => loadOfflineQueue().length)
+  const [nwSparkDays, setNwSparkDays] = useState<NwSparkWindow>(7)
+  /** iPad / wide Stage Manager: Today | Markets two-pane when ≥900px. */
+  const [twoPane, setTwoPane] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia('(min-width: 900px)').matches : false,
+  )
 
   useEffect(() => subscribeAutoSync(setSyncStatus), [])
   useEffect(() => {
     const refresh = () => setQueueLen(loadOfflineQueue().length)
     window.addEventListener('mydsp-offline-queue', refresh)
     return () => window.removeEventListener('mydsp-offline-queue', refresh)
+  }, [])
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 900px)')
+    const sync = () => setTwoPane(mq.matches)
+    sync()
+    mq.addEventListener('change', sync)
+    return () => mq.removeEventListener('change', sync)
   }, [])
 
   const todayTodos = useMemo(() => {
@@ -76,10 +112,36 @@ export function Dashboard() {
       .slice(0, 3)
   }, [syncStatus.lastAt, marketsCount])
 
+  /** Next-action stack: todo / bill / top mover (max 3). */
+  const nextActions = useMemo(
+    () =>
+      buildNextActionStack({
+        todoItems: data.todoItems,
+        recurringTransactions: data.recurringTransactions,
+        movers: todayMovers,
+      }),
+    [data.todoItems, data.recurringTransactions, todayMovers],
+  )
+
+  const focusTodoCard = nextActions.find((c) => c.kind === 'todo')
+  const focusTodoItem = focusTodoCard?.kind === 'todo' ? focusTodoCard.todo : null
+
   const todayPriceAlerts = useMemo(() => buildPriceAlertNotifications().slice(0, 2), [syncStatus.lastAt, marketsCount])
 
   const syncCfg = loadSyncConfig()
   const syncEnabled = Boolean(syncCfg.enabled && syncCfg.remoteUrl.trim())
+
+  const showBackupNudge = useMemo(() => {
+    try {
+      const last = localStorage.getItem(LAST_BACKUP_KEY)
+      if (!last) return true
+      const then = Date.parse(`${last}T00:00:00Z`)
+      if (!Number.isFinite(then)) return true
+      return Date.now() - then > 7 * 24 * 60 * 60 * 1000
+    } catch {
+      return false
+    }
+  }, [syncStatus.lastAt])
 
   const recentJournal = [...(data.journal ?? [])]
     .sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''))
@@ -104,6 +166,82 @@ export function Dashboard() {
     setData((prev) => appendManualSnapshot(prev))
   }
 
+  const markFocusDone = () => {
+    if (!focusTodoItem) return
+    const now = new Date().toISOString()
+    const id = focusTodoItem.id
+    setData((prev) => ({
+      ...prev,
+      todoItems: (prev.todoItems ?? []).map((i) =>
+        i.id === id
+          ? { ...i, status: 'done' as const, completedAt: now, updatedAt: now }
+          : i,
+      ),
+    }))
+  }
+
+  const snoozeFocus = () => {
+    if (!focusTodoItem) return
+    const dueDate = snoozeDueDateOneDay(focusTodoItem.dueDate)
+    const now = new Date().toISOString()
+    const id = focusTodoItem.id
+    setData((prev) => ({
+      ...prev,
+      todoItems: (prev.todoItems ?? []).map((i) =>
+        i.id === id ? { ...i, dueDate, updatedAt: now } : i,
+      ),
+    }))
+  }
+
+  /** Soonest active goal with deadline within 30 days (inclusive). */
+  const soonGoal = useMemo(() => {
+    const now = new Date()
+    now.setHours(0, 0, 0, 0)
+    const horizon = new Date(now)
+    horizon.setDate(horizon.getDate() + 30)
+    let best: (typeof data.goals)[number] | null = null
+    let bestDays = Infinity
+    for (const g of data.goals ?? []) {
+      if (!g.deadline) continue
+      const dl = new Date(`${g.deadline.slice(0, 10)}T00:00:00`)
+      if (!Number.isFinite(dl.getTime())) continue
+      if (dl < now || dl > horizon) continue
+      const days = Math.ceil((dl.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+      if (days < bestDays) {
+        bestDays = days
+        best = g
+      }
+    }
+    return best
+  }, [data.goals])
+
+  const soonGoalProgress = soonGoal ? goalProgress(soonGoal) : 0
+
+  const moneyPulse = useMemo(() => {
+    const hit = moneyPulseDelta(data.history, netWorth)
+    if (!hit) return null
+    return formatMoneyPulseLine(hit.delta, formatGBP)
+  }, [data.history, netWorth])
+
+  const nwSpark = useMemo(
+    () => netWorthSparkSeries(data.history, netWorth, nwSparkDays),
+    [data.history, netWorth, nwSparkDays],
+  )
+  const nwSparkTrend = useMemo(() => sparklineTrendFromSeries(nwSpark), [nwSpark])
+
+  const billsDueSoon = useMemo(
+    () => dueWithinDays(data.recurringTransactions, 7).slice(0, 4),
+    [data.recurringTransactions],
+  )
+  /** Hide longer bills strip when next bill already sits in the action stack. */
+  const showBillsStrip = billsDueSoon.length > 1 && stackIncludesBill(nextActions)
+    ? billsDueSoon.slice(1)
+    : stackIncludesBill(nextActions)
+      ? []
+      : billsDueSoon
+
+  const goalProjection = useMemo(() => nearestGoalProjection(data), [data])
+
   const syncLine = !syncEnabled
     ? 'Cloud sync off — enable in Settings'
     : syncStatus.state === 'pulling' || syncStatus.state === 'pushing'
@@ -113,7 +251,22 @@ export function Dashboard() {
       : queueLen > 0
         ? `${queueLen} change(s) queued offline`
         : syncStatus.lastAt
-          ? `Last sync ${new Date(syncStatus.lastAt).toLocaleString()}`
+          ? (() => {
+              const kind = getLastSyncLatencyKind()
+              if (kind === 'pull' && syncStatus.lastPullMs != null) {
+                return `Synced · ${formatSyncLatencyMs(syncStatus.lastPullMs)} pull`
+              }
+              if (kind === 'push' && syncStatus.lastPushMs != null) {
+                return `Synced · ${formatSyncLatencyMs(syncStatus.lastPushMs)} push`
+              }
+              if (syncStatus.lastPullMs != null) {
+                return `Synced · ${formatSyncLatencyMs(syncStatus.lastPullMs)} pull`
+              }
+              if (syncStatus.lastPushMs != null) {
+                return `Synced · ${formatSyncLatencyMs(syncStatus.lastPushMs)} push`
+              }
+              return `Last sync ${new Date(syncStatus.lastAt).toLocaleString()}`
+            })()
           : 'Ready to sync'
 
   return (
@@ -123,18 +276,95 @@ export function Dashboard() {
         title="Today"
         description="Net worth, tasks due now, sync health, and Markets — act first, explore below."
         action={
-          <Link to="/settings#sync" className="btn-secondary btn-sm inline-flex">
-            Cloud Sync <ArrowRight size={14} strokeWidth={1.5} />
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="btn-ghost btn-sm weekly-digest-btn"
+              onClick={() => {
+                downloadWeeklyDigest({
+                  title: 'MyDSP weekly digest',
+                  netWorth,
+                  assets,
+                  liabilities,
+                  crypto: crypto.value,
+                  equity: equity.value,
+                  weekDelta: weekDeltaFromHistory(data.history ?? [], netWorth),
+                  highlights: [
+                    todayTodos.length
+                      ? `${todayTodos.length} todo${todayTodos.length === 1 ? '' : 's'} due today`
+                      : 'No todos due today',
+                    todayMovers[0]
+                      ? `Top mover ${todayMovers[0].symbol} ${formatPct(todayMovers[0].changePct)}`
+                      : 'No Markets movers cached',
+                  ],
+                })
+              }}
+              title="Download email-ready weekly HTML digest (not sent)"
+            >
+              Weekly digest
+            </button>
+            <Link to="/settings#sync" className="btn-secondary btn-sm inline-flex">
+              Cloud Sync <ArrowRight size={14} strokeWidth={1.5} />
+            </Link>
+          </div>
         }
       />
 
-      {/* First viewport: one composition — brand pulse + act */}
+      {showBackupNudge ? (
+        <div
+          className="backup-nudge mb-3 px-3 py-2 text-xs text-text-muted border border-border/70 bg-surface/40 rounded-lg md:rounded-none"
+          role="status"
+        >
+          Weekly backup overdue —{' '}
+          <Link to="/settings#full-backup" className="text-accent hover:underline font-semibold">
+            open Settings backups
+          </Link>
+        </div>
+      ) : null}
+
+      <div className={twoPane ? 'today-two-pane grid grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)] gap-4 mb-4 items-start' : ''}>
+        <div className={twoPane ? 'min-w-0' : ''}>
       <div className={`surface p-5 md:p-6 mb-4 rounded-xl md:rounded-none shadow-sm md:shadow-none ${privacyClass(privacy)}`}>
         <p className="text-xs uppercase tracking-wider text-text-subtle mb-1 font-semibold">Net worth</p>
-        <p className="text-3xl md:text-4xl font-bold tabular-nums tracking-tight mb-1 break-words">
+        <p className="today-net-worth-value text-3xl md:text-4xl font-bold tabular-nums tracking-tight mb-1 break-words">
           {formatGBP(netWorth)}
         </p>
+        {moneyPulse ? (
+          <p className="today-money-pulse text-sm text-text-muted font-light mb-2 tabular-nums">
+            {moneyPulse}
+          </p>
+        ) : null}
+        {nwSpark.length >= 2 ? (
+          <div className="today-nw-sparkline mb-3">
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <p className="text-[11px] uppercase tracking-wider text-text-subtle font-semibold">
+                Trend
+              </p>
+              <div
+                className="flex gap-1"
+                role="group"
+                aria-label="Net worth sparkline window"
+              >
+                {([7, 30] as const).map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    className={`btn-ghost btn-sm !min-h-8 !px-2 text-[11px] ${
+                      nwSparkDays === d ? 'text-accent font-bold' : ''
+                    }`}
+                    aria-pressed={nwSparkDays === d}
+                    onClick={() => setNwSparkDays(d)}
+                  >
+                    {d === 7 ? '7d' : '30d'}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="h-10 w-full max-w-xs" aria-hidden>
+              <Sparkline data={nwSpark} height={40} trend={nwSparkTrend} showGradient />
+            </div>
+          </div>
+        ) : null}
         <p className="text-sm text-text-muted font-light mb-4">
           Assets {formatGBP(assets)} · Debt {formatGBP(liabilities)}
         </p>
@@ -146,88 +376,262 @@ export function Dashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-6">
-        <div className="surface p-4 md:p-5 rounded-xl md:rounded-none shadow-sm md:shadow-none">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-xs uppercase tracking-wider text-text-subtle font-semibold">Due today</p>
-            <Link to="/todos" className="text-xs text-accent font-semibold">
-              All todos
-            </Link>
-          </div>
-          {todayTodos.length === 0 ? (
-            <p className="text-sm text-text-muted font-light">Nothing due — clear day.</p>
-          ) : (
-            <ul className="space-y-2">
-              {todayTodos.map((t) => (
-                <li key={t.id}>
-                  <Link
-                    to={`/todos?focus=${t.id}`}
-                    className="text-sm font-medium text-text hover:text-accent line-clamp-1"
-                  >
-                    {isOverdue(t) ? 'Overdue · ' : ''}
-                    {t.title}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
+      {/* Next-action stack — up to 3: todo / bill / top mover */}
+      <div
+        className="today-next-action-stack today-focus-card space-y-2 mb-3"
+        aria-label="Next actions"
+      >
+        <div className="flex items-center justify-between px-0.5">
+          <p className="text-xs uppercase tracking-wider text-text-subtle font-semibold">Next</p>
+          <Link to="/todos" className="text-xs text-accent font-semibold">
+            All todos
+          </Link>
         </div>
-        <div className="surface p-4 md:p-5 rounded-xl md:rounded-none shadow-sm md:shadow-none">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-xs uppercase tracking-wider text-text-subtle font-semibold">Jump in</p>
+        {nextActions.length === 0 ? (
+          <div className="surface p-4 md:p-5 rounded-xl md:rounded-none shadow-sm md:shadow-none">
+            <p className="text-sm text-text-muted font-light">Clear day — nothing due, no movers yet.</p>
           </div>
-          {todayPriceAlerts.length > 0 ? (
-            <ul className="space-y-1.5 mb-3">
-              {todayPriceAlerts.map((a) => (
-                <li key={a.id}>
-                  <Link to={a.actionUrl ?? '/markets'} className="text-sm font-medium text-accent hover:underline line-clamp-1">
-                    Alert · {a.title}
+        ) : (
+          nextActions.map((card) => {
+            if (card.kind === 'todo') {
+              return (
+                <div
+                  key={`todo-${card.todo.id}`}
+                  className="today-next-action-card surface p-4 md:p-5 rounded-xl md:rounded-none shadow-sm md:shadow-none"
+                >
+                  <Link to={`/todos?focus=${card.todo.id}`} className="block group">
+                    <p className="text-[11px] uppercase tracking-wider text-text-subtle mb-1">
+                      {card.label}
+                    </p>
+                    <p className="text-lg md:text-xl font-bold tracking-tight text-text group-hover:text-accent line-clamp-2">
+                      {card.todo.title}
+                    </p>
+                    {todayTodos.length > 1 ? (
+                      <p className="text-xs text-text-muted mt-2 font-light">
+                        +{todayTodos.length - 1} more due today
+                      </p>
+                    ) : null}
                   </Link>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-          {todayMovers.length > 0 ? (
-            <ul className="space-y-1.5 mb-3">
-              {todayMovers.map((m) => (
-                <li key={m.id}>
-                  <Link
-                    to={`/markets?symbol=${encodeURIComponent(m.symbol)}`}
-                    className="text-sm text-text hover:text-accent inline-flex items-center gap-2"
-                  >
-                    <span className="font-semibold">{m.symbol}</span>
-                    <span className={m.changePct >= 0 ? 'text-emerald-500' : 'text-red-500'}>
-                      {m.changePct >= 0 ? '+' : ''}
-                      {m.changePct.toFixed(2)}%
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-          <div className="flex flex-wrap items-center gap-3">
-            <Link
-              to={QUICK_PRIMARY.to}
-              className="btn-primary btn-sm inline-flex items-center gap-2"
-            >
-              <QUICK_PRIMARY.icon size={16} strokeWidth={1.5} /> {QUICK_PRIMARY.label}
-            </Link>
-            {QUICK_SECONDARY.map((l) => (
+                  <div className="today-focus-actions flex flex-wrap gap-2 mt-3">
+                    <button type="button" className="btn-primary btn-sm" onClick={markFocusDone}>
+                      Mark done
+                    </button>
+                    <button type="button" className="btn-secondary btn-sm" onClick={snoozeFocus}>
+                      Snooze
+                    </button>
+                  </div>
+                </div>
+              )
+            }
+            if (card.kind === 'bill') {
+              return (
+                <Link
+                  key={`bill-${card.bill.id}`}
+                  to="/recurring"
+                  className="today-next-action-card surface p-4 md:p-5 rounded-xl md:rounded-none shadow-sm md:shadow-none block group"
+                >
+                  <p className="text-[11px] uppercase tracking-wider text-text-subtle mb-1">
+                    Bill due
+                  </p>
+                  <p className="text-base md:text-lg font-bold tracking-tight group-hover:text-accent line-clamp-1">
+                    {card.bill.name}
+                  </p>
+                  <p className={`text-xs text-text-muted mt-1 tabular-nums ${privacyClass(privacy)}`}>
+                    {formatDate(card.bill.nextDue)} · {formatGBP(card.bill.amount)}
+                  </p>
+                </Link>
+              )
+            }
+            return (
               <Link
-                key={l.to}
-                to={l.to}
-                className="text-sm font-semibold text-accent hover:underline"
+                key={`mover-${card.symbol}`}
+                to={`/markets?symbol=${encodeURIComponent(card.symbol)}`}
+                className="today-next-action-card surface p-4 md:p-5 rounded-xl md:rounded-none shadow-sm md:shadow-none block group"
               >
-                {l.label} →
+                <p className="text-[11px] uppercase tracking-wider text-text-subtle mb-1">
+                  Top mover
+                </p>
+                <p className="text-lg md:text-xl font-bold tracking-tight inline-flex items-baseline gap-2 flex-wrap">
+                  <span className="group-hover:text-accent">{card.symbol}</span>
+                  <span
+                    className={`tabular-nums ${
+                      card.changePct >= 0 ? 'text-emerald-500' : 'text-red-500'
+                    }`}
+                  >
+                    {card.changePct >= 0 ? '+' : ''}
+                    {card.changePct.toFixed(2)}%
+                  </span>
+                </p>
               </Link>
-            ))}
-          </div>
-          {fccDataPresent ? null : (
-            <p className="text-xs text-text-subtle mt-3 font-light">
-              Sample portfolio — import live data in Settings anytime.
+            )
+          })
+        )}
+      </div>
+
+      {showBillsStrip.length > 0 ? (
+        <div className="today-bills-strip surface p-3 md:p-4 mb-3 rounded-xl md:rounded-none shadow-sm md:shadow-none">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs uppercase tracking-wider text-text-subtle font-semibold">
+              Bills · due in 7 days
             </p>
-          )}
+            <Link to="/recurring" className="text-xs text-accent font-semibold">
+              Recurring
+            </Link>
+          </div>
+          <ul className="flex flex-col gap-1.5">
+            {showBillsStrip.map((r) => (
+              <li key={r.id} className="flex items-baseline justify-between gap-3 text-sm">
+                <span className="min-w-0 truncate font-medium">{r.name}</span>
+                <span className={`shrink-0 tabular-nums text-text-muted ${privacyClass(privacy)}`}>
+                  {formatDate(r.nextDue)} · {formatGBP(r.amount)}
+                </span>
+              </li>
+            ))}
+          </ul>
         </div>
+      ) : null}
+
+      {soonGoal ? (
+        <Link
+          to="/goals"
+          className="today-goal-ring surface p-4 md:p-5 mb-3 rounded-xl md:rounded-none shadow-sm md:shadow-none flex items-center gap-4 group"
+        >
+          <div
+            className="relative shrink-0 w-14 h-14"
+            role="img"
+            aria-label={`${Math.round(soonGoalProgress)}% toward ${soonGoal.name}`}
+          >
+            <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90" aria-hidden>
+              <circle
+                cx="18"
+                cy="18"
+                r="15.5"
+                fill="none"
+                stroke="var(--border)"
+                strokeWidth="3"
+              />
+              <circle
+                cx="18"
+                cy="18"
+                r="15.5"
+                fill="none"
+                stroke="var(--accent)"
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeDasharray={`${(Math.min(soonGoalProgress, 100) / 100) * 97.4} 97.4`}
+              />
+            </svg>
+            <span className="absolute inset-0 flex items-center justify-center text-[11px] font-bold tabular-nums">
+              {Math.round(soonGoalProgress)}%
+            </span>
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs uppercase tracking-wider text-text-subtle font-semibold mb-1">
+              Goal · within 30 days
+            </p>
+            <p className="text-base font-bold tracking-tight group-hover:text-accent line-clamp-1">
+              {soonGoal.name}
+            </p>
+            <p className="text-xs text-text-muted font-light mt-0.5">
+              Due {formatDate(soonGoal.deadline)}
+            </p>
+          </div>
+        </Link>
+      ) : null}
+
+      {goalProjection ? (
+        <Link
+          to="/goals"
+          className="today-goal-projection surface p-3 md:p-4 mb-3 rounded-xl md:rounded-none shadow-sm md:shadow-none block group"
+        >
+          <p className="text-xs uppercase tracking-wider text-text-subtle font-semibold mb-1">
+            Goal estimate
+          </p>
+          <p className="text-sm font-semibold tracking-tight group-hover:text-accent line-clamp-1">
+            {goalProjection.goal.name}
+          </p>
+          <p className={`text-xs text-text-muted font-light mt-0.5 ${privacyClass(privacy)}`}>
+            {formatGoalProjectionLine(goalProjection, formatDate)}
+          </p>
+        </Link>
+      ) : null}
+
+      <div className="surface p-4 md:p-5 mb-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-xs uppercase tracking-wider text-text-subtle font-semibold">Jump in</p>
+        </div>
+        {todayPriceAlerts.length > 0 ? (
+          <p className="text-sm mb-3">
+            <Link to={todayPriceAlerts[0].actionUrl ?? '/markets'} className="font-medium text-accent hover:underline line-clamp-1">
+              Alert · {todayPriceAlerts[0].title}
+            </Link>
+          </p>
+        ) : null}
+        <div className="flex flex-wrap items-center gap-3">
+          <Link
+            to={QUICK_PRIMARY.to}
+            className="btn-primary btn-sm inline-flex items-center gap-2"
+          >
+            <QUICK_PRIMARY.icon size={16} strokeWidth={1.5} /> {QUICK_PRIMARY.label}
+          </Link>
+          {QUICK_SECONDARY.map((l) => (
+            <Link
+              key={l.to}
+              to={l.to}
+              className="text-sm font-semibold text-accent hover:underline"
+            >
+              {l.label} →
+            </Link>
+          ))}
+        </div>
+        {fccDataPresent ? null : (
+          <p className="text-xs text-text-subtle mt-3 font-light">
+            Sample portfolio — import live data in Settings anytime.
+          </p>
+        )}
+      </div>
+        </div>
+
+        {twoPane ? (
+          <aside
+            className="today-markets-pane surface p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none sticky top-20"
+            aria-label="Markets snapshot"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs uppercase tracking-wider text-text-subtle font-semibold">Markets</p>
+              <Link to="/markets" className="text-xs text-accent font-semibold">
+                Open
+              </Link>
+            </div>
+            {todayMovers.length === 0 ? (
+              <p className="text-sm text-text-muted font-light">No movers yet — open Markets to refresh.</p>
+            ) : (
+              <ul className="space-y-2">
+                {todayMovers.map((m) => (
+                  <li key={m.id}>
+                    <Link
+                      to={`/markets?symbol=${encodeURIComponent(m.symbol)}`}
+                      className="flex items-baseline justify-between gap-2 hover:text-accent"
+                    >
+                      <span className="font-semibold tracking-tight">{m.symbol}</span>
+                      <span
+                        className={`tabular-nums text-sm markets-quote-price ${
+                          m.changePct >= 0 ? 'text-emerald-500' : 'text-red-500'
+                        }`}
+                      >
+                        {m.changePct >= 0 ? '+' : ''}
+                        {m.changePct.toFixed(2)}%
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="text-[11px] text-text-subtle mt-3 font-light">
+              {marketsCount} ticker{marketsCount === 1 ? '' : 's'} watched
+            </p>
+          </aside>
+        ) : null}
       </div>
 
       <GettingStartedChecklist />

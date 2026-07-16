@@ -1,7 +1,16 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react'
 import { Link } from 'react-router-dom'
 import type { AchievementDef } from '../domain/achievements'
-import type { Toast } from './ui/Toast'
+import { triggerSuccessFlash } from '../utils/successFlash'
+import type { Toast, ToastType } from './ui/Toast'
 import { ToastItem } from './ui/Toast'
 
 interface ToastAchievement {
@@ -34,6 +43,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
   const showToast = useCallback((toast: Omit<Toast, 'id'>) => {
     const id = `toast-${Date.now()}-${Math.random()}`
+    if (toast.type === 'success') triggerSuccessFlash()
     setToasts((prev) => [...prev, { ...toast, id }])
   }, [])
 
@@ -56,6 +66,26 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     (title: string, message?: string) => showToast({ type: 'info', title, message }),
     [showToast],
   )
+
+  useEffect(() => {
+    const onAppToast = (ev: Event) => {
+      const detail = (ev as CustomEvent<{
+        type?: ToastType
+        title?: string
+        message?: string
+        duration?: number
+      }>).detail
+      if (!detail?.title) return
+      showToast({
+        type: detail.type ?? 'info',
+        title: detail.title,
+        message: detail.message,
+        duration: detail.duration,
+      })
+    }
+    window.addEventListener('mydsp-toast', onAppToast)
+    return () => window.removeEventListener('mydsp-toast', onAppToast)
+  }, [showToast])
 
   const dismissAchievement = useCallback((id: string) => {
     setAchievementToasts((prev) => prev.filter((t) => t.id !== id))

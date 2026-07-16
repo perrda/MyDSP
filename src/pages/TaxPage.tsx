@@ -20,6 +20,7 @@ import {
   listPackYears,
   matchDisposalsSimple,
 } from '../domain/taxPacks'
+import { taxYearProgress } from '../domain/taxYearProgress'
 import { formatDate, formatGBP, formatGBPPrecise, privacyClass } from '../utils/format'
 
 function nextId(items: { id: number }[]): number {
@@ -35,6 +36,7 @@ export function TaxPage() {
   const [taxYear, setTaxYear] = useState(() => getCurrentPackYear(pack))
   const [open, setOpen] = useState(false)
   const [deleteId, setDeleteId] = useState<number | null>(null)
+  const [exportsExplainerOpen, setExportsExplainerOpen] = useState(false)
   const [form, setForm] = useState({
     date: new Date().toISOString().slice(0, 10),
     assetType: 'crypto' as 'crypto' | 'equity',
@@ -77,6 +79,11 @@ export function TaxPage() {
   const summary = useMemo(
     () => calcTaxSummaryForPack(matchedRows, taxYear, pack),
     [matchedRows, taxYear, pack],
+  )
+
+  const yearProgress = useMemo(
+    () => taxYearProgress(pack, taxYear, summary.netGain),
+    [pack, taxYear, summary.netGain],
   )
 
   const ratePct = Math.round(pack.rate * 100)
@@ -211,6 +218,52 @@ export function TaxPage() {
         </Link>
       </div>
 
+      <div className="surface border border-border px-4 py-3 mb-6">
+        <button
+          type="button"
+          className="w-full flex items-center justify-between gap-3 text-left min-h-11"
+          aria-expanded={exportsExplainerOpen}
+          onClick={() => setExportsExplainerOpen((v) => !v)}
+        >
+          <span className="text-sm font-semibold tracking-tight">What these exports mean</span>
+          <span className="text-xs text-text-subtle shrink-0">
+            {exportsExplainerOpen ? 'Hide' : 'Show'}
+          </span>
+        </button>
+        {exportsExplainerOpen ? (
+          <div className="tax-exports-explainer mt-3 space-y-2 text-sm text-text-muted font-light leading-relaxed border-t border-border pt-3">
+            <p>
+              Residency pack: <strong className="text-text font-medium">{pack.label}</strong> ({pack.code}
+              ). Export buttons above produce worksheets and journals for this pack — not a filed return.
+            </p>
+            <p>{pack.disclaimer}</p>
+            {isUkTax ? (
+              <p>
+                UK CGT / SA108 CSV and the transaction log are working papers for Self Assessment or your
+                adviser. Figures use §104 pooling when journal buys exist.
+              </p>
+            ) : pack.hasCgt ? (
+              <p>
+                “{pack.exportLabel}” is a simplified estimate export for {pack.label}. Use it with tax
+                software or a preparer — MyDSP does not submit forms.
+              </p>
+            ) : (
+              <p>
+                This residency has no personal CGT computed here. Exports are disposal / journal records
+                only.
+              </p>
+            )}
+            <p>
+              Change residency in{' '}
+              <Link to="/settings#display" className="text-accent hover:underline">
+                Settings → Display
+              </Link>
+              .
+            </p>
+          </div>
+        ) : null}
+      </div>
+
       <div className="surface border-l-2 border-l-accent px-5 py-4 mb-6">
         <p className="text-sm text-text-muted font-light">
           {pack.disclaimer}{' '}
@@ -276,6 +329,99 @@ export function TaxPage() {
             </option>
           ))}
         </select>
+      </div>
+
+      <div
+        className="tax-year-progress surface p-5 sm:p-6 mb-6 flex flex-wrap items-center gap-5"
+        role="group"
+        aria-label="Tax year progress"
+      >
+        <div
+          className="relative shrink-0 w-16 h-16"
+          role="img"
+          aria-label={`${yearProgress.daysLeft} days left in tax year ${taxYear}`}
+        >
+          <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90" aria-hidden>
+            <circle
+              cx="18"
+              cy="18"
+              r="15.5"
+              fill="none"
+              stroke="var(--border)"
+              strokeWidth="3"
+            />
+            <circle
+              cx="18"
+              cy="18"
+              r="15.5"
+              fill="none"
+              stroke="var(--accent)"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeDasharray={`${yearProgress.yearPct * 97.4} 97.4`}
+            />
+          </svg>
+          <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold tabular-nums leading-tight text-center px-1">
+            {yearProgress.daysLeft}d
+          </span>
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs uppercase tracking-wider text-text-subtle font-semibold mb-1">
+            Tax year · {taxYear}
+          </p>
+          <p className="text-sm font-semibold tracking-tight">
+            {yearProgress.daysLeft === 0
+              ? 'Tax year ended'
+              : `${yearProgress.daysLeft} day${yearProgress.daysLeft === 1 ? '' : 's'} left`}
+          </p>
+          {pack.hasCgt && yearProgress.allowance > 0 ? (
+            <p className={`text-xs text-text-muted font-light mt-1 tabular-nums ${privacyClass(privacy)}`}>
+              Est. CGT used {formatGBP(yearProgress.cgtUsed)} of {formatGBP(yearProgress.allowance)}
+              {yearProgress.cgtUsedPct != null
+                ? ` (${Math.round(Math.min(yearProgress.cgtUsedPct, 9.99) * 100)}%)`
+                : ''}
+            </p>
+          ) : pack.hasCgt ? (
+            <p className={`text-xs text-text-muted font-light mt-1 tabular-nums ${privacyClass(privacy)}`}>
+              Net gain {formatGBP(summary.netGain)} · no annual allowance in this pack
+            </p>
+          ) : (
+            <p className="text-xs text-text-muted font-light mt-1">
+              No personal CGT computed for this residency
+            </p>
+          )}
+        </div>
+        {pack.hasCgt && yearProgress.allowance > 0 ? (
+          <div
+            className="relative shrink-0 w-16 h-16"
+            role="img"
+            aria-label={`CGT allowance ${Math.round(Math.min(yearProgress.cgtUsedPct ?? 0, 1) * 100)}% used`}
+          >
+            <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90" aria-hidden>
+              <circle
+                cx="18"
+                cy="18"
+                r="15.5"
+                fill="none"
+                stroke="var(--border)"
+                strokeWidth="3"
+              />
+              <circle
+                cx="18"
+                cy="18"
+                r="15.5"
+                fill="none"
+                stroke="var(--accent)"
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeDasharray={`${Math.min(yearProgress.cgtUsedPct ?? 0, 1) * 97.4} 97.4`}
+              />
+            </svg>
+            <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold tabular-nums">
+              {Math.round(Math.min(yearProgress.cgtUsedPct ?? 0, 9.99) * 100)}%
+            </span>
+          </div>
+        ) : null}
       </div>
 
       {isUkTax ? (

@@ -4,7 +4,6 @@ import {
   Plus,
   Download,
   Upload,
-  ListChecks,
   Clock,
   AlertCircle,
   Edit2,
@@ -24,7 +23,9 @@ import { ConfirmDialog } from '../components/ui/Modal'
 import { TodoModal } from '../components/TodoModal'
 import { TodoListModal } from '../components/TodoListModal'
 import { ReorderList, ReorderHandle } from '../components/ui/Reorderable'
+import { SwipeTodoRow } from '../components/ui/SwipeTodoRow'
 import { applySortOrder, sortBySortOrder } from '../utils/reorder'
+import { snoozeDueDateOneDay } from '../domain/todoSnooze'
 import { checkTodoReminders, ensureDesktopNotificationPermission } from '../domain/todoReminders'
 import { TodoScreenshotImportModal } from '../components/TodoScreenshotImportModal'
 import { TodoListPicker } from '../components/TodoListPicker'
@@ -34,6 +35,7 @@ import { syncHighlightClass, useSyncHighlights } from '../hooks/useSyncHighlight
 import type { TodoFilterBy, TodoItem, TodoList, TodoSortBy } from '../domain/todo-types'
 import {
   calculateTodoStats,
+  createTodoItem,
   exportTodosToCsv,
   filterTodoItems,
   isOverdue,
@@ -41,6 +43,7 @@ import {
   parseCsvToTodoItems,
   sortTodoItems,
 } from '../domain/todos'
+import { parseTodoQuickAdd } from '../domain/todoQuickAdd'
 import { moveTodoItemsToList } from '../domain/todoOcr'
 import { privacyClass, formatDate } from '../utils/format'
 
@@ -124,6 +127,7 @@ export function TodosPage() {
   const [sortBy, setSortBy] = useState<TodoSortBy>('order-asc')
   const [filterBy, setFilterBy] = useState<TodoFilterBy>('all')
   const [searchQuery, setSearchQuery] = useState('')
+  const [quickAddText, setQuickAddText] = useState('')
   const [showCompleted, setShowCompleted] = useState(false)
   /** Quick priority chips — empty = no extra priority constraint */
   const [priorityChips, setPriorityChips] = useState<Set<'high' | 'medium' | 'low'>>(new Set())
@@ -132,6 +136,7 @@ export function TodosPage() {
   const [editingTodo, setEditingTodo] = useState<TodoItem | undefined>()
   const [editingList, setEditingList] = useState<TodoList | undefined>()
   const [selectedTodos, setSelectedTodos] = useState<Set<number>>(new Set())
+  const [selectMode, setSelectMode] = useState(false)
   const [confirmState, setConfirmState] = useState<{
     title: string
     body: string
@@ -141,6 +146,10 @@ export function TodosPage() {
   const [showScreenshotImport, setShowScreenshotImport] = useState(false)
   const [bulkMoveListId, setBulkMoveListId] = useState<number | ''>('')
   const [focusTodoId, setFocusTodoId] = useState<number | null>(null)
+  /** Completed section open — collapsed by default on phone (<768). */
+  const [completedOpen, setCompletedOpen] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia('(min-width: 768px)').matches : true,
+  )
 
   const lists = sortBySortOrder(data.todoLists || [])
   const allItems = data.todoItems || []
@@ -183,7 +192,10 @@ export function TodosPage() {
     setFilterBy('all')
     setSearchQuery('')
     setPriorityChips(new Set())
-    if (item.status === 'done' || item.status === 'archived') setShowCompleted(true)
+    if (item.status === 'done' || item.status === 'archived') {
+      setShowCompleted(true)
+      setCompletedOpen(true)
+    }
     setFocusTodoId(id)
     setSearchParams({}, { replace: true })
   }, [searchParams, allItems, setSearchParams])
@@ -289,6 +301,15 @@ export function TodosPage() {
     return sortTodoItems(items, sortBy)
   }, [listItems, filterBy, priorityChips, searchQuery, showCompleted, sortBy])
 
+  const incompleteItems = useMemo(
+    () => filteredItems.filter((i) => i.status !== 'done' && i.status !== 'archived'),
+    [filteredItems],
+  )
+  const completedItems = useMemo(
+    () => filteredItems.filter((i) => i.status === 'done' || i.status === 'archived'),
+    [filteredItems],
+  )
+
   const filterActiveCount = useMemo(() => {
     let n = 0
     if (filterBy !== 'all') n++
@@ -384,6 +405,40 @@ export function TodosPage() {
     }
     setEditingTodo(undefined)
     setShowTaskModal(true)
+  }
+
+  const handleQuickAdd = () => {
+    const raw = quickAddText.trim()
+    if (!raw) return
+    if (lists.length === 0) {
+      showError('Create a list first', 'You need at least one list to add items')
+      openCreateList()
+      return
+    }
+    const listId = selectedListId || lists[0]?.id
+    if (!listId) return
+    const parsed = parseTodoQuickAdd(raw)
+    if (!parsed.title) return
+    const item = createTodoItem({
+      title: parsed.title,
+      listId,
+      dueDate: parsed.dueDate,
+    })
+    setData((prev) => {
+      const withOrder = {
+        ...item,
+        sortOrder: nextSortOrderForList(prev.todoItems ?? [], listId),
+      }
+      return {
+        ...prev,
+        todoItems: [...(prev.todoItems ?? []), withOrder],
+      }
+    })
+    setQuickAddText('')
+    success(
+      'Task created',
+      parsed.dueDate ? `${parsed.title} · due ${parsed.dueDate}` : parsed.title,
+    )
   }
 
   const handleEditItem = (item: TodoItem) => {
@@ -498,6 +553,19 @@ export function TodosPage() {
           : i,
       ),
     }))
+  }
+
+  const handleSnooze = (item: TodoItem) => {
+    if (item.status === 'done' || item.status === 'archived') return
+    const dueDate = snoozeDueDateOneDay(item.dueDate)
+    const now = new Date().toISOString()
+    setData((prev) => ({
+      ...prev,
+      todoItems: (prev.todoItems ?? []).map((i) =>
+        i.id === item.id ? { ...i, dueDate, updatedAt: now } : i,
+      ),
+    }))
+    success('Snoozed', `Due ${dueDate}`)
   }
 
   const handleScreenshotImport = (items: TodoItem[]) => {
@@ -643,7 +711,7 @@ export function TodosPage() {
             : `${stats.total} tasks · ${stats.highPriority} high · ${stats.overdue} overdue`
         }
         action={
-          <div className="flex flex-wrap gap-2 justify-end">
+          <div className="hidden sm:flex flex-wrap gap-2 justify-end">
             <button type="button" onClick={handleCreateItem} className="btn-primary btn-sm" disabled={lists.length === 0}>
               <Plus size={16} /> New Task
             </button>
@@ -660,7 +728,7 @@ export function TodosPage() {
                 }
                 setShowScreenshotImport(true)
               }}
-              className="btn-secondary btn-sm hidden sm:inline-flex"
+              className="btn-secondary btn-sm"
               disabled={lists.length === 0}
             >
               <ImagePlus size={16} /> From Screenshot
@@ -671,16 +739,51 @@ export function TodosPage() {
 
       {lists.length === 0 ? (
         <EmptyState
-          icon={<ListChecks size={64} />}
+          illustration
           title="No Lists Yet"
-          description="Create your first todo list to start tracking tasks. Organize by project, category, or any way that works for you."
+          description="Create your first todo list to start tracking tasks. Organize by project, category, or any way that works for you — or import from a screenshot with on-device OCR."
           action={{
             label: 'Create First List',
             onClick: openCreateList,
           }}
+          secondaryAction={{
+            label: 'From Screenshot (OCR)',
+            onClick: () => {
+              showError('Create a list first', 'You need a list before importing from a screenshot')
+              openCreateList()
+            },
+          }}
         />
       ) : (
         <>
+          <form
+            className="todos-quick-add flex flex-wrap gap-2 mb-4 items-stretch"
+            onSubmit={(e) => {
+              e.preventDefault()
+              handleQuickAdd()
+            }}
+            aria-label="Quick add task"
+          >
+            <label className="sr-only" htmlFor="todos-quick-add">
+              Quick add task
+            </label>
+            <input
+              id="todos-quick-add"
+              type="text"
+              className="toolbar-select flex-1 min-w-[12rem] !w-auto px-3 py-2.5 text-sm min-h-11"
+              placeholder="Quick add — e.g. Pay rent Friday"
+              value={quickAddText}
+              onChange={(e) => setQuickAddText(e.target.value)}
+              autoComplete="off"
+            />
+            <button
+              type="submit"
+              className="btn-primary btn-sm min-h-11 px-4"
+              disabled={!quickAddText.trim()}
+            >
+              <Plus size={16} /> Add
+            </button>
+          </form>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-3 mb-5 sm:mb-6">
             <div className="surface p-3 sm:p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none">
               <p className="text-[11px] sm:text-xs uppercase tracking-wider text-text-subtle mb-1 font-semibold">To Do</p>
@@ -716,9 +819,24 @@ export function TodosPage() {
             ) : (
               <p className="text-xs text-text-subtle">Pick a list · Sort inside the menu to reorder</p>
             )}
-            <button type="button" className="btn-ghost btn-sm text-xs hidden sm:inline-flex" onClick={() => void enableDesktopReminders()}>
-              Enable desktop reminders
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className={`btn-sm ${selectMode ? 'btn-primary' : 'btn-ghost'} text-xs`}
+                aria-pressed={selectMode}
+                onClick={() => {
+                  setSelectMode((v) => {
+                    if (v) setSelectedTodos(new Set())
+                    return !v
+                  })
+                }}
+              >
+                {selectMode ? 'Done' : 'Select'}
+              </button>
+              <button type="button" className="btn-ghost btn-sm text-xs hidden sm:inline-flex" onClick={() => void enableDesktopReminders()}>
+                Enable desktop reminders
+              </button>
+            </div>
           </div>
 
           <TodoListPicker
@@ -753,7 +871,7 @@ export function TodosPage() {
                 <button
                   type="button"
                   onClick={() => setShowScreenshotImport(true)}
-                  className="btn-secondary btn-sm"
+                  className="btn-primary btn-sm"
                 >
                   <ImagePlus size={14} /> Screenshot
                 </button>
@@ -893,7 +1011,7 @@ export function TodosPage() {
             )}
           </CollapsibleFilters>
 
-          {selectedTodos.size > 0 && (
+          {selectMode && selectedTodos.size > 0 && (
             <div className="flex flex-wrap gap-2 items-center p-3 mb-4 bg-accent/10 rounded-lg border border-accent/20">
               <span className="text-sm font-semibold">{selectedTodos.size} selected</span>
               <button
@@ -901,7 +1019,7 @@ export function TodosPage() {
                 onClick={handleBulkComplete}
                 className="btn-sm bg-green-500/20 text-green-500 hover:bg-green-500/30"
               >
-                Complete All
+                Complete
               </button>
               <button
                 type="button"
@@ -931,7 +1049,7 @@ export function TodosPage() {
                   disabled={bulkMoveListId === ''}
                   className="btn-sm btn-primary"
                 >
-                  Move
+                  Move list
                 </button>
               </div>
               <button
@@ -939,71 +1057,147 @@ export function TodosPage() {
                 onClick={handleBulkDelete}
                 className="btn-sm bg-red-500/20 text-red-500 hover:bg-red-500/30"
               >
-                Delete All
+                Delete
               </button>
               <button
                 type="button"
                 onClick={() => setSelectedTodos(new Set())}
                 className="btn-ghost btn-sm ml-auto"
               >
-                Clear Selection
+                Clear
               </button>
             </div>
           )}
 
           {filteredItems.length === 0 ? (
             <EmptyState
-              icon={<ListChecks size={48} />}
-              title="No Tasks Found"
-              description="No tasks match your current filters. Try adjusting your search or create a new task."
-              action={{ label: 'New Task', onClick: handleCreateItem }}
+              illustration
+              title={listItems.length === 0 ? 'No Tasks Yet' : 'No Tasks Found'}
+              description={
+                listItems.length === 0
+                  ? 'Add a task or import from a screenshot with on-device OCR.'
+                  : 'No tasks match your current filters. Try adjusting your search or create a new task.'
+              }
+              action={{
+                label: 'From Screenshot (OCR)',
+                onClick: () => setShowScreenshotImport(true),
+              }}
+              secondaryAction={{ label: 'New Task', onClick: handleCreateItem }}
             />
-          ) : canReorderItems && selectedListId != null ? (
-            <ReorderList
-              items={filteredItems}
-              getId={(item) => String(item.id)}
-              onReorder={(next) => handleReorderItems(selectedListId, next)}
-              className="space-y-3"
-            >
-              {(item) => (
-                <TodoItemCard
-                  item={item}
-                  orderNumber={orderNumbers.get(item.id)}
-                  listName={!selectedListId ? lists.find((l) => l.id === item.listId)?.name : undefined}
-                  selected={selectedTodos.has(item.id)}
-                  focused={focusTodoId === item.id}
-                  justSynced={justSyncedTodos.has(item.id)}
-                  showReorderHandle
-                  onToggleSelect={handleToggleSelect}
-                  onToggleComplete={handleToggleComplete}
-                  onEdit={handleEditItem}
-                  onDuplicate={handleDuplicateItem}
-                  onDelete={handleDeleteItem}
-                />
-              )}
-            </ReorderList>
           ) : (
-            <div className="space-y-3">
-              {filteredItems.map((item) => (
-                <TodoItemCard
-                  key={item.id}
-                  item={item}
-                  orderNumber={orderNumbers.get(item.id)}
-                  listName={!selectedListId ? lists.find((l) => l.id === item.listId)?.name : undefined}
-                  selected={selectedTodos.has(item.id)}
-                  focused={focusTodoId === item.id}
-                  justSynced={justSyncedTodos.has(item.id)}
-                  onToggleSelect={handleToggleSelect}
-                  onToggleComplete={handleToggleComplete}
-                  onEdit={handleEditItem}
-                  onDuplicate={handleDuplicateItem}
-                  onDelete={handleDeleteItem}
-                />
-              ))}
-            </div>
+            <>
+              {canReorderItems && selectedListId != null ? (
+                <ReorderList
+                  items={incompleteItems}
+                  getId={(item) => String(item.id)}
+                  onReorder={(next) => {
+                    const merged = showCompleted ? [...next, ...completedItems] : next
+                    handleReorderItems(selectedListId, merged)
+                  }}
+                  className="space-y-3"
+                >
+                  {(item) => (
+                    <SwipeTodoRow
+                      onComplete={() => handleToggleComplete(item)}
+                      onSnooze={() => handleSnooze(item)}
+                    >
+                      <TodoItemCard
+                        item={item}
+                        orderNumber={orderNumbers.get(item.id)}
+                        listName={!selectedListId ? lists.find((l) => l.id === item.listId)?.name : undefined}
+                        selected={selectedTodos.has(item.id)}
+                        selectMode={selectMode}
+                        focused={focusTodoId === item.id}
+                        justSynced={justSyncedTodos.has(item.id)}
+                        showReorderHandle
+                        onToggleSelect={handleToggleSelect}
+                        onToggleComplete={handleToggleComplete}
+                        onEdit={handleEditItem}
+                        onDuplicate={handleDuplicateItem}
+                        onDelete={handleDeleteItem}
+                      />
+                    </SwipeTodoRow>
+                  )}
+                </ReorderList>
+              ) : (
+                <div className="space-y-3">
+                  {incompleteItems.map((item) => (
+                    <SwipeTodoRow
+                      key={item.id}
+                      onComplete={() => handleToggleComplete(item)}
+                      onSnooze={() => handleSnooze(item)}
+                    >
+                      <TodoItemCard
+                        item={item}
+                        orderNumber={orderNumbers.get(item.id)}
+                        listName={!selectedListId ? lists.find((l) => l.id === item.listId)?.name : undefined}
+                        selected={selectedTodos.has(item.id)}
+                        selectMode={selectMode}
+                        focused={focusTodoId === item.id}
+                        justSynced={justSyncedTodos.has(item.id)}
+                        onToggleSelect={handleToggleSelect}
+                        onToggleComplete={handleToggleComplete}
+                        onEdit={handleEditItem}
+                        onDuplicate={handleDuplicateItem}
+                        onDelete={handleDeleteItem}
+                      />
+                    </SwipeTodoRow>
+                  ))}
+                </div>
+              )}
+
+              {showCompleted && completedItems.length > 0 ? (
+                <div className="mt-4 todos-completed-section">
+                  <button
+                    type="button"
+                    className="flex items-center gap-2 w-full min-h-11 px-3 py-2 text-left surface rounded-xl md:rounded-none border border-border mb-2"
+                    aria-expanded={completedOpen}
+                    onClick={() => setCompletedOpen((v) => !v)}
+                  >
+                    <span className="text-sm font-semibold">
+                      Completed ({completedItems.length})
+                    </span>
+                    <span className="text-xs text-text-subtle ml-auto">
+                      {completedOpen ? 'Hide' : 'Show'}
+                    </span>
+                  </button>
+                  {completedOpen ? (
+                    <div className="space-y-3">
+                      {completedItems.map((item) => (
+                        <TodoItemCard
+                          key={item.id}
+                          item={item}
+                          orderNumber={orderNumbers.get(item.id)}
+                          listName={!selectedListId ? lists.find((l) => l.id === item.listId)?.name : undefined}
+                          selected={selectedTodos.has(item.id)}
+                          selectMode={selectMode}
+                          focused={focusTodoId === item.id}
+                          justSynced={justSyncedTodos.has(item.id)}
+                          onToggleSelect={handleToggleSelect}
+                          onToggleComplete={handleToggleComplete}
+                          onEdit={handleEditItem}
+                          onDuplicate={handleDuplicateItem}
+                          onDelete={handleDeleteItem}
+                        />
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+            </>
           )}
         </>
       )}
+
+      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary todo actions">
+        <button type="button" onClick={handleCreateItem} className="btn-primary btn-sm" disabled={lists.length === 0}>
+          <Plus size={16} /> New Task
+        </button>
+        <button type="button" onClick={openCreateList} className="btn-secondary btn-sm">
+          <Plus size={16} /> New List
+        </button>
+      </div>
+      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }
@@ -1013,6 +1207,7 @@ function TodoItemCard({
   orderNumber,
   listName,
   selected,
+  selectMode = false,
   focused = false,
   justSynced = false,
   showReorderHandle = false,
@@ -1026,6 +1221,7 @@ function TodoItemCard({
   orderNumber?: number
   listName?: string
   selected: boolean
+  selectMode?: boolean
   focused?: boolean
   justSynced?: boolean
   showReorderHandle?: boolean
@@ -1042,8 +1238,8 @@ function TodoItemCard({
     <article
       id={`todo-${item.id}`}
       className={`surface p-3 sm:p-4 border-l-4 rounded-xl md:rounded-none shadow-sm md:shadow-none ${PRIORITY_COLORS[item.priority]} ${
-        selected || focused ? 'ring-2 ring-accent' : ''
-      } ${syncHighlightClass(justSynced)}`}
+        selected ? 'ring-2 ring-accent' : ''
+      } ${focused ? 'todo-focus-ring ring-2 ring-accent' : ''} ${syncHighlightClass(justSynced)}`}
     >
       <div
         className={`grid gap-x-2.5 sm:gap-x-3 gap-y-2 ${
@@ -1184,16 +1380,20 @@ function TodoItemCard({
       </div>
 
       <div className="sm:hidden mt-3 flex items-center justify-between gap-2 border-t border-border/70 pt-2.5">
-        <label className="inline-flex items-center gap-2 text-xs text-text-muted min-h-10">
-          <input
-            type="checkbox"
-            checked={selected}
-            onChange={() => onToggleSelect(item.id)}
-            className="w-4 h-4"
-            aria-label={`Select ${item.title}`}
-          />
-          Select
-        </label>
+        {selectMode ? (
+          <label className="inline-flex items-center gap-2 text-xs text-text-muted min-h-10">
+            <input
+              type="checkbox"
+              checked={selected}
+              onChange={() => onToggleSelect(item.id)}
+              className="w-4 h-4"
+              aria-label={`Select ${item.title}`}
+            />
+            Select
+          </label>
+        ) : (
+          <span />
+        )}
         <div className="flex items-center gap-1">
           <button
             type="button"
@@ -1224,18 +1424,20 @@ function TodoItemCard({
         </div>
       </div>
 
-      <div className="hidden sm:flex mt-2.5 items-center gap-2">
-        <label className="inline-flex items-center gap-2 text-xs text-text-subtle">
-          <input
-            type="checkbox"
-            checked={selected}
-            onChange={() => onToggleSelect(item.id)}
-            className="w-3.5 h-3.5"
-            aria-label={`Select ${item.title}`}
-          />
-          Select for bulk actions
-        </label>
-      </div>
+      {selectMode ? (
+        <div className="hidden sm:flex mt-2.5 items-center gap-2">
+          <label className="inline-flex items-center gap-2 text-xs text-text-subtle">
+            <input
+              type="checkbox"
+              checked={selected}
+              onChange={() => onToggleSelect(item.id)}
+              className="w-3.5 h-3.5"
+              aria-label={`Select ${item.title}`}
+            />
+            Select for bulk actions
+          </label>
+        </div>
+      ) : null}
     </article>
   )
 }

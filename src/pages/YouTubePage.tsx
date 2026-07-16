@@ -16,11 +16,13 @@ import { MAX_YOUTUBE_CHANNELS, type YoutubeChannel, type YoutubeVideo } from '..
 import { fetchFavouriteVideos, resolveYoutubeChannel } from '../services/youtubeFeeds'
 import {
   addYoutubeChannel,
+  getYoutubeSeenAt,
   listYoutubeChannels,
   loadYoutubeState,
   removeYoutubeChannel,
   reorderYoutubeChannels,
   setYoutubeLastRefresh,
+  setYoutubeSeenAt,
   updateYoutubeChannel,
 } from '../storage/youtubeStore'
 import { formatDateTime } from '../utils/format'
@@ -36,6 +38,8 @@ function formatRelative(iso: string): string {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
 }
 
+const YT_PAGE = 6
+
 export function YouTubePage() {
   const [channels, setChannels] = useState(() => listYoutubeChannels())
   const [videos, setVideos] = useState<YoutubeVideo[]>([])
@@ -50,10 +54,13 @@ export function YouTubePage() {
   const [formError, setFormError] = useState<string | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [sorting, setSorting] = useState(false)
+  const [seenAt, setSeenAt] = useState(getYoutubeSeenAt)
+  const [visibleCount, setVisibleCount] = useState(YT_PAGE)
   const inFlight = useRef(false)
 
   const reloadList = useCallback(() => {
     setChannels(listYoutubeChannels())
+    setSeenAt(getYoutubeSeenAt())
   }, [])
 
   const refresh = useCallback(async () => {
@@ -101,6 +108,13 @@ export function YouTubePage() {
     window.addEventListener('mydsp-global-refresh', onGlobal)
     return () => window.removeEventListener('mydsp-global-refresh', onGlobal)
   }, [refresh])
+
+  const unreadCount = videos.filter((v) => !seenAt || v.publishedAt > seenAt).length
+  const markYtRead = () => {
+    const now = new Date().toISOString()
+    setYoutubeSeenAt(now)
+    setSeenAt(now)
+  }
 
   const openCreate = () => {
     setEditing(null)
@@ -165,10 +179,22 @@ export function YouTubePage() {
         }
       />
 
-      <p className="text-xs text-text-subtle mb-4">
-        {channels.length}/{MAX_YOUTUBE_CHANNELS} channels
-        {refreshing ? ' · Updating…' : lastAt ? ` · Last update ${formatDateTime(lastAt)}` : ''}
-        {error ? ` · ${error}` : ''}
+      <p className="text-xs text-text-subtle mb-4 flex flex-wrap items-center gap-2">
+        <span>
+          {channels.length}/{MAX_YOUTUBE_CHANNELS} channels
+          {refreshing ? ' · Updating…' : lastAt ? ` · Last update ${formatDateTime(lastAt)}` : ''}
+          {error ? ` · ${error}` : ''}
+        </span>
+        {unreadCount > 0 ? (
+          <span className="youtube-unread-chip inline-flex items-center gap-1 text-[11px] font-bold tabular-nums px-2 py-0.5 bg-accent/15 text-accent border border-accent/30 rounded-full">
+            {unreadCount} new
+          </span>
+        ) : null}
+        {unreadCount > 0 ? (
+          <button type="button" className="btn-ghost btn-sm text-xs min-h-9" onClick={markYtRead}>
+            Mark all read
+          </button>
+        ) : null}
       </p>
 
       {/* Favourites */}
@@ -277,39 +303,63 @@ export function YouTubePage() {
             }
           />
         ) : (
-          <ul className="divide-y divide-border">
-            {videos.map((v) => (
-              <li key={v.id}>
-                <a
-                  href={v.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-4 sm:px-5 py-3.5 flex items-start gap-3 hover:bg-surface-hover/60 transition-colors"
+          <>
+            <ul className="divide-y divide-border">
+              {videos.slice(0, visibleCount).map((v) => {
+                const unread = !seenAt || v.publishedAt > seenAt
+                return (
+                  <li key={v.id}>
+                    <a
+                      href={v.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-4 sm:px-5 py-3.5 flex items-start gap-3 hover:bg-surface-hover/60 transition-colors"
+                    >
+                      {v.thumbnailUrl ? (
+                        <img
+                          src={v.thumbnailUrl}
+                          alt=""
+                          className="w-28 sm:w-36 aspect-video object-cover rounded-md shrink-0 bg-surface-hover"
+                        />
+                      ) : (
+                        <div className="w-28 sm:w-36 aspect-video rounded-md bg-surface-hover shrink-0 flex items-center justify-center">
+                          <Video size={22} className="text-red-500" />
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-text tracking-tight leading-snug">
+                          {unread ? (
+                            <span
+                              className="inline-block w-1.5 h-1.5 rounded-full bg-accent mr-2 align-middle"
+                              aria-hidden
+                            />
+                          ) : null}
+                          {v.title}
+                        </p>
+                        <p className="text-xs text-text-muted mt-1">
+                          {v.channelTitle}
+                          <span aria-hidden> · </span>
+                          {formatRelative(v.publishedAt)}
+                        </p>
+                      </div>
+                      <ExternalLink size={14} className="text-text-subtle shrink-0 mt-1" aria-hidden />
+                    </a>
+                  </li>
+                )
+              })}
+            </ul>
+            {visibleCount < videos.length ? (
+              <div className="px-4 sm:px-5 py-3 border-t border-border">
+                <button
+                  type="button"
+                  className="btn-secondary btn-sm w-full min-h-11"
+                  onClick={() => setVisibleCount((n) => n + YT_PAGE)}
                 >
-                  {v.thumbnailUrl ? (
-                    <img
-                      src={v.thumbnailUrl}
-                      alt=""
-                      className="w-28 sm:w-36 aspect-video object-cover rounded-md shrink-0 bg-surface-hover"
-                    />
-                  ) : (
-                    <div className="w-28 sm:w-36 aspect-video rounded-md bg-surface-hover shrink-0 flex items-center justify-center">
-                      <Video size={22} className="text-red-500" />
-                    </div>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-text tracking-tight leading-snug">{v.title}</p>
-                    <p className="text-xs text-text-muted mt-1">
-                      {v.channelTitle}
-                      <span aria-hidden> · </span>
-                      {formatRelative(v.publishedAt)}
-                    </p>
-                  </div>
-                  <ExternalLink size={14} className="text-text-subtle shrink-0 mt-1" aria-hidden />
-                </a>
-              </li>
-            ))}
-          </ul>
+                  Load more ({videos.length - visibleCount} left)
+                </button>
+              </div>
+            ) : null}
+          </>
         )}
       </section>
 

@@ -1,5 +1,313 @@
 # MyDSP Changelog
 
+## [1.2.49] - 2026-07-16
+
+### Improved — Quality / ops (next 25c · 21–25)
+21. In-app **What’s new** archive — Settings lists last 5 versions from versioned `RELEASE_NOTES`; UpdateBanner **See all** → `#whats-new`  
+22. **ErrorBoundary** recovery — Reload / Clear SW caches / Open Sync  
+23. Accessibility **skip links** for `#sync-conflicts-panel` and `#markets-cached-mode-banner`  
+24. `/smoke` extends deploy checks — Quote Worker ping + Sync URL reachability (HEAD/GET, secrets stripped)  
+25. **Weekly digest** — download-only email-ready HTML (NW summary) from Today & Compare  
+
+### Version
+- 1.2.48 → **1.2.49**
+
+---
+
+## [1.2.48] - 2026-07-16
+
+### Improved — Today / money / tax (next 25c · 16–20)
+16. Today **next-action stack** — up to 3 cards (next todo / bill due / top mover); bills strip de-dupes when bill is in the stack  
+17. Spending **category sparklines** for the selected month — top categories with daily bars under the ledger header  
+18. Tax **year progress ring** — days left in tax year + estimated CGT used vs allowance (when tax data / allowance exists)  
+19. Today **net-worth sparkline** — 7d / 30d toggle from history  
+20. Compare **Add a portfolio** invite sheet — steps to create a second family workspace  
+
+### Version
+- 1.2.47 → **1.2.48**
+
+---
+
+## [1.2.47] - 2026-07-16
+
+### Improved — Mobile / tablet UX (next 25c · 11–15)
+11. Shared-element style **page transitions** — opacity/slide on main content route change (`PageRouteTransition`); respects `prefers-reduced-motion`  
+12. Jobs **pipeline mini-card** — Wishlist / Applying / Applied / Interview / Offer / Closed counts from status fields  
+13. Todos **natural-language quick add** — “Pay rent Friday” / tomorrow / next week → title + due date  
+14. Settings **split layout** on iPad (≥900px) — sticky section TOC left + content right  
+15. **Pull-to-refresh** only on Today & Markets (disabled on other routes)  
+
+### Version
+- 1.2.46 → **1.2.47**
+
+---
+
+## [1.2.46] - 2026-07-16
+
+### Improved — Markets / valuations (next 25c · 6–10)
+6. Markets **Compact/Heat** density — Heat shows a colour grid of symbols by day % move  
+7. **Per-section refresh** — refresh only crypto / equities / indices / FX / crosses  
+8. Equity **corporate action note** stub (`corporateActionNote`) — edit on holding detail; Corp badge on list  
+9. **Add from holding** — Equities/Crypto + Markets empty: add portfolio symbols missing from watchlist  
+10. **FX triangle check** — warn when GBP/USD · GBP/EUR · EUR/USD (or similar) disagree beyond 0.5%  
+
+### Version
+- 1.2.45 → **1.2.46**
+
+---
+
+## [1.2.45] - 2026-07-16
+
+### Improved — Sync / security (next 25c · 1–5)
+1. Settings Sync **Dry-run pull** — `previewPull` conflict/portfolio summary without `applyMergePreview`  
+2. **Device nickname** per install (`mydsp_device_nickname`) — default from device id short form; sync activity + SyncConflictSheet; used as `deviceHint`  
+3. Security **Biometric unlock timeout** picker: Immediate / 1m / 5m / 15m — wired to SecurityProvider idle + visibility lock  
+4. Sync **Scan/setup URL** card — copy + download Remote URL text (never passphrase) + canvas setup card  
+5. **Auto-resume** after pause — timer clears `pausedUntil`, toast “Sync resumed” (60s); last-60s countdown toast  
+
+### Version
+- 1.2.44 → **1.2.45**
+
+---
+
+## [1.2.44] - 2026-07-15
+
+### Improved — Quality / ops (next 25b · 21–25)
+21. Settings **fuzzy search** + **recent jumps** chips (localStorage section ids; startsWith/includes scoring)  
+22. Compare **household snapshot PDF** — one-page NW + allocation via `generatePdfHtml` / print / share  
+23. Markets **Cached mode** banner when offline or all quotes stale  
+24. Perf budget **`npm run verify:bundle`** — fails if dist main chunk &gt; 650 KB (documented in script)  
+25. PWA **UpdateBanner** shows 3 bullets from `RELEASE_NOTES` when a new version is ready  
+
+### Version
+- 1.2.43 → **1.2.44**
+
+---
+
+## [1.2.43] - 2026-07-15
+
+### Improved — Today / planning (next 25b · 16–20)
+16. Today **money pulse** — one-line NW change since yesterday from history (`today-money-pulse`; privacy-aware)  
+17. Spending **Make rule** on each row → Rules page with `?pattern=&category=` prefill (opens Add rule modal)  
+18. Today **bills due in 7 days** strip from recurring transactions (`today-bills-strip`)  
+19. Goals / Today **projected date** estimate when monthly surplus holds (`goalProjectedDate`; labeled estimate)  
+20. Journal **TradeModal** — after save, `onClose({ saved: true })` navigates Equities/Crypto list → holding detail  
+
+### Version
+- 1.2.42 → **1.2.43**
+
+---
+
+## [1.2.42] - 2026-07-15
+
+### Improved — Mobile ergonomics (next 25b · 11–15)
+11. **One-handed reachability** — `.page-header` CSS order on &lt;640px + `.thumb-cta-bar` sticky bottom CTAs on Todos / Jobs / Markets (above bottom-nav)  
+12. Jobs **Columns** sheet — jump/scroll to a kanban column by name  
+13. Todos **Select** mode — toggle Select; multi Complete / Move list / Delete  
+14. **Landscape iPad** — sticky sidebar + hide bottom-nav at landscape + min-width 768px (`useShowBottomNav` + CSS)  
+15. **Haptic-style success flash** — edge flash + toast accent after Sync / Trade / Backup (reduce-motion safe)  
+
+### Version
+- 1.2.41 → **1.2.42**
+
+---
+
+## [1.2.41] - 2026-07-15
+
+### Improved — Markets / portfolio (next 25b · 6–10)
+6. Markets **Open/Closed** session chip on equity/index rows (US RTH + UK/FTSE hours, timezone-aware)  
+7. **Holdings drift** alert when Markets live ≠ holding price by &gt;X% (default 5%; Settings → Alerts) — amber banner + row on Equities/Crypto  
+8. Watchlist **tags** (`Core` / `Speculative` / `Income` / `Other`) on `MarketTicker` — filter chips + edit modal  
+9. Optional **dividend yield %** stub on equities (`MarketTicker.yieldPct` / holding) — Markets rows + holding detail; edit in Markets modal  
+10. Compare **Week Δ** column from localStorage previous-week net-worth snapshot per portfolio  
+
+### Version
+- 1.2.40 → **1.2.41**
+
+---
+
+## [1.2.40] - 2026-07-15
+
+### Improved — Sync / backup trust (next 25b · 1–5)
+1. Today sync line shows last pull/push latency (`Synced · 12s pull`) via `AutoSyncStatus.lastPullMs` / `lastPushMs`  
+2. Full backup **checksum** (SHA-256 prefix, same as sync crypto) — verified on restore; included in export payload  
+3. Settings sync passphrase **strength meter** (length + variety bar)  
+4. Sync activity records **deviceHint** (local / remote device id); shown in Settings activity list  
+5. **Pause auto-sync 1 hour** (`SyncConfig.pausedUntil`) — gated in `runAutoSyncCycle`; controls on Sync conflict sheet + Sync health  
+
+### Version
+- 1.2.39 → **1.2.40**
+
+---
+
+## [1.2.39] - 2026-07-15
+
+### Improved — Polish / accessibility (next 25 · 21–25)
+21. **EmptyIllustration** geometric accent mark; optional on EmptyState — wired on Todos, Crypto, Equities, Jobs, Markets empties  
+22. Settings → **Accessibility** (`mydsp_a11y_*`): Larger text (linked with Appearance), reduced-motion override, high-contrast muted text; html classes on boot  
+23. Colour-blind safe chart palette (`mydsp_a11y_chart_cb`) for AllocationRing  
+24. Full axe CI gate: Today / Markets / Settings on iphone-14; `npm run test:a11y`  
+25. On-device **smoke checklist** at `/smoke` (sync, Markets refresh, backup, PWA standalone)  
+
+### Version
+- 1.2.38 → **1.2.39**
+
+---
+
+## [1.2.38] - 2026-07-15
+
+### Improved — Today / productivity (next 25 · 16–20)
+16. Today Focus card: **Mark done** + **Snooze** without leaving Overview (`setData` on `todoItems`)  
+17. Settings → Alerts: quiet-hours **preview timeline** (window vs now)  
+18. Spending: one-line **this week vs last** delta under the month picker  
+19. News / YouTube: **Mark all read**; `seenAt` persisted in news/youtube stores (syncs via workspace extras)  
+20. Today: goals **progress ring** when a deadline is within 30 days  
+
+### Version
+- 1.2.37 → **1.2.38**
+
+---
+
+## [1.2.37] - 2026-07-15
+
+### Improved — Mobile interaction (next 25 · 11–15)
+11. Bottom-nav long-press opens a Favourites reorder sheet (navOrder APIs) with deep-link to Settings → Layout  
+12. Jobs Kanban: touch pointer drag between columns (HTML5 DnD kept for mouse)  
+13. Todos swipe Complete / Snooze (`SwipeTodoRow`, +1 day due date)  
+14. iPad / wide (≥900px): Dashboard two-pane Today | Markets snapshot  
+15. Settings Appearance **Larger text** (`mydsp_large_text` → `html.large-text`) scales prices / holdings / Markets  
+
+### Version
+- 1.2.36 → **1.2.37**
+
+---
+
+## [1.2.36] - 2026-07-15
+
+### Improved — Markets / money clarity (next 25 · 6–10)
+6. Markets sticky section headers show an **As of** timestamp (freshest quote `updatedAt`, else last refresh)  
+7. Optional per-ticker **notes / watch reasons** on Markets (domain + store + edit modal + row preview)  
+8. Equities / Crypto list rows show **cost · P&L** under live value  
+9. FX conversion explainer sheet on Markets (GBP storage vs toolbar display CCY)  
+10. Tax page expandable **What these exports mean** panel (pack disclaimer + residency)
+
+### Version
+- 1.2.35 → **1.2.36**
+
+---
+
+## [1.2.35] - 2026-07-15
+
+### Improved — Sync / reliability (next 25 · 1–5)
+1. Sync health dashboard in Settings → Sync  
+2. Conflict summary Export / Share (plaintext)  
+3. Offline queue Cancel + exponential backoff on failed flush  
+4. Merged Markets 24h / live equity valuations into the polish stack  
+5. Quote Worker failover banner when markets feeds degrade  
+
+### Version
+- 1.2.34 → **1.2.35**
+
+---
+
+## [1.2.34] - 2026-07-15
+
+### Merged — Markets 24h / live prices (item 4)
+- Markets % and sparklines aligned to **24h**; live equity valuations on refresh
+
+### Improved — Sync / a11y / perf polish (backlog 41–50)
+41. Skeleton shimmer on Markets / Equities / Crypto first paint & refresh  
+42. Prefetch Markets quotes when bottom-nav Markets is focused/hovered  
+43. `prefers-reduced-motion` disables sparkline draw-on + modal sheet motion  
+44. Higher-contrast `--text-muted` / `--text-subtle` in light + dark  
+45. Landmark roles/labels on header, nav, main (AppShell / BottomNav / Sidebar)  
+46. Focus-visible rings on Glass Mode frosted controls  
+47. Lazy recharts wrappers for Dashboard (`LazyCharts`)  
+48. Quote Worker health badge in Settings → Sync  
+49. Soft weekly backup nudge on Today when last backup &gt; 7 days  
+50. Playwright smoke for iPhone 14 + iPad Air (Today → Markets → Settings)
+
+### Version
+- 1.2.33 → **1.2.34**
+
+---
+
+## [1.2.33] - 2026-07-15
+
+### Improved — Today / Jobs / Todos polish (backlog 31–40)
+31. Today hub primary Focus card (next todo or top Markets mover) + leaner Jump-in  
+32. Todos `?focus=id` ring/pulse + scroll-into-view  
+33. Jobs Kanban horizontal scroll-snap on phone  
+34. Job detail sticky Save/action bar above bottom nav (safe-area)  
+35. Spending compact `type=month` picker on phone; month nav min-h-11  
+36. Filters sheet under 640px (`CollapsibleFilters`) + clearer Filters label  
+37. Todos empty state — Screenshot/OCR as primary CTA  
+38. Completed todos collapsed by default on phone (&lt;768)  
+39. News + YouTube unread chip + Load more  
+40. Trips / Goals denser list cards in iPad landscape
+
+### Version
+- 1.2.32 → **1.2.33**
+
+---
+
+## [1.2.32] - 2026-07-15
+
+### Improved — Settings / forms polish (backlog 21–30)
+21. Sticky Settings search under shell header  
+22. Paste Remote URL from clipboard  
+23. Sync passphrase Show/Hide  
+24. `Field` optional error prop  
+25. `inputMode=decimal` on Job salary + opening unit price  
+26. Modal iOS keyboard avoidance (`visualViewport`)  
+27. Hold-to-confirm destructive dialogs on phone  
+28. Settings section open state (already persisted; sticky search keeps jump targets usable)  
+29. Appearance live preview strip (Light / Dark / Glass)  
+30. Native Share on backup rows + CSV export share
+
+### Version
+- 1.2.31 → **1.2.32**
+
+---
+
+## [1.2.31] - 2026-07-15
+
+### Improved — Markets / holdings polish (backlog 11–20)
+11. Sticky Markets section headers while scrolling  
+12. Sparkline tap → 24h quote detail sheet  
+13. Long-press watchlist row enters Sort mode  
+14. Swipe Buy / Exclude on equity & crypto rows  
+15. Holding detail large-type live price strip  
+16. Amber stale quotes (source + age &gt; 4h)  
+17. Compare allocation rings side-by-side from tablet  
+18. Hide chart legends under 360px width  
+19. Fill-from-last-synced Undo toast  
+20. Empty Markets seed presets (BTC/ETH, AAPL/MSFT, indices)
+
+### Version
+- 1.2.30 → **1.2.31**
+
+---
+
+## [1.2.30] - 2026-07-15
+
+### Improved — Nav / PWA polish (backlog 1–10)
+1. Modal safe-area insets on all edges (notched iPhone sheets)
+2. Bottom-nav favourites label truncation + title tooltips
+3. Landscape phone: icon-only bottom nav
+4. iPad / Stage Manager mid-width content padding
+5. A2HS coachmark after first successful sync (+ deferred iOS hint)
+6. Press feedback on primary CTAs / toolbar / tabs (reduce-motion safe)
+7. Pull-to-refresh accent progress ring
+8. Shorter offline / queue banners on phone
+9. Sync conflict bottom sheet → Settings resolve
+10. Keyboard shortcuts cheat-sheet (`?` / Shift+/) on web
+
+### Version
+- 1.2.27 → **1.2.30**
+
+---
+
 ## [1.2.28] - 2026-07-15
 
 ### Fixed — Markets 24h % + sparklines; live equity valuations

@@ -49,6 +49,15 @@
             if (localStorage.getItem('mydsp_glass_mode') === '1') {
               document.documentElement.classList.add('glass');
             }
+            if (localStorage.getItem('mydsp_large_text') === '1') {
+              document.documentElement.classList.add('large-text');
+            }
+            if (localStorage.getItem('mydsp_a11y_reduced_motion') === '1') {
+              document.documentElement.classList.add('a11y-reduce-motion');
+            }
+            if (localStorage.getItem('mydsp_a11y_high_contrast') === '1') {
+              document.documentElement.classList.add('a11y-high-contrast');
+            }
           } catch (e2) { /* ignore */ }
         } catch (e) { /* private mode — keep html.dark */ }
       })();

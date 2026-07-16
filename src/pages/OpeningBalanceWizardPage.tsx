@@ -319,6 +319,7 @@ export function OpeningBalanceWizardPage() {
                           </span>
                           <input
                             type="number"
+                            inputMode="decimal"
                             step="any"
                             min="0"
                             value={r.price}

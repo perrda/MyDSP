@@ -136,23 +136,25 @@ export function PullToRefresh({
         aria-live="polite"
       >
         <div className="flex items-center gap-2 rounded-full border border-border bg-bg-elevated px-3 py-1.5 shadow-sm">
-          <RefreshCw
-            size={16}
-            strokeWidth={2}
-            className={
-              isRefreshing
-                ? 'animate-spin text-accent'
-                : shouldTrigger
-                  ? 'text-accent'
-                  : 'text-text-muted'
-            }
-            style={
-              isRefreshing
-                ? undefined
-                : { transform: `rotate(${progress * 2.2}deg)` }
-            }
-            aria-hidden
-          />
+          <span className="ptr-ring" aria-hidden>
+            <span className="ptr-ring-track" />
+            <span
+              className="ptr-ring-progress"
+              style={{
+                opacity: isRefreshing ? 1 : Math.max(progress / 100, 0.15),
+                transform: `rotate(${isRefreshing ? 0 : progress * 3.6}deg)`,
+                transition: isRefreshing ? undefined : 'opacity 0.1s ease',
+                animation: isRefreshing ? 'spin 0.8s linear infinite' : undefined,
+              }}
+            />
+            <RefreshCw
+              size={12}
+              strokeWidth={2.25}
+              className={`absolute inset-0 m-auto ${
+                isRefreshing || shouldTrigger ? 'text-accent' : 'text-text-muted'
+              }`}
+            />
+          </span>
           <span className="text-[11px] font-medium text-text-muted">
             {isRefreshing
               ? refreshingLabel

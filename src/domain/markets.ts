@@ -4,6 +4,16 @@ import { formatGBP, formatGBPMarket } from '../utils/format'
 
 export type MarketAssetKind = 'crypto' | 'equity' | 'fx' | 'cross' | 'index'
 
+/** Optional watchlist folder / tag for filter chips on Markets. */
+export type MarketTickerTag = 'Core' | 'Speculative' | 'Income' | 'Other'
+
+export const MARKET_TICKER_TAGS: MarketTickerTag[] = [
+  'Core',
+  'Speculative',
+  'Income',
+  'Other',
+]
+
 export interface MarketTicker {
   id: string
   kind: MarketAssetKind
@@ -13,6 +23,12 @@ export interface MarketTicker {
   name: string
   /** Optional CoinGecko id when symbol is not in the built-in map */
   coingeckoId?: string
+  /** Optional watch reason / personal note */
+  notes?: string
+  /** Optional folder/tag for watchlist filtering */
+  tag?: MarketTickerTag
+  /** Optional dividend yield % (equities) — manual stub */
+  yieldPct?: number
   createdAt: string
   sortOrder: number
 }
@@ -30,9 +46,14 @@ export interface MarketsState {
   tickers: MarketTicker[]
   collapsed: MarketsCollapsed
   lastRefreshAt?: string
-  /** Row density — compact hides names / tightens padding on phone & desktop. */
-  density?: 'comfortable' | 'compact'
+  /**
+   * Row density — compact hides names / tightens padding;
+   * heat shows a colour grid of symbols by % move.
+   */
+  density?: 'comfortable' | 'compact' | 'heat'
 }
+
+export type MarketsDensity = NonNullable<MarketsState['density']>
 
 export interface MarketQuote {
   symbol: string

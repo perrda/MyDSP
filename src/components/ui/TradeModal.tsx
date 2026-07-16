@@ -21,7 +21,8 @@ interface Props {
     platform?: string
   }
   data?: PortfolioData
-  onClose: () => void
+  /** Called on dismiss; `saved: true` after a successful journal save. */
+  onClose: (opts?: { saved?: boolean }) => void
   onSave: (values: {
     side: TradeSide
     date: string
@@ -93,7 +94,7 @@ export function TradeModal({
     <Modal
       open={open}
       title={`${initial ? 'Edit' : side === 'buy' ? 'Buy' : 'Sell'} ${symbol}`}
-      onClose={onClose}
+      onClose={() => onClose()}
     >
       <form
         className="space-y-5"
@@ -112,7 +113,7 @@ export function TradeModal({
             notes: notes.trim() || undefined,
             platform: platform.trim() || undefined,
           })
-          onClose()
+          onClose({ saved: true })
         }}
       >
         <p className="text-sm text-text-muted font-light">
@@ -192,7 +193,7 @@ export function TradeModal({
           <textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
         </Field>
         <div className="flex justify-end gap-3">
-          <button type="button" className="btn-ghost" onClick={onClose}>
+          <button type="button" className="btn-ghost" onClick={() => onClose()}>
             Cancel
           </button>
           <button type="submit" className="btn-primary">

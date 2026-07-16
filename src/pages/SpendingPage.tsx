@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Wallet } from 'lucide-react'
+import { MiniBarChart } from '../components/charts/Sparkline'
 import { SpendingSeriesChart } from '../components/charts/SpendingSeriesChart'
 import { EmptyState } from '../components/ui/EmptyState'
 import { PageHeader } from '../components/ui/PageHeader'
@@ -8,6 +9,8 @@ import { CollapsibleFilters } from '../components/ui/CollapsibleFilters'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
 import { usePortfolio } from '../context/PortfolioContext'
 import { formatMonthLabel, monthKey, parseMonthParam, shiftMonth } from '../domain/monthUtils'
+import { categorySparklinesForMonth } from '../domain/spendingCategorySparkline'
+import { formatWeekDeltaLine, weekSpendDelta } from '../domain/spendingWeekDelta'
 import type { SpendingEntry } from '../domain/types'
 import { formatDate, formatGBPPrecise, privacyClass } from '../utils/format'
 
@@ -42,6 +45,14 @@ function loadFilters(): { query: string; category: string } {
 
 function nextId(items: { id: number }[]): number {
   return items.reduce((m, i) => Math.max(m, i.id), 0) + 1
+}
+
+/** Deep-link to Rules with merchant pattern/category prefilled. */
+function makeRuleHref(tx: SpendingEntry): string {
+  const params = new URLSearchParams()
+  params.set('pattern', tx.description.trim() || 'merchant')
+  params.set('category', (tx.category || 'other').toLowerCase())
+  return `/rules?${params.toString()}`
 }
 
 const emptyForm = {
@@ -122,6 +133,16 @@ export function SpendingPage() {
       })
   }, [data.spending, query, category, ym])
 
+  const weekDeltaLine = useMemo(() => {
+    const { thisWeek, lastWeek } = weekSpendDelta(data.spending)
+    return formatWeekDeltaLine(thisWeek, lastWeek, (n) => formatGBPPrecise(n))
+  }, [data.spending])
+
+  const categorySparks = useMemo(
+    () => categorySparklinesForMonth(data.spending, ym, 5),
+    [data.spending, ym],
+  )
+
   const addCustomCategory = () => {
     const name = customDraft.trim().toLowerCase()
     if (!name) return
@@ -187,7 +208,8 @@ export function SpendingPage() {
         description={`${formatMonthLabel(ym)} · filter by category, search, or jump to budgets.`}
         action={
           <div className="flex flex-wrap gap-2 items-center w-full sm:w-auto">
-            <div className="flex items-center gap-1.5 w-full sm:w-auto">
+            {/* Phone: compact month picker */}
+            <div className="flex items-center gap-1.5 w-full sm:hidden">
               <button
                 type="button"
                 className="btn-ghost btn-sm min-h-11 min-w-11"
@@ -196,7 +218,18 @@ export function SpendingPage() {
               >
                 Prev
               </button>
-              <span className="text-sm font-semibold tabular-nums flex-1 text-center sm:flex-none">{ym}</span>
+              <label className="flex-1 min-w-0">
+                <span className="sr-only">Month</span>
+                <input
+                  type="month"
+                  value={ym}
+                  onChange={(e) => {
+                    const v = e.target.value
+                    if (/^\d{4}-\d{2}$/.test(v)) setYm(v)
+                  }}
+                  className="spending-month-picker w-full min-h-11 px-3 py-2 bg-surface-hover border border-border rounded text-sm font-semibold tabular-nums"
+                />
+              </label>
               <button
                 type="button"
                 className="btn-ghost btn-sm min-h-11 min-w-11"
@@ -206,7 +239,32 @@ export function SpendingPage() {
                 Next
               </button>
               {ym !== monthKey() && (
-                <button type="button" className="btn-ghost btn-sm" onClick={() => setYm(monthKey())}>
+                <button type="button" className="btn-ghost btn-sm min-h-11" onClick={() => setYm(monthKey())}>
+                  Now
+                </button>
+              )}
+            </div>
+            {/* Tablet+: prev / label / next */}
+            <div className="hidden sm:flex items-center gap-1.5">
+              <button
+                type="button"
+                className="btn-ghost btn-sm min-h-11 min-w-11"
+                onClick={() => setYm(shiftMonth(ym, -1))}
+                aria-label="Previous month"
+              >
+                Prev
+              </button>
+              <span className="text-sm font-semibold tabular-nums px-2">{ym}</span>
+              <button
+                type="button"
+                className="btn-ghost btn-sm min-h-11 min-w-11"
+                onClick={() => setYm(shiftMonth(ym, 1))}
+                aria-label="Next month"
+              >
+                Next
+              </button>
+              {ym !== monthKey() && (
+                <button type="button" className="btn-ghost btn-sm min-h-11" onClick={() => setYm(monthKey())}>
                   Now
                 </button>
               )}
@@ -231,7 +289,48 @@ export function SpendingPage() {
         }
       />
 
+      <p
+        className={`spending-week-delta text-xs text-text-muted font-light mb-3 tabular-nums ${privacyClass(privacy)}`}
+      >
+        {weekDeltaLine}
+      </p>
+
       <SpendingSeriesChart spending={data.spending} privacy={privacy} />
+
+      {categorySparks.length > 0 ? (
+        <div
+          className="spending-category-sparklines surface p-4 md:p-5 mb-4 rounded-xl md:rounded-none"
+          aria-label="Category spend this month"
+        >
+          <p className="text-xs uppercase tracking-wider text-text-subtle font-semibold mb-3">
+            Top categories · {formatMonthLabel(ym)}
+          </p>
+          <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {categorySparks.map((row) => (
+              <li key={row.category} className="min-w-0">
+                <button
+                  type="button"
+                  className="w-full text-left group"
+                  onClick={() => setCategory(row.category)}
+                  aria-label={`Filter ${row.category}`}
+                >
+                  <div className="flex items-baseline justify-between gap-2 mb-1">
+                    <span className="text-xs font-bold uppercase tracking-wider text-text-subtle group-hover:text-accent truncate">
+                      {row.category}
+                    </span>
+                    <span className={`text-xs tabular-nums shrink-0 ${privacyClass(privacy)}`}>
+                      {formatGBPPrecise(row.total)}
+                    </span>
+                  </div>
+                  <div className="h-8" aria-hidden>
+                    <MiniBarChart data={row.daily} height={32} color="var(--accent)" />
+                  </div>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       <CollapsibleFilters
         id="spending-filters"
@@ -312,6 +411,12 @@ export function SpendingPage() {
                 {tx.category}
               </span>
               <div className="flex gap-1">
+                <Link
+                  to={makeRuleHref(tx)}
+                  className="btn-ghost btn-sm min-h-11 inline-flex items-center"
+                >
+                  Make rule
+                </Link>
                 <button
                   type="button"
                   className="btn-ghost btn-sm min-h-11"
@@ -377,6 +482,9 @@ export function SpendingPage() {
                   {formatGBPPrecise(-Math.abs(tx.amount))}
                 </td>
                 <td className="px-5 sm:px-6 py-4 whitespace-nowrap">
+                  <Link to={makeRuleHref(tx)} className="btn-ghost btn-sm">
+                    Make rule
+                  </Link>
                   <button type="button" className="btn-ghost btn-sm" onClick={() => openEdit(tx)}>
                     Edit
                   </button>

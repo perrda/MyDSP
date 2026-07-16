@@ -65,6 +65,49 @@ export interface FullBackupRecord extends FullBackupMeta {
   /** Optional file attachments (CV/PDFs) as base64 payloads */
   documentBlobs?: import('./documentBlobStore').DocumentBlobPayload[]
   documentBlobsSkipped?: number[]
+  /** SHA-256 hex prefix (crypto.checksum) over canonical backup payload */
+  checksum?: string
+}
+
+function backupCanonical(record: Pick<
+  FullBackupRecord,
+  | 'portfolios'
+  | 'activePortfolioId'
+  | 'blobs'
+  | 'markets'
+  | 'news'
+  | 'youtube'
+  | 'navLayout'
+  | 'documentBlobs'
+>): string {
+  return JSON.stringify({
+    portfolios: record.portfolios,
+    activePortfolioId: record.activePortfolioId,
+    blobs: record.blobs,
+    markets: record.markets ?? null,
+    news: record.news ?? null,
+    youtube: record.youtube ?? null,
+    navLayout: record.navLayout ?? null,
+    documentBlobs: record.documentBlobs ?? null,
+  })
+}
+
+/** Compute integrity checksum for a full backup (same pattern as sync envelope). */
+export async function computeFullBackupChecksum(
+  record: Pick<
+    FullBackupRecord,
+    | 'portfolios'
+    | 'activePortfolioId'
+    | 'blobs'
+    | 'markets'
+    | 'news'
+    | 'youtube'
+    | 'navLayout'
+    | 'documentBlobs'
+  >,
+): Promise<string> {
+  const { checksum } = await import('../services/sync/crypto')
+  return checksum(backupCanonical(record))
 }
 
 function openDb(): Promise<IDBDatabase> {
@@ -179,6 +222,7 @@ export async function createFullBackup(
     documentBlobs,
     documentBlobsSkipped,
   }
+  record.checksum = await computeFullBackupChecksum(record)
   await putBackup(record)
   await pruneOldBackups()
   try {
@@ -252,6 +296,15 @@ export async function deleteFullBackup(id: string): Promise<void> {
 
 /** Replace entire workspace from a backup record (including document file blobs). */
 export async function restoreFullWorkspace(record: FullBackupRecord): Promise<void> {
+  if (record.checksum) {
+    const expected = await computeFullBackupChecksum(record)
+    if (expected !== record.checksum) {
+      throw new Error(
+        'Backup checksum mismatch — the file may be corrupted or tampered with. Restore cancelled.',
+      )
+    }
+  }
+
   const keep = new Set(record.portfolios.map((p) => p.id))
   for (const p of listPortfolios()) {
     if (!keep.has(p.id) && p.id !== 'default') {
@@ -306,6 +359,7 @@ function fullBackupPayload(record: FullBackupRecord) {
     activePortfolioId: record.activePortfolioId,
     portfolios: record.portfolios,
     blobs: record.blobs,
+    ...(record.checksum ? { checksum: record.checksum } : {}),
     ...(record.documentBlobs && record.documentBlobs.length > 0
       ? { documentBlobs: record.documentBlobs }
       : {}),
@@ -462,6 +516,7 @@ export function parseFullBackupFile(raw: unknown): FullBackupRecord | null {
     news: o.news,
     youtube: o.youtube,
     navLayout: o.navLayout,
+    checksum: typeof o.checksum === 'string' ? o.checksum : undefined,
   }
 }
 

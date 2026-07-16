@@ -31,6 +31,7 @@ import type {
   ProgressCommentary,
   RagStatus,
 } from '../domain/types'
+import { listMarketTickers } from '../storage/marketsStore'
 import { formatDate, formatDateTime, formatGBP, formatGBPPrecise, formatPct, formatQty, privacyClass } from '../utils/format'
 
 export function HoldingDetailPage() {
@@ -56,6 +57,8 @@ export function HoldingDetailPage() {
   const [noteText, setNoteText] = useState('')
   const [editingNote, setEditingNote] = useState<ProgressCommentary | null>(null)
   const [deleteNoteId, setDeleteNoteId] = useState<number | null>(null)
+  const [corpNoteDraft, setCorpNoteDraft] = useState('')
+  const [corpNoteOpen, setCorpNoteOpen] = useState(false)
   const [metaOpen, setMetaOpen] = useState(false)
   const [meta, setMeta] = useState({ platform: '', contactUrl: '' })
   const [tradeOpen, setTradeOpen] = useState(false)
@@ -100,6 +103,17 @@ export function HoldingDetailPage() {
   const commentaries = [...(item.commentaries ?? [])].sort((a, b) =>
     (b.createdAt ?? '').localeCompare(a.createdAt ?? ''),
   )
+
+  let yieldPct: number | undefined
+  if (!isCrypto) {
+    if (equity?.yieldPct != null && equity.yieldPct > 0) yieldPct = equity.yieldPct
+    else {
+      const t = listMarketTickers('equity').find(
+        (x) => x.symbol.toUpperCase() === item.symbol.toUpperCase(),
+      )
+      if (t?.yieldPct != null && t.yieldPct > 0) yieldPct = t.yieldPct
+    }
+  }
 
   const unitCost = isCrypto
     ? crypto && crypto.qty > 0
@@ -230,6 +244,29 @@ export function HoldingDetailPage() {
             </button>
           ))}
         </div>
+      </div>
+
+      <div className={`holding-price-strip surface p-5 sm:p-6 mb-6 ${privacyClass(privacy)}`}>
+        <p className="label-uppercase mb-2">Live price</p>
+        <p className="text-3xl sm:text-4xl font-bold tabular-nums tracking-tight">
+          {formatGBPPrecise(price)}
+        </p>
+        <p className={`mt-1 text-sm font-semibold tabular-nums ${pnl >= 0 ? 'text-accent' : 'text-text-muted'}`}>
+          {formatGBP(pnl, { signed: true })} · {formatPct(cost > 0 ? (pnl / cost) * 100 : 0)}
+        </p>
+        {yieldPct != null ? (
+          <p className="mt-2 text-sm text-text-muted tabular-nums">
+            Dividend yield {yieldPct.toFixed(yieldPct >= 10 ? 1 : 2)}%
+          </p>
+        ) : null}
+        {!isCrypto && equity?.corporateActionNote ? (
+          <p className="mt-2 text-sm text-amber-700 dark:text-amber-300">
+            <span className="text-[10px] uppercase tracking-wider font-semibold mr-1.5 px-1.5 py-0.5 border border-amber-500/45">
+              Corp
+            </span>
+            {equity.corporateActionNote}
+          </p>
+        ) : null}
       </div>
 
       <div className={`grid grid-cols-2 lg:grid-cols-4 gap-px mb-6 ${privacyClass(privacy)}`}>
@@ -427,6 +464,90 @@ export function HoldingDetailPage() {
           heightClass="h-52 sm:h-60"
         />
       </div>
+
+      {!isCrypto ? (
+        <section
+          id="corporate-action"
+          className="surface p-5 sm:p-8 mb-6 border-l-2 border-l-amber-500/60"
+        >
+          <p className="eyebrow mb-3">Stub</p>
+          <h3 className="text-lg font-bold tracking-tight mb-2">Corporate action note</h3>
+          <p className="text-sm text-text-muted font-light mb-5">
+            Optional reminder for splits, dividends, rights issues — not applied to qty/cost.
+          </p>
+          {corpNoteOpen ? (
+            <div className="flex flex-col gap-3">
+              <textarea
+                className="w-full min-h-[5rem]"
+                placeholder="e.g. 4-for-1 split effective 2026-08-01"
+                value={corpNoteDraft}
+                onChange={(e) => setCorpNoteDraft(e.target.value)}
+              />
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className="btn-primary btn-sm"
+                  onClick={() => {
+                    const text = corpNoteDraft.trim()
+                    patch({ corporateActionNote: text || undefined })
+                    setCorpNoteOpen(false)
+                  }}
+                >
+                  Save note
+                </button>
+                <button
+                  type="button"
+                  className="btn-ghost btn-sm"
+                  onClick={() => {
+                    setCorpNoteOpen(false)
+                    setCorpNoteDraft(equity?.corporateActionNote ?? '')
+                  }}
+                >
+                  Cancel
+                </button>
+                {equity?.corporateActionNote ? (
+                  <button
+                    type="button"
+                    className="btn-ghost btn-sm text-red-500"
+                    onClick={() => {
+                      patch({ corporateActionNote: undefined })
+                      setCorpNoteDraft('')
+                      setCorpNoteOpen(false)
+                    }}
+                  >
+                    Clear
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <p className="text-sm text-text-muted flex-1 min-w-0">
+                {equity?.corporateActionNote ? (
+                  <>
+                    <span className="inline-block text-[10px] uppercase tracking-wider font-semibold mr-1.5 px-1.5 py-0.5 border border-amber-500/45 text-amber-700 dark:text-amber-300 align-middle">
+                      Corp
+                    </span>
+                    {equity.corporateActionNote}
+                  </>
+                ) : (
+                  'No corporate action note yet.'
+                )}
+              </p>
+              <button
+                type="button"
+                className="btn-secondary btn-sm shrink-0"
+                onClick={() => {
+                  setCorpNoteDraft(equity?.corporateActionNote ?? '')
+                  setCorpNoteOpen(true)
+                }}
+              >
+                {equity?.corporateActionNote ? 'Edit note' : 'Add note'}
+              </button>
+            </div>
+          )}
+        </section>
+      ) : null}
 
       <section id="commentary" className="surface p-5 sm:p-8 mb-6 border-l-2 border-l-accent">
         <p className="eyebrow mb-3">Progress</p>

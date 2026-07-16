@@ -2,11 +2,16 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { GitCompareArrows, ArrowRight } from 'lucide-react'
 import { PageHeader, StatCard } from '../components/ui/PageHeader'
+import { Modal } from '../components/ui/Modal'
 import { usePortfolio } from '../context/PortfolioContext'
 import {
   buildPortfolioComparison,
   comparisonTotals,
 } from '../domain/portfolioCompare'
+import {
+  syncCompareWeekSnapshots,
+  weekOverWeekDelta,
+} from '../domain/compareWeekSnapshot'
 import { applyLastSyncedQuotesToHoldings, lastSyncedHoldingPrices } from '../domain/lastSyncedHoldings'
 import { formatGBP, privacyClass } from '../utils/format'
 import { AllocationRing, type SliceDatum } from '../components/charts/AllocationRing'
@@ -17,13 +22,22 @@ import {
   setActivePortfolioId,
 } from '../storage/portfolioStore'
 import { useToasts } from '../components/ToastProvider'
+import {
+  printHouseholdSnapshot,
+  shareHouseholdSnapshot,
+} from '../domain/householdSnapshot'
+import {
+  downloadWeeklyDigest,
+  weekDeltaFromHistory,
+} from '../domain/weeklyDigest'
 
 export function ComparePage() {
   const { privacy, portfolios, activeId, switchPortfolio, reload } = usePortfolio()
-  const { success, error: showError } = useToasts()
+  const { error: showError, showToast } = useToasts()
   const [selected, setSelected] = useState<string[]>(() => portfolios.map((p) => p.id))
   const [scanToken, setScanToken] = useState(0)
   const [filling, setFilling] = useState(false)
+  const [inviteOpen, setInviteOpen] = useState(false)
 
   const cacheAgeLabel = useMemo(() => {
     const { updatedAt } = lastSyncedHoldingPrices()
@@ -42,6 +56,13 @@ export function ComparePage() {
     const set = new Set(selected)
     return all.filter((r) => set.has(r.id))
   }, [selected, scanToken])
+
+  const weekSnap = useMemo(() => {
+    const all = buildPortfolioComparison()
+    const byId: Record<string, number> = {}
+    for (const r of all) byId[r.id] = r.netWorth
+    return syncCompareWeekSnapshots(byId)
+  }, [scanToken, portfolios])
 
   const totals = useMemo(() => comparisonTotals(rows), [rows])
   const maxNw = Math.max(1, ...rows.map((r) => Math.abs(r.netWorth)))
@@ -76,10 +97,11 @@ export function ComparePage() {
     setFilling(true)
     try {
       const previous = getActivePortfolioId()
+      const snapshots = new Map(selected.map((id) => [id, loadPortfolio(id)]))
       let cryptoN = 0
       let equitiesN = 0
       for (const id of selected) {
-        const data = loadPortfolio(id)
+        const data = snapshots.get(id)!
         const result = applyLastSyncedQuotesToHoldings(data, { overwrite: true })
         if (result.crypto + result.equities > 0) {
           savePortfolioImmediate(result.data, id)
@@ -94,10 +116,24 @@ export function ComparePage() {
       if (cryptoN + equitiesN === 0) {
         showError('No cache hits', 'Refresh Markets first, then try again.')
       } else {
-        success(
-          'Filled from last synced',
-          `${cryptoN} crypto · ${equitiesN} equities updated`,
-        )
+        showToast({
+          type: 'success',
+          title: 'Filled from last synced',
+          message: `${cryptoN} crypto · ${equitiesN} equities updated`,
+          duration: 8000,
+          action: {
+            label: 'Undo',
+            onClick: () => {
+              for (const [id, snap] of snapshots) {
+                savePortfolioImmediate(snap, id)
+              }
+              setActivePortfolioId(previous)
+              reload()
+              switchPortfolio(activeId)
+              setScanToken((n) => n + 1)
+            },
+          },
+        })
       }
     } catch (e) {
       showError('Fill failed', e instanceof Error ? e.message : 'Unknown error')
@@ -106,14 +142,95 @@ export function ComparePage() {
     }
   }
 
+  const exportHouseholdSnapshot = async () => {
+    const input = {
+      title: 'Household snapshot',
+      netWorth: totals.netWorth,
+      assets: totals.assets,
+      liabilities: totals.liabilities,
+      crypto: totals.crypto,
+      equity: totals.equity,
+      portfolios: rows.map((r) => ({ name: r.name, netWorth: r.netWorth })),
+    }
+    try {
+      const result = await shareHouseholdSnapshot(input)
+      if (result === 'printed') {
+        showToast({
+          type: 'info',
+          title: 'Snapshot ready',
+          message: 'Print / save as PDF from the dialog.',
+        })
+      } else if (result === 'shared') {
+        showToast({ type: 'success', title: 'Snapshot shared' })
+      }
+    } catch {
+      printHouseholdSnapshot(input)
+    }
+  }
+
+  const exportWeeklyDigest = () => {
+    let weekDelta: number | null = null
+    try {
+      const active = loadPortfolio(activeId)
+      weekDelta = weekDeltaFromHistory(active.history ?? [], totals.netWorth)
+    } catch {
+      weekDelta = null
+    }
+    downloadWeeklyDigest({
+      title: 'MyDSP weekly digest',
+      netWorth: totals.netWorth,
+      assets: totals.assets,
+      liabilities: totals.liabilities,
+      crypto: totals.crypto,
+      equity: totals.equity,
+      weekDelta,
+      portfolios: rows.map((r) => ({ name: r.name, netWorth: r.netWorth })),
+      highlights: [
+        `${rows.length} portfolio${rows.length === 1 ? '' : 's'} compared`,
+        cacheAgeLabel ? `Holdings cache: ${cacheAgeLabel}` : 'Holdings cache age unknown',
+      ],
+    })
+    showToast({
+      type: 'success',
+      title: 'Weekly digest downloaded',
+      message: 'Open the HTML file or paste into an email — nothing is sent from the app.',
+    })
+  }
+
   return (
     <div>
       <PageHeader
         eyebrow="Family"
         title="Compare portfolios"
-        description="Side-by-side net worth and allocation across David and family workspaces."
+        description="Side-by-side net worth and allocation across David and family workspaces. Week Δ uses a local previous-week snapshot."
         action={
           <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="btn-ghost btn-sm compare-invite-btn"
+              onClick={() => setInviteOpen(true)}
+              title="How to add a second portfolio for family compare"
+            >
+              Add a portfolio
+            </button>
+            <button
+              type="button"
+              className="btn-ghost btn-sm household-snapshot-btn"
+              disabled={rows.length === 0}
+              onClick={() => void exportHouseholdSnapshot()}
+              title="Print or share a one-page net worth + allocation snapshot"
+            >
+              Snapshot PDF
+            </button>
+            <button
+              type="button"
+              className="btn-ghost btn-sm weekly-digest-btn"
+              disabled={rows.length === 0}
+              onClick={exportWeeklyDigest}
+              title="Download email-ready weekly HTML digest (not sent)"
+            >
+              Weekly digest
+            </button>
             <button
               type="button"
               className="btn-ghost btn-sm"
@@ -181,6 +298,9 @@ export function ComparePage() {
             <tr className="border-b border-border text-left">
               <th className="p-4 label-uppercase font-bold table-sticky-col" scope="col">Portfolio</th>
               <th className="p-4 label-uppercase font-bold text-right" scope="col">Net worth</th>
+              <th className="p-4 label-uppercase font-bold text-right" scope="col" title="Change vs previous week snapshot">
+                Week Δ
+              </th>
               <th className="p-4 label-uppercase font-bold text-right" scope="col">Crypto</th>
               <th className="p-4 label-uppercase font-bold text-right" scope="col">Equities</th>
               <th className="p-4 label-uppercase font-bold text-right" scope="col">Debt</th>
@@ -189,7 +309,9 @@ export function ComparePage() {
             </tr>
           </thead>
           <tbody className={privacyClass(privacy)}>
-            {rows.map((r) => (
+            {rows.map((r) => {
+              const wow = weekOverWeekDelta(r.id, r.netWorth, weekSnap)
+              return (
               <tr
                 key={r.id}
                 className={`border-b border-border/60 ${r.id === activeId ? 'bg-accent/5' : ''}`}
@@ -220,6 +342,18 @@ export function ComparePage() {
                 <td className="p-4 text-right tabular-nums font-medium">
                   {formatGBP(r.netWorth)}
                 </td>
+                <td
+                  className={`p-4 text-right tabular-nums ${
+                    wow == null
+                      ? 'text-text-subtle'
+                      : wow >= 0
+                        ? 'text-accent'
+                        : 'text-text-muted'
+                  }`}
+                  title={wow == null ? 'No previous-week snapshot yet' : 'vs previous week'}
+                >
+                  {wow == null ? '—' : formatGBP(wow, { signed: true })}
+                </td>
                 <td className="p-4 text-right tabular-nums text-text-muted">
                   {formatGBP(r.crypto)}
                 </td>
@@ -241,10 +375,11 @@ export function ComparePage() {
                   </span>
                 </td>
               </tr>
-            ))}
+              )
+            })}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={7} className="p-8 text-center text-text-muted font-light">
+                <td colSpan={8} className="p-8 text-center text-text-muted font-light">
                   Select at least one portfolio above.
                 </td>
               </tr>
@@ -253,7 +388,7 @@ export function ComparePage() {
         </table>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-px mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-px mb-8">
         <AllocationRing
           data={allocationData}
           privacy={privacy}
@@ -321,6 +456,59 @@ export function ComparePage() {
           Trade CSV templates
         </Link>
       </p>
+
+      <Modal open={inviteOpen} title="Add a second portfolio" onClose={() => setInviteOpen(false)}>
+        <div className="compare-invite-sheet space-y-4 text-sm text-text-muted font-light leading-relaxed">
+          <p>
+            Compare works best with two or more family workspaces — for example David and a partner,
+            or a personal and a joint book. Each portfolio keeps its own holdings, currency, and tax
+            residency.
+          </p>
+          <ol className="list-decimal pl-5 space-y-2 text-text">
+            <li>
+              Open{' '}
+              <Link
+                to="/settings#portfolios"
+                className="text-accent hover:underline font-medium"
+                onClick={() => setInviteOpen(false)}
+              >
+                Settings → Portfolios
+              </Link>
+              .
+            </li>
+            <li>Enter a unique name (e.g. “Partner” or “Joint”) and create the portfolio — it starts empty.</li>
+            <li>
+              Switch to it, then add holdings via Markets, import a broker CSV, or run the{' '}
+              <Link
+                to="/setup/opening"
+                className="text-accent hover:underline font-medium"
+                onClick={() => setInviteOpen(false)}
+              >
+                opening-balance wizard
+              </Link>
+              .
+            </li>
+            <li>Return here and tick both portfolios under Include to compare side-by-side.</li>
+          </ol>
+          <p className="text-xs text-text-subtle">
+            Tip: sync is per device — use the same cloud sync passphrase on each phone so family
+            books stay in step. Names must be unique; you can rename or delete portfolios anytime in
+            Settings.
+          </p>
+          <div className="flex flex-wrap gap-2 pt-2">
+            <Link
+              to="/settings#portfolios"
+              className="btn-primary btn-sm"
+              onClick={() => setInviteOpen(false)}
+            >
+              Open Portfolios
+            </Link>
+            <button type="button" className="btn-ghost btn-sm" onClick={() => setInviteOpen(false)}>
+              Close
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }

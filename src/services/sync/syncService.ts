@@ -54,6 +54,8 @@ export interface SyncConfig {
   lastMergeCount?: number
   /** Last applied remote envelope exportedAt (skip re-pull of same blob) */
   lastRemoteExportedAt?: string
+  /** When set (ISO), auto-sync cycles are skipped until this time */
+  pausedUntil?: string
 }
 
 export interface SyncEnvelope {
@@ -124,6 +126,7 @@ export function loadSyncConfig(): SyncConfig {
         typeof parsed.lastMergeCount === 'number' ? parsed.lastMergeCount : undefined,
       lastRemoteExportedAt:
         typeof parsed.lastRemoteExportedAt === 'string' ? parsed.lastRemoteExportedAt : undefined,
+      pausedUntil: typeof parsed.pausedUntil === 'string' ? parsed.pausedUntil : undefined,
     }
   } catch {
     return { remoteUrl: '', enabled: false }

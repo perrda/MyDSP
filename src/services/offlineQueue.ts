@@ -1,4 +1,4 @@
-/** Persist failed quote refresh / sync push until online. */
+/** Offline queue with cancel + exponential backoff metadata. */
 
 export type OfflineJobType = 'quote_refresh' | 'sync_push'
 
@@ -9,9 +9,14 @@ export interface OfflineJob {
   /** For sync_push: remoteUrl (passphrase never stored). */
   remoteUrl?: string
   note?: string
+  /** Failed flush attempts (for backoff). */
+  attempts?: number
+  /** ISO time when a retry is allowed. */
+  nextRetryAt?: string
 }
 
 const KEY = 'mydsp_offline_queue'
+const MAX_ATTEMPTS = 6
 
 export function loadOfflineQueue(): OfflineJob[] {
   try {
@@ -34,6 +39,11 @@ export function loadOfflineQueue(): OfflineJob[] {
 function save(queue: OfflineJob[]) {
   try {
     localStorage.setItem(KEY, JSON.stringify(queue.slice(-50)))
+  } catch {
+    /* ignore */
+  }
+  try {
+    window.dispatchEvent(new CustomEvent('mydsp-offline-queue'))
   } catch {
     /* ignore */
   }
@@ -60,26 +70,56 @@ export function enqueueOfflineJob(
     createdAt: new Date().toISOString(),
     remoteUrl: extra?.remoteUrl,
     note: extra?.note,
+    attempts: 0,
   }
   const next = [...queue, job]
   save(next)
-  window.dispatchEvent(new CustomEvent('mydsp-offline-queue'))
   return next
 }
 
 export function removeOfflineJob(id: string): OfflineJob[] {
   const next = loadOfflineQueue().filter((j) => j.id !== id)
   save(next)
-  window.dispatchEvent(new CustomEvent('mydsp-offline-queue'))
   return next
 }
 
 export function clearOfflineQueue(): OfflineJob[] {
   save([])
-  window.dispatchEvent(new CustomEvent('mydsp-offline-queue'))
   return []
 }
 
 export function isOnline(): boolean {
   return typeof navigator === 'undefined' ? true : navigator.onLine
+}
+
+/** Backoff delay in ms after N failed attempts: 2s, 4s, 8s … capped at ~5 min. */
+export function offlineBackoffMs(attempts: number): number {
+  const n = Math.max(0, Math.min(attempts, MAX_ATTEMPTS))
+  return Math.min(5 * 60_000, 2000 * 2 ** n)
+}
+
+export function markOfflineJobFailed(id: string, note?: string): OfflineJob[] {
+  const queue = loadOfflineQueue()
+  const next = queue.map((j) => {
+    if (j.id !== id) return j
+    const attempts = (j.attempts ?? 0) + 1
+    return {
+      ...j,
+      attempts,
+      nextRetryAt: new Date(Date.now() + offlineBackoffMs(attempts)).toISOString(),
+      note: note ?? j.note,
+    }
+  })
+  save(next)
+  return next
+}
+
+export function isOfflineJobReady(job: OfflineJob, now = Date.now()): boolean {
+  if (!job.nextRetryAt) return true
+  const t = new Date(job.nextRetryAt).getTime()
+  return !Number.isFinite(t) || t <= now
+}
+
+export function jobsReadyToFlush(queue = loadOfflineQueue(), now = Date.now()): OfflineJob[] {
+  return queue.filter((j) => isOfflineJobReady(j, now))
 }

@@ -108,8 +108,8 @@ select:focus-visible {
   --border: rgba(255, 255, 255, 0.08);
   --border-strong: rgba(255, 255, 255, 0.18);
   --text: #ffffff;
-  --text-muted: #f3f4f6;
-  --text-subtle: #d1d5db;
+  --text-muted: #f9fafb;
+  --text-subtle: #e5e7eb;
   --accent: #F7931A;
   --accent-bright: #f9a94b;
   --accent-dim: #c47210;
@@ -139,8 +139,8 @@ html.angular {
   --border: rgba(0, 0, 0, 0.1);
   --border-strong: rgba(0, 0, 0, 0.2);
   --text: #0a0a0a;
-  --text-muted: #1f2937;
-  --text-subtle: #4b5563;
+  --text-muted: #111827;
+  --text-subtle: #374151;
   --accent: #d97c0a;
   --accent-bright: #F7931A;
   --accent-dim: #b35e00;
@@ -282,6 +282,14 @@ html.theme-transitioning *::after {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   padding-top: env(safe-area-inset-top);
+}
+
+:root {
+  --app-header-offset: calc(3.5rem + env(safe-area-inset-top, 0px));
+}
+
+.settings-search-sticky {
+  top: var(--app-header-offset);
 }
 
 .app-header-row {
@@ -580,6 +588,133 @@ html.has-bottom-nav .floating-banner--toast {
 }
 .bottom-nav-link--active {
   background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+
+/* ----- Nav / PWA polish (v1.2.30) ----- */
+
+/* Tablet bottom-nav roomier targets */
+.bottom-nav--tablet {
+  padding-top: 0.15rem;
+}
+.bottom-nav--tablet .bottom-nav-link {
+  min-height: 3.25rem;
+  padding-top: 0.45rem;
+  padding-bottom: 0.45rem;
+}
+.bottom-nav--tablet .bottom-nav-link--active::before {
+  width: 2.25rem;
+  height: 2.5px;
+}
+
+/* Favourites label truncation */
+.bottom-nav-link-label {
+  max-width: 4.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bottom-nav--tablet .bottom-nav-link-label {
+  max-width: 5.5rem;
+}
+
+/* Landscape phone: icon-only bottom nav */
+@media (orientation: landscape) and (max-height: 500px) {
+  .bottom-nav .bottom-nav-link {
+    min-height: 2.75rem;
+    padding-top: 0.35rem;
+    padding-bottom: 0.35rem;
+    gap: 0;
+  }
+  .bottom-nav .bottom-nav-link-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  .bottom-nav-link--active::before {
+    width: 1.25rem;
+  }
+  html.has-bottom-nav .app-content.app-content-with-bottom-nav {
+    padding-bottom: calc(3.75rem + env(safe-area-inset-bottom, 0px));
+  }
+  html.has-bottom-nav .floating-banner,
+  html.has-bottom-nav .floating-banner--toast {
+    bottom: calc(3.75rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* iPad / Stage Manager mid widths */
+@media (min-width: 820px) and (max-width: 1023px) {
+  .app-content {
+    padding-left: 1.75rem;
+    padding-right: 1.75rem;
+  }
+  .app-header-row {
+    gap: 0.65rem;
+  }
+}
+
+/* Press feedback on primary CTAs (reduce-motion safe) */
+@media (prefers-reduced-motion: no-preference) {
+  .btn-primary:active,
+  .btn-secondary:active {
+    transform: scale(0.97);
+  }
+  .toolbar-icon:active,
+  .bottom-nav-link:active {
+    transform: scale(0.94);
+  }
+}
+
+/* Pull-to-refresh accent ring */
+.ptr-ring {
+  position: relative;
+  width: 1.35rem;
+  height: 1.35rem;
+}
+.ptr-ring-track,
+.ptr-ring-progress {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  border: 2px solid transparent;
+}
+.ptr-ring-track {
+  border-color: var(--border-strong);
+}
+.ptr-ring-progress {
+  border-top-color: var(--accent);
+  border-right-color: var(--accent);
+}
+
+/* Sync conflict phone sheet */
+.sync-conflict-sheet {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 1500;
+  max-height: min(72dvh, 32rem);
+  overflow: auto;
+  background: var(--bg-elevated);
+  border-top: 1px solid var(--border-strong);
+  padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom, 0px));
+  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.28);
+}
+@media (min-width: 768px) {
+  .sync-conflict-sheet {
+    inset: auto auto 1.5rem 50%;
+    transform: translateX(-50%);
+    width: min(28rem, calc(100vw - 2rem));
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-box);
+    max-height: min(70vh, 28rem);
+    padding-bottom: 1rem;
+  }
 }
 
 /* Desktop sidebar layout: hide bottom tabs (JS also unmounts for mouse-only windows). */
@@ -1459,6 +1594,12 @@ select:focus {
   }
 }
 
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @keyframes scale-in {
   from {
     opacity: 0;
@@ -1610,8 +1751,17 @@ select:focus {
   .sync-just-added,
   .sync-chip--busy .sync-chip-dot,
   .app-content > *,
-  .modal-enter {
+  .modal-enter,
+  .modal-sheet,
+  .filters-sheet.modal-enter,
+  .sparkline-draw-on .recharts-area,
+  .sparkline-draw-on .recharts-area-curve {
     animation: none !important;
+    transition: none !important;
+  }
+  .sparkline-draw-on .recharts-layer path {
+    animation: none !important;
+    transition: none !important;
   }
 }
 
@@ -1641,6 +1791,10 @@ select:focus {
 
 .skeleton-card {
   min-height: 8rem;
+}
+
+.markets-holdings-skeleton .skeleton-card {
+  min-height: 3.5rem;
 }
 
 /* Todo list picker — vertical dropdown (portfolio-select style) */
@@ -1861,3 +2015,388 @@ html.glass [class*='table-wrap'] {
     -webkit-backdrop-filter: blur(12px);
   }
 }
+
+/* Glass Mode — visible focus rings on frosted controls */
+html.glass :focus-visible,
+html.glass button:focus-visible,
+html.glass a:focus-visible,
+html.glass input:focus-visible,
+html.glass textarea:focus-visible,
+html.glass select:focus-visible,
+html.glass .toolbar-icon:focus-visible,
+html.glass .toolbar-select:focus-visible,
+html.glass .bottom-nav-link:focus-visible,
+html.glass .sync-chip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+/* Markets holdings polish */
+.markets-row--stale {
+  box-shadow: inset 3px 0 0 color-mix(in srgb, #d97706 75%, transparent);
+}
+.markets-section-sticky {
+  backdrop-filter: blur(8px);
+}
+.holding-price-strip {
+  border-left: 3px solid var(--accent);
+}
+
+/* Today / Jobs / Todos polish (31–40) */
+.today-focus-card {
+  border-left: 3px solid var(--accent);
+}
+
+@keyframes todo-focus-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 0%, transparent);
+  }
+}
+.todo-focus-ring {
+  animation: todo-focus-pulse 1.1s ease-out 2;
+}
+@media (prefers-reduced-motion: reduce) {
+  .todo-focus-ring {
+    animation: none;
+  }
+}
+
+.kanban-snap-scroll {
+  -webkit-overflow-scrolling: touch;
+  scroll-padding-inline: 1rem;
+}
+
+.job-detail-action-bar {
+  position: fixed;
+  left: 0.75rem;
+  right: 0.75rem;
+  z-index: 35;
+  bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: stretch;
+  gap: 0.5rem;
+  padding: 0.625rem 0.75rem;
+  background: color-mix(in srgb, var(--bg-elevated) 94%, transparent);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg, 0.75rem);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 -4px 24px color-mix(in srgb, var(--bg) 40%, transparent);
+}
+.job-detail-action-bar > button {
+  flex: 1 1 auto;
+}
+html.has-bottom-nav .job-detail-action-bar {
+  bottom: calc(5.5rem + 0.5rem + env(safe-area-inset-bottom, 0px));
+}
+@media (min-width: 640px) {
+  .job-detail-action-bar {
+    display: none;
+  }
+}
+
+.filters-sheet {
+  animation: modal-sheet-up 0.28s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .filters-sheet {
+    animation: none;
+  }
+}
+
+/* iPad landscape — denser Trips / Goals lists */
+@media (min-width: 768px) and (orientation: landscape) {
+  .trips-list-density .trips-density-card,
+  .goals-list-density .goals-density-card {
+    padding: 1rem 1.25rem;
+  }
+  .goals-list-density .goals-density-card h3 {
+    font-size: 1.125rem;
+  }
+  .trips-list-density .trips-density-card .text-2xl {
+    font-size: 1.35rem;
+  }
+}
+
+/* next25 mobile interaction (11–15) */
+@keyframes settings-section-flash {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+  35% {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 55%, transparent);
+  }
+}
+.settings-section-flash {
+  animation: settings-section-flash 1.6s ease-out 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .settings-section-flash {
+    animation: none;
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
+html.large-text .today-net-worth-value,
+html.large-text .holding-price-strip,
+html.large-text .markets-quote-price {
+  font-size: 1.25em;
+  line-height: 1.2;
+}
+html.large-text .markets-section-sticky .font-bold.tracking-tight {
+  font-size: 1.15em;
+}
+
+/* Accessibility overrides (Settings → Accessibility / mydsp_a11y_*) */
+html.a11y-high-contrast.dark,
+html.a11y-high-contrast:root,
+html.dark.a11y-high-contrast {
+  --text-muted: #f9fafb;
+  --text-subtle: #f3f4f6;
+}
+html.light.a11y-high-contrast {
+  --text-muted: #111827;
+  --text-subtle: #1f2937;
+}
+
+html.a11y-reduce-motion *,
+html.a11y-reduce-motion *::before,
+html.a11y-reduce-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+.today-two-pane .today-markets-pane {
+  border-left: 3px solid color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+/* ----- next25b mobile ergonomics (11–15) ----- */
+
+/* 11: One-handed reachability — PageHeader actions below copy on phone */
+@media (max-width: 639px) {
+  .page-header {
+    display: flex;
+    flex-direction: column;
+  }
+  .page-header__copy {
+    order: 1;
+  }
+  .page-header__action {
+    order: 2;
+    align-self: stretch;
+    margin-top: 0.25rem;
+  }
+}
+
+/* Sticky bottom CTA cluster above bottom-nav (phone); hidden ≥sm */
+.thumb-cta-bar {
+  display: none;
+}
+@media (max-width: 639px) {
+  .thumb-cta-bar {
+    display: flex;
+    position: fixed;
+    left: 0;
+    right: 0;
+    z-index: 35;
+    bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: stretch;
+    gap: 0.5rem;
+    padding: 0.625rem 0.75rem;
+    background: color-mix(in srgb, var(--bg-elevated) 94%, transparent);
+    border-top: 1px solid var(--border);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 -4px 24px color-mix(in srgb, var(--bg) 40%, transparent);
+  }
+  .thumb-cta-bar > button,
+  .thumb-cta-bar > a {
+    flex: 1 1 auto;
+    min-height: 2.75rem;
+    justify-content: center;
+  }
+  html.has-bottom-nav .thumb-cta-bar {
+    bottom: calc(5.5rem + 0.25rem + env(safe-area-inset-bottom, 0px));
+  }
+  /* Spacer so list content clears the fixed bar */
+  .thumb-cta-bar-spacer {
+    height: calc(4.25rem + env(safe-area-inset-bottom, 0px));
+  }
+  html.has-bottom-nav .thumb-cta-bar-spacer {
+    height: calc(4.25rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+@media (min-width: 640px) {
+  .thumb-cta-bar-spacer {
+    display: none;
+  }
+}
+
+/* 14: Landscape tablet — sticky sidebar, hide bottom-nav (768–1023) */
+@media (orientation: landscape) and (min-width: 768px) and (max-width: 1023px) {
+  .app-sidebar-backdrop {
+    display: none !important;
+  }
+  .app-sidebar {
+    position: static !important;
+    transform: translateX(0) !important;
+    z-index: auto !important;
+    width: 14.5rem !important;
+    max-width: none !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+  .app-sidebar .sidebar-close-btn {
+    display: none !important;
+  }
+  .toolbar-menu-btn {
+    display: none !important;
+  }
+  .bottom-nav {
+    display: none !important;
+  }
+  html.has-bottom-nav .app-content.app-content-with-bottom-nav {
+    padding-bottom: calc(2rem + env(safe-area-inset-bottom, 0px));
+  }
+  html.has-bottom-nav .floating-banner,
+  html.has-bottom-nav .floating-banner--toast {
+    bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* 15: Haptic-style success flash (edge pulse + toast accent) */
+@keyframes success-haptic-edge {
+  0% {
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+html.success-haptic-flash::after {
+  content: '';
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--accent) 70%, transparent);
+  animation: success-haptic-edge 0.5s ease-out 1;
+}
+.toast-haptic-flash {
+  animation: settings-section-flash 0.7s ease-out 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  html.success-haptic-flash::after {
+    animation: none;
+    opacity: 1;
+    box-shadow: inset 0 0 0 2px var(--accent);
+    transition: opacity 0.35s ease-out;
+  }
+  .toast-haptic-flash {
+    animation: none;
+    outline: 2px solid color-mix(in srgb, var(--accent) 60%, transparent);
+    outline-offset: 1px;
+  }
+}
+
+/* next25c 11: Shared-element style page enter on route change */
+@keyframes page-route-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.page-route-transition {
+  animation: page-route-in 0.22s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .page-route-transition {
+    animation: none;
+  }
+}
+
+/* next25c 14: Split Settings sticky section nav (iPad / ≥900px) */
+.settings-split-nav {
+  display: none;
+}
+@media (min-width: 900px) {
+  .settings-split {
+    display: grid;
+    grid-template-columns: 11.5rem minmax(0, 1fr);
+    gap: 1.25rem;
+    align-items: start;
+  }
+  .settings-split-nav {
+    display: block;
+    position: sticky;
+    top: calc(var(--app-header-offset, 3.5rem) + 0.5rem);
+    max-height: calc(100dvh - var(--app-header-offset, 3.5rem) - 1.5rem);
+    overflow-y: auto;
+    padding: 0.25rem 0.15rem 0.5rem 0;
+    border-right: 1px solid var(--border);
+    padding-right: 0.75rem;
+  }
+  .settings-split-nav__title {
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-subtle);
+    margin: 0 0 0.5rem;
+    padding-left: 0.35rem;
+  }
+  .settings-split-nav__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+  }
+  .settings-split-nav__link {
+    display: block;
+    width: 100%;
+    text-align: left;
+    font-size: 0.8125rem;
+    line-height: 1.25;
+    padding: 0.4rem 0.5rem;
+    border-radius: var(--radius-control, 0.35rem);
+    color: var(--text-muted);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    min-height: 2rem;
+  }
+  .settings-split-nav__link:hover {
+    color: var(--text);
+    background: color-mix(in srgb, var(--surface-hover) 80%, transparent);
+  }
+  .settings-split-nav__link:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+  .settings-split-content {
+    min-width: 0;
+  }
+}
+

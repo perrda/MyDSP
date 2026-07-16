@@ -9,6 +9,8 @@ import {
 } from '../domain/youtube'
 
 const KEY = 'mydsp_youtube_v1'
+/** Legacy page-local key — migrated into YoutubeState.seenAt on first load. */
+const LEGACY_SEEN_KEY = 'mydsp_youtube_seen_at'
 
 function notifyChanged(opts?: { fromSync?: boolean }): void {
   try {
@@ -47,16 +49,34 @@ function normalizeChannel(c: YoutubeChannel, i: number): YoutubeChannel {
   }
 }
 
+function migrateLegacySeenAt(state: YoutubeState): YoutubeState {
+  if (state.seenAt) return state
+  try {
+    const legacy = localStorage.getItem(LEGACY_SEEN_KEY)
+    if (legacy) {
+      return { ...state, seenAt: legacy }
+    }
+  } catch {
+    /* ignore */
+  }
+  return state
+}
+
 export function loadYoutubeState(): YoutubeState {
   const existing = readRaw()
   if (existing) {
-    return {
+    const normalized = migrateLegacySeenAt({
       ...existing,
       version: 1,
       channels: existing.channels.map(normalizeChannel),
+      seenAt: typeof existing.seenAt === 'string' ? existing.seenAt : undefined,
+    })
+    if (normalized.seenAt && !existing.seenAt) {
+      writeState(normalized, { silent: true })
     }
+    return normalized
   }
-  const seeded = createEmptyYoutubeState()
+  const seeded = migrateLegacySeenAt(createEmptyYoutubeState())
   writeState(seeded)
   return seeded
 }
@@ -151,6 +171,21 @@ export function setYoutubeLastRefresh(iso: string): void {
   writeState(state, { silent: true })
 }
 
+export function getYoutubeSeenAt(): string {
+  return loadYoutubeState().seenAt ?? ''
+}
+
+export function setYoutubeSeenAt(iso: string): void {
+  const state = loadYoutubeState()
+  state.seenAt = iso
+  saveYoutubeState(state)
+  try {
+    localStorage.setItem(LEGACY_SEEN_KEY, iso)
+  } catch {
+    /* ignore */
+  }
+}
+
 export function exportYoutubeForBackup(): YoutubeState {
   return loadYoutubeState()
 }
@@ -165,6 +200,7 @@ export function importYoutubeFromBackup(raw: unknown): void {
       version: 1,
       channels,
       lastRefreshAt: parsed.lastRefreshAt,
+      seenAt: typeof parsed.seenAt === 'string' ? parsed.seenAt : undefined,
     },
     { fromSync: true },
   )

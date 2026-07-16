@@ -64,6 +64,10 @@ export interface EquityHolding {
   commentaries?: ProgressCommentary[]
   platform?: string
   contactUrl?: string
+  /** Optional dividend yield % — manual stub (also editable on Markets ticker) */
+  yieldPct?: number
+  /** Optional corporate-action stub note (split / dividend / rights) */
+  corporateActionNote?: string
 }
 
 export interface CreditCard {

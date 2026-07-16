@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { DataExportPanel } from '../components/DataExportPanel'
 import { SettingsSection } from '../components/SettingsSection'
+import { WhatsNewArchive } from '../components/WhatsNewArchive'
 import { PageHeader } from '../components/ui/PageHeader'
 import { openSettingsSection, setAllSettingsSectionsOpen } from '../storage/settingsSectionsStore'
 import { ConfirmDialog } from '../components/ui/Modal'
@@ -9,14 +10,37 @@ import { useSecurity } from '../components/SecurityProvider'
 import { usePortfolio } from '../context/PortfolioContext'
 import { useTheme, type ThemePreference } from '../context/ThemeContext'
 import { useGlass } from '../context/GlassContext'
+import {
+  applyLargeTextDom,
+  LARGE_TEXT_STORAGE_KEY,
+  loadLargeText,
+  saveLargeText,
+} from '../utils/largeText'
+import { isSyncTradeBackupSuccess, triggerSuccessFlash } from '../utils/successFlash'
+import {
+  A11Y_CHART_CB_KEY,
+  A11Y_HIGH_CONTRAST_KEY,
+  A11Y_REDUCED_MOTION_KEY,
+  applyA11yHighContrastDom,
+  applyA11yReducedMotionDom,
+  loadA11yChartColourBlind,
+  loadA11yHighContrast,
+  loadA11yReducedMotion,
+  saveA11yChartColourBlind,
+  saveA11yHighContrast,
+  saveA11yReducedMotion,
+} from '../utils/a11yPrefs'
 import { holdingHistoryKey, readHoldingHistory } from '../domain/holdingHistory'
 import type { HoldingPricePoint } from '../domain/holdingHistory'
 import { registerStaticPriceFile } from '../domain/staticPrices'
 import {
   clearOfflineQueue,
   enqueueOfflineJob,
+  isOfflineJobReady,
   isOnline,
+  jobsReadyToFlush,
   loadOfflineQueue,
+  markOfflineJobFailed,
   removeOfflineJob,
   type OfflineJob,
 } from '../services/offlineQueue'
@@ -29,7 +53,12 @@ import {
   type ConflictChoice,
   type SyncConflict,
 } from '../services/sync/conflicts'
+import { downloadConflictSummary, shareConflictSummary } from '../services/sync/conflictExport'
 import { loadSyncActivity, type SyncActivityEntry } from '../services/sync/syncActivity'
+import {
+  formatMarketsProviderHealthHint,
+  getMarketsProviderHealth,
+} from '../services/marketsProviderHealth'
 import {
   DEFAULT_LAUNCH_PATH,
   LAUNCH_PATH_OPTIONS,
@@ -42,6 +71,11 @@ import {
   savePriceAlertThresholds,
   type PriceAlertThreshold,
 } from '../domain/priceAlerts'
+import {
+  DEFAULT_HOLDINGS_DRIFT_PCT,
+  loadHoldingsDriftThresholdPct,
+  saveHoldingsDriftThresholdPct,
+} from '../domain/holdingsDrift'
 import {
   allConflictsResolved,
   applyMergePreview,
@@ -72,6 +106,11 @@ import {
   type NotificationSettings,
 } from '../utils/notifications'
 import {
+  isInQuietWindow,
+  nowPct,
+  quietSegments,
+} from '../domain/quietHoursTimeline'
+import {
   clearServiceWorkerCaches,
   createFullBackup,
   deleteFullBackup,
@@ -101,10 +140,31 @@ import {
   clearPendingAutoSyncConflicts,
   getAutoSyncStatus,
   getPendingAutoSyncConflicts,
+  isAutoSyncPaused,
+  pauseAutoSync,
+  resumeAutoSync,
   subscribeAutoSync,
   syncNow,
   type AutoSyncStatus,
 } from '../services/sync/autoSyncService'
+import { scorePassphraseStrength } from '../services/sync/passphraseStrength'
+import {
+  defaultDeviceNickname,
+  loadDeviceNickname,
+  saveDeviceNickname,
+} from '../services/sync/deviceNickname'
+import {
+  buildSyncSetupText,
+  copySyncSetupUrl,
+  downloadSyncSetupUrl,
+  drawSyncSetupCard,
+} from '../services/sync/syncSetupExport'
+import {
+  loadRecentSettingsJumps,
+  rankSettingsSections,
+  recordSettingsJump,
+  settingsSectionLabel,
+} from '../domain/settingsSearch'
 
 const TRADE_TEMPLATES = [
   { symbol: 'TSLA', kind: 'equity' as const, href: 'data/templates/trades-TSLA.csv' },
@@ -140,6 +200,7 @@ const BROKER_SAMPLE_TEMPLATES = [
 const SETTINGS_SECTION_IDS = [
   'sync',
   'appearance',
+  'accessibility',
   'layout',
   'fcc',
   'display',
@@ -157,29 +218,33 @@ const SETTINGS_SECTION_IDS = [
   'export',
   'reports',
   'versions',
+  'whats-new',
   'danger',
 ] as const
 
 const SETTINGS_SECTION_SEARCH: Record<(typeof SETTINGS_SECTION_IDS)[number], string> = {
-  sync: 'Encrypted cloud sync passphrase remote url push pull',
-  appearance: 'Light dark glass mode theme',
+  sync: 'Encrypted cloud sync passphrase remote url push pull dry-run device nickname setup url',
+  appearance: 'Light dark glass mode theme larger text accessibility',
+  accessibility:
+    'Accessibility larger text reduced motion high contrast colour blind chart palette a11y',
   layout: 'On launch favourites sidebar bottom nav',
   fcc: 'Sample FCC portfolio',
   display: 'Currency tax residency privacy',
   'trade-history': 'Broker CSV IBKR Trading 212 Coinbase trades',
   'price-history': 'Holding price history import',
-  security: 'PIN Face ID lock',
-  alerts: 'Notifications quiet hours price alerts desktop sound',
+  security: 'PIN Face ID lock biometric unlock timeout',
+  alerts: 'Notifications quiet hours price alerts desktop sound holdings drift',
   income: 'Income honesty',
   prices: 'Price refresh providers',
-  devices: 'Devices sync activity log',
+  devices: 'Devices sync activity log smoke checklist install PWA nickname',
   account: 'Cloud account OAuth identity',
   'open-banking': 'Open banking PSD2 bank feed',
   portfolios: 'Create rename delete portfolios',
   'full-backup': 'Encrypted full backup download restore',
   export: 'Export data CSV JSON',
   reports: 'PDF financial report',
-  versions: 'App version changelog',
+  versions: 'App version changelog rollback',
+  'whats-new': 'What’s new release notes archive versions changelog',
   danger: 'Reset clear all data danger zone',
 }
 
@@ -218,6 +283,11 @@ export function SettingsPage() {
   const { refreshSecurity, lock, pinEnabled } = useSecurity()
   const { theme, preference, setPreference } = useTheme()
   const { glass, setGlass } = useGlass()
+  const [largeText, setLargeTextState] = useState(() => loadLargeText())
+  const [a11yReducedMotion, setA11yReducedMotion] = useState(() => loadA11yReducedMotion())
+  const [a11yHighContrast, setA11yHighContrast] = useState(() => loadA11yHighContrast())
+  const [a11yChartCb, setA11yChartCb] = useState(() => loadA11yChartColourBlind())
+  const [layoutFlash, setLayoutFlash] = useState(false)
 
   const fileRef = useRef<HTMLInputElement>(null)
   const priceFileRef = useRef<HTMLInputElement>(null)
@@ -251,8 +321,27 @@ export function SettingsPage() {
   const [priceThresholds, setPriceThresholds] = useState<PriceAlertThreshold[]>(() =>
     loadPriceAlertThresholds(),
   )
+  const [driftPct, setDriftPct] = useState(() => loadHoldingsDriftThresholdPct())
   const [syncActivity, setSyncActivity] = useState<SyncActivityEntry[]>(() => loadSyncActivity())
+  const [quoteHealthHint, setQuoteHealthHint] = useState<string | null>(() =>
+    formatMarketsProviderHealthHint(),
+  )
+  const [quoteHealthOk, setQuoteHealthOk] = useState(() =>
+    getMarketsProviderHealth().every((p) => p.consecutiveFailures === 0),
+  )
   const [settingsQuery, setSettingsQuery] = useState('')
+  const [recentJumps, setRecentJumps] = useState<string[]>(() => loadRecentSettingsJumps())
+
+  const jumpToSettingsSection = (id: string) => {
+    openSettingsSection(id)
+    setRecentJumps(recordSettingsJump(id))
+    requestAnimationFrame(() => {
+      document.getElementById(id)?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      })
+    })
+  }
   const [cloudEmail, setCloudEmail] = useState(() => {
     try {
       return localStorage.getItem('mydsp_cloud_email') ?? ''
@@ -265,8 +354,14 @@ export function SettingsPage() {
     body: string
     confirmLabel?: string
     variant?: 'default' | 'danger'
+    holdMs?: number
     onConfirm: () => void
   } | null>(null)
+  const [showSyncPass, setShowSyncPass] = useState(false)
+  const [deviceNickname, setDeviceNickname] = useState(() => loadDeviceNickname())
+  const [dryRunSummary, setDryRunSummary] = useState<string | null>(null)
+  const [showSetupCard, setShowSetupCard] = useState(false)
+  const setupCanvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => subscribeAutoSync(setAutoSyncStatus), [])
 
@@ -274,6 +369,20 @@ export function SettingsPage() {
     const refresh = () => setSyncActivity(loadSyncActivity())
     window.addEventListener('mydsp-sync-activity', refresh)
     return () => window.removeEventListener('mydsp-sync-activity', refresh)
+  }, [])
+
+  useEffect(() => {
+    const refresh = () => {
+      setQuoteHealthHint(formatMarketsProviderHealthHint())
+      setQuoteHealthOk(getMarketsProviderHealth().every((p) => p.consecutiveFailures === 0))
+    }
+    refresh()
+    window.addEventListener('mydsp-markets-quotes', refresh)
+    const id = window.setInterval(refresh, 30_000)
+    return () => {
+      window.removeEventListener('mydsp-markets-quotes', refresh)
+      window.clearInterval(id)
+    }
   }, [])
 
   /** Hydrate parked auto-sync conflicts into the manual review UI. */
@@ -318,8 +427,42 @@ export function SettingsPage() {
       document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
     const t = window.setTimeout(scroll, 120)
-    return () => window.clearTimeout(t)
+    let flashClear: number | undefined
+    if (id === 'layout') {
+      setLayoutFlash(true)
+      flashClear = window.setTimeout(() => setLayoutFlash(false), 1800)
+    }
+    return () => {
+      window.clearTimeout(t)
+      if (flashClear) window.clearTimeout(flashClear)
+    }
   }, [location.hash, location.pathname])
+
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === LARGE_TEXT_STORAGE_KEY) {
+        const on = e.newValue === '1'
+        applyLargeTextDom(on)
+        setLargeTextState(on)
+      }
+      if (e.key === A11Y_REDUCED_MOTION_KEY) {
+        const on = e.newValue === '1'
+        applyA11yReducedMotionDom(on)
+        setA11yReducedMotion(on)
+        window.dispatchEvent(new Event('mydsp-a11y-change'))
+      }
+      if (e.key === A11Y_HIGH_CONTRAST_KEY) {
+        const on = e.newValue === '1'
+        applyA11yHighContrastDom(on)
+        setA11yHighContrast(on)
+      }
+      if (e.key === A11Y_CHART_CB_KEY) {
+        setA11yChartCb(e.newValue === '1')
+      }
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [])
 
   const refreshBackupList = () => {
     void listFullBackups()
@@ -335,6 +478,7 @@ export function SettingsPage() {
 
   const flash = (msg: string) => {
     setMessage(msg)
+    if (isSyncTradeBackupSuccess(msg)) triggerSuccessFlash()
     window.setTimeout(() => setMessage(null), 5000)
   }
 
@@ -531,50 +675,72 @@ export function SettingsPage() {
         description="Sections start collapsed — tap a header (Sync, Display, Security…) to expand. Cloud Sync is first."
       />
 
-      <div className="flex flex-wrap gap-2 mb-4 items-center" role="group" aria-label="Settings sections">
+      <div
+        className="settings-search-sticky sticky z-20 -mx-1 px-1 py-2 mb-4 flex flex-wrap gap-2 items-center bg-bg/95 backdrop-blur-sm border-b border-border/60"
+        style={{ top: 'var(--app-header-offset, 3.5rem)' }}
+        role="group"
+        aria-label="Settings sections"
+      >
         <label className="sr-only" htmlFor="settings-search">
           Search settings
         </label>
         <input
           id="settings-search"
           type="search"
-          className="toolbar-select flex-1 min-w-[12rem] max-w-md !w-auto px-3 py-2 text-sm"
+          className="toolbar-select flex-1 min-w-[12rem] max-w-md !w-auto px-3 py-2 text-sm min-h-11"
           placeholder="Search settings…"
           value={settingsQuery}
           onChange={(e) => {
             const q = e.target.value
             setSettingsQuery(q)
-            const needle = q.trim().toLowerCase()
+            const needle = q.trim()
             if (needle.length < 2) return
-            const hit = SETTINGS_SECTION_IDS.find((id) => {
-              const hay = `${id} ${SETTINGS_SECTION_SEARCH[id]}`.toLowerCase()
-              return hay.includes(needle)
-            })
+            const ranked = rankSettingsSections(
+              needle,
+              SETTINGS_SECTION_IDS,
+              SETTINGS_SECTION_SEARCH,
+            )
+            const hit = ranked[0]?.id
             if (!hit) return
-            openSettingsSection(hit)
-            requestAnimationFrame(() => {
-              document.getElementById(hit)?.scrollIntoView({
-                behavior: 'smooth',
-                block: 'start',
-              })
-            })
+            jumpToSettingsSection(hit)
           }}
           autoComplete="off"
         />
         <button
           type="button"
-          className="btn-secondary btn-sm"
+          className="btn-secondary btn-sm min-h-11"
           onClick={() => setAllSettingsSectionsOpen([...SETTINGS_SECTION_IDS], true)}
         >
           Expand all
         </button>
         <button
           type="button"
-          className="btn-ghost btn-sm"
+          className="btn-ghost btn-sm min-h-11"
           onClick={() => setAllSettingsSectionsOpen([...SETTINGS_SECTION_IDS], false)}
         >
           Collapse all
         </button>
+        {recentJumps.length > 0 ? (
+          <div
+            className="settings-recent-jumps flex flex-wrap gap-1.5 w-full basis-full mt-1"
+            role="group"
+            aria-label="Recent settings sections"
+          >
+            <span className="text-[11px] uppercase tracking-wider text-text-subtle font-semibold self-center mr-1">
+              Recent
+            </span>
+            {recentJumps.map((id) => (
+              <button
+                key={id}
+                type="button"
+                className="btn-ghost btn-sm min-h-9 text-xs"
+                onClick={() => jumpToSettingsSection(id)}
+              >
+                {settingsSectionLabel(id)}
+              </button>
+            ))}
+          </div>
+        ) : null}
       </div>
 
       {message && (
@@ -583,10 +749,30 @@ export function SettingsPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-px">
+      <div className="settings-split">
+        <nav
+          className="settings-split-nav"
+          aria-label="Settings sections"
+        >
+          <p className="settings-split-nav__title">Sections</p>
+          <ul className="settings-split-nav__list">
+            {SETTINGS_SECTION_IDS.map((id) => (
+              <li key={id}>
+                <button
+                  type="button"
+                  className="settings-split-nav__link"
+                  onClick={() => jumpToSettingsSection(id)}
+                >
+                  {settingsSectionLabel(id)}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </nav>
+        <div className="settings-split-content grid grid-cols-1 gap-px">
         <SettingsSection id="sync" eyebrow="Sync" title="Encrypted cloud sync">
           <p className="text-sm text-text-muted font-light mb-4 max-w-2xl">
-            On iPhone / iPad: pull down on any screen to sync across devices. Same Remote URL +
+            On iPhone / iPad: pull down on Today or Markets to sync across devices. Same Remote URL +
             passphrase on Mac, iPhone, and iPad. Turn on{' '}
             <span className="text-text font-medium">Automatic sync</span> and{' '}
             <span className="text-text font-medium">Remember passphrase</span> so sync works after
@@ -594,6 +780,30 @@ export function SettingsPage() {
             an edit to push, and a pull when you open/focus the app, pull-to-refresh, or about once
             a minute while it stays open.
           </p>
+          <div
+            className={`quote-worker-health mb-4 inline-flex items-center gap-2 px-2.5 py-1.5 text-xs border max-w-2xl ${
+              quoteHealthHint
+                ? 'border-amber-500/50 text-amber-700 dark:text-amber-300'
+                : quoteHealthOk
+                  ? 'border-emerald-500/40 text-emerald-700 dark:text-emerald-300'
+                  : 'border-border text-text-muted'
+            }`}
+            role="status"
+            aria-label="Quote Worker health"
+          >
+            <span
+              className={`w-1.5 h-1.5 shrink-0 rounded-full ${
+                quoteHealthHint ? 'bg-amber-500' : quoteHealthOk ? 'bg-emerald-500' : 'bg-text-subtle'
+              }`}
+              aria-hidden
+            />
+            <span className="font-semibold tracking-wide uppercase text-[10px] opacity-80">
+              Quote Worker
+            </span>
+            <span className="font-light">
+              {quoteHealthHint ?? (quoteHealthOk ? 'Healthy · markets feeds OK' : 'No recent feed checks')}
+            </span>
+          </div>
           <div className="border border-border p-4 mb-6 max-w-2xl space-y-4">
             <div>
               <p className="text-[11px] font-bold uppercase tracking-widest text-text-subtle mb-3">
@@ -636,28 +846,50 @@ export function SettingsPage() {
           <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle mb-2">
             Remote URL
           </label>
-          <input
-            type="url"
-            className="mb-4 w-full max-w-4xl min-h-12 text-sm break-all"
-            placeholder="https://mydsp-sync.YOUR_SUBDOMAIN.workers.dev?key=YOUR_SECRET"
-            value={syncCfg.remoteUrl}
-            onChange={(e) => {
-              const next = { ...syncCfg, remoteUrl: e.target.value }
-              setSyncCfg(next)
-              saveSyncConfig(next)
-            }}
-            onBlur={() => {
-              const normalized = normalizeSyncRemoteUrl(syncCfg.remoteUrl)
-              if (normalized === syncCfg.remoteUrl) return
-              const next = { ...syncCfg, remoteUrl: normalized }
-              setSyncCfg(next)
-              saveSyncConfig(next)
-            }}
-            spellCheck={false}
-            autoCapitalize="off"
-            autoCorrect="off"
-            title={syncCfg.remoteUrl || undefined}
-          />
+          <div className="flex flex-wrap gap-2 mb-4 max-w-4xl items-stretch">
+            <input
+              type="url"
+              className="flex-1 min-w-[12rem] min-h-12 text-sm break-all"
+              placeholder="https://mydsp-sync.YOUR_SUBDOMAIN.workers.dev?key=YOUR_SECRET"
+              value={syncCfg.remoteUrl}
+              onChange={(e) => {
+                const next = { ...syncCfg, remoteUrl: e.target.value }
+                setSyncCfg(next)
+                saveSyncConfig(next)
+              }}
+              onBlur={() => {
+                const normalized = normalizeSyncRemoteUrl(syncCfg.remoteUrl)
+                if (normalized === syncCfg.remoteUrl) return
+                const next = { ...syncCfg, remoteUrl: normalized }
+                setSyncCfg(next)
+                saveSyncConfig(next)
+              }}
+              spellCheck={false}
+              autoCapitalize="off"
+              autoCorrect="off"
+              title={syncCfg.remoteUrl || undefined}
+            />
+            <button
+              type="button"
+              className="btn-secondary btn-sm min-h-12 shrink-0"
+              onClick={() => {
+                void (async () => {
+                  try {
+                    const text = await navigator.clipboard.readText()
+                    const normalized = normalizeSyncRemoteUrl(text.trim())
+                    const next = { ...syncCfg, remoteUrl: normalized }
+                    setSyncCfg(next)
+                    saveSyncConfig(next)
+                    flash('Pasted Remote URL from clipboard.')
+                  } catch {
+                    flash('Could not read clipboard — paste manually.')
+                  }
+                })()
+              }}
+            >
+              Paste
+            </button>
+          </div>
           {syncCfg.remoteUrl ? (
             <p className="text-xs text-text-subtle mb-2 -mt-2 max-w-4xl break-all font-mono">
               {syncCfg.remoteUrl}
@@ -668,21 +900,145 @@ export function SettingsPage() {
               {getSyncRemoteUrlWarning(syncCfg.remoteUrl)}
             </p>
           ) : null}
+          <div className="mb-4 max-w-md space-y-2">
+            <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle">
+              Device nickname
+              <input
+                type="text"
+                className="mt-2 w-full min-h-11"
+                value={deviceNickname}
+                placeholder={defaultDeviceNickname()}
+                maxLength={40}
+                onChange={(e) => setDeviceNickname(e.target.value)}
+                onBlur={() => {
+                  const next = saveDeviceNickname(deviceNickname)
+                  setDeviceNickname(next)
+                  flash(`Device nickname saved: ${next}`)
+                }}
+              />
+            </label>
+            <p className="text-xs text-text-subtle font-light">
+              Shown in sync activity and conflict sheet. Stored only on this install (
+              <code className="text-accent">mydsp_device_nickname</code>).
+            </p>
+          </div>
+          <div className="mb-6 max-w-2xl border border-border/60 p-3 space-y-2 sync-setup-url-card">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-text-subtle">
+              Scan / setup URL
+            </p>
+            <p className="text-xs text-text-muted font-light">
+              Share the Remote URL only — never the passphrase. Copy, download a text file, or show a
+              setup card.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="btn-secondary btn-sm"
+                disabled={!syncCfg.remoteUrl.trim()}
+                onClick={() => {
+                  void (async () => {
+                    const ok = await copySyncSetupUrl(syncCfg.remoteUrl)
+                    flash(ok ? 'Remote URL copied (passphrase not included).' : 'Could not copy.')
+                  })()
+                }}
+              >
+                Copy setup URL
+              </button>
+              <button
+                type="button"
+                className="btn-ghost btn-sm"
+                disabled={!syncCfg.remoteUrl.trim()}
+                onClick={() => {
+                  downloadSyncSetupUrl(syncCfg.remoteUrl)
+                  flash('Downloaded mydsp-sync-setup-url.txt')
+                }}
+              >
+                Download .txt
+              </button>
+              <button
+                type="button"
+                className="btn-ghost btn-sm"
+                disabled={!syncCfg.remoteUrl.trim()}
+                onClick={() => {
+                  setShowSetupCard((v) => !v)
+                  requestAnimationFrame(() => {
+                    if (setupCanvasRef.current) {
+                      drawSyncSetupCard(setupCanvasRef.current, syncCfg.remoteUrl)
+                    }
+                  })
+                }}
+              >
+                {showSetupCard ? 'Hide card' : 'Show setup card'}
+              </button>
+            </div>
+            {showSetupCard ? (
+              <canvas
+                ref={setupCanvasRef}
+                className="mt-2 max-w-full border border-border"
+                width={360}
+                height={220}
+                aria-label={buildSyncSetupText(syncCfg.remoteUrl)}
+              />
+            ) : null}
+          </div>
           <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle mb-2">
             Passphrase
           </label>
-          <input
-            type="password"
-            className="mb-3 w-full max-w-md"
-            autoComplete="new-password"
-            placeholder="Sync passphrase (min 8 chars)"
-            value={syncPass}
-            onChange={(e) => {
-              const v = e.target.value
-              setSyncPass(v)
-              setSessionSyncPassphrase(v, { remember: Boolean(syncCfg.rememberPassphrase) })
-            }}
-          />
+          <div className="flex flex-wrap gap-2 mb-1 max-w-md items-stretch">
+            <input
+              type={showSyncPass ? 'text' : 'password'}
+              className="flex-1 min-h-11"
+              autoComplete="new-password"
+              placeholder="Sync passphrase (min 8 chars)"
+              value={syncPass}
+              onChange={(e) => {
+                const v = e.target.value
+                setSyncPass(v)
+                setSessionSyncPassphrase(v, { remember: Boolean(syncCfg.rememberPassphrase) })
+              }}
+            />
+            <button
+              type="button"
+              className="btn-ghost btn-sm min-h-11 shrink-0"
+              aria-pressed={showSyncPass}
+              onClick={() => setShowSyncPass((v) => !v)}
+            >
+              {showSyncPass ? 'Hide' : 'Show'}
+            </button>
+          </div>
+          {(() => {
+            const strength = scorePassphraseStrength(syncPass)
+            const pct = (strength.score / 4) * 100
+            return (
+              <div className="passphrase-strength mb-3 max-w-md" aria-live="polite">
+                <div
+                  className="h-1.5 w-full bg-border/60 overflow-hidden"
+                  role="meter"
+                  aria-label="Passphrase strength"
+                  aria-valuemin={0}
+                  aria-valuemax={4}
+                  aria-valuenow={strength.score}
+                  aria-valuetext={strength.label}
+                >
+                  <div
+                    className={`h-full transition-[width] duration-200 ${
+                      strength.score <= 1
+                        ? 'bg-accent/70'
+                        : strength.score === 2
+                          ? 'bg-amber-500'
+                          : 'bg-emerald-500'
+                    }`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+                {syncPass ? (
+                  <p className="text-[10px] text-text-subtle mt-1 font-medium tracking-wide uppercase">
+                    Strength: {strength.label}
+                  </p>
+                ) : null}
+              </div>
+            )
+          })()}
           <div className="flex flex-col gap-3 mb-6 max-w-2xl">
             <label className="flex items-start gap-3 cursor-pointer">
               <input
@@ -779,7 +1135,102 @@ export function SettingsPage() {
             </label>
           </div>
           {(syncCfg.enabled || autoSyncStatus.state !== 'disabled') && (
-            <p className="text-xs text-text-subtle mb-4" role="status">
+            <div
+              className="sync-health-dashboard mb-4 max-w-2xl border border-border p-4 space-y-2"
+              role="region"
+              aria-label="Sync health"
+            >
+              <p className="text-[11px] font-bold uppercase tracking-widest text-text-subtle">
+                Sync health
+              </p>
+              <ul className="text-xs text-text-muted space-y-1.5 font-light">
+                <li>
+                  Status:{' '}
+                  <span className="text-text font-medium">
+                    {autoSyncStatus.state}
+                    {autoSyncStatus.message ? ` — ${autoSyncStatus.message}` : ''}
+                  </span>
+                </li>
+                <li>
+                  Last sync:{' '}
+                  <span className="text-text font-medium">
+                    {syncCfg.lastSyncAt
+                      ? new Date(syncCfg.lastSyncAt).toLocaleString('en-GB')
+                      : 'Never'}
+                  </span>
+                  {autoSyncStatus.lastAt && syncCfg.lastSyncAt !== autoSyncStatus.lastAt
+                    ? ` · auto ${new Date(autoSyncStatus.lastAt).toLocaleString('en-GB')}`
+                    : ''}
+                </li>
+                <li>
+                  Passphrase:{' '}
+                  <span className="text-text font-medium">
+                    {syncPass || getSessionSyncPassphrase()
+                      ? syncCfg.rememberPassphrase
+                        ? 'In session · remembered'
+                        : 'In session'
+                      : 'Not set this session'}
+                  </span>
+                </li>
+                <li>
+                  Offline queue:{' '}
+                  <span className="text-text font-medium">
+                    {queue.length === 0
+                      ? 'Empty'
+                      : `${queue.length} job(s) · ${jobsReadyToFlush(queue).length} ready`}
+                  </span>
+                </li>
+                <li>
+                  Quote Worker:{' '}
+                  <span className="text-text font-medium">
+                    {quoteHealthHint ?? (quoteHealthOk ? 'Healthy' : 'No recent checks')}
+                  </span>
+                </li>
+                {syncCfg.lastSyncError ? (
+                  <li className="text-accent" role="alert">
+                    Last error: {syncCfg.lastSyncError}
+                  </li>
+                ) : null}
+                {isAutoSyncPaused(syncCfg) ? (
+                  <li>
+                    Paused until{' '}
+                    <span className="text-text font-medium">
+                      {new Date(syncCfg.pausedUntil!).toLocaleString('en-GB')}
+                    </span>
+                  </li>
+                ) : null}
+              </ul>
+              <div className="pt-1">
+                {isAutoSyncPaused(syncCfg) ? (
+                  <button
+                    type="button"
+                    className="btn-secondary btn-sm"
+                    onClick={() => {
+                      const next = resumeAutoSync({ toast: true })
+                      setSyncCfg(next)
+                      flash('Sync resumed')
+                    }}
+                  >
+                    Resume
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn-ghost btn-sm"
+                    onClick={() => {
+                      const next = pauseAutoSync(3_600_000)
+                      setSyncCfg(next)
+                      flash('Auto-sync paused for 1 hour.')
+                    }}
+                  >
+                    Pause 1 hour
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+          {(syncCfg.enabled || autoSyncStatus.state !== 'disabled') && (
+            <p className="text-xs text-text-subtle mb-4 sr-only" role="status">
               Auto-sync status:{' '}
               <span className="text-text">
                 {autoSyncStatus.state}
@@ -926,6 +1377,48 @@ export function SettingsPage() {
             </button>
             <button
               type="button"
+              className="btn-ghost"
+              onClick={() => {
+                void (async () => {
+                  if (!syncPass || !syncCfg.remoteUrl) {
+                    flash('Need remote URL and passphrase for dry-run.')
+                    return
+                  }
+                  try {
+                    const preview = await previewPull(syncCfg.remoteUrl, syncPass)
+                    // Dry-run: stage preview for review UI; do not write local data
+                    setPendingMerge(preview)
+                    setConflicts(preview.conflicts)
+                    setConflictChoices({})
+                    const newCount = preview.portfolios.filter((p) => p.isNew).length
+                    const changed = preview.portfolios.length - newCount
+                    const summary = [
+                      `Dry-run pull (nothing written)`,
+                      `${preview.portfolios.length} portfolio(s)`,
+                      newCount ? `${newCount} new` : null,
+                      changed ? `${changed} existing` : null,
+                      preview.conflicts.length
+                        ? `${preview.conflicts.length} conflict(s)`
+                        : 'no conflicts',
+                      preview.documentBlobs?.length
+                        ? `${preview.documentBlobs.length} attachment(s)`
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')
+                    setDryRunSummary(summary)
+                    flash(summary)
+                  } catch (e) {
+                    setDryRunSummary(null)
+                    flash(e instanceof Error ? e.message : 'Dry-run pull failed')
+                  }
+                })()
+              }}
+            >
+              Dry-run pull
+            </button>
+            <button
+              type="button"
               className="btn-secondary"
               onClick={() => {
                 void (async () => {
@@ -1066,6 +1559,19 @@ export function SettingsPage() {
               }}
             />
           </div>
+          {dryRunSummary ? (
+            <p className="text-xs text-amber-600 dark:text-amber-400 mb-2" role="status">
+              {dryRunSummary}
+              {' · '}
+              <button
+                type="button"
+                className="underline"
+                onClick={() => setDryRunSummary(null)}
+              >
+                Dismiss
+              </button>
+            </p>
+          ) : null}
           {pendingMerge && (
             <p className="text-xs text-amber-600 dark:text-amber-400 mb-2">
               Pending {pendingMerge.source} review
@@ -1119,6 +1625,9 @@ export function SettingsPage() {
                     </span>
                     {' · '}
                     {e.message}
+                    {e.deviceHint ? (
+                      <span className="text-text-subtle"> · {e.deviceHint.slice(0, 24)}</span>
+                    ) : null}
                     {e.conflicts ? ` · ${e.conflicts} conflict(s)` : ''}
                   </li>
                 ))}
@@ -1145,10 +1654,13 @@ export function SettingsPage() {
                         let flushed = 0
                         let failed = false
                         let quotesSkipped = 0
+                        let deferred = 0
                         for (const job of loadOfflineQueue()) {
+                          if (!isOfflineJobReady(job)) {
+                            deferred++
+                            continue
+                          }
                           if (job.type === 'quote_refresh') {
-                            // Quote refresh is handled on reconnect by PortfolioContext;
-                            // drop stale queue entries rather than pretending we refreshed.
                             removeOfflineJob(job.id)
                             quotesSkipped++
                             continue
@@ -1165,7 +1677,11 @@ export function SettingsPage() {
                               removeOfflineJob(job.id)
                               flushed++
                             } catch (e) {
-                              flash(e instanceof Error ? e.message : 'Flush failed')
+                              markOfflineJobFailed(
+                                job.id,
+                                e instanceof Error ? e.message : 'Flush failed',
+                              )
+                              flash(e instanceof Error ? e.message : 'Flush failed — will retry with backoff')
                               failed = true
                               break
                             }
@@ -1174,7 +1690,8 @@ export function SettingsPage() {
                         setQueue(loadOfflineQueue())
                         if (!failed) {
                           const bits = [`Flushed ${flushed} sync job(s)`]
-                          if (quotesSkipped) bits.push(`cleared ${quotesSkipped} quote job(s) (auto-refresh on reconnect)`)
+                          if (quotesSkipped) bits.push(`cleared ${quotesSkipped} quote job(s)`)
+                          if (deferred) bits.push(`${deferred} waiting on backoff`)
                           flash(bits.join(' · ') + '.')
                         }
                       })()
@@ -1194,11 +1711,24 @@ export function SettingsPage() {
                   </button>
                 </div>
               </div>
-              <ul className="text-sm text-text-muted space-y-1">
+              <ul className="text-sm text-text-muted space-y-2">
                 {queue.map((j) => (
-                  <li key={j.id}>
-                    {j.type.replace('_', ' ')} · {new Date(j.createdAt).toLocaleString('en-GB')}
-                    {j.note ? ` — ${j.note}` : ''}
+                  <li key={j.id} className="flex flex-wrap items-center justify-between gap-2">
+                    <span>
+                      {j.type.replace('_', ' ')} · {new Date(j.createdAt).toLocaleString('en-GB')}
+                      {j.attempts ? ` · try ${j.attempts}` : ''}
+                      {j.nextRetryAt && !isOfflineJobReady(j)
+                        ? ` · retry after ${new Date(j.nextRetryAt).toLocaleTimeString('en-GB')}`
+                        : ''}
+                      {j.note ? ` — ${j.note}` : ''}
+                    </span>
+                    <button
+                      type="button"
+                      className="btn-ghost btn-sm min-h-11"
+                      onClick={() => setQueue(removeOfflineJob(j.id))}
+                    >
+                      Cancel
+                    </button>
                   </li>
                 ))}
               </ul>
@@ -1206,7 +1736,7 @@ export function SettingsPage() {
           )}
 
           {conflicts.length > 0 && (
-            <div id="sync-conflicts-panel" className="mt-6 border border-border p-4 space-y-3">
+            <div id="sync-conflicts-panel" className="mt-6 border border-border p-4 space-y-3" tabIndex={-1}>
               <p className="text-sm font-semibold">Sync conflicts</p>
               <p className="text-xs text-text-muted font-light">
                 {summarizeConflictBatch(conflicts)} Nothing has been written yet — pick Keep local
@@ -1234,6 +1764,29 @@ export function SettingsPage() {
                   }}
                 >
                   Keep all remote (newest from other device)
+                </button>
+                <button
+                  type="button"
+                  className="btn-secondary btn-sm"
+                  onClick={() => {
+                    downloadConflictSummary(conflicts)
+                    flash('Downloaded conflict summary.')
+                  }}
+                >
+                  Export summary
+                </button>
+                <button
+                  type="button"
+                  className="btn-ghost btn-sm"
+                  onClick={() => {
+                    void (async () => {
+                      const r = await shareConflictSummary(conflicts)
+                      if (r === 'shared') flash('Shared conflict summary.')
+                      else if (r === 'downloaded') flash('Downloaded conflict summary.')
+                    })()
+                  }}
+                >
+                  Share summary
                 </button>
               </div>
               {conflicts.map((c) => {
@@ -1309,6 +1862,23 @@ export function SettingsPage() {
             light after approximate sunrise, dark after sunset (local time). Choose Light or Dark
             to lock a theme. Header moon toggle also locks Light/Dark.
           </p>
+          <div
+            className="appearance-preview mb-6 grid grid-cols-3 gap-2 max-w-lg"
+            aria-hidden
+          >
+            <div className={`rounded-lg border border-border p-3 ${theme === 'light' && preference !== 'auto' ? 'ring-2 ring-accent' : ''}`}>
+              <div className="h-8 rounded bg-white border border-border mb-2" />
+              <p className="text-[10px] font-bold uppercase tracking-wider text-text-subtle">Light</p>
+            </div>
+            <div className={`rounded-lg border border-border p-3 ${theme === 'dark' && preference !== 'auto' ? 'ring-2 ring-accent' : ''}`}>
+              <div className="h-8 rounded bg-black border border-border mb-2" />
+              <p className="text-[10px] font-bold uppercase tracking-wider text-text-subtle">Dark</p>
+            </div>
+            <div className={`rounded-lg border border-border p-3 ${glass ? 'ring-2 ring-accent' : ''}`}>
+              <div className="h-8 rounded border border-border mb-2 bg-gradient-to-br from-white/40 to-black/30 backdrop-blur-sm" />
+              <p className="text-[10px] font-bold uppercase tracking-wider text-text-subtle">Glass</p>
+            </div>
+          </div>
           <div className="flex flex-wrap gap-2 mb-3" role="group" aria-label="Theme preference">
             {(
               [
@@ -1369,9 +1939,196 @@ export function SettingsPage() {
               Glass Off
             </button>
           </div>
+
+          <p className="text-sm text-text-muted font-light mb-3 mt-8 max-w-2xl">
+            <span className="text-text font-medium">Larger text</span> scales prices, holdings, and
+            Markets figures for easier reading (Dynamic Type–style). Also in{' '}
+            <a href="#accessibility" className="text-accent font-medium">
+              Accessibility
+            </a>
+            .
+          </p>
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Larger text">
+            <button
+              type="button"
+              className={largeText ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
+              aria-pressed={largeText}
+              onClick={() => {
+                applyLargeTextDom(true)
+                saveLargeText(true)
+                setLargeTextState(true)
+                flash('Larger text on.')
+              }}
+            >
+              Larger text On
+            </button>
+            <button
+              type="button"
+              className={!largeText ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
+              aria-pressed={!largeText}
+              onClick={() => {
+                applyLargeTextDom(false)
+                saveLargeText(false)
+                setLargeTextState(false)
+                flash('Larger text off.')
+              }}
+            >
+              Larger text Off
+            </button>
+          </div>
         </SettingsSection>
 
-        <SettingsSection id="layout" eyebrow="Layout" title="Sidebar Favourites">
+        <SettingsSection id="accessibility" eyebrow="Accessibility" title="Reading & motion">
+          <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
+            Preferences persist as <span className="text-text font-medium">mydsp_a11y_*</span> keys
+            and apply html classes on load. Larger text also lives under Appearance.
+          </p>
+
+          <p className="text-sm text-text-muted font-light mb-3 max-w-2xl">
+            <span className="text-text font-medium">Larger text</span> — same control as{' '}
+            <a href="#appearance" className="text-accent font-medium">
+              Appearance
+            </a>
+            .
+          </p>
+          <div className="flex flex-wrap gap-2 mb-8" role="group" aria-label="Larger text accessibility">
+            <button
+              type="button"
+              className={largeText ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
+              aria-pressed={largeText}
+              onClick={() => {
+                applyLargeTextDom(true)
+                saveLargeText(true)
+                setLargeTextState(true)
+                flash('Larger text on.')
+              }}
+            >
+              On
+            </button>
+            <button
+              type="button"
+              className={!largeText ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
+              aria-pressed={!largeText}
+              onClick={() => {
+                applyLargeTextDom(false)
+                saveLargeText(false)
+                setLargeTextState(false)
+                flash('Larger text off.')
+              }}
+            >
+              Off
+            </button>
+          </div>
+
+          <p className="text-sm text-text-muted font-light mb-3 max-w-2xl">
+            <span className="text-text font-medium">Respect reduced motion</span> overrides system
+            preference and disables animations app-wide (
+            <code className="text-xs">mydsp_a11y_reduced_motion</code>).
+          </p>
+          <div className="flex flex-wrap gap-2 mb-8" role="group" aria-label="Reduced motion override">
+            <button
+              type="button"
+              className={a11yReducedMotion ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
+              aria-pressed={a11yReducedMotion}
+              onClick={() => {
+                saveA11yReducedMotion(true)
+                applyA11yReducedMotionDom(true)
+                setA11yReducedMotion(true)
+                window.dispatchEvent(new Event('mydsp-a11y-change'))
+                flash('Reduced motion override on.')
+              }}
+            >
+              On
+            </button>
+            <button
+              type="button"
+              className={!a11yReducedMotion ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
+              aria-pressed={!a11yReducedMotion}
+              onClick={() => {
+                saveA11yReducedMotion(false)
+                applyA11yReducedMotionDom(false)
+                setA11yReducedMotion(false)
+                window.dispatchEvent(new Event('mydsp-a11y-change'))
+                flash('Reduced motion override off.')
+              }}
+            >
+              Off
+            </button>
+          </div>
+
+          <p className="text-sm text-text-muted font-light mb-3 max-w-2xl">
+            <span className="text-text font-medium">High contrast muted text</span> strengthens
+            secondary copy contrast (
+            <code className="text-xs">mydsp_a11y_high_contrast</code>).
+          </p>
+          <div className="flex flex-wrap gap-2 mb-8" role="group" aria-label="High contrast muted text">
+            <button
+              type="button"
+              className={a11yHighContrast ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
+              aria-pressed={a11yHighContrast}
+              onClick={() => {
+                saveA11yHighContrast(true)
+                applyA11yHighContrastDom(true)
+                setA11yHighContrast(true)
+                flash('High contrast muted text on.')
+              }}
+            >
+              On
+            </button>
+            <button
+              type="button"
+              className={!a11yHighContrast ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
+              aria-pressed={!a11yHighContrast}
+              onClick={() => {
+                saveA11yHighContrast(false)
+                applyA11yHighContrastDom(false)
+                setA11yHighContrast(false)
+                flash('High contrast muted text off.')
+              }}
+            >
+              Off
+            </button>
+          </div>
+
+          <p className="text-sm text-text-muted font-light mb-3 max-w-2xl">
+            <span className="text-text font-medium">Colour-blind safe charts</span> switches
+            allocation rings to a blue / orange / vermillion-safe palette (
+            <code className="text-xs">mydsp_a11y_chart_cb</code>).
+          </p>
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Colour-blind safe charts">
+            <button
+              type="button"
+              className={a11yChartCb ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
+              aria-pressed={a11yChartCb}
+              onClick={() => {
+                saveA11yChartColourBlind(true)
+                setA11yChartCb(true)
+                flash('Colour-blind safe chart palette on — reopen charts to apply.')
+              }}
+            >
+              On
+            </button>
+            <button
+              type="button"
+              className={!a11yChartCb ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
+              aria-pressed={!a11yChartCb}
+              onClick={() => {
+                saveA11yChartColourBlind(false)
+                setA11yChartCb(false)
+                flash('Default chart palette restored.')
+              }}
+            >
+              Off
+            </button>
+          </div>
+        </SettingsSection>
+
+        <SettingsSection
+          id="layout"
+          eyebrow="Layout"
+          title="Sidebar Favourites"
+          className={layoutFlash ? 'settings-section-flash' : ''}
+        >
           <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
             Open the menu and tap <span className="text-text font-medium">Sort</span> to show grab
             handles and ★ controls. Pin sections to Favourites (always on top); everything else
@@ -1711,25 +2468,32 @@ export function SettingsPage() {
             )}
           </div>
           <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle mb-2">
-            Auto-lock (minutes)
+            Biometric unlock timeout
           </label>
           <select
             className="max-w-xs mb-2"
             value={sec.autoLockMinutes}
+            aria-label="Biometric unlock timeout"
             onChange={(e) => {
               const autoLockMinutes = Number(e.target.value)
               persistSecurity({ ...sec, autoLockMinutes })
-              flash('Auto-lock updated.')
+              flash('Unlock timeout updated.')
             }}
           >
-            {[0, 1, 5, 15, 30].map((m) => (
+            {[
+              { m: 0, label: 'Immediate' },
+              { m: 1, label: '1 min' },
+              { m: 5, label: '5 min' },
+              { m: 15, label: '15 min' },
+            ].map(({ m, label }) => (
               <option key={m} value={m}>
-                {m === 0 ? 'Off (manual lock only)' : `${m} min`}
+                {label}
               </option>
             ))}
           </select>
           <p className="text-xs text-text-subtle mb-6 max-w-xl">
-            When auto-lock is on, MyDSP also locks when you leave the app (iPhone/iPad app switcher).
+            Immediate locks when you leave the app. Timed options also lock after idle. Face ID / PIN
+            unlock resets the idle timer.
           </p>
           <div className="flex flex-wrap gap-3 items-start">
             <button
@@ -1883,6 +2647,49 @@ export function SettingsPage() {
                 />
               </label>
             </div>
+            <div
+              className="quiet-hours-timeline"
+              aria-label="Quiet hours preview"
+            >
+              {(() => {
+                const start = notifSettings.quietHoursStart ?? '22:00'
+                const end = notifSettings.quietHoursEnd ?? '07:00'
+                const segs = quietSegments(start, end)
+                const marker = nowPct()
+                const quietNow = isInQuietWindow(start, end)
+                return (
+                  <>
+                    <div className="relative h-3 rounded-sm bg-surface-hover border border-border overflow-hidden">
+                      {segs.map((seg, i) => (
+                        <div
+                          key={i}
+                          className="absolute inset-y-0 bg-accent/35"
+                          style={{
+                            left: `${seg.startPct}%`,
+                            width: `${Math.max(0, seg.endPct - seg.startPct)}%`,
+                          }}
+                        />
+                      ))}
+                      <div
+                        className="absolute top-0 bottom-0 w-0.5 bg-text z-10"
+                        style={{ left: `calc(${marker}% - 1px)` }}
+                        title="Now"
+                      />
+                    </div>
+                    <div className="flex justify-between text-[10px] text-text-subtle mt-1 tabular-nums">
+                      <span>00:00</span>
+                      <span>12:00</span>
+                      <span>24:00</span>
+                    </div>
+                    <p className="text-xs text-text-muted mt-1.5 font-light">
+                      {quietNow
+                        ? `Quiet now · banners off until ${end}`
+                        : `Active now · quiet ${start}–${end}`}
+                    </p>
+                  </>
+                )
+              })()}
+            </div>
             <p className="text-xs text-text-subtle">
               Desktop banners are suppressed between these times (overnight ranges supported).
             </p>
@@ -1998,6 +2805,47 @@ export function SettingsPage() {
                 </button>
               </div>
             </div>
+
+            <div className="pt-4 border-t border-border">
+              <p className="text-xs font-bold uppercase tracking-widest text-text-subtle mb-2">
+                Holdings drift alert
+              </p>
+              <p className="text-xs text-text-muted font-light mb-3">
+                Amber banner on Equities / Crypto when Markets live differs from the holding price by
+                more than this % (default {DEFAULT_HOLDINGS_DRIFT_PCT}%).
+              </p>
+              <div className="flex flex-wrap items-center gap-3">
+                <label className="text-sm font-medium inline-flex items-center gap-2">
+                  Threshold %
+                  <input
+                    type="number"
+                    min={0.5}
+                    max={50}
+                    step={0.5}
+                    className="w-20 text-sm"
+                    value={driftPct}
+                    aria-label="Holdings drift threshold percent"
+                    onChange={(e) => setDriftPct(Number(e.target.value) || DEFAULT_HOLDINGS_DRIFT_PCT)}
+                    onBlur={() => {
+                      saveHoldingsDriftThresholdPct(driftPct)
+                      setDriftPct(loadHoldingsDriftThresholdPct())
+                      flash('Drift threshold saved.')
+                    }}
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="btn-ghost btn-sm"
+                  onClick={() => {
+                    saveHoldingsDriftThresholdPct(DEFAULT_HOLDINGS_DRIFT_PCT)
+                    setDriftPct(DEFAULT_HOLDINGS_DRIFT_PCT)
+                    flash('Drift threshold reset.')
+                  }}
+                >
+                  Reset {DEFAULT_HOLDINGS_DRIFT_PCT}%
+                </button>
+              </div>
+            </div>
           </div>
         </SettingsSection>
 
@@ -2082,6 +2930,13 @@ export function SettingsPage() {
               <span className="text-text font-medium">Remember passphrase</span>.
             </li>
           </ol>
+          <p className="text-sm text-text-muted font-light mb-4 max-w-2xl">
+            Run the on-device{' '}
+            <Link to="/smoke" className="text-accent font-medium">
+              smoke checklist
+            </Link>{' '}
+            to verify sync, Markets refresh, backup, and PWA install.
+          </p>
           <p className="text-xs text-text-subtle leading-relaxed max-w-2xl">
             On desktop Chrome/Edge, use the install banner or the browser&apos;s Install app menu.
             Android: browser menu → Install app / Add to Home screen.
@@ -2528,6 +3383,23 @@ export function SettingsPage() {
                     >
                       Download
                     </button>
+                    {canUseNativeShare() ? (
+                      <button
+                        type="button"
+                        className="btn-ghost btn-sm"
+                        onClick={() => {
+                          void (async () => {
+                            const full = await getFullBackup(b.id)
+                            if (!full) return
+                            const result = await shareBackupFile(full)
+                            if (result === 'shared') flash('Shared backup.')
+                            else if (result === 'fallback') flash('Share unavailable — downloaded instead.')
+                          })()
+                        }}
+                      >
+                        Share
+                      </button>
+                    ) : null}
                     <button
                       type="button"
                       className="btn-ghost btn-sm"
@@ -2602,6 +3474,14 @@ export function SettingsPage() {
           </button>
         </SettingsSection>
 
+        <SettingsSection id="whats-new" eyebrow="What’s new" title="Release notes archive">
+          <p className="text-sm text-text-muted font-light mb-4 max-w-2xl">
+            Highlights from the last five MyDSP versions. Also linked from the update banner when a
+            new build is ready.
+          </p>
+          <WhatsNewArchive limit={5} />
+        </SettingsSection>
+
         <SettingsSection id="danger" eyebrow="Danger zone" title="Reset active portfolio">
           <p className="text-sm text-text-muted font-light mb-6">
             Affects only the active portfolio. Prefer a full backup first.
@@ -2644,6 +3524,7 @@ export function SettingsPage() {
             </button>
           </div>
         </SettingsSection>
+        </div>
       </div>
 
       <ConfirmDialog
@@ -2652,6 +3533,7 @@ export function SettingsPage() {
         body={confirmState?.body ?? ''}
         confirmLabel={confirmState?.confirmLabel}
         variant={confirmState?.variant}
+        holdMs={confirmState?.holdMs ?? (confirmState?.variant === 'danger' ? 800 : 0)}
         onClose={() => setConfirmState(null)}
         onConfirm={() => confirmState?.onConfirm()}
       />

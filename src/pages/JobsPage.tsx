@@ -1,10 +1,9 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Plus,
   Download,
   Upload,
-  Briefcase,
   DollarSign,
   MapPin,
   Calendar,
@@ -17,6 +16,7 @@ import {
   AlertCircle,
   Archive,
   GripVertical,
+  Columns3,
 } from 'lucide-react'
 import { PageHeader } from '../components/ui/PageHeader'
 import { EmptyState } from '../components/ui/EmptyState'
@@ -43,6 +43,7 @@ import {
   STATUS_COLORS,
   STATUS_LABELS,
 } from '../domain/jobs'
+import { calculateJobPipelineCounts } from '../domain/jobPipeline'
 import { applySortOrder, sortBySortOrder } from '../utils/reorder'
 import { formatNativeCurrency, privacyClass } from '../utils/format'
 
@@ -68,6 +69,7 @@ export function JobsPage() {
   const [selectedJobs, setSelectedJobs] = useState<Set<number>>(new Set())
   const [bulkStatus, setBulkStatus] = useState<JobStatus | ''>('')
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null)
+  const [columnPickerOpen, setColumnPickerOpen] = useState(false)
   const [confirmState, setConfirmState] = useState<{
     title: string
     body: string
@@ -100,6 +102,7 @@ export function JobsPage() {
   }, [applications, filterBy, searchQuery, sortBy])
 
   const stats = useMemo(() => calculateJobStats(applications), [applications])
+  const pipeline = useMemo(() => calculateJobPipelineCounts(applications), [applications])
 
   const kanbanData = useMemo(() => {
     return KANBAN_COLUMNS.map((col) => ({
@@ -345,6 +348,12 @@ export function JobsPage() {
     })
   }
 
+  const jumpToKanbanColumn = (title: string) => {
+    const el = document.querySelector<HTMLElement>(`[data-kanban-column="${title}"]`)
+    el?.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' })
+    setColumnPickerOpen(false)
+  }
+
   if (applications.length === 0) {
     return (
       <div>
@@ -364,7 +373,7 @@ export function JobsPage() {
           description="Track your job search from application to offer"
         />
         <EmptyState
-          icon={<Briefcase size={64} />}
+          illustration
           title="No Applications Yet"
           description="Start tracking your job applications. Save URLs, CVs, track interviews, and manage your entire job search process."
           action={{
@@ -398,7 +407,7 @@ export function JobsPage() {
         title="Job Applications"
         description={`${stats.total} applications · ${stats.interviewing} interviewing · ${stats.offers} offers`}
         action={
-          <div className="flex flex-wrap gap-2">
+          <div className="hidden sm:flex flex-wrap gap-2">
             <button type="button" onClick={handleImportFile} className="btn-secondary btn-sm">
               <Upload size={16} /> Import
             </button>
@@ -409,23 +418,41 @@ export function JobsPage() {
         }
       />
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <div className="surface p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none">
-          <p className="text-xs uppercase tracking-wider text-text-subtle mb-1 font-semibold">Applied</p>
-          <p className="text-2xl font-bold tabular-nums">{stats.applied}</p>
+      {/* Pipeline analytics mini-card */}
+      <div
+        className="jobs-pipeline-mini surface p-3 sm:p-4 mb-5 rounded-xl md:rounded-none shadow-sm md:shadow-none"
+        role="group"
+        aria-label="Job pipeline counts"
+      >
+        <div className="flex flex-wrap items-baseline justify-between gap-2 mb-2.5">
+          <p className="text-[11px] sm:text-xs uppercase tracking-wider text-text-subtle font-semibold">
+            Pipeline
+          </p>
+          <p className="text-[11px] text-text-muted tabular-nums">
+            {stats.avgResponseTime > 0 ? `Avg response ${stats.avgResponseTime}d` : `${stats.total} active`}
+          </p>
         </div>
-        <div className="surface p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none">
-          <p className="text-xs uppercase tracking-wider text-text-subtle mb-1 font-semibold">Interviewing</p>
-          <p className="text-2xl font-bold tabular-nums text-amber-500">{stats.interviewing}</p>
-        </div>
-        <div className="surface p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none">
-          <p className="text-xs uppercase tracking-wider text-text-subtle mb-1 font-semibold">Offers</p>
-          <p className="text-2xl font-bold tabular-nums text-green-500">{stats.offers}</p>
-        </div>
-        <div className="surface p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none">
-          <p className="text-xs uppercase tracking-wider text-text-subtle mb-1 font-semibold">Response Time</p>
-          <p className="text-2xl font-bold tabular-nums">{stats.avgResponseTime}d</p>
+        <div className="flex flex-wrap gap-x-3 gap-y-2 sm:gap-x-4">
+          {pipeline.map((stage) => (
+            <div key={stage.id} className="jobs-pipeline-mini__stage min-w-[3.25rem]">
+              <p className="text-[10px] sm:text-[11px] uppercase tracking-wider text-text-subtle font-semibold">
+                {stage.label}
+              </p>
+              <p
+                className={`text-lg sm:text-xl font-bold tabular-nums leading-tight ${
+                  stage.id === 'interview'
+                    ? 'text-amber-500'
+                    : stage.id === 'offer'
+                      ? 'text-green-500'
+                      : stage.id === 'closed'
+                        ? 'text-red-500/80'
+                        : ''
+                }`}
+              >
+                {stage.count}
+              </p>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -452,6 +479,16 @@ export function JobsPage() {
         >
           Analytics
         </button>
+        {viewMode === 'kanban' ? (
+          <button
+            type="button"
+            onClick={() => setColumnPickerOpen(true)}
+            className="btn-ghost btn-sm inline-flex items-center gap-1.5 ml-auto"
+            aria-haspopup="dialog"
+          >
+            <Columns3 size={14} /> Columns
+          </button>
+        ) : null}
       </div>
 
       <CollapsibleFilters
@@ -564,18 +601,19 @@ export function JobsPage() {
 
       {filteredApplications.length === 0 ? (
         <EmptyState
-          icon={<Briefcase size={48} />}
+          illustration
           title="No Applications Found"
           description="No applications match your current filters."
         />
       ) : viewMode === 'analytics' ? (
         <JobAnalytics applications={filteredApplications} privacy={privacy} />
       ) : viewMode === 'kanban' ? (
-        <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
+        <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory kanban-snap-scroll">
           {kanbanData.map((column) => (
             <div
               key={column.title}
-              className={`flex-shrink-0 w-80 rounded-lg transition-colors ${
+              data-kanban-column={column.title}
+              className={`flex-shrink-0 w-[min(80vw,20rem)] sm:w-80 rounded-lg transition-colors snap-start snap-always ${
                 dragOverColumn === column.title ? 'bg-accent/10 ring-2 ring-accent' : ''
               }`}
               onDragOver={(e) => {
@@ -620,6 +658,8 @@ export function JobsPage() {
                     privacy={privacy}
                     draggable
                     showReorderHandle
+                    onKanbanColumnDrop={handleKanbanDrop}
+                    onKanbanDragOverColumn={setDragOverColumn}
                   />
                 )}
               </ReorderList>
@@ -682,6 +722,45 @@ export function JobsPage() {
           </button>
         </div>
       </Modal>
+
+      <Modal
+        open={columnPickerOpen}
+        title="Jump to column"
+        onClose={() => setColumnPickerOpen(false)}
+      >
+        <p className="text-sm text-text-muted font-light mb-4">
+          Pick a board column to scroll into view.
+        </p>
+        <div className="flex flex-col gap-2">
+          {kanbanData.map((column) => (
+            <button
+              key={column.title}
+              type="button"
+              className="btn-secondary w-full justify-between"
+              onClick={() => jumpToKanbanColumn(column.title)}
+            >
+              <span>{column.title}</span>
+              <span className="text-xs text-text-subtle tabular-nums">{column.applications.length}</span>
+            </button>
+          ))}
+        </div>
+      </Modal>
+
+      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary job actions">
+        <button type="button" onClick={handleCreateApplication} className="btn-primary btn-sm">
+          <Plus size={16} /> Add Application
+        </button>
+        {viewMode === 'kanban' ? (
+          <button type="button" onClick={() => setColumnPickerOpen(true)} className="btn-secondary btn-sm">
+            <Columns3 size={16} /> Columns
+          </button>
+        ) : (
+          <button type="button" onClick={handleImportFile} className="btn-secondary btn-sm">
+            <Upload size={16} /> Import
+          </button>
+        )}
+      </div>
+      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }
@@ -698,6 +777,8 @@ function JobCard({
   expanded = false,
   draggable = false,
   showReorderHandle = false,
+  onKanbanColumnDrop,
+  onKanbanDragOverColumn,
 }: {
   application: JobApplication
   onStatusChange: (id: number, status: JobStatus) => void
@@ -710,10 +791,55 @@ function JobCard({
   expanded?: boolean
   draggable?: boolean
   showReorderHandle?: boolean
+  onKanbanColumnDrop?: (columnTitle: string, appId: number) => void
+  onKanbanDragOverColumn?: (columnTitle: string | null) => void
 }) {
   const daysSince = getDaysSinceApplied(application)
   const nextInterview = getNextInterview(application)
   const deadlineApproaching = isDeadlineApproaching(application)
+
+  const onStatusGripPointerDown = (e: ReactPointerEvent<HTMLButtonElement>) => {
+    if (!draggable || !onKanbanColumnDrop || e.button !== 0) return
+    // Mouse / trackpad keep HTML5 DnD; touch uses pointer events between columns
+    if (e.pointerType === 'mouse') return
+    e.preventDefault()
+    e.stopPropagation()
+    const target = e.currentTarget
+    target.setPointerCapture(e.pointerId)
+    let overCol: string | null = null
+    let moved = false
+
+    const onMove = (ev: PointerEvent) => {
+      const dx = Math.abs(ev.clientX - e.clientX)
+      const dy = Math.abs(ev.clientY - e.clientY)
+      if (dx + dy > 6) moved = true
+      const el = document.elementFromPoint(ev.clientX, ev.clientY)
+      const col = el?.closest<HTMLElement>('[data-kanban-column]')
+      const title = col?.dataset.kanbanColumn ?? null
+      if (title !== overCol) {
+        overCol = title
+        onKanbanDragOverColumn?.(title)
+      }
+    }
+
+    const onUp = (ev: PointerEvent) => {
+      try {
+        target.releasePointerCapture(ev.pointerId)
+      } catch {
+        /* already released */
+      }
+      target.removeEventListener('pointermove', onMove)
+      target.removeEventListener('pointerup', onUp)
+      target.removeEventListener('pointercancel', onUp)
+      const dropCol = overCol
+      onKanbanDragOverColumn?.(null)
+      if (moved && dropCol) onKanbanColumnDrop(dropCol, application.id)
+    }
+
+    target.addEventListener('pointermove', onMove)
+    target.addEventListener('pointerup', onUp)
+    target.addEventListener('pointercancel', onUp)
+  }
 
   return (
     <div
@@ -728,11 +854,13 @@ function JobCard({
             <button
               type="button"
               className="mt-1 p-1 text-text-subtle hover:text-accent cursor-grab active:cursor-grabbing"
+              style={{ touchAction: 'none' }}
               draggable
               onDragStart={(e) => {
                 e.dataTransfer.setData('text/job-id', String(application.id))
                 e.dataTransfer.effectAllowed = 'move'
               }}
+              onPointerDown={onStatusGripPointerDown}
               aria-label="Drag to change status"
               title="Drag to another column"
             >

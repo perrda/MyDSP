@@ -66,7 +66,7 @@ export function ToastItem({ toast, onDismiss }: ToastItemProps) {
     <div
       className={`surface border border-border-strong border-l-4 p-4 shadow-lg transition-all duration-300 rounded-r-lg md:rounded-none ${
         STYLES[toast.type]
-      } ${
+      } ${toast.type === 'success' ? 'toast-haptic-flash' : ''} ${
         isExiting
           ? 'opacity-0 translate-x-full'
           : 'opacity-100 translate-x-0 animate-slide-in-right'

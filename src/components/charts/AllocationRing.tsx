@@ -1,6 +1,12 @@
 import { useId, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
+import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
+import {
+  COLORBLIND_SAFE_COLORS,
+  DEFAULT_CHART_COLORS,
+  getChartPalette,
+} from '../../utils/chartPalette'
 import { formatGBP, privacyClass } from '../../utils/format'
 
 export interface SliceDatum {
@@ -8,16 +14,9 @@ export interface SliceDatum {
   value: number
 }
 
-const DEFAULT_COLORS = [
-  'var(--accent)',
-  '#86efac',
-  '#c4b5fd',
-  '#67e8f9',
-  '#fcd34d',
-  '#f9a8d4',
-  '#93c5fd',
-  '#a3a3a3',
-]
+/** @deprecated Prefer DEFAULT_CHART_COLORS / getChartPalette — kept for tests. */
+export const DEFAULT_COLORS = DEFAULT_CHART_COLORS
+export { COLORBLIND_SAFE_COLORS, DEFAULT_CHART_COLORS }
 
 interface Props {
   data: SliceDatum[]
@@ -40,7 +39,7 @@ export function AllocationRing({
   title,
   eyebrow,
   donut = true,
-  colors = DEFAULT_COLORS,
+  colors,
   heightClass = 'h-52 sm:h-56',
   className = '',
   emptyText = 'Nothing to chart yet.',
@@ -48,6 +47,8 @@ export function AllocationRing({
 }: Props) {
   const navigate = useNavigate()
   const gradId = useId().replace(/:/g, '')
+  const reduceMotion = usePrefersReducedMotion()
+  const palette = colors ?? getChartPalette()
   const slices = useMemo(
     () => data.filter((d) => Number.isFinite(d.value) && d.value > 0),
     [data],
@@ -101,11 +102,12 @@ export function AllocationRing({
                   const s = slices[index]
                   if (s) go(s.name)
                 }}
-                animationDuration={800}
+                isAnimationActive={!reduceMotion}
+                animationDuration={reduceMotion ? 0 : 800}
                 animationEasing="ease-in-out"
               >
                 {slices.map((_, i) => (
-                  <Cell key={`${gradId}-${i}`} fill={colors[i % colors.length]} />
+                  <Cell key={`${gradId}-${i}`} fill={palette[i % palette.length]} />
                 ))}
               </Pie>
               <Tooltip
@@ -125,7 +127,7 @@ export function AllocationRing({
         </div>
       )}
       {slices.length > 0 && (
-        <ul className="chart-legend-list space-y-2 p-4 md:p-6 pt-0 md:pt-0">
+        <ul className="chart-legend-list space-y-2 p-4 md:p-6 pt-0 md:pt-0 max-[360px]:hidden">
           {slices.map((s, i) => (
             <li key={s.name}>
               {linkForSlice ? (
@@ -137,7 +139,7 @@ export function AllocationRing({
                   <span className="flex items-center gap-2.5 min-w-0">
                     <span
                       className="w-3 h-3 md:w-2.5 md:h-2.5 shrink-0"
-                      style={{ background: colors[i % colors.length] }}
+                      style={{ background: palette[i % palette.length] }}
                       aria-hidden
                     />
                     <span className="chart-legend-list__label truncate text-sm md:text-xs">{s.name}</span>
@@ -153,7 +155,7 @@ export function AllocationRing({
                   <span className="flex items-center gap-2.5 min-w-0">
                     <span
                       className="w-3 h-3 md:w-2.5 md:h-2.5 shrink-0"
-                      style={{ background: colors[i % colors.length] }}
+                      style={{ background: palette[i % palette.length] }}
                       aria-hidden
                     />
                     <span className="chart-legend-list__label truncate text-sm md:text-xs">{s.name}</span>

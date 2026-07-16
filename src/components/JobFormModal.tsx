@@ -230,6 +230,7 @@ export function JobFormModal({ application, onSave, onClose }: JobFormModalProps
                 <label className="block text-xs text-text-subtle mb-1">Min Salary</label>
                 <input
                   type="number"
+                  inputMode="decimal"
                   value={formData.salaryMin}
                   onChange={(e) => setFormData({ ...formData, salaryMin: e.target.value })}
                   className="w-full px-3 py-2 bg-surface-hover border border-border rounded text-sm"
@@ -239,6 +240,7 @@ export function JobFormModal({ application, onSave, onClose }: JobFormModalProps
                 <label className="block text-xs text-text-subtle mb-1">Max Salary</label>
                 <input
                   type="number"
+                  inputMode="decimal"
                   value={formData.salaryMax}
                   onChange={(e) => setFormData({ ...formData, salaryMax: e.target.value })}
                   className="w-full px-3 py-2 bg-surface-hover border border-border rounded text-sm"

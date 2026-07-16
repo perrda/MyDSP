@@ -22,7 +22,7 @@ test.describe('MyDSP smoke', () => {
   test('loads overview', async ({ page }) => {
     await page.goto('/')
     await expect(page.getByText(/MyDSP/i).first()).toBeVisible({ timeout: 20_000 })
-    await expect(page.getByText(/overview/i).first()).toBeVisible()
+    await expect(page.getByText(/overview|today/i).first()).toBeVisible()
   })
 
   test('currency select works', async ({ page }) => {
@@ -36,5 +36,19 @@ test.describe('MyDSP smoke', () => {
   test('goals route renders', async ({ page }) => {
     await page.goto('/goals')
     await expect(page.getByText(/financial goals/i).first()).toBeVisible({ timeout: 20_000 })
+  })
+
+  test('Today → Markets → Settings navigation', async ({ page }) => {
+    await page.goto('/')
+    await expect(page.getByText(/Today|Overview|MyDSP/i).first()).toBeVisible({ timeout: 20_000 })
+
+    await page.goto('/markets')
+    await expect(page.getByRole('heading', { name: /Markets/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+
+    await page.goto('/settings')
+    await expect(page.getByText(/Settings/i).first()).toBeVisible({ timeout: 20_000 })
+    await expect(page.getByText(/Encrypted cloud sync|Cloud Sync|Sync/i).first()).toBeVisible()
   })
 })

@@ -6,8 +6,15 @@ import {
   type MarketQuote,
   type MarketTicker,
 } from '../domain/markets'
+import { mergeMarketQuotes } from '../domain/marketQuotesCache'
 import { equityNeedsUsdToGbp } from '../domain/equityCurrency'
-import { updateMarketTicker } from '../storage/marketsStore'
+import {
+  listMarketTickers,
+  loadMarketQuotesCache,
+  saveMarketQuotesCache,
+  setMarketsLastRefresh,
+  updateMarketTicker,
+} from '../storage/marketsStore'
 import { ensureFxRates, usdToGbp } from './fx'
 import {
   fetchCryptoCrossQuote,
@@ -307,4 +314,28 @@ export async function refreshMarketQuotes(
 
   recordMarketsRefreshHealth(out.values())
   return out
+}
+
+/** Light prefetch for nav hover/focus — warms quote cache without blocking UI. */
+let prefetchInFlight: Promise<void> | null = null
+
+export function prefetchMarketQuotes(opts?: {
+  finnhubKey?: string
+  manualCryptoPrices?: Record<string, number>
+}): void {
+  if (prefetchInFlight) return
+  const list = listMarketTickers()
+  if (list.length === 0) return
+  prefetchInFlight = (async () => {
+    try {
+      const next = await refreshMarketQuotes(list, opts)
+      const merged = mergeMarketQuotes(loadMarketQuotesCache(), next)
+      saveMarketQuotesCache(merged)
+      setMarketsLastRefresh(new Date().toISOString())
+    } catch {
+      /* best-effort */
+    } finally {
+      prefetchInFlight = null
+    }
+  })()
 }
