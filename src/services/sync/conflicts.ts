@@ -147,8 +147,8 @@ const COLLECTION_LABEL: Record<ConflictCollection, string> = {
   goals: 'goal',
   journal: 'journal entry',
   disposals: 'disposal',
-  todoItems: 'to-do',
-  todoLists: 'to-do list',
+  todoItems: "To Do",
+  todoLists: "To Do list",
   jobApplications: 'job application',
   documents: 'document',
 }

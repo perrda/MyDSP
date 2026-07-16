@@ -16,8 +16,8 @@ const KEY = 'mydsp_sync_highlights_v1'
 const TTL_MS = 8_000
 
 const COLLECTION_LABELS: Record<SyncHighlightCollection, [singular: string, plural: string]> = {
-  todoItems: ['to-do', 'to-dos'],
-  todoLists: ['to-do list', 'to-do lists'],
+  todoItems: ["To Do", "To Do's"],
+  todoLists: ["To Do list", "To Do's"],
   jobApplications: ['job application', 'job applications'],
   spending: ['spending row', 'spending rows'],
   goals: ['goal', 'goals'],

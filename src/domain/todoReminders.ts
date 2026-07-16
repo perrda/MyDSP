@@ -157,10 +157,10 @@ export function checkTodoReminders(
     notificationManager.add({
       type: 'reminder',
       priority: item.priority === 'high' ? 'high' : 'medium',
-      title: 'Todo reminder',
+      title: 'To Do reminder',
       message: item.title,
       actionUrl: '/todos',
-      actionLabel: 'Open Todos',
+      actionLabel: "Open To Do's",
       category: 'todos',
       dismissible: true,
     })

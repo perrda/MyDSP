@@ -9,7 +9,7 @@ import {
 } from '../domain/marketTimeframe'
 import { changePctFromSeries } from '../domain/sparklineSeries'
 
-describe('news + markets UX fixes (v1.2.66)', () => {
+describe('news + markets UX fixes (v1.2.67)', () => {
   it('quote Worker allowlists Google News RSS hosts', () => {
     const worker = readFileSync(resolve('quote-endpoint/worker.js'), 'utf8')
     expect(worker).toMatch(/news\.google\.com/)
@@ -68,8 +68,8 @@ describe('news + markets UX fixes (v1.2.66)', () => {
     expect(changePctFromSeries(spark)).toBeCloseTo(5, 5)
   })
 
-  it('package version is 1.2.66', () => {
+  it('package version is 1.2.67', () => {
     const pkg = JSON.parse(readFileSync(resolve('package.json'), 'utf8')) as { version: string }
-    expect(pkg.version).toBe('1.2.66')
+    expect(pkg.version).toBe('1.2.67')
   })
 })

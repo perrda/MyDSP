@@ -168,7 +168,7 @@ export function generateFinancialReport(
     const activeTodos = data.todoItems.filter((t: any) => t.status !== 'done' && t.status !== 'archived')
     if (activeTodos.length > 0) {
       lines.push('───────────────────────────────────────────────────────────')
-      lines.push('ACTIVE TODO ITEMS')
+      lines.push("ACTIVE TO DO'S")
       lines.push('───────────────────────────────────────────────────────────')
       lines.push('')
 

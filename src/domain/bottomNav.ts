@@ -36,7 +36,7 @@ export const BOTTOM_NAV_CATALOG: Record<string, BottomNavItem> = {
   '/goals': { to: '/goals', label: 'Goals', icon: Target },
   '/crypto': { to: '/crypto', label: 'Crypto', icon: Coins },
   '/equities': { to: '/equities', label: 'Equities', icon: TrendingUp },
-  '/todos': { to: '/todos', label: 'To Do', icon: ListChecks },
+  '/todos': { to: '/todos', label: "To Do's", icon: ListChecks },
   '/jobs': { to: '/jobs', label: 'Jobs', icon: Briefcase },
   '/news': { to: '/news', label: 'News', icon: Newspaper },
   '/youtube': { to: '/youtube', label: 'YouTube', icon: Video },

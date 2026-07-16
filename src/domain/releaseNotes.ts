@@ -29,6 +29,15 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.67',
+    date: '2026-07-16',
+    bullets: [
+      { text: 'Recurring: sort by due/paid/amount · monthly total · date-stamped notes', to: '/recurring' },
+      { text: "Renamed Todos → To Do's across the app", to: '/todos' },
+      'Mark paid stamps Last paid · commentary CRUD like Loans/Cards',
+    ],
+  },
+  {
     version: '1.2.66',
     date: '2026-07-16',
     bullets: [

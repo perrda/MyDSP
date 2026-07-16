@@ -212,6 +212,10 @@ export interface RecurringTransaction {
   category: SpendingCategory
   nextDue: string
   createdAt?: string
+  /** ISO datetime when Mark paid was last used (actual payment stamp). */
+  lastPaidAt?: string
+  /** Date-stamped progress notes (same shape as loans / credit cards). */
+  commentaries?: ProgressCommentary[]
 }
 
 export interface BudgetGoal {

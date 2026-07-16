@@ -341,7 +341,7 @@ export function JobDetailPage() {
         todoItems: [...(prev.todoItems ?? []), todo],
       }
     })
-    success('Todo created', interview ? 'Interview prep task' : 'Follow-up task')
+    success('To Do created', interview ? 'Interview prep task' : 'Follow-up task')
   }
 
   const daysSince = getDaysSinceApplied(application)
@@ -734,8 +734,8 @@ export function JobDetailPage() {
                         type="button"
                         onClick={() => handleCreateLinkedTodo(interview)}
                         className="opacity-0 group-hover:opacity-100 text-accent p-0.5"
-                        aria-label="Create prep todo"
-                        title="Create prep todo"
+                        aria-label="Create prep To Do"
+                        title="Create prep To Do"
                       >
                         <Plus size={12} />
                       </button>
@@ -787,16 +787,16 @@ export function JobDetailPage() {
             )}
           </div>
 
-          {/* Linked Todos */}
+          {/* Linked To Do's */}
           <div className="surface p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-bold text-sm">Linked Todos ({linkedTodos.length})</h3>
+              <h3 className="font-bold text-sm">Linked To Do's ({linkedTodos.length})</h3>
               <button type="button" onClick={() => handleCreateLinkedTodo()} className="btn-ghost btn-sm">
                 <Plus size={12} />
               </button>
             </div>
             {linkedTodos.length === 0 ? (
-              <p className="text-xs text-text-muted">No linked todos yet</p>
+              <p className="text-xs text-text-muted">No linked To Do's yet</p>
             ) : (
               <div className="space-y-2">
                 {linkedTodos.map((t) => (

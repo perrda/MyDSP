@@ -3,7 +3,7 @@ import type { TodoItem, TodoPriority } from './todo-types'
 
 /** Noise / chrome lines commonly OCR'd from todo app screenshots. */
 const NOISE_PATTERNS = [
-  /^(todos?|tasks?|reminders?|today|upcoming|inbox|all lists?|my list|scheduled|flagged)$/i,
+  /^(todos?|to\s*do'?s?|tasks?|reminders?|today|upcoming|inbox|all lists?|my list|scheduled|flagged)$/i,
   /^(add|new|create|search|filter|sort|settings?|edit|done|complete|reminders)$/i,
   /^(sun|mon|tue|wed|thu|fri|sat|sunday|monday|tuesday|wednesday|thursday|friday|saturday)$/i,
   /^(january|february|march|april|may|june|july|august|september|october|november|december)$/i,

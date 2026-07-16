@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.66**
+**Current version: 1.2.67**
 
-## Completed (through v1.2.66)
+## Completed (through v1.2.67)
 
+- Recurring sort (due/paid/amount) · monthly total · date-stamped commentary CRUD; Todos → To Do's branding
 - Fix: News Top 10 + By ticker via quote Worker; Markets heatmap reverted; USD not US$; Markets 24H/1W/1M/12M sparklines+%
 - Fix: Weekly digest in-app Preview/Share on mobile (no Safari HTML download dead-end)
 - Quality / ops (next25f 21–25): axe Crypto/Spending, digest smoke, aria-live windowing, docs
@@ -81,9 +82,10 @@
 
 ## Next (manual / ongoing)
 
-1. Run `scripts/SYNC_SMOKE.md` after each deploy (todos + portfolios + Favourites + Markets)
-2. Keep quote Worker live: `npm run deploy:quote` when Markets proxies stall
-3. Hard-refresh / reopen PWA so update banner + new SW activate
+1. **Add your free Finnhub API key** (Settings → Prices) — high priority for live equity quotes
+2. Run `scripts/SYNC_SMOKE.md` after each deploy (todos + portfolios + Favourites + Markets)
+3. Keep quote Worker live: `npm run deploy:quote` when Markets proxies stall (required for News after 1.2.66)
+4. Hard-refresh / reopen PWA so update banner + new SW activate
 
 ## Low priority
 

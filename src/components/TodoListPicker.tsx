@@ -153,7 +153,7 @@ export function TodoListPicker({
         <div
           id={menuId}
           role="listbox"
-          aria-label="Todo lists"
+          aria-label="To Do lists"
           className="todo-list-picker-menu"
         >
           <div className="todo-list-picker-menu-head">
