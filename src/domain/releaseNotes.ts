@@ -29,12 +29,21 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
-    version: '1.2.66',
+    version: '1.2.67',
     date: '2026-07-16',
     bullets: [
       { text: 'Recurring: sort by due/paid/amount · monthly total · date-stamped notes', to: '/recurring' },
       { text: "Renamed Todos → To Do's across the app", to: '/todos' },
       'Mark paid stamps Last paid · commentary CRUD like Loans/Cards',
+    ],
+  },
+  {
+    version: '1.2.66',
+    date: '2026-07-16',
+    bullets: [
+      { text: 'News Top 10 + By ticker via quote Worker (same path as prices)', to: '/news' },
+      { text: 'Markets list style restored · 24H/1W/1M/12M sparklines + %', to: '/markets' },
+      'USD shown as USD (never US$) sitewide',
     ],
   },
   {
@@ -76,7 +85,16 @@ export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
       'Concentration + Owned chip polish',
     ],
   },
-]
+  {
+    version: '1.2.61',
+    date: '2026-07-16',
+    bullets: [
+      { text: 'Share sync diagnostics · conflict Keep-all Undo', to: '/settings#sync' },
+      { text: 'Offline Share error · privacy blocks conflict share', to: '/settings#sync' },
+      'Weekly digest in-app modal foundation',
+    ],
+  },
+] as const
 
 /** Return up to `n` bullets from the latest version (banner). */
 export function releaseNotesBullets(n = 3): ReleaseBullet[] {

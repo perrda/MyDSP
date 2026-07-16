@@ -18,9 +18,11 @@ import {
   addNewsTag,
   getNewsSeenAt,
   listNewsTags,
+  loadNewsArticlesCache,
   loadNewsState,
   removeNewsTag,
   reorderNewsTags,
+  saveNewsArticlesCache,
   setNewsCollapsed,
   setNewsLastRefresh,
   setNewsSeenAt,
@@ -39,7 +41,7 @@ function formatRelative(iso: string): string {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
 }
 
-const NEWS_PAGE = 8
+const NEWS_PAGE = 10
 
 function ArticleRow({ article, unread }: { article: NewsArticle; unread?: boolean }) {
   return (
@@ -77,10 +79,13 @@ function ArticleRow({ article, unread }: { article: NewsArticle; unread?: boolea
 }
 
 export function NewsPage() {
+  const [cachedArticles] = useState(loadNewsArticlesCache)
   const [tags, setTags] = useState(() => listNewsTags())
   const [collapsed, setCollapsed] = useState(() => loadNewsState().collapsed)
-  const [top, setTop] = useState<NewsArticle[]>([])
-  const [byTag, setByTag] = useState<Record<string, NewsArticle[]>>({})
+  const [top, setTop] = useState<NewsArticle[]>(() => cachedArticles.top)
+  const [byTag, setByTag] = useState<Record<string, NewsArticle[]>>(
+    () => cachedArticles.byTag,
+  )
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [lastAt, setLastAt] = useState(() => loadNewsState().lastRefreshAt)
@@ -114,16 +119,40 @@ export function NewsPage() {
     setError(null)
     try {
       const list = listNewsTags()
-      const [topNews, tagged] = await Promise.all([
-        fetchTopFinancialNews(20),
-        fetchTaggedNews(list, 6),
-      ])
-      setTop(topNews)
-      setByTag(tagged)
-      const at = new Date().toISOString()
-      setNewsLastRefresh(at)
-      setLastAt(at)
-      if (topNews.length === 0 && Object.values(tagged).every((a) => a.length === 0)) {
+      const topRequest = fetchTopFinancialNews(10).then((topNews) => {
+        setTop(topNews)
+        if (topNews.length > 0) {
+          const cached = loadNewsArticlesCache()
+          saveNewsArticlesCache({
+            ...cached,
+            top: topNews,
+            fetchedAt: new Date().toISOString(),
+          })
+        }
+        return topNews
+      })
+      const taggedRequest = fetchTaggedNews(list, 10).then((tagged) => {
+        setByTag(tagged)
+        if (Object.values(tagged).some((articles) => articles.length > 0)) {
+          const cached = loadNewsArticlesCache()
+          saveNewsArticlesCache({
+            ...cached,
+            byTag: tagged,
+            fetchedAt: new Date().toISOString(),
+          })
+        }
+        return tagged
+      })
+      const [topResult, taggedResult] = await Promise.allSettled([topRequest, taggedRequest])
+      const topNews = topResult.status === 'fulfilled' ? topResult.value : []
+      const tagged = taggedResult.status === 'fulfilled' ? taggedResult.value : {}
+      const hasArticles =
+        topNews.length > 0 || Object.values(tagged).some((articles) => articles.length > 0)
+      if (hasArticles) {
+        const at = new Date().toISOString()
+        setNewsLastRefresh(at)
+        setLastAt(at)
+      } else {
         setError('No headlines returned. Check your connection and try the header refresh.')
       }
     } catch (e) {
@@ -218,7 +247,7 @@ export function NewsPage() {
       <PageHeader
         eyebrow="Insights"
         title="News"
-        description="Top financial headlines plus ticker meta-tags (TSLA, BTC, ADA…). Pulled from Google News and Yahoo Finance RSS — use the header refresh to force an update."
+        description="Google News via the quote Worker (same path as prices). Top 10 + By ticker (10 per tag)."
         action={
           <button
             type="button"
@@ -272,7 +301,7 @@ export function NewsPage() {
           <div className="divide-y divide-border">
             {top.length === 0 ? (
               <p className="px-4 sm:px-5 py-8 text-sm text-text-muted text-center">
-                {refreshing ? 'Loading headlines…' : 'No top headlines yet.'}
+                No top headlines yet.
               </p>
             ) : (
               <>
@@ -341,7 +370,7 @@ export function NewsPage() {
             <div className="divide-y divide-border">
               {taggedFlat.length === 0 ? (
                 <p className="px-4 sm:px-5 py-8 text-sm text-text-muted text-center">
-                  {refreshing ? 'Loading tagged news…' : 'No stories for these tags yet.'}
+                  No stories for these tags yet.
                 </p>
               ) : (
                 <>
