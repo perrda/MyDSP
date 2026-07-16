@@ -152,3 +152,41 @@ export function formatOfflineJobAge(ms: number): string {
   if (ms < 86_400_000) return `${Math.max(1, Math.round(ms / 3_600_000))}h ago`
   return `${Math.max(1, Math.round(ms / 86_400_000))}d ago`
 }
+
+export function buildOfflineJobErrorText(job: OfflineJob, now = Date.now()): string {
+  const ageMs = Math.max(0, now - new Date(job.createdAt).getTime())
+  return [
+    'MyDSP offline job error',
+    `Generated ${new Date(now).toLocaleString('en-GB')}`,
+    `Job id: ${job.id}`,
+    `Type: ${job.type}`,
+    `Created: ${job.createdAt}`,
+    `Age: ${formatOfflineJobAge(Number.isFinite(ageMs) ? ageMs : 0)}`,
+    `Attempts: ${job.attempts ?? 0}`,
+    `Next retry: ${job.nextRetryAt ?? 'ready now'}`,
+    `Remote URL configured: ${job.remoteUrl ? 'yes' : 'no'}`,
+    `Error: ${job.note ?? 'No error note recorded'}`,
+  ].join('\n')
+}
+
+export async function shareOfflineJobError(
+  job: OfflineJob,
+): Promise<'shared' | 'copied' | 'cancelled' | 'unavailable'> {
+  const text = buildOfflineJobErrorText(job)
+  if (typeof navigator !== 'undefined' && 'share' in navigator) {
+    try {
+      await navigator.share({
+        title: 'MyDSP offline job error',
+        text,
+      })
+      return 'shared'
+    } catch (e) {
+      if (e instanceof Error && e.name === 'AbortError') return 'cancelled'
+    }
+  }
+  if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text)
+    return 'copied'
+  }
+  return 'unavailable'
+}

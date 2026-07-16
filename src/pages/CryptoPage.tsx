@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type KeyboardEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowUpDown } from 'lucide-react'
 import { AllocationRing } from '../components/charts/AllocationRing'
@@ -82,30 +82,63 @@ export function CryptoPage() {
   const [tradeFor, setTradeFor] = useState<CryptoHolding | null>(null)
   const [tradeSide, setTradeSide] = useState<'buy' | 'sell'>('buy')
   const [sorting, setSorting] = useState(false)
+  const [weightSort, setWeightSort] = useState(false)
   const [searchText, setSearchText] = useState('')
   const [selectedHoldingId, setSelectedHoldingId] = useState<number | null>(null)
 
   const holdings = useMemo(() => sortBySortOrder(data.crypto), [data.crypto])
+  const includedPortfolioValue = useMemo(() => includedPortfolioHoldingValue(data), [data])
   const searchQuery = searchText.trim().toLowerCase()
   const filteredHoldings = useMemo(
     () => holdings.filter((holding) => matchesPortfolioSearch(holding, searchQuery)),
     [holdings, searchQuery],
   )
-  const windowed = useWindowedList(filteredHoldings, 40, 30)
+  const weightSortedHoldings = useMemo(
+    () =>
+      weightSort
+        ? [...filteredHoldings].sort((a, b) => {
+            const av =
+              a.includeInPortfolio !== false && includedPortfolioValue > 0
+                ? (a.qty * a.price) / includedPortfolioValue
+                : -1
+            const bv =
+              b.includeInPortfolio !== false && includedPortfolioValue > 0
+                ? (b.qty * b.price) / includedPortfolioValue
+                : -1
+            if (bv !== av) return bv - av
+            return a.symbol.localeCompare(b.symbol)
+          })
+        : filteredHoldings,
+    [filteredHoldings, includedPortfolioValue, weightSort],
+  )
+  const windowed = useWindowedList(weightSortedHoldings, 40, 30)
   const listHoldings = sorting ? filteredHoldings : windowed.visible
   const selectedHolding = useMemo(
     () =>
-      filteredHoldings.find((c) => c.id === selectedHoldingId) ??
-      filteredHoldings[0] ??
+      weightSortedHoldings.find((c) => c.id === selectedHoldingId) ??
+      weightSortedHoldings[0] ??
       holdings.find((c) => c.id === selectedHoldingId) ??
       holdings[0] ??
       null,
-    [filteredHoldings, holdings, selectedHoldingId],
+    [weightSortedHoldings, holdings, selectedHoldingId],
   )
   const showSkeleton = refreshing && holdings.length === 0
   const driftHits = useMemo(() => cryptoDriftHits(holdings), [holdings, data.settings.lastPriceUpdate])
   const driftThreshold = loadHoldingsDriftThresholdPct()
-  const includedPortfolioValue = useMemo(() => includedPortfolioHoldingValue(data), [data])
+  const holdingsIncludedSummary = useMemo(() => {
+    let includedValue = 0
+    let includedCount = 0
+    let excludedCount = 0
+    for (const c of holdings) {
+      if (c.includeInPortfolio === false) {
+        excludedCount++
+        continue
+      }
+      includedCount++
+      includedValue += c.qty * c.price
+    }
+    return { includedValue, includedCount, excludedCount }
+  }, [holdings])
   const concentrationThreshold = loadPortfolioConcentrationThresholdPct()
   const concentrationHits = useMemo(
     () => portfolioConcentrationHits(data, concentrationThreshold),
@@ -246,6 +279,21 @@ export function CryptoPage() {
     }
   }
 
+  const selectAdjacentHolding = (direction: -1 | 1) => {
+    if (filteredHoldings.length === 0) return
+    const currentId = selectedHolding?.id ?? filteredHoldings[0]!.id
+    const currentIndex = Math.max(0, filteredHoldings.findIndex((c) => c.id === currentId))
+    const nextIndex = Math.min(filteredHoldings.length - 1, Math.max(0, currentIndex + direction))
+    setSelectedHoldingId(filteredHoldings[nextIndex]!.id)
+  }
+
+  const onHoldingsMasterKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return
+    if (typeof window !== 'undefined' && !window.matchMedia('(min-width: 900px)').matches) return
+    event.preventDefault()
+    selectAdjacentHolding(event.key === 'ArrowDown' ? 1 : -1)
+  }
+
   return (
     <div>
       <PageHeader
@@ -282,10 +330,26 @@ export function CryptoPage() {
               className={`btn-secondary btn-sm inline-flex items-center gap-2 ${sorting ? 'border-accent text-accent' : ''}`}
               aria-pressed={sorting}
               disabled={holdings.length === 0}
-              onClick={() => setSorting((v) => !v)}
+              onClick={() => {
+                setWeightSort(false)
+                setSorting((v) => !v)
+              }}
             >
               <ArrowUpDown size={14} strokeWidth={1.75} />
               {sorting ? 'Done' : 'Sort'}
+            </button>
+            <button
+              type="button"
+              className={`btn-secondary btn-sm ${weightSort ? 'border-accent text-accent' : ''}`}
+              aria-pressed={weightSort}
+              disabled={holdings.length === 0}
+              onClick={() => {
+                setSorting(false)
+                setWeightSort((v) => !v)
+              }}
+              title="Sort holdings by portfolio weight percent"
+            >
+              Weight %
             </button>
             <button type="button" className="btn-primary btn-sm" onClick={openCreate}>
               Add crypto
@@ -319,6 +383,21 @@ export function CryptoPage() {
               ? `${filteredHoldings.length}/${holdings.length} crypto holding match${filteredHoldings.length === 1 ? '' : 'es'}`
               : `${holdings.length} crypto holding${holdings.length === 1 ? '' : 's'}`}
           </p>
+        </div>
+      </div>
+
+      <div
+        className={`holdings-included-value-bar sticky top-[4.5rem] z-[8] -mx-1 mb-4 border border-border bg-bg-elevated/95 px-3 py-2 text-xs text-text-muted shadow-sm backdrop-blur supports-[backdrop-filter]:bg-bg-elevated/85 ${privacyClass(privacy)}`}
+        role="status"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="font-semibold text-text">
+            Included crypto value {formatGBP(holdingsIncludedSummary.includedValue)}
+          </span>
+          <span className="tabular-nums">
+            {holdingsIncludedSummary.includedCount} in NW · {holdingsIncludedSummary.excludedCount} excluded
+            {weightSort ? ' · sorted by portfolio weight %' : ''}
+          </span>
         </div>
       </div>
 
@@ -418,7 +497,12 @@ export function CryptoPage() {
           No crypto holdings match "{searchText.trim()}".
         </div>
       ) : (
-        <div className="holdings-master-detail crypto-master-detail">
+        <div
+          className="holdings-master-detail crypto-master-detail"
+          tabIndex={0}
+          onKeyDown={onHoldingsMasterKeyDown}
+          aria-label="Crypto holdings master detail. Use up and down arrows to change selected holding on wide screens."
+        >
         <ReorderList
           items={listHoldings}
           getId={(c) => String(c.id)}
@@ -453,6 +537,8 @@ export function CryptoPage() {
                 } ${drifting ? 'ring-1 ring-inset ring-amber-500/50 bg-amber-500/5' : ''} ${
                   selectedHolding?.id === c.id ? 'holdings-master-row-selected' : ''
                 }`}
+                tabIndex={0}
+                aria-selected={selectedHolding?.id === c.id}
                 onClick={() => setSelectedHoldingId(c.id)}
               >
                 {sorting ? <ReorderHandle label={`Reorder ${c.symbol}`} /> : null}
@@ -546,6 +632,8 @@ export function CryptoPage() {
           <div
             ref={windowed.sentinelRef}
             className="holdings-window-sentinel py-3 text-center text-xs text-text-subtle"
+            role="status"
+            aria-live="polite"
           >
             Showing {listHoldings.length} of {filteredHoldings.length} · scroll for more
             <button type="button" className="btn-ghost btn-sm ml-2 min-h-9" onClick={windowed.showAll}>
@@ -553,6 +641,9 @@ export function CryptoPage() {
             </button>
           </div>
         ) : null}
+        <p className="sr-only" aria-live="polite">
+          Showing {listHoldings.length} of {filteredHoldings.length}
+        </p>
         {selectedHolding ? (
           <aside
             className="holdings-master-detail-panel surface p-4 md:p-5 rounded-xl md:rounded-none shadow-sm md:shadow-none"

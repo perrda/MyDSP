@@ -22,6 +22,7 @@ export function SwipeHoldingRow({
   const startX = useRef(0)
   const [dx, setDx] = useState(0)
   const [open, setOpen] = useState<'left' | 'right' | null>(null)
+  const nwActionLabel = included ? 'Exclude from net worth' : 'Include in net worth'
 
   const onTouchStart = (e: React.TouchEvent) => {
     startX.current = e.touches[0]?.clientX ?? 0
@@ -61,12 +62,14 @@ export function SwipeHoldingRow({
         <button
           type="button"
           className="flex-1 bg-surface-hover text-text text-xs font-bold uppercase tracking-wide border-l border-border"
+          aria-label={nwActionLabel}
+          title={nwActionLabel}
           onClick={() => {
             onToggleNw()
             setOpen(null)
           }}
         >
-          {included ? 'Exclude' : 'Include'}
+          {included ? 'Exclude NW' : 'Include NW'}
         </button>
       </div>
       <div

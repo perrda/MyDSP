@@ -20,6 +20,7 @@ import {
   hasDuplicatePortfolioNames,
   MAX_PORTFOLIOS,
 } from '../../storage/portfolioStore'
+import { STORAGE } from '../../storage/keys'
 import { checksum, decryptJson, encryptJson, type EncryptedBlob } from './crypto'
 import { setSessionSyncPassphrase } from './sessionPassphrase'
 import {
@@ -121,6 +122,54 @@ export function formatRemoteBlobAge(exportedAt?: string, now = Date.now()): stri
   return `${Math.max(1, Math.round(sec / 86400))}d old`
 }
 
+export function buildSyncDiagnosticsText(
+  cfg: SyncConfig,
+  deviceNickname: string,
+  now = Date.now(),
+): string {
+  const remoteBytes = formatSyncPayloadBytes(
+    cfg.lastRemoteBlobBytes ?? cfg.lastPushBytes ?? cfg.lastPullBytes,
+  )
+  const lines = [
+    'MyDSP sync diagnostics',
+    `Generated ${new Date(now).toLocaleString('en-GB')}`,
+    `Device nickname: ${deviceNickname || 'Unnamed device'}`,
+    `Sync enabled: ${cfg.enabled ? 'yes' : 'no'}`,
+    `Remote configured: ${cfg.remoteUrl ? 'yes' : 'no'}`,
+    `Remote blob age: ${formatRemoteBlobAge(cfg.lastRemoteExportedAt, now) ?? 'unknown'}`,
+    `Remote exported at: ${cfg.lastRemoteExportedAt ?? 'unknown'}`,
+    `Encrypted remote blob size: ${remoteBytes ?? 'unknown'}`,
+    `Last pull size: ${formatSyncPayloadBytes(cfg.lastPullBytes) ?? 'unknown'}`,
+    `Last push size: ${formatSyncPayloadBytes(cfg.lastPushBytes) ?? 'unknown'}`,
+    `Last sync: ${cfg.lastSyncAt ?? 'never'}`,
+    `Last error: ${cfg.lastSyncError ?? 'none'}`,
+  ]
+  return lines.join('\n')
+}
+
+export async function shareSyncDiagnostics(
+  cfg: SyncConfig,
+  deviceNickname: string,
+): Promise<'shared' | 'copied' | 'cancelled' | 'unavailable'> {
+  const text = buildSyncDiagnosticsText(cfg, deviceNickname)
+  if (typeof navigator !== 'undefined' && 'share' in navigator) {
+    try {
+      await navigator.share({
+        title: 'MyDSP sync diagnostics',
+        text,
+      })
+      return 'shared'
+    } catch (e) {
+      if (e instanceof Error && e.name === 'AbortError') return 'cancelled'
+    }
+  }
+  if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text)
+    return 'copied'
+  }
+  return 'unavailable'
+}
+
 function optionalFiniteNumber(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : undefined
 }
@@ -185,6 +234,55 @@ export interface MergePreview {
     news?: unknown
     youtube?: unknown
   }
+}
+
+export interface MergeUndoSnapshot {
+  portfolios: Array<{
+    portfolioId: string
+    existed: boolean
+    local: PortfolioData | null
+  }>
+  registryPortfolios: PortfolioMeta[]
+  activePortfolioId: string
+}
+
+export function captureMergeUndoSnapshot(preview: MergePreview): MergeUndoSnapshot {
+  const existingIds = new Set(listPortfolios().map((p) => p.id))
+  return {
+    portfolios: preview.portfolios.map((plan) => {
+      const existed = existingIds.has(plan.portfolioId)
+      if (existed) {
+        try {
+          flushSave(plan.portfolioId)
+        } catch {
+          /* ignore */
+        }
+      }
+      return {
+        portfolioId: plan.portfolioId,
+        existed,
+        local: existed ? loadPortfolio(plan.portfolioId) : null,
+      }
+    }),
+    registryPortfolios: listPortfolios(),
+    activePortfolioId: getActivePortfolioId(),
+  }
+}
+
+export function restoreMergeUndoSnapshot(snapshot: MergeUndoSnapshot): void {
+  for (const item of snapshot.portfolios) {
+    if (item.existed && item.local) {
+      savePortfolioImmediate(item.local, item.portfolioId)
+    } else {
+      try {
+        localStorage.removeItem(STORAGE.dataKey(item.portfolioId))
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+  localStorage.setItem(STORAGE.PORTFOLIOS, JSON.stringify(snapshot.registryPortfolios))
+  setActivePortfolioId(snapshot.activePortfolioId)
 }
 
 export function loadSyncConfig(): SyncConfig {
