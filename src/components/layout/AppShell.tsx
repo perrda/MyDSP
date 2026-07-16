@@ -49,7 +49,7 @@ const titles: Record<string, { eyebrow: string; title: string }> = {
   '/family': { eyebrow: 'Household', title: 'Family' },
   '/history': { eyebrow: 'Insights', title: 'History' },
   '/documents': { eyebrow: 'Vault', title: 'Documents' },
-  '/todos': { eyebrow: 'Tasks', title: 'To Do Lists' },
+  '/todos': { eyebrow: 'Tasks', title: "To Do's" },
   '/jobs': { eyebrow: 'Career', title: 'Job Tracker' },
   '/import': { eyebrow: 'Import', title: 'CSV Import' },
   '/rules': { eyebrow: 'Import', title: 'Merchant rules' },

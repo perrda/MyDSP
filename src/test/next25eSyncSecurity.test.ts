@@ -29,7 +29,7 @@ describe('next25e sync / security (1-5)', () => {
         todoItems: [1, 2],
         jobApplications: [7],
       }),
-    ).toBe('2 to-dos · 1 job application')
+    ).toBe("2 To Do's · 1 job application")
 
     const auto = readFileSync(resolve(__dirname, '../services/sync/autoSyncService.ts'), 'utf8')
     expect(auto).toMatch(/summarizeSyncHighlights/)

@@ -1,5 +1,22 @@
 # MyDSP Changelog
 
+## [1.2.66] - 2026-07-16
+
+### Improved — Recurring
+- **Sort** subscriptions by Date due, Date paid, Amount high→low, Amount low→high (persisted)
+- **Monthly total** — sum of all recurring items as a monthly equivalent (weekly/yearly converted)
+- **Commentary** — date-stamped notes per subscription with full CRUD (same pattern as Loans / Credit Cards)
+- Mark paid now stamps **Last paid**; edit preserves notes and paid stamp
+- Safer month-end due-date advancement
+
+### Improved — Naming
+- User-facing **Todos** / To Do Lists → **To Do's** (routes stay `/todos`)
+
+### Version
+- 1.2.65 → **1.2.66**
+
+---
+
 ## [1.2.65] - 2026-07-16
 
 ### Fixed — Weekly digest on mobile

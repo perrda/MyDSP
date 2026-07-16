@@ -441,7 +441,7 @@ export function globalSearch(
         type: 'todo',
         item: t,
         title: t.title,
-        subtitle: `Todo · ${t.priority} priority`,
+        subtitle: `To Do · ${t.priority} priority`,
         score,
         url: '/todos',
       })

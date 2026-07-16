@@ -29,6 +29,15 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.66',
+    date: '2026-07-16',
+    bullets: [
+      { text: 'Recurring: sort by due/paid/amount · monthly total · date-stamped notes', to: '/recurring' },
+      { text: "Renamed Todos → To Do's across the app", to: '/todos' },
+      'Mark paid stamps Last paid · commentary CRUD like Loans/Cards',
+    ],
+  },
+  {
     version: '1.2.65',
     date: '2026-07-16',
     bullets: [
@@ -65,24 +74,6 @@ export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
       'Holdings weight % sort · sticky included totals',
       'Holding detail share summary · Markets Owned weight',
       'Concentration + Owned chip polish',
-    ],
-  },
-  {
-    version: '1.2.61',
-    date: '2026-07-16',
-    bullets: [
-      { text: 'Share sync diagnostics · conflict Keep-all Undo', to: '/settings#sync' },
-      { text: 'Offline Share error · privacy blocks conflict share', to: '/settings#sync' },
-      'Weekly digest in-app modal foundation',
-    ],
-  },
-  {
-    version: '1.2.60',
-    date: '2026-07-16',
-    bullets: [
-      { text: 'Settings lazy-loaded · windowed Equities/Crypto lists', to: '/settings' },
-      { text: 'Axe gates for Equities / Tax / Todos · offline-queue smoke', to: '/smoke' },
-      { text: 'Sync chip long-press + UI conventions for next25e', to: '/settings#sync' },
     ],
   },
 ]

@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.65**
+**Current version: 1.2.66**
 
-## Completed (through v1.2.65)
+## Completed (through v1.2.66)
 
+- Recurring sort (due/paid/amount) · monthly total · date-stamped commentary CRUD; Todos → To Do's branding
 - Fix: Weekly digest in-app Preview/Share on mobile (no Safari HTML download dead-end)
 - Quality / ops (next25f 21–25): axe Crypto/Spending, digest smoke, aria-live windowing, docs
 - Today / money / tax (next25f 16–20): editable digest highlights, auto chips, privacy mask, ISA/WTD
