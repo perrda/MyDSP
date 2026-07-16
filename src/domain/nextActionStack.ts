@@ -49,8 +49,13 @@ export function buildNextActionStack(input: {
   const open = (input.todoItems ?? []).filter(
     (t) => t.status !== 'done' && t.status !== 'archived',
   )
-  const dueFirst =
-    open.find((t) => isOverdue(t) || isDueToday(t)) ?? open[0] ?? null
+  const dueTodayOrOverdue = open.filter((t) => isOverdue(t) || isDueToday(t))
+  const rank = (t: (typeof open)[number]) => {
+    const p = t.priority === 'high' ? 0 : t.priority === 'medium' ? 1 : 2
+    return p
+  }
+  dueTodayOrOverdue.sort((a, b) => rank(a) - rank(b))
+  const dueFirst = dueTodayOrOverdue[0] ?? open[0] ?? null
   if (dueFirst) {
     const label = isOverdue(dueFirst)
       ? 'Overdue'

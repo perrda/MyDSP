@@ -22,6 +22,7 @@ import {
   buildNextActionStack,
   stackIncludesBill,
 } from '../domain/nextActionStack'
+import { ensureFinnhubSetupTodo } from '../domain/finnhubReminder'
 import {
   netWorthSparkSeries,
   type NwSparkWindow,
@@ -213,6 +214,16 @@ export function Dashboard() {
     mq.addEventListener('change', sync)
     return () => mq.removeEventListener('change', sync)
   }, [])
+  /** High-priority Finnhub API key reminder — once per browser session when no key. */
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem('mydsp_finnhub_todo_prompted') === '1') return
+      sessionStorage.setItem('mydsp_finnhub_todo_prompted', '1')
+    } catch {
+      /* ignore */
+    }
+    setData((prev) => ensureFinnhubSetupTodo(prev) ?? prev)
+  }, [setData])
 
   const todayTodos = useMemo(() => {
     return (data.todoItems ?? [])

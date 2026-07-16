@@ -1,6 +1,7 @@
 /** CoinGecko + Finnhub + Yahoo live price refresh (MyDSP-native). */
 
 import { equityNeedsUsdToGbp } from '../domain/equityCurrency'
+import { normalizeCommoditySymbol } from '../domain/commodities'
 import {
   changePctFromSeries,
   cleanSparklineCloses,
@@ -470,6 +471,15 @@ async function fetchYahooChartQuote(sym: string): Promise<EquityMarketQuoteNativ
     extendedHours,
     source: 'yahoo',
   }
+}
+
+/** Commodity futures/spot via Yahoo (native USD typically) — same chart path as equities. */
+export async function fetchCommodityMarketQuote(
+  symbol: string,
+): Promise<EquityMarketQuoteNative | null> {
+  const sym = normalizeCommoditySymbol(symbol)
+  if (!sym) return null
+  return fetchYahooChartQuote(sym)
 }
 
 /** Normalize equity / index symbols for Yahoo (SPX → ^GSPC, etc.). */

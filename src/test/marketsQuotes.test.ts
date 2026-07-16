@@ -89,6 +89,20 @@ vi.mock('../services/prices', async (importOriginal) => {
       }
       return null
     }),
+    fetchCommodityMarketQuote: vi.fn(async (symbol: string) => {
+      const u = symbol.toUpperCase()
+      if (u === 'GC=F') {
+        return {
+          price: 2540,
+          previousClose: 2500,
+          changePct: 1.6,
+          changeAbs: 40,
+          sparkline: [2480, 2500, 2540],
+          source: 'yahoo' as const,
+        }
+      }
+      return null
+    }),
     fetchFxPairQuote: vi.fn(async (base: string, quote: string) => {
       if (base === 'GBP' && quote === 'USD') {
         return {
@@ -156,8 +170,9 @@ describe('refreshMarketQuotes', () => {
         { id: 't_usdc', kind: 'crypto', symbol: 'USDC', name: 'USDC', createdAt: now, sortOrder: 2 },
         { id: 't_night', kind: 'crypto', symbol: 'NIGHT', name: 'NIGHT', createdAt: now, sortOrder: 3 },
         { id: 't_aapl', kind: 'equity', symbol: 'AAPL', name: 'Apple', createdAt: now, sortOrder: 4 },
-        { id: 't_gbpusd', kind: 'fx', symbol: 'GBP/USD', name: 'GBP / USD', createdAt: now, sortOrder: 5 },
-        { id: 't_adabtc', kind: 'cross', symbol: 'ADA/BTC', name: 'ADA / BTC', createdAt: now, sortOrder: 6 },
+        { id: 't_gcf', kind: 'commodity', symbol: 'GC=F', name: 'Gold', createdAt: now, sortOrder: 5 },
+        { id: 't_gbpusd', kind: 'fx', symbol: 'GBP/USD', name: 'GBP / USD', createdAt: now, sortOrder: 6 },
+        { id: 't_adabtc', kind: 'cross', symbol: 'ADA/BTC', name: 'ADA / BTC', createdAt: now, sortOrder: 7 },
       ],
     })
   })
@@ -187,13 +202,16 @@ describe('refreshMarketQuotes', () => {
     expect(ada?.coingeckoId).toBe('cardano')
   })
 
-  it('refreshes equity, FX, and crypto crosses', async () => {
+  it('refreshes equity, commodity, FX, and crypto crosses', async () => {
     const tickers = listMarketTickers()
     const quotes = await refreshMarketQuotes(tickers)
     const bySym = new Map(
       [...quotes.values()].map((q) => [q.symbol.toUpperCase(), q]),
     )
     expect(bySym.get('AAPL')?.last).toBeCloseTo(190 / 1.27, 5)
+    expect(bySym.get('GC=F')?.kind).toBe('commodity')
+    expect(bySym.get('GC=F')?.last).toBeCloseTo(2540 / 1.27, 5)
+    expect(bySym.get('GC=F')?.unit).toBe('GBP')
     expect(bySym.get('GBP/USD')?.last).toBe(1.27)
     expect(bySym.get('ADA/BTC')?.last).toBeCloseTo(0.42 / 50000, 10)
   })

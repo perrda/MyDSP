@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.65**
+**Current version: 1.2.66**
 
-## Completed (through v1.2.65)
+## Completed (through v1.2.66)
 
+- Markets **My Commodities** (Gold/Silver/Copper + aliases) via Yahoo → GBP; Finnhub key high-priority To Do reminder
 - Fix: Weekly digest in-app Preview/Share on mobile (no Safari HTML download dead-end)
 - Quality / ops (next25f 21–25): axe Crypto/Spending, digest smoke, aria-live windowing, docs
 - Today / money / tax (next25f 16–20): editable digest highlights, auto chips, privacy mask, ISA/WTD
@@ -80,14 +81,16 @@
 
 ## Next (manual / ongoing)
 
-1. Run `scripts/SYNC_SMOKE.md` after each deploy (todos + portfolios + Favourites + Markets)
-2. Keep quote Worker live: `npm run deploy:quote` when Markets proxies stall
-3. Hard-refresh / reopen PWA so update banner + new SW activate
+1. **Add your free Finnhub API key** (Settings → Prices) — high priority for live equity quotes
+2. Run `scripts/SYNC_SMOKE.md` after each deploy (todos + portfolios + Favourites + Markets)
+3. Keep quote Worker live: `npm run deploy:quote` when Markets proxies stall
+4. Hard-refresh / reopen PWA so update banner + new SW activate
 
 ## Low priority
 
 - Tune broker aliases from more real IBKR/T212/Coinbase exports
 - Remittance-basis notes / deepen non-UK tax packs further
+- Optional: dedicated `/commodities` holdings page (qty · cost · P&L) beyond Markets watchlist
 
 ## Parking lot
 

@@ -1,5 +1,20 @@
 # MyDSP Changelog
 
+## [1.2.66] - 2026-07-16
+
+### Added — My Commodities
+- Markets **My Commodities** section (same pattern as My Equities), seeded with **Gold (GC=F)**, **Silver (SI=F)**, **Copper (HG=F)**
+- Quotes via existing Yahoo chart path, converted USD→GBP like US equities; aliases (`GOLD`, `SILVER`, `COPPER`, spot `XAUUSD=X`, oil, etc.)
+- Jump chip, presets, add/edit modal, Open/Closed COMEX session chips
+
+### Added — Finnhub setup reminder
+- High-priority **due-today To Do** when no Finnhub key: auto-prompted once per session from Today/Markets; Settings → Prices **Remind me** button; auto-completes when a key is saved
+
+### Version
+- 1.2.65 → **1.2.66**
+
+---
+
 ## [1.2.65] - 2026-07-16
 
 ### Fixed — Weekly digest on mobile

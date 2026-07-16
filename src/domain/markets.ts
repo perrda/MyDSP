@@ -1,8 +1,14 @@
-/** Markets watchlist — equities, crypto, FX, crosses, and indices. */
+/** Markets watchlist — equities, crypto, commodities, FX, crosses, and indices. */
 
 import { formatGBP, formatGBPMarket } from '../utils/format'
+import {
+  commodityDisplayName,
+  DEFAULT_COMMODITIES,
+  normalizeCommoditySymbol,
+  COMMODITY_ALIASES,
+} from './commodities'
 
-export type MarketAssetKind = 'crypto' | 'equity' | 'fx' | 'cross' | 'index'
+export type MarketAssetKind = 'crypto' | 'equity' | 'commodity' | 'fx' | 'cross' | 'index'
 
 /** Optional watchlist folder / tag for filter chips on Markets. */
 export type MarketTickerTag = 'Core' | 'Speculative' | 'Income' | 'Other'
@@ -36,6 +42,7 @@ export interface MarketTicker {
 export type MarketsCollapsed = {
   crypto: boolean
   equities: boolean
+  commodities: boolean
   indices: boolean
   fx: boolean
   crosses: boolean
@@ -60,7 +67,7 @@ export interface MarketQuote {
   kind: MarketAssetKind
   /**
    * Last print in native units:
-   * - crypto/equity → GBP
+   * - crypto/equity/commodity → GBP
    * - index → index points (native)
    * - fx/cross → quote currency units per 1 base
    */
@@ -81,6 +88,11 @@ export const DEFAULT_MARKET_TICKERS: Omit<MarketTicker, 'id' | 'createdAt' | 'so
   { kind: 'crypto', symbol: 'ETH', name: 'Ethereum' },
   { kind: 'equity', symbol: 'TSLA', name: 'Tesla, Inc.' },
   { kind: 'equity', symbol: 'MSTR', name: 'MicroStrategy Incorporated' },
+  ...DEFAULT_COMMODITIES.map((c) => ({
+    kind: 'commodity' as const,
+    symbol: c.symbol,
+    name: c.name,
+  })),
   { kind: 'index', symbol: '^GSPC', name: 'S&P 500' },
   { kind: 'index', symbol: '^IXIC', name: 'Nasdaq Composite' },
   { kind: 'index', symbol: '^FTSE', name: 'FTSE 100' },
@@ -92,6 +104,7 @@ export const DEFAULT_MARKET_TICKERS: Omit<MarketTicker, 'id' | 'createdAt' | 'so
 export const DEFAULT_COLLAPSED: MarketsCollapsed = {
   crypto: false,
   equities: false,
+  commodities: false,
   indices: false,
   fx: false,
   crosses: false,
@@ -128,7 +141,7 @@ export function createEmptyMarketsState(): MarketsState {
   }
 }
 
-/** Uppercase; keep `/` for pairs and `^` for indices; strip spaces. */
+/** Uppercase; keep `/` for pairs, `^` for indices, `=` for futures/spot; strip spaces. */
 export function normalizeMarketSymbol(symbol: string): string {
   const trimmed = symbol.trim().toUpperCase().replace(/\s+/g, '')
   // Indices: preserve caret, map aliases
@@ -138,6 +151,10 @@ export function normalizeMarketSymbol(symbol: string): string {
   }
   if (trimmed.startsWith('^')) return trimmed
 
+  // Commodities: GC=F, XAUUSD=X, GOLD → GC=F
+  if (COMMODITY_ALIASES[trimmed] || trimmed.includes('=')) {
+    return normalizeCommoditySymbol(trimmed)
+  }
   const cleaned = trimmed.replace(/-/g, '/')
   const parts = cleaned.split('/').filter(Boolean)
   if (parts.length >= 2) return `${parts[0]}/${parts[1]}`
@@ -161,13 +178,16 @@ export function defaultNameForPair(kind: MarketAssetKind, symbol: string): strin
   if (kind === 'index') {
     return INDEX_ALIASES[norm]?.name || norm
   }
+  if (kind === 'commodity') {
+    return commodityDisplayName(norm)
+  }
   const pair = parseRatePair(symbol)
   if (!pair) return norm
   if (kind === 'fx' || kind === 'cross') return `${pair.base} / ${pair.quote}`
   return norm
 }
 
-/** Merge missing seed FX/cross/index defaults into an existing watchlist. */
+/** Merge missing seed FX/cross/index/commodity defaults into an existing watchlist. */
 export function mergeDefaultTickers(state: MarketsState): { state: MarketsState; added: string[] } {
   const added: string[] = []
   const tickers = [...state.tickers]
@@ -181,12 +201,14 @@ export function mergeDefaultTickers(state: MarketsState): { state: MarketsState;
       (t) => t.kind === d.kind && normalizeMarketSymbol(t.symbol) === sym,
     )
     if (exists) continue
-    // Auto-add FX + cross + index defaults on upgrade (don't re-add deleted crypto/equity)
-    if (d.kind !== 'fx' && d.kind !== 'cross' && d.kind !== 'index') continue
+    // Auto-add FX + cross + index + commodity defaults on upgrade (don't re-add deleted crypto/equity)
+    if (d.kind !== 'fx' && d.kind !== 'cross' && d.kind !== 'index' && d.kind !== 'commodity') {
+      continue
+    }
     tickers.push({
       ...d,
       symbol: sym,
-      id: `mkt_${d.kind}_${sym.toLowerCase().replace(/\//g, '_').replace(/\^/g, '')}`,
+      id: `mkt_${d.kind}_${sym.toLowerCase().replace(/\//g, '_').replace(/\^/g, '').replace(/=/g, '_')}`,
       createdAt: now,
       sortOrder: nextOrder++,
     })
@@ -196,6 +218,7 @@ export function mergeDefaultTickers(state: MarketsState): { state: MarketsState;
   const collapsed: MarketsCollapsed = {
     crypto: Boolean(state.collapsed?.crypto),
     equities: Boolean(state.collapsed?.equities),
+    commodities: Boolean((state.collapsed as MarketsCollapsed | undefined)?.commodities),
     indices: Boolean((state.collapsed as MarketsCollapsed | undefined)?.indices),
     fx: Boolean((state.collapsed as MarketsCollapsed | undefined)?.fx),
     crosses: Boolean((state.collapsed as MarketsCollapsed | undefined)?.crosses),
@@ -209,7 +232,7 @@ export function mergeDefaultTickers(state: MarketsState): { state: MarketsState;
 
 export function formatMarketLast(quote: MarketQuote): string {
   if (!(quote.last > 0)) return '—'
-  if (quote.kind === 'crypto' || quote.kind === 'equity') {
+  if (quote.kind === 'crypto' || quote.kind === 'equity' || quote.kind === 'commodity') {
     return formatGBPMarket(quote.last)
   }
   if (quote.kind === 'index') {
@@ -227,7 +250,7 @@ export function formatMarketLast(quote: MarketQuote): string {
 
 export function formatMarketChangeAbs(quote: MarketQuote): string {
   const n = quote.changeAbs
-  if (quote.kind === 'crypto' || quote.kind === 'equity') {
+  if (quote.kind === 'crypto' || quote.kind === 'equity' || quote.kind === 'commodity') {
     return formatGBP(n, { signed: true })
   }
   if (quote.kind === 'index') {
