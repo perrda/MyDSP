@@ -1,5 +1,19 @@
 # MyDSP Changelog
 
+## [1.2.47] - 2026-07-16
+
+### Improved — Mobile / tablet UX (next 25c · 11–15)
+11. Shared-element style **page transitions** — opacity/slide on main content route change (`PageRouteTransition`); respects `prefers-reduced-motion`  
+12. Jobs **pipeline mini-card** — Wishlist / Applying / Applied / Interview / Offer / Closed counts from status fields  
+13. Todos **natural-language quick add** — “Pay rent Friday” / tomorrow / next week → title + due date  
+14. Settings **split layout** on iPad (≥900px) — sticky section TOC left + content right  
+15. **Pull-to-refresh** only on Today & Markets (disabled on other routes)  
+
+### Version
+- 1.2.46 → **1.2.47**
+
+---
+
 ## [1.2.46] - 2026-07-16
 
 ### Improved — Markets / valuations (next 25c · 6–10)

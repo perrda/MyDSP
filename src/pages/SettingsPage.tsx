@@ -746,10 +746,30 @@ export function SettingsPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-px">
+      <div className="settings-split">
+        <nav
+          className="settings-split-nav"
+          aria-label="Settings sections"
+        >
+          <p className="settings-split-nav__title">Sections</p>
+          <ul className="settings-split-nav__list">
+            {SETTINGS_SECTION_IDS.map((id) => (
+              <li key={id}>
+                <button
+                  type="button"
+                  className="settings-split-nav__link"
+                  onClick={() => jumpToSettingsSection(id)}
+                >
+                  {settingsSectionLabel(id)}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </nav>
+        <div className="settings-split-content grid grid-cols-1 gap-px">
         <SettingsSection id="sync" eyebrow="Sync" title="Encrypted cloud sync">
           <p className="text-sm text-text-muted font-light mb-4 max-w-2xl">
-            On iPhone / iPad: pull down on any screen to sync across devices. Same Remote URL +
+            On iPhone / iPad: pull down on Today or Markets to sync across devices. Same Remote URL +
             passphrase on Mac, iPhone, and iPad. Turn on{' '}
             <span className="text-text font-medium">Automatic sync</span> and{' '}
             <span className="text-text font-medium">Remember passphrase</span> so sync works after
@@ -3493,6 +3513,7 @@ export function SettingsPage() {
             </button>
           </div>
         </SettingsSection>
+        </div>
       </div>
 
       <ConfirmDialog

@@ -35,6 +35,7 @@ import { syncHighlightClass, useSyncHighlights } from '../hooks/useSyncHighlight
 import type { TodoFilterBy, TodoItem, TodoList, TodoSortBy } from '../domain/todo-types'
 import {
   calculateTodoStats,
+  createTodoItem,
   exportTodosToCsv,
   filterTodoItems,
   isOverdue,
@@ -42,6 +43,7 @@ import {
   parseCsvToTodoItems,
   sortTodoItems,
 } from '../domain/todos'
+import { parseTodoQuickAdd } from '../domain/todoQuickAdd'
 import { moveTodoItemsToList } from '../domain/todoOcr'
 import { privacyClass, formatDate } from '../utils/format'
 
@@ -125,6 +127,7 @@ export function TodosPage() {
   const [sortBy, setSortBy] = useState<TodoSortBy>('order-asc')
   const [filterBy, setFilterBy] = useState<TodoFilterBy>('all')
   const [searchQuery, setSearchQuery] = useState('')
+  const [quickAddText, setQuickAddText] = useState('')
   const [showCompleted, setShowCompleted] = useState(false)
   /** Quick priority chips — empty = no extra priority constraint */
   const [priorityChips, setPriorityChips] = useState<Set<'high' | 'medium' | 'low'>>(new Set())
@@ -402,6 +405,40 @@ export function TodosPage() {
     }
     setEditingTodo(undefined)
     setShowTaskModal(true)
+  }
+
+  const handleQuickAdd = () => {
+    const raw = quickAddText.trim()
+    if (!raw) return
+    if (lists.length === 0) {
+      showError('Create a list first', 'You need at least one list to add items')
+      openCreateList()
+      return
+    }
+    const listId = selectedListId || lists[0]?.id
+    if (!listId) return
+    const parsed = parseTodoQuickAdd(raw)
+    if (!parsed.title) return
+    const item = createTodoItem({
+      title: parsed.title,
+      listId,
+      dueDate: parsed.dueDate,
+    })
+    setData((prev) => {
+      const withOrder = {
+        ...item,
+        sortOrder: nextSortOrderForList(prev.todoItems ?? [], listId),
+      }
+      return {
+        ...prev,
+        todoItems: [...(prev.todoItems ?? []), withOrder],
+      }
+    })
+    setQuickAddText('')
+    success(
+      'Task created',
+      parsed.dueDate ? `${parsed.title} · due ${parsed.dueDate}` : parsed.title,
+    )
   }
 
   const handleEditItem = (item: TodoItem) => {
@@ -719,6 +756,34 @@ export function TodosPage() {
         />
       ) : (
         <>
+          <form
+            className="todos-quick-add flex flex-wrap gap-2 mb-4 items-stretch"
+            onSubmit={(e) => {
+              e.preventDefault()
+              handleQuickAdd()
+            }}
+            aria-label="Quick add task"
+          >
+            <label className="sr-only" htmlFor="todos-quick-add">
+              Quick add task
+            </label>
+            <input
+              id="todos-quick-add"
+              type="text"
+              className="toolbar-select flex-1 min-w-[12rem] !w-auto px-3 py-2.5 text-sm min-h-11"
+              placeholder="Quick add — e.g. Pay rent Friday"
+              value={quickAddText}
+              onChange={(e) => setQuickAddText(e.target.value)}
+              autoComplete="off"
+            />
+            <button
+              type="submit"
+              className="btn-primary btn-sm min-h-11 px-4"
+              disabled={!quickAddText.trim()}
+            >
+              <Plus size={16} /> Add
+            </button>
+          </form>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-3 mb-5 sm:mb-6">
             <div className="surface p-3 sm:p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none">
               <p className="text-[11px] sm:text-xs uppercase tracking-wider text-text-subtle mb-1 font-semibold">To Do</p>

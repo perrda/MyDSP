@@ -2315,3 +2315,88 @@ html.success-haptic-flash::after {
   }
 }
 
+/* next25c 11: Shared-element style page enter on route change */
+@keyframes page-route-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.page-route-transition {
+  animation: page-route-in 0.22s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .page-route-transition {
+    animation: none;
+  }
+}
+
+/* next25c 14: Split Settings sticky section nav (iPad / ≥900px) */
+.settings-split-nav {
+  display: none;
+}
+@media (min-width: 900px) {
+  .settings-split {
+    display: grid;
+    grid-template-columns: 11.5rem minmax(0, 1fr);
+    gap: 1.25rem;
+    align-items: start;
+  }
+  .settings-split-nav {
+    display: block;
+    position: sticky;
+    top: calc(var(--app-header-offset, 3.5rem) + 0.5rem);
+    max-height: calc(100dvh - var(--app-header-offset, 3.5rem) - 1.5rem);
+    overflow-y: auto;
+    padding: 0.25rem 0.15rem 0.5rem 0;
+    border-right: 1px solid var(--border);
+    padding-right: 0.75rem;
+  }
+  .settings-split-nav__title {
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-subtle);
+    margin: 0 0 0.5rem;
+    padding-left: 0.35rem;
+  }
+  .settings-split-nav__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+  }
+  .settings-split-nav__link {
+    display: block;
+    width: 100%;
+    text-align: left;
+    font-size: 0.8125rem;
+    line-height: 1.25;
+    padding: 0.4rem 0.5rem;
+    border-radius: var(--radius-control, 0.35rem);
+    color: var(--text-muted);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    min-height: 2rem;
+  }
+  .settings-split-nav__link:hover {
+    color: var(--text);
+    background: color-mix(in srgb, var(--surface-hover) 80%, transparent);
+  }
+  .settings-split-nav__link:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+  .settings-split-content {
+    min-width: 0;
+  }
+}
+

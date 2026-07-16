@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.46**
+**Current version: 1.2.47**
 
-## Completed (through v1.2.46)
+## Completed (through v1.2.47)
 
+- Mobile / tablet UX (next25c 11–15): page transitions, Jobs pipeline mini-card, Todos NL quick-add, Settings split nav, PTR Today/Markets only
 - Markets / valuations (next25c 6–10): Compact/Heat density, per-section refresh, corporate action notes, Add from holding, FX triangle check
 - Sync / security (next25c 1–5): dry-run pull, device nickname, biometric unlock timeout, sync setup URL export, auto-resume after pause
 - Quality / ops (next25b 21–25): Settings fuzzy search + recent jumps, household snapshot PDF, Markets Cached mode, verify:bundle perf budget, UpdateBanner release notes

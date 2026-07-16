@@ -43,6 +43,7 @@ import {
   STATUS_COLORS,
   STATUS_LABELS,
 } from '../domain/jobs'
+import { calculateJobPipelineCounts } from '../domain/jobPipeline'
 import { applySortOrder, sortBySortOrder } from '../utils/reorder'
 import { formatNativeCurrency, privacyClass } from '../utils/format'
 
@@ -101,6 +102,7 @@ export function JobsPage() {
   }, [applications, filterBy, searchQuery, sortBy])
 
   const stats = useMemo(() => calculateJobStats(applications), [applications])
+  const pipeline = useMemo(() => calculateJobPipelineCounts(applications), [applications])
 
   const kanbanData = useMemo(() => {
     return KANBAN_COLUMNS.map((col) => ({
@@ -416,23 +418,41 @@ export function JobsPage() {
         }
       />
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <div className="surface p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none">
-          <p className="text-xs uppercase tracking-wider text-text-subtle mb-1 font-semibold">Applied</p>
-          <p className="text-2xl font-bold tabular-nums">{stats.applied}</p>
+      {/* Pipeline analytics mini-card */}
+      <div
+        className="jobs-pipeline-mini surface p-3 sm:p-4 mb-5 rounded-xl md:rounded-none shadow-sm md:shadow-none"
+        role="group"
+        aria-label="Job pipeline counts"
+      >
+        <div className="flex flex-wrap items-baseline justify-between gap-2 mb-2.5">
+          <p className="text-[11px] sm:text-xs uppercase tracking-wider text-text-subtle font-semibold">
+            Pipeline
+          </p>
+          <p className="text-[11px] text-text-muted tabular-nums">
+            {stats.avgResponseTime > 0 ? `Avg response ${stats.avgResponseTime}d` : `${stats.total} active`}
+          </p>
         </div>
-        <div className="surface p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none">
-          <p className="text-xs uppercase tracking-wider text-text-subtle mb-1 font-semibold">Interviewing</p>
-          <p className="text-2xl font-bold tabular-nums text-amber-500">{stats.interviewing}</p>
-        </div>
-        <div className="surface p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none">
-          <p className="text-xs uppercase tracking-wider text-text-subtle mb-1 font-semibold">Offers</p>
-          <p className="text-2xl font-bold tabular-nums text-green-500">{stats.offers}</p>
-        </div>
-        <div className="surface p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none">
-          <p className="text-xs uppercase tracking-wider text-text-subtle mb-1 font-semibold">Response Time</p>
-          <p className="text-2xl font-bold tabular-nums">{stats.avgResponseTime}d</p>
+        <div className="flex flex-wrap gap-x-3 gap-y-2 sm:gap-x-4">
+          {pipeline.map((stage) => (
+            <div key={stage.id} className="jobs-pipeline-mini__stage min-w-[3.25rem]">
+              <p className="text-[10px] sm:text-[11px] uppercase tracking-wider text-text-subtle font-semibold">
+                {stage.label}
+              </p>
+              <p
+                className={`text-lg sm:text-xl font-bold tabular-nums leading-tight ${
+                  stage.id === 'interview'
+                    ? 'text-amber-500'
+                    : stage.id === 'offer'
+                      ? 'text-green-500'
+                      : stage.id === 'closed'
+                        ? 'text-red-500/80'
+                        : ''
+                }`}
+              >
+                {stage.count}
+              </p>
+            </div>
+          ))}
         </div>
       </div>
 

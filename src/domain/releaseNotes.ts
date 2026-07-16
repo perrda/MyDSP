@@ -3,9 +3,9 @@
  * Keep 3 short bullets aligned with the latest CHANGELOG section.
  */
 export const RELEASE_NOTES: readonly string[] = [
-  'Markets Heat density + per-section quote refresh',
-  'Corporate action notes on equities · Add from holding',
-  'FX triangle check when cross rates disagree',
+  'Page transitions · pull-to-refresh on Today & Markets only',
+  'Jobs pipeline mini-card · Todos “Pay rent Friday” quick-add',
+  'Settings split section nav on iPad (≥900px)',
 ]
 
 /** Return up to `n` bullets for the banner. */
