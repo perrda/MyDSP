@@ -27,6 +27,7 @@ vi.mock('../services/prices', async (importOriginal) => {
             symbol: 'BTC',
             priceGbp: 50000,
             changePct: 1.2,
+            sparkline: [49000, 49500, 50000],
             coingeckoId: 'bitcoin',
             source: 'coingecko',
           })
@@ -35,6 +36,7 @@ vi.mock('../services/prices', async (importOriginal) => {
             symbol: 'ETH',
             priceGbp: 2500,
             changePct: -0.5,
+            sparkline: [2520, 2510, 2500],
             coingeckoId: 'ethereum',
             source: 'coingecko',
           })
@@ -43,6 +45,7 @@ vi.mock('../services/prices', async (importOriginal) => {
             symbol: 'ADA',
             priceGbp: 0.42,
             changePct: 2.1,
+            sparkline: [0.41, 0.415, 0.42],
             coingeckoId: 'cardano',
             source: 'coingecko',
           })
@@ -51,6 +54,7 @@ vi.mock('../services/prices', async (importOriginal) => {
             symbol: 'USDC',
             priceGbp: 0.79,
             changePct: 0.01,
+            sparkline: [0.79, 0.79, 0.79],
             coingeckoId: 'usd-coin',
             source: 'coingecko',
           })
@@ -59,6 +63,7 @@ vi.mock('../services/prices', async (importOriginal) => {
             symbol: 'NIGHT',
             priceGbp: 0.022,
             changePct: -3.5,
+            sparkline: [0.023, 0.0225, 0.022],
             coingeckoId: 'midnight-3',
             source: 'coingecko',
           })

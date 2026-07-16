@@ -48,13 +48,13 @@ import { marketSessionStatus } from '../domain/marketSession'
 import { ensureFinnhubSetupTodo } from '../domain/finnhubReminder'
 import { normalizeCommoditySymbol } from '../domain/commodities'
 import { shouldShowCachedMode } from '../domain/marketsCachedMode'
-import { heatColorForChangePct, heatTextClassForChangePct } from '../domain/marketsHeat'
 import { mergeMarketQuotes } from '../domain/marketQuotesCache'
 import { isOnline } from '../services/offlineQueue'
 import { sparklineTrendFromSeries } from '../domain/sparklineSeries'
 import { refreshMarketQuotes } from '../services/marketsQuotes'
 import { formatMarketsProviderHealthHint } from '../services/marketsProviderHealth'
 import { KNOWN_CRYPTO_SYMBOLS } from '../services/prices'
+import { MARKET_TIMEFRAMES, type MarketTimeframe } from '../domain/marketTimeframe'
 import {
   addMarketTicker,
   listMarketTickers,
@@ -66,6 +66,8 @@ import {
   setMarketsCollapsed,
   setMarketsDensity,
   getMarketsDensity,
+  setMarketsTimeframe,
+  getMarketsTimeframe,
   setMarketsLastRefresh,
   updateMarketTicker,
 } from '../storage/marketsStore'
@@ -434,6 +436,7 @@ export function MarketsPage() {
   const [addKind, setAddKind] = useState<MarketAssetKind | null>(null)
   const [sorting, setSorting] = useState(false)
   const [density, setDensity] = useState<MarketsDensity>(() => getMarketsDensity())
+  const [timeframe, setTimeframe] = useState<MarketTimeframe>(() => getMarketsTimeframe())
   const [sectionRefreshing, setSectionRefreshing] = useState<SectionKey | null>(null)
   const [focusSymbol, setFocusSymbol] = useState<string | null>(null)
   const [quoteDetail, setQuoteDetail] = useState<{ ticker: MarketTicker; quote?: MarketQuote } | null>(
@@ -668,6 +671,7 @@ export function MarketsPage() {
       const next = await refreshMarketQuotes(list, {
         finnhubKey,
         manualCryptoPrices: data.settings.manualCryptoPrices,
+        timeframe,
       })
       const allTickers = listMarketTickers()
       const previous = seedQuotesFromPortfolio(allTickers, data, quotesRef.current)
@@ -695,7 +699,7 @@ export function MarketsPage() {
       setRefreshing(false)
       setInitialLoad(false)
     }
-  }, [data, setData])
+  }, [data, setData, timeframe])
 
   const refreshSection = useCallback(
     async (section: SectionKey) => {
@@ -1047,40 +1051,6 @@ export function MarketsPage() {
                   </div>
                 ) : null}
               </div>
-            ) : density === 'heat' ? (
-              <div
-                className="markets-heat-grid grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-1.5 p-3 sm:p-4"
-                role="list"
-                aria-label={`${meta.title} heat map by day change`}
-              >
-                {items.map((t) => {
-                  const q = quotes.get(t.id)
-                  const pct = q?.changePct ?? 0
-                  const focused = focusSymbol === t.symbol
-                  return (
-                    <button
-                      key={t.id}
-                      type="button"
-                      role="listitem"
-                      id={`market-${t.symbol.replace(/[^a-zA-Z0-9]/g, '_')}`}
-                      className={`markets-heat-cell min-h-[4.25rem] px-2 py-2 flex flex-col items-center justify-center gap-0.5 text-center transition-colors ${
-                        focused ? 'ring-2 ring-accent' : ''
-                      } ${heatTextClassForChangePct(pct)}`}
-                      style={{ backgroundColor: heatColorForChangePct(pct) }}
-                      title={`${t.symbol} ${formatPct(pct, 2)}`}
-                      aria-label={`${t.symbol} ${formatPct(pct, 2)}`}
-                      onClick={() => setQuoteDetail({ ticker: t, quote: q })}
-                    >
-                      <span className="text-xs font-bold tracking-tight leading-tight truncate max-w-full">
-                        {t.symbol}
-                      </span>
-                      <span className="text-[11px] tabular-nums font-semibold opacity-95">
-                        {formatPct(pct, 1)}
-                      </span>
-                    </button>
-                  )
-                })}
-              </div>
             ) : (
               <ReorderList
                 items={items}
@@ -1202,7 +1172,7 @@ export function MarketsPage() {
                         <button
                           type="button"
                           className="w-14 sm:w-16 shrink-0 rounded-md hover:bg-surface-hover/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
-                          aria-label={`${t.symbol} 24h sparkline detail`}
+                          aria-label={`${t.symbol} ${timeframe} sparkline detail`}
                           onClick={() => setQuoteDetail({ ticker: t, quote: q })}
                         >
                           <Sparkline
@@ -1352,7 +1322,9 @@ export function MarketsPage() {
                 </Link>
               ) : (
                 <span className="text-xs text-text-subtle">
-                  {sorting ? 'Drag ⋮⋮ to reorder · 24h sparkline' : '24h % · 24h sparkline'}
+                  {sorting
+                    ? `Drag ⋮⋮ to reorder · ${timeframe} sparkline`
+                    : `${timeframe} % · ${timeframe} sparkline`}
                 </span>
               )}
             </div>
@@ -1387,26 +1359,22 @@ export function MarketsPage() {
             <button
               type="button"
               className={`btn-ghost btn-sm ${
-                density === 'compact' || density === 'heat' ? 'border-accent text-accent' : ''
+                density === 'compact' ? 'border-accent text-accent' : ''
               }`}
-              aria-pressed={density !== 'comfortable'}
-              aria-label={`Density: ${density}. Cycle Comfortable, Compact, Heat`}
+              aria-pressed={density === 'compact'}
+              aria-label={
+                density === 'comfortable'
+                  ? 'Switch to compact density'
+                  : 'Switch to comfortable density'
+              }
               onClick={() => {
                 const next: MarketsDensity =
-                  density === 'comfortable'
-                    ? 'compact'
-                    : density === 'compact'
-                      ? 'heat'
-                      : 'comfortable'
+                  density === 'comfortable' ? 'compact' : 'comfortable'
                 setMarketsDensity(next)
                 setDensity(next)
               }}
             >
-              {density === 'comfortable'
-                ? 'Compact'
-                : density === 'compact'
-                  ? 'Heat'
-                  : 'Comfortable'}
+              {density === 'comfortable' ? 'Compact' : 'Comfortable'}
             </button>
             <button
               type="button"
@@ -1445,6 +1413,32 @@ export function MarketsPage() {
                 Clear
               </button>
             ) : null}
+          </div>
+          <div
+            className="mt-2.5 flex flex-wrap items-center gap-1.5"
+            role="group"
+            aria-label="Sparkline and percent change timeframe"
+          >
+            {MARKET_TIMEFRAMES.map((tf) => (
+              <button
+                key={tf}
+                type="button"
+                className={`btn-sm min-h-9 px-2.5 tabular-nums ${
+                  timeframe === tf ? 'btn-secondary border-accent text-accent' : 'btn-ghost'
+                }`}
+                aria-pressed={timeframe === tf}
+                onClick={() => {
+                  if (tf === timeframe) return
+                  setMarketsTimeframe(tf)
+                  setTimeframe(tf)
+                }}
+              >
+                {tf}
+              </button>
+            ))}
+            <span className="text-[11px] text-text-subtle ml-1">
+              % and sparkline use the same {timeframe} series
+            </span>
           </div>
           <p className="mt-1.5 text-[11px] text-text-subtle">
             {searchQuery

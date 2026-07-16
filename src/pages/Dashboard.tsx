@@ -29,6 +29,7 @@ import {
 } from '../domain/netWorthSparkline'
 import { dueWithinDays } from '../domain/recurringDueStrip'
 import { markRecurringPaid, skipRecurringOccurrence } from '../domain/recurringActions'
+import { monthlyRecurringTotal } from '../domain/recurringHelpers'
 import { isDueToday, isOverdue } from '../domain/todos'
 import { snoozeDueDateOneDay } from '../domain/todoSnooze'
 import { sparklineTrendFromSeries } from '../domain/sparklineSeries'
@@ -69,7 +70,7 @@ const ALERT_BORDER: Record<string, string> = {
 
 const QUICK_PRIMARY = { to: '/markets', label: 'Markets', icon: CandlestickChart }
 const QUICK_SECONDARY = [
-  { to: '/todos', label: 'To Do' },
+  { to: '/todos', label: "To Do's" },
   { to: '/liabilities', label: 'Liabilities' },
   { to: '/goals', label: 'Goals' },
 ] as const
@@ -324,11 +325,7 @@ export function Dashboard() {
   }, [data.spending])
 
   const cashRunway = useMemo(() => {
-    const monthlyRecurring = (data.recurringTransactions ?? []).reduce((sum, r) => {
-      if (r.frequency === 'weekly') return sum + (r.amount * 52) / 12
-      if (r.frequency === 'yearly') return sum + r.amount / 12
-      return sum + r.amount
-    }, 0)
+    const monthlyRecurring = monthlyRecurringTotal(data.recurringTransactions ?? [])
     if (!(monthlyRecurring > 0)) return null
     const liquidishNetWorth = Math.max(0, assets - liabilities)
     return {
@@ -352,8 +349,8 @@ export function Dashboard() {
   const digestHighlights = useMemo(() => {
     const lines = [
       todayTodos.length
-        ? `${todayTodos.length} todo${todayTodos.length === 1 ? '' : 's'} due today`
-        : 'No todos due today',
+        ? `${todayTodos.length} To Do${todayTodos.length === 1 ? '' : "'s"} due today`
+        : "No To Do's due today",
       todayMovers[0]
         ? `Top mover ${todayMovers[0].symbol} ${formatPct(todayMovers[0].changePct)}`
         : 'No Markets movers cached',
@@ -699,7 +696,7 @@ export function Dashboard() {
         ariaLabel="Next actions"
         action={
           <Link to="/todos" className="text-xs text-accent font-semibold">
-            All todos
+            All To Do's
           </Link>
         }
       >

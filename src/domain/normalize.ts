@@ -251,6 +251,8 @@ function normalizeRecurring(raw: unknown): import('./types').RecurringTransactio
   return asArray(raw).map((item, i) => {
     const r = (item ?? {}) as Record<string, unknown>
     const freq = str(r.frequency, 'monthly')
+    const commentaries = normalizeCommentaries(r.commentaries)
+    const lastPaidAt = str(r.lastPaidAt)
     return {
       id: num(r.id, i + 1),
       name: str(r.name, 'Recurring'),
@@ -260,6 +262,8 @@ function normalizeRecurring(raw: unknown): import('./types').RecurringTransactio
       category: str(r.category, 'other'),
       nextDue: str(r.nextDue, new Date().toISOString().slice(0, 10)),
       createdAt: r.createdAt !== undefined ? str(r.createdAt) : undefined,
+      lastPaidAt: lastPaidAt || undefined,
+      commentaries: commentaries.length ? commentaries : undefined,
     }
   })
 }

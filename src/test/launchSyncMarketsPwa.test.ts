@@ -69,7 +69,7 @@ describe('sync conflict summaries', () => {
       ],
     }
     const s = summarizeConflict(c)
-    expect(s).toMatch(/to-do/i)
+    expect(s).toMatch(/To Do/i)
     expect(s).toMatch(/Call bank/)
     expect(s).toMatch(/status/)
   })
@@ -99,7 +99,7 @@ describe('sync conflict summaries', () => {
       },
     ]
     expect(summarizeConflictBatch(conflicts)).toMatch(/3 conflicts/)
-    expect(summarizeConflictBatch(conflicts)).toMatch(/2 to-do/)
+    expect(summarizeConflictBatch(conflicts)).toMatch(/2 To Do/)
     expect(summarizeConflictBatch([])).toBe('No conflicts.')
   })
 })

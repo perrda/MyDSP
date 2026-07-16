@@ -6,6 +6,8 @@ import {
   type MarketQuote,
   type MarketTicker,
 } from '../domain/markets'
+import { changePctFromSeries } from '../domain/sparklineSeries'
+import { type MarketTimeframe } from '../domain/marketTimeframe'
 import { mergeMarketQuotes } from '../domain/marketQuotesCache'
 import { equityNeedsUsdToGbp } from '../domain/equityCurrency'
 import {
@@ -94,11 +96,16 @@ function persistResolvedGeckoIds(
 
 export async function refreshMarketQuotes(
   tickers: MarketTicker[],
-  opts?: { finnhubKey?: string; manualCryptoPrices?: Record<string, number> },
+  opts?: {
+    finnhubKey?: string
+    manualCryptoPrices?: Record<string, number>
+    timeframe?: MarketTimeframe
+  },
 ): Promise<Map<string, MarketQuote>> {
   const out = new Map<string, MarketQuote>()
   const now = new Date().toISOString()
   const finnhubKey = opts?.finnhubKey ?? ''
+  const timeframe = opts?.timeframe ?? '24H'
   const fx = await ensureFxRates()
 
   const cryptos = tickers.filter((t) => t.kind === 'crypto')
@@ -112,6 +119,7 @@ export async function refreshMarketQuotes(
     const quotes = await fetchCryptoMarketQuotesGbp(
       cryptos.map((t) => ({ symbol: t.symbol, coingeckoId: t.coingeckoId })),
       opts?.manualCryptoPrices ?? {},
+      timeframe,
     )
     const bySym = new Map(quotes.map((q) => [q.symbol.toUpperCase(), q]))
     persistResolvedGeckoIds(cryptos, bySym)
@@ -145,9 +153,12 @@ export async function refreshMarketQuotes(
         try {
           const geckoId =
             bySym.get(t.symbol.toUpperCase())?.coingeckoId ?? t.coingeckoId
-          const sparkline = await fetchCryptoGbpSparkline(t.symbol, geckoId)
+          const sparkline = await fetchCryptoGbpSparkline(t.symbol, geckoId, timeframe)
           if (sparkline.length > 1) {
-            out.set(t.id, { ...existing, sparkline })
+            const changePct = changePctFromSeries(sparkline)
+            const changeAbs =
+              existing.last > 0 && sparkline[0]! > 0 ? existing.last - sparkline[0]! : existing.changeAbs
+            out.set(t.id, { ...existing, sparkline, changePct, changeAbs })
           }
         } catch {
           /* optional */
@@ -159,7 +170,7 @@ export async function refreshMarketQuotes(
   await Promise.all(
     equities.map(async (t) => {
       try {
-        const native = await fetchEquityMarketQuote(t.symbol, finnhubKey)
+        const native = await fetchEquityMarketQuote(t.symbol, finnhubKey, timeframe)
         if (!native || !(native.price > 0)) {
           out.set(t.id, emptyQuote(t, now, 'GBP', 2, 'none'))
           return
@@ -223,7 +234,7 @@ export async function refreshMarketQuotes(
   await Promise.all(
     indices.map(async (t) => {
       try {
-        const q = await fetchIndexQuote(t.symbol, finnhubKey)
+        const q = await fetchIndexQuote(t.symbol, finnhubKey, timeframe)
         if (!q || !(q.price > 0)) {
           out.set(t.id, emptyQuote(t, now, 'pts', 2, 'none'))
           return
@@ -254,7 +265,7 @@ export async function refreshMarketQuotes(
         return
       }
       try {
-        const q = await fetchFxPairQuote(pair.base, pair.quote)
+        const q = await fetchFxPairQuote(pair.base, pair.quote, timeframe)
         if (!q) {
           out.set(t.id, emptyQuote(t, now, pair.quote, rateDecimals(pair.quote), 'none'))
           return
@@ -277,7 +288,7 @@ export async function refreshMarketQuotes(
     }),
   )
 
-  // Fill missing FX 24h sparklines via Frankfurter (same idea as crypto Yahoo fill)
+  // Fill missing FX sparklines via Frankfurter (same idea as crypto Yahoo fill)
   await mapPool(
     fiatFx.filter((t) => (out.get(t.id)?.last ?? 0) > 0 && (out.get(t.id)?.sparkline.length ?? 0) < 2),
     SPARKLINE_CONCURRENCY,
@@ -286,19 +297,11 @@ export async function refreshMarketQuotes(
       const pair = parseRatePair(t.symbol)
       if (!existing || !pair) return
       try {
-        const frank = await fetchFrankfurterFxQuote(pair.base, pair.quote)
+        const frank = await fetchFrankfurterFxQuote(pair.base, pair.quote, timeframe)
         if (!frank || frank.sparkline.length < 2) return
-        const previousClose = frank.previousClose > 0 ? frank.previousClose : frank.last
-        const changeAbs =
-          Math.abs(existing.changePct) > 0.0001
-            ? existing.changeAbs
-            : existing.last - previousClose
-        const changePct =
-          Math.abs(existing.changePct) > 0.0001
-            ? existing.changePct
-            : previousClose > 0
-              ? (changeAbs / previousClose) * 100
-              : frank.changePct
+        const changePct = changePctFromSeries(frank.sparkline)
+        const previousClose = frank.sparkline[0]!
+        const changeAbs = existing.last - previousClose
         out.set(t.id, {
           ...existing,
           sparkline: frank.sparkline,
@@ -322,7 +325,7 @@ export async function refreshMarketQuotes(
         return
       }
       try {
-        const q = await fetchCryptoCrossQuote(pair.base, pair.quote, t.coingeckoId)
+        const q = await fetchCryptoCrossQuote(pair.base, pair.quote, t.coingeckoId, timeframe)
         if (!q) {
           out.set(t.id, emptyQuote(t, now, pair.quote, rateDecimals(pair.quote), 'none'))
           return

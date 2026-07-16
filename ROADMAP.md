@@ -1,10 +1,12 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.66**
+**Current version: 1.2.68**
 
-## Completed (through v1.2.66)
+## Completed (through v1.2.68)
 
 - Markets **My Commodities** (Gold/Silver/Copper + aliases) via Yahoo → GBP; Finnhub key high-priority To Do reminder
+- Recurring sort (due/paid/amount) · monthly total · date-stamped commentary CRUD; Todos → To Do's branding
+- Fix: News Top 10 + By ticker via quote Worker; Markets heatmap reverted; USD not US$; Markets 24H/1W/1M/12M sparklines+%
 - Fix: Weekly digest in-app Preview/Share on mobile (no Safari HTML download dead-end)
 - Quality / ops (next25f 21–25): axe Crypto/Spending, digest smoke, aria-live windowing, docs
 - Today / money / tax (next25f 16–20): editable digest highlights, auto chips, privacy mask, ISA/WTD
@@ -25,7 +27,7 @@
 - Quality / ops (next25c 21–25): What’s new archive, ErrorBoundary recovery, skip-link targets, /smoke Quote+Sync checks, weekly HTML digest download
 - Today / money / tax (next25c 16–20): next-action stack, spending category sparklines, tax year progress ring, NW 7d/30d sparkline, Compare invite sheet
 - Mobile / tablet UX (next25c 11–15): page transitions, Jobs pipeline mini-card, Todos NL quick-add, Settings split nav, PTR Today/Markets only
-- Markets / valuations (next25c 6–10): Compact/Heat density, per-section refresh, corporate action notes, Add from holding, FX triangle check
+- Markets / valuations (next25c 6–10): Compact density, per-section refresh, corporate action notes, Add from holding, FX triangle check
 - Sync / security (next25c 1–5): dry-run pull, device nickname, biometric unlock timeout, sync setup URL export, auto-resume after pause
 - Quality / ops (next25b 21–25): Settings fuzzy search + recent jumps, household snapshot PDF, Markets Cached mode, verify:bundle perf budget, UpdateBanner release notes
 - Today / planning (next25b 16–20): money pulse NW Δ, Spending Make rule → Rules prefill, bills due-in-7 strip, goal projected date from surplus estimate, TradeModal save → holding detail
@@ -83,7 +85,7 @@
 
 1. **Add your free Finnhub API key** (Settings → Prices) — high priority for live equity quotes
 2. Run `scripts/SYNC_SMOKE.md` after each deploy (todos + portfolios + Favourites + Markets)
-3. Keep quote Worker live: `npm run deploy:quote` when Markets proxies stall
+3. Keep quote Worker live: `npm run deploy:quote` when Markets proxies stall (required for News after 1.2.66)
 4. Hard-refresh / reopen PWA so update banner + new SW activate
 
 ## Low priority

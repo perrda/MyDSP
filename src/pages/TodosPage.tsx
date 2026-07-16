@@ -611,7 +611,7 @@ export function TodosPage() {
           ...prev,
           todoItems: (prev.todoItems ?? []).filter((i) => i.id !== id),
         }))
-        success('Todo deleted')
+        success('To Do deleted')
       },
     })
   }
@@ -642,7 +642,7 @@ export function TodosPage() {
         })
         return { ...prev, todoItems: [...(prev.todoItems ?? []), ...withOrders] }
       })
-      success('Imported todos', `${items.length} items added`)
+      success("Imported To Do's", `${items.length} items added`)
     }
     input.click()
   }
@@ -704,7 +704,7 @@ export function TodosPage() {
 
       <PageHeader
         eyebrow="Tasks"
-        title="To Do Lists"
+        title="To Do's"
         description={
           lists.length === 0
             ? 'Organize and track your tasks across multiple lists'
@@ -741,7 +741,7 @@ export function TodosPage() {
         <EmptyState
           illustration
           title="No Lists Yet"
-          description="Create your first todo list to start tracking tasks. Organize by project, category, or any way that works for you — or import from a screenshot with on-device OCR."
+          description="Create your first To Do list to start tracking tasks. Organize by project, category, or any way that works for you — or import from a screenshot with on-device OCR."
           action={{
             label: 'Create First List',
             onClick: openCreateList,
@@ -1189,7 +1189,7 @@ export function TodosPage() {
         </>
       )}
 
-      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary todo actions">
+      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary To Do actions">
         <button type="button" onClick={handleCreateItem} className="btn-primary btn-sm" disabled={lists.length === 0}>
           <Plus size={16} /> New Task
         </button>

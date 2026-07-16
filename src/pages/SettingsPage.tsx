@@ -2515,7 +2515,7 @@ export function SettingsPage() {
             <p className="text-sm text-text-muted font-light mb-4 leading-relaxed">
               <span className="text-text font-medium">Overview</span> and{' '}
               <span className="text-text font-medium">Settings</span> stay fixed at each end. Choose
-              the three middle tabs — default is Markets · To Do · Equities (same on iPhone and
+              the three middle tabs — default is Markets · To Do's · Equities (same on iPhone and
               iPad).
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
@@ -2565,7 +2565,7 @@ export function SettingsPage() {
               onClick={() => {
                 resetBottomNavMiddleSlots()
                 setBottomMiddle(loadBottomNavMiddleSlots())
-                flash('Bottom nav reset to Markets · To Do · Equities.')
+                flash("Bottom nav reset to Markets · To Do's · Equities.")
               }}
             >
               Reset bottom nav defaults
@@ -3997,7 +3997,7 @@ export function SettingsPage() {
 
         <SettingsSection id="reports" eyebrow="Reports" title="PDF & spreadsheet exports">
           <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
-            Print-ready PDFs and CSV downloads for portfolio, spending, goals, jobs, and todos —
+            Print-ready PDFs and CSV downloads for portfolio, spending, goals, jobs, and To Do's —
             separate from encrypted full backups above.
           </p>
           <DataExportPanel />

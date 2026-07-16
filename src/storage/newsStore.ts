@@ -4,6 +4,7 @@ import {
   createEmptyNewsState,
   newNewsTagId,
   normalizeNewsTag,
+  type NewsArticle,
   type NewsCollapsed,
   type NewsState,
   type NewsTag,
@@ -215,3 +216,45 @@ export function importNewsFromBackup(raw: unknown): void {
     { fromSync: true },
   )
 }
+
+const ARTICLES_KEY = 'mydsp_news_articles_v1'
+
+export interface NewsArticlesCache {
+  top: NewsArticle[]
+  byTag: Record<string, NewsArticle[]>
+  fetchedAt?: string
+}
+
+/** Last-good headlines — survive reloads and failed refreshes (not synced). */
+export function loadNewsArticlesCache(): NewsArticlesCache {
+  try {
+    const raw = localStorage.getItem(ARTICLES_KEY)
+    if (!raw) return { top: [], byTag: {} }
+    const parsed = JSON.parse(raw) as NewsArticlesCache
+    return {
+      top: Array.isArray(parsed.top) ? parsed.top : [],
+      byTag: parsed.byTag && typeof parsed.byTag === 'object' ? parsed.byTag : {},
+      fetchedAt: typeof parsed.fetchedAt === 'string' ? parsed.fetchedAt : undefined,
+    }
+  } catch {
+    return { top: [], byTag: {} }
+  }
+}
+
+export function saveNewsArticlesCache(cache: NewsArticlesCache): void {
+  try {
+    localStorage.setItem(
+      ARTICLES_KEY,
+      JSON.stringify({
+        top: (cache.top || []).slice(0, 30),
+        byTag: Object.fromEntries(
+          Object.entries(cache.byTag || {}).map(([k, v]) => [k, (v || []).slice(0, 20)]),
+        ),
+        fetchedAt: cache.fetchedAt,
+      }),
+    )
+  } catch {
+    /* quota */
+  }
+}
+

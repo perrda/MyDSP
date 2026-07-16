@@ -6,7 +6,7 @@ export const DEFAULT_LAUNCH_PATH = '/'
 export const LAUNCH_PATH_OPTIONS: Array<{ path: string; label: string }> = [
   { path: '/', label: 'Overview' },
   { path: '/markets', label: 'Markets' },
-  { path: '/todos', label: 'To Do Lists' },
+  { path: '/todos', label: "To Do's" },
   { path: '/crypto', label: 'Crypto' },
   { path: '/equities', label: 'Equities' },
   { path: '/spending', label: 'Spending' },

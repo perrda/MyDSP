@@ -142,7 +142,7 @@ function calculateReminders(data: any): Reminder[] {
           priority: 'high',
           title: 'Task overdue',
           message: `"${todo.title}" was due ${Math.abs(daysUntil)} days ago`,
-          action: { label: 'View Todos', path: '/todos' },
+          action: { label: "View To Do's", path: '/todos' },
         })
       } else if (daysUntil === 0) {
         reminders.push({
@@ -151,7 +151,7 @@ function calculateReminders(data: any): Reminder[] {
           priority: 'high',
           title: 'Task due today',
           message: `"${todo.title}" is due today`,
-          action: { label: 'View Todos', path: '/todos' },
+          action: { label: "View To Do's", path: '/todos' },
         })
       } else if (daysUntil <= 2) {
         reminders.push({
@@ -160,7 +160,7 @@ function calculateReminders(data: any): Reminder[] {
           priority: 'medium',
           title: 'Task due soon',
           message: `"${todo.title}" is due in ${daysUntil} days`,
-          action: { label: 'View Todos', path: '/todos' },
+          action: { label: "View To Do's", path: '/todos' },
         })
       }
     }

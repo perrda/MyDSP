@@ -53,11 +53,10 @@ export interface MarketsState {
   tickers: MarketTicker[]
   collapsed: MarketsCollapsed
   lastRefreshAt?: string
-  /**
-   * Row density — compact hides names / tightens padding;
-   * heat shows a colour grid of symbols by % move.
-   */
-  density?: 'comfortable' | 'compact' | 'heat'
+  /** Row density — compact hides names and tightens padding. */
+  density?: 'comfortable' | 'compact'
+  /** Markets % + sparkline window (badge and chart share the same series). */
+  timeframe?: import('./marketTimeframe').MarketTimeframe
 }
 
 export type MarketsDensity = NonNullable<MarketsState['density']>
@@ -74,7 +73,7 @@ export interface MarketQuote {
   last: number
   changeAbs: number
   changePct: number
-  /** ~24h sparkline in the same units as `last` */
+  /** Sparkline for the selected Markets timeframe (same units as `last`) */
   sparkline: number[]
   unit: string
   decimals: number

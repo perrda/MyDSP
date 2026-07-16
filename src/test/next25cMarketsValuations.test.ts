@@ -33,25 +33,27 @@ describe('next25c markets / valuations (6–10)', () => {
     mem.clear()
   })
 
-  it('6: Markets density cycles Compact/Heat and heat helpers colour by %', async () => {
-    const heat = await import('../domain/marketsHeat')
-    expect(heat.heatColorForChangePct(0)).toMatch(/hsl/)
-    expect(heat.heatColorForChangePct(4)).toMatch(/145/)
-    expect(heat.heatColorForChangePct(-4)).toMatch(/hsl\(0/)
-    expect(heat.heatTextClassForChangePct(2)).toBe('text-white')
-
+  it('6: Markets density toggles Comfortable/Compact and normalizes legacy Heat', async () => {
     const store = await import('../storage/marketsStore')
     store.loadMarketsState()
-    store.setMarketsDensity('heat')
-    expect(store.getMarketsDensity()).toBe('heat')
     store.setMarketsDensity('compact')
     expect(store.getMarketsDensity()).toBe('compact')
+    store.setMarketsDensity('comfortable')
+    expect(store.getMarketsDensity()).toBe('comfortable')
+
+    const key = 'mydsp_markets_v1'
+    const legacyState = JSON.parse(mem.get(key)!)
+    mem.set(key, JSON.stringify({ ...legacyState, density: 'heat' }))
+    expect(store.getMarketsDensity()).toBe('comfortable')
+    expect(JSON.parse(mem.get(key)!).density).toBe('comfortable')
 
     const markets = readFileSync(resolve(__dirname, '../pages/MarketsPage.tsx'), 'utf8')
-    expect(markets).toMatch(/markets-heat-grid/)
-    expect(markets).toMatch(/heatColorForChangePct/)
-    expect(markets).toMatch(/density === 'heat'/)
-    expect(markets).toMatch(/'Heat'/)
+    expect(markets).not.toMatch(/markets-heat-grid/)
+    expect(markets).not.toMatch(/marketsHeat|density === 'heat'|'Heat'/)
+    expect(markets).toMatch(/density === 'comfortable' \? 'compact' : 'comfortable'/)
+    expect(markets).toMatch(/Switch to compact density/)
+    expect(markets).toMatch(/<ReorderList/)
+    expect(markets).toMatch(/<Sparkline/)
   })
 
   it('7: per-section refresh filters tickers by kind', async () => {
@@ -159,6 +161,6 @@ describe('next25c markets / valuations (6–10)', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8')) as {
       version: string
     }
-    expect(pkg.version).toBe('1.2.66')
+    expect(pkg.version).toBe('1.2.68')
   })
 })

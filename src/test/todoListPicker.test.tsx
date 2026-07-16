@@ -41,7 +41,7 @@ describe('TodoListPicker', () => {
     )
 
     fireEvent.click(screen.getByRole('button', { name: /list: general/i }))
-    expect(screen.getByRole('listbox', { name: /todo lists/i })).toBeTruthy()
+    expect(screen.getByRole('listbox', { name: /to do lists/i })).toBeTruthy()
     fireEvent.click(screen.getByRole('option', { name: /all lists/i }))
     expect(onSelect).toHaveBeenCalledWith(null)
   })
