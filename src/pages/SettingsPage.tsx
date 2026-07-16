@@ -62,7 +62,10 @@ import { loadSyncActivity, type SyncActivityEntry } from '../services/sync/syncA
 import {
   formatMarketsProviderHealthHint,
   getMarketsProviderHealth,
+  recordProviderFailure,
+  recordProviderSuccess,
 } from '../services/marketsProviderHealth'
+import { probeFinnhubKey } from '../services/prices'
 import {
   DEFAULT_LAUNCH_PATH,
   LAUNCH_PATH_OPTIONS,
@@ -1164,6 +1167,20 @@ export function SettingsPage() {
                 </span>
               </span>
             </label>
+            <div
+              className="settings-what-does-not-sync surface-nested p-3 max-w-2xl"
+              id="what-does-not-sync"
+            >
+              <p className="text-xs font-bold uppercase tracking-widest text-text-subtle mb-1.5">
+                What does not sync
+              </p>
+              <ul className="text-xs text-text-muted font-light list-disc list-inside space-y-1 leading-relaxed">
+                <li>Finnhub API key (and other live provider keys) — local to each device</li>
+                <li>PIN / Face ID credentials and unlock timeout</li>
+                <li>Session / remembered sync passphrase storage</li>
+                <li>Provider health counters (this browser session only)</li>
+              </ul>
+            </div>
             <label className="flex items-start gap-3 cursor-pointer">
               <input
                 type="checkbox"
@@ -3357,7 +3374,8 @@ export function SettingsPage() {
           </ul>
           <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
             Markets, holdings refresh, and Compare all share this cascade. Use the header Refresh
-            (or pull-to-refresh on Today / Markets) to pull the latest.
+            (or pull-to-refresh on Today / Markets / Equities / Crypto / News) to pull the latest.
+            Finnhub covers 24H / 1W / 1M / 12M equity windows when the key works.
           </p>
 
           <div className="surface-nested p-4 mb-6 max-w-2xl">
@@ -3430,7 +3448,20 @@ export function SettingsPage() {
                 } catch {
                   /* ignore */
                 }
-                flash(key ? 'Finnhub key saved — equities will prefer Finnhub.' : 'Finnhub key cleared.')
+                if (!key) {
+                  flash('Finnhub key cleared.')
+                  return
+                }
+                flash('Finnhub key saved — probing…')
+                void probeFinnhubKey(key).then((result) => {
+                  if (result.ok) {
+                    recordProviderSuccess('finnhub')
+                    flash(`Finnhub key OK — ${result.detail}`)
+                  } else {
+                    recordProviderFailure('finnhub', result.detail)
+                    flash(`Finnhub probe failed — ${result.detail}`)
+                  }
+                })
               }}
             />
           </div>

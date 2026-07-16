@@ -33,8 +33,12 @@ export interface MarketTicker {
   notes?: string
   /** Optional folder/tag for watchlist filtering */
   tag?: MarketTickerTag
-  /** Optional dividend yield % (equities) — manual stub */
+  /** Optional dividend yield % (equities) — Finnhub metric or manual */
   yieldPct?: number
+  /** Optional paper quantity (commodities) — units × last quote for section value */
+  quantity?: number
+  /** Optional average cost in GBP per unit (commodities paper P&L) */
+  avgCostGbp?: number
   createdAt: string
   sortOrder: number
 }

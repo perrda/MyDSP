@@ -1,5 +1,51 @@
 # MyDSP Changelog
 
+## [1.2.71] - 2026-07-16
+
+### Improved — Sync / price trust (next 25h · 1–5)
+1. **Finnhub for 1W / 1M / 12M** — equity Finnhub path no longer 24H-only  
+2. **Finnhub key health probe** — Settings blur probes AAPL and updates Provider health  
+3. **Quote-cache freshness SLA** — Markets chip when synced prints exceed 30m  
+4. **Sync prices now offline honesty** — skips cloud push offline; explains when sync is off  
+5. **What does not sync** — Settings Sync panel (Finnhub key, PIN, passphrase, health)  
+
+### Improved — Markets / commodities (next 25h · 6–10)
+6. **Commodity paper holdings** — optional quantity × last quote for section value  
+7. **COMEX session copy** — Open/Closed chips + weekend/spot fallback hints  
+8. **Oil / gas presets** — CL=F / BZ=F / NG=F one-tap seeds  
+9. **Unavailable reason by symbol** — mixed banner lists ticker + reason  
+10. **Dividend yield from Finnhub** — auto-fills equity yield when blank  
+
+### Improved — Mobile / UI (next 25h · 11–15)
+11. **PTR on Equities / Crypto / News** — same pull-to-sync (no page jump)  
+12. **iPad Markets master–detail** — select a row → sticky detail pane ≥900px  
+13. **Thumb Retry unavailable** — phone bar retries sections with dead quotes  
+14. **Bottom-nav long-press Markets refresh** — fires `mydsp-markets-refresh`  
+15. **Holding drift Use Markets** — retained one-tap / bulk fill  
+
+### Improved — Today / media / tax (next 25h · 16–20)
+16. **Movers drop Unavailable** — Today ignores none/error/invalid sources  
+17. **Digest commodity movers** — weekly highlights call out commodity prints  
+18. **News From Owned** — seed meta-tags from equity/crypto holdings  
+19. **YouTube via quote Worker** — `youtube.com` allowlisted (redeploy quote Worker)  
+20. **Tax ISA from holdings** — platform containing “ISA” estimates used allowance  
+
+### Improved — Quality / ops (next 25h · 21–25)
+21. `/smoke` Finnhub + News + YouTube checks  
+22. Playwright Markets Retry + smoke media asserts  
+23. Axe News + YouTube + Recurring  
+24. News last-good headlines in fullArchive / sync  
+25. Cross-device **Finnhub missing here** chip on Today + Markets  
+
+### Version
+- 1.2.70 → **1.2.71**
+
+### Deploy note
+After merging, redeploy the quote Worker so YouTube hosts are allowlisted:
+`npm run deploy:quote`
+
+---
+
 ## [1.2.70] - 2026-07-16
 
 ### Improved — Sync prices across devices (next 25g · 1–5)

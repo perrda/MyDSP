@@ -379,14 +379,16 @@ export async function fetchEquityMarketQuote(
   const sym = normalizeYahooEquitySymbol(symbol)
   const tf = timeframe
 
-  if (finnhubKey.trim() && !sym.startsWith('^') && tf === '24H') {
+  // Finnhub quote + candles for all Markets timeframes (not only 24H).
+  if (finnhubKey.trim() && !sym.startsWith('^')) {
     const url = `https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(sym)}&token=${encodeURIComponent(finnhubKey.trim())}`
     const { data } = await fetchJson<{ c?: number; d?: number; dp?: number; pc?: number }>(url)
     if (data?.c && data.c > 0) {
       const previousClose = data.pc && data.pc > 0 ? data.pc : data.c - (data.d ?? 0)
-      let spark = await fetchYahooSparkline(sym, tf)
+      // Prefer Finnhub candles for the selected window; Yahoo spark as backup.
+      let spark = await fetchFinnhubSparkline(sym, finnhubKey.trim(), tf)
       if (spark.length < 2) {
-        spark = await fetchFinnhubSparkline(sym, finnhubKey.trim(), tf)
+        spark = await fetchYahooSparkline(sym, tf)
       }
       // Prefer series % so badge matches sparkline (incl. weekends / thin sessions)
       const seriesPct = changePctFromSeries(spark)
@@ -409,6 +411,53 @@ export async function fetchEquityMarketQuote(
   }
 
   return fetchYahooChartQuote(sym, tf)
+}
+
+/** Lightweight Finnhub key probe — AAPL quote; records success/failure for Provider health. */
+export async function probeFinnhubKey(
+  finnhubKey: string,
+): Promise<{ ok: boolean; detail: string }> {
+  const key = finnhubKey.trim()
+  if (!key) return { ok: false, detail: 'No Finnhub key' }
+  try {
+    const url = `https://finnhub.io/api/v1/quote?symbol=AAPL&token=${encodeURIComponent(key)}`
+    const { data, status } = await fetchJson<{ c?: number; error?: string }>(url)
+    if (status === 401 || status === 403) {
+      return { ok: false, detail: 'Finnhub rejected key (401/403)' }
+    }
+    if (data?.error) return { ok: false, detail: String(data.error) }
+    if (data?.c && data.c > 0) return { ok: true, detail: `OK · AAPL ${data.c}` }
+    return { ok: false, detail: 'Finnhub returned empty quote' }
+  } catch (e) {
+    return { ok: false, detail: e instanceof Error ? e.message : 'Finnhub probe failed' }
+  }
+}
+
+/** Dividend yield % from Finnhub basic financials (TTM), or null. */
+export async function fetchFinnhubDividendYield(
+  symbol: string,
+  finnhubKey: string,
+): Promise<number | null> {
+  const key = finnhubKey.trim()
+  const sym = normalizeYahooEquitySymbol(symbol)
+  if (!key || !sym || sym.startsWith('^')) return null
+  try {
+    const url =
+      `https://finnhub.io/api/v1/stock/metric?symbol=${encodeURIComponent(sym)}` +
+      `&metric=all&token=${encodeURIComponent(key)}`
+    const { data } = await fetchJson<{
+      metric?: { dividendYieldIndicatedAnnual?: number; dividendYieldTTM?: number }
+    }>(url)
+    const raw =
+      data?.metric?.dividendYieldIndicatedAnnual ?? data?.metric?.dividendYieldTTM ?? null
+    if (typeof raw !== 'number' || !Number.isFinite(raw) || raw <= 0) return null
+    // Finnhub may return fraction (0.012) or percent (1.2)
+    const pct = raw > 0 && raw < 1 ? raw * 100 : raw
+    if (!(pct > 0) || pct > 100) return null
+    return Math.round(pct * 100) / 100
+  } catch {
+    return null
+  }
 }
 
 /** Finnhub candles → sparkline for the selected Markets window. */

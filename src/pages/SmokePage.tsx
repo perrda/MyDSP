@@ -11,6 +11,8 @@ import {
 } from '../services/sync/sessionPassphrase'
 import { DEFAULT_COMMODITIES } from '../domain/commodities'
 import { loadMarketQuotesCache, loadMarketsState } from '../storage/marketsStore'
+import { loadNewsArticlesCache, loadNewsState } from '../storage/newsStore'
+import { loadYoutubeState } from '../storage/youtubeStore'
 import { LAST_BACKUP_KEY, listFullBackups } from '../storage/backupStore'
 import { loadSecurity } from '../security/pin'
 import { loadBottomNavMiddleSlots, DEFAULT_BOTTOM_NAV_MIDDLE } from '../storage/bottomNavSlots'
@@ -24,6 +26,9 @@ type CheckId =
   | 'markets'
   | 'commodities'
   | 'quotes-cache'
+  | 'finnhub'
+  | 'news'
+  | 'youtube'
   | 'backup'
   | 'pwa'
   | 'quote'
@@ -91,6 +96,40 @@ function quotesCachePresent(): { ok: boolean; detail: string } {
   }
 }
 
+function finnhubKeyPresent(): { ok: boolean; detail: string } {
+  try {
+    const key = localStorage.getItem('finnhub_key')?.trim()
+    if (key) return { ok: true, detail: 'Finnhub key present in localStorage on this device' }
+  } catch {
+    /* ignore */
+  }
+  return {
+    ok: false,
+    detail: 'No Finnhub key on this device — Settings → Prices (keys do not sync)',
+  }
+}
+
+function newsCachePresent(): { ok: boolean; detail: string } {
+  const tags = loadNewsState().tags.length
+  const cache = loadNewsArticlesCache()
+  const top = cache.top.length
+  if (tags === 0 && top === 0) {
+    return { ok: false, detail: 'No News tags or cached headlines — open News to refresh' }
+  }
+  return {
+    ok: true,
+    detail: `${tags} meta-tag(s) · ${top} cached Top headline(s)`,
+  }
+}
+
+function youtubeChannelsPresent(): { ok: boolean; detail: string } {
+  const channels = loadYoutubeState().channels?.length ?? 0
+  if (channels === 0) {
+    return { ok: false, detail: 'No YouTube channels saved — add favourites on YouTube' }
+  }
+  return { ok: true, detail: `${channels} favourite channel(s)` }
+}
+
 function backupExistsLocal(): boolean {
   try {
     return Boolean(localStorage.getItem(LAST_BACKUP_KEY))
@@ -155,6 +194,27 @@ export function SmokePage() {
         detail: quotesCachePresent().detail,
         to: '/markets',
         done: quotesCachePresent().ok,
+      },
+      {
+        id: 'finnhub',
+        label: 'Finnhub key (this device)',
+        detail: finnhubKeyPresent().detail,
+        to: '/settings#prices',
+        done: finnhubKeyPresent().ok,
+      },
+      {
+        id: 'news',
+        label: 'News tags / headlines',
+        detail: newsCachePresent().detail,
+        to: '/news',
+        done: newsCachePresent().ok,
+      },
+      {
+        id: 'youtube',
+        label: 'YouTube channels',
+        detail: youtubeChannelsPresent().detail,
+        to: '/youtube',
+        done: youtubeChannelsPresent().ok,
       },
       {
         id: 'backup',

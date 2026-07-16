@@ -82,6 +82,21 @@ test.describe('MyDSP smoke', () => {
     await expect(page.getByText(/Weekly digest Share/i).first()).toBeVisible()
     await expect(page.getByText(/Commodities seeded/i).first()).toBeVisible()
     await expect(page.getByText(/Markets quote cache/i).first()).toBeVisible()
+    await expect(page.getByText(/Finnhub key \(this device\)/i).first()).toBeVisible()
+    await expect(page.getByText(/News tags \/ headlines/i).first()).toBeVisible()
+    await expect(page.getByText(/YouTube channels/i).first()).toBeVisible()
+  })
+
+  test('Markets shows Retry unavailable and Sync prices now', async ({ page }) => {
+    await page.goto('/markets')
+    await expect(page.getByRole('heading', { name: /Markets/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await expect(page.getByRole('button', { name: /Sync prices now/i }).first()).toBeVisible()
+    // Thumb / section CTA may appear after quotes load; gate the control exists in DOM for phone toolbar
+    await expect(page.getByLabel(/Retry unavailable quotes|Retry unavailable/i).first()).toBeVisible({
+      timeout: 15_000,
+    })
   })
 
   test('offline queue enqueue surfaces in Settings Sync', async ({ page }) => {

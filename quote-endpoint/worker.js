@@ -19,9 +19,17 @@ const ALLOWED_HOSTS = new Set([
   // News RSS (News page) — Google News + Yahoo Finance headlines
   'news.google.com',
   'feeds.finance.yahoo.com',
+  // YouTube Atom feeds (channel uploads)
+  'www.youtube.com',
+  'youtube.com',
 ])
 
-const FEED_HOSTS = new Set(['news.google.com', 'feeds.finance.yahoo.com'])
+const FEED_HOSTS = new Set([
+  'news.google.com',
+  'feeds.finance.yahoo.com',
+  'www.youtube.com',
+  'youtube.com',
+])
 
 function corsHeaders(origin) {
   return {

@@ -63,10 +63,21 @@ export function marketSessionStatus(
   const venue = sessionVenueForSymbol(symbol, kind)
   if (!venue) return null
   const open = isOpenNow(now, venue)
+  const { weekday } = partsInTz(now, venue === 'UK' ? UK_RTH.tz : US_RTH.tz)
+  const weekend = !isWeekday(weekday)
+  let hint =
+    venue === 'UK' ? 'UK RTH 08:00–16:30 London' : 'US RTH 09:30–16:00 ET'
+  if (kind === 'commodity') {
+    hint = weekend
+      ? 'COMEX weekend — futures closed; try spot aliases (XAUUSD=X) or last-good cache'
+      : open
+        ? 'COMEX RTH (approx. US cash hours) — futures live'
+        : 'COMEX closed — spot fallback may still quote; otherwise last-good / Unavailable'
+  }
   return {
     open,
     label: open ? 'Open' : 'Closed',
     venue,
-    hint: venue === 'UK' ? 'UK RTH 08:00–16:30 London' : 'US RTH 09:30–16:00 ET',
+    hint,
   }
 }

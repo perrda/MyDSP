@@ -29,6 +29,24 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.71',
+    date: '2026-07-16',
+    bullets: [
+      {
+        text: 'Finnhub for 1W/1M/12M equities · key probe · missing-key chip',
+        to: '/settings#prices',
+      },
+      {
+        text: 'YouTube via quote Worker · News From Owned · headline cache sync',
+        to: '/news',
+      },
+      {
+        text: 'Markets master–detail · oil/gas presets · ISA from holdings',
+        to: '/markets',
+      },
+    ],
+  },
+  {
     version: '1.2.70',
     date: '2026-07-16',
     bullets: [

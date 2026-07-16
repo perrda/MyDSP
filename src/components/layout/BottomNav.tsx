@@ -70,6 +70,10 @@ export function BottomNav() {
     window.dispatchEvent(new CustomEvent('mydsp-open-weekly-digest'))
   }
 
+  const dispatchMarketsRefresh = () => {
+    window.dispatchEvent(new CustomEvent('mydsp-markets-refresh'))
+  }
+
   const startLongPress = (item: BottomNavItem) => {
     longPressFired.current = false
     clearLongPress()
@@ -78,6 +82,8 @@ export function BottomNav() {
       longPressTimer.current = null
       if (isDigestLongPressItem(item)) {
         dispatchWeeklyDigestOpen()
+      } else if (item.to === '/markets') {
+        dispatchMarketsRefresh()
       } else {
         openFavouriteSheet()
       }
