@@ -22,20 +22,11 @@ import {
 } from '../domain/taxPacks'
 import { taxYearProgress } from '../domain/taxYearProgress'
 import { ISA_ALLOWANCE_GBP, isaUsedFromHoldings } from '../domain/isaHoldings'
+import { loadIsaRemainingDraft, saveIsaRemainingDraft } from '../domain/isaPrefs'
 import { formatDate, formatGBP, formatGBPPrecise, privacyClass } from '../utils/format'
 
 function nextId(items: { id: number }[]): number {
   return items.reduce((m, i) => Math.max(m, i.id), 0) + 1
-}
-
-const ISA_REMAINING_KEY = 'mydsp_isa_remaining_gbp'
-
-function loadIsaRemainingDraft(): string {
-  try {
-    return localStorage.getItem(ISA_REMAINING_KEY) ?? ''
-  } catch {
-    return ''
-  }
 }
 
 export function TaxPage() {
@@ -82,12 +73,7 @@ export function TaxPage() {
   }, [searchParams, setSearchParams])
 
   useEffect(() => {
-    try {
-      if (isaRemainingDraft.trim()) localStorage.setItem(ISA_REMAINING_KEY, isaRemainingDraft)
-      else localStorage.removeItem(ISA_REMAINING_KEY)
-    } catch {
-      /* ignore */
-    }
+    saveIsaRemainingDraft(isaRemainingDraft)
   }, [isaRemainingDraft])
 
   const matchedRows = useMemo(() => {
@@ -518,11 +504,13 @@ export function TaxPage() {
                   From {isaFromHoldings.holdingCount} ISA-tagged holding
                   {isaFromHoldings.holdingCount === 1 ? '' : 's'} (
                   {isaFromHoldings.symbols.slice(0, 4).join(', ')}
-                  {isaFromHoldings.symbols.length > 4 ? '…' : ''}) — set platform to include “ISA”
+                  {isaFromHoldings.symbols.length > 4 ? '…' : ''}) — market-value estimate, not
+                  contributions
                 </span>
               ) : (
                 <span className="block mb-2 text-[11px] text-text-subtle">
-                  Tip: tag holdings with platform containing “ISA” to auto-estimate used value
+                  Tip: tag holdings with platform containing “ISA” for a market-value estimate (not
+                  contributions). Override remaining £ below if needed.
                 </span>
               )}
               <span className="sr-only">Manual remaining GBP override</span>

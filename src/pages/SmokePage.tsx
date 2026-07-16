@@ -19,7 +19,9 @@ import { loadBottomNavMiddleSlots, DEFAULT_BOTTOM_NAV_MIDDLE } from '../storage/
 import {
   checkSyncUrlReachable,
   pingQuoteWorker,
+  probeQuoteWorkerYoutubeAllowlist,
 } from '../domain/smokeChecks'
+import { loadIsaRemainingDraft } from '../domain/isaPrefs'
 
 type CheckId =
   | 'sync'
@@ -32,6 +34,9 @@ type CheckId =
   | 'backup'
   | 'pwa'
   | 'quote'
+  | 'quote-allowlist'
+  | 'isa-remaining'
+  | 'ptr-routes'
   | 'sync-url'
   | 'lock'
   | 'bottom-nav'
@@ -130,6 +135,17 @@ function youtubeChannelsPresent(): { ok: boolean; detail: string } {
   return { ok: true, detail: `${channels} favourite channel(s)` }
 }
 
+function isaRemainingConfigured(): { ok: boolean; detail: string } {
+  const draft = loadIsaRemainingDraft().trim()
+  if (!draft) {
+    return {
+      ok: false,
+      detail: 'No ISA remaining override — Tax page override syncs across devices when set',
+    }
+  }
+  return { ok: true, detail: `ISA remaining override set (£${draft}) — syncs via fullArchive` }
+}
+
 function backupExistsLocal(): boolean {
   try {
     return Boolean(localStorage.getItem(LAST_BACKUP_KEY))
@@ -155,8 +171,9 @@ export function SmokePage() {
     setBusy(true)
     const backupOk = (await backupExistsIndexed()) || backupExistsLocal()
     const cfg = loadSyncConfig()
-    const [quote, syncUrl] = await Promise.all([
+    const [quote, allowlist, syncUrl] = await Promise.all([
       pingQuoteWorker(),
+      probeQuoteWorkerYoutubeAllowlist(),
       cfg.remoteUrl.trim()
         ? checkSyncUrlReachable(cfg.remoteUrl)
         : Promise.resolve({
@@ -236,6 +253,28 @@ export function SmokePage() {
         detail: quote.detail,
         to: '/settings#sync',
         done: quote.ok,
+      },
+      {
+        id: 'quote-allowlist',
+        label: 'Worker YouTube allowlist',
+        detail: allowlist.detail,
+        to: '/youtube',
+        done: allowlist.ok,
+      },
+      {
+        id: 'isa-remaining',
+        label: 'ISA remaining override',
+        detail: isaRemainingConfigured().detail,
+        to: '/tax',
+        done: isaRemainingConfigured().ok,
+      },
+      {
+        id: 'ptr-routes',
+        label: 'PTR YouTube / Tax / Compare',
+        detail:
+          'Pull-to-refresh is enabled on YouTube, Tax, and Compare (plus Today / Markets / News)',
+        to: '/youtube',
+        done: true,
       },
       {
         id: 'sync-url',

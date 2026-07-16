@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.71**
+**Current version: 1.2.72**
 
-## Completed (through v1.2.71)
+## Completed (through v1.2.72)
 
+- Sync / media / polish (next25i tip 1–25): ISA override + YT video cache + alert thresholds sync, Finnhub 429 chip, paper commodity NW, PTR Tax/Compare, News/YouTube master–detail, bill commentary, YouTube unread Jump-in, smoke allowlist/ISA/PTR, axe Jobs/Goals/Trips, device-local prefs matrix
 - Finnhub / media / polish (next25h tip 1–25): Finnhub all TFs + probe, quote SLA, What does not sync, commodity paper qty + oil/gas presets, PTR holdings/News, Markets master–detail, YouTube Worker, News From Owned + headline sync, ISA from holdings, smoke/axe expansion
 - Sync / Markets polish (next25g tip 1–25): quote-cache sync, Sync prices now, From other device, prefs LWW, commodity Yahoo fallbacks, PTR no jump, mixed Unavailable CTA, Today movers age + lag chip, smoke/docs cadence 4s/30s
 - Markets / portfolio (next25g 6–8): draggable section cards, commodity timeframe, Unavailable vs Fetching

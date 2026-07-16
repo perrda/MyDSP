@@ -2518,6 +2518,10 @@ html.success-haptic-flash::after {
 .markets-master-detail {
   display: block;
 }
+.youtube-master-detail,
+.news-master-detail {
+  display: block;
+}
 @media (min-width: 900px) {
   .markets-master-detail--open {
     display: grid;
@@ -2525,7 +2529,16 @@ html.success-haptic-flash::after {
     gap: 1rem;
     align-items: start;
   }
-  .markets-row--selected {
+  .youtube-master-detail--open,
+  .news-master-detail--open {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(16rem, 20rem);
+    gap: 1rem;
+    align-items: start;
+  }
+  .markets-row--selected,
+  .youtube-row--selected,
+  .news-row--selected {
     background: color-mix(in srgb, var(--accent) 8%, transparent);
   }
 }

@@ -29,6 +29,24 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.72',
+    date: '2026-07-16',
+    bullets: [
+      {
+        text: 'ISA override · YouTube video cache · price alerts sync',
+        to: '/settings#sync',
+      },
+      {
+        text: 'Finnhub 429 chip · paper commodity NW · News/YouTube master–detail',
+        to: '/markets',
+      },
+      {
+        text: 'PTR Tax/Compare · bill notes · YouTube unread · smoke allowlist',
+        to: '/smoke',
+      },
+    ],
+  },
+  {
     version: '1.2.71',
     date: '2026-07-16',
     bullets: [

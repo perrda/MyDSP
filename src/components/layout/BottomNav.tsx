@@ -73,6 +73,12 @@ export function BottomNav() {
   const dispatchMarketsRefresh = () => {
     window.dispatchEvent(new CustomEvent('mydsp-markets-refresh'))
   }
+  const dispatchNewsRefresh = () => {
+    window.dispatchEvent(new CustomEvent('mydsp-news-refresh'))
+  }
+  const dispatchYoutubeRefresh = () => {
+    window.dispatchEvent(new CustomEvent('mydsp-youtube-refresh'))
+  }
 
   const startLongPress = (item: BottomNavItem) => {
     longPressFired.current = false
@@ -84,6 +90,10 @@ export function BottomNav() {
         dispatchWeeklyDigestOpen()
       } else if (item.to === '/markets') {
         dispatchMarketsRefresh()
+      } else if (item.to === '/news') {
+        dispatchNewsRefresh()
+      } else if (item.to === '/youtube') {
+        dispatchYoutubeRefresh()
       } else {
         openFavouriteSheet()
       }

@@ -19,8 +19,10 @@ import {
   getYoutubeSeenAt,
   listYoutubeChannels,
   loadYoutubeState,
+  loadYoutubeVideosCache,
   removeYoutubeChannel,
   reorderYoutubeChannels,
+  saveYoutubeVideosCache,
   setYoutubeLastRefresh,
   setYoutubeSeenAt,
   updateYoutubeChannel,
@@ -42,7 +44,8 @@ const YT_PAGE = 6
 
 export function YouTubePage() {
   const [channels, setChannels] = useState(() => listYoutubeChannels())
-  const [videos, setVideos] = useState<YoutubeVideo[]>([])
+  const [videos, setVideos] = useState<YoutubeVideo[]>(() => loadYoutubeVideosCache().videos)
+  const [selectedVideo, setSelectedVideo] = useState<YoutubeVideo | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [resolving, setResolving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -75,8 +78,9 @@ export function YouTubePage() {
     setError(null)
     try {
       const vids = await fetchFavouriteVideos(list, 5, 40)
-      setVideos(vids)
       const at = new Date().toISOString()
+      setVideos(vids)
+      saveYoutubeVideosCache({ videos: vids, fetchedAt: at }, { markDirty: true })
       setYoutubeLastRefresh(at)
       setLastAt(at)
       if (vids.length === 0) {
@@ -107,6 +111,20 @@ export function YouTubePage() {
     const onGlobal = () => void refresh()
     window.addEventListener('mydsp-global-refresh', onGlobal)
     return () => window.removeEventListener('mydsp-global-refresh', onGlobal)
+  }, [refresh])
+
+  useEffect(() => {
+    const onRefresh = () => void refresh()
+    const onVideos = () => {
+      const { videos: cached } = loadYoutubeVideosCache()
+      setVideos(cached)
+    }
+    window.addEventListener('mydsp-youtube-refresh', onRefresh)
+    window.addEventListener('mydsp-youtube-videos', onVideos)
+    return () => {
+      window.removeEventListener('mydsp-youtube-refresh', onRefresh)
+      window.removeEventListener('mydsp-youtube-videos', onVideos)
+    }
   }, [refresh])
 
   const unreadCount = videos.filter((v) => !seenAt || v.publishedAt > seenAt).length
@@ -284,84 +302,151 @@ export function YouTubePage() {
       </section>
 
       {/* Latest videos */}
-      <section className="border border-border bg-bg-elevated mb-6 overflow-hidden">
-        <div className="px-4 sm:px-5 pt-4 pb-3 border-b border-border">
-          <p className="text-xl sm:text-2xl font-bold tracking-tight text-text mb-1">Latest videos</p>
-          <p className="label-uppercase text-[11px] text-text-subtle tabular-nums">
-            {videos.length} from your favourites
-          </p>
-        </div>
-        {videos.length === 0 ? (
-          <EmptyStateInline
-            icon={<Video size={28} strokeWidth={1.25} className="text-red-500" />}
-            message={
-              refreshing
-                ? 'Loading videos…'
-                : channels.length === 0
-                  ? 'Add a channel to see new uploads here.'
-                  : 'No videos yet — use the header refresh to pull latest uploads.'
-            }
-          />
-        ) : (
-          <>
-            <ul className="divide-y divide-border">
-              {videos.slice(0, visibleCount).map((v) => {
-                const unread = !seenAt || v.publishedAt > seenAt
-                return (
-                  <li key={v.id}>
-                    <a
-                      href={v.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-4 sm:px-5 py-3.5 flex items-start gap-3 hover:bg-surface-hover/60 transition-colors"
-                    >
-                      {v.thumbnailUrl ? (
-                        <img
-                          src={v.thumbnailUrl}
-                          alt=""
-                          className="w-28 sm:w-36 aspect-video object-cover rounded-md shrink-0 bg-surface-hover"
-                        />
-                      ) : (
-                        <div className="w-28 sm:w-36 aspect-video rounded-md bg-surface-hover shrink-0 flex items-center justify-center">
-                          <Video size={22} className="text-red-500" />
+      <div
+        className={`youtube-master-detail${selectedVideo ? ' youtube-master-detail--open' : ''}`}
+      >
+        <div className="youtube-master-detail-list min-w-0">
+          <section className="border border-border bg-bg-elevated mb-6 overflow-hidden">
+            <div className="px-4 sm:px-5 pt-4 pb-3 border-b border-border">
+              <p className="text-xl sm:text-2xl font-bold tracking-tight text-text mb-1">
+                Latest videos
+              </p>
+              <p className="label-uppercase text-[11px] text-text-subtle tabular-nums">
+                {videos.length} from your favourites
+              </p>
+            </div>
+            {videos.length === 0 ? (
+              <EmptyStateInline
+                icon={<Video size={28} strokeWidth={1.25} className="text-red-500" />}
+                message={
+                  refreshing
+                    ? 'Loading videos…'
+                    : channels.length === 0
+                      ? 'Add a channel to see new uploads here.'
+                      : 'No videos yet — use the header refresh to pull latest uploads.'
+                }
+              />
+            ) : (
+              <>
+                <ul className="divide-y divide-border">
+                  {videos.slice(0, visibleCount).map((v) => {
+                    const unread = !seenAt || v.publishedAt > seenAt
+                    const selected = selectedVideo?.id === v.id
+                    const rowBody = (
+                      <>
+                        {v.thumbnailUrl ? (
+                          <img
+                            src={v.thumbnailUrl}
+                            alt=""
+                            className="w-28 sm:w-36 aspect-video object-cover rounded-md shrink-0 bg-surface-hover"
+                          />
+                        ) : (
+                          <div className="w-28 sm:w-36 aspect-video rounded-md bg-surface-hover shrink-0 flex items-center justify-center">
+                            <Video size={22} className="text-red-500" />
+                          </div>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-text tracking-tight leading-snug">
+                            {unread ? (
+                              <span
+                                className="inline-block w-1.5 h-1.5 rounded-full bg-accent mr-2 align-middle"
+                                aria-hidden
+                              />
+                            ) : null}
+                            {v.title}
+                          </p>
+                          <p className="text-xs text-text-muted mt-1">
+                            {v.channelTitle}
+                            <span aria-hidden> · </span>
+                            {formatRelative(v.publishedAt)}
+                          </p>
                         </div>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <p className="font-semibold text-text tracking-tight leading-snug">
-                          {unread ? (
-                            <span
-                              className="inline-block w-1.5 h-1.5 rounded-full bg-accent mr-2 align-middle"
-                              aria-hidden
-                            />
-                          ) : null}
-                          {v.title}
-                        </p>
-                        <p className="text-xs text-text-muted mt-1">
-                          {v.channelTitle}
-                          <span aria-hidden> · </span>
-                          {formatRelative(v.publishedAt)}
-                        </p>
-                      </div>
-                      <ExternalLink size={14} className="text-text-subtle shrink-0 mt-1" aria-hidden />
-                    </a>
-                  </li>
-                )
-              })}
-            </ul>
-            {visibleCount < videos.length ? (
-              <div className="px-4 sm:px-5 py-3 border-t border-border">
-                <button
-                  type="button"
-                  className="btn-secondary btn-sm w-full min-h-11"
-                  onClick={() => setVisibleCount((n) => n + YT_PAGE)}
-                >
-                  Load more ({videos.length - visibleCount} left)
-                </button>
-              </div>
+                        <ExternalLink
+                          size={14}
+                          className="text-text-subtle shrink-0 mt-1"
+                          aria-hidden
+                        />
+                      </>
+                    )
+                    return (
+                      <li key={v.id}>
+                        <a
+                          href={v.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-4 sm:px-5 py-3.5 flex items-start gap-3 hover:bg-surface-hover/60 transition-colors md:hidden"
+                        >
+                          {rowBody}
+                        </a>
+                        <button
+                          type="button"
+                          className={`px-4 sm:px-5 py-3.5 items-start gap-3 hover:bg-surface-hover/60 transition-colors hidden md:flex w-full text-left${
+                            selected ? ' youtube-row--selected' : ''
+                          }`}
+                          onClick={() => setSelectedVideo(v)}
+                        >
+                          {rowBody}
+                        </button>
+                      </li>
+                    )
+                  })}
+                </ul>
+                {visibleCount < videos.length ? (
+                  <div className="px-4 sm:px-5 py-3 border-t border-border">
+                    <button
+                      type="button"
+                      className="btn-secondary btn-sm w-full min-h-11"
+                      onClick={() => setVisibleCount((n) => n + YT_PAGE)}
+                    >
+                      Load more ({videos.length - visibleCount} left)
+                    </button>
+                  </div>
+                ) : null}
+              </>
+            )}
+          </section>
+        </div>
+        {selectedVideo ? (
+          <aside
+            className="youtube-master-detail-panel surface p-4 border border-border hidden md:block sticky top-20 self-start"
+            aria-label={`Selected video: ${selectedVideo.title}`}
+          >
+            <p className="label-uppercase mb-1">Selected</p>
+            <h2 className="text-lg font-bold tracking-tight leading-snug mb-2">
+              {selectedVideo.title}
+            </h2>
+            <p className="text-sm text-text-muted mb-1">{selectedVideo.channelTitle}</p>
+            <p className="text-xs text-text-subtle mb-3">
+              Published {formatDateTime(selectedVideo.publishedAt)}
+            </p>
+            {selectedVideo.thumbnailUrl ? (
+              <img
+                src={selectedVideo.thumbnailUrl}
+                alt=""
+                className="w-full aspect-video object-cover rounded-md mb-3 bg-surface-hover"
+              />
             ) : null}
-          </>
-        )}
-      </section>
+            <div className="flex flex-wrap gap-2">
+              <a
+                href={selectedVideo.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-primary btn-sm inline-flex items-center gap-1.5"
+              >
+                <ExternalLink size={14} />
+                Open on YouTube
+              </a>
+              <button
+                type="button"
+                className="btn-ghost btn-sm"
+                onClick={() => setSelectedVideo(null)}
+              >
+                Close
+              </button>
+            </div>
+          </aside>
+        ) : null}
+      </div>
 
       <Modal
         open={modalOpen}

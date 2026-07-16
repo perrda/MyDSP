@@ -45,6 +45,8 @@ import { LAST_BACKUP_KEY } from '../storage/backupStore'
 import { hasFinnhubKey } from '../domain/finnhubReminder'
 import { isSyncedRemoteQuote } from '../domain/marketQuotesSync'
 import { listMarketTickers, loadMarketQuotesCache } from '../storage/marketsStore'
+import { youtubeUnreadFromCache } from '../storage/youtubeStore'
+import type { RecurringTransaction } from '../domain/types'
 
 /** Today movers ignore prints older than this (ms). */
 const MOVER_MAX_AGE_MS = 24 * 60 * 60 * 1000
@@ -63,6 +65,14 @@ function formatQuoteAgeShort(ms: number): string {
   const hours = Math.round(mins / 60)
   if (hours < 48) return `${hours}h ago`
   return `${Math.round(hours / 24)}d ago`
+}
+
+function latestRecurringCommentary(r: RecurringTransaction): string | null {
+  const list = r.commentaries
+  if (!list?.length) return null
+  const newest = [...list].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0]
+  const text = newest?.text?.trim()
+  return text || null
 }
 import {
   getUiPanelOpenState,
@@ -222,8 +232,19 @@ export function Dashboard() {
     typeof window !== 'undefined' ? window.matchMedia('(min-width: 900px)').matches : false,
   )
   const todayAccordionEnabled = useTodayAccordionEnabled()
+  const [youtubeUnread, setYoutubeUnread] = useState(() => youtubeUnreadFromCache())
 
   useEffect(() => subscribeAutoSync(setSyncStatus), [])
+  useEffect(() => {
+    const refreshYoutubeUnread = () => setYoutubeUnread(youtubeUnreadFromCache())
+    refreshYoutubeUnread()
+    window.addEventListener('mydsp-youtube-videos', refreshYoutubeUnread)
+    window.addEventListener('mydsp-youtube-changed', refreshYoutubeUnread)
+    return () => {
+      window.removeEventListener('mydsp-youtube-videos', refreshYoutubeUnread)
+      window.removeEventListener('mydsp-youtube-changed', refreshYoutubeUnread)
+    }
+  }, [])
   useEffect(() => {
     const refresh = () => setQueueLen(loadOfflineQueue().length)
     window.addEventListener('mydsp-offline-queue', refresh)
@@ -896,7 +917,9 @@ export function Dashboard() {
         >
           <div className="today-bills-strip surface p-3 md:p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none">
             <ul className="flex flex-col gap-1.5">
-              {showBillsStrip.map((r) => (
+              {showBillsStrip.map((r) => {
+                const billNote = latestRecurringCommentary(r)
+                return (
                 <li key={r.id}>
                   <SwipeBillRow
                     onMarkPaid={() => markBillPaid(r.id)}
@@ -909,6 +932,11 @@ export function Dashboard() {
                         <span className={`text-xs text-text-muted tabular-nums ${privacyClass(privacy)}`}>
                           {formatDate(r.nextDue)} · {formatGBP(r.amount)}
                         </span>
+                        {billNote ? (
+                          <span className="today-bill-commentary block text-xs text-text-subtle font-light mt-0.5 line-clamp-1">
+                            {billNote}
+                          </span>
+                        ) : null}
                       </div>
                       <div className="hidden sm:flex shrink-0 gap-1">
                         <button type="button" className="btn-primary btn-sm" onClick={() => markBillPaid(r.id)}>
@@ -921,7 +949,8 @@ export function Dashboard() {
                     </div>
                   </SwipeBillRow>
                 </li>
-              ))}
+                )
+              })}
             </ul>
           </div>
         </TodayAccordionSection>
@@ -1041,6 +1070,17 @@ export function Dashboard() {
               {l.label} →
             </Link>
           ))}
+          <Link
+            to="/youtube"
+            className="text-sm font-semibold text-accent hover:underline inline-flex items-center gap-1.5"
+          >
+            YouTube →
+            {youtubeUnread > 0 ? (
+              <span className="today-youtube-unread inline-flex items-center text-[11px] font-bold tabular-nums px-2 py-0.5 bg-accent/15 text-accent border border-accent/30 rounded-full">
+                {youtubeUnread} new
+              </span>
+            ) : null}
+          </Link>
         </div>
         {fccDataPresent ? null : (
           <p className="text-xs text-text-subtle mt-3 font-light">
@@ -1095,7 +1135,7 @@ export function Dashboard() {
                         ) : null}
                       </span>
                       <span
-                        className={`tabular-nums text-sm markets-quote-price ${
+                        className={`tabular-nums text-sm markets-quote-price ${privacyClass(privacy)} ${
                           m.changePct >= 0 ? 'text-emerald-500' : 'text-red-500'
                         }`}
                       >

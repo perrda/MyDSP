@@ -38,7 +38,7 @@ describe('next25d Today / Spending / Goals / Tax items', () => {
     const tax = readFileSync(resolve(__dirname, '../pages/TaxPage.tsx'), 'utf8')
     expect(tax).toMatch(/tax-isa-allowance-progress/)
     expect(tax).toMatch(/ISA_ALLOWANCE_GBP/)
-    expect(tax).toMatch(/ISA_REMAINING_KEY/)
+    expect(tax).toMatch(/saveIsaRemainingDraft|isaPrefs|ISA_REMAINING_KEY/)
     expect(tax).toMatch(/ISA allowance/)
     expect(tax).toMatch(/Manual remaining ISA allowance/)
   })

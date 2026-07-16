@@ -39,6 +39,10 @@ export interface MarketTicker {
   quantity?: number
   /** Optional average cost in GBP per unit (commodities paper P&L) */
   avgCostGbp?: number
+  /** When true, paper commodity MV is included in net worth / Compare */
+  includeInNetWorth?: boolean
+  /** When true, Finnhub must not overwrite yieldPct on refresh */
+  yieldManual?: boolean
   createdAt: string
   sortOrder: number
 }

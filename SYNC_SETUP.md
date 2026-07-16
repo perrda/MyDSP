@@ -73,9 +73,26 @@ npx wrangler deploy
 
 That’s it. Edits push about **4 seconds** after you change data (and pull first if another device updated cloud). Opening the app, returning to the tab, pull-to-refresh, or about **every 30 seconds** while open pulls newer cloud data.
 
-**What syncs:** portfolios + holdings, To Do's / Jobs, Favourites/nav layout, Markets **watchlist** (union merge), Markets **last-good quote cache** (prices show on another device before it refreshes), News tags + **last-good headlines cache**, YouTube prefs, and full-backup extras.
+**What syncs:** portfolios + holdings, To Do's / Jobs, Favourites/nav layout, Markets **watchlist** (union merge), Markets **last-good quote cache** (prices show on another device before it refreshes), News tags + **last-good headlines cache**, YouTube channels + **video cache**, ISA remaining override, price-alert thresholds, and full-backup extras.
 
 **What does not sync:** Finnhub (and other live provider) API keys, PIN / Face ID credentials, remembered passphrase storage, and session-only provider health counters. Enter the Finnhub key on each device (Settings → Prices).
+
+### Device-local prefs matrix
+
+| Pref / data | Syncs? | Notes |
+|-------------|--------|--------|
+| Portfolios, holdings, todos, jobs, goals | Yes | Core workspace blobs |
+| Markets watchlist + last-good quotes | Yes | Union merge / LWW quotes |
+| News tags + last-good headlines | Yes | fullArchive extras |
+| YouTube channels + video cache | Yes | fullArchive extras |
+| ISA remaining override | Yes | Tax page override (LWW) |
+| Price-alert thresholds | Yes | OS notification permission stays per device |
+| Finnhub / provider API keys | No | Enter on each device |
+| PIN / Face ID / unlock timeout | No | Security is device-local |
+| Remembered sync passphrase | No | Stored only in that browser |
+| Accessibility (reduced motion, high contrast) | No | Presentation per device |
+| Glass theme / large text mode | No | Presentation per device |
+| Provider health counters | No | Session-only |
 
 ---
 

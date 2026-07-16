@@ -1179,6 +1179,12 @@ export function SettingsPage() {
                 <li>PIN / Face ID credentials and unlock timeout</li>
                 <li>Session / remembered sync passphrase storage</li>
                 <li>Provider health counters (this browser session only)</li>
+                <li>Accessibility prefs (reduced motion, high contrast) — device-local</li>
+                <li>Glass theme and large text mode — device-local presentation</li>
+                <li>
+                  Price-alert notification permission / OS prompts — thresholds sync; permission is
+                  per device
+                </li>
               </ul>
             </div>
             <label className="flex items-start gap-3 cursor-pointer">

@@ -14,6 +14,7 @@ import { ConfirmDialog, Field, Modal } from '../components/ui/Modal'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
 import type { NewsArticle, NewsTag } from '../domain/news'
 import { fetchTaggedNews, fetchTopFinancialNews } from '../services/newsFeeds'
+import { isOnline } from '../services/offlineQueue'
 import {
   addNewsTag,
   getNewsSeenAt,
@@ -44,14 +45,19 @@ function formatRelative(iso: string): string {
 
 const NEWS_PAGE = 10
 
-function ArticleRow({ article, unread }: { article: NewsArticle; unread?: boolean }) {
-  return (
-    <a
-      href={article.link}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="px-4 sm:px-5 py-3.5 flex items-start gap-3 hover:bg-surface-hover/60 transition-colors"
-    >
+function ArticleRow({
+  article,
+  unread,
+  selected,
+  onSelect,
+}: {
+  article: NewsArticle
+  unread?: boolean
+  selected?: boolean
+  onSelect?: (article: NewsArticle) => void
+}) {
+  const body = (
+    <>
       <div className="min-w-0 flex-1">
         <p className="font-semibold text-text tracking-tight leading-snug">
           {unread ? (
@@ -75,7 +81,28 @@ function ArticleRow({ article, unread }: { article: NewsArticle; unread?: boolea
         ) : null}
       </div>
       <ExternalLink size={14} className="text-text-subtle shrink-0 mt-1" aria-hidden />
-    </a>
+    </>
+  )
+  const rowClass =
+    'px-4 sm:px-5 py-3.5 flex items-start gap-3 hover:bg-surface-hover/60 transition-colors'
+  return (
+    <>
+      <a
+        href={article.link}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={`${rowClass} md:hidden`}
+      >
+        {body}
+      </a>
+      <button
+        type="button"
+        className={`${rowClass} hidden md:flex w-full text-left${selected ? ' news-row--selected' : ''}`}
+        onClick={() => onSelect?.(article)}
+      >
+        {body}
+      </button>
+    </>
   )
 }
 
@@ -101,6 +128,8 @@ export function NewsPage() {
   const [seenAt, setSeenAt] = useState(getNewsSeenAt)
   const [topVisible, setTopVisible] = useState(NEWS_PAGE)
   const [taggedVisible, setTaggedVisible] = useState(NEWS_PAGE)
+  const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
+  const [online, setOnline] = useState(() => isOnline())
   const inFlight = useRef(false)
 
   useEffect(() => {
@@ -186,6 +215,23 @@ export function NewsPage() {
     return () => window.removeEventListener('mydsp-global-refresh', onGlobal)
   }, [refresh])
 
+  useEffect(() => {
+    const onRefresh = () => void refresh()
+    window.addEventListener('mydsp-news-refresh', onRefresh)
+    return () => window.removeEventListener('mydsp-news-refresh', onRefresh)
+  }, [refresh])
+
+  useEffect(() => {
+    const onOnline = () => setOnline(true)
+    const onOffline = () => setOnline(false)
+    window.addEventListener('online', onOnline)
+    window.addEventListener('offline', onOffline)
+    return () => {
+      window.removeEventListener('online', onOnline)
+      window.removeEventListener('offline', onOffline)
+    }
+  }, [])
+
   const taggedFlat = useMemo(() => {
     const rows: NewsArticle[] = []
     for (const t of tags) {
@@ -211,6 +257,10 @@ export function NewsPage() {
   }
 
   const isUnread = (a: NewsArticle) => !seenAt || a.publishedAt > seenAt
+
+  const hasCachedArticles =
+    top.length > 0 || Object.values(byTag).some((articles) => articles.length > 0)
+  const cachedMode = hasCachedArticles && (!online || error !== null)
 
   const openCreate = () => {
     setEditing(null)
@@ -286,6 +336,25 @@ export function NewsPage() {
         ) : null}
       </p>
 
+      {cachedMode ? (
+        <div
+          className="news-cached-mode-banner mb-4 px-3 py-2.5 text-sm border border-amber-500/45 bg-amber-500/10 text-amber-900 dark:text-amber-100 rounded-lg md:rounded-none"
+          role="status"
+          aria-live="polite"
+        >
+          <p className="font-semibold">Cached mode</p>
+          <p className="text-xs mt-0.5 opacity-90">
+            {!online
+              ? 'You are offline — showing last-good headlines from cache.'
+              : 'Live headlines unavailable — showing last-good cached articles.'}
+          </p>
+        </div>
+      ) : null}
+
+      <div
+        className={`news-master-detail${selectedArticle ? ' news-master-detail--open' : ''}`}
+      >
+        <div className="news-master-detail-list min-w-0">
       {/* Top news */}
       <section className="border border-border bg-bg-elevated mb-6 overflow-hidden">
         <div className="px-4 sm:px-5 pt-4 pb-3 flex items-start justify-between gap-3 border-b border-border">
@@ -313,7 +382,13 @@ export function NewsPage() {
             ) : (
               <>
                 {top.slice(0, topVisible).map((a) => (
-                  <ArticleRow key={a.id} article={a} unread={isUnread(a)} />
+                  <ArticleRow
+                    key={a.id}
+                    article={a}
+                    unread={isUnread(a)}
+                    selected={selectedArticle?.id === a.id}
+                    onSelect={setSelectedArticle}
+                  />
                 ))}
                 {topVisible < top.length ? (
                   <div className="px-4 sm:px-5 py-3">
@@ -382,7 +457,15 @@ export function NewsPage() {
               ) : (
                 <>
                   {taggedFlat.slice(0, taggedVisible).map((a) => (
-                    <ArticleRow key={`${a.tag}-${a.id}`} article={a} unread={isUnread(a)} />
+                    <ArticleRow
+                      key={`${a.tag}-${a.id}`}
+                      article={a}
+                      unread={isUnread(a)}
+                      selected={
+                        selectedArticle?.id === a.id && selectedArticle?.tag === a.tag
+                      }
+                      onSelect={setSelectedArticle}
+                    />
                   ))}
                   {taggedVisible < taggedFlat.length ? (
                     <div className="px-4 sm:px-5 py-3">
@@ -498,6 +581,50 @@ export function NewsPage() {
           </>
         )}
       </section>
+        </div>
+        {selectedArticle ? (
+          <aside
+            className="news-master-detail-panel surface p-4 border border-border hidden md:block sticky top-20 self-start"
+            aria-label={`Selected article: ${selectedArticle.title}`}
+          >
+            <p className="label-uppercase mb-1">Selected</p>
+            <h2 className="text-lg font-bold tracking-tight leading-snug mb-2">
+              {selectedArticle.title}
+            </h2>
+            <p className="text-sm text-text-muted mb-1">{selectedArticle.source}</p>
+            <p className="text-xs text-text-subtle mb-3">
+              Published {formatDateTime(selectedArticle.publishedAt)}
+              {selectedArticle.tag ? (
+                <>
+                  <span aria-hidden> · </span>
+                  <span className="text-accent font-semibold">{selectedArticle.tag}</span>
+                </>
+              ) : null}
+            </p>
+            {selectedArticle.summary ? (
+              <p className="text-sm text-text-muted mb-3 leading-relaxed">{selectedArticle.summary}</p>
+            ) : null}
+            <div className="flex flex-wrap gap-2">
+              <a
+                href={selectedArticle.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-primary btn-sm inline-flex items-center gap-1.5"
+              >
+                <ExternalLink size={14} />
+                Open article
+              </a>
+              <button
+                type="button"
+                className="btn-ghost btn-sm"
+                onClick={() => setSelectedArticle(null)}
+              >
+                Close
+              </button>
+            </div>
+          </aside>
+        ) : null}
+      </div>
 
       <Modal
         open={modalOpen}

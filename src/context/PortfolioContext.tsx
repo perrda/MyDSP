@@ -9,6 +9,8 @@ import {
   type ReactNode,
 } from 'react'
 import { calcBreakdown, goalCurrent, goalProgress } from '../domain/calc'
+import { paperCommodityValue } from '../domain/paperCommodities'
+import { listMarketTickers, loadMarketQuotesCache } from '../storage/marketsStore'
 import { createEmptyPortfolio, createSamplePortfolio } from '../domain/defaults'
 import { upsertDailySnapshot } from '../domain/history'
 import { appendHoldingPrices } from '../domain/holdingHistory'
@@ -505,9 +507,27 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('online', onOnline)
   }, [refreshPrices])
 
+  const [marketsNwTick, setMarketsNwTick] = useState(0)
+  useEffect(() => {
+    const bump = () => setMarketsNwTick((n) => n + 1)
+    window.addEventListener('mydsp-markets-quotes', bump)
+    window.addEventListener('mydsp-markets-changed', bump)
+    return () => {
+      window.removeEventListener('mydsp-markets-quotes', bump)
+      window.removeEventListener('mydsp-markets-changed', bump)
+    }
+  }, [])
+
   const breakdown = useMemo(() => {
     try {
-      return calcBreakdown(data)
+      const base = calcBreakdown(data)
+      const paper = paperCommodityValue(listMarketTickers(), loadMarketQuotesCache())
+      if (paper.value <= 0) return base
+      return {
+        ...base,
+        assets: base.assets + paper.value,
+        netWorth: base.netWorth + paper.value,
+      }
     } catch (e) {
       console.warn('[portfolio] calcBreakdown failed:', e)
       const emptyAsset = { value: 0, cost: 0, pnl: 0, pct: 0 }
@@ -521,7 +541,7 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
         liability: emptyLiab,
       }
     }
-  }, [data])
+  }, [data, marketsNwTick])
 
   useEffect(() => {
     if (isApplyingRemote()) return

@@ -85,6 +85,21 @@ test.describe('MyDSP smoke', () => {
     await expect(page.getByText(/Finnhub key \(this device\)/i).first()).toBeVisible()
     await expect(page.getByText(/News tags \/ headlines/i).first()).toBeVisible()
     await expect(page.getByText(/YouTube channels/i).first()).toBeVisible()
+    await expect(page.getByText(/Worker YouTube allowlist/i).first()).toBeVisible()
+    await expect(page.getByText(/ISA remaining override/i).first()).toBeVisible()
+    await expect(page.getByText(/PTR YouTube \/ Tax \/ Compare/i).first()).toBeVisible()
+  })
+
+  test('YouTube page uses Quote Worker for feeds', async ({ page }) => {
+    await page.goto('/youtube')
+    await expect(page.getByRole('heading', { name: /YouTube/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    // Worker allowlist is the gate for Atom feeds; smoke checklist probes it live.
+    await page.goto('/smoke')
+    await expect(page.getByText(/Worker YouTube allowlist/i).first()).toBeVisible({
+      timeout: 20_000,
+    })
   })
 
   test('Markets shows Retry unavailable and Sync prices now', async ({ page }) => {

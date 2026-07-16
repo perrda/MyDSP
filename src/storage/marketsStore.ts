@@ -105,6 +105,8 @@ function normalizeTicker(t: MarketTicker, i: number): MarketTicker {
     yieldPct,
     quantity,
     avgCostGbp,
+    includeInNetWorth: t.kind === 'commodity' ? Boolean(t.includeInNetWorth) : undefined,
+    yieldManual: t.kind === 'equity' ? Boolean(t.yieldManual) : undefined,
   }
 }
 
@@ -185,6 +187,8 @@ export function addMarketTicker(input: {
   yieldPct?: number | null
   quantity?: number | null
   avgCostGbp?: number | null
+  includeInNetWorth?: boolean
+  yieldManual?: boolean
 }): MarketTicker {
   const symbol = validateSymbol(input.kind, input.symbol)
   const state = loadMarketsState()
@@ -207,6 +211,8 @@ export function addMarketTicker(input: {
       input.kind === 'commodity' ? normalizeQuantity(input.quantity ?? undefined) : undefined,
     avgCostGbp:
       input.kind === 'commodity' ? normalizeAvgCostGbp(input.avgCostGbp ?? undefined) : undefined,
+    includeInNetWorth: input.kind === 'commodity' ? Boolean(input.includeInNetWorth) : undefined,
+    yieldManual: input.kind === 'equity' ? Boolean(input.yieldManual) : undefined,
     createdAt: new Date().toISOString(),
     sortOrder: maxOrder + 1,
   }
@@ -227,6 +233,8 @@ export function updateMarketTicker(
     yieldPct?: number | null
     quantity?: number | null
     avgCostGbp?: number | null
+    includeInNetWorth?: boolean | null
+    yieldManual?: boolean | null
   },
 ): MarketTicker {
   const state = loadMarketsState()
@@ -275,6 +283,18 @@ export function updateMarketTicker(
         : patch.avgCostGbp !== undefined
           ? normalizeAvgCostGbp(patch.avgCostGbp ?? undefined)
           : current.avgCostGbp,
+    includeInNetWorth:
+      nextKind !== 'commodity'
+        ? undefined
+        : patch.includeInNetWorth !== undefined
+          ? Boolean(patch.includeInNetWorth)
+          : current.includeInNetWorth,
+    yieldManual:
+      nextKind !== 'equity'
+        ? undefined
+        : patch.yieldManual !== undefined
+          ? Boolean(patch.yieldManual)
+          : current.yieldManual,
   }
   state.tickers[idx] = updated
   saveMarketsState(state)

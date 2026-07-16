@@ -45,7 +45,7 @@ describe('next25f Today / digest / tax items 16-20', () => {
     const dashboard = readFileSync(resolve(__dirname, '../pages/Dashboard.tsx'), 'utf8')
     const tax = readFileSync(resolve(__dirname, '../pages/TaxPage.tsx'), 'utf8')
 
-    expect(tax).toMatch(/ISA_REMAINING_KEY/)
+    expect(tax).toMatch(/saveIsaRemainingDraft|isaPrefs/)
     expect(tax).toMatch(/Manual remaining ISA allowance/)
     expect(dashboard).toMatch(/ISA_REMAINING_KEY/)
     expect(dashboard).toMatch(/ISA_LOW_REMAINING_THRESHOLD_GBP/)

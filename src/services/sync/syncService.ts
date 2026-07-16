@@ -11,8 +11,10 @@ import {
   importNewsArticlesFromBackup,
   importNewsFromBackup,
 } from '../../storage/newsStore'
+import { importIsaRemainingFromBackup } from '../../domain/isaPrefs'
+import { importPriceAlertThresholdsFromBackup } from '../../domain/priceAlerts'
 import { importNavLayoutFromBackup } from '../../storage/navOrder'
-import { importYoutubeFromBackup } from '../../storage/youtubeStore'
+import { importYoutubeFromBackup, importYoutubeVideosFromBackup } from '../../storage/youtubeStore'
 import {
   flushSave,
   getActivePortfolioId,
@@ -243,6 +245,9 @@ export interface MergePreview {
     /** Last-good News headlines cache */
     newsArticles?: unknown
     youtube?: unknown
+    youtubeVideos?: unknown
+    isaRemaining?: unknown
+    priceAlertThresholds?: unknown
   }
 }
 
@@ -637,6 +642,9 @@ async function decryptEnvelope(
     if (a.news != null) extras.news = a.news
     if (a.newsArticles != null) extras.newsArticles = a.newsArticles
     if (a.youtube != null) extras.youtube = a.youtube
+    if (a.youtubeVideos != null) extras.youtubeVideos = a.youtubeVideos
+    if (a.isaRemaining != null) extras.isaRemaining = a.isaRemaining
+    if (a.priceAlertThresholds != null) extras.priceAlertThresholds = a.priceAlertThresholds
     if (Object.keys(extras).length > 0) workspaceExtras = extras
   }
 
@@ -838,6 +846,15 @@ export async function applyMergePreview(
   }
   if (preview.workspaceExtras?.youtube != null) {
     importYoutubeFromBackup(preview.workspaceExtras.youtube)
+  }
+  if (preview.workspaceExtras?.youtubeVideos != null) {
+    importYoutubeVideosFromBackup(preview.workspaceExtras.youtubeVideos)
+  }
+  if (preview.workspaceExtras?.isaRemaining != null) {
+    importIsaRemainingFromBackup(preview.workspaceExtras.isaRemaining)
+  }
+  if (preview.workspaceExtras?.priceAlertThresholds != null) {
+    importPriceAlertThresholdsFromBackup(preview.workspaceExtras.priceAlertThresholds)
   }
 
   return { merged, conflicts: preview.conflicts, removedDupes: removed.length }
