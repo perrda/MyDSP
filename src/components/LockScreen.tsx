@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useState } from 'react'
+/**
+ * Full-screen unlock. Face ID / platform biometrics are primary when enabled;
+ * 4-digit PIN is always available as fallback (same flow on iPhone and iPad).
+ *
+ * iOS Safari / PWA requires a user tap to start WebAuthn — we lead with a large
+ * Face ID button and auto-focus it so unlock is one tap, then PIN if it fails.
+ */
+
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Fingerprint, Delete } from 'lucide-react'
 import { BrandMark } from './BrandMark'
 import {
@@ -16,16 +24,14 @@ interface LockScreenProps {
   onUnlock: () => void
 }
 
-/**
- * Full-screen PIN lock. Biometrics require a user tap on iOS Safari / PWA
- * (Face ID / Touch ID will not fire from a passive mount effect).
- */
 export function LockScreen({ onUnlock }: LockScreenProps) {
   const [digits, setDigits] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [lockoutMs, setLockoutMs] = useState(getLockoutRemaining())
   const [bioBusy, setBioBusy] = useState(false)
   const [bioHint, setBioHint] = useState<string | null>(null)
+  const [showPinPad, setShowPinPad] = useState(false)
+  const bioBtnRef = useRef<HTMLButtonElement>(null)
   const security = loadSecurity()
   const bioLabel = getBiometricLabel()
   const showBiometrics =
@@ -36,6 +42,17 @@ export function LockScreen({ onUnlock }: LockScreenProps) {
     const t = window.setInterval(() => setLockoutMs(getLockoutRemaining()), 250)
     return () => window.clearInterval(t)
   }, [lockoutMs])
+
+  // Face ID first: focus the primary unlock control (iPhone + iPad).
+  useEffect(() => {
+    if (!showBiometrics || lockoutMs > 0) {
+      setShowPinPad(true)
+      return
+    }
+    setShowPinPad(false)
+    const t = window.setTimeout(() => bioBtnRef.current?.focus(), 80)
+    return () => window.clearTimeout(t)
+  }, [showBiometrics, lockoutMs])
 
   const tryUnlock = useCallback(
     async (pin: string) => {
@@ -87,7 +104,8 @@ export function LockScreen({ onUnlock }: LockScreenProps) {
         onUnlock()
         return
       }
-      setBioHint(`${bioLabel} cancelled or unavailable — use your PIN.`)
+      setBioHint(`${bioLabel} cancelled or unavailable — use your 4-digit PIN.`)
+      setShowPinPad(true)
     } finally {
       setBioBusy(false)
     }
@@ -111,24 +129,26 @@ export function LockScreen({ onUnlock }: LockScreenProps) {
           M<span className="text-[0.85em] font-semibold tracking-normal">y</span>DSP
         </p>
         <p className="text-sm text-text-subtle mb-8 font-light text-center">
-          Enter your 4-digit PIN to unlock
+          {showBiometrics
+            ? `Unlock with ${bioLabel} — PIN is the fallback`
+            : 'Enter your 4-digit PIN to unlock'}
         </p>
 
-        <div className="flex gap-3 mb-6" aria-label={`PIN entered ${digits.length} of 4 digits`}>
-          {[0, 1, 2, 3].map((i) => (
-            <span
-              key={i}
-              className={`w-3.5 h-3.5 border transition-colors ${
-                digits.length > i
-                  ? 'bg-accent border-accent'
-                  : 'bg-transparent border-border-strong'
-              }`}
-              aria-hidden
-            />
-          ))}
-        </div>
+        {showBiometrics ? (
+          <button
+            ref={bioBtnRef}
+            type="button"
+            className="btn-primary mb-6 inline-flex items-center justify-center gap-2 min-h-14 w-full text-base"
+            disabled={lockoutMs > 0 || bioBusy}
+            onClick={() => void onBiometric()}
+            autoFocus
+          >
+            <Fingerprint size={22} strokeWidth={1.75} />
+            {bioBusy ? `Waiting for ${bioLabel}…` : `Unlock with ${bioLabel}`}
+          </button>
+        ) : null}
 
-        <div className="min-h-[2.5rem] mb-4 text-center px-2" aria-live="polite">
+        <div className="min-h-[2.5rem] mb-2 text-center px-2" aria-live="polite">
           {error ? <p className="text-sm text-accent font-medium">{error}</p> : null}
           {lockoutMs > 0 ? (
             <p className="text-sm text-text-muted">Retry in {Math.ceil(lockoutMs / 1000)}s</p>
@@ -136,45 +156,70 @@ export function LockScreen({ onUnlock }: LockScreenProps) {
           {!error && bioHint ? <p className="text-sm text-text-muted">{bioHint}</p> : null}
         </div>
 
-        <div className="grid grid-cols-3 gap-3 w-full" role="group" aria-label="PIN keypad">
-          {['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫'].map((key) =>
-            key === '' ? (
-              <span key="pad" />
-            ) : (
-              <button
-                key={key}
-                type="button"
-                className="btn-ghost h-14 min-h-14 text-lg font-semibold tracking-tight"
-                disabled={lockoutMs > 0}
-                aria-label={key === '⌫' ? 'Delete last digit' : `Digit ${key}`}
-                onClick={() => {
-                  if (key === '⌫') {
-                    setError(null)
-                    setDigits((p) => p.slice(0, -1))
-                  } else press(key)
-                }}
-              >
-                {key === '⌫' ? <Delete size={20} strokeWidth={1.75} className="mx-auto" /> : key}
-              </button>
-            ),
-          )}
-        </div>
-
-        {showBiometrics ? (
+        {showBiometrics && !showPinPad ? (
           <button
             type="button"
-            className="btn-secondary mt-8 inline-flex items-center justify-center gap-2 min-h-12 w-full"
-            disabled={lockoutMs > 0 || bioBusy}
-            onClick={() => void onBiometric()}
+            className="btn-ghost min-h-11 w-full mb-2 text-sm"
+            onClick={() => setShowPinPad(true)}
           >
-            <Fingerprint size={18} strokeWidth={1.75} />
-            {bioBusy ? `Waiting for ${bioLabel}…` : `Unlock with ${bioLabel}`}
+            Use 4-digit PIN instead
           </button>
         ) : null}
 
+        {showPinPad || !showBiometrics ? (
+          <>
+            {showBiometrics ? (
+              <p className="text-xs text-text-subtle mb-4 font-light text-center">
+                PIN fallback
+              </p>
+            ) : null}
+            <div className="flex gap-3 mb-6" aria-label={`PIN entered ${digits.length} of 4 digits`}>
+              {[0, 1, 2, 3].map((i) => (
+                <span
+                  key={i}
+                  className={`w-3.5 h-3.5 border transition-colors ${
+                    digits.length > i
+                      ? 'bg-accent border-accent'
+                      : 'bg-transparent border-border-strong'
+                  }`}
+                  aria-hidden
+                />
+              ))}
+            </div>
+
+            <div className="grid grid-cols-3 gap-3 w-full" role="group" aria-label="PIN keypad">
+              {['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫'].map((key) =>
+                key === '' ? (
+                  <span key="pad" />
+                ) : (
+                  <button
+                    key={key}
+                    type="button"
+                    className="btn-ghost h-14 min-h-14 text-lg font-semibold tracking-tight"
+                    disabled={lockoutMs > 0}
+                    aria-label={key === '⌫' ? 'Delete last digit' : `Digit ${key}`}
+                    onClick={() => {
+                      if (key === '⌫') {
+                        setError(null)
+                        setDigits((p) => p.slice(0, -1))
+                      } else press(key)
+                    }}
+                  >
+                    {key === '⌫' ? (
+                      <Delete size={20} strokeWidth={1.75} className="mx-auto" />
+                    ) : (
+                      key
+                    )}
+                  </button>
+                ),
+              )}
+            </div>
+          </>
+        ) : null}
+
         <p className="mt-6 text-[11px] text-text-subtle text-center font-light max-w-xs leading-relaxed">
-          Your data stays on this device. PIN and {bioLabel.toLowerCase()} never leave your
-          iPhone or iPad.
+          Same unlock on iPhone and iPad. Your data stays on this device — PIN and{' '}
+          {bioLabel.toLowerCase()} never leave your device.
         </p>
       </div>
     </div>

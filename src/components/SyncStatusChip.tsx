@@ -21,24 +21,32 @@ function relativeTime(iso?: string): string | null {
   return `${Math.max(1, Math.round(sec / 86400))}d ago`
 }
 
-function chipLabel(s: AutoSyncStatus, offlineQueued: number): string | null {
+function chipLabel(
+  s: AutoSyncStatus,
+  offlineQueued: number,
+  compact: boolean,
+): string | null {
   switch (s.state) {
     case 'pulling':
-      return 'Pulling…'
+      return compact ? 'Pulling' : 'Pulling…'
     case 'pushing':
-      return 'Pushing…'
+      return compact ? 'Pushing' : 'Pushing…'
     case 'conflict':
       return 'Conflicts'
     case 'error':
-      return 'Sync error'
+      return compact ? 'Error' : 'Sync error'
     case 'needs-passphrase':
-      return 'Passphrase'
+      return compact ? 'Key' : 'Passphrase'
     case 'disabled':
       return null
     case 'idle': {
-      if (offlineQueued > 0) return `Queued ${offlineQueued}`
+      if (offlineQueued > 0) return compact ? `Q ${offlineQueued}` : `Queued ${offlineQueued}`
       const ago = relativeTime(s.lastAt)
-      if (ago) return `Synced · ${ago}`
+      if (ago) {
+        // Compact phone strip: avoid "Synced · just now" crowding the header
+        if (compact && ago === 'just now') return 'Synced'
+        return compact ? `Synced ${ago}` : `Synced · ${ago}`
+      }
       if (s.message === 'Synced') return 'Synced'
       return null
     }
@@ -58,7 +66,12 @@ function chipTone(state: AutoSyncStatus['state'], offlineQueued: number): string
   return 'sync-chip sync-chip--ok'
 }
 
-export function SyncStatusChip() {
+interface SyncStatusChipProps {
+  /** Shorter label for the dedicated phone sync strip (never in the burger row). */
+  compact?: boolean
+}
+
+export function SyncStatusChip({ compact = false }: SyncStatusChipProps) {
   const [status, setStatus] = useState<AutoSyncStatus>(() => getAutoSyncStatus())
   const [queueLen, setQueueLen] = useState(() => loadOfflineQueue().length)
   const cfg = loadSyncConfig()
@@ -78,7 +91,7 @@ export function SyncStatusChip() {
   }, [])
 
   if (!configured) return null
-  const label = chipLabel(status, queueLen)
+  const label = chipLabel(status, queueLen, compact)
   if (!label) return null
 
   const detailParts = [
@@ -92,7 +105,7 @@ export function SyncStatusChip() {
   return (
     <Link
       to="/settings#sync"
-      className={`${chipTone(status.state, queueLen)}`}
+      className={`${chipTone(status.state, queueLen)}${compact ? ' sync-chip--compact' : ''}`}
       title={detail}
       aria-label={`Cloud sync: ${label}. Open Settings to sync now.`}
     >

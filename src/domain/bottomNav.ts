@@ -16,7 +16,12 @@ import {
   Receipt,
   type LucideIcon,
 } from 'lucide-react'
-import { DEFAULT_FAVOURITE_PATHS } from '../storage/navOrder'
+import {
+  BOTTOM_NAV_FIXED_END,
+  BOTTOM_NAV_FIXED_START,
+  DEFAULT_BOTTOM_NAV_MIDDLE,
+  loadBottomNavMiddleSlots,
+} from '../storage/bottomNavSlots'
 
 export interface BottomNavItem {
   to: string
@@ -40,16 +45,23 @@ export const BOTTOM_NAV_CATALOG: Record<string, BottomNavItem> = {
   '/settings': { to: '/settings', label: 'Settings', icon: Settings },
 }
 
-const FALLBACK = ['/', '/markets', '/spending', '/goals'] as const
-
-/** Up to 4 favourite tabs + Settings (always last). */
-export function resolveBottomNavItems(favourites: string[]): BottomNavItem[] {
+/**
+ * Bottom bar = Overview (fixed) · 3 user slots · Settings (fixed).
+ * `middleSlots` overrides stored prefs when provided (tests / preview).
+ */
+export function resolveBottomNavItems(middleSlots?: string[]): BottomNavItem[] {
+  const slots = middleSlots?.length ? middleSlots : loadBottomNavMiddleSlots()
   const picked: BottomNavItem[] = []
   const seen = new Set<string>()
 
-  const source = favourites.length > 0 ? favourites : [...FALLBACK, ...DEFAULT_FAVOURITE_PATHS]
-  for (const path of source) {
-    if (path === '/settings') continue
+  const start = BOTTOM_NAV_CATALOG[BOTTOM_NAV_FIXED_START]
+  if (start) {
+    picked.push(start)
+    seen.add(start.to)
+  }
+
+  for (const path of slots) {
+    if (path === BOTTOM_NAV_FIXED_START || path === BOTTOM_NAV_FIXED_END) continue
     const item = BOTTOM_NAV_CATALOG[path]
     if (!item || seen.has(item.to)) continue
     picked.push(item)
@@ -57,7 +69,7 @@ export function resolveBottomNavItems(favourites: string[]): BottomNavItem[] {
     if (picked.length >= 4) break
   }
 
-  for (const path of FALLBACK) {
+  for (const path of DEFAULT_BOTTOM_NAV_MIDDLE) {
     if (picked.length >= 4) break
     if (seen.has(path)) continue
     const item = BOTTOM_NAV_CATALOG[path]
@@ -67,6 +79,7 @@ export function resolveBottomNavItems(favourites: string[]): BottomNavItem[] {
     }
   }
 
-  picked.push(BOTTOM_NAV_CATALOG['/settings'])
+  const end = BOTTOM_NAV_CATALOG[BOTTOM_NAV_FIXED_END]
+  if (end && !seen.has(end.to)) picked.push(end)
   return picked
 }

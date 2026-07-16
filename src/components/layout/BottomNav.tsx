@@ -3,19 +3,20 @@ import { Link, NavLink } from 'react-router-dom'
 import { useLayoutMode, useShowBottomNav } from '../../hooks/useShowBottomNav'
 import { prefetchRouteChunk } from '../../hooks/useIdlePrefetch'
 import { prefetchMarketQuotes } from '../../services/marketsQuotes'
-import { loadNavLayout, saveNavLayout } from '../../storage/navOrder'
+import {
+  loadBottomNavMiddleSlots,
+  saveBottomNavMiddleSlots,
+} from '../../storage/bottomNavSlots'
 import { BOTTOM_NAV_CATALOG, resolveBottomNavItems, type BottomNavItem } from '../../domain/bottomNav'
 import { Modal } from '../ui/Modal'
 import { ReorderHandle, ReorderList } from '../ui/Reorderable'
 
 function readItems(): BottomNavItem[] {
-  const layout = loadNavLayout(Object.keys(BOTTOM_NAV_CATALOG))
-  return resolveBottomNavItems(layout.favourites)
+  return resolveBottomNavItems(loadBottomNavMiddleSlots())
 }
 
-function readFavourites(): BottomNavItem[] {
-  const layout = loadNavLayout(Object.keys(BOTTOM_NAV_CATALOG))
-  return layout.favourites
+function readMiddleItems(): BottomNavItem[] {
+  return loadBottomNavMiddleSlots()
     .map((p) => BOTTOM_NAV_CATALOG[p])
     .filter((x): x is BottomNavItem => Boolean(x))
 }
@@ -30,14 +31,14 @@ export function BottomNav() {
   const mode = useLayoutMode()
   const [items, setItems] = useState<BottomNavItem[]>(() => readItems())
   const [favSheetOpen, setFavSheetOpen] = useState(false)
-  const [favItems, setFavItems] = useState<BottomNavItem[]>(() => readFavourites())
+  const [middleItems, setMiddleItems] = useState<BottomNavItem[]>(() => readMiddleItems())
   const longPressTimer = useRef<number | null>(null)
   const longPressFired = useRef(false)
 
   useEffect(() => {
     const refresh = () => {
       setItems(readItems())
-      setFavItems(readFavourites())
+      setMiddleItems(readMiddleItems())
     }
     window.addEventListener('mydsp-nav-order', refresh)
     window.addEventListener('storage', refresh)
@@ -60,21 +61,14 @@ export function BottomNav() {
     longPressTimer.current = window.setTimeout(() => {
       longPressFired.current = true
       longPressTimer.current = null
-      setFavItems(readFavourites())
+      setMiddleItems(readMiddleItems())
       setFavSheetOpen(true)
     }, 520)
   }
 
-  const onFavReorder = (next: BottomNavItem[]) => {
-    const layout = loadNavLayout(Object.keys(BOTTOM_NAV_CATALOG))
-    const nextPaths = next.map((i) => i.to)
-    const others = layout.others.filter((p) => !nextPaths.includes(p))
-    // Keep any favourite paths that aren't in bottom-nav catalog at the end
-    for (const p of layout.favourites) {
-      if (!nextPaths.includes(p) && !others.includes(p)) others.push(p)
-    }
-    saveNavLayout({ ...layout, favourites: nextPaths, others })
-    setFavItems(next)
+  const onMiddleReorder = (next: BottomNavItem[]) => {
+    saveBottomNavMiddleSlots(next.map((i) => i.to))
+    setMiddleItems(next)
     setItems(readItems())
   }
 
@@ -96,7 +90,7 @@ export function BottomNav() {
         onTouchCancel={clearLongPress}
         onContextMenu={(e) => {
           e.preventDefault()
-          setFavItems(readFavourites())
+          setMiddleItems(readMiddleItems())
           setFavSheetOpen(true)
         }}
       >
@@ -142,17 +136,17 @@ export function BottomNav() {
         </div>
       </nav>
 
-      <Modal open={favSheetOpen} title="Reorder Favourites" onClose={() => setFavSheetOpen(false)}>
+      <Modal open={favSheetOpen} title="Reorder middle tabs" onClose={() => setFavSheetOpen(false)}>
         <p className="text-sm text-text-muted font-light mb-4">
-          Drag ⋮⋮ to reorder bottom-nav favourites. Changes sync with sidebar Favourites.
+          Drag ⋮⋮ to reorder the three middle tabs. Overview and Settings stay fixed at each end.
         </p>
-        {favItems.length === 0 ? (
-          <p className="text-sm text-text-subtle">No favourites yet.</p>
+        {middleItems.length === 0 ? (
+          <p className="text-sm text-text-subtle">No middle tabs yet.</p>
         ) : (
           <ReorderList
-            items={favItems}
+            items={middleItems}
             getId={(item) => item.to}
-            onReorder={onFavReorder}
+            onReorder={onMiddleReorder}
             className="space-y-2"
           >
             {(item) => (
@@ -172,7 +166,7 @@ export function BottomNav() {
           >
             Open Settings → Layout
           </Link>{' '}
-          for launch path and reset.
+          to swap which sections appear in the three middle slots.
         </p>
       </Modal>
     </>

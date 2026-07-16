@@ -9,6 +9,29 @@
   "background_color": "#000000",
   "theme_color": "#F7931A",
   "categories": ["finance", "productivity"],
+  "shortcuts": [
+    {
+      "name": "Today",
+      "short_name": "Today",
+      "description": "Open Overview / Today hub",
+      "url": "./",
+      "icons": [{ "src": "./icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Markets",
+      "short_name": "Markets",
+      "description": "Live quotes and watchlists",
+      "url": "./markets",
+      "icons": [{ "src": "./icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Settings",
+      "short_name": "Settings",
+      "description": "Sync, theme, and preferences",
+      "url": "./settings",
+      "icons": [{ "src": "./icon-192.png", "sizes": "192x192" }]
+    }
+  ],
   "icons": [
     {
       "src": "./icon-192.png",

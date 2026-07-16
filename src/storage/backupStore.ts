@@ -14,6 +14,10 @@ import { STORAGE } from './keys'
 import { exportMarketsForBackup, importMarketsFromBackup } from './marketsStore'
 import { exportNewsForBackup, importNewsFromBackup } from './newsStore'
 import { exportNavLayoutForBackup, importNavLayoutFromBackup } from './navOrder'
+import {
+  exportBottomNavSlotsForBackup,
+  importBottomNavSlotsFromBackup,
+} from './bottomNavSlots'
 import { exportYoutubeForBackup, importYoutubeFromBackup } from './youtubeStore'
 
 // Lazy import to avoid circular deps - sync service imports backupStore
@@ -62,6 +66,8 @@ export interface FullBackupRecord extends FullBackupMeta {
   youtube?: unknown
   /** Optional sidebar Favourites / Others layout (workspace-level) */
   navLayout?: unknown
+  /** Optional phone/tablet bottom-nav middle slots */
+  bottomNavSlots?: unknown
   /** Optional file attachments (CV/PDFs) as base64 payloads */
   documentBlobs?: import('./documentBlobStore').DocumentBlobPayload[]
   documentBlobsSkipped?: number[]
@@ -78,6 +84,7 @@ function backupCanonical(record: Pick<
   | 'news'
   | 'youtube'
   | 'navLayout'
+  | 'bottomNavSlots'
   | 'documentBlobs'
 >): string {
   return JSON.stringify({
@@ -88,6 +95,7 @@ function backupCanonical(record: Pick<
     news: record.news ?? null,
     youtube: record.youtube ?? null,
     navLayout: record.navLayout ?? null,
+    bottomNavSlots: record.bottomNavSlots ?? null,
     documentBlobs: record.documentBlobs ?? null,
   })
 }
@@ -103,6 +111,7 @@ export async function computeFullBackupChecksum(
     | 'news'
     | 'youtube'
     | 'navLayout'
+    | 'bottomNavSlots'
     | 'documentBlobs'
   >,
 ): Promise<string> {
@@ -156,6 +165,7 @@ export function captureFullWorkspace(): Omit<
     news: exportNewsForBackup(),
     youtube: exportYoutubeForBackup(),
     navLayout: exportNavLayoutForBackup() ?? undefined,
+    bottomNavSlots: exportBottomNavSlotsForBackup() ?? undefined,
   }
 }
 
@@ -346,6 +356,9 @@ export async function restoreFullWorkspace(record: FullBackupRecord): Promise<vo
   if (record.navLayout) {
     importNavLayoutFromBackup(record.navLayout)
   }
+  if (record.bottomNavSlots) {
+    importBottomNavSlotsFromBackup(record.bottomNavSlots)
+  }
 }
 
 function fullBackupPayload(record: FullBackupRecord) {
@@ -370,6 +383,7 @@ function fullBackupPayload(record: FullBackupRecord) {
     ...(record.news ? { news: record.news } : {}),
     ...(record.youtube ? { youtube: record.youtube } : {}),
     ...(record.navLayout ? { navLayout: record.navLayout } : {}),
+    ...(record.bottomNavSlots ? { bottomNavSlots: record.bottomNavSlots } : {}),
   }
 }
 
@@ -516,6 +530,7 @@ export function parseFullBackupFile(raw: unknown): FullBackupRecord | null {
     news: o.news,
     youtube: o.youtube,
     navLayout: o.navLayout,
+    bottomNavSlots: o.bottomNavSlots,
     checksum: typeof o.checksum === 'string' ? o.checksum : undefined,
   }
 }

@@ -126,9 +126,15 @@ export function providerFromQuoteSource(source: string): MarketsProviderId | nul
 export function recordMarketsRefreshHealth(
   quotes: Iterable<{ kind: string; last: number; source: string }>,
 ): void {
+  const hasFinnhub =
+    typeof localStorage !== 'undefined' &&
+    Boolean(
+      (typeof localStorage.getItem === 'function' && localStorage.getItem('finnhub_key')) ||
+        false,
+    )
   const kindPrimary: Record<string, MarketsProviderId> = {
     crypto: 'coingecko',
-    equity: 'yahoo',
+    equity: hasFinnhub ? 'finnhub' : 'yahoo',
     index: 'yahoo',
     fx: 'fx',
     cross: 'coingecko',

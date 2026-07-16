@@ -228,11 +228,10 @@ export function AppShell() {
                 </h1>
               </div>
             </div>
-            {/* Mobile: keep header lean — page PageHeader carries the title */}
-            <div className="sm:hidden flex-1 min-w-0 flex items-center justify-end pr-1">
-              <SyncStatusChip />
-            </div>
-            <div className="hidden sm:flex items-center justify-end shrink-0 mr-1">
+            {/* Phone: title lives in PageHeader — keep row = menu + toolbar only (no overlap) */}
+            <div className="sm:hidden flex-1 min-w-0" aria-hidden />
+            {/* Tablet/desktop: sync chip sits beside title, never over the menu */}
+            <div className="hidden sm:flex items-center justify-end shrink-0 min-w-0 max-w-[11rem] mr-1 empty:hidden">
               <SyncStatusChip />
             </div>
 
@@ -278,7 +277,11 @@ export function AppShell() {
               }
             />
           </div>
-          {(priceMsg || lastPriceError || lastSyncAt) && (
+          {/* Phone sync strip — own row under the toolbar so it never covers the burger */}
+          <div className="app-header-sync-strip sm:hidden empty:hidden">
+            <SyncStatusChip compact />
+          </div>
+          {(priceMsg || lastPriceError) && (
             <div className="app-header-meta">
               <p
                 className={`text-xs truncate ${lastPriceError && !priceMsg ? 'text-accent' : 'text-text-subtle'}`}
@@ -289,13 +292,19 @@ export function AppShell() {
                     {priceMsg}
                   </Link>
                 ) : (
-                  (priceMsg ??
-                    lastPriceError ??
-                    (lastSyncAt ? `Last Sync ${formatDateTime(lastSyncAt)}` : null))
+                  (priceMsg ?? lastPriceError)
                 )}
               </p>
             </div>
           )}
+          {/* Idle “Last Sync …” on tablet/desktop only — phone uses the sync strip */}
+          {!priceMsg && !lastPriceError && lastSyncAt ? (
+            <div className="app-header-meta hidden sm:block">
+              <p className="text-xs truncate text-text-subtle" role="status">
+                Last Sync {formatDateTime(lastSyncAt)}
+              </p>
+            </div>
+          ) : null}
         </header>
 
         <main
