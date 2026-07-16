@@ -8,6 +8,8 @@ import {
   saveBottomNavMiddleSlots,
 } from '../../storage/bottomNavSlots'
 import { BOTTOM_NAV_CATALOG, resolveBottomNavItems, type BottomNavItem } from '../../domain/bottomNav'
+import { newsUnreadFromCache } from '../../storage/newsStore'
+import { youtubeUnreadFromCache } from '../../storage/youtubeStore'
 import { Modal } from '../ui/Modal'
 import { ReorderHandle, ReorderList } from '../ui/Reorderable'
 
@@ -37,6 +39,8 @@ export function BottomNav() {
   const [items, setItems] = useState<BottomNavItem[]>(() => readItems())
   const [favSheetOpen, setFavSheetOpen] = useState(false)
   const [middleItems, setMiddleItems] = useState<BottomNavItem[]>(() => readMiddleItems())
+  const [newsUnread, setNewsUnread] = useState(() => newsUnreadFromCache())
+  const [youtubeUnread, setYoutubeUnread] = useState(() => youtubeUnreadFromCache())
   const longPressTimer = useRef<number | null>(null)
   const longPressFired = useRef(false)
   const lastOverviewTap = useRef(0)
@@ -51,6 +55,23 @@ export function BottomNav() {
     return () => {
       window.removeEventListener('mydsp-nav-order', refresh)
       window.removeEventListener('storage', refresh)
+    }
+  }, [])
+
+  useEffect(() => {
+    const refreshNewsUnread = () => setNewsUnread(newsUnreadFromCache())
+    const refreshYoutubeUnread = () => setYoutubeUnread(youtubeUnreadFromCache())
+    refreshNewsUnread()
+    refreshYoutubeUnread()
+    window.addEventListener('mydsp-news-articles', refreshNewsUnread)
+    window.addEventListener('mydsp-news-changed', refreshNewsUnread)
+    window.addEventListener('mydsp-youtube-videos', refreshYoutubeUnread)
+    window.addEventListener('mydsp-youtube-changed', refreshYoutubeUnread)
+    return () => {
+      window.removeEventListener('mydsp-news-articles', refreshNewsUnread)
+      window.removeEventListener('mydsp-news-changed', refreshNewsUnread)
+      window.removeEventListener('mydsp-youtube-videos', refreshYoutubeUnread)
+      window.removeEventListener('mydsp-youtube-changed', refreshYoutubeUnread)
     }
   }, [])
 
@@ -176,7 +197,21 @@ export function BottomNav() {
             >
               {({ isActive }) => (
                 <>
-                  <item.icon size={tablet ? 22 : 20} strokeWidth={isActive ? 2.25 : 1.75} />
+                  <span className="relative inline-flex">
+                    <item.icon size={tablet ? 22 : 20} strokeWidth={isActive ? 2.25 : 1.75} />
+                    {item.to === '/news' && newsUnread > 0 ? (
+                      <span
+                        className="bottom-nav-unread"
+                        aria-label={`${newsUnread} unread news`}
+                      />
+                    ) : null}
+                    {item.to === '/youtube' && youtubeUnread > 0 ? (
+                      <span
+                        className="bottom-nav-unread"
+                        aria-label={`${youtubeUnread} unread videos`}
+                      />
+                    ) : null}
+                  </span>
                   <span
                     className={`bottom-nav-link-label font-semibold leading-tight tracking-tight ${
                       tablet ? 'text-xs' : 'text-[11px]'

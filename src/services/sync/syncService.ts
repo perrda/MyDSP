@@ -248,6 +248,7 @@ export interface MergePreview {
     youtubeVideos?: unknown
     isaRemaining?: unknown
     priceAlertThresholds?: unknown
+    compareWeekSnapshot?: unknown
   }
 }
 
@@ -645,6 +646,7 @@ async function decryptEnvelope(
     if (a.youtubeVideos != null) extras.youtubeVideos = a.youtubeVideos
     if (a.isaRemaining != null) extras.isaRemaining = a.isaRemaining
     if (a.priceAlertThresholds != null) extras.priceAlertThresholds = a.priceAlertThresholds
+    if (a.compareWeekSnapshot != null) extras.compareWeekSnapshot = a.compareWeekSnapshot
     if (Object.keys(extras).length > 0) workspaceExtras = extras
   }
 
@@ -855,6 +857,12 @@ export async function applyMergePreview(
   }
   if (preview.workspaceExtras?.priceAlertThresholds != null) {
     importPriceAlertThresholdsFromBackup(preview.workspaceExtras.priceAlertThresholds)
+  }
+  if (preview.workspaceExtras?.compareWeekSnapshot != null) {
+    const { importCompareWeekSnapshotFromBackup } = await import(
+      '../../domain/compareWeekSnapshot'
+    )
+    importCompareWeekSnapshotFromBackup(preview.workspaceExtras.compareWeekSnapshot)
   }
 
   return { merged, conflicts: preview.conflicts, removedDupes: removed.length }

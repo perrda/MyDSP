@@ -1,6 +1,7 @@
 /** Previous-week net-worth snapshots for Compare “what changed” column. */
 
 const KEY = 'mydsp_compare_nw_week_v1'
+const META_KEY = 'mydsp_compare_nw_week_meta_v1'
 
 export type CompareWeekSnapshotStore = {
   /** ISO week key e.g. 2026-W28 */
@@ -44,12 +45,46 @@ export function loadCompareWeekSnapshot(): CompareWeekSnapshotStore | null {
   }
 }
 
-function writeStore(store: CompareWeekSnapshotStore): void {
+function writeStore(store: CompareWeekSnapshotStore, opts?: { markDirty?: boolean }): void {
   try {
     localStorage.setItem(KEY, JSON.stringify(store))
+    localStorage.setItem(
+      META_KEY,
+      JSON.stringify({ updatedAt: store.capturedAt || new Date().toISOString() }),
+    )
   } catch {
     /* ignore */
   }
+  if (opts?.markDirty !== false) {
+    void import('../services/sync/workspaceDirty').then((m) => m.markWorkspaceChangedForSync())
+  }
+}
+
+export function exportCompareWeekSnapshotForBackup(): CompareWeekSnapshotStore | null {
+  return loadCompareWeekSnapshot()
+}
+
+/** LWW by capturedAt — prefer newer week snapshot. */
+export function importCompareWeekSnapshotFromBackup(raw: unknown): void {
+  if (!raw || typeof raw !== 'object') return
+  const remote = raw as CompareWeekSnapshotStore
+  if (typeof remote.weekKey !== 'string' || !remote.current || typeof remote.current !== 'object') {
+    return
+  }
+  const local = loadCompareWeekSnapshot()
+  const remoteAt = Date.parse(remote.capturedAt || '') || 0
+  const localAt = Date.parse(local?.capturedAt || '') || 0
+  if (local && localAt > remoteAt) return
+  writeStore(
+    {
+      weekKey: remote.weekKey,
+      current: remote.current ?? {},
+      previous:
+        remote.previous && typeof remote.previous === 'object' ? remote.previous : {},
+      capturedAt: remote.capturedAt || new Date().toISOString(),
+    },
+    { markDirty: false },
+  )
 }
 
 /**

@@ -14,6 +14,7 @@ import { ConfirmDialog, Field, Modal } from '../components/ui/Modal'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
 import { MAX_YOUTUBE_CHANNELS, type YoutubeChannel, type YoutubeVideo } from '../domain/youtube'
 import { fetchFavouriteVideos, resolveYoutubeChannel } from '../services/youtubeFeeds'
+import { isOnline } from '../services/offlineQueue'
 import {
   addYoutubeChannel,
   getYoutubeSeenAt,
@@ -59,6 +60,7 @@ export function YouTubePage() {
   const [sorting, setSorting] = useState(false)
   const [seenAt, setSeenAt] = useState(getYoutubeSeenAt)
   const [visibleCount, setVisibleCount] = useState(YT_PAGE)
+  const [online, setOnline] = useState(() => isOnline())
   const inFlight = useRef(false)
 
   const reloadList = useCallback(() => {
@@ -127,7 +129,19 @@ export function YouTubePage() {
     }
   }, [refresh])
 
+  useEffect(() => {
+    const onOnline = () => setOnline(true)
+    const onOffline = () => setOnline(false)
+    window.addEventListener('online', onOnline)
+    window.addEventListener('offline', onOffline)
+    return () => {
+      window.removeEventListener('online', onOnline)
+      window.removeEventListener('offline', onOffline)
+    }
+  }, [])
+
   const unreadCount = videos.filter((v) => !seenAt || v.publishedAt > seenAt).length
+  const cachedMode = videos.length > 0 && (!online || error !== null)
   const markYtRead = () => {
     const now = new Date().toISOString()
     setYoutubeSeenAt(now)
@@ -214,6 +228,21 @@ export function YouTubePage() {
           </button>
         ) : null}
       </p>
+
+      {cachedMode ? (
+        <div
+          className="youtube-cached-mode-banner mb-4 px-3 py-2.5 text-sm border border-amber-500/45 bg-amber-500/10 text-amber-900 dark:text-amber-100 rounded-lg md:rounded-none"
+          role="status"
+          aria-live="polite"
+        >
+          <p className="font-semibold">Cached mode</p>
+          <p className="text-xs mt-0.5 opacity-90">
+            {!online
+              ? 'You are offline — showing last-good videos from cache.'
+              : 'Live feed unavailable — showing last-good cached videos.'}
+          </p>
+        </div>
+      ) : null}
 
       {/* Favourites */}
       <section className="border border-border bg-bg-elevated mb-6 overflow-hidden">

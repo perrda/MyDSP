@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { GitCompareArrows, ArrowRight, RefreshCw } from 'lucide-react'
 import { PageHeader, StatCard } from '../components/ui/PageHeader'
@@ -14,6 +14,12 @@ import {
 } from '../domain/compareWeekSnapshot'
 import { applyLastSyncedQuotesToHoldings, lastSyncedHoldingPrices } from '../domain/lastSyncedHoldings'
 import { isSyncedRemoteQuote } from '../domain/marketQuotesSync'
+import {
+  formatSlaAge,
+  hasStaleSyncedQuotes,
+  quoteAgeMs,
+  QUOTE_FRESHNESS_SLA_MS,
+} from '../domain/quoteFreshnessSla'
 import { formatGBP, privacyClass } from '../utils/format'
 import { AllocationRing, type SliceDatum } from '../components/charts/AllocationRing'
 import {
@@ -33,6 +39,25 @@ import {
   type WeeklyDigestInput,
 } from '../domain/weeklyDigest'
 import { WeeklyDigestModal } from '../components/WeeklyDigestModal'
+
+const COMPARE_SELECTED_KEY = 'mydsp_compare_selected_v1'
+
+function loadCompareSelected(portfolios: { id: string }[]): string[] {
+  try {
+    const raw = localStorage.getItem(COMPARE_SELECTED_KEY)
+    if (raw) {
+      const ids = JSON.parse(raw) as string[]
+      if (Array.isArray(ids)) {
+        const valid = new Set(portfolios.map((p) => p.id))
+        const filtered = ids.filter((id) => valid.has(id))
+        if (filtered.length > 0) return filtered
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+  return portfolios.map((p) => p.id)
+}
 
 function quoteAgeLabel(iso?: string): string {
   if (!iso) return 'unknown'
@@ -86,12 +111,29 @@ function portfolioSyncQuoteLabel(portfolioId: string): string | null {
 export function ComparePage() {
   const { privacy, portfolios, activeId, switchPortfolio, reload } = usePortfolio()
   const { error: showError, showToast } = useToasts()
-  const [selected, setSelected] = useState<string[]>(() => portfolios.map((p) => p.id))
+  const [selected, setSelected] = useState<string[]>(() => loadCompareSelected(portfolios))
   const [scanToken, setScanToken] = useState(0)
   const [filling, setFilling] = useState(false)
   const [inviteOpen, setInviteOpen] = useState(false)
   const [digestOpen, setDigestOpen] = useState(false)
   const [digestInput, setDigestInput] = useState<WeeklyDigestInput | null>(null)
+
+  useEffect(() => {
+    setSelected((prev) => {
+      const valid = new Set(portfolios.map((p) => p.id))
+      const filtered = prev.filter((id) => valid.has(id))
+      if (filtered.length > 0) return filtered
+      return portfolios.map((p) => p.id)
+    })
+  }, [portfolios])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(COMPARE_SELECTED_KEY, JSON.stringify(selected))
+    } catch {
+      /* ignore */
+    }
+  }, [selected])
 
   const cacheAgeLabel = useMemo(() => {
     const { updatedAt } = lastSyncedHoldingPrices()
@@ -159,6 +201,21 @@ export function ComparePage() {
     if (!updatedAt) return null
     const age = quoteAgeLabel(updatedAt)
     return age ? `Holdings from last synced · ${age}` : 'Holdings from last synced'
+  }, [scanToken, filling])
+
+  const quoteSlaChip = useMemo(() => {
+    void scanToken
+    void filling
+    const list = [...loadMarketQuotesCache().values()].filter((q) => q.last > 0)
+    if (!hasStaleSyncedQuotes(list)) return null
+    let oldest = 0
+    for (const q of list) {
+      if (!isSyncedRemoteQuote(q)) continue
+      const age = quoteAgeMs(q)
+      if (age != null && age > oldest) oldest = age
+    }
+    if (oldest <= QUOTE_FRESHNESS_SLA_MS) return null
+    return `Synced quotes past ${formatSlaAge(QUOTE_FRESHNESS_SLA_MS)} SLA · oldest ${formatSlaAge(oldest)}`
   }, [scanToken, filling])
 
   const weekSnap = useMemo(() => {
@@ -399,6 +456,15 @@ export function ComparePage() {
       {compareSyncAsOf ? (
         <p className="compare-sync-asof text-[11px] text-accent font-medium mb-3" role="status">
           {compareSyncAsOf}
+        </p>
+      ) : null}
+
+      {quoteSlaChip ? (
+        <p
+          className="compare-quote-sla-chip mb-3 px-3 py-2 text-xs border border-border bg-surface/50 rounded-lg md:rounded-none"
+          role="status"
+        >
+          {quoteSlaChip}
         </p>
       ) : null}
 

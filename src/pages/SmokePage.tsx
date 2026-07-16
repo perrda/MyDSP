@@ -19,6 +19,7 @@ import { loadBottomNavMiddleSlots, DEFAULT_BOTTOM_NAV_MIDDLE } from '../storage/
 import {
   checkSyncUrlReachable,
   pingQuoteWorker,
+  probeQuoteWorkerNewsAllowlist,
   probeQuoteWorkerYoutubeAllowlist,
 } from '../domain/smokeChecks'
 import { loadIsaRemainingDraft } from '../domain/isaPrefs'
@@ -35,6 +36,7 @@ type CheckId =
   | 'pwa'
   | 'quote'
   | 'quote-allowlist'
+  | 'quote-news-allowlist'
   | 'isa-remaining'
   | 'ptr-routes'
   | 'sync-url'
@@ -171,9 +173,10 @@ export function SmokePage() {
     setBusy(true)
     const backupOk = (await backupExistsIndexed()) || backupExistsLocal()
     const cfg = loadSyncConfig()
-    const [quote, allowlist, syncUrl] = await Promise.all([
+    const [quote, allowlist, newsAllowlist, syncUrl] = await Promise.all([
       pingQuoteWorker(),
       probeQuoteWorkerYoutubeAllowlist(),
+      probeQuoteWorkerNewsAllowlist(),
       cfg.remoteUrl.trim()
         ? checkSyncUrlReachable(cfg.remoteUrl)
         : Promise.resolve({
@@ -260,6 +263,13 @@ export function SmokePage() {
         detail: allowlist.detail,
         to: '/youtube',
         done: allowlist.ok,
+      },
+      {
+        id: 'quote-news-allowlist',
+        label: 'Worker News allowlist',
+        detail: newsAllowlist.detail,
+        to: '/news',
+        done: newsAllowlist.ok,
       },
       {
         id: 'isa-remaining',

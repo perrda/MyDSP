@@ -82,6 +82,10 @@ import {
   getMarketsDensity,
   setMarketsTimeframe,
   getMarketsTimeframe,
+  getMarketsTagFilter,
+  setMarketsTagFilter,
+  getMarketsYieldSort,
+  setMarketsYieldSort,
   setMarketsLastRefresh,
   updateMarketTicker,
 } from '../storage/marketsStore'
@@ -505,10 +509,14 @@ export function MarketsPage() {
     null,
   )
   const [fxExplainerOpen, setFxExplainerOpen] = useState(false)
-  const [tagFilter, setTagFilter] = useState<MarketTickerTag | 'All'>('All')
+  const [tagFilter, setTagFilter] = useState<MarketTickerTag | 'All'>(() => getMarketsTagFilter())
   const [searchText, setSearchText] = useState('')
-  const [yieldSort, setYieldSort] = useState(false)
+  const [yieldSort, setYieldSort] = useState(() => getMarketsYieldSort())
   const [online, setOnline] = useState(() => isOnline())
+  const applyYieldSort = useCallback((next: boolean) => {
+    setYieldSort(next)
+    setMarketsYieldSort(next)
+  }, [])
   const longPressTimer = useRef<number | null>(null)
   const sectionLongPressTimer = useRef<number | null>(null)
   const refreshInFlight = useRef(false)
@@ -1131,7 +1139,7 @@ export function MarketsPage() {
             if (sectionSorting) return
             e.preventDefault()
             setSorting(false)
-            setYieldSort(false)
+            applyYieldSort(false)
             setSectionSorting(true)
           }}
           onTouchStart={() => {
@@ -1139,7 +1147,7 @@ export function MarketsPage() {
             if (sectionLongPressTimer.current) window.clearTimeout(sectionLongPressTimer.current)
             sectionLongPressTimer.current = window.setTimeout(() => {
               setSorting(false)
-              setYieldSort(false)
+              applyYieldSort(false)
               setSectionSorting(true)
             }, 520)
           }}
@@ -1763,7 +1771,7 @@ export function MarketsPage() {
               className={`btn-secondary inline-flex items-center gap-2 ${sorting ? 'border-accent text-accent' : ''}`}
               aria-pressed={sorting}
               onClick={() => {
-                setYieldSort(false)
+                applyYieldSort(false)
                 setSectionSorting(false)
                 setSorting((v) => !v)
               }}
@@ -1777,7 +1785,7 @@ export function MarketsPage() {
               aria-pressed={sectionSorting}
               aria-label={sectionSorting ? 'Done reordering sections' : 'Reorder Markets sections'}
               onClick={() => {
-                setYieldSort(false)
+                applyYieldSort(false)
                 setSorting(false)
                 setSectionSorting((v) => !v)
               }}
@@ -1964,7 +1972,10 @@ export function MarketsPage() {
               type="button"
               className={`btn-sm ${on ? 'btn-primary' : 'btn-ghost'}`}
               aria-pressed={on}
-              onClick={() => setTagFilter(tag)}
+              onClick={() => {
+                setTagFilter(tag)
+                setMarketsTagFilter(tag)
+              }}
             >
               {tag}
             </button>
@@ -1975,7 +1986,7 @@ export function MarketsPage() {
           className={`btn-sm ${yieldSort ? 'btn-primary' : 'btn-ghost'}`}
           aria-pressed={yieldSort}
           onClick={() => {
-            setYieldSort((v) => !v)
+            applyYieldSort(!yieldSort)
             setSorting(false)
             setSectionSorting(false)
           }}

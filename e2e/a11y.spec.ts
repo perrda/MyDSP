@@ -223,9 +223,36 @@ test.describe('a11y gate', () => {
     expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
   })
 
-  test('compare page has no serious axe violations', async ({ page }) => {
+  test('Compare axe — iphone gate', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'iphone-14', 'CI gate targets iphone-14')
     await page.goto('/compare')
     await expect(page.getByRole('heading', { name: /Compare portfolios/i })).toBeVisible({
+      timeout: 20_000,
+    })
+    const results = await new AxeBuilder({ page }).analyze()
+    const serious = results.violations.filter(
+      (v) => v.impact === 'serious' || v.impact === 'critical',
+    )
+    expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
+  })
+
+  test('Liabilities axe — iphone gate', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'iphone-14', 'CI gate targets iphone-14')
+    await page.goto('/liabilities')
+    await expect(page.getByRole('heading', { name: /Liabilities/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    const results = await new AxeBuilder({ page }).analyze()
+    const serious = results.violations.filter(
+      (v) => v.impact === 'serious' || v.impact === 'critical',
+    )
+    expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
+  })
+
+  test('Import axe — iphone gate', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'iphone-14', 'CI gate targets iphone-14')
+    await page.goto('/import')
+    await expect(page.getByRole('heading', { name: /Enhanced CSV Import/i }).first()).toBeVisible({
       timeout: 20_000,
     })
     const results = await new AxeBuilder({ page }).analyze()

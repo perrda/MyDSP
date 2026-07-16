@@ -8,9 +8,8 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { calcBreakdown, goalCurrent, goalProgress } from '../domain/calc'
-import { paperCommodityValue } from '../domain/paperCommodities'
-import { listMarketTickers, loadMarketQuotesCache } from '../storage/marketsStore'
+import { goalCurrent, goalProgress } from '../domain/calc'
+import { calcBreakdownWithPaper } from '../domain/netWorthWithPaper'
 import { createEmptyPortfolio, createSamplePortfolio } from '../domain/defaults'
 import { upsertDailySnapshot } from '../domain/history'
 import { appendHoldingPrices } from '../domain/holdingHistory'
@@ -520,14 +519,7 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
 
   const breakdown = useMemo(() => {
     try {
-      const base = calcBreakdown(data)
-      const paper = paperCommodityValue(listMarketTickers(), loadMarketQuotesCache())
-      if (paper.value <= 0) return base
-      return {
-        ...base,
-        assets: base.assets + paper.value,
-        netWorth: base.netWorth + paper.value,
-      }
+      return calcBreakdownWithPaper(data)
     } catch (e) {
       console.warn('[portfolio] calcBreakdown failed:', e)
       const emptyAsset = { value: 0, cost: 0, pnl: 0, pct: 0 }

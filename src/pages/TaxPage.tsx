@@ -76,6 +76,12 @@ export function TaxPage() {
     saveIsaRemainingDraft(isaRemainingDraft)
   }, [isaRemainingDraft])
 
+  useEffect(() => {
+    const onSyncApplied = () => setIsaRemainingDraft(loadIsaRemainingDraft())
+    window.addEventListener('mydsp-sync-applied', onSyncApplied)
+    return () => window.removeEventListener('mydsp-sync-applied', onSyncApplied)
+  }, [])
+
   const matchedRows = useMemo(() => {
     if (isUkTax) {
       return section104Summary(data.disposals, taxYear, data.journal).matched.map((m) => ({
@@ -786,6 +792,26 @@ export function TaxPage() {
           }))
         }}
       />
+
+      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary tax actions">
+        <button type="button" className="btn-primary btn-sm" onClick={() => setOpen(true)}>
+          Add disposal
+        </button>
+        {pack.hasCgt ? (
+          <button
+            type="button"
+            className="btn-secondary btn-sm inline-flex items-center gap-1.5"
+            onClick={onExportCsv}
+          >
+            <Download size={16} strokeWidth={2} />
+            {pack.exportLabel}
+          </button>
+        ) : null}
+        <button type="button" className="btn-secondary btn-sm" onClick={importFromJournal}>
+          Import from journal
+        </button>
+      </div>
+      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }

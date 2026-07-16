@@ -269,6 +269,23 @@ export function exportNewsArticlesForBackup(): NewsArticlesCache {
   return loadNewsArticlesCache()
 }
 
+/** Unread count from last-good cache (works before live refresh). Dedupes by link. */
+export function newsUnreadFromCache(): number {
+  const seenAt = getNewsSeenAt()
+  const cache = loadNewsArticlesCache()
+  const top = cache.top || []
+  const tagged = Object.values(cache.byTag || {}).flat()
+  const seen = new Set<string>()
+  let count = 0
+  for (const a of [...top, ...tagged]) {
+    const key = a.link || a.id
+    if (!key || seen.has(key)) continue
+    seen.add(key)
+    if (!seenAt || a.publishedAt > seenAt) count++
+  }
+  return count
+}
+
 /** Merge remote last-good headlines (prefer newer fetchedAt; union Top 10). */
 export function importNewsArticlesFromBackup(raw: unknown): void {
   if (!raw || typeof raw !== 'object') return

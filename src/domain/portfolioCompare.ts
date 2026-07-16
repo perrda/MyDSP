@@ -1,6 +1,6 @@
 /** Cross-portfolio snapshot for comparison views. */
 
-import { calcBreakdown } from './calc'
+import { calcBreakdownWithPaper } from './netWorthWithPaper'
 import type { NetWorthBreakdown, PortfolioMeta } from './types'
 import { listPortfolios, loadPortfolio } from '../storage/portfolioStore'
 
@@ -25,7 +25,7 @@ export function buildPortfolioComparison(
 ): PortfolioCompareRow[] {
   return metas.map((meta) => {
     const data = loadPortfolio(meta.id)
-    const b: NetWorthBreakdown = calcBreakdown(data)
+    const b: NetWorthBreakdown = calcBreakdownWithPaper(data)
     return {
       id: meta.id,
       name: meta.name,

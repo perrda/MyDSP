@@ -1,6 +1,6 @@
 /** Net worth history helpers + chart ranges + intraday snapshots. */
 
-import { calcBreakdown } from './calc'
+import { calcBreakdownWithPaper } from './netWorthWithPaper'
 import type { HistoryPoint, PortfolioData } from './types'
 
 /** Legacy period union — kept for callers during migration. */
@@ -36,7 +36,7 @@ function buildRow(
   at?: string,
   notes?: string,
 ): HistoryPoint {
-  const b = calcBreakdown(data)
+  const b = calcBreakdownWithPaper(data)
   const when = at ?? new Date().toISOString()
   return {
     date: when.slice(0, 10),

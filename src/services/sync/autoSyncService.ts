@@ -25,7 +25,13 @@ import {
 import { getLocalDeviceHint } from './deviceNickname'
 import { conflictKey, type ConflictChoice } from './conflicts'
 import { getSessionSyncPassphrase, hydrateSessionSyncPassphrase } from './sessionPassphrase'
-import { collectSyncHighlights, setSyncHighlights, summarizeSyncHighlights } from './syncHighlights'
+import {
+  collectSyncHighlights,
+  setSyncHighlights,
+  summarizeSyncHighlights,
+  summarizeWorkspaceExtras,
+  workspaceExtrasFlagsFromPreview,
+} from './syncHighlights'
 
 const PUSH_DEBOUNCE_MS = 4_000
 const PULL_MIN_INTERVAL_MS = 8_000
@@ -444,8 +450,12 @@ async function doPull(cfg: SyncConfig, pass: string, reason: CycleReason): Promi
     } catch {
       /* ignore */
     }
-    if (hasHighlights) {
-      const summary = summarizeSyncHighlights(highlights)
+    {
+      const entitySummary = hasHighlights ? summarizeSyncHighlights(highlights) : null
+      const extrasSummary = summarizeWorkspaceExtras(
+        workspaceExtrasFlagsFromPreview(preview.workspaceExtras),
+      )
+      const summary = [entitySummary, extrasSummary].filter(Boolean).join(' · ') || null
       if (summary) {
         emitAppToast({
           type: 'success',

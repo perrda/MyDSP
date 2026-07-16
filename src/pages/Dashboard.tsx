@@ -44,8 +44,17 @@ import { loadOfflineQueue } from '../services/offlineQueue'
 import { LAST_BACKUP_KEY } from '../storage/backupStore'
 import { hasFinnhubKey } from '../domain/finnhubReminder'
 import { isSyncedRemoteQuote } from '../domain/marketQuotesSync'
+import {
+  formatSlaAge,
+  hasStaleSyncedQuotes,
+  quoteAgeMs as quoteSlaAgeMs,
+  QUOTE_FRESHNESS_SLA_MS,
+} from '../domain/quoteFreshnessSla'
 import { listMarketTickers, loadMarketQuotesCache } from '../storage/marketsStore'
+import { newsUnreadFromCache } from '../storage/newsStore'
 import { youtubeUnreadFromCache } from '../storage/youtubeStore'
+import { getMarketsProviderHealth } from '../services/marketsProviderHealth'
+import type { MarketQuote } from '../domain/markets'
 import type { RecurringTransaction } from '../domain/types'
 
 /** Today movers ignore prints older than this (ms). */
@@ -65,6 +74,23 @@ function formatQuoteAgeShort(ms: number): string {
   const hours = Math.round(mins / 60)
   if (hours < 48) return `${hours}h ago`
   return `${Math.round(hours / 24)}d ago`
+}
+
+function todayQuoteAvailabilityLabel(q: MarketQuote | undefined): string | null {
+  if (!q) return null
+  const src = (q.source || '').toLowerCase()
+  if (q.last > 0) {
+    if (src.includes('yahoo') || src.includes('finnhub') || src.includes('coingecko') || src.includes('frankfurter')) {
+      return 'Live'
+    }
+    if (src.includes('exchangerate')) return 'Live · spot'
+    if (src.startsWith('sync:')) return 'Live'
+    return 'Live'
+  }
+  if (src === 'none' || src === 'error' || src === 'invalid' || src.startsWith('stale:')) {
+    return 'Unavailable'
+  }
+  return null
 }
 
 function latestRecurringCommentary(r: RecurringTransaction): string | null {
@@ -233,6 +259,7 @@ export function Dashboard() {
   )
   const todayAccordionEnabled = useTodayAccordionEnabled()
   const [youtubeUnread, setYoutubeUnread] = useState(() => youtubeUnreadFromCache())
+  const [newsUnread, setNewsUnread] = useState(() => newsUnreadFromCache())
 
   useEffect(() => subscribeAutoSync(setSyncStatus), [])
   useEffect(() => {
@@ -243,6 +270,16 @@ export function Dashboard() {
     return () => {
       window.removeEventListener('mydsp-youtube-videos', refreshYoutubeUnread)
       window.removeEventListener('mydsp-youtube-changed', refreshYoutubeUnread)
+    }
+  }, [])
+  useEffect(() => {
+    const refreshNewsUnread = () => setNewsUnread(newsUnreadFromCache())
+    refreshNewsUnread()
+    window.addEventListener('mydsp-news-articles', refreshNewsUnread)
+    window.addEventListener('mydsp-news-changed', refreshNewsUnread)
+    return () => {
+      window.removeEventListener('mydsp-news-articles', refreshNewsUnread)
+      window.removeEventListener('mydsp-news-changed', refreshNewsUnread)
     }
   }, [])
   useEffect(() => {
@@ -322,6 +359,42 @@ export function Dashboard() {
       count,
       label: `Prices from other device · ${formatQuoteAgeShort(age)}`,
     }
+  }, [syncStatus.lastAt, marketsCount])
+
+  const providerHealth = useMemo(() => getMarketsProviderHealth(), [syncStatus.lastAt, marketsCount])
+
+  const finnhubQuotaLimited = useMemo(() => {
+    const fh = providerHealth.find((p) => p.id === 'finnhub')
+    if (!fh?.lastError || !/429|quota/i.test(fh.lastError)) return false
+    return true
+  }, [providerHealth])
+
+  const quoteSlaChip = useMemo(() => {
+    const quotes = loadMarketQuotesCache()
+    const list = [...quotes.values()].filter((q) => q.last > 0)
+    if (!hasStaleSyncedQuotes(list)) return null
+    let oldest = 0
+    for (const q of list) {
+      if (!isSyncedRemoteQuote(q)) continue
+      const age = quoteSlaAgeMs(q)
+      if (age != null && age > oldest) oldest = age
+    }
+    if (oldest <= QUOTE_FRESHNESS_SLA_MS) return null
+    return `Synced quotes past ${formatSlaAge(QUOTE_FRESHNESS_SLA_MS)} SLA · oldest ${formatSlaAge(oldest)}`
+  }, [syncStatus.lastAt, marketsCount])
+
+  const quotePartialChip = useMemo(() => {
+    const quotes = loadMarketQuotesCache()
+    const tickers = listMarketTickers()
+    let live = 0
+    let unavailable = 0
+    for (const t of tickers) {
+      const label = todayQuoteAvailabilityLabel(quotes.get(t.id))
+      if (label === 'Live' || label === 'Live · spot') live++
+      else if (label === 'Unavailable') unavailable++
+    }
+    if (unavailable <= 0) return null
+    return `${live} live · ${unavailable} unavailable`
   }, [syncStatus.lastAt, marketsCount])
 
   /** Next-action stack: todo / bill / top mover (max 3). */
@@ -714,6 +787,33 @@ export function Dashboard() {
               Finnhub missing here
             </Link>
           ) : null}
+          {finnhubQuotaLimited ? (
+            <Link
+              to="/markets"
+              className="today-finnhub-quota-chip text-amber-700 dark:text-amber-300 hover:underline font-medium"
+              title="Finnhub rate-limited — using Yahoo until quota resets"
+            >
+              Finnhub rate-limited (429)
+            </Link>
+          ) : null}
+          {quoteSlaChip ? (
+            <Link
+              to="/markets"
+              className="today-quote-sla-chip text-text-muted hover:text-accent font-medium"
+              title={quoteSlaChip}
+            >
+              {quoteSlaChip}
+            </Link>
+          ) : null}
+          {quotePartialChip ? (
+            <Link
+              to="/markets"
+              className="today-quote-partial-chip text-amber-700 dark:text-amber-300 hover:underline font-medium"
+              title="Some Markets quotes are unavailable after last sync"
+            >
+              {quotePartialChip}
+            </Link>
+          ) : null}
           <Link to="/markets" className="hover:text-accent">
             {marketsCount} Markets ticker{marketsCount === 1 ? '' : 's'} →
           </Link>
@@ -841,6 +941,7 @@ export function Dashboard() {
               )
             }
             if (card.kind === 'bill') {
+              const billNote = latestRecurringCommentary(card.bill)
               return (
                 <div
                   key={`bill-${card.bill.id}`}
@@ -856,6 +957,11 @@ export function Dashboard() {
                     <p className={`text-xs text-text-muted mt-1 tabular-nums ${privacyClass(privacy)}`}>
                       {formatDate(card.bill.nextDue)} · {formatGBP(card.bill.amount)}
                     </p>
+                    {billNote ? (
+                      <span className="today-bill-commentary block text-xs text-text-subtle font-light mt-0.5 line-clamp-1 group-hover:text-accent">
+                        {billNote}
+                      </span>
+                    ) : null}
                   </Link>
                   <div className="today-bill-next-actions flex flex-wrap gap-2 mt-3">
                     <button
@@ -927,17 +1033,17 @@ export function Dashboard() {
                     className="rounded-lg md:rounded-none"
                   >
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm py-1.5">
-                      <div className="min-w-0">
-                        <span className="block truncate font-medium">{r.name}</span>
+                      <Link to="/recurring" className="min-w-0 group">
+                        <span className="block truncate font-medium group-hover:text-accent">{r.name}</span>
                         <span className={`text-xs text-text-muted tabular-nums ${privacyClass(privacy)}`}>
                           {formatDate(r.nextDue)} · {formatGBP(r.amount)}
                         </span>
                         {billNote ? (
-                          <span className="today-bill-commentary block text-xs text-text-subtle font-light mt-0.5 line-clamp-1">
+                          <span className="today-bill-commentary block text-xs text-text-subtle font-light mt-0.5 line-clamp-1 group-hover:text-accent">
                             {billNote}
                           </span>
                         ) : null}
-                      </div>
+                      </Link>
                       <div className="hidden sm:flex shrink-0 gap-1">
                         <button type="button" className="btn-primary btn-sm" onClick={() => markBillPaid(r.id)}>
                           Mark paid
@@ -1071,6 +1177,17 @@ export function Dashboard() {
             </Link>
           ))}
           <Link
+            to="/news"
+            className="text-sm font-semibold text-accent hover:underline inline-flex items-center gap-1.5"
+          >
+            News →
+            {newsUnread > 0 ? (
+              <span className="today-news-unread inline-flex items-center text-[11px] font-bold tabular-nums px-2 py-0.5 bg-accent/15 text-accent border border-accent/30 rounded-full">
+                {newsUnread} new
+              </span>
+            ) : null}
+          </Link>
+          <Link
             to="/youtube"
             className="text-sm font-semibold text-accent hover:underline inline-flex items-center gap-1.5"
           >
@@ -1115,6 +1232,30 @@ export function Dashboard() {
               <p className="today-price-lag-chip text-[11px] text-accent font-medium mb-2" role="status">
                 {priceLagChip.label}
               </p>
+            ) : null}
+            {finnhubQuotaLimited ? (
+              <div
+                className="today-finnhub-quota-chip mb-2 px-2.5 py-1.5 text-[11px] border border-amber-500/45 bg-amber-500/10 text-amber-900 dark:text-amber-100 rounded-lg"
+                role="status"
+              >
+                Finnhub rate-limited (429) — using Yahoo until quota resets
+              </div>
+            ) : null}
+            {quoteSlaChip ? (
+              <div
+                className="today-quote-sla-chip mb-2 px-2.5 py-1.5 text-[11px] border border-border bg-surface/50 rounded-lg"
+                role="status"
+              >
+                {quoteSlaChip}
+              </div>
+            ) : null}
+            {quotePartialChip ? (
+              <div
+                className="today-quote-partial-chip mb-2 px-2.5 py-1.5 text-[11px] border border-amber-500/45 bg-amber-500/10 text-amber-900 dark:text-amber-100 rounded-lg"
+                role="status"
+              >
+                {quotePartialChip}
+              </div>
             ) : null}
             {todayMovers.length === 0 ? (
               <p className="text-sm text-text-muted font-light">

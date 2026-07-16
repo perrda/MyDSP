@@ -382,6 +382,32 @@ export function getMarketsTimeframe(): MarketTimeframe {
   return isMarketTimeframe(tf) ? tf : '24H'
 }
 
+export function getMarketsTagFilter(): MarketTickerTag | 'All' {
+  const t = loadMarketsState().tagFilter
+  if (t === 'All' || t === 'Core' || t === 'Speculative' || t === 'Income' || t === 'Other') {
+    return t
+  }
+  return 'All'
+}
+
+export function setMarketsTagFilter(tagFilter: MarketTickerTag | 'All'): void {
+  const state = loadMarketsState()
+  state.tagFilter = tagFilter
+  touchPrefs(state)
+  saveMarketsState(state)
+}
+
+export function getMarketsYieldSort(): boolean {
+  return Boolean(loadMarketsState().yieldSort)
+}
+
+export function setMarketsYieldSort(yieldSort: boolean): void {
+  const state = loadMarketsState()
+  state.yieldSort = yieldSort
+  touchPrefs(state)
+  saveMarketsState(state)
+}
+
 export function setMarketsLastRefresh(iso: string): void {
   const state = loadMarketsState()
   state.lastRefreshAt = iso
@@ -505,6 +531,22 @@ export function importMarketsFromBackup(raw: unknown): void {
     ? (parsed as MarketsState).timeframe
     : ((local as MarketsState | null)?.timeframe ?? (parsed as MarketsState).timeframe)
   const timeframe = isMarketTimeframe(timeframeRaw) ? timeframeRaw : '24H'
+  const tagFilterRaw = preferRemotePrefs
+    ? (parsed as MarketsState).tagFilter
+    : ((local as MarketsState | null)?.tagFilter ?? (parsed as MarketsState).tagFilter)
+  const tagFilter: MarketTickerTag | 'All' =
+    tagFilterRaw === 'Core' ||
+    tagFilterRaw === 'Speculative' ||
+    tagFilterRaw === 'Income' ||
+    tagFilterRaw === 'Other' ||
+    tagFilterRaw === 'All'
+      ? tagFilterRaw
+      : 'All'
+  const yieldSort = preferRemotePrefs
+    ? Boolean((parsed as MarketsState).yieldSort)
+    : Boolean(
+        (local as MarketsState | null)?.yieldSort ?? (parsed as MarketsState).yieldSort,
+      )
   const prefsUpdatedAt =
     remotePrefsAt >= localPrefsAt
       ? (parsed as MarketsState).prefsUpdatedAt || (local as MarketsState | null)?.prefsUpdatedAt
@@ -517,6 +559,8 @@ export function importMarketsFromBackup(raw: unknown): void {
     sectionOrder,
     density,
     timeframe,
+    tagFilter,
+    yieldSort,
     prefsUpdatedAt,
   })
   writeState(state, { fromSync: true })
