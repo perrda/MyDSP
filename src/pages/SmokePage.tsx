@@ -9,7 +9,8 @@ import {
   getSessionSyncPassphrase,
   hasRememberedSyncPassphrase,
 } from '../services/sync/sessionPassphrase'
-import { loadMarketsState } from '../storage/marketsStore'
+import { DEFAULT_COMMODITIES } from '../domain/commodities'
+import { loadMarketQuotesCache, loadMarketsState } from '../storage/marketsStore'
 import { LAST_BACKUP_KEY, listFullBackups } from '../storage/backupStore'
 import { loadSecurity } from '../security/pin'
 import { loadBottomNavMiddleSlots, DEFAULT_BOTTOM_NAV_MIDDLE } from '../storage/bottomNavSlots'
@@ -21,6 +22,8 @@ import {
 type CheckId =
   | 'sync'
   | 'markets'
+  | 'commodities'
+  | 'quotes-cache'
   | 'backup'
   | 'pwa'
   | 'quote'
@@ -54,6 +57,38 @@ function syncConfigured(): boolean {
 function marketsRefreshed(): boolean {
   const at = loadMarketsState().lastRefreshAt
   return Boolean(at && !Number.isNaN(Date.parse(at)))
+}
+
+function commoditiesSeeded(): { ok: boolean; detail: string } {
+  const tickers = loadMarketsState().tickers.filter((t) => t.kind === 'commodity')
+  const have = new Set(tickers.map((t) => t.symbol.toUpperCase()))
+  const missing = DEFAULT_COMMODITIES.filter((c) => !have.has(c.symbol)).map((c) => c.symbol)
+  if (tickers.length === 0) {
+    return { ok: false, detail: 'No commodity tickers — open Markets to seed Gold/Silver/Copper' }
+  }
+  if (missing.length > 0) {
+    return {
+      ok: true,
+      detail: `${tickers.length} commodity ticker(s); missing defaults: ${missing.join(', ')}`,
+    }
+  }
+  return { ok: true, detail: `Gold / Silver / Copper present (${tickers.length} commodities)` }
+}
+
+function quotesCachePresent(): { ok: boolean; detail: string } {
+  const map = loadMarketQuotesCache()
+  const live = [...map.values()].filter((q) => q.last > 0).length
+  if (live === 0) {
+    return { ok: false, detail: 'No last-good quotes cached — refresh Markets or Sync prices now' }
+  }
+  const synced = [...map.values()].filter((q) => (q.source || '').startsWith('sync:')).length
+  return {
+    ok: true,
+    detail:
+      synced > 0
+        ? `${live} cached quote(s), ${synced} from other device`
+        : `${live} cached quote(s) ready to sync across devices`,
+  }
 }
 
 function backupExistsLocal(): boolean {
@@ -106,6 +141,20 @@ export function SmokePage() {
         detail: 'Markets store has a lastRefreshAt timestamp',
         to: '/markets',
         done: marketsRefreshed(),
+      },
+      {
+        id: 'commodities',
+        label: 'Commodities seeded',
+        detail: commoditiesSeeded().detail,
+        to: '/markets',
+        done: commoditiesSeeded().ok,
+      },
+      {
+        id: 'quotes-cache',
+        label: 'Markets quote cache',
+        detail: quotesCachePresent().detail,
+        to: '/markets',
+        done: quotesCachePresent().ok,
       },
       {
         id: 'backup',

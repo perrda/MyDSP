@@ -366,7 +366,7 @@ export function prefetchMarketQuotes(opts?: {
     try {
       const next = await refreshMarketQuotes(list, opts)
       const merged = mergeMarketQuotes(loadMarketQuotesCache(), next)
-      saveMarketQuotesCache(merged)
+      saveMarketQuotesCache(merged, { markDirty: true })
       setMarketsLastRefresh(new Date().toISOString())
     } catch {
       /* best-effort */

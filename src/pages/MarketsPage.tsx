@@ -52,7 +52,12 @@ import { mergeMarketQuotes } from '../domain/marketQuotesCache'
 import { isOnline } from '../services/offlineQueue'
 import { sparklineTrendFromSeries } from '../domain/sparklineSeries'
 import { refreshMarketQuotes } from '../services/marketsQuotes'
-import { formatMarketsProviderHealthHint } from '../services/marketsProviderHealth'
+import {
+  formatMarketsProviderHealthHint,
+  getMarketsProviderHealth,
+} from '../services/marketsProviderHealth'
+import { syncNow } from '../services/sync/autoSyncService'
+import { loadSyncConfig } from '../services/sync/syncService'
 import { KNOWN_CRYPTO_SYMBOLS } from '../services/prices'
 import { MARKET_TIMEFRAMES, type MarketTimeframe } from '../domain/marketTimeframe'
 import {
@@ -374,10 +379,26 @@ function seedQuotesFromPortfolio(
   return out
 }
 
+function ageLabel(iso: string): string | null {
+  try {
+    const t = new Date(iso).getTime()
+    if (!Number.isFinite(t)) return null
+    const mins = Math.round((Date.now() - t) / 60_000)
+    if (mins < 2) return 'just now'
+    if (mins < 60) return `${mins}m ago`
+    const hrs = Math.round(mins / 60)
+    if (hrs < 48) return `${hrs}h ago`
+  } catch {
+    /* ignore */
+  }
+  return null
+}
+
 function isStaleQuote(q: MarketQuote | undefined): boolean {
   if (!q) return false
   if (
     q.source.startsWith('stale:') ||
+    q.source.startsWith('sync:') ||
     q.source === 'portfolio' ||
     q.source === 'fx-cache'
   ) {
@@ -394,22 +415,15 @@ function isStaleQuote(q: MarketQuote | undefined): boolean {
 
 function freshnessLabel(q: MarketQuote | undefined): string | null {
   if (!q || !(q.last > 0)) return null
-  if (isStaleQuote(q)) {
-    try {
-      const t = new Date(q.updatedAt).getTime()
-      if (Number.isFinite(t)) {
-        const mins = Math.round((Date.now() - t) / 60_000)
-        if (mins < 2) return 'Last synced · just now'
-        if (mins < 60) return `Last synced · ${mins}m ago`
-        const hrs = Math.round(mins / 60)
-        if (hrs < 48) return `Last synced · ${hrs}h ago`
-      }
-    } catch {
-      /* ignore */
-    }
-    return 'Last synced'
-  }
   const src = (q.source || '').toLowerCase()
+  if (src.startsWith('sync:')) {
+    const age = ageLabel(q.updatedAt)
+    return age ? `From other device · ${age}` : 'From other device'
+  }
+  if (isStaleQuote(q)) {
+    const age = ageLabel(q.updatedAt)
+    return age ? `Last synced · ${age}` : 'Last synced'
+  }
   if (src.includes('yahoo') || src.includes('finnhub') || src.includes('coingecko') || src.includes('frankfurter')) {
     return 'Live'
   }
@@ -460,6 +474,8 @@ export function MarketsPage() {
   const [density, setDensity] = useState<MarketsDensity>(() => getMarketsDensity())
   const [timeframe, setTimeframe] = useState<MarketTimeframe>(() => getMarketsTimeframe())
   const [sectionRefreshing, setSectionRefreshing] = useState<SectionKey | null>(null)
+  const [syncingPrices, setSyncingPrices] = useState(false)
+  const [justSyncedPulse, setJustSyncedPulse] = useState(false)
   const [focusSymbol, setFocusSymbol] = useState<string | null>(null)
   const [quoteDetail, setQuoteDetail] = useState<{ ticker: MarketTicker; quote?: MarketQuote } | null>(
     null,
@@ -470,9 +486,11 @@ export function MarketsPage() {
   const [yieldSort, setYieldSort] = useState(false)
   const [online, setOnline] = useState(() => isOnline())
   const longPressTimer = useRef<number | null>(null)
+  const sectionLongPressTimer = useRef<number | null>(null)
   const refreshInFlight = useRef(false)
   const quotesRef = useRef(quotes)
   quotesRef.current = quotes
+  const providerHealth = useMemo(() => getMarketsProviderHealth(), [quotes, refreshing])
 
   useEffect(() => {
     const onOnline = () => setOnline(true)
@@ -706,7 +724,8 @@ export function MarketsPage() {
       const previous = seedQuotesFromPortfolio(allTickers, data, quotesRef.current)
       const merged = mergeMarketQuotes(previous, next)
       setQuotes(merged)
-      saveMarketQuotesCache(merged)
+      // Mark workspace dirty so quote cache + holdings push to other devices promptly
+      saveMarketQuotesCache(merged, { markDirty: true })
       // Push live Markets prints into holdings so Equities / net worth stay real-time
       setData((prev) => applyLastSyncedQuotesToHoldings(prev, { overwrite: true }).data)
       const at = new Date().toISOString()
@@ -742,6 +761,36 @@ export function MarketsPage() {
     },
     [refresh],
   )
+
+  /** Refresh quotes, mark dirty, and push immediately when cloud sync is configured. */
+  const syncPricesNow = useCallback(async () => {
+    if (syncingPrices) return
+    setSyncingPrices(true)
+    try {
+      await refresh()
+      const cfg = loadSyncConfig()
+      if (cfg.enabled && cfg.remoteUrl.trim()) {
+        await syncNow()
+      }
+      setJustSyncedPulse(true)
+      window.setTimeout(() => setJustSyncedPulse(false), 2800)
+    } finally {
+      setSyncingPrices(false)
+    }
+  }, [refresh, syncingPrices])
+
+  useEffect(() => {
+    const onQuotes = () => {
+      const map = loadMarketQuotesCache()
+      const hasSync = [...map.values()].some((q) => (q.source || '').startsWith('sync:'))
+      if (hasSync) {
+        setJustSyncedPulse(true)
+        window.setTimeout(() => setJustSyncedPulse(false), 2800)
+      }
+    }
+    window.addEventListener('mydsp-markets-quotes', onQuotes)
+    return () => window.removeEventListener('mydsp-markets-quotes', onQuotes)
+  }, [])
 
   const applySuggestedFxRate = useCallback(
     (suggestion: { ticker: MarketTicker; rate: number }) => {
@@ -927,6 +976,33 @@ export function MarketsPage() {
             setYieldSort(false)
             setSectionSorting(true)
           }}
+          onTouchStart={() => {
+            if (sectionSorting) return
+            if (sectionLongPressTimer.current) window.clearTimeout(sectionLongPressTimer.current)
+            sectionLongPressTimer.current = window.setTimeout(() => {
+              setSorting(false)
+              setYieldSort(false)
+              setSectionSorting(true)
+            }, 520)
+          }}
+          onTouchMove={() => {
+            if (sectionLongPressTimer.current) {
+              window.clearTimeout(sectionLongPressTimer.current)
+              sectionLongPressTimer.current = null
+            }
+          }}
+          onTouchEnd={() => {
+            if (sectionLongPressTimer.current) {
+              window.clearTimeout(sectionLongPressTimer.current)
+              sectionLongPressTimer.current = null
+            }
+          }}
+          onTouchCancel={() => {
+            if (sectionLongPressTimer.current) {
+              window.clearTimeout(sectionLongPressTimer.current)
+              sectionLongPressTimer.current = null
+            }
+          }}
         >
           <div className="min-w-0 flex items-start gap-2">
             {sectionSorting ? (
@@ -1094,6 +1170,59 @@ export function MarketsPage() {
                 ) : null}
               </div>
             ) : (
+              <>
+                {(() => {
+                  const liveCount = items.filter((item) => {
+                    const q = quotes.get(item.id)
+                    const label = quoteAvailabilityLabel(q, { refreshing: sectionBusy })
+                    return label === 'Live' || label === 'Live · spot'
+                  }).length
+                  const unavailableCount = items.filter((item) => {
+                    const q = quotes.get(item.id)
+                    return quoteAvailabilityLabel(q, { refreshing: sectionBusy }) === 'Unavailable'
+                  }).length
+                  if (liveCount > 0 && unavailableCount > 0) {
+                    return (
+                      <div
+                        className="markets-section-mixed px-4 sm:px-5 py-2.5 flex flex-wrap items-center justify-between gap-2 border-b border-border bg-amber-500/8"
+                        role="status"
+                      >
+                        <span className="text-[11px] text-text-muted">
+                          {liveCount} live · {unavailableCount} unavailable in this section
+                        </span>
+                        <button
+                          type="button"
+                          className="btn-secondary btn-sm min-h-9"
+                          disabled={sectionBusy}
+                          onClick={() => void refreshSection(section)}
+                        >
+                          Retry unavailable
+                        </button>
+                      </div>
+                    )
+                  }
+                  if (items.length > 0 && unavailableCount === items.length) {
+                    return (
+                      <div
+                        className="markets-section-mixed px-4 sm:px-5 py-2.5 flex flex-wrap items-center justify-between gap-2 border-b border-border bg-amber-500/8"
+                        role="status"
+                      >
+                        <span className="text-[11px] text-text-muted">
+                          All quotes unavailable in this section
+                        </span>
+                        <button
+                          type="button"
+                          className="btn-secondary btn-sm min-h-9"
+                          disabled={sectionBusy}
+                          onClick={() => void refreshSection(section)}
+                        >
+                          Retry section
+                        </button>
+                      </div>
+                    )
+                  }
+                  return null
+                })()}
               <ReorderList
                 items={items}
                 getId={(t) => t.id}
@@ -1104,7 +1233,7 @@ export function MarketsPage() {
                   )
                   reloadList()
                 }}
-                className="divide-y divide-border"
+                className={`divide-y divide-border${justSyncedPulse ? ' markets-list--just-synced' : ''}`}
               >
                 {(t) => {
                   const q = quotes.get(t.id)
@@ -1113,6 +1242,7 @@ export function MarketsPage() {
                   const showSpark = Boolean(q && q.sparkline.length > 1)
                   const compact = density === 'compact'
                   const focused = focusSymbol === t.symbol
+                  const fromSync = Boolean(q && (q.source || '').startsWith('sync:'))
                   const ownedRoute =
                     t.kind === 'crypto' || t.kind === 'equity'
                       ? ownedHoldingRouteByKey.get(`${t.kind}:${normPortfolioSymbol(t.symbol)}`)
@@ -1128,6 +1258,8 @@ export function MarketsPage() {
                         compact ? 'py-2 min-h-11' : 'py-3.5'
                       } ${focused ? 'ring-2 ring-inset ring-accent bg-accent/5' : ''} ${
                         isStaleQuote(q) ? 'markets-row--stale' : ''
+                      }${fromSync ? ' markets-row--from-sync' : ''}${
+                        justSyncedPulse && fromSync ? ' sync-just-added' : ''
                       }`}
                       onTouchStart={() => {
                         if (sorting) return
@@ -1324,6 +1456,7 @@ export function MarketsPage() {
                   )
                 }}
               </ReorderList>
+              </>
             )}
 
             <div className="px-4 sm:px-5 py-3 flex flex-wrap items-center justify-between gap-3 border-t border-border">
@@ -1396,9 +1529,23 @@ export function MarketsPage() {
       <PageHeader
         eyebrow="Watchlist"
         title="Markets"
-        description="Live equities, commodities, crypto, indices, FX, and crosses. Auto-refreshes ~45s; header refresh forces an update."
+        description="Live watchlist · auto ~45s · Sync prices now pushes last-good quotes to other devices."
         action={
           <div className="hidden sm:flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="btn-primary btn-sm inline-flex items-center gap-1.5"
+              disabled={refreshing || syncingPrices}
+              aria-label="Sync prices now — refresh quotes and push to other devices"
+              onClick={() => void syncPricesNow()}
+            >
+              <RefreshCw
+                size={14}
+                strokeWidth={1.75}
+                className={refreshing || syncingPrices ? 'animate-spin' : undefined}
+              />
+              {syncingPrices ? 'Syncing…' : 'Sync prices now'}
+            </button>
             <button
               type="button"
               className={`btn-ghost btn-sm ${
@@ -1450,10 +1597,34 @@ export function MarketsPage() {
         }
       />
 
-      <p className="text-xs text-text-subtle mb-4">{statusHint}</p>
+      <p className="text-xs text-text-subtle mb-2">{statusHint}</p>
+      <div
+        className="markets-provider-health mb-4 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-text-subtle"
+        aria-label="Markets provider health this session"
+      >
+        {providerHealth.map((row) => {
+          const ok = row.consecutiveFailures === 0 && Boolean(row.lastSuccessAt)
+          const bad = row.consecutiveFailures >= 2
+          return (
+            <span
+              key={row.id}
+              className={
+                bad
+                  ? 'text-amber-700 dark:text-amber-300 font-medium'
+                  : ok
+                    ? 'text-emerald-700/90 dark:text-emerald-400/90'
+                    : undefined
+              }
+            >
+              {row.id}
+              {ok ? ' · OK' : bad ? ` · ${row.consecutiveFailures}× fail` : ''}
+            </span>
+          )
+        })}
+      </div>
 
-      <div className="markets-in-list-search sticky top-0 z-[9] -mx-1 mb-4 bg-bg/95 px-1 py-2 backdrop-blur supports-[backdrop-filter]:bg-bg/80">
-        <div className="surface border border-border-strong px-3 py-2.5">
+      <div className="markets-in-list-search sticky top-0 z-[9] -mx-1 mb-3 bg-bg/95 px-1 py-1.5 backdrop-blur supports-[backdrop-filter]:bg-bg/80">
+        <div className="surface border border-border-strong px-3 py-2">
           <label className="sr-only" htmlFor="markets-search-input">
             Search watchlist
           </label>
@@ -1473,7 +1644,7 @@ export function MarketsPage() {
             ) : null}
           </div>
           <div
-            className="mt-2.5 flex flex-wrap items-center gap-1.5"
+            className="mt-2 flex flex-wrap items-center gap-1.5"
             role="group"
             aria-label="Sparkline and percent change timeframe"
           >
@@ -1853,6 +2024,20 @@ export function MarketsPage() {
           onClick={() => openCreate('equity')}
         >
           <Plus size={16} strokeWidth={2} /> Add equity
+        </button>
+        <button
+          type="button"
+          className="btn-secondary btn-sm inline-flex items-center gap-1.5"
+          disabled={refreshing || syncingPrices}
+          aria-label="Sync prices now — refresh quotes and push to other devices"
+          onClick={() => void syncPricesNow()}
+        >
+          <RefreshCw
+            size={16}
+            strokeWidth={2}
+            className={refreshing || syncingPrices ? 'animate-spin' : undefined}
+          />
+          {syncingPrices ? 'Syncing…' : 'Sync prices'}
         </button>
         <button
           type="button"

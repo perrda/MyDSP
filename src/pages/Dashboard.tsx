@@ -42,7 +42,27 @@ import {
 import { loadSyncConfig } from '../services/sync/syncService'
 import { loadOfflineQueue } from '../services/offlineQueue'
 import { LAST_BACKUP_KEY } from '../storage/backupStore'
+import { isSyncedRemoteQuote } from '../domain/marketQuotesSync'
 import { listMarketTickers, loadMarketQuotesCache } from '../storage/marketsStore'
+
+/** Today movers ignore prints older than this (ms). */
+const MOVER_MAX_AGE_MS = 24 * 60 * 60 * 1000
+
+function quoteAgeMs(updatedAt: string | undefined): number | null {
+  if (!updatedAt) return null
+  const t = Date.parse(updatedAt)
+  if (!Number.isFinite(t)) return null
+  return Math.max(0, Date.now() - t)
+}
+
+function formatQuoteAgeShort(ms: number): string {
+  const mins = Math.round(ms / 60_000)
+  if (mins < 1) return 'just now'
+  if (mins < 60) return `${mins}m ago`
+  const hours = Math.round(mins / 60)
+  if (hours < 48) return `${hours}h ago`
+  return `${Math.round(hours / 24)}d ago`
+}
 import {
   getUiPanelOpenState,
   setUiPanelOpen,
@@ -242,11 +262,38 @@ export function Dashboard() {
       .map((t) => {
         const q = quotes.get(t.id)
         if (!q || !(q.last > 0) || !Number.isFinite(q.changePct)) return null
-        return { id: t.id, symbol: t.symbol, changePct: q.changePct }
+        const age = quoteAgeMs(q.updatedAt)
+        if (age == null || age > MOVER_MAX_AGE_MS) return null
+        return {
+          id: t.id,
+          symbol: t.symbol,
+          changePct: q.changePct,
+          fromSync: isSyncedRemoteQuote(q),
+          ageMs: age,
+        }
       })
       .filter((x): x is NonNullable<typeof x> => !!x)
       .sort((a, b) => Math.abs(b.changePct) - Math.abs(a.changePct))
       .slice(0, 3)
+  }, [syncStatus.lastAt, marketsCount])
+
+  /** Cross-device quote lag — when last-good prints arrived via sync before this device refreshed. */
+  const priceLagChip = useMemo(() => {
+    const quotes = loadMarketQuotesCache()
+    let newest = 0
+    let count = 0
+    for (const q of quotes.values()) {
+      if (!isSyncedRemoteQuote(q) || !(q.last > 0)) continue
+      count += 1
+      const t = Date.parse(q.updatedAt) || 0
+      if (t > newest) newest = t
+    }
+    if (count === 0 || newest <= 0) return null
+    const age = Math.max(0, Date.now() - newest)
+    return {
+      count,
+      label: `Prices from other device · ${formatQuoteAgeShort(age)}`,
+    }
   }, [syncStatus.lastAt, marketsCount])
 
   /** Next-action stack: todo / bill / top mover (max 3). */
@@ -352,8 +399,10 @@ export function Dashboard() {
         ? `${todayTodos.length} To Do${todayTodos.length === 1 ? '' : "'s"} due today`
         : "No To Do's due today",
       todayMovers[0]
-        ? `Top mover ${todayMovers[0].symbol} ${formatPct(todayMovers[0].changePct)}`
-        : 'No Markets movers cached',
+        ? `Top mover ${todayMovers[0].symbol} ${formatPct(todayMovers[0].changePct)}${
+            todayMovers[0].fromSync ? ' (from other device)' : ''
+          }`
+        : 'No fresh Markets movers (open Markets to refresh)',
     ]
     if (monthlyBudgetPulse) {
       lines.push(
@@ -610,6 +659,15 @@ export function Dashboard() {
         </p>
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-text-subtle">
           <span>{syncLine}</span>
+          {priceLagChip ? (
+            <Link
+              to="/markets"
+              className="today-price-lag-chip text-accent hover:underline font-medium"
+              title="Last-good Markets quotes arrived from another device via sync"
+            >
+              {priceLagChip.label}
+            </Link>
+          ) : null}
           <Link to="/markets" className="hover:text-accent">
             {marketsCount} Markets ticker{marketsCount === 1 ? '' : 's'} →
           </Link>
@@ -979,7 +1037,7 @@ export function Dashboard() {
                   type="button"
                   className="today-two-pane-digest-preview text-xs text-accent font-semibold"
                   onClick={openWeeklyDigest}
-                  title="Preview and share weekly digest"
+                  title="Preview and share weekly HTML digest (not emailed)"
                 >
                   Digest Preview
                 </button>
@@ -988,8 +1046,15 @@ export function Dashboard() {
                 </Link>
               </div>
             </div>
+            {priceLagChip ? (
+              <p className="today-price-lag-chip text-[11px] text-accent font-medium mb-2" role="status">
+                {priceLagChip.label}
+              </p>
+            ) : null}
             {todayMovers.length === 0 ? (
-              <p className="text-sm text-text-muted font-light">No movers yet — open Markets to refresh.</p>
+              <p className="text-sm text-text-muted font-light">
+                No fresh movers (last 24h) — open Markets to refresh.
+              </p>
             ) : (
               <ul className="space-y-2">
                 {todayMovers.map((m) => (
@@ -998,7 +1063,12 @@ export function Dashboard() {
                       to={`/markets?symbol=${encodeURIComponent(m.symbol)}`}
                       className="flex items-baseline justify-between gap-2 hover:text-accent"
                     >
-                      <span className="font-semibold tracking-tight">{m.symbol}</span>
+                      <span className="font-semibold tracking-tight">
+                        {m.symbol}
+                        {m.fromSync ? (
+                          <span className="ml-1 text-[10px] font-medium text-text-subtle">sync</span>
+                        ) : null}
+                      </span>
                       <span
                         className={`tabular-nums text-sm markets-quote-price ${
                           m.changePct >= 0 ? 'text-emerald-500' : 'text-red-500'
@@ -1013,7 +1083,7 @@ export function Dashboard() {
               </ul>
             )}
             <p className="text-[11px] text-text-subtle mt-3 font-light">
-              {marketsCount} ticker{marketsCount === 1 ? '' : 's'} watched
+              {marketsCount} ticker{marketsCount === 1 ? '' : 's'} watched · movers use quotes from the last 24h
             </p>
           </aside>
         ) : null}

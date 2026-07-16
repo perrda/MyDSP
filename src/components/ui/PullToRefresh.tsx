@@ -165,14 +165,8 @@ export function PullToRefresh({
         </div>
       </div>
 
-      <div
-        style={{
-          transform: pullDistance > 0 ? `translateY(${pullDistance * 0.35}px)` : undefined,
-          transition: trackingRef.current ? 'none' : 'transform 0.2s ease-out',
-        }}
-      >
-        {children}
-      </div>
+      {/* Keep page content fixed — only the indicator moves (avoids layout jump). */}
+      <div className="ptr-content">{children}</div>
     </div>
   )
 }

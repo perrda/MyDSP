@@ -135,6 +135,7 @@ export function recordMarketsRefreshHealth(
   const kindPrimary: Record<string, MarketsProviderId> = {
     crypto: 'coingecko',
     equity: hasFinnhub ? 'finnhub' : 'yahoo',
+    commodity: 'yahoo',
     index: 'yahoo',
     fx: 'fx',
     cross: 'coingecko',

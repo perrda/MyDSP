@@ -11,7 +11,12 @@ import {
   setActivePortfolioId,
 } from './portfolioStore'
 import { STORAGE } from './keys'
-import { exportMarketsForBackup, importMarketsFromBackup } from './marketsStore'
+import {
+  exportMarketQuotesForBackup,
+  exportMarketsForBackup,
+  importMarketQuotesFromBackup,
+  importMarketsFromBackup,
+} from './marketsStore'
 import { exportNewsForBackup, importNewsFromBackup } from './newsStore'
 import { exportNavLayoutForBackup, importNavLayoutFromBackup } from './navOrder'
 import {
@@ -60,6 +65,8 @@ export interface FullBackupRecord extends FullBackupMeta {
   blobs: Record<string, unknown>
   /** Optional Markets watchlist (workspace-level) */
   markets?: unknown
+  /** Optional last-good Markets quotes (by ticker id) — syncs live prints across devices */
+  marketQuotes?: unknown
   /** Optional News tags / feed prefs (workspace-level) */
   news?: unknown
   /** Optional YouTube favourite channels (workspace-level) */
@@ -81,6 +88,7 @@ function backupCanonical(record: Pick<
   | 'activePortfolioId'
   | 'blobs'
   | 'markets'
+  | 'marketQuotes'
   | 'news'
   | 'youtube'
   | 'navLayout'
@@ -92,6 +100,7 @@ function backupCanonical(record: Pick<
     activePortfolioId: record.activePortfolioId,
     blobs: record.blobs,
     markets: record.markets ?? null,
+    marketQuotes: record.marketQuotes ?? null,
     news: record.news ?? null,
     youtube: record.youtube ?? null,
     navLayout: record.navLayout ?? null,
@@ -108,6 +117,7 @@ export async function computeFullBackupChecksum(
     | 'activePortfolioId'
     | 'blobs'
     | 'markets'
+    | 'marketQuotes'
     | 'news'
     | 'youtube'
     | 'navLayout'
@@ -162,6 +172,7 @@ export function captureFullWorkspace(): Omit<
     portfolios: portfolios.map((p) => ({ ...p })),
     blobs,
     markets: exportMarketsForBackup(),
+    marketQuotes: exportMarketQuotesForBackup(),
     news: exportNewsForBackup(),
     youtube: exportYoutubeForBackup(),
     navLayout: exportNavLayoutForBackup() ?? undefined,
@@ -346,6 +357,9 @@ export async function restoreFullWorkspace(record: FullBackupRecord): Promise<vo
 
   if (record.markets) {
     importMarketsFromBackup(record.markets)
+  }
+  if (record.marketQuotes) {
+    importMarketQuotesFromBackup(record.marketQuotes)
   }
   if (record.news) {
     importNewsFromBackup(record.news)

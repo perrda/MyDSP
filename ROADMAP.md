@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.69**
+**Current version: 1.2.70**
 
-## Completed (through v1.2.69)
+## Completed (through v1.2.70)
 
+- Sync / Markets polish (next25g tip 1–25): quote-cache sync, Sync prices now, From other device, prefs LWW, commodity Yahoo fallbacks, PTR no jump, mixed Unavailable CTA, Today movers age + lag chip, smoke/docs cadence 4s/30s
 - Markets / portfolio (next25g 6–8): draggable section cards, commodity timeframe, Unavailable vs Fetching
 - Markets **My Commodities** (Gold/Silver/Copper + aliases) via Yahoo → GBP; Finnhub key high-priority To Do reminder
 - Recurring sort (due/paid/amount) · monthly total · date-stamped commentary CRUD; Todos → To Do's branding

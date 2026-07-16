@@ -29,6 +29,24 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.70',
+    date: '2026-07-16',
+    bullets: [
+      {
+        text: 'Sync prices now — Markets quote cache pushes to other devices',
+        to: '/markets',
+      },
+      {
+        text: 'Freshness “From other device” · Today movers age gate + lag chip',
+        to: '/',
+      },
+      {
+        text: 'Sync cadence honesty: ~4s push / ~30s pull · PTR no page jump',
+        to: '/settings#sync',
+      },
+    ],
+  },
+  {
     version: '1.2.69',
     date: '2026-07-16',
     bullets: [

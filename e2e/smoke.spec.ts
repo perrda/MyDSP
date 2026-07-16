@@ -80,6 +80,8 @@ test.describe('MyDSP smoke', () => {
     await expect(page.getByText(/PIN \/ Face ID lock/i).first()).toBeVisible()
     await expect(page.getByText(/Bottom nav middle slots/i).first()).toBeVisible()
     await expect(page.getByText(/Weekly digest Share/i).first()).toBeVisible()
+    await expect(page.getByText(/Commodities seeded/i).first()).toBeVisible()
+    await expect(page.getByText(/Markets quote cache/i).first()).toBeVisible()
   })
 
   test('offline queue enqueue surfaces in Settings Sync', async ({ page }) => {

@@ -70,6 +70,6 @@ describe('news + markets UX fixes (v1.2.69)', () => {
 
   it('package version is 1.2.69', () => {
     const pkg = JSON.parse(readFileSync(resolve('package.json'), 'utf8')) as { version: string }
-    expect(pkg.version).toBe('1.2.69')
+    expect(pkg.version).toBe('1.2.70')
   })
 })

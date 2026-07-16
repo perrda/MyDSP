@@ -1,7 +1,7 @@
 /** CoinGecko + Finnhub + Yahoo live price refresh (MyDSP-native). */
 
 import { equityNeedsUsdToGbp } from '../domain/equityCurrency'
-import { normalizeCommoditySymbol } from '../domain/commodities'
+import { commodityYahooFallbacks } from '../domain/commodities'
 import {
   frankfurterDaysForTimeframe,
   geckoDaysForTimeframe,
@@ -511,9 +511,17 @@ export async function fetchCommodityMarketQuote(
   symbol: string,
   timeframe: MarketTimeframe = DEFAULT_MARKET_TF,
 ): Promise<EquityMarketQuoteNative | null> {
-  const sym = normalizeCommoditySymbol(symbol)
-  if (!sym) return null
-  return fetchYahooChartQuote(sym, timeframe)
+  const candidates = commodityYahooFallbacks(symbol)
+  if (candidates.length === 0) return null
+  let best: EquityMarketQuoteNative | null = null
+  for (const sym of candidates) {
+    const q = await fetchYahooChartQuote(sym, timeframe)
+    if (!q || !(q.price > 0)) continue
+    // Prefer a print that also has a sparkline; otherwise keep first usable price.
+    if (q.sparkline.length > 1) return q
+    if (!best) best = q
+  }
+  return best
 }
 
 /** Normalize equity / index symbols for Yahoo (SPX → ^GSPC, etc.). */

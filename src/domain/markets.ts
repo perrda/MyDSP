@@ -67,6 +67,8 @@ export interface MarketsState {
   /** Top→bottom order of Markets section cards (synced via watchlist backup). */
   sectionOrder?: MarketsSectionKey[]
   lastRefreshAt?: string
+  /** ISO time when density / timeframe / sectionOrder last changed (LWW on sync). */
+  prefsUpdatedAt?: string
   /** Row density — compact hides names and tightens padding. */
   density?: 'comfortable' | 'compact'
   /** Markets % + sparkline window (badge and chart share the same series). */
