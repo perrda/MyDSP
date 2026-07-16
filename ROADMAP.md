@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.27**
+**Current version: 1.2.28**
 
-## Completed (through v1.2.27)
+## Completed (through v1.2.28)
 
+- Markets 24h % + 24h sparklines (aligned); live equity/crypto prices for holdings and net worth
 - UI polish Top 10: Markets Compact overflow, tablet toolbar, banner offset, single title, bottom-nav active, Glass sheets, modal motion, Jump-in, PageHeader actions, sticky tables
 - Sync chip without Now; Top 10: quote path, sync smoke doc, price alerts fire, tax export labels, broker aliases, Today movers, Glass polish, online queue banner, Compare cache age, Settings search
 - Glass Mode toggle (Settings + toolbar); soft rounded edges via CSS tokens; circular notification badge

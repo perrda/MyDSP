@@ -126,7 +126,7 @@ export async function refreshMarketQuotes(
       })
     }
 
-    // Fill missing 7d sparklines via Yahoo-first helper (avoids CoinGecko chart spam)
+    // Fill missing 24h sparklines via Yahoo-first helper (avoids CoinGecko chart spam)
     await mapPool(
       cryptos.filter((t) => (out.get(t.id)?.last ?? 0) > 0 && (out.get(t.id)?.sparkline.length ?? 0) < 2),
       SPARKLINE_CONCURRENCY,
@@ -237,7 +237,7 @@ export async function refreshMarketQuotes(
     }),
   )
 
-  // Fill missing FX 7d sparklines via Frankfurter (same idea as crypto Yahoo fill)
+  // Fill missing FX 24h sparklines via Frankfurter (same idea as crypto Yahoo fill)
   await mapPool(
     fiatFx.filter((t) => (out.get(t.id)?.last ?? 0) > 0 && (out.get(t.id)?.sparkline.length ?? 0) < 2),
     SPARKLINE_CONCURRENCY,

@@ -143,9 +143,24 @@ describe('equity FX (USD→GBP)', () => {
 })
 
 describe('achievements', () => {
-  it('unlocks millionaire on sample portfolio', () => {
+  it('unlocks millionaire on sample portfolio with live-style prices', () => {
+    // Sample seeds price/livePrice at 0 so production always prefers live quotes;
+    // inject realistic marks here to assert the achievement threshold.
     const data = createSamplePortfolio()
+    data.crypto = data.crypto.map((c) =>
+      c.symbol === 'BTC'
+        ? { ...c, price: 50000 }
+        : c.symbol === 'ADA'
+          ? { ...c, price: 0.3 }
+          : c.symbol === 'USDC'
+            ? { ...c, price: 0.75 }
+            : { ...c, price: 0.05 },
+    )
+    data.equities = data.equities.map((e) =>
+      e.symbol === 'TSLA' ? { ...e, livePrice: 260 } : { ...e, livePrice: 240 },
+    )
     const breakdown = calcBreakdown(data)
+    expect(breakdown.netWorth).toBeGreaterThan(1_000_000)
     const result = evaluateAchievements({
       data,
       breakdown,
