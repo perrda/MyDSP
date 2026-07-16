@@ -14,6 +14,7 @@ import { SwipeHoldingRow } from '../components/ui/SwipeHoldingRow'
 import { usePortfolio } from '../context/PortfolioContext'
 import { applyTrade } from '../domain/trades'
 import { applyLastSyncedQuotesToHoldings } from '../domain/lastSyncedHoldings'
+import { appendHoldingPrices } from '../domain/holdingHistory'
 import {
   cryptoDriftHits,
   isSymbolDrifting,
@@ -67,6 +68,34 @@ export function CryptoPage() {
       type: 'success',
       title: 'Filled from last synced',
       message: `${result.crypto} crypto price${result.crypto === 1 ? '' : 's'}`,
+      duration: 8000,
+      action: {
+        label: 'Undo',
+        onClick: () => setData(() => snapshot),
+      },
+    })
+  }
+
+  const applyMarketsPriceForCrypto = (holding: CryptoHolding, marketPrice: number) => {
+    if (!(marketPrice > 0)) return
+    const snapshot = data
+    const now = new Date().toISOString()
+    const next = appendHoldingPrices(
+      {
+        ...data,
+        crypto: data.crypto.map((c) =>
+          c.id === holding.id ? { ...c, price: marketPrice } : c,
+        ),
+        settings: { ...data.settings, lastPriceUpdate: now },
+      },
+      [{ kind: 'crypto', symbol: holding.symbol, price: marketPrice }],
+      now,
+    )
+    setData(() => next)
+    showToast({
+      type: 'success',
+      title: 'Holding price updated',
+      message: `${holding.symbol} set from Markets last quote`,
       duration: 8000,
       action: {
         label: 'Undo',
@@ -211,11 +240,16 @@ export function CryptoPage() {
 
       {driftHits.length > 0 ? (
         <div
-          className="mb-4 px-4 py-3 border border-amber-500/40 bg-amber-500/10 text-sm text-amber-800 dark:text-amber-200"
+          className="mb-4 px-4 py-3 border border-amber-500/40 bg-amber-500/10 text-sm text-amber-800 dark:text-amber-200 flex flex-wrap items-center justify-between gap-3"
           role="status"
         >
-          Markets live ≠ holding price by &gt;{driftThreshold}% on{' '}
-          {driftHits.map((h) => h.symbol).join(', ')}. Refresh Markets or fill last synced.
+          <span>
+            Markets live ≠ holding price by &gt;{driftThreshold}% on{' '}
+            {driftHits.map((h) => h.symbol).join(', ')}. Refresh Markets or fill last synced.
+          </span>
+          <button type="button" className="btn-secondary btn-sm bg-bg-elevated/80" onClick={fillFromLastSynced}>
+            Use Markets prices
+          </button>
         </div>
       ) : null}
 
@@ -286,7 +320,8 @@ export function CryptoPage() {
             const value = c.qty * c.price
             const pnl = value - c.cost
             const included = c.includeInPortfolio !== false
-            const drifting = isSymbolDrifting(driftHits, c.symbol)
+            const driftHit = driftHits.find((h) => isSymbolDrifting([h], c.symbol))
+            const drifting = Boolean(driftHit)
             return (
               <SwipeHoldingRow
                 onBuy={() => {
@@ -311,6 +346,15 @@ export function CryptoPage() {
                     </p>
                   ) : null}
                 </Link>
+                {driftHit ? (
+                  <button
+                    type="button"
+                    className="btn-secondary btn-sm border-amber-500/40 text-amber-700 dark:text-amber-300 min-h-11 md:min-h-9"
+                    onClick={() => applyMarketsPriceForCrypto(c, driftHit.marketPrice)}
+                  >
+                    Use Markets price
+                  </button>
+                ) : null}
                 <div className={`text-sm tabular-nums ${privacyClass(privacy)}`}>
                   <p className="font-semibold">{formatGBP(value)}</p>
                   <p className="text-xs text-text-subtle">

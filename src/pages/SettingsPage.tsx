@@ -36,12 +36,15 @@ import { registerStaticPriceFile } from '../domain/staticPrices'
 import {
   clearOfflineQueue,
   enqueueOfflineJob,
+  formatOfflineJobAge,
   isOfflineJobReady,
   isOnline,
   jobsReadyToFlush,
   loadOfflineQueue,
   markOfflineJobFailed,
+  oldestOfflineJobAgeMs,
   removeOfflineJob,
+  retryOfflineJobNow,
   type OfflineJob,
 } from '../services/offlineQueue'
 import { DISPLAY_CURRENCIES } from '../services/fx'
@@ -97,7 +100,6 @@ import {
   loadSecurity,
   registerBiometric,
   saveSecurity,
-  verifyPin,
   type SecurityState,
 } from '../security/pin'
 import {
@@ -138,10 +140,14 @@ import {
   saveBottomNavMiddleSlots,
 } from '../storage/bottomNavSlots'
 import { BOTTOM_NAV_CATALOG } from '../domain/bottomNav'
+import { PinConfirmModal } from '../components/PinConfirmModal'
 import {
+  getRememberPassphraseMode,
   getSessionSyncPassphrase,
   hasRememberedSyncPassphrase,
+  rememberPassphraseExpiresAt,
   setSessionSyncPassphrase,
+  type RememberPassphraseMode,
 } from '../services/sync/sessionPassphrase'
 import {
   clearPendingAutoSyncConflicts,
@@ -157,6 +163,7 @@ import {
 import { scorePassphraseStrength } from '../services/sync/passphraseStrength'
 import {
   defaultDeviceNickname,
+  getLocalDeviceHint,
   loadDeviceNickname,
   saveDeviceNickname,
 } from '../services/sync/deviceNickname'
@@ -331,6 +338,11 @@ export function SettingsPage() {
   )
   const [driftPct, setDriftPct] = useState(() => loadHoldingsDriftThresholdPct())
   const [syncActivity, setSyncActivity] = useState<SyncActivityEntry[]>(() => loadSyncActivity())
+  const [syncActivityFilter, setSyncActivityFilter] = useState<'all' | 'this' | 'others'>('all')
+  const [disablePinOpen, setDisablePinOpen] = useState(false)
+  const [rememberMode, setRememberMode] = useState<RememberPassphraseMode>(() =>
+    getRememberPassphraseMode(),
+  )
   const [quoteHealthHint, setQuoteHealthHint] = useState<string | null>(() =>
     formatMarketsProviderHealthHint(),
   )
@@ -675,6 +687,12 @@ export function SettingsPage() {
     }
   }
 
+  const pendingConflictCount =
+    conflicts.length ||
+    pendingMerge?.conflicts.length ||
+    autoSyncStatus.pendingConflicts ||
+    0
+
   return (
     <div>
       <PageHeader
@@ -683,12 +701,47 @@ export function SettingsPage() {
         description="Sections start collapsed — tap a header (Sync, Display, Security…) to expand. Cloud Sync is first."
       />
 
+      {pendingConflictCount > 0 ? (
+        <button
+          type="button"
+          className="settings-sync-conflict-fab sticky top-[calc(var(--app-header-offset,3.5rem)+0.5rem)] z-30 ml-auto mb-3 flex w-fit items-center gap-2 border border-accent bg-bg-elevated px-3 py-2 text-xs font-bold uppercase tracking-wider text-accent shadow-lg sm:mr-2 lg:hidden"
+          onClick={() => {
+            if (!hydrateAutoSyncConflicts()) {
+              document.getElementById('sync-conflicts-panel')?.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start',
+              })
+            }
+          }}
+        >
+          Review {pendingConflictCount} sync conflict{pendingConflictCount === 1 ? '' : 's'}
+        </button>
+      ) : null}
+
       <div
         className="settings-search-sticky sticky z-20 -mx-1 px-1 py-2 mb-4 flex flex-wrap gap-2 items-center bg-bg/95 backdrop-blur-sm border-b border-border/60"
         style={{ top: 'var(--app-header-offset, 3.5rem)' }}
         role="group"
         aria-label="Settings sections"
       >
+        <div className="flex flex-wrap gap-1 w-full basis-full sm:basis-auto" role="group" aria-label="Pinned settings">
+          {(
+            [
+              ['sync', 'Sync'],
+              ['security', 'Security'],
+              ['full-backup', 'Backup'],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              className="settings-pin-chip btn-ghost btn-sm min-h-9 px-2.5 text-[11px] font-bold uppercase tracking-wider shrink-0"
+              onClick={() => jumpToSettingsSection(id)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
         <label className="sr-only" htmlFor="settings-search">
           Search settings
         </label>
@@ -1097,13 +1150,15 @@ export function SettingsPage() {
                 checked={Boolean(syncCfg.rememberPassphrase) || hasRememberedSyncPassphrase()}
                 onChange={(e) => {
                   const remember = e.target.checked
+                  const mode: RememberPassphraseMode = remember ? rememberMode === 'session' ? 'forever' : rememberMode : 'session'
                   const next = { ...syncCfg, rememberPassphrase: remember }
                   setSyncCfg(next)
                   saveSyncConfig(next)
+                  setRememberMode(remember ? mode : 'session')
                   if (syncPass) {
-                    setSessionSyncPassphrase(syncPass, { remember })
+                    setSessionSyncPassphrase(syncPass, { remember, rememberMode: mode })
                   } else if (!remember) {
-                    setSessionSyncPassphrase('', { remember: false })
+                    setSessionSyncPassphrase('', { remember: false, rememberMode: 'session' })
                   }
                   flash(
                     remember
@@ -1120,6 +1175,44 @@ export function SettingsPage() {
                 </span>
               </span>
             </label>
+            {(Boolean(syncCfg.rememberPassphrase) || hasRememberedSyncPassphrase()) && (
+              <label className="block max-w-sm ml-8 -mt-2 mb-1">
+                <span className="text-xs font-bold uppercase tracking-widest text-text-subtle">
+                  Remember for
+                </span>
+                <select
+                  className="mt-2 w-full"
+                  aria-label="Passphrase remember duration"
+                  value={rememberMode === 'session' ? 'forever' : rememberMode}
+                  onChange={(e) => {
+                    const mode = e.target.value as RememberPassphraseMode
+                    setRememberMode(mode)
+                    const next = { ...syncCfg, rememberPassphrase: true }
+                    setSyncCfg(next)
+                    saveSyncConfig(next)
+                    if (syncPass || getSessionSyncPassphrase()) {
+                      setSessionSyncPassphrase(syncPass || getSessionSyncPassphrase() || '', {
+                        remember: true,
+                        rememberMode: mode,
+                      })
+                    }
+                    flash(
+                      mode === '7d'
+                        ? 'Passphrase remembered for 7 days.'
+                        : 'Passphrase remembered until you revoke it.',
+                    )
+                  }}
+                >
+                  <option value="7d">7 days</option>
+                  <option value="forever">Until I revoke</option>
+                </select>
+                {rememberPassphraseExpiresAt() ? (
+                  <span className="text-xs text-text-subtle mt-1 block font-light">
+                    Expires {new Date(rememberPassphraseExpiresAt()!).toLocaleString('en-GB')}
+                  </span>
+                ) : null}
+              </label>
+            )}
             <label className="flex items-start gap-3 cursor-pointer">
               <input
                 type="checkbox"
@@ -1618,11 +1711,47 @@ export function SettingsPage() {
           )}
           {syncActivity.length > 0 && (
             <div className="mt-4 max-w-2xl border border-border/60 p-3 space-y-2">
-              <p className="text-[11px] font-bold uppercase tracking-widest text-text-subtle">
-                Recent sync activity
-              </p>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-[11px] font-bold uppercase tracking-widest text-text-subtle">
+                  Recent sync activity
+                </p>
+                <div className="flex flex-wrap gap-1" role="group" aria-label="Filter sync activity">
+                  {(
+                    [
+                      ['all', 'All'],
+                      ['this', 'This device'],
+                      ['others', 'Others'],
+                    ] as const
+                  ).map(([id, label]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      className={`btn-ghost btn-sm min-h-9 px-2 text-[11px] ${
+                        syncActivityFilter === id ? 'text-accent border-accent' : ''
+                      }`}
+                      aria-pressed={syncActivityFilter === id}
+                      onClick={() => setSyncActivityFilter(id)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <ul className="space-y-1.5">
-                {syncActivity.slice(0, 8).map((e) => (
+                {syncActivity
+                  .filter((e) => {
+                    if (syncActivityFilter === 'all') return true
+                    const local = getLocalDeviceHint()
+                    const hint = (e.deviceHint || '').trim()
+                    const isThis =
+                      !hint ||
+                      hint === local ||
+                      hint === deviceNickname ||
+                      (deviceNickname.length > 0 && hint.startsWith(deviceNickname.slice(0, 8)))
+                    return syncActivityFilter === 'this' ? isThis : !isThis
+                  })
+                  .slice(0, 8)
+                  .map((e) => (
                   <li key={e.id} className="text-xs text-text-muted font-light">
                     <span className="text-text-subtle tabular-nums">
                       {new Date(e.at).toLocaleString('en-GB')}
@@ -1648,6 +1777,9 @@ export function SettingsPage() {
               <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
                 <p className="text-[11px] font-bold uppercase tracking-widest text-text-subtle">
                   Offline queue · {queue.length}
+                  <span className="normal-case tracking-normal font-medium text-text-muted ml-2">
+                    oldest {formatOfflineJobAge(oldestOfflineJobAgeMs(queue))}
+                  </span>
                 </p>
                 <div className="flex gap-2">
                   <button
@@ -1724,19 +1856,32 @@ export function SettingsPage() {
                   <li key={j.id} className="flex flex-wrap items-center justify-between gap-2">
                     <span>
                       {j.type.replace('_', ' ')} · {new Date(j.createdAt).toLocaleString('en-GB')}
+                      {' · '}
+                      {formatOfflineJobAge(Date.now() - new Date(j.createdAt).getTime())}
                       {j.attempts ? ` · try ${j.attempts}` : ''}
                       {j.nextRetryAt && !isOfflineJobReady(j)
                         ? ` · retry after ${new Date(j.nextRetryAt).toLocaleTimeString('en-GB')}`
                         : ''}
                       {j.note ? ` — ${j.note}` : ''}
                     </span>
-                    <button
-                      type="button"
-                      className="btn-ghost btn-sm min-h-11"
-                      onClick={() => setQueue(removeOfflineJob(j.id))}
-                    >
-                      Cancel
-                    </button>
+                    <div className="flex gap-1">
+                      {j.nextRetryAt && !isOfflineJobReady(j) ? (
+                        <button
+                          type="button"
+                          className="btn-secondary btn-sm min-h-11"
+                          onClick={() => setQueue(retryOfflineJobNow(j.id))}
+                        >
+                          Retry now
+                        </button>
+                      ) : null}
+                      <button
+                        type="button"
+                        className="btn-ghost btn-sm min-h-11"
+                        onClick={() => setQueue(removeOfflineJob(j.id))}
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -2511,31 +2656,31 @@ export function SettingsPage() {
                 <button
                   type="button"
                   className="btn-ghost"
-                  onClick={() => {
-                    void (async () => {
-                      const entered = window.prompt('Enter your current 4-digit PIN to disable lock:')
-                      if (entered == null) return
-                      const ok = await verifyPin(entered.trim(), sec.pinHash)
-                      if (!ok) {
-                        flash('Incorrect PIN — lock not disabled.')
-                        return
-                      }
-                      persistSecurity({
-                        ...sec,
-                        pinEnabled: false,
-                        pinHash: '',
-                        biometricEnabled: false,
-                      })
-                      clearBiometricCred()
-                      flash('PIN disabled.')
-                    })()
-                  }}
+                  onClick={() => setDisablePinOpen(true)}
                 >
                   Disable PIN
                 </button>
                 <button type="button" className="btn-ghost" onClick={() => lock()}>
                   Lock now
                 </button>
+                <PinConfirmModal
+                  open={disablePinOpen}
+                  title="Disable PIN"
+                  subtitle="Enter your 4-digit PIN to turn off lock"
+                  pinHash={sec.pinHash}
+                  onClose={() => setDisablePinOpen(false)}
+                  onVerified={() => {
+                    persistSecurity({
+                      ...sec,
+                      pinEnabled: false,
+                      pinHash: '',
+                      biometricEnabled: false,
+                    })
+                    clearBiometricCred()
+                    setDisablePinOpen(false)
+                    flash('PIN disabled.')
+                  }}
+                />
               </>
             )}
           </div>

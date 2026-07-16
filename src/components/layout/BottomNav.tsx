@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, NavLink } from 'react-router-dom'
+import { Link, NavLink, useLocation } from 'react-router-dom'
 import { useLayoutMode, useShowBottomNav } from '../../hooks/useShowBottomNav'
 import { prefetchRouteChunk } from '../../hooks/useIdlePrefetch'
 import { prefetchMarketQuotes } from '../../services/marketsQuotes'
@@ -29,11 +29,13 @@ function prefetchMarketsNav(): void {
 export function BottomNav() {
   const show = useShowBottomNav()
   const mode = useLayoutMode()
+  const { pathname } = useLocation()
   const [items, setItems] = useState<BottomNavItem[]>(() => readItems())
   const [favSheetOpen, setFavSheetOpen] = useState(false)
   const [middleItems, setMiddleItems] = useState<BottomNavItem[]>(() => readMiddleItems())
   const longPressTimer = useRef<number | null>(null)
   const longPressFired = useRef(false)
+  const lastOverviewTap = useRef(0)
 
   useEffect(() => {
     const refresh = () => {
@@ -70,6 +72,12 @@ export function BottomNav() {
     saveBottomNavMiddleSlots(next.map((i) => i.to))
     setMiddleItems(next)
     setItems(readItems())
+  }
+
+  const scrollTodayToTop = () => {
+    const main = document.getElementById('main-content')
+    main?.scrollTo({ top: 0, behavior: 'smooth' })
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   if (!show) return null
@@ -110,6 +118,15 @@ export function BottomNav() {
                 if (longPressFired.current) {
                   e.preventDefault()
                   longPressFired.current = false
+                  return
+                }
+                if (item.to === '/') {
+                  const now = Date.now()
+                  if (pathname === '/' && now - lastOverviewTap.current < 450) {
+                    e.preventDefault()
+                    scrollTodayToTop()
+                  }
+                  lastOverviewTap.current = now
                 }
               }}
               className={({ isActive }) =>

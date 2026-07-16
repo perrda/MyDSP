@@ -1,6 +1,12 @@
 /** In-app What’s new archive — last N versions from RELEASE_NOTES. */
 
-import { releaseNotesArchive, type ReleaseNotesEntry } from '../domain/releaseNotes'
+import { Link } from 'react-router-dom'
+import {
+  releaseBulletHref,
+  releaseBulletText,
+  releaseNotesArchive,
+  type ReleaseNotesEntry,
+} from '../domain/releaseNotes'
 
 type Props = {
   /** How many versions to list (default 5). */
@@ -18,9 +24,21 @@ function VersionBlock({ entry }: { entry: ReleaseNotesEntry }) {
         </time>
       </header>
       <ul className="text-sm text-text-muted font-light list-disc pl-4 space-y-1">
-        {entry.bullets.map((line) => (
-          <li key={line}>{line}</li>
-        ))}
+        {entry.bullets.map((line) => {
+          const text = releaseBulletText(line)
+          const href = releaseBulletHref(line)
+          return (
+            <li key={text}>
+              {href ? (
+                <Link to={href} className="text-accent font-medium hover:underline">
+                  {text}
+                </Link>
+              ) : (
+                text
+              )}
+            </li>
+          )
+        })}
       </ul>
     </article>
   )

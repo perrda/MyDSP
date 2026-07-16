@@ -102,3 +102,15 @@ export function formatFxTriangleWarning(hit: FxTriangleHit): string {
   const pct = hit.discrepancyPct.toFixed(hit.discrepancyPct >= 10 ? 0 : 2)
   return `${hit.pairs[0]} × ${hit.pairs[1]} ≠ ${hit.pairs[2]} (~${pct}% off)`
 }
+
+function formatSuggestedRate(rate: number): string {
+  return rate.toLocaleString('en-GB', {
+    minimumFractionDigits: rate >= 10 ? 2 : 4,
+    maximumFractionDigits: rate >= 10 ? 4 : 6,
+  })
+}
+
+/** Suggested replacement for the observed cross in the warning. */
+export function formatFxTriangleSuggestedRate(hit: FxTriangleHit): string {
+  return `${hit.pairs[2]} ${formatSuggestedRate(hit.implied)}`
+}

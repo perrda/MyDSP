@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { ArrowUpDown, Target } from 'lucide-react'
 import { EmptyState } from '../components/ui/EmptyState'
 import { PageHeader } from '../components/ui/PageHeader'
@@ -31,6 +31,7 @@ const empty = {
 
 export function GoalsPage() {
   const { data, setData, goalCurrent, goalProgress, privacy } = usePortfolio()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<Goal | null>(null)
   const [form, setForm] = useState(empty)
@@ -43,6 +44,19 @@ export function GoalsPage() {
   const goals = useMemo(() => sortBySortOrder(data.goals), [data.goals])
   const noteGoal = goals.find((g) => g.id === noteGoalId) ?? null
   const monthlySurplus = useMemo(() => estimateMonthlySurplus(data), [data])
+
+  useEffect(() => {
+    const raw = searchParams.get('note')
+    if (!raw) return
+    const id = Number(raw)
+    if (!Number.isFinite(id) || !goals.some((g) => g.id === id)) return
+    setNoteGoalId(id)
+    setNoteText('')
+    setEditingNote(null)
+    const next = new URLSearchParams(searchParams)
+    next.delete('note')
+    setSearchParams(next, { replace: true })
+  }, [goals, searchParams, setSearchParams])
 
   const openCreate = () => {
     setEditing(null)

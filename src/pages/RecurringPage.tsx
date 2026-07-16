@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { PageHeader } from '../components/ui/PageHeader'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
 import { usePortfolio } from '../context/PortfolioContext'
+import { markRecurringPaid } from '../domain/recurringActions'
 import type { RecurringTransaction } from '../domain/types'
 import { formatDate, formatGBPPrecise, privacyClass } from '../utils/format'
 
@@ -21,14 +22,6 @@ const CATS = [
 
 function nextId(items: { id: number }[]): number {
   return items.reduce((m, i) => Math.max(m, i.id), 0) + 1
-}
-
-function advanceDue(date: string, frequency: RecurringTransaction['frequency']): string {
-  const d = new Date(date)
-  if (frequency === 'weekly') d.setDate(d.getDate() + 7)
-  else if (frequency === 'yearly') d.setFullYear(d.getFullYear() + 1)
-  else d.setMonth(d.getMonth() + 1)
-  return d.toISOString().slice(0, 10)
 }
 
 const empty = {
@@ -84,26 +77,7 @@ export function RecurringPage() {
   }
 
   const markPaid = (r: RecurringTransaction) => {
-    const spendId =
-      data.spending.reduce((m, s) => Math.max(m, s.id), 0) + 1
-    setData((prev) => ({
-      ...prev,
-      spending: [
-        ...prev.spending,
-        {
-          id: spendId,
-          date: r.nextDue,
-          description: r.name,
-          amount: Math.abs(r.amount),
-          category: r.category,
-          method: 'debit',
-          createdAt: new Date().toISOString(),
-        },
-      ],
-      recurringTransactions: prev.recurringTransactions.map((x) =>
-        x.id === r.id ? { ...x, nextDue: advanceDue(r.nextDue, r.frequency) } : x,
-      ),
-    }))
+    setData((prev) => markRecurringPaid(prev, r.id))
   }
 
   return (

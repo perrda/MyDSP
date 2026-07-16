@@ -1,5 +1,75 @@
 # MyDSP Changelog
 
+## [1.2.55] - 2026-07-16
+
+### Improved — Quality / ops (next 25d · 21–25)
+21. Settings **pin chips** — Sync / Security / Backup under sticky search on phone  
+22. `/smoke` — PIN/Face ID lock check + bottom-nav middle slots check  
+23. Playwright smoke — Markets watchlist search + lock/nav checklist assertions  
+24. Broker CSV **alias pack bump** — IBKR Flex / T212 Fill Price / Coinbase Advanced headers  
+25. What’s new / UpdateBanner bullets **deep-link** into Settings / smoke anchors  
+
+### Version
+- 1.2.54 → **1.2.55**
+
+---
+
+## [1.2.54] - 2026-07-16
+
+### Improved — Today / money / tax (next 25d · 16–20)
+16. Today bills strip **swipe Mark paid / Skip**  
+17. Spending **Log bill payment** CTA → expense modal prefilled  
+18. Goals **Log note** from Today goal ring (`?note=`)  
+19. Tax **ISA allowance** progress stub (manual remaining £)  
+20. Compare per-portfolio **as-of quote age** chip  
+
+### Version
+- 1.2.53 → **1.2.54**
+
+---
+
+## [1.2.53] - 2026-07-16
+
+### Improved — Mobile / tablet UX (next 25d · 11–15)
+11. Double-tap **Overview** bottom tab scrolls Today to top  
+12. Today bill next-action **Mark paid / Skip** inline  
+13. Jobs pipeline mini-card → **Kanban** stage deep-link  
+14. Settings sticky **Review conflicts** FAB when pending  
+15. **OverflowMenu** full-screen sheet on &lt;640px  
+
+### Version
+- 1.2.52 → **1.2.53**
+
+---
+
+## [1.2.52] - 2026-07-16
+
+### Improved — Markets / portfolio (next 25d · 6–10)
+6. Markets sticky **in-list search** (symbol/name)  
+7. Equity watchlist **Yield %** sort  
+8. Holdings drift **Use Markets price** one-tap  
+9. Corporate-action **effective date** + due toast  
+10. FX triangle **Use suggested** cross rate  
+
+### Version
+- 1.2.51 → **1.2.52**
+
+---
+
+## [1.2.51] - 2026-07-16
+
+### Improved — Sync / security (next 25d · 1–5)
+1. Disable PIN via **PIN keypad modal** (no `window.prompt`)  
+2. Sync activity filter — **This device / Others**  
+3. SyncConflictSheet **Copy summary**  
+4. Offline queue **oldest age** + per-job **Retry now**  
+5. Passphrase remember **7 days / until revoke**  
+
+### Version
+- 1.2.50 → **1.2.51**
+
+---
+
 ## [1.2.50] - 2026-07-16
 
 ### Improved — PWA leftovers, Face ID-first unlock, header overlap, bottom nav, Finnhub UX

@@ -10,6 +10,7 @@ import {
 } from '../services/sync/autoSyncService'
 import { loadDeviceNickname } from '../services/sync/deviceNickname'
 import { summarizeConflictBatch } from '../services/sync/conflicts'
+import { buildConflictSummaryText, shareConflictSummary } from '../services/sync/conflictExport'
 import { loadSyncConfig } from '../services/sync/syncService'
 import type { MergePreview } from '../services/sync/syncService'
 
@@ -18,6 +19,7 @@ export function SyncConflictSheet() {
   const [dismissed, setDismissed] = useState(false)
   const [paused, setPaused] = useState(() => isAutoSyncPaused())
   const [deviceNick] = useState(() => loadDeviceNickname())
+  const [copyHint, setCopyHint] = useState<string | null>(null)
 
   useEffect(() => {
     const hydrate = () => {
@@ -78,6 +80,30 @@ export function SyncConflictSheet() {
           >
             Review in Settings
           </Link>
+          <button
+            type="button"
+            className="btn-secondary btn-sm min-h-11"
+            onClick={() => {
+              void (async () => {
+                const text = buildConflictSummaryText(preview.conflicts)
+                try {
+                  if (navigator.clipboard?.writeText) {
+                    await navigator.clipboard.writeText(text)
+                    setCopyHint('Copied summary')
+                  } else {
+                    const result = await shareConflictSummary(preview.conflicts)
+                    setCopyHint(result === 'shared' ? 'Shared' : 'Downloaded')
+                  }
+                } catch {
+                  const result = await shareConflictSummary(preview.conflicts)
+                  setCopyHint(result === 'cancelled' ? null : 'Downloaded')
+                }
+                window.setTimeout(() => setCopyHint(null), 2500)
+              })()
+            }}
+          >
+            {copyHint ?? 'Copy summary'}
+          </button>
           <button type="button" className="btn-ghost btn-sm min-h-11" onClick={() => setDismissed(true)}>
             Later
           </button>
