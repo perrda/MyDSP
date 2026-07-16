@@ -141,11 +141,13 @@ describe('next25c mobile / tablet (11–15)', () => {
     expect(settings).toMatch(/jumpToSettingsSection/)
   })
 
-  it('15: PullToRefresh only on Today and Markets', () => {
+  it('15: PullToRefresh on Today, Markets, holdings, and News', () => {
     const shell = readFileSync(resolve(__dirname, '../components/layout/AppShell.tsx'), 'utf8')
     expect(shell).toMatch(/allowPullToRefresh/)
     expect(shell).toMatch(/pathname === '\/'/)
     expect(shell).toMatch(/pathname === '\/markets'/)
+    expect(shell).toMatch(/\/equities/)
+    expect(shell).toMatch(/\/news/)
     expect(shell).toMatch(/disabled=\{allowPullToRefresh\(pathname\) \? undefined : true\}/)
   })
 
@@ -153,6 +155,6 @@ describe('next25c mobile / tablet (11–15)', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8')) as {
       version: string
     }
-    expect(pkg.version).toBe('1.2.70')
+    expect(pkg.version).toBe('1.2.71')
   })
 })

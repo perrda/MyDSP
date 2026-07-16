@@ -28,6 +28,7 @@ import {
   setNewsSeenAt,
   updateNewsTag,
 } from '../storage/newsStore'
+import { loadPortfolio } from '../storage/portfolioStore'
 import { formatDateTime } from '../utils/format'
 
 function formatRelative(iso: string): string {
@@ -123,11 +124,14 @@ export function NewsPage() {
         setTop(topNews)
         if (topNews.length > 0) {
           const cached = loadNewsArticlesCache()
-          saveNewsArticlesCache({
-            ...cached,
-            top: topNews,
-            fetchedAt: new Date().toISOString(),
-          })
+          saveNewsArticlesCache(
+            {
+              ...cached,
+              top: topNews,
+              fetchedAt: new Date().toISOString(),
+            },
+            { markDirty: true },
+          )
         }
         return topNews
       })
@@ -135,11 +139,14 @@ export function NewsPage() {
         setByTag(tagged)
         if (Object.values(tagged).some((articles) => articles.length > 0)) {
           const cached = loadNewsArticlesCache()
-          saveNewsArticlesCache({
-            ...cached,
-            byTag: tagged,
-            fetchedAt: new Date().toISOString(),
-          })
+          saveNewsArticlesCache(
+            {
+              ...cached,
+              byTag: tagged,
+              fetchedAt: new Date().toISOString(),
+            },
+            { markDirty: true },
+          )
         }
         return tagged
       })
@@ -438,14 +445,55 @@ export function NewsPage() {
                   )}
                 </ReorderList>
               )}
-              <button
-                type="button"
-                className="btn-ghost btn-sm text-accent inline-flex items-center gap-1.5"
-                onClick={openCreate}
-              >
-                <Plus size={14} strokeWidth={2} />
-                Add meta-tag
-              </button>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className="btn-ghost btn-sm text-accent inline-flex items-center gap-1.5"
+                  onClick={openCreate}
+                >
+                  <Plus size={14} strokeWidth={2} />
+                  Add meta-tag
+                </button>
+                <button
+                  type="button"
+                  className="btn-secondary btn-sm news-from-owned inline-flex items-center gap-1.5"
+                  onClick={() => {
+                    const portfolio = loadPortfolio()
+                    const existing = new Set(listNewsTags().map((t) => t.tag.toUpperCase()))
+                    let added = 0
+                    for (const e of portfolio.equities) {
+                      const sym = e.symbol.trim().toUpperCase()
+                      if (!sym || existing.has(sym)) continue
+                      try {
+                        addNewsTag({ tag: sym, label: e.name })
+                        existing.add(sym)
+                        added++
+                      } catch {
+                        /* ignore */
+                      }
+                    }
+                    for (const c of portfolio.crypto) {
+                      const sym = c.symbol.trim().toUpperCase()
+                      if (!sym || existing.has(sym)) continue
+                      try {
+                        addNewsTag({ tag: sym, label: c.name })
+                        existing.add(sym)
+                        added++
+                      } catch {
+                        /* ignore */
+                      }
+                    }
+                    setTags(listNewsTags())
+                    setError(
+                      added > 0
+                        ? `Added ${added} meta-tag${added === 1 ? '' : 's'} from Owned holdings`
+                        : 'All Owned symbols already have News meta-tags',
+                    )
+                  }}
+                >
+                  From Owned
+                </button>
+              </div>
             </div>
           </>
         )}

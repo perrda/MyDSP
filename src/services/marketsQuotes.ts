@@ -24,6 +24,7 @@ import {
   fetchCryptoGbpSparkline,
   fetchCryptoMarketQuotesGbp,
   fetchEquityMarketQuote,
+  fetchFinnhubDividendYield,
   fetchFrankfurterFxQuote,
   fetchFxPairQuote,
   fetchIndexQuote,
@@ -194,6 +195,17 @@ export async function refreshMarketQuotes(
           source: native.source,
           updatedAt: now,
         })
+        // Fill dividend yield from Finnhub when missing (manual override kept if already set)
+        if (finnhubKey.trim() && !(t.yieldPct != null && t.yieldPct > 0)) {
+          try {
+            const y = await fetchFinnhubDividendYield(t.symbol, finnhubKey)
+            if (y != null && y > 0) {
+              updateMarketTicker(t.id, { yieldPct: y })
+            }
+          } catch {
+            /* optional */
+          }
+        }
       } catch {
         out.set(t.id, emptyQuote(t, now, 'GBP', 2, 'error'))
       }

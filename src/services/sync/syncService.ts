@@ -7,7 +7,10 @@ import {
   importMarketQuotesFromBackup,
   importMarketsFromBackup,
 } from '../../storage/marketsStore'
-import { importNewsFromBackup } from '../../storage/newsStore'
+import {
+  importNewsArticlesFromBackup,
+  importNewsFromBackup,
+} from '../../storage/newsStore'
 import { importNavLayoutFromBackup } from '../../storage/navOrder'
 import { importYoutubeFromBackup } from '../../storage/youtubeStore'
 import {
@@ -237,6 +240,8 @@ export interface MergePreview {
     /** Last-good Markets quotes (by ticker id) */
     marketQuotes?: unknown
     news?: unknown
+    /** Last-good News headlines cache */
+    newsArticles?: unknown
     youtube?: unknown
   }
 }
@@ -630,6 +635,7 @@ async function decryptEnvelope(
     if (a.markets != null) extras.markets = a.markets
     if (a.marketQuotes != null) extras.marketQuotes = a.marketQuotes
     if (a.news != null) extras.news = a.news
+    if (a.newsArticles != null) extras.newsArticles = a.newsArticles
     if (a.youtube != null) extras.youtube = a.youtube
     if (Object.keys(extras).length > 0) workspaceExtras = extras
   }
@@ -826,6 +832,9 @@ export async function applyMergePreview(
   }
   if (preview.workspaceExtras?.news != null) {
     importNewsFromBackup(preview.workspaceExtras.news)
+  }
+  if (preview.workspaceExtras?.newsArticles != null) {
+    importNewsArticlesFromBackup(preview.workspaceExtras.newsArticles)
   }
   if (preview.workspaceExtras?.youtube != null) {
     importYoutubeFromBackup(preview.workspaceExtras.youtube)

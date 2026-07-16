@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.70**
+**Current version: 1.2.71**
 
-## Completed (through v1.2.70)
+## Completed (through v1.2.71)
 
+- Finnhub / media / polish (next25h tip 1–25): Finnhub all TFs + probe, quote SLA, What does not sync, commodity paper qty + oil/gas presets, PTR holdings/News, Markets master–detail, YouTube Worker, News From Owned + headline sync, ISA from holdings, smoke/axe expansion
 - Sync / Markets polish (next25g tip 1–25): quote-cache sync, Sync prices now, From other device, prefs LWW, commodity Yahoo fallbacks, PTR no jump, mixed Unavailable CTA, Today movers age + lag chip, smoke/docs cadence 4s/30s
 - Markets / portfolio (next25g 6–8): draggable section cards, commodity timeframe, Unavailable vs Fetching
 - Markets **My Commodities** (Gold/Silver/Copper + aliases) via Yahoo → GBP; Finnhub key high-priority To Do reminder

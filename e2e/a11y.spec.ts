@@ -145,6 +145,45 @@ test.describe('a11y gate', () => {
     expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
   })
 
+  test('News axe — iphone gate', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'iphone-14', 'CI gate targets iphone-14')
+    await page.goto('/news')
+    await expect(page.getByRole('heading', { name: /News/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    const results = await new AxeBuilder({ page }).analyze()
+    const serious = results.violations.filter(
+      (v) => v.impact === 'serious' || v.impact === 'critical',
+    )
+    expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
+  })
+
+  test('YouTube axe — iphone gate', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'iphone-14', 'CI gate targets iphone-14')
+    await page.goto('/youtube')
+    await expect(page.getByRole('heading', { name: /YouTube/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    const results = await new AxeBuilder({ page }).analyze()
+    const serious = results.violations.filter(
+      (v) => v.impact === 'serious' || v.impact === 'critical',
+    )
+    expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
+  })
+
+  test('Recurring axe — iphone gate', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'iphone-14', 'CI gate targets iphone-14')
+    await page.goto('/recurring')
+    await expect(page.getByText(/Recurring|Subscriptions|Bills/i).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    const results = await new AxeBuilder({ page }).analyze()
+    const serious = results.violations.filter(
+      (v) => v.impact === 'serious' || v.impact === 'critical',
+    )
+    expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
+  })
+
   test('compare page has no serious axe violations', async ({ page }) => {
     await page.goto('/compare')
     await expect(page.getByRole('heading', { name: /Compare portfolios/i })).toBeVisible({

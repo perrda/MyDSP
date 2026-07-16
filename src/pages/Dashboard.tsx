@@ -42,6 +42,7 @@ import {
 import { loadSyncConfig } from '../services/sync/syncService'
 import { loadOfflineQueue } from '../services/offlineQueue'
 import { LAST_BACKUP_KEY } from '../storage/backupStore'
+import { hasFinnhubKey } from '../domain/finnhubReminder'
 import { isSyncedRemoteQuote } from '../domain/marketQuotesSync'
 import { listMarketTickers, loadMarketQuotesCache } from '../storage/marketsStore'
 
@@ -262,11 +263,17 @@ export function Dashboard() {
       .map((t) => {
         const q = quotes.get(t.id)
         if (!q || !(q.last > 0) || !Number.isFinite(q.changePct)) return null
+        const src = (q.source || '').toLowerCase()
+        // Drop Unavailable / error prints from Today movers
+        if (src === 'none' || src === 'error' || src === 'invalid' || src.startsWith('stale:')) {
+          return null
+        }
         const age = quoteAgeMs(q.updatedAt)
         if (age == null || age > MOVER_MAX_AGE_MS) return null
         return {
           id: t.id,
           symbol: t.symbol,
+          kind: t.kind,
           changePct: q.changePct,
           fromSync: isSyncedRemoteQuote(q),
           ageMs: age,
@@ -399,10 +406,19 @@ export function Dashboard() {
         ? `${todayTodos.length} To Do${todayTodos.length === 1 ? '' : "'s"} due today`
         : "No To Do's due today",
       todayMovers[0]
-        ? `Top mover ${todayMovers[0].symbol} ${formatPct(todayMovers[0].changePct)}${
+        ? `Top mover ${todayMovers[0].symbol}${
+            todayMovers[0].kind === 'commodity' ? ' (commodity)' : ''
+          } ${formatPct(todayMovers[0].changePct)}${
             todayMovers[0].fromSync ? ' (from other device)' : ''
           }`
         : 'No fresh Markets movers (open Markets to refresh)',
+      ...(todayMovers.some((m) => m.kind === 'commodity')
+        ? [
+            `Commodity mover ${
+              todayMovers.find((m) => m.kind === 'commodity')!.symbol
+            } ${formatPct(todayMovers.find((m) => m.kind === 'commodity')!.changePct)}`,
+          ]
+        : []),
     ]
     if (monthlyBudgetPulse) {
       lines.push(
@@ -666,6 +682,15 @@ export function Dashboard() {
               title="Last-good Markets quotes arrived from another device via sync"
             >
               {priceLagChip.label}
+            </Link>
+          ) : null}
+          {!hasFinnhubKey(data) ? (
+            <Link
+              to="/settings#prices"
+              className="today-finnhub-missing-chip text-amber-700 dark:text-amber-300 hover:underline font-medium"
+              title="Finnhub API key is not saved on this device"
+            >
+              Finnhub missing here
             </Link>
           ) : null}
           <Link to="/markets" className="hover:text-accent">

@@ -76,11 +76,23 @@ function normalizeYieldPct(raw: unknown): number | undefined {
   return Math.min(100, raw)
 }
 
+function normalizeQuantity(raw: unknown): number | undefined {
+  if (typeof raw !== 'number' || !Number.isFinite(raw) || raw <= 0) return undefined
+  return raw
+}
+
+function normalizeAvgCostGbp(raw: unknown): number | undefined {
+  if (typeof raw !== 'number' || !Number.isFinite(raw) || raw < 0) return undefined
+  return raw
+}
+
 function normalizeTicker(t: MarketTicker, i: number): MarketTicker {
   const notes =
     typeof t.notes === 'string' && t.notes.trim() ? t.notes.trim() : undefined
   const tag = normalizeTag(t.tag)
   const yieldPct = normalizeYieldPct(t.yieldPct)
+  const quantity = normalizeQuantity(t.quantity)
+  const avgCostGbp = normalizeAvgCostGbp(t.avgCostGbp)
   return {
     ...t,
     kind: (['crypto', 'equity', 'commodity', 'fx', 'cross', 'index'].includes(t.kind)
@@ -91,6 +103,8 @@ function normalizeTicker(t: MarketTicker, i: number): MarketTicker {
     notes,
     tag,
     yieldPct,
+    quantity,
+    avgCostGbp,
   }
 }
 
@@ -169,6 +183,8 @@ export function addMarketTicker(input: {
   notes?: string
   tag?: MarketTickerTag | ''
   yieldPct?: number | null
+  quantity?: number | null
+  avgCostGbp?: number | null
 }): MarketTicker {
   const symbol = validateSymbol(input.kind, input.symbol)
   const state = loadMarketsState()
@@ -187,6 +203,10 @@ export function addMarketTicker(input: {
     tag: normalizeTag(input.tag),
     yieldPct:
       input.kind === 'equity' ? normalizeYieldPct(input.yieldPct ?? undefined) : undefined,
+    quantity:
+      input.kind === 'commodity' ? normalizeQuantity(input.quantity ?? undefined) : undefined,
+    avgCostGbp:
+      input.kind === 'commodity' ? normalizeAvgCostGbp(input.avgCostGbp ?? undefined) : undefined,
     createdAt: new Date().toISOString(),
     sortOrder: maxOrder + 1,
   }
@@ -205,6 +225,8 @@ export function updateMarketTicker(
     notes?: string
     tag?: MarketTickerTag | ''
     yieldPct?: number | null
+    quantity?: number | null
+    avgCostGbp?: number | null
   },
 ): MarketTicker {
   const state = loadMarketsState()
@@ -241,6 +263,18 @@ export function updateMarketTicker(
         : patch.yieldPct !== undefined
           ? normalizeYieldPct(patch.yieldPct ?? undefined)
           : current.yieldPct,
+    quantity:
+      nextKind !== 'commodity'
+        ? undefined
+        : patch.quantity !== undefined
+          ? normalizeQuantity(patch.quantity ?? undefined)
+          : current.quantity,
+    avgCostGbp:
+      nextKind !== 'commodity'
+        ? undefined
+        : patch.avgCostGbp !== undefined
+          ? normalizeAvgCostGbp(patch.avgCostGbp ?? undefined)
+          : current.avgCostGbp,
   }
   state.tickers[idx] = updated
   saveMarketsState(state)

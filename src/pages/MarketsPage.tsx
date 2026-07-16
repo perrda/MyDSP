@@ -45,7 +45,14 @@ import {
   type FxTriangleHit,
 } from '../domain/fxTriangle'
 import { marketSessionStatus } from '../domain/marketSession'
-import { ensureFinnhubSetupTodo } from '../domain/finnhubReminder'
+import { ensureFinnhubSetupTodo, hasFinnhubKey } from '../domain/finnhubReminder'
+import {
+  formatSlaAge,
+  hasStaleSyncedQuotes,
+  isPastQuoteFreshnessSla,
+  quoteAgeMs,
+  QUOTE_FRESHNESS_SLA_MS,
+} from '../domain/quoteFreshnessSla'
 import { normalizeCommoditySymbol } from '../domain/commodities'
 import { shouldShowCachedMode } from '../domain/marketsCachedMode'
 import { mergeMarketQuotes } from '../domain/marketQuotesCache'
@@ -98,6 +105,8 @@ type FormState = {
   notes: string
   tag: MarketTickerTag | ''
   yieldPct: string
+  quantity: string
+  avgCostGbp: string
 }
 
 const emptyForm: FormState = {
@@ -108,6 +117,19 @@ const emptyForm: FormState = {
   notes: '',
   tag: '',
   yieldPct: '',
+  quantity: '',
+  avgCostGbp: '',
+}
+
+function unavailableReason(q: MarketQuote | undefined): string {
+  const src = (q?.source || '').toLowerCase()
+  if (src === 'none') return 'no print'
+  if (src === 'error') return 'provider error'
+  if (src === 'invalid') return 'invalid'
+  if (src.startsWith('stale:')) return 'stale'
+  if (!q) return 'missing'
+  if (!(q.last > 0)) return 'empty'
+  return 'unavailable'
 }
 
 type SectionKey = MarketsSectionKey
@@ -659,6 +681,19 @@ export function MarketsPage() {
     return map
   }, [data.equities])
 
+  /** Paper commodity holdings from Markets ticker quantity × last quote (GBP). */
+  const commodityHoldingsValue = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const t of tickers) {
+      if (t.kind !== 'commodity') continue
+      if (!(t.quantity != null && t.quantity > 0)) continue
+      const q = quotes.get(t.id)
+      if (!q || !(q.last > 0)) continue
+      map.set(t.symbol.toUpperCase(), t.quantity * q.last)
+    }
+    return map
+  }, [tickers, quotes])
+
   const includedPortfolioValue = useMemo(() => includedPortfolioHoldingValue(data), [data])
 
   const ownedHoldingWeightByKey = useMemo(() => {
@@ -768,9 +803,17 @@ export function MarketsPage() {
     setSyncingPrices(true)
     try {
       await refresh()
+      if (!isOnline()) {
+        setError('Offline — quotes refreshed from cache only; cloud sync skipped')
+        setJustSyncedPulse(true)
+        window.setTimeout(() => setJustSyncedPulse(false), 2800)
+        return
+      }
       const cfg = loadSyncConfig()
       if (cfg.enabled && cfg.remoteUrl.trim()) {
         await syncNow()
+      } else if (!cfg.enabled || !cfg.remoteUrl.trim()) {
+        setError('Prices refreshed locally — enable Cloud Sync in Settings to push to other devices')
       }
       setJustSyncedPulse(true)
       window.setTimeout(() => setJustSyncedPulse(false), 2800)
@@ -778,6 +821,23 @@ export function MarketsPage() {
       setSyncingPrices(false)
     }
   }, [refresh, syncingPrices])
+
+  const retryUnavailable = useCallback(async () => {
+    const unavailableKinds = new Set<MarketAssetKind>()
+    for (const t of tickers) {
+      const q = quotes.get(t.id)
+      if (quoteAvailabilityLabel(q, { refreshing: false }) === 'Unavailable') {
+        unavailableKinds.add(t.kind)
+      }
+    }
+    if (unavailableKinds.size === 0) {
+      await refresh()
+      return
+    }
+    for (const kind of unavailableKinds) {
+      await refresh(kind)
+    }
+  }, [tickers, quotes, refresh])
 
   useEffect(() => {
     const onQuotes = () => {
@@ -788,9 +848,31 @@ export function MarketsPage() {
         window.setTimeout(() => setJustSyncedPulse(false), 2800)
       }
     }
+    const onRefresh = () => {
+      void refresh()
+    }
     window.addEventListener('mydsp-markets-quotes', onQuotes)
-    return () => window.removeEventListener('mydsp-markets-quotes', onQuotes)
-  }, [])
+    window.addEventListener('mydsp-markets-refresh', onRefresh)
+    return () => {
+      window.removeEventListener('mydsp-markets-quotes', onQuotes)
+      window.removeEventListener('mydsp-markets-refresh', onRefresh)
+    }
+  }, [refresh])
+
+  const slaChip = useMemo(() => {
+    const list = [...quotes.values()].filter((q) => q.last > 0)
+    if (!hasStaleSyncedQuotes(list)) return null
+    let oldest = 0
+    for (const q of list) {
+      if (!(q.source || '').startsWith('sync:')) continue
+      const age = quoteAgeMs(q)
+      if (age != null && age > oldest) oldest = age
+    }
+    if (oldest <= QUOTE_FRESHNESS_SLA_MS) return null
+    return `Synced quotes past ${formatSlaAge(QUOTE_FRESHNESS_SLA_MS)} SLA · oldest ${formatSlaAge(oldest)}`
+  }, [quotes])
+
+  const finnhubMissing = !hasFinnhubKey(data)
 
   const applySuggestedFxRate = useCallback(
     (suggestion: { ticker: MarketTicker; rate: number }) => {
@@ -896,6 +978,8 @@ export function MarketsPage() {
       notes: t.notes ?? '',
       tag: t.tag ?? '',
       yieldPct: t.yieldPct != null && t.yieldPct > 0 ? String(t.yieldPct) : '',
+      quantity: t.quantity != null && t.quantity > 0 ? String(t.quantity) : '',
+      avgCostGbp: t.avgCostGbp != null && t.avgCostGbp >= 0 ? String(t.avgCostGbp) : '',
     })
     setFormError(null)
     setModalOpen(true)
@@ -907,8 +991,16 @@ export function MarketsPage() {
         form.name.trim() || defaultNameForPair(form.kind, form.symbol)
       const yieldNum =
         form.yieldPct.trim() === '' ? null : Number(form.yieldPct)
+      const qtyNum =
+        form.quantity.trim() === '' ? null : Number(form.quantity)
+      const costNum =
+        form.avgCostGbp.trim() === '' ? null : Number(form.avgCostGbp)
       if (form.kind === 'equity' && form.yieldPct.trim() !== '' && !(yieldNum != null && yieldNum > 0)) {
         setFormError('Yield % must be a positive number.')
+        return
+      }
+      if (form.kind === 'commodity' && form.quantity.trim() !== '' && !(qtyNum != null && qtyNum > 0)) {
+        setFormError('Quantity must be a positive number.')
         return
       }
       if (editing) {
@@ -920,6 +1012,8 @@ export function MarketsPage() {
           notes: form.notes,
           tag: form.tag,
           yieldPct: form.kind === 'equity' ? yieldNum : null,
+          quantity: form.kind === 'commodity' ? qtyNum : null,
+          avgCostGbp: form.kind === 'commodity' ? costNum : null,
         })
       } else {
         addMarketTicker({
@@ -930,6 +1024,8 @@ export function MarketsPage() {
           notes: form.notes || undefined,
           tag: form.tag,
           yieldPct: form.kind === 'equity' ? yieldNum : null,
+          quantity: form.kind === 'commodity' ? qtyNum ?? undefined : undefined,
+          avgCostGbp: form.kind === 'commodity' ? costNum ?? undefined : undefined,
         })
       }
       setModalOpen(false)
@@ -954,7 +1050,9 @@ export function MarketsPage() {
         ? cryptoHoldingsValue
         : section === 'equities'
           ? equityHoldingsValue
-          : new Map<string, number>()
+          : section === 'commodities'
+            ? commodityHoldingsValue
+            : new Map<string, number>()
     const totals = sectionTotals(items, quotes, holdings)
     const isCollapsed = searchQuery ? false : collapsed[section]
     const isRateSection = section === 'fx' || section === 'crosses' || section === 'indices'
@@ -1119,6 +1217,9 @@ export function MarketsPage() {
                               { symbol: 'GC=F', name: 'Gold', kind: 'commodity' as const },
                               { symbol: 'SI=F', name: 'Silver', kind: 'commodity' as const },
                               { symbol: 'HG=F', name: 'Copper', kind: 'commodity' as const },
+                              { symbol: 'CL=F', name: 'Crude oil (WTI)', kind: 'commodity' as const },
+                              { symbol: 'BZ=F', name: 'Brent crude', kind: 'commodity' as const },
+                              { symbol: 'NG=F', name: 'Natural gas', kind: 'commodity' as const },
                             ]
                           : [
                               { symbol: '^GSPC', name: 'S&P 500', kind: 'index' as const },
@@ -1177,10 +1278,15 @@ export function MarketsPage() {
                     const label = quoteAvailabilityLabel(q, { refreshing: sectionBusy })
                     return label === 'Live' || label === 'Live · spot'
                   }).length
-                  const unavailableCount = items.filter((item) => {
+                  const unavailableItems = items.filter((item) => {
                     const q = quotes.get(item.id)
                     return quoteAvailabilityLabel(q, { refreshing: sectionBusy }) === 'Unavailable'
-                  }).length
+                  })
+                  const unavailableCount = unavailableItems.length
+                  const reasonBits = unavailableItems
+                    .slice(0, 4)
+                    .map((item) => `${item.symbol} (${unavailableReason(quotes.get(item.id))})`)
+                    .join(' · ')
                   if (liveCount > 0 && unavailableCount > 0) {
                     return (
                       <div
@@ -1188,7 +1294,9 @@ export function MarketsPage() {
                         role="status"
                       >
                         <span className="text-[11px] text-text-muted">
-                          {liveCount} live · {unavailableCount} unavailable in this section
+                          {liveCount} live · {unavailableCount} unavailable
+                          {reasonBits ? ` — ${reasonBits}` : ''}
+                          {unavailableCount > 4 ? '…' : ''}
                         </span>
                         <button
                           type="button"
@@ -1208,7 +1316,9 @@ export function MarketsPage() {
                         role="status"
                       >
                         <span className="text-[11px] text-text-muted">
-                          All quotes unavailable in this section
+                          All quotes unavailable
+                          {reasonBits ? ` — ${reasonBits}` : ''}
+                          {unavailableCount > 4 ? '…' : ''}
                         </span>
                         <button
                           type="button"
@@ -1254,13 +1364,16 @@ export function MarketsPage() {
                   return (
                     <div
                       id={`market-${t.symbol.replace(/[^a-zA-Z0-9]/g, '_')}`}
-                      className={`px-4 sm:px-5 flex items-center gap-2 sm:gap-4 ${
+                      className={`markets-row px-4 sm:px-5 flex items-center gap-2 sm:gap-4 ${
                         compact ? 'py-2 min-h-11' : 'py-3.5'
                       } ${focused ? 'ring-2 ring-inset ring-accent bg-accent/5' : ''} ${
-                        isStaleQuote(q) ? 'markets-row--stale' : ''
+                        isStaleQuote(q) || (fromSync && isPastQuoteFreshnessSla(q))
+                          ? 'markets-row--stale'
+                          : ''
                       }${fromSync ? ' markets-row--from-sync' : ''}${
                         justSyncedPulse && fromSync ? ' sync-just-added' : ''
-                      }`}
+                      }${quoteDetail?.ticker.id === t.id ? ' markets-row--selected' : ''}`}
+                      onClick={() => setQuoteDetail({ ticker: t, quote: q })}
                       onTouchStart={() => {
                         if (sorting) return
                         if (longPressTimer.current) window.clearTimeout(longPressTimer.current)
@@ -1286,7 +1399,7 @@ export function MarketsPage() {
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-1.5">
                           <p className="font-semibold text-text tracking-tight">{t.symbol}</p>
-                          {(t.kind === 'equity' || t.kind === 'index') &&
+                          {(t.kind === 'equity' || t.kind === 'index' || t.kind === 'commodity') &&
                             (() => {
                               const session = marketSessionStatus(t.symbol, t.kind)
                               if (!session) return null
@@ -1432,7 +1545,11 @@ export function MarketsPage() {
                             ]}
                           />
                         ) : (
-                          <div className="flex flex-row gap-1">
+                          <div
+                            className="flex flex-row gap-1"
+                            onClick={(e) => e.stopPropagation()}
+                            onKeyDown={(e) => e.stopPropagation()}
+                          >
                             <button
                               type="button"
                               className="btn-ghost btn-sm p-2 min-h-11 min-w-11"
@@ -1598,6 +1715,33 @@ export function MarketsPage() {
       />
 
       <p className="text-xs text-text-subtle mb-2">{statusHint}</p>
+      {finnhubMissing ? (
+        <div
+          className="markets-finnhub-missing-chip mb-3 px-3 py-2 text-xs border border-amber-500/45 bg-amber-500/10 text-amber-900 dark:text-amber-100 rounded-lg md:rounded-none"
+          role="status"
+        >
+          Finnhub key missing on this device — equities rely on Yahoo.{' '}
+          <Link to="/settings#prices" className="font-semibold underline hover:no-underline">
+            Add key in Settings
+          </Link>
+        </div>
+      ) : null}
+      {slaChip ? (
+        <div
+          className="markets-quote-sla-chip mb-3 px-3 py-2 text-xs border border-border bg-surface/50 rounded-lg md:rounded-none flex flex-wrap items-center justify-between gap-2"
+          role="status"
+        >
+          <span>{slaChip}</span>
+          <button
+            type="button"
+            className="btn-secondary btn-sm min-h-9"
+            disabled={refreshing}
+            onClick={() => void refresh()}
+          >
+            Refresh now
+          </button>
+        </div>
+      ) : null}
       <div
         className="markets-provider-health mb-4 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-text-subtle"
         aria-label="Markets provider health this session"
@@ -1778,22 +1922,74 @@ export function MarketsPage() {
         <MarketsHoldingsSkeleton rows={5} label="Loading market quotes" className="mb-6" />
       ) : null}
 
-      {sectionSorting ? (
-        <ReorderList
-          items={sectionOrder}
-          getId={(s) => s}
-          onReorder={(next) => {
-            reorderMarketSections(next)
-            setSectionOrder(next)
-          }}
-          itemClassName="mb-6"
-          className="markets-section-reorder-list"
-        >
-          {(section) => renderSection(section)}
-        </ReorderList>
-      ) : (
-        sectionOrder.map((section) => renderSection(section))
-      )}
+      <div
+        className={`markets-master-detail${quoteDetail ? ' markets-master-detail--open' : ''}`}
+      >
+        <div className="markets-master-detail-list min-w-0">
+          {sectionSorting ? (
+            <ReorderList
+              items={sectionOrder}
+              getId={(s) => s}
+              onReorder={(next) => {
+                reorderMarketSections(next)
+                setSectionOrder(next)
+              }}
+              itemClassName="mb-6"
+              className="markets-section-reorder-list"
+            >
+              {(section) => renderSection(section)}
+            </ReorderList>
+          ) : (
+            sectionOrder.map((section) => renderSection(section))
+          )}
+        </div>
+        {quoteDetail ? (
+          <aside
+            className="markets-master-detail-panel surface p-4 border border-border hidden md:block sticky top-20 self-start"
+            aria-label={`Selected ${quoteDetail.ticker.symbol} detail`}
+          >
+            <p className="label-uppercase mb-1">Selected</p>
+            <h2 className="text-xl font-bold tracking-tight mb-1">{quoteDetail.ticker.symbol}</h2>
+            <p className="text-sm text-text-muted mb-3">{quoteDetail.ticker.name}</p>
+            {quoteDetail.quote && quoteDetail.quote.last > 0 ? (
+              <p className={`text-2xl font-bold tabular-nums mb-2 ${privacyClass(privacy)}`}>
+                {formatMarketLast(quoteDetail.quote)}
+              </p>
+            ) : (
+              <p className="text-sm text-text-subtle mb-2">No live print</p>
+            )}
+            {quoteDetail.ticker.kind === 'commodity' &&
+            quoteDetail.ticker.quantity != null &&
+            quoteDetail.ticker.quantity > 0 &&
+            quoteDetail.quote &&
+            quoteDetail.quote.last > 0 ? (
+              <p className={`text-sm text-text-muted mb-2 tabular-nums ${privacyClass(privacy)}`}>
+                Paper {quoteDetail.ticker.quantity} × last ={' '}
+                {formatGBP(quoteDetail.ticker.quantity * quoteDetail.quote.last)}
+                {quoteDetail.ticker.avgCostGbp != null
+                  ? ` · cost ${formatGBP(quoteDetail.ticker.quantity * quoteDetail.ticker.avgCostGbp)}`
+                  : ''}
+              </p>
+            ) : null}
+            <div className="flex flex-wrap gap-2 mt-3">
+              <button
+                type="button"
+                className="btn-secondary btn-sm"
+                onClick={() => openEdit(quoteDetail.ticker)}
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                className="btn-ghost btn-sm"
+                onClick={() => setQuoteDetail(null)}
+              >
+                Close
+              </button>
+            </div>
+          </aside>
+        ) : null}
+      </div>
 
       <Modal open={modalOpen} title={modalTitle} onClose={() => setModalOpen(false)}>
         <div className="space-y-4">
@@ -1903,7 +2099,10 @@ export function MarketsPage() {
             </select>
           </Field>
           {form.kind === 'equity' ? (
-            <Field label="Dividend yield % (optional)" hint="Manual stub — shown on Markets equity rows">
+            <Field
+              label="Dividend yield % (optional)"
+              hint="Auto-filled from Finnhub when blank; you can override"
+            >
               <input
                 className="w-full"
                 type="number"
@@ -1915,6 +2114,37 @@ export function MarketsPage() {
                 placeholder="e.g. 2.4"
               />
             </Field>
+          ) : null}
+          {form.kind === 'commodity' ? (
+            <>
+              <Field
+                label="Paper quantity (optional)"
+                hint="Units × last quote → section value (syncs with watchlist)"
+              >
+                <input
+                  className="w-full"
+                  type="number"
+                  min={0}
+                  step="any"
+                  inputMode="decimal"
+                  value={form.quantity}
+                  onChange={(e) => setForm((f) => ({ ...f, quantity: e.target.value }))}
+                  placeholder="e.g. 10"
+                />
+              </Field>
+              <Field label="Avg cost GBP / unit (optional)" hint="For paper P&L on the detail pane">
+                <input
+                  className="w-full"
+                  type="number"
+                  min={0}
+                  step="any"
+                  inputMode="decimal"
+                  value={form.avgCostGbp}
+                  onChange={(e) => setForm((f) => ({ ...f, avgCostGbp: e.target.value }))}
+                  placeholder="e.g. 1800"
+                />
+              </Field>
+            </>
           ) : null}
           {formError ? (
             <p className="text-sm text-red-500" role="alert">
@@ -2038,6 +2268,15 @@ export function MarketsPage() {
             className={refreshing || syncingPrices ? 'animate-spin' : undefined}
           />
           {syncingPrices ? 'Syncing…' : 'Sync prices'}
+        </button>
+        <button
+          type="button"
+          className="btn-secondary btn-sm inline-flex items-center gap-1.5"
+          disabled={refreshing}
+          aria-label="Retry unavailable quotes"
+          onClick={() => void retryUnavailable()}
+        >
+          Retry unavailable
         </button>
         <button
           type="button"

@@ -241,7 +241,10 @@ export function loadNewsArticlesCache(): NewsArticlesCache {
   }
 }
 
-export function saveNewsArticlesCache(cache: NewsArticlesCache): void {
+export function saveNewsArticlesCache(
+  cache: NewsArticlesCache,
+  opts?: { markDirty?: boolean },
+): void {
   try {
     localStorage.setItem(
       ARTICLES_KEY,
@@ -255,6 +258,48 @@ export function saveNewsArticlesCache(cache: NewsArticlesCache): void {
     )
   } catch {
     /* quota */
+  }
+  if (opts?.markDirty) {
+    void import('../services/sync/workspaceDirty').then((m) => m.markWorkspaceChangedForSync())
+  }
+}
+
+/** Last-good headlines for fullArchive / sync. */
+export function exportNewsArticlesForBackup(): NewsArticlesCache {
+  return loadNewsArticlesCache()
+}
+
+/** Merge remote last-good headlines (prefer newer fetchedAt; union Top 10). */
+export function importNewsArticlesFromBackup(raw: unknown): void {
+  if (!raw || typeof raw !== 'object') return
+  const remote = raw as NewsArticlesCache
+  const local = loadNewsArticlesCache()
+  const remoteAt = Date.parse(remote.fetchedAt || '') || 0
+  const localAt = Date.parse(local.fetchedAt || '') || 0
+  const preferRemote = remoteAt >= localAt && remoteAt > 0
+  const top = preferRemote
+    ? (Array.isArray(remote.top) && remote.top.length > 0 ? remote.top : local.top)
+    : local.top.length > 0
+      ? local.top
+      : Array.isArray(remote.top)
+        ? remote.top
+        : []
+  const byTag = { ...(local.byTag || {}) }
+  for (const [k, v] of Object.entries(remote.byTag || {})) {
+    if (!Array.isArray(v) || v.length === 0) continue
+    if (!byTag[k] || byTag[k]!.length === 0 || preferRemote) byTag[k] = v
+  }
+  saveNewsArticlesCache({
+    top: top.slice(0, 30),
+    byTag,
+    fetchedAt: preferRemote
+      ? remote.fetchedAt || local.fetchedAt
+      : local.fetchedAt || remote.fetchedAt,
+  })
+  try {
+    window.dispatchEvent(new CustomEvent('mydsp-news-articles'))
+  } catch {
+    /* ignore */
   }
 }
 

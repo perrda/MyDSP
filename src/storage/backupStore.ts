@@ -17,7 +17,12 @@ import {
   importMarketQuotesFromBackup,
   importMarketsFromBackup,
 } from './marketsStore'
-import { exportNewsForBackup, importNewsFromBackup } from './newsStore'
+import {
+  exportNewsArticlesForBackup,
+  exportNewsForBackup,
+  importNewsArticlesFromBackup,
+  importNewsFromBackup,
+} from './newsStore'
 import { exportNavLayoutForBackup, importNavLayoutFromBackup } from './navOrder'
 import {
   exportBottomNavSlotsForBackup,
@@ -69,6 +74,8 @@ export interface FullBackupRecord extends FullBackupMeta {
   marketQuotes?: unknown
   /** Optional News tags / feed prefs (workspace-level) */
   news?: unknown
+  /** Optional last-good News headlines cache (Top + By ticker) */
+  newsArticles?: unknown
   /** Optional YouTube favourite channels (workspace-level) */
   youtube?: unknown
   /** Optional sidebar Favourites / Others layout (workspace-level) */
@@ -90,6 +97,7 @@ function backupCanonical(record: Pick<
   | 'markets'
   | 'marketQuotes'
   | 'news'
+  | 'newsArticles'
   | 'youtube'
   | 'navLayout'
   | 'bottomNavSlots'
@@ -102,6 +110,7 @@ function backupCanonical(record: Pick<
     markets: record.markets ?? null,
     marketQuotes: record.marketQuotes ?? null,
     news: record.news ?? null,
+    newsArticles: record.newsArticles ?? null,
     youtube: record.youtube ?? null,
     navLayout: record.navLayout ?? null,
     bottomNavSlots: record.bottomNavSlots ?? null,
@@ -119,6 +128,7 @@ export async function computeFullBackupChecksum(
     | 'markets'
     | 'marketQuotes'
     | 'news'
+    | 'newsArticles'
     | 'youtube'
     | 'navLayout'
     | 'bottomNavSlots'
@@ -174,6 +184,7 @@ export function captureFullWorkspace(): Omit<
     markets: exportMarketsForBackup(),
     marketQuotes: exportMarketQuotesForBackup(),
     news: exportNewsForBackup(),
+    newsArticles: exportNewsArticlesForBackup(),
     youtube: exportYoutubeForBackup(),
     navLayout: exportNavLayoutForBackup() ?? undefined,
     bottomNavSlots: exportBottomNavSlotsForBackup() ?? undefined,
@@ -364,6 +375,9 @@ export async function restoreFullWorkspace(record: FullBackupRecord): Promise<vo
   if (record.news) {
     importNewsFromBackup(record.news)
   }
+  if (record.newsArticles) {
+    importNewsArticlesFromBackup(record.newsArticles)
+  }
   if (record.youtube) {
     importYoutubeFromBackup(record.youtube)
   }
@@ -394,7 +408,9 @@ function fullBackupPayload(record: FullBackupRecord) {
       ? { documentBlobsSkipped: record.documentBlobsSkipped }
       : {}),
     ...(record.markets ? { markets: record.markets } : {}),
+    ...(record.marketQuotes ? { marketQuotes: record.marketQuotes } : {}),
     ...(record.news ? { news: record.news } : {}),
+    ...(record.newsArticles ? { newsArticles: record.newsArticles } : {}),
     ...(record.youtube ? { youtube: record.youtube } : {}),
     ...(record.navLayout ? { navLayout: record.navLayout } : {}),
     ...(record.bottomNavSlots ? { bottomNavSlots: record.bottomNavSlots } : {}),

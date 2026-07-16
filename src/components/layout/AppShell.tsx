@@ -25,9 +25,12 @@ import { useShowBottomNav } from '../../hooks/useShowBottomNav'
 import { useIdlePrefetch } from '../../hooks/useIdlePrefetch'
 import { triggerSuccessFlash } from '../../utils/successFlash'
 
-/** Pull-to-refresh only on Today (index) and Markets — avoids fighting scroll on dense lists. */
+/** Pull-to-refresh on Today, Markets, holdings, and News (indicator only — no page jump). */
 function allowPullToRefresh(pathname: string): boolean {
-  return pathname === '/' || pathname === '/markets'
+  if (pathname === '/' || pathname === '/markets') return true
+  if (pathname === '/equities' || pathname === '/crypto' || pathname === '/news') return true
+  if (pathname.startsWith('/equities/') || pathname.startsWith('/crypto/')) return true
+  return false
 }
 
 const titles: Record<string, { eyebrow: string; title: string }> = {
