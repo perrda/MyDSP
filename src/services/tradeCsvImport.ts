@@ -32,10 +32,21 @@ export function detectBrokerPreset(headers: string[]): BrokerTradePreset {
   const exact = (...names: string[]) => names.some((n) => h.includes(n.replace(/\s+/g, '')))
 
   // Coinbase before IBKR: "Spot Price…" contains the substring "tprice"
-  if (any('quantitytransacted') || any('spotpriceattransaction') || exact('transactiontype')) {
+  if (
+    any('quantitytransacted') ||
+    any('spotpriceattransaction') ||
+    exact('transactiontype') ||
+    any('advancedtrade', 'productid') ||
+    (any('spot price') && any('subtotal'))
+  ) {
     return BROKER_PRESETS[2]
   }
-  if (any('no.ofshares', 'nofshares') || (exact('action') && exact('time') && any('price/share', 'priceshare'))) {
+  if (
+    any('no.ofshares', 'nofshares') ||
+    (exact('action') && exact('time') && any('price/share', 'priceshare', 'fillprice')) ||
+    (any('trading212') && any('ticker')) ||
+    (exact('ticker') && any('fill price', 'fillprice') && any('currency (price)', 'currencypirce', 'currencynprice'))
+  ) {
     return BROKER_PRESETS[1]
   }
   if (
@@ -44,7 +55,9 @@ export function detectBrokerPreset(headers: string[]): BrokerTradePreset {
     exact('commfee') ||
     (any('buy/sell') && exact('quantity')) ||
     (exact('tradedate') && any('buy/sell', 'buysell')) ||
-    any('ibcommission', 'ibkr')
+    any('ibcommission', 'ibkr') ||
+    (any('tradeprice') && any('ibcommission')) ||
+    (exact('symbol') && any('proceeds') && any('ibcommission', 'comm/fee', 'commission'))
   ) {
     return BROKER_PRESETS[0]
   }

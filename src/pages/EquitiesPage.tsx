@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowUpDown } from 'lucide-react'
 import { AllocationRing } from '../components/charts/AllocationRing'
@@ -16,6 +16,7 @@ import { applyTrade } from '../domain/trades'
 import { equityNeedsUsdToGbp } from '../domain/equityCurrency'
 import { equityUnitPriceGbp } from '../domain/migrateEquityGbp'
 import { applyLastSyncedQuotesToHoldings } from '../domain/lastSyncedHoldings'
+import { appendHoldingPrices } from '../domain/holdingHistory'
 import {
   equityDriftHits,
   isSymbolDrifting,
@@ -28,6 +29,7 @@ import { applySortOrder, sortBySortOrder } from '../utils/reorder'
 import {
   formatGBP,
   formatGBPPrecise,
+  formatDate,
   formatPct,
   formatQty,
   getDisplayCurrency,
@@ -42,6 +44,16 @@ function nextId(items: { id: number }[]): number {
 
 const emptyForm = { symbol: '', name: '', shares: '', avgCost: '', livePrice: '' }
 
+function todayIsoDate(): string {
+  const now = new Date()
+  const local = new Date(now.getTime() - now.getTimezoneOffset() * 60_000)
+  return local.toISOString().slice(0, 10)
+}
+
+function isCorporateActionDue(date?: string): boolean {
+  return Boolean(date && /^\d{4}-\d{2}-\d{2}$/.test(date) && date <= todayIsoDate())
+}
+
 export function EquitiesPage() {
   const { data, breakdown, privacy, setData, fxRates, refreshing } = usePortfolio()
   const { error: showError, showToast } = useToasts()
@@ -54,12 +66,20 @@ export function EquitiesPage() {
   const [tradeFor, setTradeFor] = useState<EquityHolding | null>(null)
   const [tradeSide, setTradeSide] = useState<'buy' | 'sell'>('buy')
   const [sorting, setSorting] = useState(false)
+  const corpActionToastKeyRef = useRef('')
 
   const holdings = useMemo(() => sortBySortOrder(data.equities), [data.equities])
   const displayCcy = getDisplayCurrency()
   const showSkeleton = refreshing && holdings.length === 0
   const driftHits = useMemo(() => equityDriftHits(holdings), [holdings, data.settings.lastPriceUpdate])
   const driftThreshold = loadHoldingsDriftThresholdPct()
+  const dueCorporateActions = useMemo(
+    () =>
+      holdings.filter(
+        (e) => e.corporateActionNote && isCorporateActionDue(e.corporateActionDate),
+      ),
+    [holdings],
+  )
   const yieldBySymbol = useMemo(() => {
     const map = new Map<string, number>()
     for (const t of listMarketTickers('equity')) {
@@ -90,6 +110,53 @@ export function EquitiesPage() {
       },
     })
   }
+
+  const applyMarketsPriceForEquity = (holding: EquityHolding, marketPrice: number) => {
+    if (!(marketPrice > 0)) return
+    const snapshot = data
+    const now = new Date().toISOString()
+    const next = appendHoldingPrices(
+      {
+        ...data,
+        equities: data.equities.map((e) =>
+          e.id === holding.id ? { ...e, livePrice: marketPrice } : e,
+        ),
+        settings: { ...data.settings, lastPriceUpdate: now },
+      },
+      [{ kind: 'equity', symbol: holding.symbol, price: marketPrice }],
+      now,
+    )
+    setData(() => next)
+    showToast({
+      type: 'success',
+      title: 'Holding price updated',
+      message: `${holding.symbol} set from Markets last quote`,
+      duration: 8000,
+      action: {
+        label: 'Undo',
+        onClick: () => setData(() => snapshot),
+      },
+    })
+  }
+
+  useEffect(() => {
+    if (dueCorporateActions.length === 0) return
+    const key = dueCorporateActions
+      .map((e) => `${e.id}:${e.corporateActionDate}`)
+      .sort()
+      .join('|')
+    if (corpActionToastKeyRef.current === key) return
+    corpActionToastKeyRef.current = key
+    const first = dueCorporateActions[0]!
+    showToast({
+      type: 'warning',
+      title: 'Corporate action due',
+      message: `${first.symbol} effective ${formatDate(first.corporateActionDate!)}${
+        dueCorporateActions.length > 1 ? ` · +${dueCorporateActions.length - 1} more` : ''
+      }`,
+      duration: 9000,
+    })
+  }, [dueCorporateActions, showToast])
 
   const pieSlices = useMemo(
     () =>
@@ -134,6 +201,7 @@ export function EquitiesPage() {
       contactUrl: editing?.contactUrl,
       yieldPct: editing?.yieldPct,
       corporateActionNote: editing?.corporateActionNote,
+      corporateActionDate: editing?.corporateActionDate,
     }
     setData((prev) => ({
       ...prev,
@@ -229,11 +297,16 @@ export function EquitiesPage() {
 
       {driftHits.length > 0 ? (
         <div
-          className="mb-4 px-4 py-3 border border-amber-500/40 bg-amber-500/10 text-sm text-amber-800 dark:text-amber-200"
+          className="mb-4 px-4 py-3 border border-amber-500/40 bg-amber-500/10 text-sm text-amber-800 dark:text-amber-200 flex flex-wrap items-center justify-between gap-3"
           role="status"
         >
-          Markets live ≠ holding price by &gt;{driftThreshold}% on{' '}
-          {driftHits.map((h) => h.symbol).join(', ')}. Refresh Markets or fill last synced.
+          <span>
+            Markets live ≠ holding price by &gt;{driftThreshold}% on{' '}
+            {driftHits.map((h) => h.symbol).join(', ')}. Refresh Markets or fill last synced.
+          </span>
+          <button type="button" className="btn-secondary btn-sm bg-bg-elevated/80" onClick={fillFromLastSynced}>
+            Use Markets prices
+          </button>
         </div>
       ) : null}
 
@@ -310,8 +383,10 @@ export function EquitiesPage() {
               equityNeedsUsdToGbp(e.symbol) && priceGbp > 0
                 ? convertFromGbp(priceGbp, 'USD', fxRates)
                 : null
-            const drifting = isSymbolDrifting(driftHits, e.symbol)
+            const driftHit = driftHits.find((h) => isSymbolDrifting([h], e.symbol))
+            const drifting = Boolean(driftHit)
             const yieldPct = yieldBySymbol.get(e.symbol.toUpperCase())
+            const corpActionDue = isCorporateActionDue(e.corporateActionDate)
             return (
               <SwipeHoldingRow
                 onBuy={() => {
@@ -333,9 +408,17 @@ export function EquitiesPage() {
                     {e.corporateActionNote ? (
                       <span
                         className="text-[10px] uppercase tracking-wider font-semibold px-1.5 py-0.5 border border-amber-500/45 text-amber-700 dark:text-amber-300"
-                        title={e.corporateActionNote}
+                        title={[
+                          e.corporateActionNote,
+                          e.corporateActionDate ? `Effective ${formatDate(e.corporateActionDate)}` : '',
+                        ].filter(Boolean).join(' · ')}
                       >
                         Corp
+                      </span>
+                    ) : null}
+                    {corpActionDue ? (
+                      <span className="text-[10px] uppercase tracking-wider font-semibold px-1.5 py-0.5 border border-amber-500/45 bg-amber-500/10 text-amber-700 dark:text-amber-300">
+                        Due
                       </span>
                     ) : null}
                   </div>
@@ -350,7 +433,21 @@ export function EquitiesPage() {
                       Yield {yieldPct.toFixed(yieldPct >= 10 ? 1 : 2)}%
                     </p>
                   ) : null}
+                  {e.corporateActionDate ? (
+                    <p className="text-[11px] text-text-subtle tabular-nums mt-0.5">
+                      Effective {formatDate(e.corporateActionDate)}
+                    </p>
+                  ) : null}
                 </Link>
+                {driftHit ? (
+                  <button
+                    type="button"
+                    className="btn-secondary btn-sm border-amber-500/40 text-amber-700 dark:text-amber-300 min-h-11 md:min-h-9"
+                    onClick={() => applyMarketsPriceForEquity(e, driftHit.marketPrice)}
+                  >
+                    Use Markets price
+                  </button>
+                ) : null}
                 <div className={`text-sm tabular-nums min-w-[8.5rem] ${privacyClass(privacy)}`}>
                   <p className="font-semibold">{formatGBP(value)}</p>
                   <p className="text-xs text-text-muted">

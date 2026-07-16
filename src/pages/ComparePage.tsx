@@ -31,6 +31,17 @@ import {
   weekDeltaFromHistory,
 } from '../domain/weeklyDigest'
 
+function quoteAgeLabel(iso?: string): string {
+  if (!iso) return 'unknown'
+  const t = new Date(iso).getTime()
+  if (!Number.isFinite(t)) return 'unknown'
+  const sec = Math.round((Date.now() - t) / 1000)
+  if (sec < 45) return 'just now'
+  if (sec < 3600) return `${Math.max(1, Math.round(sec / 60))}m ago`
+  if (sec < 86400) return `${Math.max(1, Math.round(sec / 3600))}h ago`
+  return `${Math.max(1, Math.round(sec / 86400))}d ago`
+}
+
 export function ComparePage() {
   const { privacy, portfolios, activeId, switchPortfolio, reload } = usePortfolio()
   const { error: showError, showToast } = useToasts()
@@ -56,6 +67,20 @@ export function ComparePage() {
     const set = new Set(selected)
     return all.filter((r) => set.has(r.id))
   }, [selected, scanToken])
+
+  const portfolioQuoteAges = useMemo(() => {
+    void scanToken
+    void filling
+    const ages = new Map<string, string>()
+    for (const p of portfolios) {
+      try {
+        ages.set(p.id, quoteAgeLabel(loadPortfolio(p.id).settings.lastPriceUpdate))
+      } catch {
+        ages.set(p.id, 'unknown')
+      }
+    }
+    return ages
+  }, [portfolios, scanToken, filling])
 
   const weekSnap = useMemo(() => {
     const all = buildPortfolioComparison()
@@ -338,6 +363,12 @@ export function ComparePage() {
                       primary
                     </span>
                   )}
+                  <span
+                    className="compare-quote-age-chip mt-2 block w-fit border border-border bg-surface-hover px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-text-subtle"
+                    title="Age of the latest quote applied to this portfolio"
+                  >
+                    as of {portfolioQuoteAges.get(r.id) ?? 'unknown'}
+                  </span>
                 </td>
                 <td className="p-4 text-right tabular-nums font-medium">
                   {formatGBP(r.netWorth)}

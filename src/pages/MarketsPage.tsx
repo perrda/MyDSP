@@ -36,7 +36,12 @@ import {
   type MarketsDensity,
 } from '../domain/markets'
 import { addHoldingsMissingFromWatchlist, holdingsMissingFromWatchlist } from '../domain/addHoldingsToWatchlist'
-import { checkFxTriangles, formatFxTriangleWarning } from '../domain/fxTriangle'
+import {
+  checkFxTriangles,
+  formatFxTriangleSuggestedRate,
+  formatFxTriangleWarning,
+  type FxTriangleHit,
+} from '../domain/fxTriangle'
 import { marketSessionStatus } from '../domain/marketSession'
 import { shouldShowCachedMode } from '../domain/marketsCachedMode'
 import { heatColorForChangePct, heatTextClassForChangePct } from '../domain/marketsHeat'
@@ -156,6 +161,40 @@ function formatLastDisplay(q: MarketQuote | undefined): string {
   }
   // Crypto + equity quotes are stored in GBP — convert to the toolbar display CCY
   return formatGBPMarket(q.last)
+}
+
+function matchesMarketsSearch(t: MarketTicker, query: string): boolean {
+  if (!query) return true
+  const haystack = `${t.symbol} ${t.name}`.toLowerCase()
+  return haystack.includes(query)
+}
+
+function sortByYieldDesc(tickers: MarketTicker[]): MarketTicker[] {
+  return [...tickers].sort((a, b) => {
+    const ay = a.yieldPct != null && a.yieldPct > 0 ? a.yieldPct : -1
+    const by = b.yieldPct != null && b.yieldPct > 0 ? b.yieldPct : -1
+    if (by !== ay) return by - ay
+    return a.sortOrder - b.sortOrder
+  })
+}
+
+function fxTriangleSuggestion(
+  hit: FxTriangleHit,
+  tickers: MarketTicker[],
+): { ticker: MarketTicker; rate: number; pair: string } | null {
+  const target = parseRatePair(hit.pairs[2])
+  if (!target || !(hit.implied > 0)) return null
+  for (const ticker of tickers) {
+    const pair = parseRatePair(ticker.symbol)
+    if (!pair) continue
+    if (pair.base === target.base && pair.quote === target.quote) {
+      return { ticker, rate: hit.implied, pair: hit.pairs[2] }
+    }
+    if (pair.base === target.quote && pair.quote === target.base) {
+      return { ticker, rate: 1 / hit.implied, pair: `${target.quote}/${target.base}` }
+    }
+  }
+  return null
 }
 
 /** Freshest quote `updatedAt` in the section, else Markets `lastRefreshAt`. */
@@ -375,6 +414,8 @@ export function MarketsPage() {
   )
   const [fxExplainerOpen, setFxExplainerOpen] = useState(false)
   const [tagFilter, setTagFilter] = useState<MarketTickerTag | 'All'>('All')
+  const [searchText, setSearchText] = useState('')
+  const [yieldSort, setYieldSort] = useState(false)
   const [online, setOnline] = useState(() => isOnline())
   const longPressTimer = useRef<number | null>(null)
   const refreshInFlight = useRef(false)
@@ -448,19 +489,30 @@ export function MarketsPage() {
     return () => window.clearTimeout(retry)
   }, [focusSymbol, collapsed, tickers])
 
+  const searchQuery = searchText.trim().toLowerCase()
+
   const bySection = useMemo(
     () => {
       const tagged =
         tagFilter === 'All' ? tickers : tickers.filter((t) => t.tag === tagFilter)
+      const filtered = searchQuery
+        ? tagged.filter((t) => matchesMarketsSearch(t, searchQuery))
+        : tagged
+      const equities = filtered.filter((t) => t.kind === 'equity')
       return {
-        crypto: tagged.filter((t) => t.kind === 'crypto'),
-        equities: tagged.filter((t) => t.kind === 'equity'),
-        indices: tagged.filter((t) => t.kind === 'index'),
-        fx: tagged.filter((t) => t.kind === 'fx'),
-        crosses: tagged.filter((t) => t.kind === 'cross'),
+        crypto: filtered.filter((t) => t.kind === 'crypto'),
+        equities: yieldSort ? sortByYieldDesc(equities) : equities,
+        indices: filtered.filter((t) => t.kind === 'index'),
+        fx: filtered.filter((t) => t.kind === 'fx'),
+        crosses: filtered.filter((t) => t.kind === 'cross'),
       }
     },
-    [tickers, tagFilter],
+    [tickers, tagFilter, searchQuery, yieldSort],
+  )
+
+  const filteredTickerCount = useMemo(
+    () => Object.values(bySection).reduce((sum, items) => sum + items.length, 0),
+    [bySection],
   )
 
   const fxTriangleHits = useMemo(() => {
@@ -472,6 +524,11 @@ export function MarketsPage() {
       .filter((x): x is { symbol: string; last: number } => x != null)
     return checkFxTriangles(fxQuotes)
   }, [bySection.fx, quotes])
+
+  const firstFxTriangleSuggestion = useMemo(
+    () => (fxTriangleHits[0] ? fxTriangleSuggestion(fxTriangleHits[0], bySection.fx) : null),
+    [fxTriangleHits, bySection.fx],
+  )
 
   const statusHint = useMemo(() => {
     const health = formatMarketsProviderHealthHint()
@@ -572,6 +629,34 @@ export function MarketsPage() {
       }
     },
     [refresh],
+  )
+
+  const applySuggestedFxRate = useCallback(
+    (suggestion: { ticker: MarketTicker; rate: number }) => {
+      const now = new Date().toISOString()
+      setQuotes((prev) => {
+        const pair = parseRatePair(suggestion.ticker.symbol)
+        const current = prev.get(suggestion.ticker.id)
+        const next = new Map(prev)
+        next.set(suggestion.ticker.id, {
+          symbol: suggestion.ticker.symbol,
+          kind: 'fx',
+          last: suggestion.rate,
+          changeAbs: current?.changeAbs ?? 0,
+          changePct: current?.changePct ?? 0,
+          sparkline: current?.sparkline ?? [],
+          unit: pair?.quote ?? suggestion.ticker.symbol.split('/')[1] ?? '',
+          decimals: pair ? rateDecimals(pair.quote) : current?.decimals ?? 4,
+          source: 'fx-triangle-suggested',
+          updatedAt: now,
+        })
+        saveMarketQuotesCache(next)
+        return next
+      })
+      setMarketsLastRefresh(now)
+      setError(`Suggested cross applied to ${suggestion.ticker.symbol}`)
+    },
+    [],
   )
 
   const addFromHoldings = useCallback(
@@ -710,7 +795,7 @@ export function MarketsPage() {
           ? equityHoldingsValue
           : new Map<string, number>()
     const totals = sectionTotals(items, quotes, holdings)
-    const isCollapsed = collapsed[section]
+    const isCollapsed = searchQuery ? false : collapsed[section]
     const isRateSection = section === 'fx' || section === 'crosses' || section === 'indices'
     const asOf = sectionAsOfLabel(items, quotes, loadMarketsState().lastRefreshAt)
 
@@ -797,10 +882,22 @@ export function MarketsPage() {
               <div className="px-4 py-4 space-y-3">
                 <EmptyStateInline
                   illustration
-                  message={`No ${meta.emptyLabel} yet — add one or seed a preset.`}
-                  action={{ label: meta.addLabel, onClick: () => openCreate(meta.kind) }}
+                  message={
+                    searchQuery
+                      ? `No ${meta.emptyLabel} matches "${searchText.trim()}".`
+                      : tagFilter !== 'All'
+                        ? `No ${meta.emptyLabel} tagged ${tagFilter}.`
+                        : `No ${meta.emptyLabel} yet — add one or seed a preset.`
+                  }
+                  action={
+                    searchQuery || tagFilter !== 'All'
+                      ? undefined
+                      : { label: meta.addLabel, onClick: () => openCreate(meta.kind) }
+                  }
                 />
-                {section === 'crypto' || section === 'equities' || section === 'indices' ? (
+                {!searchQuery &&
+                tagFilter === 'All' &&
+                (section === 'crypto' || section === 'equities' || section === 'indices') ? (
                   <div className="flex flex-wrap gap-2 pb-2">
                     {(section === 'crypto'
                       ? [
@@ -1198,7 +1295,10 @@ export function MarketsPage() {
               type="button"
               className={`btn-secondary inline-flex items-center gap-2 ${sorting ? 'border-accent text-accent' : ''}`}
               aria-pressed={sorting}
-              onClick={() => setSorting((v) => !v)}
+              onClick={() => {
+                setYieldSort(false)
+                setSorting((v) => !v)
+              }}
             >
               <ArrowUpDown size={14} strokeWidth={1.75} />
               {sorting ? 'Done' : 'Sort'}
@@ -1208,6 +1308,34 @@ export function MarketsPage() {
       />
 
       <p className="text-xs text-text-subtle mb-4">{statusHint}</p>
+
+      <div className="markets-in-list-search sticky top-0 z-[9] -mx-1 mb-4 bg-bg/95 px-1 py-2 backdrop-blur supports-[backdrop-filter]:bg-bg/80">
+        <div className="surface border border-border-strong px-3 py-2.5">
+          <label className="sr-only" htmlFor="markets-search-input">
+            Search watchlist
+          </label>
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              id="markets-search-input"
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              placeholder="Search watchlist by symbol or name"
+              aria-label="Search watchlist by symbol or name"
+              className="min-w-[14rem] flex-1"
+            />
+            {searchText ? (
+              <button type="button" className="btn-ghost btn-sm" onClick={() => setSearchText('')}>
+                Clear
+              </button>
+            ) : null}
+          </div>
+          <p className="mt-1.5 text-[11px] text-text-subtle">
+            {searchQuery
+              ? `${filteredTickerCount}/${tickers.length} watchlist match${filteredTickerCount === 1 ? '' : 'es'}`
+              : `${tickers.length} watchlist item${tickers.length === 1 ? '' : 's'}`}
+          </p>
+        </div>
+      </div>
 
       {cachedMode ? (
         <div
@@ -1239,13 +1367,27 @@ export function MarketsPage() {
               ? ` · +${fxTriangleHits.length - 1} more`
               : ''}
           </p>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <p className="text-xs opacity-90">
+              Suggested cross: {formatFxTriangleSuggestedRate(fxTriangleHits[0]!)}
+            </p>
+            {firstFxTriangleSuggestion ? (
+              <button
+                type="button"
+                className="btn-secondary btn-sm bg-bg-elevated/80"
+                onClick={() => applySuggestedFxRate(firstFxTriangleSuggestion)}
+              >
+                Use suggested
+              </button>
+            ) : null}
+          </div>
         </div>
       ) : null}
 
       <div
         className="flex flex-wrap gap-2 mb-5"
         role="group"
-        aria-label="Filter watchlist by tag"
+        aria-label="Filter and sort watchlist"
       >
         {(['All', ...MARKET_TICKER_TAGS] as const).map((tag) => {
           const on = tagFilter === tag
@@ -1261,6 +1403,18 @@ export function MarketsPage() {
             </button>
           )
         })}
+        <button
+          type="button"
+          className={`btn-sm ${yieldSort ? 'btn-primary' : 'btn-ghost'}`}
+          aria-pressed={yieldSort}
+          onClick={() => {
+            setYieldSort((v) => !v)
+            setSorting(false)
+          }}
+          title="Sort equity watchlist by dividend yield"
+        >
+          Yield %
+        </button>
       </div>
 
       {(initialLoad || refreshing) &&

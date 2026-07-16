@@ -1,4 +1,4 @@
-import { useMemo, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { useEffect, useMemo, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Plus,
@@ -47,13 +47,13 @@ import { calculateJobPipelineCounts } from '../domain/jobPipeline'
 import { applySortOrder, sortBySortOrder } from '../utils/reorder'
 import { formatNativeCurrency, privacyClass } from '../utils/format'
 
-const KANBAN_COLUMNS: Array<{ status: JobStatus[]; title: string; color: string }> = [
-  { status: ['wishlist', 'researching'], title: 'Wishlist', color: 'border-border-strong' },
-  { status: ['applying'], title: 'Applying', color: 'border-accent' },
-  { status: ['applied', 'screening'], title: 'Applied', color: 'border-amber-500' },
-  { status: ['interviewing'], title: 'Interview', color: 'border-emerald-500' },
-  { status: ['offer', 'accepted'], title: 'Offer', color: 'border-green-500' },
-  { status: ['rejected', 'withdrawn', 'archived'], title: 'Rejected', color: 'border-red-500' },
+const KANBAN_COLUMNS: Array<{ id: string; status: JobStatus[]; title: string; color: string }> = [
+  { id: 'wishlist', status: ['wishlist', 'researching'], title: 'Wishlist', color: 'border-border-strong' },
+  { id: 'applying', status: ['applying'], title: 'Applying', color: 'border-accent' },
+  { id: 'applied', status: ['applied', 'screening'], title: 'Applied', color: 'border-amber-500' },
+  { id: 'interview', status: ['interviewing'], title: 'Interview', color: 'border-emerald-500' },
+  { id: 'offer', status: ['offer', 'accepted'], title: 'Offer', color: 'border-green-500' },
+  { id: 'closed', status: ['rejected', 'withdrawn', 'archived'], title: 'Rejected', color: 'border-red-500' },
 ]
 
 export function JobsPage() {
@@ -69,6 +69,7 @@ export function JobsPage() {
   const [selectedJobs, setSelectedJobs] = useState<Set<number>>(new Set())
   const [bulkStatus, setBulkStatus] = useState<JobStatus | ''>('')
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null)
+  const [pipelineFocus, setPipelineFocus] = useState<string | null>(null)
   const [columnPickerOpen, setColumnPickerOpen] = useState(false)
   const [confirmState, setConfirmState] = useState<{
     title: string
@@ -82,7 +83,7 @@ export function JobsPage() {
     companyName: string
   } | null>(null)
 
-  const applications = data.jobApplications || []
+  const applications = useMemo(() => data.jobApplications ?? [], [data.jobApplications])
 
   const filteredApplications = useMemo(() => {
     let apps = filterJobApplications(applications, filterBy)
@@ -98,8 +99,13 @@ export function JobsPage() {
       )
     }
 
+    if (pipelineFocus) {
+      const stage = KANBAN_COLUMNS.find((col) => col.id === pipelineFocus)
+      if (stage) apps = apps.filter((a) => stage.status.includes(a.status))
+    }
+
     return sortJobApplications(apps, sortBy)
-  }, [applications, filterBy, searchQuery, sortBy])
+  }, [applications, filterBy, pipelineFocus, searchQuery, sortBy])
 
   const stats = useMemo(() => calculateJobStats(applications), [applications])
   const pipeline = useMemo(() => calculateJobPipelineCounts(applications), [applications])
@@ -112,6 +118,22 @@ export function JobsPage() {
       ),
     }))
   }, [filteredApplications])
+
+  useEffect(() => {
+    if (!pipelineFocus || viewMode !== 'kanban') return
+    requestAnimationFrame(() => {
+      document
+        .querySelector(`[data-kanban-stage="${pipelineFocus}"]`)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
+    })
+  }, [filteredApplications.length, pipelineFocus, viewMode])
+
+  const jumpToPipelineStage = (stageId: string) => {
+    setPipelineFocus(stageId)
+    setFilterBy('all')
+    setSearchQuery('')
+    setViewMode('kanban')
+  }
 
   const handleCreateApplication = () => {
     setEditingApp(undefined)
@@ -428,13 +450,29 @@ export function JobsPage() {
           <p className="text-[11px] sm:text-xs uppercase tracking-wider text-text-subtle font-semibold">
             Pipeline
           </p>
-          <p className="text-[11px] text-text-muted tabular-nums">
-            {stats.avgResponseTime > 0 ? `Avg response ${stats.avgResponseTime}d` : `${stats.total} active`}
-          </p>
+          <div className="flex items-center gap-2">
+            {pipelineFocus ? (
+              <button type="button" className="text-[11px] text-accent font-semibold" onClick={() => setPipelineFocus(null)}>
+                Clear focus
+              </button>
+            ) : null}
+            <p className="text-[11px] text-text-muted tabular-nums">
+              {stats.avgResponseTime > 0 ? `Avg response ${stats.avgResponseTime}d` : `${stats.total} active`}
+            </p>
+          </div>
         </div>
         <div className="flex flex-wrap gap-x-3 gap-y-2 sm:gap-x-4">
           {pipeline.map((stage) => (
-            <div key={stage.id} className="jobs-pipeline-mini__stage min-w-[3.25rem]">
+            <button
+              key={stage.id}
+              type="button"
+              className={`jobs-pipeline-mini__stage min-w-[3.25rem] text-left rounded-lg md:rounded-none px-1 py-1 -mx-1 transition-colors ${
+                pipelineFocus === stage.id ? 'bg-accent/10 text-accent' : 'hover:bg-surface-hover'
+              }`}
+              onClick={() => jumpToPipelineStage(stage.id)}
+              aria-pressed={pipelineFocus === stage.id}
+              title={`Open Kanban filtered to ${stage.label}`}
+            >
               <p className="text-[10px] sm:text-[11px] uppercase tracking-wider text-text-subtle font-semibold">
                 {stage.label}
               </p>
@@ -451,7 +489,7 @@ export function JobsPage() {
               >
                 {stage.count}
               </p>
-            </div>
+            </button>
           ))}
         </div>
       </div>
@@ -497,6 +535,9 @@ export function JobsPage() {
         summary={
           [
             filterBy !== 'active' ? filterBy.replace(/-/g, ' ') : null,
+            pipelineFocus
+              ? `Pipeline: ${pipeline.find((stage) => stage.id === pipelineFocus)?.label ?? pipelineFocus}`
+              : null,
             searchQuery.trim()
               ? `“${searchQuery.trim().slice(0, 16)}${searchQuery.trim().length > 16 ? '…' : ''}”`
               : null,
@@ -507,6 +548,7 @@ export function JobsPage() {
         }
         activeCount={
           (filterBy !== 'active' ? 1 : 0) +
+          (pipelineFocus ? 1 : 0) +
           (searchQuery.trim() ? 1 : 0) +
           (viewMode === 'list' && sortBy !== 'updated-desc' ? 1 : 0)
         }
@@ -525,6 +567,11 @@ export function JobsPage() {
         }
       >
         <div className="flex flex-wrap gap-3 items-center">
+          {pipelineFocus ? (
+            <button type="button" className="btn-secondary btn-sm" onClick={() => setPipelineFocus(null)}>
+              Clear pipeline filter
+            </button>
+          ) : null}
           <input
             type="text"
             value={searchQuery}
@@ -612,6 +659,7 @@ export function JobsPage() {
           {kanbanData.map((column) => (
             <div
               key={column.title}
+              data-kanban-stage={column.id}
               data-kanban-column={column.title}
               className={`flex-shrink-0 w-[min(80vw,20rem)] sm:w-80 rounded-lg transition-colors snap-start snap-always ${
                 dragOverColumn === column.title ? 'bg-accent/10 ring-2 ring-accent' : ''

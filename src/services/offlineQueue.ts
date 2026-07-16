@@ -123,3 +123,32 @@ export function isOfflineJobReady(job: OfflineJob, now = Date.now()): boolean {
 export function jobsReadyToFlush(queue = loadOfflineQueue(), now = Date.now()): OfflineJob[] {
   return queue.filter((j) => isOfflineJobReady(j, now))
 }
+
+/** Clear backoff so a job can be retried immediately. */
+export function retryOfflineJobNow(id: string): OfflineJob[] {
+  const queue = loadOfflineQueue()
+  const next = queue.map((j) => {
+    if (j.id !== id) return j
+    return { ...j, nextRetryAt: undefined, note: j.note }
+  })
+  save(next)
+  return next
+}
+
+/** Age of the oldest queued job in ms (0 if empty). */
+export function oldestOfflineJobAgeMs(queue = loadOfflineQueue(), now = Date.now()): number {
+  if (queue.length === 0) return 0
+  let oldest = now
+  for (const j of queue) {
+    const t = new Date(j.createdAt).getTime()
+    if (Number.isFinite(t) && t < oldest) oldest = t
+  }
+  return Math.max(0, now - oldest)
+}
+
+export function formatOfflineJobAge(ms: number): string {
+  if (ms < 60_000) return 'just now'
+  if (ms < 3_600_000) return `${Math.max(1, Math.round(ms / 60_000))}m ago`
+  if (ms < 86_400_000) return `${Math.max(1, Math.round(ms / 3_600_000))}h ago`
+  return `${Math.max(1, Math.round(ms / 86_400_000))}d ago`
+}

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getServiceWorkerManager } from '../services/serviceWorker'
-import { releaseNotesBullets } from '../domain/releaseNotes'
+import { releaseBulletHref, releaseBulletText, releaseNotesBullets } from '../domain/releaseNotes'
 
 export function UpdateBanner() {
   const [waiting, setWaiting] = useState(false)
@@ -61,9 +61,21 @@ export function UpdateBanner() {
       </p>
       {notes.length > 0 ? (
         <ul className="update-banner-release-notes text-xs text-text-muted mb-3 list-disc pl-4 space-y-0.5">
-          {notes.map((line) => (
-            <li key={line}>{line}</li>
-          ))}
+          {notes.map((line) => {
+            const text = releaseBulletText(line)
+            const href = releaseBulletHref(line)
+            return (
+              <li key={text}>
+                {href ? (
+                  <Link to={href} className="text-accent hover:underline" onClick={() => setWaiting(false)}>
+                    {text}
+                  </Link>
+                ) : (
+                  text
+                )}
+              </li>
+            )
+          })}
         </ul>
       ) : null}
       <p className="mb-3">

@@ -11,12 +11,14 @@ import {
 } from '../services/sync/sessionPassphrase'
 import { loadMarketsState } from '../storage/marketsStore'
 import { LAST_BACKUP_KEY, listFullBackups } from '../storage/backupStore'
+import { loadSecurity } from '../security/pin'
+import { loadBottomNavMiddleSlots, DEFAULT_BOTTOM_NAV_MIDDLE } from '../storage/bottomNavSlots'
 import {
   checkSyncUrlReachable,
   pingQuoteWorker,
 } from '../domain/smokeChecks'
 
-type CheckId = 'sync' | 'markets' | 'backup' | 'pwa' | 'quote' | 'sync-url'
+type CheckId = 'sync' | 'markets' | 'backup' | 'pwa' | 'quote' | 'sync-url' | 'lock' | 'bottom-nav'
 
 type SmokeItem = {
   id: CheckId
@@ -123,6 +125,33 @@ export function SmokePage() {
         detail: syncUrl.detail,
         to: '/settings#sync',
         done: syncUrl.ok,
+      },
+      {
+        id: 'lock',
+        label: 'PIN / Face ID lock',
+        detail: (() => {
+          const s = loadSecurity()
+          if (!s.pinEnabled) return 'PIN not enabled — optional but recommended'
+          return s.biometricEnabled
+            ? 'PIN on · Face ID / biometrics registered'
+            : 'PIN on · enable Face ID in Settings → Security for primary unlock'
+        })(),
+        to: '/settings#security',
+        done: loadSecurity().pinEnabled,
+      },
+      {
+        id: 'bottom-nav',
+        label: 'Bottom nav middle slots',
+        detail: (() => {
+          const slots = loadBottomNavMiddleSlots()
+          const labels = slots.join(', ')
+          const isDefault = slots.every((p, i) => p === DEFAULT_BOTTOM_NAV_MIDDLE[i])
+          return isDefault
+            ? `Defaults OK (${labels})`
+            : `Custom middle tabs: ${labels}`
+        })(),
+        to: '/settings#layout',
+        done: loadBottomNavMiddleSlots().length === 3,
       },
     ]
     setItems(next)

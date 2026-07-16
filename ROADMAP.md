@@ -1,9 +1,14 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.50**
+**Current version: 1.2.55**
 
-## Completed (through v1.2.50)
+## Completed (through v1.2.55)
 
+- Quality / ops (next25d 21–25): Settings pin chips, /smoke lock+nav, Playwright Markets search, broker aliases, What’s new deep-links
+- Today / money / tax (next25d 16–20): bills swipe paid, Spending log bill, Goals note from Today, Tax ISA stub, Compare as-of chips
+- Mobile / tablet UX (next25d 11–15): Overview double-tap top, bill Mark paid, Jobs→Kanban deep-link, conflict FAB, OverflowMenu phone sheet
+- Markets / portfolio (next25d 6–10): Markets search, yield sort, Use Markets price, corp-action date, FX Use suggested
+- Sync / security (next25d 1–5): PIN modal disable, activity device filter, conflict copy, offline Retry now, passphrase 7d remember
 - PR94: PWA shortcuts + theme-color; Face ID-first unlock (PIN fallback); phone sync-chip anti-overlap; customizable bottom-nav middle slots; Finnhub key how-to + provider health in Settings
 - Quality / ops (next25c 21–25): What’s new archive, ErrorBoundary recovery, skip-link targets, /smoke Quote+Sync checks, weekly HTML digest download
 - Today / money / tax (next25c 16–20): next-action stack, spending category sparklines, tax year progress ring, NW 7d/30d sparkline, Compare invite sheet

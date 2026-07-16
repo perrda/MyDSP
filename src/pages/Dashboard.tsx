@@ -5,6 +5,7 @@ import { GettingStartedChecklist } from '../components/GettingStartedChecklist'
 import { AllocationRing, NetWorthChart } from '../components/charts/LazyCharts'
 import { BudgetSparkline } from '../components/charts/BudgetSparkline'
 import { Sparkline } from '../components/charts/Sparkline'
+import { SwipeBillRow } from '../components/ui/SwipeBillRow'
 import { PageHeader } from '../components/ui/PageHeader'
 import { RemindersPanel, useSmartReminders } from '../components/SmartReminders'
 import { PortfolioShareCard } from '../components/SocialShare'
@@ -24,6 +25,7 @@ import {
   type NwSparkWindow,
 } from '../domain/netWorthSparkline'
 import { dueWithinDays } from '../domain/recurringDueStrip'
+import { markRecurringPaid, skipRecurringOccurrence } from '../domain/recurringActions'
 import { isDueToday, isOverdue } from '../domain/todos'
 import { snoozeDueDateOneDay } from '../domain/todoSnooze'
 import { sparklineTrendFromSeries } from '../domain/sparklineSeries'
@@ -191,6 +193,14 @@ export function Dashboard() {
         i.id === id ? { ...i, dueDate, updatedAt: now } : i,
       ),
     }))
+  }
+
+  const markBillPaid = (id: number) => {
+    setData((prev) => markRecurringPaid(prev, id))
+  }
+
+  const skipBill = (id: number) => {
+    setData((prev) => skipRecurringOccurrence(prev, id))
   }
 
   /** Soonest active goal with deadline within 30 days (inclusive). */
@@ -425,21 +435,38 @@ export function Dashboard() {
             }
             if (card.kind === 'bill') {
               return (
-                <Link
+                <div
                   key={`bill-${card.bill.id}`}
-                  to="/recurring"
-                  className="today-next-action-card surface p-4 md:p-5 rounded-xl md:rounded-none shadow-sm md:shadow-none block group"
+                  className="today-next-action-card today-bill-next-action surface p-4 md:p-5 rounded-xl md:rounded-none shadow-sm md:shadow-none"
                 >
-                  <p className="text-[11px] uppercase tracking-wider text-text-subtle mb-1">
-                    Bill due
-                  </p>
-                  <p className="text-base md:text-lg font-bold tracking-tight group-hover:text-accent line-clamp-1">
-                    {card.bill.name}
-                  </p>
-                  <p className={`text-xs text-text-muted mt-1 tabular-nums ${privacyClass(privacy)}`}>
-                    {formatDate(card.bill.nextDue)} · {formatGBP(card.bill.amount)}
-                  </p>
-                </Link>
+                  <Link to="/recurring" className="block group">
+                    <p className="text-[11px] uppercase tracking-wider text-text-subtle mb-1">
+                      Bill due
+                    </p>
+                    <p className="text-base md:text-lg font-bold tracking-tight group-hover:text-accent line-clamp-1">
+                      {card.bill.name}
+                    </p>
+                    <p className={`text-xs text-text-muted mt-1 tabular-nums ${privacyClass(privacy)}`}>
+                      {formatDate(card.bill.nextDue)} · {formatGBP(card.bill.amount)}
+                    </p>
+                  </Link>
+                  <div className="today-bill-next-actions flex flex-wrap gap-2 mt-3">
+                    <button
+                      type="button"
+                      className="btn-primary btn-sm"
+                      onClick={() => markBillPaid(card.bill.id)}
+                    >
+                      Mark paid
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-secondary btn-sm"
+                      onClick={() => skipBill(card.bill.id)}
+                    >
+                      Skip
+                    </button>
+                  </div>
+                </div>
               )
             }
             return (
@@ -480,11 +507,29 @@ export function Dashboard() {
           </div>
           <ul className="flex flex-col gap-1.5">
             {showBillsStrip.map((r) => (
-              <li key={r.id} className="flex items-baseline justify-between gap-3 text-sm">
-                <span className="min-w-0 truncate font-medium">{r.name}</span>
-                <span className={`shrink-0 tabular-nums text-text-muted ${privacyClass(privacy)}`}>
-                  {formatDate(r.nextDue)} · {formatGBP(r.amount)}
-                </span>
+              <li key={r.id}>
+                <SwipeBillRow
+                  onMarkPaid={() => markBillPaid(r.id)}
+                  onSkip={() => skipBill(r.id)}
+                  className="rounded-lg md:rounded-none"
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm py-1.5">
+                    <div className="min-w-0">
+                      <span className="block truncate font-medium">{r.name}</span>
+                      <span className={`text-xs text-text-muted tabular-nums ${privacyClass(privacy)}`}>
+                        {formatDate(r.nextDue)} · {formatGBP(r.amount)}
+                      </span>
+                    </div>
+                    <div className="hidden sm:flex shrink-0 gap-1">
+                      <button type="button" className="btn-primary btn-sm" onClick={() => markBillPaid(r.id)}>
+                        Mark paid
+                      </button>
+                      <button type="button" className="btn-ghost btn-sm" onClick={() => skipBill(r.id)}>
+                        Skip
+                      </button>
+                    </div>
+                  </div>
+                </SwipeBillRow>
               </li>
             ))}
           </ul>
@@ -492,8 +537,7 @@ export function Dashboard() {
       ) : null}
 
       {soonGoal ? (
-        <Link
-          to="/goals"
+        <div
           className="today-goal-ring surface p-4 md:p-5 mb-3 rounded-xl md:rounded-none shadow-sm md:shadow-none flex items-center gap-4 group"
         >
           <div
@@ -529,14 +573,22 @@ export function Dashboard() {
             <p className="text-xs uppercase tracking-wider text-text-subtle font-semibold mb-1">
               Goal · within 30 days
             </p>
-            <p className="text-base font-bold tracking-tight group-hover:text-accent line-clamp-1">
-              {soonGoal.name}
-            </p>
+            <Link to="/goals" className="block">
+              <p className="text-base font-bold tracking-tight hover:text-accent line-clamp-1">
+                {soonGoal.name}
+              </p>
+            </Link>
             <p className="text-xs text-text-muted font-light mt-0.5">
               Due {formatDate(soonGoal.deadline)}
             </p>
           </div>
-        </Link>
+          <Link
+            to={`/goals?note=${soonGoal.id}`}
+            className="today-goal-log-note btn-secondary btn-sm shrink-0"
+          >
+            Log note
+          </Link>
+        </div>
       ) : null}
 
       {goalProjection ? (

@@ -159,6 +159,19 @@ export function SpendingPage() {
     setOpen(true)
   }
 
+  const openBillPaymentCreate = () => {
+    setEditing(null)
+    setForm({
+      ...emptyForm,
+      date: new Date().toISOString().slice(0, 10),
+      description: 'Bill payment',
+      category: 'bills',
+      method: 'debit',
+      notes: `Logged from ${formatMonthLabel(ym)} bill payment CTA`,
+    })
+    setOpen(true)
+  }
+
   const openEdit = (tx: SpendingEntry) => {
     setEditing(tx)
     setForm({
@@ -296,6 +309,24 @@ export function SpendingPage() {
       </p>
 
       <SpendingSeriesChart spending={data.spending} privacy={privacy} />
+
+      <div className="spending-log-bill-payment surface p-3 md:p-4 mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-xs uppercase tracking-wider text-text-subtle font-semibold">
+            Month actions
+          </p>
+          <p className="text-sm text-text-muted font-light">
+            Record a bill payment with category and method prefilled.
+          </p>
+        </div>
+        <button
+          type="button"
+          className="log-bill-payment-cta btn-secondary btn-sm"
+          onClick={openBillPaymentCreate}
+        >
+          Log bill payment
+        </button>
+      </div>
 
       {categorySparks.length > 0 ? (
         <div

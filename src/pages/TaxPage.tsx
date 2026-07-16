@@ -27,6 +27,17 @@ function nextId(items: { id: number }[]): number {
   return items.reduce((m, i) => Math.max(m, i.id), 0) + 1
 }
 
+const ISA_ALLOWANCE_GBP = 20_000
+const ISA_REMAINING_KEY = 'mydsp_isa_remaining_gbp'
+
+function loadIsaRemainingDraft(): string {
+  try {
+    return localStorage.getItem(ISA_REMAINING_KEY) ?? ''
+  } catch {
+    return ''
+  }
+}
+
 export function TaxPage() {
   const { data, setData, privacy } = usePortfolio()
   const residency = data.settings.taxResidency || 'GB'
@@ -37,6 +48,7 @@ export function TaxPage() {
   const [open, setOpen] = useState(false)
   const [deleteId, setDeleteId] = useState<number | null>(null)
   const [exportsExplainerOpen, setExportsExplainerOpen] = useState(false)
+  const [isaRemainingDraft, setIsaRemainingDraft] = useState(() => loadIsaRemainingDraft())
   const [form, setForm] = useState({
     date: new Date().toISOString().slice(0, 10),
     assetType: 'crypto' as 'crypto' | 'equity',
@@ -51,6 +63,15 @@ export function TaxPage() {
     const keys = listPackYears(pack)
     setTaxYear((prev) => (keys.includes(prev) ? prev : next))
   }, [pack])
+
+  useEffect(() => {
+    try {
+      if (isaRemainingDraft.trim()) localStorage.setItem(ISA_REMAINING_KEY, isaRemainingDraft)
+      else localStorage.removeItem(ISA_REMAINING_KEY)
+    } catch {
+      /* ignore */
+    }
+  }, [isaRemainingDraft])
 
   const matchedRows = useMemo(() => {
     if (isUkTax) {
@@ -87,6 +108,11 @@ export function TaxPage() {
   )
 
   const ratePct = Math.round(pack.rate * 100)
+  const isaRemaining = isaRemainingDraft.trim()
+    ? Math.max(0, Math.min(ISA_ALLOWANCE_GBP, parseNum(isaRemainingDraft)))
+    : ISA_ALLOWANCE_GBP
+  const isaUsed = ISA_ALLOWANCE_GBP - isaRemaining
+  const isaUsedPct = ISA_ALLOWANCE_GBP > 0 ? isaUsed / ISA_ALLOWANCE_GBP : 0
 
   const onExportCsv = () => {
     const csv = exportCgtCsv(data.disposals, taxYear, data.journal)
@@ -420,6 +446,60 @@ export function TaxPage() {
             <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold tabular-nums">
               {Math.round(Math.min(yearProgress.cgtUsedPct ?? 0, 9.99) * 100)}%
             </span>
+          </div>
+        ) : null}
+        {isUkTax ? (
+          <div
+            className="tax-isa-allowance-progress flex min-w-[12rem] flex-1 items-center gap-3 border-l border-border pl-4"
+            aria-label="ISA annual allowance progress"
+          >
+            <div
+              className="relative shrink-0 w-16 h-16"
+              role="img"
+              aria-label={`ISA annual allowance ${Math.round(Math.min(isaUsedPct, 1) * 100)}% used`}
+            >
+              <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90" aria-hidden>
+                <circle
+                  cx="18"
+                  cy="18"
+                  r="15.5"
+                  fill="none"
+                  stroke="var(--border)"
+                  strokeWidth="3"
+                />
+                <circle
+                  cx="18"
+                  cy="18"
+                  r="15.5"
+                  fill="none"
+                  stroke="var(--accent)"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeDasharray={`${Math.min(isaUsedPct, 1) * 97.4} 97.4`}
+                />
+              </svg>
+              <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold tabular-nums">
+                {Math.round(Math.min(isaUsedPct, 1) * 100)}%
+              </span>
+            </div>
+            <label className="min-w-0 flex-1 text-xs text-text-muted font-light">
+              <span className="block text-xs uppercase tracking-wider text-text-subtle font-semibold mb-1">
+                ISA allowance
+              </span>
+              <span className={`block mb-2 tabular-nums ${privacyClass(privacy)}`}>
+                Used {formatGBP(isaUsed)} of {formatGBP(ISA_ALLOWANCE_GBP)}
+              </span>
+              <span className="sr-only">Manual remaining GBP</span>
+              <input
+                type="text"
+                inputMode="decimal"
+                className="max-w-[9rem] px-2 py-1 text-xs"
+                value={isaRemainingDraft}
+                onChange={(e) => setIsaRemainingDraft(e.target.value)}
+                placeholder="Remaining £"
+                aria-label="Manual remaining ISA allowance in pounds"
+              />
+            </label>
           </div>
         ) : null}
       </div>

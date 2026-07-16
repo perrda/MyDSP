@@ -68,6 +68,8 @@ export interface EquityHolding {
   yieldPct?: number
   /** Optional corporate-action stub note (split / dividend / rights) */
   corporateActionNote?: string
+  /** Optional effective date for the corporate-action note (YYYY-MM-DD) */
+  corporateActionDate?: string
 }
 
 export interface CreditCard {

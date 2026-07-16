@@ -58,6 +58,7 @@ export function HoldingDetailPage() {
   const [editingNote, setEditingNote] = useState<ProgressCommentary | null>(null)
   const [deleteNoteId, setDeleteNoteId] = useState<number | null>(null)
   const [corpNoteDraft, setCorpNoteDraft] = useState('')
+  const [corpActionDateDraft, setCorpActionDateDraft] = useState('')
   const [corpNoteOpen, setCorpNoteOpen] = useState(false)
   const [metaOpen, setMetaOpen] = useState(false)
   const [meta, setMeta] = useState({ platform: '', contactUrl: '' })
@@ -265,6 +266,11 @@ export function HoldingDetailPage() {
               Corp
             </span>
             {equity.corporateActionNote}
+            {equity.corporateActionDate ? (
+              <span className="ml-1.5 text-text-subtle">
+                · Effective {formatDate(equity.corporateActionDate)}
+              </span>
+            ) : null}
           </p>
         ) : null}
       </div>
@@ -483,13 +489,24 @@ export function HoldingDetailPage() {
                 value={corpNoteDraft}
                 onChange={(e) => setCorpNoteDraft(e.target.value)}
               />
+              <Field label="Effective date (optional)" hint="Shows a soft reminder when today or past due.">
+                <input
+                  type="date"
+                  value={corpActionDateDraft}
+                  onChange={(e) => setCorpActionDateDraft(e.target.value)}
+                />
+              </Field>
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
                   className="btn-primary btn-sm"
                   onClick={() => {
                     const text = corpNoteDraft.trim()
-                    patch({ corporateActionNote: text || undefined })
+                    const date = corpActionDateDraft.trim()
+                    patch({
+                      corporateActionNote: text || undefined,
+                      corporateActionDate: text && date ? date : undefined,
+                    })
                     setCorpNoteOpen(false)
                   }}
                 >
@@ -501,6 +518,7 @@ export function HoldingDetailPage() {
                   onClick={() => {
                     setCorpNoteOpen(false)
                     setCorpNoteDraft(equity?.corporateActionNote ?? '')
+                    setCorpActionDateDraft(equity?.corporateActionDate ?? '')
                   }}
                 >
                   Cancel
@@ -510,8 +528,9 @@ export function HoldingDetailPage() {
                     type="button"
                     className="btn-ghost btn-sm text-red-500"
                     onClick={() => {
-                      patch({ corporateActionNote: undefined })
+                      patch({ corporateActionNote: undefined, corporateActionDate: undefined })
                       setCorpNoteDraft('')
+                      setCorpActionDateDraft('')
                       setCorpNoteOpen(false)
                     }}
                   >
@@ -529,6 +548,11 @@ export function HoldingDetailPage() {
                       Corp
                     </span>
                     {equity.corporateActionNote}
+                    {equity.corporateActionDate ? (
+                      <span className="ml-1.5 text-text-subtle">
+                        · Effective {formatDate(equity.corporateActionDate)}
+                      </span>
+                    ) : null}
                   </>
                 ) : (
                   'No corporate action note yet.'
@@ -539,6 +563,7 @@ export function HoldingDetailPage() {
                 className="btn-secondary btn-sm shrink-0"
                 onClick={() => {
                   setCorpNoteDraft(equity?.corporateActionNote ?? '')
+                  setCorpActionDateDraft(equity?.corporateActionDate ?? '')
                   setCorpNoteOpen(true)
                 }}
               >

@@ -88,14 +88,22 @@ export function OverflowMenu({ label, items, leading, className = '' }: Overflow
           <div
             id={menuId}
             role="menu"
-            className="absolute right-0 top-full mt-1 z-30 min-w-[10.5rem] border border-border bg-bg-elevated shadow-lg py-1"
+            className="overflow-menu-sheet fixed inset-0 z-50 flex min-w-0 flex-col border border-border bg-bg-elevated p-4 pt-[calc(1rem+env(safe-area-inset-top,0px))] shadow-lg sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:mt-1 sm:block sm:min-w-[10.5rem] sm:p-0 sm:py-1"
           >
+            <div className="mb-4 flex items-center justify-between gap-3 border-b border-border pb-3 sm:hidden">
+              <p className="text-xs font-bold uppercase tracking-widest text-text-subtle">
+                Actions
+              </p>
+              <button type="button" className="btn-ghost btn-sm" onClick={() => setOpen(false)}>
+                Close
+              </button>
+            </div>
             {items.map((item) => (
               <button
                 key={item.id}
                 type="button"
                 role="menuitem"
-                className={`w-full text-left px-4 py-2.5 text-sm min-h-11 transition-colors hover:bg-surface-hover ${
+                className={`w-full text-left px-4 py-3 text-base min-h-12 transition-colors hover:bg-surface-hover sm:py-2.5 sm:text-sm sm:min-h-11 ${
                   item.destructive
                     ? 'text-red-500'
                     : item.active

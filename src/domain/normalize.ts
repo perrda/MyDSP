@@ -72,6 +72,7 @@ function normalizeEquities(raw: unknown): EquityHolding[] {
         ? yieldRaw
         : undefined
     const caNote = str(r.corporateActionNote).trim()
+    const caDate = str(r.corporateActionDate).trim()
     return {
       id: num(r.id, i + 1),
       symbol: str(r.symbol, '???').toUpperCase(),
@@ -87,6 +88,7 @@ function normalizeEquities(raw: unknown): EquityHolding[] {
       contactUrl: optionalContact(r.contactUrl),
       yieldPct,
       corporateActionNote: caNote || undefined,
+      corporateActionDate: /^\d{4}-\d{2}-\d{2}$/.test(caDate) ? caDate : undefined,
     }
   })
 }

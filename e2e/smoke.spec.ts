@@ -46,9 +46,20 @@ test.describe('MyDSP smoke', () => {
     await expect(page.getByRole('heading', { name: /Markets/i }).first()).toBeVisible({
       timeout: 20_000,
     })
+    const search = page.getByLabel(/Search watchlist/i).or(page.getByPlaceholder(/Search watchlist/i))
+    if (await search.first().isVisible().catch(() => false)) {
+      await search.first().fill('BTC')
+    }
 
     await page.goto('/settings')
     await expect(page.getByText(/Settings/i).first()).toBeVisible({ timeout: 20_000 })
     await expect(page.getByText(/Encrypted cloud sync|Cloud Sync|Sync/i).first()).toBeVisible()
+  })
+
+  test('smoke checklist includes lock and bottom-nav checks', async ({ page }) => {
+    await page.goto('/smoke')
+    await expect(page.getByText(/On-device smoke|smoke/i).first()).toBeVisible({ timeout: 20_000 })
+    await expect(page.getByText(/PIN \/ Face ID lock/i).first()).toBeVisible()
+    await expect(page.getByText(/Bottom nav middle slots/i).first()).toBeVisible()
   })
 })
