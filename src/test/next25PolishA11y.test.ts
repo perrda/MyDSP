@@ -163,6 +163,6 @@ describe('next25 polish / a11y', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8')) as {
       version: string
     }
-    expect(pkg.version).toBe('1.2.67')
+    expect(pkg.version).toBe('1.2.68')
   })
 })

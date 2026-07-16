@@ -188,10 +188,10 @@ describe('next25c today / money / tax (16–20)', () => {
     expect(compare).toMatch(/opening-balance wizard/)
   })
 
-  it('package version is 1.2.67', () => {
+  it('package version is 1.2.68', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8')) as {
       version: string
     }
-    expect(pkg.version).toBe('1.2.67')
+    expect(pkg.version).toBe('1.2.68')
   })
 })

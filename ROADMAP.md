@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.67**
+**Current version: 1.2.68**
 
-## Completed (through v1.2.67)
+## Completed (through v1.2.68)
 
+- Markets **My Commodities** (Gold/Silver/Copper + aliases) via Yahoo → GBP; Finnhub key high-priority To Do reminder
 - Recurring sort (due/paid/amount) · monthly total · date-stamped commentary CRUD; Todos → To Do's branding
 - Fix: News Top 10 + By ticker via quote Worker; Markets heatmap reverted; USD not US$; Markets 24H/1W/1M/12M sparklines+%
 - Fix: Weekly digest in-app Preview/Share on mobile (no Safari HTML download dead-end)
@@ -91,6 +92,7 @@
 
 - Tune broker aliases from more real IBKR/T212/Coinbase exports
 - Remittance-basis notes / deepen non-UK tax packs further
+- Optional: dedicated `/commodities` holdings page (qty · cost · P&L) beyond Markets watchlist
 
 ## Parking lot
 

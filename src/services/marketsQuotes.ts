@@ -19,6 +19,7 @@ import {
 } from '../storage/marketsStore'
 import { ensureFxRates, usdToGbp } from './fx'
 import {
+  fetchCommodityMarketQuote,
   fetchCryptoCrossQuote,
   fetchCryptoGbpSparkline,
   fetchCryptoMarketQuotesGbp,
@@ -109,6 +110,7 @@ export async function refreshMarketQuotes(
 
   const cryptos = tickers.filter((t) => t.kind === 'crypto')
   const equities = tickers.filter((t) => t.kind === 'equity')
+  const commodities = tickers.filter((t) => t.kind === 'commodity')
   const indices = tickers.filter((t) => t.kind === 'index')
   const fiatFx = tickers.filter((t) => t.kind === 'fx')
   const crosses = tickers.filter((t) => t.kind === 'cross')
@@ -189,6 +191,37 @@ export async function refreshMarketQuotes(
           unit: 'GBP',
           decimals: 2,
           extendedHours: native.extendedHours,
+          source: native.source,
+          updatedAt: now,
+        })
+      } catch {
+        out.set(t.id, emptyQuote(t, now, 'GBP', 2, 'error'))
+      }
+    }),
+  )
+
+  // Commodities — Yahoo futures/spot (USD) → GBP via FX (same path as US equities)
+  await Promise.all(
+    commodities.map(async (t) => {
+      try {
+        const native = await fetchCommodityMarketQuote(t.symbol)
+        if (!native || !(native.price > 0)) {
+          out.set(t.id, emptyQuote(t, now, 'GBP', 2, 'none'))
+          return
+        }
+        const last = usdToGbp(native.price, fx)
+        const prev = usdToGbp(native.previousClose, fx)
+        const changeAbs = last - prev
+        const changePct = prev > 0 ? (changeAbs / prev) * 100 : native.changePct
+        out.set(t.id, {
+          symbol: t.symbol,
+          kind: 'commodity',
+          last,
+          changeAbs,
+          changePct,
+          sparkline: native.sparkline.map((n) => usdToGbp(n, fx)),
+          unit: 'GBP',
+          decimals: last >= 100 ? 2 : last >= 1 ? 2 : 4,
           source: native.source,
           updatedAt: now,
         })

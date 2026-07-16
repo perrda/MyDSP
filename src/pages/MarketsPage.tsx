@@ -45,6 +45,8 @@ import {
   type FxTriangleHit,
 } from '../domain/fxTriangle'
 import { marketSessionStatus } from '../domain/marketSession'
+import { ensureFinnhubSetupTodo } from '../domain/finnhubReminder'
+import { normalizeCommoditySymbol } from '../domain/commodities'
 import { shouldShowCachedMode } from '../domain/marketsCachedMode'
 import { mergeMarketQuotes } from '../domain/marketQuotesCache'
 import { isOnline } from '../services/offlineQueue'
@@ -121,6 +123,12 @@ const SECTION_META: Record<
     emptyLabel: 'equity',
     addLabel: 'Add equity',
   },
+  commodities: {
+    title: 'My Commodities',
+    kind: 'commodity',
+    emptyLabel: 'commodity',
+    addLabel: 'Add commodity',
+  },
   indices: {
     title: 'Indices',
     kind: 'index',
@@ -141,10 +149,11 @@ const SECTION_META: Record<
   },
 }
 
-const SECTION_ORDER: SectionKey[] = ['crypto', 'equities', 'indices', 'fx', 'crosses']
+const SECTION_ORDER: SectionKey[] = ['crypto', 'equities', 'commodities', 'indices', 'fx', 'crosses']
 const SECTION_JUMP_LABEL: Record<SectionKey, string> = {
   crypto: 'Crypto',
   equities: 'Equities',
+  commodities: 'Commodities',
   indices: 'Indices',
   fx: 'FX',
   crosses: 'Crosses',
@@ -277,6 +286,7 @@ function sectionTotals(
 function symbolPlaceholder(kind: MarketAssetKind): string {
   if (kind === 'crypto') return 'BTC'
   if (kind === 'equity') return 'TSLA'
+  if (kind === 'commodity') return 'GC=F'
   if (kind === 'index') return 'SPX'
   if (kind === 'fx') return 'GBP/USD'
   return 'ADA/BTC'
@@ -285,6 +295,7 @@ function symbolPlaceholder(kind: MarketAssetKind): string {
 function namePlaceholder(kind: MarketAssetKind): string {
   if (kind === 'crypto') return 'Bitcoin'
   if (kind === 'equity') return 'Tesla, Inc.'
+  if (kind === 'commodity') return 'Gold'
   if (kind === 'index') return 'S&P 500'
   if (kind === 'fx') return 'British Pound / US Dollar'
   return 'Cardano / Bitcoin'
@@ -452,6 +463,17 @@ export function MarketsPage() {
     }
   }, [])
 
+  /** High-priority Finnhub API key reminder — once per browser session when no key. */
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem('mydsp_finnhub_todo_prompted') === '1') return
+      sessionStorage.setItem('mydsp_finnhub_todo_prompted', '1')
+    } catch {
+      /* ignore */
+    }
+    setData((prev) => ensureFinnhubSetupTodo(prev) ?? prev)
+  }, [setData])
+
   const cachedMode = useMemo(
     () => shouldShowCachedMode(online, quotes.values()),
     [online, quotes],
@@ -462,11 +484,15 @@ export function MarketsPage() {
     const raw = searchParams.get('symbol')
     if (!raw) return
     const want = raw.trim().toUpperCase()
-    const hit = tickers.find(
-      (t) =>
-        t.symbol.toUpperCase() === want ||
-        t.symbol.replace('^', '').toUpperCase() === want.replace('^', ''),
-    )
+    const wantCommodity = normalizeCommoditySymbol(want)
+    const hit = tickers.find((t) => {
+      const sym = t.symbol.toUpperCase()
+      if (sym === want || sym.replace('^', '') === want.replace('^', '')) return true
+      if (t.kind === 'commodity' && wantCommodity && normalizeCommoditySymbol(sym) === wantCommodity) {
+        return true
+      }
+      return false
+    })
     setSearchParams({}, { replace: true })
     if (!hit) return
     const section =
@@ -474,11 +500,13 @@ export function MarketsPage() {
         ? 'crypto'
         : hit.kind === 'equity'
           ? 'equities'
-          : hit.kind === 'index'
-            ? 'indices'
-            : hit.kind === 'fx'
-              ? 'fx'
-              : 'crosses'
+          : hit.kind === 'commodity'
+            ? 'commodities'
+            : hit.kind === 'index'
+              ? 'indices'
+              : hit.kind === 'fx'
+                ? 'fx'
+                : 'crosses'
     setCollapsed((prev) => {
       if (!prev[section]) return prev
       const next = { ...prev, [section]: false }
@@ -521,6 +549,7 @@ export function MarketsPage() {
       return {
         crypto: filtered.filter((t) => t.kind === 'crypto'),
         equities: yieldSort ? sortByYieldDesc(equities) : equities,
+        commodities: filtered.filter((t) => t.kind === 'commodity'),
         indices: filtered.filter((t) => t.kind === 'index'),
         fx: filtered.filter((t) => t.kind === 'fx'),
         crosses: filtered.filter((t) => t.kind === 'cross'),
@@ -952,7 +981,10 @@ export function MarketsPage() {
                 />
                 {!searchQuery &&
                 tagFilter === 'All' &&
-                (section === 'crypto' || section === 'equities' || section === 'indices') ? (
+                (section === 'crypto' ||
+                  section === 'equities' ||
+                  section === 'commodities' ||
+                  section === 'indices') ? (
                   <div className="flex flex-wrap gap-2 pb-2">
                     {(section === 'crypto'
                       ? [
@@ -964,10 +996,16 @@ export function MarketsPage() {
                             { symbol: 'AAPL', name: 'Apple', kind: 'equity' as const },
                             { symbol: 'MSFT', name: 'Microsoft', kind: 'equity' as const },
                           ]
-                        : [
-                            { symbol: '^GSPC', name: 'S&P 500', kind: 'index' as const },
-                            { symbol: '^FTSE', name: 'FTSE 100', kind: 'index' as const },
-                          ]
+                        : section === 'commodities'
+                          ? [
+                              { symbol: 'GC=F', name: 'Gold', kind: 'commodity' as const },
+                              { symbol: 'SI=F', name: 'Silver', kind: 'commodity' as const },
+                              { symbol: 'HG=F', name: 'Copper', kind: 'commodity' as const },
+                            ]
+                          : [
+                              { symbol: '^GSPC', name: 'S&P 500', kind: 'index' as const },
+                              { symbol: '^FTSE', name: 'FTSE 100', kind: 'index' as const },
+                            ]
                     ).map((preset) => (
                       <button
                         key={preset.symbol}
@@ -1300,20 +1338,22 @@ export function MarketsPage() {
     ? 'Edit Markets item'
     : addKind === 'crypto'
       ? 'Add crypto'
-      : addKind === 'fx'
-        ? 'Add FX rate'
-        : addKind === 'cross'
-          ? 'Add crypto cross'
-          : addKind === 'index'
-            ? 'Add index'
-            : 'Add equity'
+      : addKind === 'commodity'
+        ? 'Add commodity'
+        : addKind === 'fx'
+          ? 'Add FX rate'
+          : addKind === 'cross'
+            ? 'Add crypto cross'
+            : addKind === 'index'
+              ? 'Add index'
+              : 'Add equity'
 
   return (
     <div>
       <PageHeader
         eyebrow="Watchlist"
         title="Markets"
-        description="Live equities, crypto, indices, FX, and crosses. Auto-refreshes ~45s; header refresh forces an update."
+        description="Live equities, commodities, crypto, indices, FX, and crosses. Auto-refreshes ~45s; header refresh forces an update."
         action={
           <div className="hidden sm:flex flex-wrap gap-2">
             <button
@@ -1522,6 +1562,7 @@ export function MarketsPage() {
               }
             >
               <option value="equity">Equity</option>
+              <option value="commodity">Commodity (e.g. GC=F gold)</option>
               <option value="crypto">Crypto</option>
               <option value="index">Index (e.g. SPX, NDX, FTSE)</option>
               <option value="fx">FX rate (e.g. GBP/USD)</option>
@@ -1537,7 +1578,9 @@ export function MarketsPage() {
                   ? 'Format BASE/QUOTE — e.g. ADA/BTC, ETH/BTC'
                   : form.kind === 'index'
                     ? 'e.g. SPX, ^GSPC, NDX, NASDAQ, FTSE'
-                    : 'e.g. TSLA or BTC'
+                    : form.kind === 'commodity'
+                      ? 'Yahoo futures/spot — e.g. GC=F (gold), SI=F (silver), HG=F (copper), or GOLD'
+                      : 'e.g. TSLA or BTC'
             }
           >
             <input
@@ -1550,7 +1593,7 @@ export function MarketsPage() {
                   symbol:
                     form.kind === 'fx' || form.kind === 'cross'
                       ? v
-                      : form.kind === 'index'
+                      : form.kind === 'index' || form.kind === 'commodity'
                         ? v
                         : v.replace(/\//g, ''),
                 }))

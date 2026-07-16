@@ -31,11 +31,14 @@ describe('markets watchlist store', () => {
     mem.clear()
   })
 
-  it('seeds crypto, equities, indices, FX and crypto crosses', async () => {
+  it('seeds crypto, equities, commodities, indices, FX and crypto crosses', async () => {
     const store = await import('../storage/marketsStore')
     const domain = await import('../domain/markets')
     const state = store.loadMarketsState()
-    expect(state.tickers.length).toBeGreaterThanOrEqual(10)
+    expect(state.tickers.length).toBeGreaterThanOrEqual(13)
+    expect(store.listMarketTickers('commodity').map((t) => t.symbol)).toEqual(
+      expect.arrayContaining(['GC=F', 'SI=F', 'HG=F']),
+    )
     expect(store.listMarketTickers('fx').map((t) => t.symbol)).toEqual(
       expect.arrayContaining(['GBP/USD', 'GBP/THB']),
     )
@@ -72,7 +75,7 @@ describe('markets watchlist store', () => {
     expect(store.listMarketTickers('fx').some((t) => t.symbol === 'EUR/USD')).toBe(false)
   })
 
-  it('migrates existing watchlists to include default FX/cross/index rates', async () => {
+  it('migrates existing watchlists to include default FX/cross/index/commodity rates', async () => {
     const store = await import('../storage/marketsStore')
     mem.set(
       'mydsp_markets_v1',
@@ -96,8 +99,10 @@ describe('markets watchlist store', () => {
     expect(state.tickers.some((t) => t.symbol === 'GBP/THB')).toBe(true)
     expect(state.tickers.some((t) => t.symbol === 'ADA/BTC')).toBe(true)
     expect(state.tickers.some((t) => t.symbol === '^GSPC')).toBe(true)
+    expect(state.tickers.some((t) => t.kind === 'commodity' && t.symbol === 'GC=F')).toBe(true)
     expect(state.collapsed.fx).toBe(false)
     expect(state.collapsed.crosses).toBe(false)
+    expect(state.collapsed.commodities).toBe(false)
     expect(state.collapsed.indices).toBe(false)
   })
 

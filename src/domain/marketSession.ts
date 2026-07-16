@@ -47,9 +47,9 @@ function isOpenNow(now: Date, venue: MarketSessionVenue): boolean {
   return mins >= hours.openMin && mins < hours.closeMin
 }
 
-/** Infer US vs UK session from symbol (FTSE → UK; otherwise US for equities/indices). */
+/** Infer US vs UK session from symbol (FTSE → UK; COMEX commodities → US; equities/indices default US). */
 export function sessionVenueForSymbol(symbol: string, kind: MarketAssetKind): MarketSessionVenue | null {
-  if (kind !== 'equity' && kind !== 'index') return null
+  if (kind !== 'equity' && kind !== 'index' && kind !== 'commodity') return null
   const key = symbol.trim().toUpperCase()
   if (UK_INDEX_SYMBOLS.has(key) || key.includes('FTSE') || key.endsWith('.L')) return 'UK'
   return 'US'

@@ -72,7 +72,7 @@ function normalizeTicker(t: MarketTicker, i: number): MarketTicker {
   const yieldPct = normalizeYieldPct(t.yieldPct)
   return {
     ...t,
-    kind: (['crypto', 'equity', 'fx', 'cross', 'index'].includes(t.kind)
+    kind: (['crypto', 'equity', 'commodity', 'fx', 'cross', 'index'].includes(t.kind)
       ? t.kind
       : 'equity') as MarketAssetKind,
     symbol: normalizeMarketSymbol(t.symbol),
@@ -93,6 +93,7 @@ export function loadMarketsState(): MarketsState {
       collapsed: {
         crypto: Boolean(existing.collapsed?.crypto),
         equities: Boolean(existing.collapsed?.equities),
+        commodities: Boolean((existing.collapsed as MarketsCollapsed | undefined)?.commodities),
         indices: Boolean((existing.collapsed as MarketsCollapsed | undefined)?.indices),
         fx: Boolean((existing.collapsed as MarketsCollapsed | undefined)?.fx),
         crosses: Boolean((existing.collapsed as MarketsCollapsed | undefined)?.crosses),
@@ -137,6 +138,11 @@ function validateSymbol(kind: MarketAssetKind, symbol: string): string {
   if (kind === 'index') {
     if (!/^[\^]?[A-Z0-9.&]+$/.test(norm)) {
       throw new Error('Use an index symbol like SPX, ^GSPC, NDX, or FTSE.')
+    }
+  }
+  if (kind === 'commodity') {
+    if (!/^[A-Z0-9.=^]+$/.test(norm)) {
+      throw new Error('Use a commodity symbol like GC=F (gold), SI=F (silver), or HG=F (copper).')
     }
   }
   return norm
@@ -354,6 +360,10 @@ export function importMarketsFromBackup(raw: unknown): void {
   const collapsed: MarketsCollapsed = {
     crypto: Boolean(collapsedRemote?.crypto ?? collapsedLocal?.crypto),
     equities: Boolean(collapsedRemote?.equities ?? collapsedLocal?.equities),
+    commodities: Boolean(
+      (collapsedRemote as MarketsCollapsed | undefined)?.commodities ??
+        (collapsedLocal as MarketsCollapsed | undefined)?.commodities,
+    ),
     indices: Boolean(
       (collapsedRemote as MarketsCollapsed | undefined)?.indices ??
         (collapsedLocal as MarketsCollapsed | undefined)?.indices,

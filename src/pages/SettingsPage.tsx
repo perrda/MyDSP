@@ -149,6 +149,11 @@ import {
   saveBottomNavMiddleSlots,
 } from '../storage/bottomNavSlots'
 import { BOTTOM_NAV_CATALOG } from '../domain/bottomNav'
+import {
+  completeFinnhubSetupTodo,
+  ensureFinnhubSetupTodo,
+  hasFinnhubKey,
+} from '../domain/finnhubReminder'
 import { PinConfirmModal } from '../components/PinConfirmModal'
 import {
   getRememberPassphraseMode,
@@ -3338,6 +3343,10 @@ export function SettingsPage() {
               key) → Yahoo Finance via CORS proxies
             </li>
             <li>
+              <span className="text-text font-medium">Commodities</span> — Yahoo futures/spot
+              (GC=F gold, SI=F silver, HG=F copper) → GBP via FX
+            </li>
+            <li>
               <span className="text-text font-medium">Crypto</span> — CoinGecko → Yahoo / CoinCap /
               Coinbase
             </li>
@@ -3376,8 +3385,23 @@ export function SettingsPage() {
             </ol>
             <p className="text-xs text-text-subtle mt-3 leading-relaxed">
               Free tier is enough for personal use. Without a key, equities still load via Yahoo;
-              crypto never needs Finnhub.
+              crypto and commodities never need Finnhub.
             </p>
+            {!hasFinnhubKey(data) ? (
+              <button
+                type="button"
+                className="btn-secondary btn-sm mt-4 min-h-11"
+                onClick={() => {
+                  setData((prev) => {
+                    const next = ensureFinnhubSetupTodo(prev)
+                    return next ?? prev
+                  })
+                  flash("Added a high-priority To Do — Add Finnhub API key (due today).")
+                }}
+              >
+                Remind me — add Finnhub key to To Do&apos;s
+              </button>
+            ) : null}
           </div>
 
           <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle mb-2">
@@ -3393,10 +3417,13 @@ export function SettingsPage() {
               defaultValue={data.settings.finnhubKey ?? ''}
               onBlur={(e) => {
                 const key = e.target.value.trim()
-                setData((prev) => ({
-                  ...prev,
-                  settings: { ...prev.settings, finnhubKey: key || undefined },
-                }))
+                setData((prev) => {
+                  const patched = {
+                    ...prev,
+                    settings: { ...prev.settings, finnhubKey: key || undefined },
+                  }
+                  return key ? completeFinnhubSetupTodo(patched) : patched
+                })
                 try {
                   if (key) localStorage.setItem('finnhub_key', key)
                   else localStorage.removeItem('finnhub_key')
