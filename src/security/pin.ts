@@ -21,6 +21,18 @@ const DEFAULT_SECURITY: SecurityState = {
   biometricEnabled: false,
 }
 
+/** Allowed biometric unlock timeouts (Immediate / 1m / 5m / 15m). */
+export const UNLOCK_TIMEOUT_MINUTES = [0, 1, 5, 15] as const
+
+function clampUnlockMinutes(n: number): number {
+  if (UNLOCK_TIMEOUT_MINUTES.includes(n as (typeof UNLOCK_TIMEOUT_MINUTES)[number])) return n
+  // Legacy 30 → 15; anything else → default 5
+  if (n >= 15) return 15
+  if (n >= 5) return 5
+  if (n >= 1) return 1
+  return 0
+}
+
 export function loadSecurity(): SecurityState {
   try {
     const raw = localStorage.getItem(SECURITY_KEY)
@@ -29,8 +41,9 @@ export function loadSecurity(): SecurityState {
     return {
       pinEnabled: Boolean(parsed.pinEnabled),
       pinHash: typeof parsed.pinHash === 'string' ? parsed.pinHash : '',
-      autoLockMinutes:
+      autoLockMinutes: clampUnlockMinutes(
         typeof parsed.autoLockMinutes === 'number' ? parsed.autoLockMinutes : 5,
+      ),
       biometricEnabled: Boolean(parsed.biometricEnabled),
     }
   } catch {

@@ -148,6 +148,17 @@ import {
 } from '../services/sync/autoSyncService'
 import { scorePassphraseStrength } from '../services/sync/passphraseStrength'
 import {
+  defaultDeviceNickname,
+  loadDeviceNickname,
+  saveDeviceNickname,
+} from '../services/sync/deviceNickname'
+import {
+  buildSyncSetupText,
+  copySyncSetupUrl,
+  downloadSyncSetupUrl,
+  drawSyncSetupCard,
+} from '../services/sync/syncSetupExport'
+import {
   loadRecentSettingsJumps,
   rankSettingsSections,
   recordSettingsJump,
@@ -210,7 +221,7 @@ const SETTINGS_SECTION_IDS = [
 ] as const
 
 const SETTINGS_SECTION_SEARCH: Record<(typeof SETTINGS_SECTION_IDS)[number], string> = {
-  sync: 'Encrypted cloud sync passphrase remote url push pull',
+  sync: 'Encrypted cloud sync passphrase remote url push pull dry-run device nickname setup url',
   appearance: 'Light dark glass mode theme larger text accessibility',
   accessibility:
     'Accessibility larger text reduced motion high contrast colour blind chart palette a11y',
@@ -219,11 +230,11 @@ const SETTINGS_SECTION_SEARCH: Record<(typeof SETTINGS_SECTION_IDS)[number], str
   display: 'Currency tax residency privacy',
   'trade-history': 'Broker CSV IBKR Trading 212 Coinbase trades',
   'price-history': 'Holding price history import',
-  security: 'PIN Face ID lock',
+  security: 'PIN Face ID lock biometric unlock timeout',
   alerts: 'Notifications quiet hours price alerts desktop sound holdings drift',
   income: 'Income honesty',
   prices: 'Price refresh providers',
-  devices: 'Devices sync activity log smoke checklist install PWA',
+  devices: 'Devices sync activity log smoke checklist install PWA nickname',
   account: 'Cloud account OAuth identity',
   'open-banking': 'Open banking PSD2 bank feed',
   portfolios: 'Create rename delete portfolios',
@@ -344,6 +355,10 @@ export function SettingsPage() {
     onConfirm: () => void
   } | null>(null)
   const [showSyncPass, setShowSyncPass] = useState(false)
+  const [deviceNickname, setDeviceNickname] = useState(() => loadDeviceNickname())
+  const [dryRunSummary, setDryRunSummary] = useState<string | null>(null)
+  const [showSetupCard, setShowSetupCard] = useState(false)
+  const setupCanvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => subscribeAutoSync(setAutoSyncStatus), [])
 
@@ -862,6 +877,87 @@ export function SettingsPage() {
               {getSyncRemoteUrlWarning(syncCfg.remoteUrl)}
             </p>
           ) : null}
+          <div className="mb-4 max-w-md space-y-2">
+            <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle">
+              Device nickname
+              <input
+                type="text"
+                className="mt-2 w-full min-h-11"
+                value={deviceNickname}
+                placeholder={defaultDeviceNickname()}
+                maxLength={40}
+                onChange={(e) => setDeviceNickname(e.target.value)}
+                onBlur={() => {
+                  const next = saveDeviceNickname(deviceNickname)
+                  setDeviceNickname(next)
+                  flash(`Device nickname saved: ${next}`)
+                }}
+              />
+            </label>
+            <p className="text-xs text-text-subtle font-light">
+              Shown in sync activity and conflict sheet. Stored only on this install (
+              <code className="text-accent">mydsp_device_nickname</code>).
+            </p>
+          </div>
+          <div className="mb-6 max-w-2xl border border-border/60 p-3 space-y-2 sync-setup-url-card">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-text-subtle">
+              Scan / setup URL
+            </p>
+            <p className="text-xs text-text-muted font-light">
+              Share the Remote URL only — never the passphrase. Copy, download a text file, or show a
+              setup card.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="btn-secondary btn-sm"
+                disabled={!syncCfg.remoteUrl.trim()}
+                onClick={() => {
+                  void (async () => {
+                    const ok = await copySyncSetupUrl(syncCfg.remoteUrl)
+                    flash(ok ? 'Remote URL copied (passphrase not included).' : 'Could not copy.')
+                  })()
+                }}
+              >
+                Copy setup URL
+              </button>
+              <button
+                type="button"
+                className="btn-ghost btn-sm"
+                disabled={!syncCfg.remoteUrl.trim()}
+                onClick={() => {
+                  downloadSyncSetupUrl(syncCfg.remoteUrl)
+                  flash('Downloaded mydsp-sync-setup-url.txt')
+                }}
+              >
+                Download .txt
+              </button>
+              <button
+                type="button"
+                className="btn-ghost btn-sm"
+                disabled={!syncCfg.remoteUrl.trim()}
+                onClick={() => {
+                  setShowSetupCard((v) => !v)
+                  requestAnimationFrame(() => {
+                    if (setupCanvasRef.current) {
+                      drawSyncSetupCard(setupCanvasRef.current, syncCfg.remoteUrl)
+                    }
+                  })
+                }}
+              >
+                {showSetupCard ? 'Hide card' : 'Show setup card'}
+              </button>
+            </div>
+            {showSetupCard ? (
+              <canvas
+                ref={setupCanvasRef}
+                className="mt-2 max-w-full border border-border"
+                width={360}
+                height={220}
+                aria-label={buildSyncSetupText(syncCfg.remoteUrl)}
+              />
+            ) : null}
+          </div>
           <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle mb-2">
             Passphrase
           </label>
@@ -1087,9 +1183,9 @@ export function SettingsPage() {
                     type="button"
                     className="btn-secondary btn-sm"
                     onClick={() => {
-                      const next = resumeAutoSync()
+                      const next = resumeAutoSync({ toast: true })
                       setSyncCfg(next)
-                      flash('Auto-sync resumed.')
+                      flash('Sync resumed')
                     }}
                   >
                     Resume
@@ -1258,6 +1354,48 @@ export function SettingsPage() {
             </button>
             <button
               type="button"
+              className="btn-ghost"
+              onClick={() => {
+                void (async () => {
+                  if (!syncPass || !syncCfg.remoteUrl) {
+                    flash('Need remote URL and passphrase for dry-run.')
+                    return
+                  }
+                  try {
+                    const preview = await previewPull(syncCfg.remoteUrl, syncPass)
+                    // Dry-run: stage preview for review UI; do not write local data
+                    setPendingMerge(preview)
+                    setConflicts(preview.conflicts)
+                    setConflictChoices({})
+                    const newCount = preview.portfolios.filter((p) => p.isNew).length
+                    const changed = preview.portfolios.length - newCount
+                    const summary = [
+                      `Dry-run pull (nothing written)`,
+                      `${preview.portfolios.length} portfolio(s)`,
+                      newCount ? `${newCount} new` : null,
+                      changed ? `${changed} existing` : null,
+                      preview.conflicts.length
+                        ? `${preview.conflicts.length} conflict(s)`
+                        : 'no conflicts',
+                      preview.documentBlobs?.length
+                        ? `${preview.documentBlobs.length} attachment(s)`
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')
+                    setDryRunSummary(summary)
+                    flash(summary)
+                  } catch (e) {
+                    setDryRunSummary(null)
+                    flash(e instanceof Error ? e.message : 'Dry-run pull failed')
+                  }
+                })()
+              }}
+            >
+              Dry-run pull
+            </button>
+            <button
+              type="button"
               className="btn-secondary"
               onClick={() => {
                 void (async () => {
@@ -1398,6 +1536,19 @@ export function SettingsPage() {
               }}
             />
           </div>
+          {dryRunSummary ? (
+            <p className="text-xs text-amber-600 dark:text-amber-400 mb-2" role="status">
+              {dryRunSummary}
+              {' · '}
+              <button
+                type="button"
+                className="underline"
+                onClick={() => setDryRunSummary(null)}
+              >
+                Dismiss
+              </button>
+            </p>
+          ) : null}
           {pendingMerge && (
             <p className="text-xs text-amber-600 dark:text-amber-400 mb-2">
               Pending {pendingMerge.source} review
@@ -1452,7 +1603,7 @@ export function SettingsPage() {
                     {' · '}
                     {e.message}
                     {e.deviceHint ? (
-                      <span className="text-text-subtle"> · {e.deviceHint.slice(0, 12)}</span>
+                      <span className="text-text-subtle"> · {e.deviceHint.slice(0, 24)}</span>
                     ) : null}
                     {e.conflicts ? ` · ${e.conflicts} conflict(s)` : ''}
                   </li>
@@ -2294,25 +2445,32 @@ export function SettingsPage() {
             )}
           </div>
           <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle mb-2">
-            Auto-lock (minutes)
+            Biometric unlock timeout
           </label>
           <select
             className="max-w-xs mb-2"
             value={sec.autoLockMinutes}
+            aria-label="Biometric unlock timeout"
             onChange={(e) => {
               const autoLockMinutes = Number(e.target.value)
               persistSecurity({ ...sec, autoLockMinutes })
-              flash('Auto-lock updated.')
+              flash('Unlock timeout updated.')
             }}
           >
-            {[0, 1, 5, 15, 30].map((m) => (
+            {[
+              { m: 0, label: 'Immediate' },
+              { m: 1, label: '1 min' },
+              { m: 5, label: '5 min' },
+              { m: 15, label: '15 min' },
+            ].map(({ m, label }) => (
               <option key={m} value={m}>
-                {m === 0 ? 'Off (manual lock only)' : `${m} min`}
+                {label}
               </option>
             ))}
           </select>
           <p className="text-xs text-text-subtle mb-6 max-w-xl">
-            When auto-lock is on, MyDSP also locks when you leave the app (iPhone/iPad app switcher).
+            Immediate locks when you leave the app. Timed options also lock after idle. Face ID / PIN
+            unlock resets the idle timer.
           </p>
           <div className="flex flex-wrap gap-3 items-start">
             <button

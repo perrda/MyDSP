@@ -8,6 +8,7 @@ import {
   pauseAutoSync,
   resumeAutoSync,
 } from '../services/sync/autoSyncService'
+import { loadDeviceNickname } from '../services/sync/deviceNickname'
 import { summarizeConflictBatch } from '../services/sync/conflicts'
 import { loadSyncConfig } from '../services/sync/syncService'
 import type { MergePreview } from '../services/sync/syncService'
@@ -16,6 +17,7 @@ export function SyncConflictSheet() {
   const [preview, setPreview] = useState<MergePreview | null>(null)
   const [dismissed, setDismissed] = useState(false)
   const [paused, setPaused] = useState(() => isAutoSyncPaused())
+  const [deviceNick] = useState(() => loadDeviceNickname())
 
   useEffect(() => {
     const hydrate = () => {
@@ -61,9 +63,12 @@ export function SyncConflictSheet() {
         <h2 id="sync-conflict-sheet-title" className="text-base font-bold tracking-tight mb-1">
           {count} conflict{count === 1 ? '' : 's'} to review
         </h2>
-        <p className="text-xs text-text-muted leading-relaxed mb-4">
+        <p className="text-xs text-text-muted leading-relaxed mb-1">
           {summarizeConflictBatch(preview.conflicts)} Choose Keep local or Keep remote in Settings —
           nothing is written until you Apply merge.
+        </p>
+        <p className="text-xs text-text-subtle mb-4">
+          This device: <span className="text-text font-medium">{deviceNick}</span>
         </p>
         <div className="flex flex-wrap gap-2">
           <Link
@@ -81,7 +86,7 @@ export function SyncConflictSheet() {
               type="button"
               className="btn-secondary btn-sm min-h-11"
               onClick={() => {
-                resumeAutoSync()
+                resumeAutoSync({ toast: true })
                 setPaused(false)
               }}
             >

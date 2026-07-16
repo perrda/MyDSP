@@ -3,9 +3,9 @@
  * Keep 3 short bullets aligned with the latest CHANGELOG section.
  */
 export const RELEASE_NOTES: readonly string[] = [
-  'Settings search: fuzzy match + recent section jumps',
-  'Printable household snapshot (NW + allocation)',
-  'Markets Cached mode banner · bundle budget · update notes',
+  'Dry-run pull + device nickname on sync activity',
+  'Biometric unlock timeout: Immediate / 1m / 5m / 15m',
+  'Sync setup URL share (no passphrase) · auto-resume after pause',
 ]
 
 /** Return up to `n` bullets for the banner. */

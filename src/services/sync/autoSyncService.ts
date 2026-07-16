@@ -22,6 +22,7 @@ import {
   type MergePreview,
   type SyncConfig,
 } from './syncService'
+import { getLocalDeviceHint } from './deviceNickname'
 import { conflictKey, type ConflictChoice } from './conflicts'
 import { getSessionSyncPassphrase, hydrateSessionSyncPassphrase } from './sessionPassphrase'
 import { collectSyncHighlights, setSyncHighlights } from './syncHighlights'
@@ -108,23 +109,119 @@ export function getLastSyncLatencyKind(): 'pull' | 'push' | undefined {
   return lastLatencyKind
 }
 
-/** Pause automatic sync for `ms` (default 1 hour). */
+let pauseResumeTimer: ReturnType<typeof setTimeout> | null = null
+let pauseCountdownTimer: ReturnType<typeof setTimeout> | null = null
+
+function clearPauseTimers(): void {
+  if (pauseResumeTimer) {
+    clearTimeout(pauseResumeTimer)
+    pauseResumeTimer = null
+  }
+  if (pauseCountdownTimer) {
+    clearTimeout(pauseCountdownTimer)
+    pauseCountdownTimer = null
+  }
+}
+
+function emitAppToast(detail: {
+  type?: 'success' | 'info' | 'warning' | 'error'
+  title: string
+  message?: string
+  duration?: number
+}): void {
+  try {
+    window.dispatchEvent(new CustomEvent('mydsp-toast', { detail }))
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Flash “Sync resumed” (60s toast duration). */
+export function flashSyncResumedToast(): void {
+  emitAppToast({
+    type: 'success',
+    title: 'Sync resumed',
+    duration: 60_000,
+  })
+}
+
+/** Optional 60s countdown toast before auto-resume (or when resuming early). */
+export function flashSyncResumeCountdownToast(seconds = 60): void {
+  const start = Math.max(1, Math.min(60, Math.floor(seconds)))
+  emitAppToast({
+    type: 'info',
+    title: `Sync resumes in ${start}s`,
+    message: 'Auto-sync will continue when the countdown ends.',
+    duration: start * 1000,
+  })
+}
+
+function schedulePauseAutoResume(untilIso: string): void {
+  clearPauseTimers()
+  const ms = new Date(untilIso).getTime() - Date.now()
+  if (!Number.isFinite(ms) || ms <= 0) {
+    resumeAutoSync({ toast: true })
+    return
+  }
+  // Last 60s: countdown toast option
+  if (ms > 60_000) {
+    pauseCountdownTimer = setTimeout(() => {
+      flashSyncResumeCountdownToast(60)
+    }, ms - 60_000)
+  } else {
+    flashSyncResumeCountdownToast(Math.ceil(ms / 1000))
+  }
+  pauseResumeTimer = setTimeout(() => {
+    pauseResumeTimer = null
+    resumeAutoSync({ toast: true })
+    void runAutoSyncCycle('interval')
+  }, ms)
+}
+
+/** Pause automatic sync for `ms` (default 1 hour). Schedules auto-resume + optional countdown. */
 export function pauseAutoSync(ms = 3_600_000): SyncConfig {
-  return updateCfg({ pausedUntil: new Date(Date.now() + ms).toISOString() })
+  const until = new Date(Date.now() + ms).toISOString()
+  const next = updateCfg({ pausedUntil: until })
+  schedulePauseAutoResume(until)
+  return next
+}
+
+export type ResumeAutoSyncOpts = {
+  /** Show “Sync resumed” toast (default true). */
+  toast?: boolean
 }
 
 /** Clear pausedUntil so auto-sync resumes. */
-export function resumeAutoSync(): SyncConfig {
+export function resumeAutoSync(opts: ResumeAutoSyncOpts = {}): SyncConfig {
+  clearPauseTimers()
   const cfg = loadSyncConfig()
   const next = { ...cfg }
   delete next.pausedUntil
   saveSyncConfig(next)
+  if (opts.toast !== false) flashSyncResumedToast()
+  try {
+    window.dispatchEvent(new CustomEvent('mydsp-autosync', { detail: getAutoSyncStatus() }))
+  } catch {
+    /* ignore */
+  }
   return next
 }
 
 export function isAutoSyncPaused(cfg: SyncConfig = loadSyncConfig()): boolean {
   if (!cfg.pausedUntil) return false
   return new Date(cfg.pausedUntil).getTime() > Date.now()
+}
+
+/** Re-arm pause auto-resume timer after reload (call from startAutoSync). */
+export function armPauseAutoResumeIfNeeded(): void {
+  const cfg = loadSyncConfig()
+  if (!cfg.pausedUntil) return
+  const ms = new Date(cfg.pausedUntil).getTime() - Date.now()
+  if (ms <= 0) {
+    resumeAutoSync({ toast: true })
+    return
+  }
+  schedulePauseAutoResume(cfg.pausedUntil)
 }
 
 export function getAutoSyncStatus(): AutoSyncStatus {
@@ -332,7 +429,7 @@ async function doPull(cfg: SyncConfig, pass: string, reason: CycleReason): Promi
         merged: result.merged,
         conflicts: result.conflicts.length,
         at,
-        deviceHint: meta.deviceId || getLocalDeviceId(),
+        deviceHint: meta.deviceId || getLocalDeviceHint(),
       })
     } catch {
       /* ignore */
@@ -389,7 +486,7 @@ async function doPush(cfg: SyncConfig, pass: string): Promise<void> {
         source: 'push',
         message: 'Pushed local changes to cloud',
         at,
-        deviceHint: getLocalDeviceId(),
+        deviceHint: getLocalDeviceHint(),
       })
     } catch {
       /* ignore */
@@ -420,9 +517,9 @@ export async function runAutoSyncCycle(reason: CycleReason = 'manual'): Promise<
     return
   }
 
-  // Clear expired pause marker
+  // Clear expired pause marker (timer may have been missed while tab slept)
   if (cfg.pausedUntil) {
-    updateCfg({ pausedUntil: undefined })
+    resumeAutoSync({ toast: true })
   }
 
   hydrateSessionSyncPassphrase()
@@ -486,6 +583,7 @@ export function startAutoSync(): void {
   if (started || typeof window === 'undefined') return
   started = true
   hydrateSessionSyncPassphrase()
+  armPauseAutoResumeIfNeeded()
 
   document.addEventListener('visibilitychange', onVisibility)
   window.addEventListener('focus', onFocus)
@@ -511,6 +609,7 @@ export function stopAutoSync(): void {
   pushTimer = null
   if (periodicTimer) clearInterval(periodicTimer)
   periodicTimer = null
+  clearPauseTimers()
 }
 
 /** Force an immediate sync cycle (Settings “Sync now”). */

@@ -125,7 +125,7 @@ describe('next25b sync / backup trust', () => {
 
     const auto = readFileSync(resolve(__dirname, '../services/sync/autoSyncService.ts'), 'utf8')
     expect(auto).toMatch(/deviceHint:\s*meta\.deviceId/)
-    expect(auto).toMatch(/deviceHint:\s*getLocalDeviceId\(\)/)
+    expect(auto).toMatch(/deviceHint:\s*getLocalDeviceHint\(\)/)
 
     const settings = readFileSync(resolve(__dirname, '../pages/SettingsPage.tsx'), 'utf8')
     expect(settings).toMatch(/e\.deviceHint/)
@@ -158,6 +158,6 @@ describe('next25b sync / backup trust', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8')) as {
       version: string
     }
-    expect(pkg.version).toBe('1.2.44')
+    expect(pkg.version).toBe('1.2.45')
   })
 })

@@ -1,5 +1,19 @@
 # MyDSP Changelog
 
+## [1.2.45] - 2026-07-16
+
+### Improved — Sync / security (next 25c · 1–5)
+1. Settings Sync **Dry-run pull** — `previewPull` conflict/portfolio summary without `applyMergePreview`  
+2. **Device nickname** per install (`mydsp_device_nickname`) — default from device id short form; sync activity + SyncConflictSheet; used as `deviceHint`  
+3. Security **Biometric unlock timeout** picker: Immediate / 1m / 5m / 15m — wired to SecurityProvider idle + visibility lock  
+4. Sync **Scan/setup URL** card — copy + download Remote URL text (never passphrase) + canvas setup card  
+5. **Auto-resume** after pause — timer clears `pausedUntil`, toast “Sync resumed” (60s); last-60s countdown toast  
+
+### Version
+- 1.2.44 → **1.2.45**
+
+---
+
 ## [1.2.44] - 2026-07-15
 
 ### Improved — Quality / ops (next 25b · 21–25)

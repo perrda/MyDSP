@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.44**
+**Current version: 1.2.45**
 
-## Completed (through v1.2.44)
+## Completed (through v1.2.45)
 
+- Sync / security (next25c 1–5): dry-run pull, device nickname, biometric unlock timeout, sync setup URL export, auto-resume after pause
 - Quality / ops (next25b 21–25): Settings fuzzy search + recent jumps, household snapshot PDF, Markets Cached mode, verify:bundle perf budget, UpdateBanner release notes
 - Today / planning (next25b 16–20): money pulse NW Δ, Spending Make rule → Rules prefill, bills due-in-7 strip, goal projected date from surplus estimate, TradeModal save → holding detail
 - Mobile ergonomics (next25b 11–15): thumb CTA bar / PageHeader phone order, Jobs column picker, Todos Select mode, landscape iPad sticky sidebar, success haptic flash

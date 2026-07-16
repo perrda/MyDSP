@@ -55,6 +55,7 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!security.pinEnabled || locked) return
     const minutes = security.autoLockMinutes
+    // Immediate (0): no idle timer — lock on visibility instead
     if (!minutes || minutes <= 0) return
     const id = window.setInterval(() => {
       const idle = Date.now() - lastActivity
@@ -66,9 +67,8 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const onVis = () => {
       if (document.visibilityState === 'hidden' && loadSecurity().pinEnabled) {
-        // soft lock on hide only if auto-lock is enabled
-        const s = loadSecurity()
-        if (s.autoLockMinutes > 0) setLocked(true)
+        // Immediate (0) or any timed unlock: lock when leaving the app
+        setLocked(true)
       }
     }
     document.addEventListener('visibilitychange', onVis)
