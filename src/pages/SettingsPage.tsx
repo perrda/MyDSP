@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { DataExportPanel } from '../components/DataExportPanel'
 import { SettingsSection } from '../components/SettingsSection'
+import { WhatsNewArchive } from '../components/WhatsNewArchive'
 import { PageHeader } from '../components/ui/PageHeader'
 import { openSettingsSection, setAllSettingsSectionsOpen } from '../storage/settingsSectionsStore'
 import { ConfirmDialog } from '../components/ui/Modal'
@@ -217,6 +218,7 @@ const SETTINGS_SECTION_IDS = [
   'export',
   'reports',
   'versions',
+  'whats-new',
   'danger',
 ] as const
 
@@ -241,7 +243,8 @@ const SETTINGS_SECTION_SEARCH: Record<(typeof SETTINGS_SECTION_IDS)[number], str
   'full-backup': 'Encrypted full backup download restore',
   export: 'Export data CSV JSON',
   reports: 'PDF financial report',
-  versions: 'App version changelog',
+  versions: 'App version changelog rollback',
+  'whats-new': 'What’s new release notes archive versions changelog',
   danger: 'Reset clear all data danger zone',
 }
 
@@ -1733,7 +1736,7 @@ export function SettingsPage() {
           )}
 
           {conflicts.length > 0 && (
-            <div id="sync-conflicts-panel" className="mt-6 border border-border p-4 space-y-3">
+            <div id="sync-conflicts-panel" className="mt-6 border border-border p-4 space-y-3" tabIndex={-1}>
               <p className="text-sm font-semibold">Sync conflicts</p>
               <p className="text-xs text-text-muted font-light">
                 {summarizeConflictBatch(conflicts)} Nothing has been written yet — pick Keep local
@@ -3469,6 +3472,14 @@ export function SettingsPage() {
           >
             Clear SW cache &amp; reload
           </button>
+        </SettingsSection>
+
+        <SettingsSection id="whats-new" eyebrow="What’s new" title="Release notes archive">
+          <p className="text-sm text-text-muted font-light mb-4 max-w-2xl">
+            Highlights from the last five MyDSP versions. Also linked from the update banner when a
+            new build is ready.
+          </p>
+          <WhatsNewArchive limit={5} />
         </SettingsSection>
 
         <SettingsSection id="danger" eyebrow="Danger zone" title="Reset active portfolio">

@@ -58,9 +58,10 @@ OK — ready to deploy.
   Deploy quote:  npm run deploy:quote
 
   After deploy:
-    1. Hard-refresh / re-open PWA (update banner → Reload)
-    2. Cross-device sync smoke — see scripts/SYNC_SMOKE.md
-    3. Markets live quotes + header sync chip (no “Now” next to “Synced · Xm ago”)
-    4. Settings search → Sync / Alerts / Glass
+    1. Hard-refresh / re-open PWA (update banner → Reload; See all → What’s new archive)
+    2. Open /smoke — Quote Worker ping + Sync URL reachability should pass
+    3. Cross-device sync smoke — see scripts/SYNC_SMOKE.md
+    4. Markets live quotes + header sync chip (no “Now” next to “Synced · Xm ago”)
+    5. Settings search → Sync / Alerts / Glass / What’s new
 `)
 process.exit(0)

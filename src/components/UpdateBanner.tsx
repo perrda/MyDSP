@@ -1,6 +1,7 @@
 /** Banner when a new service worker is waiting — reload to activate. */
 
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { getServiceWorkerManager } from '../services/serviceWorker'
 import { releaseNotesBullets } from '../domain/releaseNotes'
 
@@ -65,6 +66,14 @@ export function UpdateBanner() {
           ))}
         </ul>
       ) : null}
+      <p className="mb-3">
+        <Link
+          to="/settings#whats-new"
+          className="update-banner-see-all text-xs text-accent font-medium hover:underline"
+        >
+          See all
+        </Link>
+      </p>
       <div className="flex gap-2">
         <button
           type="button"

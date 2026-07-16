@@ -1,14 +1,28 @@
 import { useCallback } from 'react'
 
-/** Skip to main content link */
+/** Skip links — main content plus key in-page targets. */
 export function SkipToContent() {
   return (
-    <a
-      href="#main-content"
-      className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-accent focus:text-white focus:shadow-lg"
-    >
-      Skip to main content
-    </a>
+    <nav aria-label="Skip links" className="skip-links">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-accent focus:text-white focus:shadow-lg"
+      >
+        Skip to main content
+      </a>
+      <a
+        href="#sync-conflicts-panel"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-accent focus:text-white focus:shadow-lg focus:mt-14"
+      >
+        Skip to sync conflicts
+      </a>
+      <a
+        href="#markets-cached-mode-banner"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-accent focus:text-white focus:shadow-lg focus:mt-28"
+      >
+        Skip to Markets cached banner
+      </a>
+    </nav>
   )
 }
 

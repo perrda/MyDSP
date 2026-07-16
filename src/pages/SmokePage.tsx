@@ -1,4 +1,4 @@
-/** On-device smoke checklist — Sync / Markets / Backup / PWA. */
+/** On-device smoke checklist — Sync / Markets / Backup / PWA / Quote / Sync URL. */
 
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -11,8 +11,12 @@ import {
 } from '../services/sync/sessionPassphrase'
 import { loadMarketsState } from '../storage/marketsStore'
 import { LAST_BACKUP_KEY, listFullBackups } from '../storage/backupStore'
+import {
+  checkSyncUrlReachable,
+  pingQuoteWorker,
+} from '../domain/smokeChecks'
 
-type CheckId = 'sync' | 'markets' | 'backup' | 'pwa'
+type CheckId = 'sync' | 'markets' | 'backup' | 'pwa' | 'quote' | 'sync-url'
 
 type SmokeItem = {
   id: CheckId
@@ -65,6 +69,18 @@ export function SmokePage() {
   const runChecks = useCallback(async () => {
     setBusy(true)
     const backupOk = (await backupExistsIndexed()) || backupExistsLocal()
+    const cfg = loadSyncConfig()
+    const [quote, syncUrl] = await Promise.all([
+      pingQuoteWorker(),
+      cfg.remoteUrl.trim()
+        ? checkSyncUrlReachable(cfg.remoteUrl)
+        : Promise.resolve({
+            ok: false as const,
+            status: 0,
+            detail: 'No Sync URL configured',
+          }),
+    ])
+
     const next: SmokeItem[] = [
       {
         id: 'sync',
@@ -94,6 +110,20 @@ export function SmokePage() {
         to: '/settings#devices',
         done: isStandalonePwa(),
       },
+      {
+        id: 'quote',
+        label: 'Quote Worker ping',
+        detail: quote.detail,
+        to: '/settings#sync',
+        done: quote.ok,
+      },
+      {
+        id: 'sync-url',
+        label: 'Sync URL reachability',
+        detail: syncUrl.detail,
+        to: '/settings#sync',
+        done: syncUrl.ok,
+      },
     ]
     setItems(next)
     setBusy(false)
@@ -110,7 +140,7 @@ export function SmokePage() {
       <PageHeader
         eyebrow="QA"
         title="On-device smoke"
-        description="Interactive checks against sync, Markets, backup, and PWA install state."
+        description="Interactive checks against sync, Markets, backup, PWA, Quote Worker, and Sync URL."
         action={
           <button
             type="button"
@@ -126,7 +156,7 @@ export function SmokePage() {
       />
 
       <p className="text-sm text-text-muted font-light mb-6">
-        {doneCount}/{items.length || 4} checks passing ·{' '}
+        {doneCount}/{items.length || 6} checks passing ·{' '}
         <Link to="/settings#accessibility" className="text-accent font-medium">
           Accessibility
         </Link>

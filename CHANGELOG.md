@@ -1,5 +1,19 @@
 # MyDSP Changelog
 
+## [1.2.49] - 2026-07-16
+
+### Improved — Quality / ops (next 25c · 21–25)
+21. In-app **What’s new** archive — Settings lists last 5 versions from versioned `RELEASE_NOTES`; UpdateBanner **See all** → `#whats-new`  
+22. **ErrorBoundary** recovery — Reload / Clear SW caches / Open Sync  
+23. Accessibility **skip links** for `#sync-conflicts-panel` and `#markets-cached-mode-banner`  
+24. `/smoke` extends deploy checks — Quote Worker ping + Sync URL reachability (HEAD/GET, secrets stripped)  
+25. **Weekly digest** — download-only email-ready HTML (NW summary) from Today & Compare  
+
+### Version
+- 1.2.48 → **1.2.49**
+
+---
+
 ## [1.2.48] - 2026-07-16
 
 ### Improved — Today / money / tax (next 25c · 16–20)

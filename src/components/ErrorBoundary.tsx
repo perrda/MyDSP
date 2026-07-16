@@ -1,9 +1,10 @@
-// Error Boundary — branded MyDSP fallback
+// Error Boundary — branded MyDSP fallback with recovery actions
 
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { logger } from '../utils/logger'
-import { AlertTriangle, RefreshCw, Home } from 'lucide-react'
+import { AlertTriangle, RefreshCw, Home, Cloud, Trash2 } from 'lucide-react'
 import { BrandMark } from './BrandMark'
+import { clearServiceWorkerCaches } from '../storage/backupStore'
 
 interface Props {
   children: ReactNode
@@ -15,6 +16,12 @@ interface State {
   hasError: boolean
   error: Error | null
   errorInfo: ErrorInfo | null
+  clearing: boolean
+}
+
+function appBasePath(): string {
+  const base = typeof __BASE_PATH__ === 'string' ? __BASE_PATH__ : '/'
+  return base === '/' ? '/' : base.endsWith('/') ? base : `${base}/`
 }
 
 export class ErrorBoundary extends Component<Props, State> {
@@ -24,6 +31,7 @@ export class ErrorBoundary extends Component<Props, State> {
       hasError: false,
       error: null,
       errorInfo: null,
+      clearing: false,
     }
   }
 
@@ -45,7 +53,35 @@ export class ErrorBoundary extends Component<Props, State> {
       hasError: false,
       error: null,
       errorInfo: null,
+      clearing: false,
     })
+  }
+
+  handleReload = () => {
+    window.location.reload()
+  }
+
+  handleClearSwCaches = () => {
+    this.setState({ clearing: true })
+    void (async () => {
+      try {
+        await clearServiceWorkerCaches()
+      } catch {
+        /* still reload */
+      }
+      window.location.reload()
+    })()
+  }
+
+  handleOpenSync = () => {
+    this.setState({
+      hasError: false,
+      error: null,
+      errorInfo: null,
+      clearing: false,
+    })
+    const base = appBasePath()
+    window.location.assign(`${base === '/' ? '/' : base}settings#sync`)
   }
 
   handleGoHome = () => {
@@ -53,9 +89,9 @@ export class ErrorBoundary extends Component<Props, State> {
       hasError: false,
       error: null,
       errorInfo: null,
+      clearing: false,
     })
-    const base = typeof __BASE_PATH__ === 'string' ? __BASE_PATH__ : '/'
-    window.location.assign(base === '/' ? '/' : base)
+    window.location.assign(appBasePath())
   }
 
   render() {
@@ -79,7 +115,8 @@ export class ErrorBoundary extends Component<Props, State> {
             </h1>
 
             <p className="text-sm text-text-muted text-center mb-6 font-light leading-relaxed">
-              Don&apos;t worry — your data stays on this device. Try again, or return to Overview.
+              Don&apos;t worry — your data stays on this device. Try reload, clear caches, or open
+              Sync.
             </p>
 
             {import.meta.env.DEV && this.state.error ? (
@@ -93,24 +130,53 @@ export class ErrorBoundary extends Component<Props, State> {
               </div>
             ) : null}
 
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex flex-col gap-3 error-boundary-recovery">
               <button
                 type="button"
-                onClick={this.handleReset}
-                className="btn-primary flex-1 inline-flex items-center justify-center gap-2 min-h-12"
+                onClick={this.handleReload}
+                className="btn-primary w-full inline-flex items-center justify-center gap-2 min-h-12 error-boundary-reload"
               >
                 <RefreshCw className="w-4 h-4" strokeWidth={1.75} />
-                Try again
+                Reload
               </button>
 
               <button
                 type="button"
-                onClick={this.handleGoHome}
-                className="btn-secondary flex-1 inline-flex items-center justify-center gap-2 min-h-12"
+                onClick={this.handleClearSwCaches}
+                disabled={this.state.clearing}
+                className="btn-secondary w-full inline-flex items-center justify-center gap-2 min-h-12 error-boundary-clear-sw"
               >
-                <Home className="w-4 h-4" strokeWidth={1.75} />
-                Go home
+                <Trash2 className="w-4 h-4" strokeWidth={1.75} />
+                {this.state.clearing ? 'Clearing…' : 'Clear SW caches'}
               </button>
+
+              <button
+                type="button"
+                onClick={this.handleOpenSync}
+                className="btn-secondary w-full inline-flex items-center justify-center gap-2 min-h-12 error-boundary-open-sync"
+              >
+                <Cloud className="w-4 h-4" strokeWidth={1.75} />
+                Open Sync
+              </button>
+
+              <div className="flex flex-col sm:flex-row gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={this.handleReset}
+                  className="btn-ghost flex-1 inline-flex items-center justify-center gap-2 min-h-12"
+                >
+                  Try again
+                </button>
+
+                <button
+                  type="button"
+                  onClick={this.handleGoHome}
+                  className="btn-ghost flex-1 inline-flex items-center justify-center gap-2 min-h-12"
+                >
+                  <Home className="w-4 h-4" strokeWidth={1.75} />
+                  Go home
+                </button>
+              </div>
             </div>
           </div>
         </div>

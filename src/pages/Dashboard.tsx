@@ -39,6 +39,10 @@ import { LAST_BACKUP_KEY } from '../storage/backupStore'
 import { listMarketTickers, loadMarketQuotesCache } from '../storage/marketsStore'
 import { buildPriceAlertNotifications } from '../domain/priceAlerts'
 import { formatDate, formatGBP, formatPct, privacyClass } from '../utils/format'
+import {
+  downloadWeeklyDigest,
+  weekDeltaFromHistory,
+} from '../domain/weeklyDigest'
 
 function formatSyncLatencyMs(ms: number): string {
   if (ms < 1000) return `${ms}ms`
@@ -272,9 +276,37 @@ export function Dashboard() {
         title="Today"
         description="Net worth, tasks due now, sync health, and Markets — act first, explore below."
         action={
-          <Link to="/settings#sync" className="btn-secondary btn-sm inline-flex">
-            Cloud Sync <ArrowRight size={14} strokeWidth={1.5} />
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="btn-ghost btn-sm weekly-digest-btn"
+              onClick={() => {
+                downloadWeeklyDigest({
+                  title: 'MyDSP weekly digest',
+                  netWorth,
+                  assets,
+                  liabilities,
+                  crypto: crypto.value,
+                  equity: equity.value,
+                  weekDelta: weekDeltaFromHistory(data.history ?? [], netWorth),
+                  highlights: [
+                    todayTodos.length
+                      ? `${todayTodos.length} todo${todayTodos.length === 1 ? '' : 's'} due today`
+                      : 'No todos due today',
+                    todayMovers[0]
+                      ? `Top mover ${todayMovers[0].symbol} ${formatPct(todayMovers[0].changePct)}`
+                      : 'No Markets movers cached',
+                  ],
+                })
+              }}
+              title="Download email-ready weekly HTML digest (not sent)"
+            >
+              Weekly digest
+            </button>
+            <Link to="/settings#sync" className="btn-secondary btn-sm inline-flex">
+              Cloud Sync <ArrowRight size={14} strokeWidth={1.5} />
+            </Link>
+          </div>
         }
       />
 

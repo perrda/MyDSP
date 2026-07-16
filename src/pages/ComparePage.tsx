@@ -26,6 +26,10 @@ import {
   printHouseholdSnapshot,
   shareHouseholdSnapshot,
 } from '../domain/householdSnapshot'
+import {
+  downloadWeeklyDigest,
+  weekDeltaFromHistory,
+} from '../domain/weeklyDigest'
 
 export function ComparePage() {
   const { privacy, portfolios, activeId, switchPortfolio, reload } = usePortfolio()
@@ -164,6 +168,35 @@ export function ComparePage() {
     }
   }
 
+  const exportWeeklyDigest = () => {
+    let weekDelta: number | null = null
+    try {
+      const active = loadPortfolio(activeId)
+      weekDelta = weekDeltaFromHistory(active.history ?? [], totals.netWorth)
+    } catch {
+      weekDelta = null
+    }
+    downloadWeeklyDigest({
+      title: 'MyDSP weekly digest',
+      netWorth: totals.netWorth,
+      assets: totals.assets,
+      liabilities: totals.liabilities,
+      crypto: totals.crypto,
+      equity: totals.equity,
+      weekDelta,
+      portfolios: rows.map((r) => ({ name: r.name, netWorth: r.netWorth })),
+      highlights: [
+        `${rows.length} portfolio${rows.length === 1 ? '' : 's'} compared`,
+        cacheAgeLabel ? `Holdings cache: ${cacheAgeLabel}` : 'Holdings cache age unknown',
+      ],
+    })
+    showToast({
+      type: 'success',
+      title: 'Weekly digest downloaded',
+      message: 'Open the HTML file or paste into an email — nothing is sent from the app.',
+    })
+  }
+
   return (
     <div>
       <PageHeader
@@ -188,6 +221,15 @@ export function ComparePage() {
               title="Print or share a one-page net worth + allocation snapshot"
             >
               Snapshot PDF
+            </button>
+            <button
+              type="button"
+              className="btn-ghost btn-sm weekly-digest-btn"
+              disabled={rows.length === 0}
+              onClick={exportWeeklyDigest}
+              title="Download email-ready weekly HTML digest (not sent)"
+            >
+              Weekly digest
             </button>
             <button
               type="button"
