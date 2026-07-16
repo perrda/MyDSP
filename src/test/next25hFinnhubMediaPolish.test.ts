@@ -46,10 +46,10 @@ describe('next25h — Finnhub / media / polish tip (1–25 → v1.2.75)', () => 
     expect(RELEASE_NOTES[0]?.version).toBe('1.2.75')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
       '1.2.75',
+      '1.2.74',
       '1.2.73',
       '1.2.72',
       '1.2.71',
-      '1.2.70',
     ])
   })
 

@@ -34,7 +34,9 @@ if (!existsSync(syncSmoke)) notes.push('Warning: scripts/SYNC_SMOKE.md missing')
 
 const quoteToml = join(root, 'quote-endpoint', 'wrangler.toml')
 if (existsSync(quoteToml)) {
-  notes.push('Quote Worker project present — deploy once with: npm run deploy:quote')
+  notes.push(
+    'Quote Worker project present — deploy with: npm run deploy:quote (expect Worker name mydsp-quote, not mydspv1)',
+  )
 }
 
 console.log(`MyDSP v${pkg.version} — deploy verify`)

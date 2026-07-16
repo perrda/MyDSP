@@ -14,8 +14,8 @@
     "verify:deploy": "node scripts/verify-deploy.mjs",
     "verify:bundle": "node scripts/verify-bundle.mjs",
     "deploy": "npm run build && node scripts/verify-deploy.mjs && wrangler deploy",
-    "deploy:sync": "cd sync-endpoint && wrangler deploy",
-    "deploy:quote": "cd quote-endpoint && wrangler deploy",
+    "deploy:sync": "wrangler deploy --config sync-endpoint/wrangler.toml",
+    "deploy:quote": "wrangler deploy --config quote-endpoint/wrangler.toml",
     "deploy:check": "npm run build && npm run verify:deploy && npm run verify:bundle"
   },
   "dependencies": {
