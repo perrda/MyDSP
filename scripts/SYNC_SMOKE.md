@@ -9,7 +9,7 @@ Run after every production deploy (`npm run deploy` + `npm run deploy:sync` if s
 ## Checklist
 1. **Portfolios** — rename active portfolio on device A → within ~30s device B shows the new name (or after pull-to-refresh / Settings → Sync now)
 2. **Favourites** — reorder Favourites / Others on A → B matches after sync
-3. **Markets watchlist** — add a ticker on A only → B keeps its own tickers **and** gains A’s (union merge)
+3. **Markets watchlist + quotes** — add a ticker on A only → B keeps its own tickers **and** gains A’s (union merge). Refresh Markets on A → B shows last-good prices (freshness **From other device**) before B refreshes; Owned/weight chips still match holdings after union.
 4. **Todos** — create a todo on A → appears on B; complete on B → done on A
 5. **Jobs** — move a card between columns on A → B reflects status
 6. **Conflicts** — if Conflicts chip appears, open Settings → Sync and resolve (Keep local / Keep remote / Keep all remote)

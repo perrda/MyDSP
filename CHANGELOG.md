@@ -1,5 +1,47 @@
 # MyDSP Changelog
 
+## [1.2.70] - 2026-07-16
+
+### Improved — Sync prices across devices (next 25g · 1–5)
+1. **Quote cache in fullArchive** — last-good Markets prints sync with the encrypted workspace  
+2. **Dirty → push after Markets refresh** — refreshed quotes mark workspace dirty for the ~4s push  
+3. **Freshness “From other device”** — sync-tagged quotes show device provenance under the price  
+4. **Prefs LWW** — density / timeframe / section order use `prefsUpdatedAt` last-write-wins  
+5. **Sync prices now** — desktop + phone thumb bar refresh quotes and run Sync now when cloud sync is on  
+
+### Improved — Markets correctness (next 25g · 6–10)
+6. **Yahoo futures resilience** — commodity fetch retries spot/alias symbols when futures chart is empty  
+7. **Per-section refresh / as-of** — unchanged; section header refresh + as-of labels  
+8. **Merge never blanks spark/%** — sync quote merge reuses live merge preservation rules  
+9. **Provider health on Markets** — session health strip; commodity → yahoo  
+10. **Holdings stay aligned** — Markets refresh still overwrites holdings from last-synced quotes  
+
+### Improved — UI polish (next 25g · 11–15)
+11. **Tighter Markets header** — shorter description; denser sticky search chrome  
+12. **PTR no jump** — pull-to-refresh moves the indicator only (page content stays put)  
+13. **Mixed Live/Unavailable CTA** — section banner + Retry unavailable / Retry section  
+14. **Drag ghost + pulse** — stronger reorder ghost; sync-row accent + just-synced pulse  
+15. **Long-press section Sort** — hold a section header to enter Sections reorder (cancels on move)  
+
+### Improved — Today / Compare (next 25g · 16–20)
+16. **Movers age rules** — Today movers ignore quotes older than 24h  
+17. **Cross-device lag chip** — “Prices from other device · Xm ago” on Today  
+18. **Owned/weight after union** — Owned chips remain after watchlist union import  
+19. **Compare as-of** — existing quote-age chips retained  
+20. **Digest honesty** — Preview/Share copy stays explicit (not emailed); movers note freshness  
+
+### Improved — Quality / ops (next 25g · 21–25)
+21. Tip tests for sync quote merge + prefs LWW + UI gates  
+22. Playwright smoke asserts Commodities seeded + Markets quote cache  
+23. `/smoke` checklist — commodities + quote cache  
+24. Docs — what syncs (watchlist + quote cache) in SYNC_SETUP / SYNC_SMOKE  
+25. Cadence honesty — Settings + SYNC_SETUP match code (**~4s** push / **~30s** pull)  
+
+### Version
+- 1.2.69 → **1.2.70**
+
+---
+
 ## [1.2.69] - 2026-07-16
 
 ### Improved — Markets / portfolio (next 25g · 6–8)

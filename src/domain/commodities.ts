@@ -84,3 +84,27 @@ export function isCommodityYahooSymbol(symbol: string): boolean {
   const sym = normalizeCommoditySymbol(symbol)
   return Boolean(SPEC_BY_SYMBOL[sym]) || /=[FX]$/.test(sym) || /^(GC|SI|HG|PL|PA|CL|BZ|NG)=F$/.test(sym)
 }
+
+/**
+ * Alternate Yahoo symbols to try when the primary futures print fails
+ * (weekend / empty chart / temporary Yahoo gap). Primary first.
+ */
+export function commodityYahooFallbacks(symbol: string): string[] {
+  const primary = normalizeCommoditySymbol(symbol)
+  if (!primary) return []
+  const extras: Record<string, string[]> = {
+    'GC=F': ['XAUUSD=X', 'GOLD'],
+    'SI=F': ['XAGUSD=X', 'SILVER'],
+    'HG=F': ['COPPER'],
+    'XAUUSD=X': ['GC=F'],
+    'XAGUSD=X': ['SI=F'],
+    'CL=F': ['BZ=F'],
+    'BZ=F': ['CL=F'],
+  }
+  const out = [primary]
+  for (const alt of extras[primary] ?? []) {
+    const n = normalizeCommoditySymbol(alt)
+    if (n && !out.includes(n)) out.push(n)
+  }
+  return out
+}

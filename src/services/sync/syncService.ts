@@ -3,7 +3,10 @@
 import { normalizePortfolio, toStorageShape } from '../../domain/normalize'
 import type { PortfolioData, PortfolioMeta } from '../../domain/types'
 import { captureFullWorkspace } from '../../storage/backupStore'
-import { importMarketsFromBackup } from '../../storage/marketsStore'
+import {
+  importMarketQuotesFromBackup,
+  importMarketsFromBackup,
+} from '../../storage/marketsStore'
 import { importNewsFromBackup } from '../../storage/newsStore'
 import { importNavLayoutFromBackup } from '../../storage/navOrder'
 import { importYoutubeFromBackup } from '../../storage/youtubeStore'
@@ -231,6 +234,8 @@ export interface MergePreview {
   workspaceExtras?: {
     navLayout?: unknown
     markets?: unknown
+    /** Last-good Markets quotes (by ticker id) */
+    marketQuotes?: unknown
     news?: unknown
     youtube?: unknown
   }
@@ -623,6 +628,7 @@ async function decryptEnvelope(
     const extras: NonNullable<MergePreview['workspaceExtras']> = {}
     if (a.navLayout != null) extras.navLayout = a.navLayout
     if (a.markets != null) extras.markets = a.markets
+    if (a.marketQuotes != null) extras.marketQuotes = a.marketQuotes
     if (a.news != null) extras.news = a.news
     if (a.youtube != null) extras.youtube = a.youtube
     if (Object.keys(extras).length > 0) workspaceExtras = extras
@@ -814,6 +820,9 @@ export async function applyMergePreview(
   }
   if (preview.workspaceExtras?.markets != null) {
     importMarketsFromBackup(preview.workspaceExtras.markets)
+  }
+  if (preview.workspaceExtras?.marketQuotes != null) {
+    importMarketQuotesFromBackup(preview.workspaceExtras.marketQuotes)
   }
   if (preview.workspaceExtras?.news != null) {
     importNewsFromBackup(preview.workspaceExtras.news)

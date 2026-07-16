@@ -71,7 +71,9 @@ npx wrangler deploy
 5. On the **first** device (source of truth): click **Push** or **Sync now**.
 6. On **phone / iPad / other browsers**: same URL + passphrase + both toggles. Open the app — it **pulls automatically**.
 
-That’s it. Edits push about **8 seconds** after you change data (and pull first if another device updated cloud). Opening the app, returning to the tab, pull-to-refresh, or about **once a minute** while open pulls newer cloud data.
+That’s it. Edits push about **4 seconds** after you change data (and pull first if another device updated cloud). Opening the app, returning to the tab, pull-to-refresh, or about **every 30 seconds** while open pulls newer cloud data.
+
+**What syncs:** portfolios + holdings, To Do's / Jobs, Favourites/nav layout, Markets **watchlist** (union merge), Markets **last-good quote cache** (prices show on another device before it refreshes), News/YouTube prefs, and full-backup extras. Live provider keys (Finnhub) stay local to each device.
 
 ---
 
@@ -79,10 +81,11 @@ That’s it. Edits push about **8 seconds** after you change data (and pull firs
 
 | Event | What happens |
 |-------|----------------|
-| You edit data | Debounced **push** (~8s after last change) |
-| **Pull down** on iPhone / iPad | Immediate **sync** (pull cloud, then push local) |
+| You edit data | Debounced **push** (~4s after last change) |
+| Markets refresh / **Sync prices now** | Quote cache saved + workspace dirty → push (~4s); button also runs Sync now when cloud sync is on |
+| **Pull down** on iPhone / iPad | Immediate **sync** (pull cloud, then push local) — page content stays put (indicator only) |
 | Open app / return to tab / come online | **Pull** if cloud is newer, then push if you have local changes |
-| Every ~60 seconds while open | Background check |
+| Every ~30 seconds while open | Background check |
 | Same item edited on two devices | By default **prefer cloud** on pull (toggle in Settings) |
 
 Manual **Push** / **Pull & merge** remain available as overrides.

@@ -20,6 +20,15 @@ import {
 } from '../domain/markets'
 import { isMarketTimeframe, type MarketTimeframe } from '../domain/marketTimeframe'
 import { quotesMapToRecord, quotesRecordToMap } from '../domain/marketQuotesCache'
+import {
+  exportMarketQuotesForBackup as packMarketQuotes,
+  mergeQuotesForSync,
+  parseMarketQuotesBackup,
+} from '../domain/marketQuotesSync'
+
+function touchPrefs(state: MarketsState): void {
+  state.prefsUpdatedAt = new Date().toISOString()
+}
 
 const KEY = 'mydsp_markets_v1'
 type StoredMarketsState = Omit<MarketsState, 'density'> & { density?: unknown }
@@ -281,6 +290,7 @@ export function getMarketSectionOrder(): MarketsSectionKey[] {
 export function reorderMarketSections(ordered: MarketsSectionKey[]): void {
   const state = loadMarketsState()
   state.sectionOrder = normalizeSectionOrder(ordered)
+  touchPrefs(state)
   saveMarketsState(state)
 }
 
@@ -296,6 +306,7 @@ export function setMarketsCollapsed(
 export function setMarketsDensity(density: MarketsDensity): void {
   const state = loadMarketsState()
   state.density = density
+  touchPrefs(state)
   saveMarketsState(state)
 }
 
@@ -308,6 +319,7 @@ export function getMarketsDensity(): MarketsDensity {
 export function setMarketsTimeframe(timeframe: MarketTimeframe): void {
   const state = loadMarketsState()
   state.timeframe = timeframe
+  touchPrefs(state)
   saveMarketsState(state)
 }
 
@@ -335,17 +347,37 @@ export function loadMarketQuotesCache(): Map<string, MarketQuote> {
   }
 }
 
-export function saveMarketQuotesCache(map: Map<string, MarketQuote>): void {
+export function saveMarketQuotesCache(
+  map: Map<string, MarketQuote>,
+  opts?: { fromSync?: boolean; markDirty?: boolean },
+): void {
   try {
     localStorage.setItem(QUOTES_KEY, JSON.stringify(quotesMapToRecord(map)))
     window.dispatchEvent(new CustomEvent('mydsp-markets-quotes'))
   } catch {
     /* quota / private mode */
   }
+  if (opts?.markDirty && !opts?.fromSync) {
+    void import('../services/sync/workspaceDirty').then((m) => m.markWorkspaceChangedForSync())
+  }
 }
 
 export function exportMarketsForBackup(): MarketsState {
   return loadMarketsState()
+}
+
+/** Last-good quotes for fullArchive / sync (by ticker id). */
+export function exportMarketQuotesForBackup(): Record<string, MarketQuote> {
+  return packMarketQuotes(loadMarketQuotesCache())
+}
+
+/** Merge remote quotes into local cache (age-based; tags sync: for UI freshness). */
+export function importMarketQuotesFromBackup(raw: unknown): void {
+  const remote = parseMarketQuotesBackup(raw)
+  if (remote.size === 0) return
+  const local = loadMarketQuotesCache()
+  const merged = mergeQuotesForSync(local, remote)
+  saveMarketQuotesCache(merged, { fromSync: true })
 }
 
 export function importMarketsFromBackup(raw: unknown): void {
@@ -395,20 +427,34 @@ export function importMarketsFromBackup(raw: unknown): void {
 
   const remoteOrder = normalizeSectionOrder((parsed as MarketsState).sectionOrder)
   const localOrder = normalizeSectionOrder((local as MarketsState | null)?.sectionOrder)
-  // Prefer remote section order when the other device customized it; else keep local.
+  const remotePrefsAt = Date.parse((parsed as MarketsState).prefsUpdatedAt || '') || 0
+  const localPrefsAt =
+    Date.parse(((local as MarketsState | null)?.prefsUpdatedAt as string | undefined) || '') || 0
+  const preferRemotePrefs = remotePrefsAt >= localPrefsAt && remotePrefsAt > 0
   const remoteCustomized =
-    JSON.stringify(remoteOrder) !==
-    JSON.stringify(normalizeSectionOrder(undefined))
-  const sectionOrder = remoteCustomized ? remoteOrder : localOrder
+    JSON.stringify(remoteOrder) !== JSON.stringify(normalizeSectionOrder(undefined))
+  const sectionOrder = preferRemotePrefs
+    ? remoteOrder
+    : remoteCustomized && localPrefsAt === 0
+      ? remoteOrder
+      : localOrder
 
-  const density =
-    (parsed as MarketsState).density === 'compact' ||
-    (local as MarketsState | null)?.density === 'compact'
-      ? ('compact' as const)
-      : ('comfortable' as const)
-  const timeframeRaw =
-    (parsed as MarketsState).timeframe ?? (local as MarketsState | null)?.timeframe
+  const density: MarketsDensity = preferRemotePrefs
+    ? (parsed as MarketsState).density === 'compact'
+      ? 'compact'
+      : 'comfortable'
+    : (local as MarketsState | null)?.density === 'compact' ||
+        (parsed as MarketsState).density === 'compact'
+      ? 'compact'
+      : 'comfortable'
+  const timeframeRaw = preferRemotePrefs
+    ? (parsed as MarketsState).timeframe
+    : ((local as MarketsState | null)?.timeframe ?? (parsed as MarketsState).timeframe)
   const timeframe = isMarketTimeframe(timeframeRaw) ? timeframeRaw : '24H'
+  const prefsUpdatedAt =
+    remotePrefsAt >= localPrefsAt
+      ? (parsed as MarketsState).prefsUpdatedAt || (local as MarketsState | null)?.prefsUpdatedAt
+      : (local as MarketsState | null)?.prefsUpdatedAt || (parsed as MarketsState).prefsUpdatedAt
 
   const { state } = mergeDefaultTickers({
     version: 1,
@@ -417,6 +463,7 @@ export function importMarketsFromBackup(raw: unknown): void {
     sectionOrder,
     density,
     timeframe,
+    prefsUpdatedAt,
   })
   writeState(state, { fromSync: true })
 }
