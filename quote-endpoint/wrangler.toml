@@ -1,5 +1,6 @@
 # Deploy with: npm run deploy:quote
-# (or: cd quote-endpoint && npx wrangler deploy)
+# Must pass --config (see package.json). Plain `cd quote-endpoint && wrangler deploy`
+# walks up to the SPA wrangler.jsonc + .wrangler/deploy redirect and redeploys mydspv1.
 name = "mydsp-quote"
 main = "worker.js"
 compatibility_date = "2026-07-01"

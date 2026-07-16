@@ -1,5 +1,13 @@
 # MyDSP Changelog
 
+## [1.2.74] - 2026-07-16
+
+### Fixed
+1. **`npm run deploy:quote` / `deploy:sync`** — force `--config …/wrangler.toml` so Wrangler does not walk up to the SPA `wrangler.jsonc` + `.wrangler/deploy` redirect and redeploy `mydspv1` instead of `mydsp-quote` / `mydsp-sync`
+
+### Version
+- Tip **1.2.74**
+
 ## [1.2.73] - 2026-07-16
 
 ### Improved — Sync / trust (next 25j · 1–5)
