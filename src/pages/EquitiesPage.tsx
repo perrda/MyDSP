@@ -666,7 +666,7 @@ export function EquitiesPage() {
                   </p>
                   {usdSpot != null && displayCcy === 'GBP' && (
                     <p className="text-[11px] text-text-subtle tabular-nums">
-                      US ${usdSpot.toLocaleString('en-GB', { maximumFractionDigits: 2 })}
+                      USD {usdSpot.toLocaleString('en-GB', { maximumFractionDigits: 2 })}
                     </p>
                   )}
                 </div>

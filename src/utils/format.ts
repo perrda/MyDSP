@@ -39,9 +39,12 @@ function formatMoney(
 
   const abs = Math.abs(converted)
   const digits = opts?.digits
+  const code = currency.length === 3 ? currency : 'GBP'
   const formatted = new Intl.NumberFormat('en-GB', {
     style: 'currency',
-    currency: currency.length === 3 ? currency : 'GBP',
+    currency: code,
+    // Never render "US$" — always "USD" for US dollars
+    currencyDisplay: code === 'USD' ? 'code' : 'symbol',
     notation: opts?.compact ? 'compact' : 'standard',
     maximumFractionDigits: digits ?? (opts?.compact ? 2 : currency === 'JPY' ? 0 : 2),
     minimumFractionDigits: digits ?? (opts?.compact ? 0 : currency === 'JPY' ? 0 : 2),
@@ -91,9 +94,11 @@ export function formatNativeCurrency(
   if (code === 'BTC') return formatBtc(n, opts)
   const abs = Math.abs(n)
   const digits = opts?.digits ?? (code === 'JPY' || code === 'KRW' ? 0 : 2)
+  const currencyCode = code.length === 3 ? code : 'GBP'
   const formatted = new Intl.NumberFormat('en-GB', {
     style: 'currency',
-    currency: code.length === 3 ? code : 'GBP',
+    currency: currencyCode,
+    currencyDisplay: currencyCode === 'USD' ? 'code' : 'symbol',
     maximumFractionDigits: digits,
     minimumFractionDigits: digits === 0 ? 0 : Math.min(2, digits),
   }).format(abs)

@@ -1,5 +1,7 @@
 /** Shared RSS / Atom fetch + parse (News + YouTube). */
 
+import { quoteProxyUrl } from './quoteProxy'
+
 async function fetchText(url: string, timeoutMs = 10000): Promise<string | null> {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), timeoutMs)
@@ -15,9 +17,8 @@ async function fetchText(url: string, timeoutMs = 10000): Promise<string | null>
 }
 
 /** Public CORS proxies — raced in parallel; first usable response wins. */
-function proxyUrlsFor(target: string): string[] {
+function publicProxyUrlsFor(target: string): string[] {
   return [
-    `https://proxy.cors.sh/${target}`,
     `https://api.allorigins.win/raw?url=${encodeURIComponent(target)}`,
     `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(target)}`,
     `https://corsproxy.io/?${encodeURIComponent(target)}`,
@@ -25,7 +26,7 @@ function proxyUrlsFor(target: string): string[] {
 }
 
 /**
- * Fetch a remote URL from the browser: try direct, then race CORS proxies.
+ * Fetch a remote URL from the browser: prefer MyDSP quote Worker, then public CORS proxies, then direct.
  * Returns the first body that passes `isAcceptable` (default: non-empty).
  */
 export async function fetchRemoteText(
@@ -40,30 +41,34 @@ export async function fetchRemoteText(
   const proxyTimeoutMs = opts?.proxyTimeoutMs ?? 10000
   const isAcceptable = opts?.isAcceptable ?? ((t: string) => t.trim().length > 0)
 
-  const direct = await fetchText(url, timeoutMs)
-  if (direct && isAcceptable(direct)) return direct
+  // Prefer first-party Worker (CORS + allowlisted hosts) — same path as prices/FX.
+  const viaWorker = await fetchText(quoteProxyUrl(url), timeoutMs)
+  if (viaWorker && isAcceptable(viaWorker)) return viaWorker
 
-  const proxies = proxyUrlsFor(url)
-  const result = await Promise.any(
+  const proxies = publicProxyUrlsFor(url)
+  const proxied = await Promise.any(
     proxies.map(async (proxy) => {
       const text = await fetchText(proxy, proxyTimeoutMs)
       if (text && isAcceptable(text)) return text
       throw new Error('proxy miss')
     }),
   ).catch(() => null)
+  if (proxied) return proxied
 
-  return result ?? (direct && isAcceptable(direct) ? direct : null)
+  const direct = await fetchText(url, timeoutMs)
+  return direct && isAcceptable(direct) ? direct : null
 }
 
 function looksLikeFeed(text: string): boolean {
-  return text.includes('<rss') || text.includes('<feed') || text.includes('<?xml')
+  const t = text.toLowerCase()
+  return t.includes('<rss') || t.includes('<feed') || (t.includes('<?xml') && (t.includes('<item') || t.includes('<entry')))
 }
 
-/** Direct first (often CORS-ok for Google/Yahoo RSS), then public proxies. */
+/** Quote Worker first (CORS), then public proxies, then direct. */
 export async function fetchFeedXml(url: string): Promise<string | null> {
   return fetchRemoteText(url, {
-    timeoutMs: 8000,
-    proxyTimeoutMs: 12000,
+    timeoutMs: 10000,
+    proxyTimeoutMs: 10000,
     isAcceptable: looksLikeFeed,
   })
 }

@@ -16,14 +16,19 @@ const ALLOWED_HOSTS = new Set([
   'api.coingecko.com',
   'api.coincap.io',
   'api.coinbase.com',
+  // News RSS (News page) — Google News + Yahoo Finance headlines
+  'news.google.com',
+  'feeds.finance.yahoo.com',
 ])
+
+const FEED_HOSTS = new Set(['news.google.com', 'feeds.finance.yahoo.com'])
 
 function corsHeaders(origin) {
   return {
     'Access-Control-Allow-Origin': origin || '*',
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
-    'Cache-Control': 'public, max-age=30',
+    'Cache-Control': 'public, max-age=60',
   }
 }
 
@@ -60,10 +65,13 @@ async function handleQuoteProxy(request) {
     return jsonError(403, `Host not allowed: ${parsed.hostname}`, origin)
   }
 
+  const isFeed = FEED_HOSTS.has(parsed.hostname)
   try {
     const upstream = await fetch(parsed.toString(), {
       headers: {
-        Accept: 'application/json,text/plain,*/*',
+        Accept: isFeed
+          ? 'application/rss+xml, application/atom+xml, application/xml, text/xml, */*'
+          : 'application/json,text/plain,*/*',
         'User-Agent': 'MyDSP-quote/1.2 (+https://mydspv1.dave-perry.workers.dev)',
       },
       redirect: 'follow',
@@ -71,7 +79,12 @@ async function handleQuoteProxy(request) {
     const body = await upstream.arrayBuffer()
     const headers = new Headers(corsHeaders(origin))
     const ct = upstream.headers.get('Content-Type')
-    headers.set('Content-Type', ct || 'application/json')
+    if (isFeed) {
+      headers.set('Content-Type', ct && ct.includes('xml') ? ct : 'application/xml; charset=utf-8')
+      headers.set('Cache-Control', 'public, max-age=180')
+    } else {
+      headers.set('Content-Type', ct || 'application/json')
+    }
     return new Response(body, { status: upstream.status, headers })
   } catch (e) {
     return jsonError(502, e instanceof Error ? e.message : 'Upstream fetch failed', origin)
@@ -81,19 +94,20 @@ async function handleQuoteProxy(request) {
 export default {
   async fetch(request) {
     const path = new URL(request.url).pathname
-    if (path === '/' || path === '/quote' || path === '/api/quote') {
-      if (path === '/' && !new URL(request.url).searchParams.has('url')) {
+    if (path === '/' || path === '/quote' || path === '/api/quote' || path === '/feed' || path === '/api/feed') {
+      if ((path === '/' || path === '/feed') && !new URL(request.url).searchParams.has('url')) {
         return new Response(
           JSON.stringify({
             ok: true,
             service: 'mydsp-quote',
             usage: '/quote?url=' + encodeURIComponent('https://query1.finance.yahoo.com/...'),
+            feeds: '/quote?url=' + encodeURIComponent('https://news.google.com/rss/search?q=...'),
           }),
           { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders(null) } },
         )
       }
       return handleQuoteProxy(request)
     }
-    return new Response('Not found', { status: 404 })
+    return new Response('Not found', { status: 404, headers: corsHeaders(null) })
   },
 }

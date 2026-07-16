@@ -1,5 +1,28 @@
 # MyDSP Changelog
 
+## [1.2.66] - 2026-07-16
+
+### Fixed — News headlines
+- News fetches **Google News RSS via the quote Worker** (same CORS path as prices/FX) so Top news and By ticker actually load
+- Always targets **Top 10** headlines and **10 stories per meta-tag**; progressive refresh + last-good article cache
+- Dropped broken Yahoo Finance RSS as a required source
+
+### Improved — Markets display
+- **Reverted heatmap** density — Crypto/Equities (and all sections) use the prior list/row style with price + sparkline
+- **24H / 1W / 1M / 12M** selector — % change badge and sparkline always use the **same** series for the selected window
+
+### Fixed — Currency display
+- **USD** always shows as `USD` (never `US$`) across formatters and Equities USD spot lines
+
+### Version
+- 1.2.65 → **1.2.66**
+
+### Deploy note
+After merging, also redeploy the quote Worker so News hosts are allowlisted:
+`npm run deploy:quote`
+
+---
+
 ## [1.2.65] - 2026-07-16
 
 ### Fixed — Weekly digest on mobile
