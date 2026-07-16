@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.75**
+**Current version: 1.2.76**
 
-## Completed (through v1.2.75)
+## Completed (through v1.2.76)
 
+- Sync / Markets / Today polish (next25k tip 1–25): Quote Worker identity smoke, digest/compare prefs LWW, jump-chip active highlight, paper NW chip, sticky header offsets, News/YT thumb CTA, Today trust strip, interview next-action, Todos Due today chips, PTR Todos/Jobs/Spending, axe History/Budgets, Markets sticky e2e
 - Sync / Today polish (next25j tip 1–25): Compare week-Δ sync, What arrived extras, digest persist, paper NW in Compare/history, News unread Jump-in + bottom-nav dots, Tax/Recurring thumb+PTR, Today SLA/429/partial chips, smoke News allowlist, axe Liabilities/Import
 - Sync / media / polish (next25i tip 1–25): ISA override + YT video cache + alert thresholds sync, Finnhub 429 chip, paper commodity NW, PTR Tax/Compare, News/YouTube master–detail, bill commentary, YouTube unread Jump-in, smoke allowlist/ISA/PTR, axe Jobs/Goals/Trips, device-local prefs matrix
 - Finnhub / media / polish (next25h tip 1–25): Finnhub all TFs + probe, quote SLA, What does not sync, commodity paper qty + oil/gas presets, PTR holdings/News, Markets master–detail, YouTube Worker, News From Owned + headline sync, ISA from holdings, smoke/axe expansion

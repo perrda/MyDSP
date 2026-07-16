@@ -14,7 +14,7 @@ Run after every production deploy (`npm run deploy` + `npm run deploy:sync` if s
 5. **Jobs** — move a card between columns on A → B reflects status
 6. **Conflicts** — if Conflicts chip appears, open Settings → Sync and resolve (Keep local / Keep remote / Keep all remote)
 7. **Offline queue** — turn airplane mode on A, edit a todo, go online → banner/chip clears after flush; B receives the edit. On Settings → Sync you can also **Retry now** a deferred job or Cancel it.
-8. **Quote Worker** — Markets live prints update (or “Last synced”) without CORS blank rows; if live fails, Confirm `npm run deploy:quote` was run once
+8. **Quote Worker** — Markets live prints update (or “Last synced”) without CORS blank rows; `npm run deploy:quote` must print Worker name **`mydsp-quote`** (not `mydspv1`). Settings → Prices and `/smoke` Quote Worker identity check should pass.
 9. **Long-press sync chip** — on phone, long-press the sync strip → Sync now + success flash (same as Settings → Sync now)
 10. **What arrived** — after a successful pull, a toast summarizes new todos/jobs/goals when highlights exist
 

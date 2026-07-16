@@ -403,9 +403,10 @@ export function Dashboard() {
       buildNextActionStack({
         todoItems: data.todoItems,
         recurringTransactions: data.recurringTransactions,
+        jobApplications: data.jobApplications,
         movers: todayMovers,
       }),
-    [data.todoItems, data.recurringTransactions, todayMovers],
+    [data.todoItems, data.recurringTransactions, data.jobApplications, todayMovers],
   )
 
   const focusTodoCard = nextActions.find((c) => c.kind === 'todo')
@@ -769,55 +770,67 @@ export function Dashboard() {
         </p>
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-text-subtle">
           <span>{syncLine}</span>
-          {priceLagChip ? (
-            <Link
-              to="/markets"
-              className="today-price-lag-chip text-accent hover:underline font-medium"
-              title="Last-good Markets quotes arrived from another device via sync"
-            >
-              {priceLagChip.label}
-            </Link>
-          ) : null}
-          {!hasFinnhubKey(data) ? (
-            <Link
-              to="/settings#prices"
-              className="today-finnhub-missing-chip text-amber-700 dark:text-amber-300 hover:underline font-medium"
-              title="Finnhub API key is not saved on this device"
-            >
-              Finnhub missing here
-            </Link>
-          ) : null}
-          {finnhubQuotaLimited ? (
-            <Link
-              to="/markets"
-              className="today-finnhub-quota-chip text-amber-700 dark:text-amber-300 hover:underline font-medium"
-              title="Finnhub rate-limited — using Yahoo until quota resets"
-            >
-              Finnhub rate-limited (429)
-            </Link>
-          ) : null}
-          {quoteSlaChip ? (
-            <Link
-              to="/markets"
-              className="today-quote-sla-chip text-text-muted hover:text-accent font-medium"
-              title={quoteSlaChip}
-            >
-              {quoteSlaChip}
-            </Link>
-          ) : null}
-          {quotePartialChip ? (
-            <Link
-              to="/markets"
-              className="today-quote-partial-chip text-amber-700 dark:text-amber-300 hover:underline font-medium"
-              title="Some Markets quotes are unavailable after last sync"
-            >
-              {quotePartialChip}
-            </Link>
-          ) : null}
           <Link to="/markets" className="hover:text-accent">
             {marketsCount} Markets ticker{marketsCount === 1 ? '' : 's'} →
           </Link>
         </div>
+        {priceLagChip ||
+        !hasFinnhubKey(data) ||
+        finnhubQuotaLimited ||
+        quoteSlaChip ||
+        quotePartialChip ? (
+          <div
+            className="today-prices-trust mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs"
+            role="status"
+            aria-label="Prices trust"
+          >
+            {priceLagChip ? (
+              <Link
+                to="/markets"
+                className="today-price-lag-chip text-accent hover:underline font-medium"
+                title="Last-good Markets quotes arrived from another device via sync"
+              >
+                {priceLagChip.label}
+              </Link>
+            ) : null}
+            {!hasFinnhubKey(data) ? (
+              <Link
+                to="/settings#prices"
+                className="today-finnhub-missing-chip text-amber-700 dark:text-amber-300 hover:underline font-medium"
+                title="Finnhub API key is not saved on this device"
+              >
+                Finnhub missing here
+              </Link>
+            ) : null}
+            {finnhubQuotaLimited ? (
+              <Link
+                to="/markets"
+                className="today-finnhub-quota-chip text-amber-700 dark:text-amber-300 hover:underline font-medium"
+                title="Finnhub rate-limited — using Yahoo until quota resets"
+              >
+                Finnhub rate-limited (429)
+              </Link>
+            ) : null}
+            {quoteSlaChip ? (
+              <Link
+                to="/markets"
+                className="today-quote-sla-chip text-text-muted hover:text-accent font-medium"
+                title={quoteSlaChip}
+              >
+                {quoteSlaChip}
+              </Link>
+            ) : null}
+            {quotePartialChip ? (
+              <Link
+                to="/markets"
+                className="today-quote-partial-chip text-amber-700 dark:text-amber-300 hover:underline font-medium"
+                title="Some Markets quotes are unavailable after last sync"
+              >
+                {quotePartialChip}
+              </Link>
+            ) : null}
+          </div>
+        ) : null}
         {(monthlyBudgetPulse || weekToDateSpend.spent > 0 || cashRunway || fireChip) ? (
           <div className="today-pulse-chips mt-4 flex flex-wrap gap-2">
             {monthlyBudgetPulse ? (
@@ -936,8 +949,33 @@ export function Dashboard() {
                     <button type="button" className="btn-secondary btn-sm" onClick={snoozeFocus}>
                       Snooze
                     </button>
+                    <Link
+                      to={`/todos?focus=${card.todo.id}`}
+                      className="btn-ghost btn-sm inline-flex items-center"
+                    >
+                      Open
+                    </Link>
                   </div>
                 </div>
+              )
+            }
+            if (card.kind === 'interview') {
+              return (
+                <Link
+                  key={`interview-${card.jobId}`}
+                  to={`/jobs/${card.jobId}`}
+                  className="today-next-action-card today-interview-next-action surface p-4 md:p-5 rounded-xl md:rounded-none shadow-sm md:shadow-none block group"
+                >
+                  <p className="text-[11px] uppercase tracking-wider text-text-subtle mb-1">
+                    Interview due
+                  </p>
+                  <p className="text-base md:text-lg font-bold tracking-tight group-hover:text-accent line-clamp-1">
+                    {card.companyName}
+                  </p>
+                  <p className="text-xs text-text-muted mt-1 font-light line-clamp-1">
+                    {card.jobTitle} · {formatDate(card.scheduledDate)}
+                  </p>
+                </Link>
               )
             }
             if (card.kind === 'bill') {
@@ -1176,28 +1214,46 @@ export function Dashboard() {
               {l.label} →
             </Link>
           ))}
-          <Link
-            to="/news"
-            className="text-sm font-semibold text-accent hover:underline inline-flex items-center gap-1.5"
-          >
-            News →
-            {newsUnread > 0 ? (
-              <span className="today-news-unread inline-flex items-center text-[11px] font-bold tabular-nums px-2 py-0.5 bg-accent/15 text-accent border border-accent/30 rounded-full">
-                {newsUnread} new
-              </span>
-            ) : null}
-          </Link>
-          <Link
-            to="/youtube"
-            className="text-sm font-semibold text-accent hover:underline inline-flex items-center gap-1.5"
-          >
-            YouTube →
-            {youtubeUnread > 0 ? (
-              <span className="today-youtube-unread inline-flex items-center text-[11px] font-bold tabular-nums px-2 py-0.5 bg-accent/15 text-accent border border-accent/30 rounded-full">
-                {youtubeUnread} new
-              </span>
-            ) : null}
-          </Link>
+          <div className="inline-flex flex-wrap items-center gap-1.5">
+            <Link
+              to="/news"
+              className="text-sm font-semibold text-accent hover:underline inline-flex items-center gap-1.5"
+            >
+              News →
+              {newsUnread > 0 ? (
+                <span className="today-news-unread inline-flex items-center text-[11px] font-bold tabular-nums px-2 py-0.5 bg-accent/15 text-accent border border-accent/30 rounded-full">
+                  {newsUnread} new
+                </span>
+              ) : null}
+            </Link>
+            <Link
+              to="/news"
+              className="btn-ghost btn-sm text-xs min-h-9 today-news-refresh-open"
+              onClick={() => window.dispatchEvent(new CustomEvent('mydsp-news-refresh'))}
+            >
+              Refresh & open
+            </Link>
+          </div>
+          <div className="inline-flex flex-wrap items-center gap-1.5">
+            <Link
+              to="/youtube"
+              className="text-sm font-semibold text-accent hover:underline inline-flex items-center gap-1.5"
+            >
+              YouTube →
+              {youtubeUnread > 0 ? (
+                <span className="today-youtube-unread inline-flex items-center text-[11px] font-bold tabular-nums px-2 py-0.5 bg-accent/15 text-accent border border-accent/30 rounded-full">
+                  {youtubeUnread} new
+                </span>
+              ) : null}
+            </Link>
+            <Link
+              to="/youtube"
+              className="btn-ghost btn-sm text-xs min-h-9 today-youtube-refresh-open"
+              onClick={() => window.dispatchEvent(new CustomEvent('mydsp-youtube-refresh'))}
+            >
+              Refresh & open
+            </Link>
+          </div>
         </div>
         {fccDataPresent ? null : (
           <p className="text-xs text-text-subtle mt-3 font-light">
@@ -1228,33 +1284,32 @@ export function Dashboard() {
                 </Link>
               </div>
             </div>
-            {priceLagChip ? (
-              <p className="today-price-lag-chip text-[11px] text-accent font-medium mb-2" role="status">
-                {priceLagChip.label}
-              </p>
-            ) : null}
-            {finnhubQuotaLimited ? (
+            {priceLagChip || finnhubQuotaLimited || quoteSlaChip || quotePartialChip ? (
               <div
-                className="today-finnhub-quota-chip mb-2 px-2.5 py-1.5 text-[11px] border border-amber-500/45 bg-amber-500/10 text-amber-900 dark:text-amber-100 rounded-lg"
+                className="today-prices-trust mb-2 space-y-1.5"
                 role="status"
+                aria-label="Prices trust"
               >
-                Finnhub rate-limited (429) — using Yahoo until quota resets
-              </div>
-            ) : null}
-            {quoteSlaChip ? (
-              <div
-                className="today-quote-sla-chip mb-2 px-2.5 py-1.5 text-[11px] border border-border bg-surface/50 rounded-lg"
-                role="status"
-              >
-                {quoteSlaChip}
-              </div>
-            ) : null}
-            {quotePartialChip ? (
-              <div
-                className="today-quote-partial-chip mb-2 px-2.5 py-1.5 text-[11px] border border-amber-500/45 bg-amber-500/10 text-amber-900 dark:text-amber-100 rounded-lg"
-                role="status"
-              >
-                {quotePartialChip}
+                {priceLagChip ? (
+                  <p className="today-price-lag-chip text-[11px] text-accent font-medium">
+                    {priceLagChip.label}
+                  </p>
+                ) : null}
+                {finnhubQuotaLimited ? (
+                  <div className="today-finnhub-quota-chip px-2.5 py-1.5 text-[11px] border border-amber-500/45 bg-amber-500/10 text-amber-900 dark:text-amber-100 rounded-lg">
+                    Finnhub rate-limited (429) — using Yahoo until quota resets
+                  </div>
+                ) : null}
+                {quoteSlaChip ? (
+                  <div className="today-quote-sla-chip px-2.5 py-1.5 text-[11px] border border-border bg-surface/50 rounded-lg">
+                    {quoteSlaChip}
+                  </div>
+                ) : null}
+                {quotePartialChip ? (
+                  <div className="today-quote-partial-chip px-2.5 py-1.5 text-[11px] border border-amber-500/45 bg-amber-500/10 text-amber-900 dark:text-amber-100 rounded-lg">
+                    {quotePartialChip}
+                  </div>
+                ) : null}
               </div>
             ) : null}
             {todayMovers.length === 0 ? (

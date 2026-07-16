@@ -29,6 +29,24 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.76',
+    date: '2026-07-16',
+    bullets: [
+      {
+        text: 'Quote Worker identity smoke · digest/compare prefs sync · deploy:quote CTA',
+        to: '/settings#prices',
+      },
+      {
+        text: 'Markets jump-chip active highlight · paper NW chip · sticky header offsets',
+        to: '/markets',
+      },
+      {
+        text: 'Today interview next-action · News/YT Refresh & open · Todos Due today chips',
+        to: '/',
+      },
+    ],
+  },
+  {
     version: '1.2.75',
     date: '2026-07-16',
     bullets: [

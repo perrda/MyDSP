@@ -939,8 +939,37 @@ export function TodosPage() {
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="todos-quick-filter-chips flex flex-wrap items-center gap-2">
               <span className="text-xs md:text-[10px] uppercase tracking-wider text-text-subtle font-semibold w-full sm:w-auto">
+                Quick
+              </span>
+              <button
+                type="button"
+                className={`todos-due-today-chip min-h-11 sm:min-h-9 px-3.5 rounded border text-sm font-bold ${
+                  filterBy === 'today'
+                    ? 'bg-accent/25 text-accent ring-1 ring-accent/50 border-transparent'
+                    : 'border-border bg-surface-hover text-text-muted hover:border-accent'
+                }`}
+                aria-pressed={filterBy === 'today'}
+                onClick={() => setFilterBy(filterBy === 'today' ? 'all' : 'today')}
+              >
+                Due today
+              </button>
+              <button
+                type="button"
+                className={`todos-high-priority-chip min-h-11 sm:min-h-9 px-3.5 rounded border text-sm font-bold ${
+                  filterBy === 'high-priority'
+                    ? 'bg-red-500/25 text-red-400 ring-1 ring-red-500/50 border-transparent'
+                    : 'border-border bg-surface-hover text-text-muted hover:border-accent'
+                }`}
+                aria-pressed={filterBy === 'high-priority'}
+                onClick={() =>
+                  setFilterBy(filterBy === 'high-priority' ? 'all' : 'high-priority')
+                }
+              >
+                High priority
+              </button>
+              <span className="text-xs md:text-[10px] uppercase tracking-wider text-text-subtle font-semibold w-full sm:w-auto sm:ml-2">
                 Priority
               </span>
               {(

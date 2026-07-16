@@ -548,6 +548,37 @@ export function YouTubePage() {
         }}
         onClose={() => setDeleteId(null)}
       />
+
+      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary YouTube actions">
+        <button
+          type="button"
+          className="btn-primary btn-sm inline-flex items-center gap-1.5"
+          disabled={refreshing}
+          onClick={() => void refresh()}
+        >
+          <RefreshCw
+            size={16}
+            strokeWidth={2}
+            className={refreshing ? 'animate-spin' : undefined}
+          />
+          {refreshing ? 'Refreshing…' : 'Refresh'}
+        </button>
+        <button
+          type="button"
+          className="btn-secondary btn-sm inline-flex items-center gap-1.5"
+          onClick={openCreate}
+          disabled={channels.length >= MAX_YOUTUBE_CHANNELS}
+        >
+          <Plus size={16} strokeWidth={2} />
+          Add channel
+        </button>
+        {unreadCount > 0 ? (
+          <button type="button" className="btn-ghost btn-sm" onClick={markYtRead}>
+            Mark all read
+          </button>
+        ) : null}
+      </div>
+      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }

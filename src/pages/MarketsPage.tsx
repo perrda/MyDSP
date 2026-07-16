@@ -516,6 +516,7 @@ export function MarketsPage() {
   const [searchText, setSearchText] = useState('')
   const [yieldSort, setYieldSort] = useState(() => getMarketsYieldSort())
   const [online, setOnline] = useState(() => isOnline())
+  const [activeJumpSection, setActiveJumpSection] = useState<SectionKey | null>(null)
   const applyYieldSort = useCallback((next: boolean) => {
     setYieldSort(next)
     setMarketsYieldSort(next)
@@ -546,6 +547,40 @@ export function MarketsPage() {
     }
     setData((prev) => ensureFinnhubSetupTodo(prev) ?? prev)
   }, [setData])
+
+  /** Highlight the jump chip for the section currently in view. */
+  useEffect(() => {
+    const elements = sectionOrder
+      .map((section) => document.getElementById(`markets-section-${section}`))
+      .filter((el): el is HTMLElement => el != null)
+    if (elements.length === 0) return
+
+    const ratios = new Map<string, number>()
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          ratios.set(entry.target.id, entry.isIntersecting ? entry.intersectionRatio : 0)
+        }
+        let best: SectionKey | null = null
+        let bestRatio = 0
+        for (const section of sectionOrder) {
+          const ratio = ratios.get(`markets-section-${section}`) ?? 0
+          if (ratio > bestRatio) {
+            bestRatio = ratio
+            best = section
+          }
+        }
+        if (best) setActiveJumpSection(best)
+      },
+      {
+        root: null,
+        rootMargin: '-15% 0px -50% 0px',
+        threshold: [0, 0.1, 0.25, 0.5, 0.75, 1],
+      },
+    )
+    for (const el of elements) io.observe(el)
+    return () => io.disconnect()
+  }, [sectionOrder, tickers.length, sectionSorting])
 
   const cachedMode = useMemo(
     () => shouldShowCachedMode(online, quotes.values()),
@@ -1574,6 +1609,17 @@ export function MarketsPage() {
                             })}
                           </p>
                         ) : null}
+                        {t.kind === 'commodity' && t.includeInNetWorth ? (
+                          <p
+                            className={`markets-paper-nw-chip text-[11px] mt-0.5 font-semibold text-accent tabular-nums ${privacyClass(privacy)}`}
+                            title="Included in net worth"
+                          >
+                            NW
+                            {t.quantity != null && t.quantity > 0 && q && q.last > 0
+                              ? ` · ${formatGBP(t.quantity * q.last)}`
+                              : ''}
+                          </p>
+                        ) : null}
                         <div className="mt-1 flex flex-col items-end gap-0.5">
                           <ChangeBadge pct={pct} />
                           {(section === 'fx' || section === 'crosses' || section === 'indices') &&
@@ -1877,15 +1923,21 @@ export function MarketsPage() {
           className="markets-section-jump-chips"
           aria-label="Jump to market section"
         >
-          {sectionOrder.map((section) => (
-            <a
-              key={section}
-              href={`#markets-section-${section}`}
-              className="markets-section-jump-chip btn-ghost btn-sm"
-            >
-              {SECTION_JUMP_LABEL[section]}
-            </a>
-          ))}
+          {sectionOrder.map((section) => {
+            const active = activeJumpSection === section
+            return (
+              <a
+                key={section}
+                href={`#markets-section-${section}`}
+                className={`markets-section-jump-chip btn-ghost btn-sm${
+                  active ? ' markets-section-jump-chip--active border-accent text-accent' : ''
+                }`}
+                aria-current={active ? 'true' : undefined}
+              >
+                {SECTION_JUMP_LABEL[section]}
+              </a>
+            )
+          })}
         </nav>
       </div>
 

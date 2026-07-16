@@ -2591,6 +2591,17 @@ html.success-haptic-flash::after {
 .markets-section-jump-chip {
   white-space: nowrap;
 }
+.markets-section-jump-chip--active {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+  color: var(--accent);
+  font-weight: 600;
+}
+.markets-paper-nw-chip {
+  letter-spacing: 0.02em;
+}
+.today-prices-trust {
+  max-width: 100%;
+}
 .jobs-kanban-jump-chips {
   position: sticky;
   top: var(--app-header-offset, 3.5rem);

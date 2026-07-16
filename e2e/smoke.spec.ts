@@ -131,6 +131,19 @@ test.describe('MyDSP smoke', () => {
     })
   })
 
+  test('Markets sticky toolbar and section jump chips', async ({ page }) => {
+    await page.goto('/markets')
+    await expect(page.getByRole('heading', { name: /Markets/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    const toolbar = page.locator('.markets-sticky-toolbar')
+    await expect(toolbar).toBeVisible()
+    const jumps = page.getByRole('navigation', { name: /Jump to market section/i })
+    await expect(jumps).toBeVisible()
+    await expect(jumps.locator('.markets-section-jump-chip').first()).toBeVisible()
+    await expect(page.locator('[id^="markets-section-"]').first()).toBeAttached()
+  })
+
   test('offline queue enqueue surfaces in Settings Sync', async ({ page }) => {
     await page.addInitScript(() => {
       try {
