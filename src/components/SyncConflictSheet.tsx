@@ -3,15 +3,16 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
+  clearPendingAutoSyncConflicts,
   getPendingAutoSyncConflicts,
   isAutoSyncPaused,
   pauseAutoSync,
   resumeAutoSync,
 } from '../services/sync/autoSyncService'
 import { loadDeviceNickname } from '../services/sync/deviceNickname'
-import { summarizeConflictBatch } from '../services/sync/conflicts'
+import { conflictKey, summarizeConflictBatch, type ConflictChoice } from '../services/sync/conflicts'
 import { buildConflictSummaryText, shareConflictSummary } from '../services/sync/conflictExport'
-import { loadSyncConfig } from '../services/sync/syncService'
+import { applyMergePreview, loadSyncConfig } from '../services/sync/syncService'
 import type { MergePreview } from '../services/sync/syncService'
 
 export function SyncConflictSheet() {
@@ -20,6 +21,7 @@ export function SyncConflictSheet() {
   const [paused, setPaused] = useState(() => isAutoSyncPaused())
   const [deviceNick] = useState(() => loadDeviceNickname())
   const [copyHint, setCopyHint] = useState<string | null>(null)
+  const [bulkApplying, setBulkApplying] = useState<ConflictChoice | null>(null)
 
   useEffect(() => {
     const hydrate = () => {
@@ -47,6 +49,47 @@ export function SyncConflictSheet() {
 
   const count = preview.conflicts.length
 
+  const applyAll = (choice: ConflictChoice) => {
+    const resolutions: Record<string, ConflictChoice> = {}
+    for (const c of preview.conflicts) resolutions[conflictKey(c)] = choice
+    setBulkApplying(choice)
+    void (async () => {
+      try {
+        const result = await applyMergePreview(preview, resolutions)
+        clearPendingAutoSyncConflicts()
+        setPreview(null)
+        setDismissed(true)
+        try {
+          window.dispatchEvent(
+            new CustomEvent('mydsp-sync-applied', {
+              detail: {
+                merged: result.merged,
+                conflicts: preview.conflicts.length,
+                bulkChoice: choice,
+              },
+            }),
+          )
+          window.dispatchEvent(
+            new CustomEvent('mydsp-toast', {
+              detail: {
+                type: 'success',
+                title: 'Sync conflicts applied',
+                message: `Kept all ${choice === 'local' ? 'local' : 'remote'} changes.`,
+              },
+            }),
+          )
+        } catch {
+          /* ignore */
+        }
+      } catch {
+        setCopyHint('Open Settings to Apply')
+        window.setTimeout(() => setCopyHint(null), 2500)
+      } finally {
+        setBulkApplying(null)
+      }
+    })()
+  }
+
   return (
     <div className="fixed inset-0 z-[1490]" role="presentation">
       <button
@@ -66,8 +109,8 @@ export function SyncConflictSheet() {
           {count} conflict{count === 1 ? '' : 's'} to review
         </h2>
         <p className="text-xs text-text-muted leading-relaxed mb-1">
-          {summarizeConflictBatch(preview.conflicts)} Choose Keep local or Keep remote in Settings —
-          nothing is written until you Apply merge.
+          {summarizeConflictBatch(preview.conflicts)} Keep all local or all remote here, or review
+          each row in Settings before applying.
         </p>
         <p className="text-xs text-text-subtle mb-4">
           This device: <span className="text-text font-medium">{deviceNick}</span>
@@ -80,6 +123,22 @@ export function SyncConflictSheet() {
           >
             Review in Settings
           </Link>
+          <button
+            type="button"
+            className="btn-secondary btn-sm min-h-11"
+            disabled={bulkApplying !== null}
+            onClick={() => applyAll('local')}
+          >
+            {bulkApplying === 'local' ? 'Applying…' : 'Keep all local'}
+          </button>
+          <button
+            type="button"
+            className="btn-secondary btn-sm min-h-11"
+            disabled={bulkApplying !== null}
+            onClick={() => applyAll('remote')}
+          >
+            {bulkApplying === 'remote' ? 'Applying…' : 'Keep all remote'}
+          </button>
           <button
             type="button"
             className="btn-secondary btn-sm min-h-11"

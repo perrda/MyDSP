@@ -19,6 +19,12 @@ Cursor agents (and future you) need a single source of truth for forms. The livi
 | Today money pulse | `domain/moneyPulse.ts` NW Δ since yesterday |
 | Today next-action stack | `domain/nextActionStack.ts` — todo / bill / mover (max 3) |
 | Compare invite sheet | Compare → Add a portfolio modal → Settings `#portfolios` |
+| Sync chip long-press | `SyncStatusChip` → `syncNow` + success flash |
+| Holdings master–detail | Equities/Crypto ≥900px list + detail panel |
+| Windowed holdings lists | `hooks/useWindowedList.ts` — first 40, sentinel loads more |
+| TradeModal phone sheet | `TradeModal` + `Modal` `sheet` on &lt;640px |
+| Sell → Tax disposal CTA | TradeModal toast → `/tax?disposal=1&symbol=` |
+| Concentration banner | `domain/portfolioConcentration.ts` + Settings threshold |
 
 ## Form recipe
 

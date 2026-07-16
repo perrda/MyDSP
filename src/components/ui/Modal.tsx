@@ -28,8 +28,8 @@ interface ModalProps {
   title: string
   onClose: () => void
   children: ReactNode
-  /** Full-viewport sheet (mobile + desktop) — better for long forms. */
-  size?: 'default' | 'full'
+  /** Dialog sizing: default centered, full long-form, or phone bottom-sheet. */
+  size?: 'default' | 'full' | 'sheet'
 }
 
 export function Modal({ open, title, onClose, children, size = 'default' }: ModalProps) {
@@ -106,6 +106,8 @@ export function Modal({ open, title, onClose, children, size = 'default' }: Moda
   const panelClass =
     size === 'full'
       ? 'modal modal-enter modal-full relative z-10 w-full h-[100dvh] max-h-[100dvh] sm:h-auto sm:max-h-[min(92vh,56rem)] sm:max-w-3xl overflow-y-auto border border-border-strong'
+      : size === 'sheet'
+        ? 'modal modal-enter modal-sheet relative z-10 w-full sm:max-w-lg max-h-[min(92dvh,90vh)] overflow-y-auto border border-border-strong rounded-t-2xl sm:rounded-none'
       : 'modal modal-enter relative z-10 w-full sm:max-w-lg max-h-[min(92dvh,90vh)] overflow-y-auto border border-border-strong'
 
   return (

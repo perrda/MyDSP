@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { Download } from 'lucide-react'
 import { PageHeader } from '../components/ui/PageHeader'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
@@ -40,6 +40,7 @@ function loadIsaRemainingDraft(): string {
 
 export function TaxPage() {
   const { data, setData, privacy } = usePortfolio()
+  const [searchParams, setSearchParams] = useSearchParams()
   const residency = data.settings.taxResidency || 'GB'
   const pack = useMemo(() => getTaxPack(residency), [residency])
   const isUkTax = pack.code === 'GB' && pack.matching === 'uk-section104'
@@ -63,6 +64,22 @@ export function TaxPage() {
     const keys = listPackYears(pack)
     setTaxYear((prev) => (keys.includes(prev) ? prev : next))
   }, [pack])
+
+  useEffect(() => {
+    const symbol = searchParams.get('symbol')
+    if (!symbol) return
+    const assetType = searchParams.get('assetType') === 'equity' ? 'equity' : 'crypto'
+    setForm({
+      date: searchParams.get('date') || new Date().toISOString().slice(0, 10),
+      assetType,
+      symbol: symbol.toUpperCase(),
+      qty: searchParams.get('qty') ?? '',
+      proceeds: searchParams.get('proceeds') ?? '',
+      cost: searchParams.get('cost') ?? '',
+    })
+    setOpen(true)
+    setSearchParams({}, { replace: true })
+  }, [searchParams, setSearchParams])
 
   useEffect(() => {
     try {

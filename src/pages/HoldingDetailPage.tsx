@@ -3,6 +3,7 @@ import { useLocation, useParams } from 'react-router-dom'
 import { ExternalLink } from 'lucide-react'
 import { PortfolioSeriesChart } from '../components/charts/PortfolioSeriesChart'
 import { HoldingPriceChart } from '../components/charts/HoldingPriceChart'
+import { Sparkline } from '../components/charts/Sparkline'
 import { OverflowMenu } from '../components/ui/OverflowMenu'
 import { PageHeader } from '../components/ui/PageHeader'
 import { BackNav } from '../components/ui/BackNav'
@@ -31,8 +32,13 @@ import type {
   ProgressCommentary,
   RagStatus,
 } from '../domain/types'
-import { listMarketTickers } from '../storage/marketsStore'
+import { sparklineTrendFromSeries } from '../domain/sparklineSeries'
+import { listMarketTickers, loadMarketQuotesCache } from '../storage/marketsStore'
 import { formatDate, formatDateTime, formatGBP, formatGBPPrecise, formatPct, formatQty, privacyClass } from '../utils/format'
+
+function normPortfolioSymbol(symbol: string): string {
+  return symbol.trim().toUpperCase().replace(/^\^/, '')
+}
 
 export function HoldingDetailPage() {
   const { kind: kindParam, id: idParam } = useParams()
@@ -72,6 +78,18 @@ export function HoldingDetailPage() {
     () => (item ? journalForSymbol(data, item.symbol).filter((j) => isTradeType(j.type)) : []),
     [data, item],
   )
+
+  const marketQuote = useMemo(() => {
+    if (!kind || !item) return null
+    const marketKind = kind === 'crypto' ? 'crypto' : 'equity'
+    const key = normPortfolioSymbol(item.symbol)
+    const ticker = listMarketTickers(marketKind).find(
+      (t) => normPortfolioSymbol(t.symbol) === key,
+    )
+    if (!ticker) return null
+    const quote = loadMarketQuotesCache().get(ticker.id)
+    return quote && quote.last > 0 ? quote : null
+  }, [kind, item])
 
   if (!kind || !item) {
     return (
@@ -255,6 +273,36 @@ export function HoldingDetailPage() {
         <p className={`mt-1 text-sm font-semibold tabular-nums ${pnl >= 0 ? 'text-accent' : 'text-text-muted'}`}>
           {formatGBP(pnl, { signed: true })} · {formatPct(cost > 0 ? (pnl / cost) * 100 : 0)}
         </p>
+        {marketQuote ? (
+          <div className="holding-markets-quote-cache mt-4 flex flex-wrap items-center gap-3">
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-text-subtle font-semibold">
+                Markets day
+              </p>
+              <p
+                className={`text-sm font-semibold tabular-nums ${
+                  marketQuote.changePct > 0
+                    ? 'text-accent'
+                    : marketQuote.changePct < 0
+                      ? 'text-red-500'
+                      : 'text-text-muted'
+                }`}
+              >
+                {formatPct(marketQuote.changePct, 2)} · {formatGBP(marketQuote.changeAbs, { signed: true })}
+              </p>
+            </div>
+            {marketQuote.sparkline.length > 1 ? (
+              <div className="holding-markets-sparkline w-24 sm:w-32" aria-label={`${item.symbol} Markets quote cache sparkline`}>
+                <Sparkline
+                  data={marketQuote.sparkline}
+                  height={36}
+                  showGradient={false}
+                  trend={sparklineTrendFromSeries(marketQuote.sparkline)}
+                />
+              </div>
+            ) : null}
+          </div>
+        ) : null}
         {yieldPct != null ? (
           <p className="mt-2 text-sm text-text-muted tabular-nums">
             Dividend yield {yieldPct.toFixed(yieldPct >= 10 ? 1 : 2)}%

@@ -19,15 +19,15 @@ import { LoadingSpinner } from './components/LoadingSpinner'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { withPerformanceMonitoring } from './components/PerformanceMonitor'
 
-// Eager-load critical pages
+// Eager-load Today (critical path)
 import { Dashboard as DashboardBase } from './pages/Dashboard'
-import { SettingsPage as SettingsPageBase } from './pages/SettingsPage'
 
-// Wrap critical pages with performance monitoring
 const Dashboard = withPerformanceMonitoring(DashboardBase, 'Dashboard')
-const SettingsPage = withPerformanceMonitoring(SettingsPageBase, 'Settings')
 
-// Lazy-load all other pages
+// Lazy-load Settings (large page) to shrink the main entry chunk
+const SettingsPage = lazy(() =>
+  import('./pages/SettingsPage').then((m) => ({ default: m.SettingsPage })),
+)
 const CryptoPage = lazy(() => import('./pages/CryptoPage').then(m => ({ default: m.CryptoPage })))
 const EquitiesPage = lazy(() => import('./pages/EquitiesPage').then(m => ({ default: m.EquitiesPage })))
 const LiabilitiesPage = lazy(() => import('./pages/LiabilitiesPage').then(m => ({ default: m.LiabilitiesPage })))

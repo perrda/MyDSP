@@ -1,9 +1,14 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.55**
+**Current version: 1.2.60**
 
-## Completed (through v1.2.55)
+## Completed (through v1.2.60)
 
+- Quality / ops (next25e 21–25): lazy Settings, axe Equities/Tax/Todos, offline-queue smoke, windowed holdings, docs
+- Today / money / tax (next25e 16–20): budget pulse, cash runway, Spending search, sell→Tax CTA, FIRE chip
+- Mobile / tablet UX (next25e 11–15): master–detail, Today accordions, TradeModal sheet, Markets jumps, Jobs split
+- Markets / portfolio (next25e 6–10): weight %, holdings search, Owned chip, detail sparkline, concentration
+- Sync / security (next25e 1–5): sync chip long-press, What arrived, health blob age, passphrase rotate, conflict quick-resolve
 - Quality / ops (next25d 21–25): Settings pin chips, /smoke lock+nav, Playwright Markets search, broker aliases, What’s new deep-links
 - Today / money / tax (next25d 16–20): bills swipe paid, Spending log bill, Goals note from Today, Tax ISA stub, Compare as-of chips
 - Mobile / tablet UX (next25d 11–15): Overview double-tap top, bill Mark paid, Jobs→Kanban deep-link, conflict FAB, OverflowMenu phone sheet

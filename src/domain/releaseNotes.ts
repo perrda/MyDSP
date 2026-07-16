@@ -29,66 +29,60 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.60',
+    date: '2026-07-16',
+    bullets: [
+      { text: 'Settings lazy-loaded · windowed Equities/Crypto lists', to: '/settings' },
+      { text: 'Axe gates for Equities / Tax / Todos · offline-queue smoke', to: '/smoke' },
+      { text: 'Sync chip long-press + UI conventions for next25e', to: '/settings#sync' },
+    ],
+  },
+  {
+    version: '1.2.59',
+    date: '2026-07-16',
+    bullets: [
+      'Today budget pulse · cash runway · FIRE chip',
+      'Spending merchant search · sell→Tax disposal CTA',
+      'Goals / bills / FIRE Today polish',
+    ],
+  },
+  {
+    version: '1.2.58',
+    date: '2026-07-16',
+    bullets: [
+      'Equities/Crypto master–detail · Today accordions',
+      'TradeModal phone sheet · Markets section jump chips',
+      'Jobs list|Kanban split',
+    ],
+  },
+  {
+    version: '1.2.57',
+    date: '2026-07-16',
+    bullets: [
+      'Holdings weight % · sticky search · Markets Owned chip',
+      'Holding detail day% sparkline · concentration banner',
+      'Portfolio concentration threshold in Settings',
+    ],
+  },
+  {
+    version: '1.2.56',
+    date: '2026-07-16',
+    bullets: [
+      { text: 'Long-press sync chip · What arrived toast', to: '/settings#sync' },
+      {
+        text: 'Sync health blob age · passphrase rotate · conflict quick-resolve',
+        to: '/settings#sync',
+      },
+      'Offline Retry already in tip · passphrase remember modes',
+    ],
+  },
+  {
     version: '1.2.55',
     date: '2026-07-16',
     bullets: [
       { text: 'Settings pin chips · smoke PIN & bottom-nav checks', to: '/smoke' },
       { text: 'What’s new bullets deep-link into Settings', to: '/settings#whats-new' },
       { text: 'Broker CSV alias pack bump (IBKR / T212 / Coinbase)', to: '/settings#trade-history' },
-    ],
-  },
-  {
-    version: '1.2.54',
-    date: '2026-07-16',
-    bullets: [
-      'Today bills swipe Mark paid · Spending log bill payment',
-      'Goals log note from Today · Tax ISA allowance stub',
-      'Compare as-of quote age chips',
-    ],
-  },
-  {
-    version: '1.2.53',
-    date: '2026-07-16',
-    bullets: [
-      'Overview double-tap scroll-to-top · bill Mark paid / Skip',
-      'Jobs pipeline → Kanban deep-link · OverflowMenu phone sheet',
-      'Settings conflict jump FAB',
-    ],
-  },
-  {
-    version: '1.2.52',
-    date: '2026-07-16',
-    bullets: [
-      'Markets in-list search · yield % sort',
-      'Holdings Use Markets price on drift · corp-action date',
-      'FX triangle Use suggested',
-    ],
-  },
-  {
-    version: '1.2.51',
-    date: '2026-07-16',
-    bullets: [
-      { text: 'PIN keypad to disable lock · Face ID-first path', to: '/settings#security' },
-      { text: 'Sync activity device filter · conflict copy summary', to: '/settings#sync' },
-      { text: 'Offline Retry now · passphrase 7-day remember', to: '/settings#sync' },
-    ],
-  },
-  {
-    version: '1.2.50',
-    date: '2026-07-16',
-    bullets: [
-      {
-        text: 'Face ID-first unlock · phone sync chip no longer overlaps menu',
-        to: '/settings#security',
-      },
-      {
-        text: 'Customizable bottom-nav middle tabs · PWA shortcuts + theme-color',
-        to: '/settings#layout',
-      },
-      {
-        text: 'Finnhub key how-to + quote failover health in Settings',
-        to: '/settings#prices',
-      },
     ],
   },
 ]

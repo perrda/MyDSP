@@ -21,7 +21,7 @@ import {
 import { exportYoutubeForBackup, importYoutubeFromBackup } from './youtubeStore'
 
 // Lazy import to avoid circular deps - sync service imports backupStore
-let _pushSyncLazy: ((url: string, pass: string) => Promise<void>) | null = null
+let _pushSyncLazy: ((url: string, pass: string) => Promise<unknown>) | null = null
 let _loadSyncConfigLazy: (() => { remoteUrl: string; enabled: boolean } | null) | null = null
 let _getSessionPassphraseLazy: (() => string | null) | null = null
 

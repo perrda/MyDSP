@@ -95,6 +95,7 @@ export function TradeModal({
       open={open}
       title={`${initial ? 'Edit' : side === 'buy' ? 'Buy' : 'Sell'} ${symbol}`}
       onClose={() => onClose()}
+      size="sheet"
     >
       <form
         className="space-y-5"

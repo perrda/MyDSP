@@ -80,9 +80,16 @@ import {
   saveHoldingsDriftThresholdPct,
 } from '../domain/holdingsDrift'
 import {
+  DEFAULT_PORTFOLIO_CONCENTRATION_PCT,
+  loadPortfolioConcentrationThresholdPct,
+  savePortfolioConcentrationThresholdPct,
+} from '../domain/portfolioConcentration'
+import {
   allConflictsResolved,
   applyMergePreview,
   downloadEncryptedBackup,
+  formatRemoteBlobAge,
+  formatSyncPayloadBytes,
   getSyncRemoteUrlWarning,
   loadSyncConfig,
   normalizeSyncRemoteUrl,
@@ -151,6 +158,7 @@ import {
 } from '../services/sync/sessionPassphrase'
 import {
   clearPendingAutoSyncConflicts,
+  forceSyncNow,
   getAutoSyncStatus,
   getPendingAutoSyncConflicts,
   isAutoSyncPaused,
@@ -337,6 +345,9 @@ export function SettingsPage() {
     loadPriceAlertThresholds(),
   )
   const [driftPct, setDriftPct] = useState(() => loadHoldingsDriftThresholdPct())
+  const [concentrationPct, setConcentrationPct] = useState(() =>
+    loadPortfolioConcentrationThresholdPct(),
+  )
   const [syncActivity, setSyncActivity] = useState<SyncActivityEntry[]>(() => loadSyncActivity())
   const [syncActivityFilter, setSyncActivityFilter] = useState<'all' | 'this' | 'others'>('all')
   const [disablePinOpen, setDisablePinOpen] = useState(false)
@@ -381,6 +392,9 @@ export function SettingsPage() {
   const [deviceNickname, setDeviceNickname] = useState(() => loadDeviceNickname())
   const [dryRunSummary, setDryRunSummary] = useState<string | null>(null)
   const [showSetupCard, setShowSetupCard] = useState(false)
+  const [rotatePassOpen, setRotatePassOpen] = useState(false)
+  const [rotatePass, setRotatePass] = useState('')
+  const [rotateBusy, setRotateBusy] = useState(false)
   const setupCanvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => subscribeAutoSync(setAutoSyncStatus), [])
@@ -1213,6 +1227,116 @@ export function SettingsPage() {
                 ) : null}
               </label>
             )}
+            <div className="passphrase-rotate-wizard ml-8 -mt-1 max-w-xl border border-border/60 p-3 space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p className="text-sm font-medium text-text">Rotate sync passphrase</p>
+                  <p className="text-xs text-text-muted font-light">
+                    Re-encrypt local data and push it. After a successful push, the remote uses the
+                    new passphrase; update your other devices before they sync again.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="btn-ghost btn-sm"
+                  aria-expanded={rotatePassOpen}
+                  onClick={() => setRotatePassOpen((v) => !v)}
+                >
+                  {rotatePassOpen ? 'Cancel rotate' : 'Rotate passphrase'}
+                </button>
+              </div>
+              {rotatePassOpen ? (
+                <div className="space-y-2">
+                  <label className="block">
+                    <span className="text-xs font-bold uppercase tracking-widest text-text-subtle">
+                      New passphrase
+                    </span>
+                    <input
+                      type={showSyncPass ? 'text' : 'password'}
+                      className="mt-2 w-full max-w-md"
+                      autoComplete="new-password"
+                      placeholder="New sync passphrase (min 8 chars)"
+                      value={rotatePass}
+                      onChange={(e) => setRotatePass(e.target.value)}
+                    />
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      className="btn-primary btn-sm"
+                      disabled={rotateBusy}
+                      onClick={() => {
+                        void (async () => {
+                          if (!syncCfg.remoteUrl.trim()) {
+                            flash('Set Remote URL before rotating passphrase.')
+                            return
+                          }
+                          if (!rotatePass || rotatePass.trim().length < 8) {
+                            flash('Use a new passphrase of at least 8 characters.')
+                            return
+                          }
+                          if (!isOnline()) {
+                            flash('Go online to rotate passphrase — the remote must be pushed now.')
+                            return
+                          }
+                          setRotateBusy(true)
+                          try {
+                            const pushed = await pushSync(syncCfg.remoteUrl, rotatePass)
+                            const remember = Boolean(syncCfg.rememberPassphrase) || hasRememberedSyncPassphrase()
+                            const mode: RememberPassphraseMode = remember
+                              ? rememberMode === 'session'
+                                ? 'forever'
+                                : rememberMode
+                              : 'session'
+                            setSessionSyncPassphrase(rotatePass, {
+                              remember,
+                              rememberMode: mode,
+                            })
+                            setSyncPass(rotatePass)
+                            setRememberMode(mode)
+                            const next = {
+                              ...loadSyncConfig(),
+                              ...syncCfg,
+                              enabled: true,
+                              rememberPassphrase: remember,
+                              lastSyncAt: new Date().toISOString(),
+                              lastSyncError: undefined,
+                              lastRemoteExportedAt: pushed.exportedAt,
+                              lastRemoteBlobBytes: pushed.bytes,
+                              lastPushBytes: pushed.bytes,
+                            }
+                            setSyncCfg(next)
+                            saveSyncConfig(next)
+                            setRotatePass('')
+                            setRotatePassOpen(false)
+                            flash(
+                              'Passphrase rotated — remote now uses the new passphrase after successful push. Update other devices.',
+                            )
+                          } catch (e) {
+                            flash(e instanceof Error ? e.message : 'Passphrase rotate failed')
+                          } finally {
+                            setRotateBusy(false)
+                          }
+                        })()
+                      }}
+                    >
+                      {rotateBusy ? 'Rotating…' : 'Re-encrypt & push'}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-ghost btn-sm"
+                      disabled={rotateBusy}
+                      onClick={() => {
+                        setRotatePass('')
+                        setRotatePassOpen(false)
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+            </div>
             <label className="flex items-start gap-3 cursor-pointer">
               <input
                 type="checkbox"
@@ -1261,6 +1385,19 @@ export function SettingsPage() {
                   </span>
                   {autoSyncStatus.lastAt && syncCfg.lastSyncAt !== autoSyncStatus.lastAt
                     ? ` · auto ${new Date(autoSyncStatus.lastAt).toLocaleString('en-GB')}`
+                    : ''}
+                </li>
+                <li>
+                  Remote blob:{' '}
+                  <span className="text-text font-medium">
+                    {formatRemoteBlobAge(syncCfg.lastRemoteExportedAt) ?? 'Unknown age'}
+                  </span>
+                  {formatSyncPayloadBytes(
+                    syncCfg.lastRemoteBlobBytes ?? syncCfg.lastPushBytes ?? syncCfg.lastPullBytes,
+                  )
+                    ? ` · approx ${formatSyncPayloadBytes(
+                        syncCfg.lastRemoteBlobBytes ?? syncCfg.lastPushBytes ?? syncCfg.lastPullBytes,
+                      )} encrypted`
                     : ''}
                 </li>
                 <li>
@@ -1396,12 +1533,15 @@ export function SettingsPage() {
                     return
                   }
                   try {
-                    await pushSync(syncCfg.remoteUrl, syncPass)
+                    const pushed = await pushSync(syncCfg.remoteUrl, syncPass)
                     const next = {
                       ...syncCfg,
                       enabled: true,
                       lastSyncAt: new Date().toISOString(),
                       lastSyncError: undefined,
+                      lastRemoteExportedAt: pushed.exportedAt,
+                      lastRemoteBlobBytes: pushed.bytes,
+                      lastPushBytes: pushed.bytes,
                     }
                     setSyncCfg(next)
                     saveSyncConfig(next)
@@ -1435,6 +1575,7 @@ export function SettingsPage() {
                     const preview = await previewPull(syncCfg.remoteUrl, syncPass)
                     setPendingMerge(preview)
                     setConflicts(preview.conflicts)
+                    setSyncCfg(loadSyncConfig())
                     if (preview.conflicts.length > 0) {
                       flash(
                         `Review ${preview.conflicts.length} conflict(s) — pick Keep local/remote, then Apply merge.`,
@@ -1445,11 +1586,15 @@ export function SettingsPage() {
                       setPendingMerge(null)
                       setConflictChoices({})
                       setConflicts([])
+                      const stats = loadSyncConfig()
                       const next = {
                         ...syncCfg,
                         lastSyncAt: new Date().toISOString(),
                         lastSyncError: undefined,
                         lastMergeCount: r.merged,
+                        lastRemoteExportedAt: stats.lastRemoteExportedAt,
+                        lastRemoteBlobBytes: stats.lastRemoteBlobBytes,
+                        lastPullBytes: stats.lastPullBytes,
                       }
                       setSyncCfg(next)
                       saveSyncConfig(next)
@@ -1508,6 +1653,7 @@ export function SettingsPage() {
                       .filter(Boolean)
                       .join(' · ')
                     setDryRunSummary(summary)
+                    setSyncCfg(loadSyncConfig())
                     flash(summary)
                   } catch (e) {
                     setDryRunSummary(null)
@@ -1537,7 +1683,7 @@ export function SettingsPage() {
                   const next = { ...syncCfg, enabled: true }
                   setSyncCfg(next)
                   saveSyncConfig(next)
-                  await syncNow()
+                  await forceSyncNow()
                   setSyncCfg(loadSyncConfig())
                   reload()
                   flash('Sync now finished.')
@@ -1571,11 +1717,15 @@ export function SettingsPage() {
                     setConflicts([])
                     setConflictChoices({})
                     clearPendingAutoSyncConflicts()
+                    const stats = loadSyncConfig()
                     const next = {
                       ...syncCfg,
                       lastSyncAt: new Date().toISOString(),
                       lastSyncError: undefined,
                       lastMergeCount: r.merged,
+                      lastRemoteExportedAt: stats.lastRemoteExportedAt,
+                      lastRemoteBlobBytes: stats.lastRemoteBlobBytes,
+                      lastPullBytes: stats.lastPullBytes,
                     }
                     setSyncCfg(next)
                     saveSyncConfig(next)
@@ -3062,6 +3212,51 @@ export function SettingsPage() {
                   }}
                 >
                   Reset {DEFAULT_HOLDINGS_DRIFT_PCT}%
+                </button>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-border">
+              <p className="text-xs font-bold uppercase tracking-widest text-text-subtle mb-2">
+                Portfolio concentration alert
+              </p>
+              <p className="text-xs text-text-muted font-light mb-3">
+                Amber banner on Equities / Crypto when any included holding exceeds this % of
+                included portfolio value (default {DEFAULT_PORTFOLIO_CONCENTRATION_PCT}%).
+              </p>
+              <div className="flex flex-wrap items-center gap-3">
+                <label className="text-sm font-medium inline-flex items-center gap-2">
+                  Threshold %
+                  <input
+                    type="number"
+                    min={1}
+                    max={100}
+                    step={1}
+                    className="w-20 text-sm"
+                    value={concentrationPct}
+                    aria-label="Portfolio concentration threshold percent"
+                    onChange={(e) =>
+                      setConcentrationPct(
+                        Number(e.target.value) || DEFAULT_PORTFOLIO_CONCENTRATION_PCT,
+                      )
+                    }
+                    onBlur={() => {
+                      savePortfolioConcentrationThresholdPct(concentrationPct)
+                      setConcentrationPct(loadPortfolioConcentrationThresholdPct())
+                      flash('Concentration threshold saved.')
+                    }}
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="btn-ghost btn-sm"
+                  onClick={() => {
+                    savePortfolioConcentrationThresholdPct(DEFAULT_PORTFOLIO_CONCENTRATION_PCT)
+                    setConcentrationPct(DEFAULT_PORTFOLIO_CONCENTRATION_PCT)
+                    flash('Concentration threshold reset.')
+                  }}
+                >
+                  Reset {DEFAULT_PORTFOLIO_CONCENTRATION_PCT}%
                 </button>
               </div>
             </div>
