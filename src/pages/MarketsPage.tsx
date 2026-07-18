@@ -494,7 +494,26 @@ export function MarketsPage() {
   })
   const [refreshing, setRefreshing] = useState(false)
   const [initialLoad, setInitialLoad] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(() => {
+    try {
+      const raw = sessionStorage.getItem('mydsp_markets_sync_prices_report_v1')
+      return raw && raw.trim() ? raw : null
+    } catch {
+      return null
+    }
+  })
+  const persistSyncPricesReport = useCallback((msg: string | null) => {
+    setError(msg)
+    try {
+      if (msg && msg.startsWith('Sync prices:')) {
+        sessionStorage.setItem('mydsp_markets_sync_prices_report_v1', msg)
+      } else {
+        sessionStorage.removeItem('mydsp_markets_sync_prices_report_v1')
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [])
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<MarketTicker | null>(null)
   const [form, setForm] = useState<FormState>(emptyForm)
@@ -655,6 +674,41 @@ export function MarketsPage() {
 
   const activeTagFilter = showMarketsTagYieldChips ? tagFilter : 'All'
   const activeYieldSort = showMarketsTagYieldChips ? yieldSort : false
+
+  /** Search → expand section and scroll/select the first match. */
+  useEffect(() => {
+    if (!searchQuery) return
+    const tagged =
+      activeTagFilter === 'All'
+        ? tickers
+        : tickers.filter((t) => t.tag === activeTagFilter)
+    const hit = tagged.find((t) => matchesMarketsSearch(t, searchQuery))
+    if (!hit) return
+    const section: SectionKey =
+      hit.kind === 'crypto'
+        ? 'crypto'
+        : hit.kind === 'equity'
+          ? 'equities'
+          : hit.kind === 'commodity'
+            ? 'commodities'
+            : hit.kind === 'index'
+              ? 'indices'
+              : hit.kind === 'fx'
+                ? 'fx'
+                : 'crosses'
+    setCollapsed((prev) => {
+      if (!prev[section]) return prev
+      const next = { ...prev, [section]: false }
+      setMarketsCollapsed(section, false)
+      return next
+    })
+    setFocusSymbol(hit.symbol)
+    setQuoteDetail((prev) => {
+      const q = loadMarketQuotesCache().get(hit.id)
+      if (prev?.ticker.id === hit.id) return { ticker: hit, quote: q ?? prev.quote }
+      return { ticker: hit, quote: q }
+    })
+  }, [searchQuery, activeTagFilter, tickers])
 
   const bySection = useMemo(
     () => {
@@ -866,18 +920,19 @@ export function MarketsPage() {
         await syncNow()
       }
       if (failed > 0) {
-        setError(`Sync prices: ${live} live · ${failed} failed`)
+        persistSyncPricesReport(`Sync prices: ${live} live · ${failed} failed`)
       } else if (!cfg.enabled || !cfg.remoteUrl.trim()) {
+        persistSyncPricesReport(null)
         setError('Prices refreshed locally — enable Cloud Sync in Settings to push to other devices')
       } else {
-        setError(null)
+        persistSyncPricesReport(null)
       }
       setJustSyncedPulse(true)
       window.setTimeout(() => setJustSyncedPulse(false), 2800)
     } finally {
       setSyncingPrices(false)
     }
-  }, [refresh, syncingPrices])
+  }, [refresh, syncingPrices, persistSyncPricesReport])
 
   const retryUnavailable = useCallback(async () => {
     if (!isOnline()) {
@@ -1087,6 +1142,18 @@ export function MarketsPage() {
       }
       if (form.kind === 'commodity' && form.quantity.trim() !== '' && !(qtyNum != null && qtyNum > 0)) {
         setFormError('Quantity must be a positive number.')
+        return
+      }
+      if (form.kind === 'commodity' && form.avgCostGbp.trim() !== '' && !(costNum != null && costNum >= 0)) {
+        setFormError('Avg cost must be zero or a positive number.')
+        return
+      }
+      if (
+        form.kind === 'commodity' &&
+        form.avgCostGbp.trim() !== '' &&
+        form.quantity.trim() === ''
+      ) {
+        setFormError('Add a paper quantity when setting avg cost.')
         return
       }
       const origYieldStr =
@@ -1904,17 +1971,42 @@ export function MarketsPage() {
           </div>
           <div
             className="mt-2 flex flex-wrap items-center gap-1.5"
-            role="group"
+            role="tablist"
             aria-label="Sparkline and percent change timeframe"
+            onKeyDown={(e) => {
+              const idx = MARKET_TIMEFRAMES.indexOf(timeframe)
+              if (idx < 0) return
+              let next = idx
+              if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                next = (idx + 1) % MARKET_TIMEFRAMES.length
+              } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                next = (idx - 1 + MARKET_TIMEFRAMES.length) % MARKET_TIMEFRAMES.length
+              } else if (e.key === 'Home') {
+                next = 0
+              } else if (e.key === 'End') {
+                next = MARKET_TIMEFRAMES.length - 1
+              } else {
+                return
+              }
+              e.preventDefault()
+              const tf = MARKET_TIMEFRAMES[next]!
+              setMarketsTimeframe(tf)
+              setTimeframe(tf)
+              const el = document.getElementById(`markets-tf-${tf}`)
+              el?.focus()
+            }}
           >
             {MARKET_TIMEFRAMES.map((tf) => (
               <button
                 key={tf}
+                id={`markets-tf-${tf}`}
                 type="button"
+                role="tab"
                 className={`btn-sm min-h-9 px-2.5 tabular-nums ${
                   timeframe === tf ? 'btn-secondary border-accent text-accent' : 'btn-ghost'
                 }`}
-                aria-pressed={timeframe === tf}
+                aria-selected={timeframe === tf}
+                tabIndex={timeframe === tf ? 0 : -1}
                 onClick={() => {
                   if (tf === timeframe) return
                   setMarketsTimeframe(tf)
@@ -1949,8 +2041,28 @@ export function MarketsPage() {
                   active ? ' markets-section-jump-chip--active border-accent text-accent' : ''
                 }${unavailableCount > 0 ? ' markets-jump-unavailable' : ''}`}
                 aria-current={active ? 'true' : undefined}
-                aria-label={ariaLabel}
-                title={unavailableCount > 0 ? ariaLabel : undefined}
+                aria-label={
+                  unavailableCount > 0 ? `${ariaLabel} — retry section` : ariaLabel
+                }
+                title={
+                  unavailableCount > 0
+                    ? `${ariaLabel} — click to jump and retry`
+                    : undefined
+                }
+                onClick={(e) => {
+                  if (unavailableCount <= 0) return
+                  e.preventDefault()
+                  setCollapsed((prev) => {
+                    if (!prev[section]) return prev
+                    const next = { ...prev, [section]: false }
+                    setMarketsCollapsed(section, false)
+                    return next
+                  })
+                  document
+                    .getElementById(`markets-section-${section}`)
+                    ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                  void refreshSection(section)
+                }}
               >
                 {unavailableCount > 0
                   ? `${baseLabel} · ${unavailableCount}`
@@ -2258,9 +2370,23 @@ export function MarketsPage() {
                   step="any"
                   inputMode="decimal"
                   value={form.quantity}
-                  onChange={(e) => setForm((f) => ({ ...f, quantity: e.target.value }))}
+                  onChange={(e) => {
+                    setForm((f) => ({ ...f, quantity: e.target.value }))
+                    setFormError(null)
+                  }}
                   placeholder="e.g. 10"
+                  aria-invalid={
+                    form.quantity.trim() !== '' &&
+                    !(Number(form.quantity) > 0)
+                      ? true
+                      : undefined
+                  }
                 />
+                {form.quantity.trim() !== '' && !(Number(form.quantity) > 0) ? (
+                  <p className="commodity-qty-hint text-xs text-red-500 mt-1" role="status">
+                    Quantity must be a positive number.
+                  </p>
+                ) : null}
               </Field>
               <Field label="Avg cost GBP / unit (optional)" hint="For paper P&L on the detail pane">
                 <input
@@ -2270,9 +2396,23 @@ export function MarketsPage() {
                   step="any"
                   inputMode="decimal"
                   value={form.avgCostGbp}
-                  onChange={(e) => setForm((f) => ({ ...f, avgCostGbp: e.target.value }))}
+                  onChange={(e) => {
+                    setForm((f) => ({ ...f, avgCostGbp: e.target.value }))
+                    setFormError(null)
+                  }}
                   placeholder="e.g. 1800"
+                  aria-invalid={
+                    form.avgCostGbp.trim() !== '' &&
+                    !(Number(form.avgCostGbp) >= 0)
+                      ? true
+                      : undefined
+                  }
                 />
+                {form.avgCostGbp.trim() !== '' && !(Number(form.avgCostGbp) >= 0) ? (
+                  <p className="commodity-cost-hint text-xs text-red-500 mt-1" role="status">
+                    Avg cost must be zero or a positive number.
+                  </p>
+                ) : null}
               </Field>
               <label className="flex items-center gap-2 text-sm text-text cursor-pointer">
                 <input

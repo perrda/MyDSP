@@ -102,6 +102,8 @@ export type WorkspaceExtrasFlags = {
   portfolioConcentration?: boolean
   spendingFilters?: boolean
   newsFilter?: boolean
+  todosQuickFilter?: boolean
+  jobsFilter?: boolean
   markets?: boolean
   news?: boolean
   youtube?: boolean
@@ -121,6 +123,8 @@ const EXTRAS_LABELS: Array<[keyof WorkspaceExtrasFlags, string]> = [
   ['portfolioConcentration', 'concentration threshold'],
   ['spendingFilters', 'Spending filters'],
   ['newsFilter', 'News filter'],
+  ['todosQuickFilter', 'Todos quick filter'],
+  ['jobsFilter', 'Jobs filter'],
   ['markets', 'Markets watchlist'],
   ['news', 'News tags'],
   ['youtube', 'YouTube channels'],
@@ -152,6 +156,8 @@ export function workspaceExtrasFlagsFromPreview(extras: {
   portfolioConcentration?: unknown
   spendingFilters?: unknown
   newsFilter?: unknown
+  todosQuickFilter?: unknown
+  jobsFilter?: unknown
   markets?: unknown
   news?: unknown
   youtube?: unknown
@@ -171,6 +177,8 @@ export function workspaceExtrasFlagsFromPreview(extras: {
     portfolioConcentration: extras.portfolioConcentration != null,
     spendingFilters: extras.spendingFilters != null,
     newsFilter: extras.newsFilter != null,
+    todosQuickFilter: extras.todosQuickFilter != null,
+    jobsFilter: extras.jobsFilter != null,
     markets: extras.markets != null,
     news: extras.news != null,
     youtube: extras.youtube != null,

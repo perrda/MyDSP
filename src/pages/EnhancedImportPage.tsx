@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { AlertCircle, CheckCircle, Upload, X } from 'lucide-react'
 import { PageHeader } from '../components/ui/PageHeader'
 import { usePortfolio } from '../context/PortfolioContext'
@@ -545,6 +546,32 @@ export function EnhancedImportPage() {
           </div>
         </div>
       )}
+
+      <input
+        id="enhanced-import-file"
+        type="file"
+        accept=".csv,text/csv"
+        className="sr-only"
+        aria-label="Upload bank CSV file"
+        onChange={(e) => {
+          const f = e.target.files?.[0]
+          if (f) void handleFileSelect(f)
+          e.target.value = ''
+        }}
+      />
+      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary import actions">
+        <button
+          type="button"
+          className="btn-primary btn-sm"
+          onClick={() => document.getElementById('enhanced-import-file')?.click()}
+        >
+          Upload CSV
+        </button>
+        <Link to="/rules" className="btn-secondary btn-sm">
+          Merchant rules
+        </Link>
+      </div>
+      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }

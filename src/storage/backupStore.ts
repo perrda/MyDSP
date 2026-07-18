@@ -67,6 +67,14 @@ import {
   importNewsFilterFromBackup,
 } from '../domain/newsFilterPrefs'
 import {
+  exportTodosQuickFilterForBackup,
+  importTodosQuickFilterFromBackup,
+} from '../domain/todosQuickFilterPrefs'
+import {
+  exportJobsFilterForBackup,
+  importJobsFilterFromBackup,
+} from '../domain/jobsFilterPrefs'
+import {
   exportPriceAlertThresholdsForBackup,
   importPriceAlertThresholdsFromBackup,
 } from '../domain/priceAlerts'
@@ -145,6 +153,10 @@ export interface FullBackupRecord extends FullBackupMeta {
   spendingFilters?: unknown
   /** Optional News tag filter */
   newsFilter?: unknown
+  /** Optional Todos quick-filter (Due today / High priority) */
+  todosQuickFilter?: unknown
+  /** Optional Jobs filter (incl. Needs follow-up) */
+  jobsFilter?: unknown
   /** Optional sidebar Favourites / Others layout (workspace-level) */
   navLayout?: unknown
   /** Optional phone/tablet bottom-nav middle slots */
@@ -177,6 +189,8 @@ function backupCanonical(record: Pick<
   | 'portfolioConcentration'
   | 'spendingFilters'
   | 'newsFilter'
+  | 'todosQuickFilter'
+  | 'jobsFilter'
   | 'navLayout'
   | 'bottomNavSlots'
   | 'documentBlobs'
@@ -201,6 +215,8 @@ function backupCanonical(record: Pick<
     portfolioConcentration: record.portfolioConcentration ?? null,
     spendingFilters: record.spendingFilters ?? null,
     newsFilter: record.newsFilter ?? null,
+    todosQuickFilter: record.todosQuickFilter ?? null,
+    jobsFilter: record.jobsFilter ?? null,
     navLayout: record.navLayout ?? null,
     bottomNavSlots: record.bottomNavSlots ?? null,
     documentBlobs: record.documentBlobs ?? null,
@@ -230,6 +246,8 @@ export async function computeFullBackupChecksum(
     | 'portfolioConcentration'
     | 'spendingFilters'
     | 'newsFilter'
+    | 'todosQuickFilter'
+    | 'jobsFilter'
     | 'navLayout'
     | 'bottomNavSlots'
     | 'documentBlobs'
@@ -297,6 +315,8 @@ export function captureFullWorkspace(): Omit<
     portfolioConcentration: exportPortfolioConcentrationForBackup() ?? undefined,
     spendingFilters: exportSpendingFiltersForBackup() ?? undefined,
     newsFilter: exportNewsFilterForBackup() ?? undefined,
+    todosQuickFilter: exportTodosQuickFilterForBackup() ?? undefined,
+    jobsFilter: exportJobsFilterForBackup() ?? undefined,
     navLayout: exportNavLayoutForBackup() ?? undefined,
     bottomNavSlots: exportBottomNavSlotsForBackup() ?? undefined,
   }
@@ -525,6 +545,12 @@ export async function restoreFullWorkspace(record: FullBackupRecord): Promise<vo
   if (record.newsFilter) {
     importNewsFilterFromBackup(record.newsFilter)
   }
+  if (record.todosQuickFilter) {
+    importTodosQuickFilterFromBackup(record.todosQuickFilter)
+  }
+  if (record.jobsFilter) {
+    importJobsFilterFromBackup(record.jobsFilter)
+  }
   if (record.navLayout) {
     importNavLayoutFromBackup(record.navLayout)
   }
@@ -577,6 +603,8 @@ function fullBackupPayload(record: FullBackupRecord) {
       : {}),
     ...(record.spendingFilters ? { spendingFilters: record.spendingFilters } : {}),
     ...(record.newsFilter ? { newsFilter: record.newsFilter } : {}),
+    ...(record.todosQuickFilter ? { todosQuickFilter: record.todosQuickFilter } : {}),
+    ...(record.jobsFilter ? { jobsFilter: record.jobsFilter } : {}),
     ...(record.navLayout ? { navLayout: record.navLayout } : {}),
     ...(record.bottomNavSlots ? { bottomNavSlots: record.bottomNavSlots } : {}),
   }
@@ -731,6 +759,8 @@ export function parseFullBackupFile(raw: unknown): FullBackupRecord | null {
     portfolioConcentration: o.portfolioConcentration,
     spendingFilters: o.spendingFilters,
     newsFilter: o.newsFilter,
+    todosQuickFilter: o.todosQuickFilter,
+    jobsFilter: o.jobsFilter,
     navLayout: o.navLayout,
     bottomNavSlots: o.bottomNavSlots,
     checksum: typeof o.checksum === 'string' ? o.checksum : undefined,

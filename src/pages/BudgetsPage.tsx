@@ -457,6 +457,16 @@ export function BudgetsPage() {
           success('Budget removed', category)
         }}
       />
+
+      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary budgets actions">
+        <button type="button" className="btn-primary btn-sm" onClick={() => setOpen(true)}>
+          Set limit
+        </button>
+        <button type="button" className="btn-secondary btn-sm" onClick={exportBudgetReport}>
+          Export
+        </button>
+      </div>
+      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }

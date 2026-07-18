@@ -28,6 +28,7 @@ import { JobAnalytics } from '../components/JobAnalytics'
 import { usePortfolio } from '../context/PortfolioContext'
 import { useToasts } from '../components/ToastProvider'
 import type { JobApplication, JobFilterBy, JobSortBy, JobStatus } from '../domain/job-types'
+import { loadJobsFilter, saveJobsFilter } from '../domain/jobsFilterPrefs'
 import {
   calculateJobStats,
   exportJobsToCsv,
@@ -62,7 +63,7 @@ export function JobsPage() {
   const { success, error: showError } = useToasts()
   const [viewMode, setViewMode] = useState<'kanban' | 'list' | 'analytics'>('kanban')
   const [sortBy, setSortBy] = useState<JobSortBy>('updated-desc')
-  const [filterBy, setFilterBy] = useState<JobFilterBy>('active')
+  const [filterBy, setFilterBy] = useState<JobFilterBy>(() => loadJobsFilter())
   const [searchQuery, setSearchQuery] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [editingApp, setEditingApp] = useState<JobApplication | undefined>()
@@ -136,6 +137,7 @@ export function JobsPage() {
   const jumpToPipelineStage = (stageId: string) => {
     setPipelineFocus(stageId)
     setFilterBy('all')
+    saveJobsFilter('all')
     setSearchQuery('')
     setViewMode('kanban')
   }
@@ -557,7 +559,11 @@ export function JobsPage() {
             filterBy === 'follow-up' ? 'btn-secondary border-accent text-accent' : 'btn-ghost'
           }`}
           aria-pressed={filterBy === 'follow-up'}
-          onClick={() => setFilterBy(filterBy === 'follow-up' ? 'active' : 'follow-up')}
+          onClick={() => {
+            const next: JobFilterBy = filterBy === 'follow-up' ? 'active' : 'follow-up'
+            setFilterBy(next)
+            saveJobsFilter(next)
+          }}
           title="Applied/screening with no reply past 14 days, or overdue pending interview"
         >
           Needs follow-up
@@ -619,7 +625,11 @@ export function JobsPage() {
           />
           <select
             value={filterBy}
-            onChange={(e) => setFilterBy(e.target.value as JobFilterBy)}
+            onChange={(e) => {
+              const next = e.target.value as JobFilterBy
+              setFilterBy(next)
+              saveJobsFilter(next)
+            }}
             className="btn-ghost btn-sm"
           >
             <option value="active">Active</option>

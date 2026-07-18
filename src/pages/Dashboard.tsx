@@ -51,8 +51,16 @@ import {
   QUOTE_FRESHNESS_SLA_MS,
 } from '../domain/quoteFreshnessSla'
 import { listMarketTickers, loadMarketQuotesCache } from '../storage/marketsStore'
-import { newsUnreadFromCache } from '../storage/newsStore'
-import { youtubeUnreadFromCache } from '../storage/youtubeStore'
+import {
+  loadNewsArticlesCache,
+  newsUnreadFromCache,
+  setNewsSeenAt,
+} from '../storage/newsStore'
+import {
+  loadYoutubeVideosCache,
+  setYoutubeSeenAt,
+  youtubeUnreadFromCache,
+} from '../storage/youtubeStore'
 import { getMarketsProviderHealth } from '../services/marketsProviderHealth'
 import type { MarketQuote } from '../domain/markets'
 import type { RecurringTransaction } from '../domain/types'
@@ -260,10 +268,24 @@ export function Dashboard() {
   const todayAccordionEnabled = useTodayAccordionEnabled()
   const [youtubeUnread, setYoutubeUnread] = useState(() => youtubeUnreadFromCache())
   const [newsUnread, setNewsUnread] = useState(() => newsUnreadFromCache())
+  const [relativeTick, setRelativeTick] = useState(0)
+  const [newsFetchedAt, setNewsFetchedAt] = useState(
+    () => loadNewsArticlesCache().fetchedAt ?? null,
+  )
+  const [youtubeFetchedAt, setYoutubeFetchedAt] = useState(
+    () => loadYoutubeVideosCache().fetchedAt ?? null,
+  )
 
   useEffect(() => subscribeAutoSync(setSyncStatus), [])
   useEffect(() => {
-    const refreshYoutubeUnread = () => setYoutubeUnread(youtubeUnreadFromCache())
+    const id = window.setInterval(() => setRelativeTick((n) => n + 1), 30_000)
+    return () => window.clearInterval(id)
+  }, [])
+  useEffect(() => {
+    const refreshYoutubeUnread = () => {
+      setYoutubeUnread(youtubeUnreadFromCache())
+      setYoutubeFetchedAt(loadYoutubeVideosCache().fetchedAt ?? null)
+    }
     refreshYoutubeUnread()
     window.addEventListener('mydsp-youtube-videos', refreshYoutubeUnread)
     window.addEventListener('mydsp-youtube-changed', refreshYoutubeUnread)
@@ -273,7 +295,10 @@ export function Dashboard() {
     }
   }, [])
   useEffect(() => {
-    const refreshNewsUnread = () => setNewsUnread(newsUnreadFromCache())
+    const refreshNewsUnread = () => {
+      setNewsUnread(newsUnreadFromCache())
+      setNewsFetchedAt(loadNewsArticlesCache().fetchedAt ?? null)
+    }
     refreshNewsUnread()
     window.addEventListener('mydsp-news-articles', refreshNewsUnread)
     window.addEventListener('mydsp-news-changed', refreshNewsUnread)
@@ -1246,6 +1271,19 @@ export function Dashboard() {
             >
               Refresh & open
             </Link>
+            {newsUnread > 0 ? (
+              <button
+                type="button"
+                className="btn-ghost btn-sm text-xs min-h-9 today-news-mark-all-read"
+                onClick={() => {
+                  const now = new Date().toISOString()
+                  setNewsSeenAt(now)
+                  setNewsUnread(0)
+                }}
+              >
+                Mark all read
+              </button>
+            ) : null}
           </div>
           <div className="inline-flex flex-wrap items-center gap-1.5">
             <Link
@@ -1266,8 +1304,38 @@ export function Dashboard() {
             >
               Refresh & open
             </Link>
+            {youtubeUnread > 0 ? (
+              <button
+                type="button"
+                className="btn-ghost btn-sm text-xs min-h-9 today-youtube-mark-all-read"
+                onClick={() => {
+                  const now = new Date().toISOString()
+                  setYoutubeSeenAt(now)
+                  setYoutubeUnread(0)
+                }}
+              >
+                Mark all read
+              </button>
+            ) : null}
           </div>
         </div>
+        {(newsFetchedAt || youtubeFetchedAt) && relativeTick >= 0 ? (
+          <p
+            className="today-media-trust mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs text-text-subtle"
+            role="status"
+          >
+            {newsFetchedAt ? (
+              <span className="today-news-trust">
+                News updated {formatQuoteAgeShort(Date.now() - Date.parse(newsFetchedAt))}
+              </span>
+            ) : null}
+            {youtubeFetchedAt ? (
+              <span className="today-youtube-trust">
+                YouTube updated {formatQuoteAgeShort(Date.now() - Date.parse(youtubeFetchedAt))}
+              </span>
+            ) : null}
+          </p>
+        ) : null}
         {fccDataPresent ? null : (
           <p className="text-xs text-text-subtle mt-3 font-light">
             Sample portfolio — import live data in Settings anytime.

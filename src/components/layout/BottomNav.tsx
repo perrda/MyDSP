@@ -127,6 +127,9 @@ export function BottomNav() {
         item.to === '/todos' ||
         item.to === '/jobs' ||
         item.to === '/spending' ||
+        item.to === '/recurring' ||
+        item.to === '/tax' ||
+        item.to === '/compare' ||
         item.to === '/settings' ||
         item.to.startsWith('/settings')
       ) {

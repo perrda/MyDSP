@@ -47,6 +47,8 @@ import {
   saveNavLayout,
   type NavLayout,
 } from '../../storage/navOrder'
+import { newsUnreadFromCache } from '../../storage/newsStore'
+import { youtubeUnreadFromCache } from '../../storage/youtubeStore'
 import { prefetchRouteChunk } from '../../hooks/useIdlePrefetch'
 
 interface NavItem {
@@ -106,6 +108,8 @@ function pathsToItems(paths: string[]): NavItem[] {
 export function Sidebar({ open, onClose }: SidebarProps) {
   const [layout, setLayout] = useState<NavLayout>(() => loadNavLayout(DEFAULT_PATHS))
   const [sorting, setSorting] = useState(false)
+  const [newsUnread, setNewsUnread] = useState(() => newsUnreadFromCache())
+  const [youtubeUnread, setYoutubeUnread] = useState(() => youtubeUnreadFromCache())
   const { pathname, hash } = useLocation()
   const { data } = usePortfolio()
   const taxLabel =
@@ -120,6 +124,23 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     return () => {
       window.removeEventListener('mydsp-nav-order', sync)
       window.removeEventListener('storage', sync)
+    }
+  }, [])
+
+  useEffect(() => {
+    const refreshNews = () => setNewsUnread(newsUnreadFromCache())
+    const refreshYt = () => setYoutubeUnread(youtubeUnreadFromCache())
+    refreshNews()
+    refreshYt()
+    window.addEventListener('mydsp-news-articles', refreshNews)
+    window.addEventListener('mydsp-news-changed', refreshNews)
+    window.addEventListener('mydsp-youtube-videos', refreshYt)
+    window.addEventListener('mydsp-youtube-changed', refreshYt)
+    return () => {
+      window.removeEventListener('mydsp-news-articles', refreshNews)
+      window.removeEventListener('mydsp-news-changed', refreshNews)
+      window.removeEventListener('mydsp-youtube-videos', refreshYt)
+      window.removeEventListener('mydsp-youtube-changed', refreshYt)
     }
   }, [])
 
@@ -174,7 +195,21 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           onFocus={() => prefetchRouteChunk(link.to)}
           className={({ isActive }) => `nav-link nav-link-flex ${isActive ? 'active' : ''}`}
         >
-          <Icon size={16} strokeWidth={1.5} />
+          <span className="relative inline-flex shrink-0">
+            <Icon size={16} strokeWidth={1.5} />
+            {link.to === '/news' && newsUnread > 0 ? (
+              <span
+                className="sidebar-unread"
+                aria-label={`${newsUnread} unread news`}
+              />
+            ) : null}
+            {link.to === '/youtube' && youtubeUnread > 0 ? (
+              <span
+                className="sidebar-unread"
+                aria-label={`${youtubeUnread} unread videos`}
+              />
+            ) : null}
+          </span>
           {label}
         </NavLink>
         {sorting ? (

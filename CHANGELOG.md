@@ -1,5 +1,42 @@
 # MyDSP Changelog
 
+## [1.2.79] - 2026-07-18
+
+### Improved — Sync / trust (next 25n · 1–5)
+1. **Todos quick-filter LWW sync** (Due today / High priority)
+2. **YouTube upload-alert toggle** documented as device-local
+3. **YouTube empty favourites** keep last-good videos (no wipe)
+4. **SYNC_SMOKE** News/YouTube cross-device step
+5. **Jobs follow-up chip** persist + LWW sync
+
+### Improved — Markets (next 25n · 6–10)
+6. **Jump-chip unavailable** → expand section + Retry
+7. **Sync-prices partial report** persists across navigate
+8. **Search** scrolls/selects first match
+9. **Paper commodity** qty/cost inline validation
+10. **Timeframe chips** keyboard roving (`role=tablist`)
+
+### Improved — Mobile / tablet (next 25n · 11–15)
+11. **YouTube Notify chip** visible on phone
+12. **Bottom-nav long-press** Recurring/Tax/Compare → Sync now
+13. **PTR** Family + Documents
+14. **Thumb CTA** History / Budgets / Import
+15. **YouTube status strip** absolute datetime parity with News
+
+### Improved — Today / productivity (next 25n · 16–20)
+16. **Today Jump-in Mark all read** (News/YouTube)
+17. **Today media trust chip** (News/YT age after background poll)
+18. **Tick relative** “Updated Xm ago” while parked on page
+19. **Sidebar News/YT unread dots**
+20. **From Owned** auto-selects new tag filter
+
+### Quality (next 25n · 21–25)
+21. **Smoke Google soft-allowlist** probe
+22. **e2e** News status strip / Yahoo copy
+23. **Axe** Journal + Rules
+24. **Axe** Equities holding detail
+25. Tip harness **1.2.79**
+
 ## [1.2.78] - 2026-07-18
 
 ### Fixed — News reliability (next 25m · 1–5)
