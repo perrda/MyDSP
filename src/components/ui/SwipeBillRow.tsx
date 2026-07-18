@@ -46,7 +46,9 @@ export function SwipeBillRow({
       <div className="absolute inset-y-0 left-0 flex w-24 items-stretch" aria-hidden={open !== 'right'}>
         <button
           type="button"
-          className="flex-1 bg-accent text-white text-xs font-bold uppercase tracking-wide"
+          tabIndex={open === 'right' ? 0 : -1}
+          disabled={open !== 'right'}
+          className="flex-1 bg-accent text-white text-xs font-bold uppercase tracking-wide disabled:opacity-100"
           onClick={() => {
             onMarkPaid()
             setOpen(null)
@@ -58,7 +60,9 @@ export function SwipeBillRow({
       <div className="absolute inset-y-0 right-0 flex w-24 items-stretch" aria-hidden={open !== 'left'}>
         <button
           type="button"
-          className="flex-1 bg-surface-hover text-text text-xs font-bold uppercase tracking-wide border-l border-border"
+          tabIndex={open === 'left' ? 0 : -1}
+          disabled={open !== 'left'}
+          className="flex-1 bg-surface-hover text-text text-xs font-bold uppercase tracking-wide border-l border-border disabled:opacity-100"
           onClick={() => {
             onSkip()
             setOpen(null)

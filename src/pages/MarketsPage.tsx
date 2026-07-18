@@ -1562,10 +1562,10 @@ export function MarketsPage() {
                   return (
                     <div
                       id={`market-${t.symbol.replace(/[^a-zA-Z0-9]/g, '_')}`}
-                      role="button"
                       tabIndex={0}
-                      aria-selected={quoteDetail?.ticker.id === t.id}
-                      aria-label={`${t.symbol}${t.name ? ` · ${t.name}` : ''}`}
+                      aria-label={`${t.symbol}${t.name ? ` · ${t.name}` : ''}${
+                        quoteDetail?.ticker.id === t.id ? ' (selected)' : ''
+                      }`}
                       className={`markets-row px-4 sm:px-5 flex items-center gap-2 sm:gap-4 ${
                         compact ? 'py-2 min-h-11' : 'py-3.5'
                       } ${focused ? 'ring-2 ring-inset ring-accent bg-accent/5' : ''} ${

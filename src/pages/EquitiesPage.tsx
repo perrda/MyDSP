@@ -642,7 +642,7 @@ export function EquitiesPage() {
                   selectedHolding?.id === e.id ? 'holdings-master-row-selected' : ''
                 }`}
                 tabIndex={0}
-                aria-selected={selectedHolding?.id === e.id}
+                aria-label={`${e.symbol}${selectedHolding?.id === e.id ? ' (selected)' : ''}`}
                 onClick={() => setSelectedHoldingId(e.id)}
               >
                 {sorting ? <ReorderHandle label={`Reorder ${e.symbol}`} /> : null}

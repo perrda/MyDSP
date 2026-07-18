@@ -4,6 +4,7 @@ test.describe('MyDSP smoke', () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => {
       try {
+        localStorage.setItem('mydsp_theme', 'dark')
         localStorage.setItem(
           'fcc_security',
           JSON.stringify({
@@ -181,7 +182,8 @@ test.describe('MyDSP smoke', () => {
 
   test('tax route renders with ISA allowance surface', async ({ page }) => {
     await page.goto('/tax')
-    await expect(page.getByText(/Capital gains|UK CGT|Tax/i).first()).toBeVisible({
+    // Avoid matching the sm-only AppShell eyebrow “Tax” (hidden on iphone).
+    await expect(page.getByRole('heading', { name: /UK CGT|Capital gains/i }).first()).toBeVisible({
       timeout: 20_000,
     })
     await expect(page.locator('.tax-isa-allowance-progress, .thumb-cta-bar').first()).toBeVisible()
@@ -220,7 +222,7 @@ test.describe('MyDSP smoke', () => {
     })
     const toolbar = page.locator('.markets-sticky-toolbar')
     await expect(toolbar).toBeVisible()
-    const jumps = page.getByRole('navigation', { name: /Jump to market section/i })
+    const jumps = page.getByRole('tablist', { name: /Jump to market section/i })
     await expect(jumps).toBeVisible()
     await expect(jumps.locator('.markets-section-jump-chip').first()).toBeVisible()
     await expect(page.locator('[id^="markets-section-"]').first()).toBeAttached()
@@ -252,7 +254,7 @@ test.describe('MyDSP smoke', () => {
       }
     })
     await page.goto('/settings#sync')
-    await expect(page.getByText(/Offline queue/i).first()).toBeVisible({ timeout: 20_000 })
+    await expect(page.getByText(/Offline queue ·/i).first()).toBeVisible({ timeout: 20_000 })
     await expect(page.getByText(/Retry now|e2e offline|sync push/i).first()).toBeVisible()
   })
 })

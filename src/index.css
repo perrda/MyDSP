@@ -8,6 +8,8 @@
    ============================================================================ */
 
 @custom-variant light (&:where(.light, .light *));
+/* Class-based dark: (matches ThemeContext .dark on <html>), not prefers-color-scheme */
+@custom-variant dark (&:where(.dark, .dark *));
 
 .sr-only {
   position: absolute;
@@ -141,9 +143,10 @@ html.angular {
   --text: #0a0a0a;
   --text-muted: #111827;
   --text-subtle: #374151;
-  --accent: #d97c0a;
+  /* Darker than brand orange so accent text meets WCAG AA on light surfaces */
+  --accent: #9a5500;
   --accent-bright: #F7931A;
-  --accent-dim: #b35e00;
+  --accent-dim: #7a4200;
   color-scheme: light;
 }
 
@@ -933,7 +936,7 @@ html.has-bottom-nav .floating-banner--toast {
 
 .eyebrow {
   display: inline-block;
-  color: var(--accent);
+  color: var(--accent-bright);
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.25em;
@@ -1022,7 +1025,7 @@ h1, h2, h3 {
 .w-12.brand-mark .brand-mark-dsp { font-size: 0.8125rem; letter-spacing: 0.08em; }
 
 .gradient-text {
-  color: var(--accent);
+  color: var(--accent-bright);
 }
 
 .label-uppercase {

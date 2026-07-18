@@ -579,7 +579,7 @@ export function CryptoPage() {
                   selectedHolding?.id === c.id ? 'holdings-master-row-selected' : ''
                 }`}
                 tabIndex={0}
-                aria-selected={selectedHolding?.id === c.id}
+                aria-label={`${c.symbol}${selectedHolding?.id === c.id ? ' (selected)' : ''}`}
                 onClick={() => setSelectedHoldingId(c.id)}
               >
                 {sorting ? <ReorderHandle label={`Reorder ${c.symbol}`} /> : null}
