@@ -7,6 +7,7 @@ import {
   Newspaper,
   Pencil,
   Plus,
+  RefreshCw,
   Trash2,
 } from 'lucide-react'
 import { PageHeader } from '../components/ui/PageHeader'
@@ -584,7 +585,7 @@ export function NewsPage() {
         </div>
         {selectedArticle ? (
           <aside
-            className="news-master-detail-panel surface p-4 border border-border hidden md:block sticky top-20 self-start"
+            className="news-master-detail-panel surface p-4 border border-border hidden md:block sticky self-start"
             aria-label={`Selected article: ${selectedArticle.title}`}
           >
             <p className="label-uppercase mb-1">Selected</p>
@@ -680,6 +681,36 @@ export function NewsPage() {
         }}
         onClose={() => setDeleteId(null)}
       />
+
+      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary news actions">
+        <button
+          type="button"
+          className="btn-primary btn-sm inline-flex items-center gap-1.5"
+          disabled={refreshing}
+          onClick={() => void refresh()}
+        >
+          <RefreshCw
+            size={16}
+            strokeWidth={2}
+            className={refreshing ? 'animate-spin' : undefined}
+          />
+          {refreshing ? 'Refreshing…' : 'Refresh'}
+        </button>
+        <button
+          type="button"
+          className="btn-secondary btn-sm inline-flex items-center gap-1.5"
+          onClick={openCreate}
+        >
+          <Plus size={16} strokeWidth={2} />
+          Add tag
+        </button>
+        {unreadCount > 0 ? (
+          <button type="button" className="btn-ghost btn-sm" onClick={markNewsRead}>
+            Mark all read
+          </button>
+        ) : null}
+      </div>
+      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }

@@ -36,7 +36,7 @@ function mockLocalStorage() {
   return mem
 }
 
-describe('next25j — sync / Today polish tip (1–25 → v1.2.75)', () => {
+describe('next25j — sync / Today polish tip (1–25 → v1.2.76)', () => {
   let mem: Map<string, string>
 
   beforeEach(() => {
@@ -47,16 +47,16 @@ describe('next25j — sync / Today polish tip (1–25 → v1.2.75)', () => {
     mem.clear()
   })
 
-  it('package + release notes are 1.2.75', () => {
+  it('package + release notes are 1.2.76', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.75')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.75')
+    expect(pkg.version).toBe('1.2.76')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.76')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.76',
       '1.2.75',
       '1.2.74',
       '1.2.73',
       '1.2.72',
-      '1.2.71',
     ])
   })
 
@@ -183,7 +183,9 @@ describe('next25j — sync / Today polish tip (1–25 → v1.2.75)', () => {
     expect(dash).toMatch(/to=\"\/recurring\"/)
     expect(dash).toMatch(/today-quote-partial-chip/)
     const compare = readFileSync(resolve(__dirname, '../pages/ComparePage.tsx'), 'utf8')
-    expect(compare).toMatch(/mydsp_compare_selected_v1/)
+    expect(compare).toMatch(/compareSelectionPrefs/)
+    expect(compare).toMatch(/loadCompareSelectedIds/)
+    expect(compare).toMatch(/saveCompareSelectedIds/)
     const tax = readFileSync(resolve(__dirname, '../pages/TaxPage.tsx'), 'utf8')
     expect(tax).toMatch(/mydsp-sync-applied/)
     expect(tax).toMatch(/loadIsaRemainingDraft/)

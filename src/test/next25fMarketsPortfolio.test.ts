@@ -33,13 +33,13 @@ describe('next25f markets / portfolio items 6-10', () => {
   it('8: holdings pages show a sticky included-value totals bar while scrolling', () => {
     const equities = readFileSync(resolve(__dirname, '../pages/EquitiesPage.tsx'), 'utf8')
     expect(equities).toMatch(/holdings-included-value-bar/)
-    expect(equities).toMatch(/sticky top-\[4\.5rem\]/)
+    expect(equities).toMatch(/holdings-sticky-totals/)
     expect(equities).toMatch(/Included equity value/)
     expect(equities).toMatch(/holdingsIncludedSummary/)
 
     const crypto = readFileSync(resolve(__dirname, '../pages/CryptoPage.tsx'), 'utf8')
     expect(crypto).toMatch(/holdings-included-value-bar/)
-    expect(crypto).toMatch(/sticky top-\[4\.5rem\]/)
+    expect(crypto).toMatch(/holdings-sticky-totals/)
     expect(crypto).toMatch(/Included crypto value/)
     expect(crypto).toMatch(/holdingsIncludedSummary/)
   })

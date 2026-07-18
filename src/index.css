@@ -2562,6 +2562,18 @@ html.success-haptic-flash::after {
 .markets-sticky-toolbar {
   top: var(--app-header-offset, 3.5rem);
 }
+.holdings-sticky-search {
+  top: var(--app-header-offset, 3.5rem);
+}
+.holdings-sticky-totals {
+  top: calc(var(--app-header-offset, 3.5rem) + 4.25rem);
+}
+.markets-detail-sticky,
+.news-master-detail-panel,
+.youtube-master-detail-panel,
+.today-markets-pane {
+  top: calc(var(--app-header-offset, 3.5rem) + 1rem);
+}
 .markets-section-jump-chips,
 .jobs-kanban-jump-chips {
   display: flex;
@@ -2578,6 +2590,24 @@ html.success-haptic-flash::after {
 }
 .markets-section-jump-chip {
   white-space: nowrap;
+}
+.markets-section-jump-chip--active {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+  color: var(--accent);
+  font-weight: 600;
+}
+.markets-paper-nw-chip {
+  letter-spacing: 0.02em;
+}
+.today-prices-trust {
+  max-width: 100%;
+}
+.jobs-kanban-jump-chips {
+  position: sticky;
+  top: var(--app-header-offset, 3.5rem);
+  z-index: 8;
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter: blur(10px);
 }
 @media (orientation: landscape) {
   .jobs-kanban-jump-chips {

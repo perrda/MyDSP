@@ -1,5 +1,42 @@
 # MyDSP Changelog
 
+## [1.2.76] - 2026-07-16
+
+### Improved — Sync / trust (next 25k · 1–5)
+1. **Quote Worker identity smoke** — `/smoke` asserts `mydsp-quote` Worker name  
+2. **Settings Quote Worker fail CTA** — copyable `npm run deploy:quote` when health is bad  
+3. **DEPLOY.md / SYNC_SMOKE** — document Worker-name success criteria  
+4. **Digest highlight edits sync** — LWW in fullArchive  
+5. **Compare portfolio selection sync** — LWW prefs travel with backup  
+
+### Improved — Markets (next 25k · 6–10)
+6. **Jump-chip active section highlight** — IntersectionObserver + `aria-current`  
+7. **Paper commodity NW chip** — row shows NW · £ when included in net worth  
+8. **Equities/Crypto sticky offset** — `--app-header-offset` for search/totals  
+9. **Master–detail panes header-aware sticky** — Markets/News/YouTube/Today  
+10. **Markets section sticky under toolbar** — scroll-margin + sticky section headers  
+
+### Improved — Mobile / UI (next 25k · 11–15)
+11. **PTR Todos / Jobs / Spending**  
+12. **News / YouTube thumb CTA** — Refresh + Add on phone toolbar  
+13. **Bottom-nav long-press Todos/Jobs → Sync now**  
+14. **Jobs portrait sticky column jump chips**  
+15. **Today prices trust chips consolidated** — single `today-prices-trust` strip  
+
+### Improved — Today / productivity (next 25k · 16–20)
+16. **Focus Open → `/todos?focus=`**  
+17. **News/YT Refresh & open from Today**  
+18. **Bill Mark paid from Today** (kept)  
+19. **Jobs interview-due in next-action stack**  
+20. **Todos Due today / High priority quick chips**  
+
+### Quality (next 25k · 21–25)
+21. **`/smoke` PTR routes expand** — YouTube / Tax / Compare / Todos / Jobs / Spending  
+22. **Axe History + Budgets**  
+23. **Playwright Markets sticky smoke**  
+24. **Tip harness `next25k*.test.ts`**  
+25. Tip **1.2.76**
+
 ## [1.2.75] - 2026-07-16
 
 ### Improved — Markets watchlist clarity

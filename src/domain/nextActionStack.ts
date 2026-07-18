@@ -1,11 +1,13 @@
-/** Today “next action” stack: up to 3 cards — todo / bill / top mover. */
+/** Today “next action” stack: up to 3 cards — todo / bill / interview / top mover. */
 
+import { getNextInterview } from './jobs'
+import type { JobApplication } from './job-types'
 import { dueWithinDays } from './recurringDueStrip'
 import { isDueToday, isOverdue } from './todos'
 import type { RecurringTransaction } from './types'
 import type { TodoItem } from './todo-types'
 
-export type NextActionKind = 'todo' | 'bill' | 'mover'
+export type NextActionKind = 'todo' | 'bill' | 'interview' | 'mover'
 
 export interface NextActionTodo {
   kind: 'todo'
@@ -18,13 +20,25 @@ export interface NextActionBill {
   bill: RecurringTransaction
 }
 
+export interface NextActionInterview {
+  kind: 'interview'
+  jobId: number
+  companyName: string
+  jobTitle: string
+  scheduledDate: string
+}
+
 export interface NextActionMover {
   kind: 'mover'
   symbol: string
   changePct: number
 }
 
-export type NextActionCard = NextActionTodo | NextActionBill | NextActionMover
+export type NextActionCard =
+  | NextActionTodo
+  | NextActionBill
+  | NextActionInterview
+  | NextActionMover
 
 export interface MoverInput {
   symbol: string
@@ -33,11 +47,13 @@ export interface MoverInput {
 
 /**
  * Build a compact next-action stack (max 3): next incomplete todo,
- * soonest bill due within 7 days, and top absolute % mover.
+ * soonest bill due within 7 days, soonest pending interview within 7 days,
+ * and top absolute % mover.
  */
 export function buildNextActionStack(input: {
   todoItems?: TodoItem[]
   recurringTransactions?: RecurringTransaction[]
+  jobApplications?: JobApplication[]
   movers?: MoverInput[]
   now?: Date
   max?: number
@@ -69,6 +85,28 @@ export function buildNextActionStack(input: {
   if (bill) {
     out.push({ kind: 'bill', bill })
   }
+
+  const interviewCandidates = (input.jobApplications ?? [])
+    .map((app) => {
+      const next = getNextInterview(app)
+      if (!next) return null
+      const when = Date.parse(next.scheduledDate)
+      if (!Number.isFinite(when)) return null
+      const days = Math.floor((when - now.getTime()) / (1000 * 60 * 60 * 24))
+      if (days < 0 || days > 7) return null
+      return {
+        kind: 'interview' as const,
+        jobId: app.id,
+        companyName: app.companyName,
+        jobTitle: app.jobTitle,
+        scheduledDate: next.scheduledDate,
+      }
+    })
+    .filter((x): x is NextActionInterview => x != null)
+    .sort(
+      (a, b) => Date.parse(a.scheduledDate) - Date.parse(b.scheduledDate),
+    )
+  if (interviewCandidates[0]) out.push(interviewCandidates[0])
 
   const movers = [...(input.movers ?? [])].sort(
     (a, b) => Math.abs(b.changePct) - Math.abs(a.changePct),

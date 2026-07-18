@@ -249,6 +249,32 @@ test.describe('a11y gate', () => {
     expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
   })
 
+  test('History axe — iphone gate', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'iphone-14', 'CI gate targets iphone-14')
+    await page.goto('/history')
+    await expect(page.getByRole('heading', { name: /Net worth history/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    const results = await new AxeBuilder({ page }).analyze()
+    const serious = results.violations.filter(
+      (v) => v.impact === 'serious' || v.impact === 'critical',
+    )
+    expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
+  })
+
+  test('Budgets axe — iphone gate', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'iphone-14', 'CI gate targets iphone-14')
+    await page.goto('/budgets')
+    await expect(page.getByRole('heading', { name: /Budgets/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    const results = await new AxeBuilder({ page }).analyze()
+    const serious = results.violations.filter(
+      (v) => v.impact === 'serious' || v.impact === 'critical',
+    )
+    expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
+  })
+
   test('Import axe — iphone gate', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'iphone-14', 'CI gate targets iphone-14')
     await page.goto('/import')

@@ -18,8 +18,13 @@ npm ci
 npm run deploy           # build + verify + wrangler deploy → mydspv1
 # optional:
 npm run deploy:sync      # sync-endpoint Worker
+npm run deploy:quote   # Markets/News/YouTube proxy → mydsp-quote
+# Success must print Worker name mydsp-quote (NOT mydspv1)
 npm run deploy:check     # build + verify only (no auth needed)
 ```
+
+Quote Worker URL: `https://mydsp-quote.dave-perry.workers.dev`
+
 
 After deploy: hard-refresh the PWA / re-open from Home Screen so SW picks up the new build.
 
