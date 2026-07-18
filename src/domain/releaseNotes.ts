@@ -29,6 +29,24 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.78',
+    date: '2026-07-18',
+    bullets: [
+      {
+        text: 'News headlines via Yahoo RSS · last-good cache like prices',
+        to: '/news',
+      },
+      {
+        text: 'YouTube favourite uploads notify in the bell (+ optional desktop)',
+        to: '/youtube',
+      },
+      {
+        text: 'Background News/YouTube refresh with header Sync · Settings toggle',
+        to: '/settings#alerts',
+      },
+    ],
+  },
+  {
     version: '1.2.77',
     date: '2026-07-18',
     bullets: [

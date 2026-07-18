@@ -269,7 +269,7 @@ const SETTINGS_SECTION_SEARCH: Record<(typeof SETTINGS_SECTION_IDS)[number], str
   'trade-history': 'Broker CSV IBKR Trading 212 Coinbase trades',
   'price-history': 'Holding price history import',
   security: 'PIN Face ID lock biometric unlock timeout iPhone iPad',
-  alerts: 'Notifications quiet hours price alerts desktop sound holdings drift',
+  alerts: 'Notifications quiet hours price alerts youtube uploads desktop sound holdings drift',
   income: 'Income honesty',
   prices: 'Price refresh providers Finnhub CoinGecko Yahoo failover API key',
   devices: 'Devices sync activity log smoke checklist install PWA nickname',
@@ -3191,6 +3191,25 @@ export function SettingsPage() {
                       categories: { 'price-alerts': e.target.checked },
                     })
                     flash(e.target.checked ? 'Price alerts on.' : 'Price alerts muted.')
+                  }}
+                />
+              </label>
+              <label className="flex items-center justify-between gap-4 min-h-11 mb-3">
+                <span className="text-sm font-medium">
+                  YouTube upload alerts
+                  <span className="block text-xs text-text-muted font-light mt-0.5">
+                    Bell (+ optional desktop banner) when favourite channels publish
+                  </span>
+                </span>
+                <input
+                  type="checkbox"
+                  className="h-5 w-5 accent-[var(--accent)]"
+                  checked={notifSettings.categories['youtube-uploads'] !== false}
+                  onChange={(e) => {
+                    notificationManager.updateSettings({
+                      categories: { 'youtube-uploads': e.target.checked },
+                    })
+                    flash(e.target.checked ? 'YouTube upload alerts on.' : 'YouTube upload alerts muted.')
                   }}
                 />
               </label>

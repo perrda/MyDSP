@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.77**
+**Current version: 1.2.78**
 
-## Completed (through v1.2.77)
+## Completed (through v1.2.78)
 
+- News / YouTube polish (next25m tip 1–25): Yahoo RSS primary headlines, last-good merge, background media refresh, YouTube upload bell/desktop alerts, Worker no-store on feed errors, smoke Yahoo RSS body probe, status-strip + tablet selection polish
 - Sync / prefs polish (next25l tip 1–25): Recurring sort / drift / concentration / Spending+News filters LWW, Equities/Crypto thumb, jump unavailable badges, tag/Yield toggle, Spending/Liabilities/Goals/Trips thumb, PTR expand, Today debt pulse, Jobs follow-up, bills-due nav hint, axe Family/Documents
 - Sync / Markets / Today polish (next25k tip 1–25): Quote Worker identity smoke, digest/compare prefs LWW, jump-chip active highlight, paper NW chip, sticky header offsets, News/YT thumb CTA, Today trust strip, interview next-action, Todos Due today chips, PTR Todos/Jobs/Spending, axe History/Budgets, Markets sticky e2e
 - Sync / Today polish (next25j tip 1–25): Compare week-Δ sync, What arrived extras, digest persist, paper NW in Compare/history, News unread Jump-in + bottom-nav dots, Tax/Recurring thumb+PTR, Today SLA/429/partial chips, smoke News allowlist, axe Liabilities/Import

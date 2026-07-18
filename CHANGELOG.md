@@ -1,5 +1,42 @@
 # MyDSP Changelog
 
+## [1.2.78] - 2026-07-18
+
+### Fixed — News reliability (next 25m · 1–5)
+1. **Yahoo Finance RSS primary** for Top news via quote Worker (Google soft fallback)
+2. **Yahoo per-symbol RSS** for By ticker tags
+3. **Last-good headlines** — empty live refresh no longer wipes the UI (like Markets prices)
+4. **`mydsp-news-articles` listener** — News page updates when cache refreshes in background
+5. **Quote Worker** — do not cache/mislabel non-OK feed bodies (`no-store`)
+
+### Improved — YouTube favourites + notifications (next 25m · 6–10)
+6. **YouTube last-good** — empty live refresh keeps cached videos
+7. **Upload alerts** — `youtube-uploads` category in the notification bell
+8. **Settings toggle** — YouTube upload alerts on/off
+9. **Background poll** — AppShell refreshes News/YouTube on an interval + header Sync
+10. **Desktop banners** — fresh uploads use high priority when desktop notifications enabled
+
+### Improved — News polish / smoke (next 25m · 11–15)
+11. **Smoke News probe** — Yahoo RSS 200 + feed-shaped body (not merely “not 403”)
+12. **From Owned** — status flash (not `setError` / false cached-mode)
+13. **News copy** — Yahoo via quote Worker · refreshes like prices
+14. **Relative “Updated Xm ago”** status strip
+15. **Multi-index Top feed** — ^GSPC / ^FTSE / BTC-USD / ^IXIC / GC=F
+
+### Improved — Mobile / tablet UI (next 25m · 16–20)
+16. **YouTube Notify chip** on Latest videos when unread
+17. **Favourite-channels empty state** — notify hint in description
+18. **Master–detail selection** — accent inset highlight on tablet
+19. **Google soft fill** when Yahoo tagged results are thin
+20. **Stable status-strip height** — no layout jump on refresh (phone)
+
+### Quality (next 25m · 21–25)
+21. **Tip harness** `next25mNewsYoutubePolish.test.ts`
+22. **newsMarketsSparklines** updated for Yahoo-primary feeds
+23. **SmartNotifications** wires YouTube uploads
+24. **Smoke / e2e** News allowlist still covered
+25. Tip **1.2.78**
+
 ## [1.2.77] - 2026-07-18
 
 ### Improved — Sync / trust (next 25l · 1–5)

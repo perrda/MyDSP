@@ -2549,7 +2549,7 @@ html.success-haptic-flash::after {
   .youtube-master-detail--open,
   .news-master-detail--open {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(16rem, 20rem);
+    grid-template-columns: minmax(0, 1fr) minmax(16rem, 22rem);
     gap: 1rem;
     align-items: start;
   }
@@ -2557,6 +2557,23 @@ html.success-haptic-flash::after {
   .youtube-row--selected,
   .news-row--selected {
     background: color-mix(in srgb, var(--accent) 8%, transparent);
+    box-shadow: inset 3px 0 0 var(--accent);
+  }
+}
+
+/* News / YouTube status strips — stable height so refresh doesn't jump layout */
+.news-status-strip,
+.youtube-status-strip {
+  min-height: 2.25rem;
+}
+
+@media (max-width: 767px) {
+  .news-status-strip,
+  .youtube-status-strip {
+    gap: 0.35rem 0.5rem;
+  }
+  .youtube-notify-chip {
+    display: none;
   }
 }
 

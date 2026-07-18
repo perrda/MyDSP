@@ -6,8 +6,14 @@ export const DEFAULT_QUOTE_WORKER_URL = 'https://mydsp-quote.dave-perry.workers.
 export const YOUTUBE_ALLOWLIST_PROBE =
   'https://www.youtube.com/feeds/videos.xml?channel_id=UCYfdidRxbB8Qhf0Nx7ioOYw'
 
-/** Probe target used to confirm Google News RSS is on the Quote Worker allowlist. */
+/** Probe target used to confirm News RSS is on the Quote Worker allowlist.
+ *  Yahoo Finance headlines (primary News source) — Google News often returns 503.
+ */
 export const NEWS_ALLOWLIST_PROBE =
+  'https://feeds.finance.yahoo.com/rss/2.0/headline?s=%5EGSPC&region=US&lang=en-US'
+
+/** Soft probe — Google News host still allowlisted even when upstream is flaky. */
+export const NEWS_GOOGLE_ALLOWLIST_PROBE =
   'https://news.google.com/rss/search?q=finance&hl=en-GB&gl=GB&ceid=GB:en'
 
 const SECRET_QUERY_KEYS = new Set(['key', 'token', 'pass', 'passphrase', 'secret', 'auth'])
@@ -178,8 +184,8 @@ export async function probeQuoteWorkerYoutubeAllowlist(
 }
 
 /**
- * Confirm Quote Worker allowlists Google News RSS (not blocked with Host not allowed).
- * Upstream 4xx still counts as allowlisted — only 403 "Host not allowed" fails.
+ * Confirm Quote Worker can proxy Yahoo Finance RSS (primary News source).
+ * Requires HTTP 200 + feed-shaped body — not merely "not 403".
  */
 export async function probeQuoteWorkerNewsAllowlist(
   baseUrl: string = DEFAULT_QUOTE_WORKER_URL,
@@ -204,14 +210,31 @@ export async function probeQuoteWorkerNewsAllowlist(
       }
       return { ok: false, status: 403, detail }
     }
-    if (res.status > 0) {
+    if (res.status !== 200) {
       return {
-        ok: true,
+        ok: false,
         status: res.status,
-        detail: `News allowlisted (Worker HTTP ${res.status})`,
+        detail: `News feed probe HTTP ${res.status} — expected Yahoo RSS 200`,
       }
     }
-    return { ok: false, status: 0, detail: 'Worker returned empty status' }
+    const text = await res.text()
+    const lower = text.toLowerCase()
+    const looksLikeFeed =
+      lower.includes('<rss') ||
+      lower.includes('<feed') ||
+      (lower.includes('<?xml') && (lower.includes('<item') || lower.includes('<entry')))
+    if (!looksLikeFeed) {
+      return {
+        ok: false,
+        status: res.status,
+        detail: 'News probe returned non-RSS body',
+      }
+    }
+    return {
+      ok: true,
+      status: res.status,
+      detail: 'News feed OK (Yahoo RSS via Worker)',
+    }
   } catch (e) {
     return {
       ok: false,

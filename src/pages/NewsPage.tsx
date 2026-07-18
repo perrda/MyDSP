@@ -14,7 +14,7 @@ import { PageHeader } from '../components/ui/PageHeader'
 import { ConfirmDialog, Field, Modal } from '../components/ui/Modal'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
 import type { NewsArticle, NewsTag } from '../domain/news'
-import { fetchTaggedNews, fetchTopFinancialNews } from '../services/newsFeeds'
+import { refreshNewsFeeds } from '../services/mediaRefresh'
 import { isOnline } from '../services/offlineQueue'
 import {
   addNewsTag,
@@ -24,9 +24,7 @@ import {
   loadNewsState,
   removeNewsTag,
   reorderNewsTags,
-  saveNewsArticlesCache,
   setNewsCollapsed,
-  setNewsLastRefresh,
   setNewsSeenAt,
   updateNewsTag,
 } from '../storage/newsStore'
@@ -118,6 +116,7 @@ export function NewsPage() {
   )
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [statusMsg, setStatusMsg] = useState<string | null>(null)
   const [lastAt, setLastAt] = useState(() => loadNewsState().lastRefreshAt)
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<NewsTag | null>(null)
@@ -138,6 +137,15 @@ export function NewsPage() {
     setTaggedVisible(NEWS_PAGE)
   }, [filterTag])
 
+  const applyCacheToState = useCallback(() => {
+    const cached = loadNewsArticlesCache()
+    if (cached.top.length > 0) setTop(cached.top)
+    if (Object.keys(cached.byTag || {}).length > 0) setByTag(cached.byTag)
+    const st = loadNewsState()
+    if (st.lastRefreshAt) setLastAt(st.lastRefreshAt)
+    else if (cached.fetchedAt) setLastAt(cached.fetchedAt)
+  }, [])
+
   const reloadList = useCallback(() => {
     setTags(listNewsTags())
     setCollapsed(loadNewsState().collapsed)
@@ -150,56 +158,21 @@ export function NewsPage() {
     setRefreshing(true)
     setError(null)
     try {
-      const list = listNewsTags()
-      const topRequest = fetchTopFinancialNews(10).then((topNews) => {
-        setTop(topNews)
-        if (topNews.length > 0) {
-          const cached = loadNewsArticlesCache()
-          saveNewsArticlesCache(
-            {
-              ...cached,
-              top: topNews,
-              fetchedAt: new Date().toISOString(),
-            },
-            { markDirty: true },
-          )
-        }
-        return topNews
-      })
-      const taggedRequest = fetchTaggedNews(list, 10).then((tagged) => {
-        setByTag(tagged)
-        if (Object.values(tagged).some((articles) => articles.length > 0)) {
-          const cached = loadNewsArticlesCache()
-          saveNewsArticlesCache(
-            {
-              ...cached,
-              byTag: tagged,
-              fetchedAt: new Date().toISOString(),
-            },
-            { markDirty: true },
-          )
-        }
-        return tagged
-      })
-      const [topResult, taggedResult] = await Promise.allSettled([topRequest, taggedRequest])
-      const topNews = topResult.status === 'fulfilled' ? topResult.value : []
-      const tagged = taggedResult.status === 'fulfilled' ? taggedResult.value : {}
-      const hasArticles =
-        topNews.length > 0 || Object.values(tagged).some((articles) => articles.length > 0)
-      if (hasArticles) {
-        const at = new Date().toISOString()
-        setNewsLastRefresh(at)
-        setLastAt(at)
-      } else {
-        setError('No headlines returned. Check your connection and try the header refresh.')
+      const result = await refreshNewsFeeds()
+      applyCacheToState()
+      if (!result.ok && !result.keptCache) {
+        setError(result.error || 'No headlines returned. Check your connection and try again.')
+      } else if (result.keptCache) {
+        setError('Live headlines unavailable — showing last-good cached articles.')
       }
     } catch (e) {
+      applyCacheToState()
       setError(e instanceof Error ? e.message : 'News refresh failed')
     } finally {
       inFlight.current = false
       setRefreshing(false)
     }
-  }, [])
+  }, [applyCacheToState])
 
   useEffect(() => {
     void refresh()
@@ -210,6 +183,12 @@ export function NewsPage() {
     window.addEventListener('mydsp-news-changed', onChanged)
     return () => window.removeEventListener('mydsp-news-changed', onChanged)
   }, [reloadList])
+
+  useEffect(() => {
+    const onArticles = () => applyCacheToState()
+    window.addEventListener('mydsp-news-articles', onArticles)
+    return () => window.removeEventListener('mydsp-news-articles', onArticles)
+  }, [applyCacheToState])
 
   useEffect(() => {
     const onGlobal = () => void refresh()
@@ -262,7 +241,8 @@ export function NewsPage() {
 
   const hasCachedArticles =
     top.length > 0 || Object.values(byTag).some((articles) => articles.length > 0)
-  const cachedMode = hasCachedArticles && (!online || error !== null)
+  const cachedMode =
+    hasCachedArticles && (!online || (error !== null && error.toLowerCase().includes('unavailable')))
 
   const openCreate = () => {
     setEditing(null)
@@ -306,7 +286,7 @@ export function NewsPage() {
       <PageHeader
         eyebrow="Insights"
         title="News"
-        description="Google News via the quote Worker (same path as prices). Top 10 + By ticker (10 per tag)."
+        description="Yahoo Finance RSS via the quote Worker (same path as prices). Top 10 + By ticker — refreshes with the header Sync."
         action={
           <button
             type="button"
@@ -321,10 +301,15 @@ export function NewsPage() {
         }
       />
 
-      <p className="text-xs text-text-subtle mb-4 flex flex-wrap items-center gap-2">
+      <p className="news-status-strip text-xs text-text-subtle mb-4 flex flex-wrap items-center gap-2 min-h-9">
         <span>
-          {refreshing ? 'Updating headlines…' : lastAt ? `Last update ${formatDateTime(lastAt)}` : 'Headlines not loaded yet'}
-          {error ? ` · ${error}` : ''}
+          {refreshing
+            ? 'Updating headlines…'
+            : lastAt
+              ? `Updated ${formatRelative(lastAt)} · ${formatDateTime(lastAt)}`
+              : 'Headlines not loaded yet'}
+          {error && !cachedMode ? ` · ${error}` : ''}
+          {statusMsg ? ` · ${statusMsg}` : ''}
         </span>
         {unreadCount > 0 ? (
           <span className="news-unread-chip inline-flex items-center gap-1 text-[11px] font-bold tabular-nums px-2 py-0.5 bg-accent/15 text-accent border border-accent/30 rounded-full">
@@ -575,11 +560,13 @@ export function NewsPage() {
                       }
                     }
                     setTags(listNewsTags())
-                    setError(
+                    setStatusMsg(
                       added > 0
                         ? `Added ${added} meta-tag${added === 1 ? '' : 's'} from Owned holdings`
                         : 'All Owned symbols already have News meta-tags',
                     )
+                    window.setTimeout(() => setStatusMsg(null), 4000)
+                    if (added > 0) void refresh()
                   }}
                 >
                   From Owned

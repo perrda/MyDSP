@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { usePortfolio } from '../context/PortfolioContext'
 import { buildAlerts } from '../domain/alerts'
 import { buildPriceAlertNotifications } from '../domain/priceAlerts'
+import { buildYoutubeUploadNotifications } from '../domain/youtubeUploadAlerts'
 import { notificationManager, type Notification } from '../utils/notifications'
 import { logger } from '../utils/logger'
 import {
@@ -64,6 +65,8 @@ export function useSmartNotifications() {
       )
       const priceAlerts = buildPriceAlertNotifications()
       notificationManager.syncCategory('price-alerts', priceAlerts)
+      const ytUploads = buildYoutubeUploadNotifications()
+      notificationManager.syncCategory('youtube-uploads', ytUploads)
       setNotifications(notificationManager.getAll())
     } catch (error) {
       logger.error('Failed to process smart notifications', error as Error, 'app')
@@ -74,12 +77,17 @@ export function useSmartNotifications() {
     processNotifications()
     const interval = setInterval(processNotifications, 5 * 60 * 1000)
     const onPrice = () => processNotifications()
+    const onYt = () => processNotifications()
     window.addEventListener('mydsp-price-alerts', onPrice)
     window.addEventListener('mydsp-markets-quotes', onPrice)
+    window.addEventListener('mydsp-youtube-videos', onYt)
+    window.addEventListener('mydsp-youtube-changed', onYt)
     return () => {
       clearInterval(interval)
       window.removeEventListener('mydsp-price-alerts', onPrice)
       window.removeEventListener('mydsp-markets-quotes', onPrice)
+      window.removeEventListener('mydsp-youtube-videos', onYt)
+      window.removeEventListener('mydsp-youtube-changed', onYt)
     }
   }, [processNotifications])
 
@@ -198,7 +206,7 @@ export function NotificationCenter() {
                 <BellIcon className="w-10 h-10 mx-auto mb-2 opacity-40 text-text-subtle" />
                 <p className="text-sm">All clear</p>
                 <p className="text-xs text-text-subtle mt-1">
-                  Budget, debt, and goal alerts appear here when something needs attention.
+                  Budget, debt, price moves, and new YouTube uploads from favourites appear here.
                 </p>
                 <a
                   href="/settings#alerts"
