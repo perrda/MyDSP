@@ -134,6 +134,13 @@ export function BottomNav() {
         item.to === '/crypto' ||
         item.to === '/liabilities' ||
         item.to === '/goals' ||
+        item.to === '/history' ||
+        item.to === '/budgets' ||
+        item.to === '/import' ||
+        item.to === '/family' ||
+        item.to === '/documents' ||
+        item.to === '/journal' ||
+        item.to === '/rules' ||
         item.to === '/settings' ||
         item.to.startsWith('/settings')
       ) {

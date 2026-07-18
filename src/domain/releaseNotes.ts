@@ -29,6 +29,24 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.81',
+    date: '2026-07-18',
+    bullets: [
+      {
+        text: 'News/YouTube prefs LWW · Favourites layout LWW · Markets delete tombstones',
+        to: '/settings#sync',
+      },
+      {
+        text: 'Markets keyboard rows · Add commodity/FX/index thumbs · jump aria-controls',
+        to: '/markets',
+      },
+      {
+        text: 'Today Sync thumb · Refresh & open ?refresh=1 · follow-up next-action',
+        to: '/',
+      },
+    ],
+  },
+  {
     version: '1.2.80',
     date: '2026-07-18',
     bullets: [

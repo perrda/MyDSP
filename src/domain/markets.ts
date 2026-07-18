@@ -85,6 +85,8 @@ export interface MarketsState {
   tagFilter?: MarketTickerTag | 'All'
   /** When true, equities section sorts by yield descending. */
   yieldSort?: boolean
+  /** Tombstones for removed tickers (kind:SYMBOL) so union merge does not resurrect them. */
+  deletedTickers?: Array<{ key: string; deletedAt: string }>
 }
 
 /** Normalize a persisted section order; always returns all six keys exactly once. */
@@ -242,9 +244,16 @@ export function mergeDefaultTickers(state: MarketsState): { state: MarketsState;
   const maxOrder = tickers.reduce((m, t) => Math.max(m, t.sortOrder), -1)
   let nextOrder = maxOrder + 1
   const now = new Date().toISOString()
+  const deleted = new Set(
+    (state.deletedTickers ?? [])
+      .filter((d) => d && typeof d.key === 'string')
+      .map((d) => d.key),
+  )
 
   for (const d of DEFAULT_MARKET_TICKERS) {
     const sym = normalizeMarketSymbol(d.symbol)
+    const tombKey = `${d.kind}:${sym}`
+    if (deleted.has(tombKey)) continue
     const exists = tickers.some(
       (t) => t.kind === d.kind && normalizeMarketSymbol(t.symbol) === sym,
     )

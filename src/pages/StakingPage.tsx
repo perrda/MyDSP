@@ -376,6 +376,13 @@ export function StakingPage() {
           }))
         }}
       />
+
+      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary staking actions">
+        <button type="button" className="btn-primary btn-sm" onClick={openCreate}>
+          Add reward
+        </button>
+      </div>
+      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }

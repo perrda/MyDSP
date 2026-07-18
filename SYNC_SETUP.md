@@ -73,7 +73,7 @@ npx wrangler deploy
 
 That’s it. Edits push about **4 seconds** after you change data (and pull first if another device updated cloud). Opening the app, returning to the tab, pull-to-refresh, or about **every 30 seconds** while open pulls newer cloud data.
 
-**What syncs:** portfolios + holdings, To Do's / Jobs, Favourites/nav layout, Bottom nav **middle slots**, Markets **watchlist** (union merge), Markets **last-good quote cache** (prices show on another device before it refreshes), News tags + **last-good headlines cache**, YouTube channels + **video cache**, ISA remaining override, price-alert thresholds, Compare **week-Δ snapshots**, Digest **highlight edits**, Compare **selection**, Recurring **sort**, holdings **drift %**, portfolio **concentration %**, Spending **filters**, News **tag filter**, Todos **quick filter**, Jobs **filter** (incl. Needs follow-up), and full-backup extras.
+**What syncs:** portfolios + holdings, To Do's / Jobs, Favourites/nav layout (**LWW** by `updatedAt`), Bottom nav **middle slots**, Markets **watchlist** (union merge + **deletion tombstones**), Markets **last-good quote cache** (prices show on another device before it refreshes), News tags + collapsed/seenAt (**LWW** by `prefsUpdatedAt`) + **last-good headlines cache**, YouTube channels (**union** + seenAt LWW) + **video cache**, ISA remaining override (clearing syncs via empty remaining + meta), price-alert thresholds, Compare **week-Δ snapshots**, Digest **highlight edits**, Compare **selection**, Recurring **sort**, holdings **drift %**, portfolio **concentration %**, Spending **filters**, News **tag filter**, Todos **quick filter**, Jobs **filter** (incl. Needs follow-up), and full-backup extras.
 
 **What does not sync:** Finnhub (and other live provider) API keys, PIN / Face ID credentials, remembered passphrase storage, session-only provider health counters, launch path, UI panel open/collapsed prefs, Markets tag/Yield chip visibility, YouTube upload-alert toggle, notification quiet-hours / desktop / sound / category toggles (beyond thresholds), and settings recent jumps. Enter the Finnhub key on each device (Settings → Prices).
 
@@ -82,10 +82,11 @@ That’s it. Edits push about **4 seconds** after you change data (and pull firs
 | Pref / data | Syncs? | Notes |
 |-------------|--------|--------|
 | Portfolios, holdings, todos, jobs, goals | Yes | Core workspace blobs |
-| Markets watchlist + last-good quotes | Yes | Union merge / LWW quotes |
-| News tags + last-good headlines | Yes | fullArchive extras |
-| YouTube channels + video cache | Yes | fullArchive extras |
-| ISA remaining override | Yes | Tax page override (LWW) |
+| Markets watchlist + last-good quotes | Yes | Union merge / deletion tombstones / LWW quotes |
+| News tags + collapsed/seenAt + headlines | Yes | Tag union + prefsUpdatedAt LWW; headlines last-good |
+| YouTube channels + video cache | Yes | Channel union + seenAt LWW |
+| Favourites / Others nav layout | Yes | LWW by updatedAt |
+| ISA remaining override | Yes | Tax page override (LWW; clear syncs) |
 | Price-alert thresholds | Yes | OS notification permission stays per device |
 | Digest highlight edits | Yes | LWW fullArchive |
 | Compare selection | Yes | LWW fullArchive |

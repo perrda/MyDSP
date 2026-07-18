@@ -1,5 +1,42 @@
 # MyDSP Changelog
 
+## [1.2.81] - 2026-07-18
+
+### Improved — Sync / trust (next 25p · 1–5)
+1. **News tags/collapsed/seenAt** LWW via prefsUpdatedAt (+ tag union)
+2. **YouTube channels** union merge + seenAt LWW
+3. **Favourites / Others** nav layout LWW by updatedAt
+4. **What arrived** includes Favourites layout extras
+5. **Docs + SYNC_SMOKE** Favourites LWW · News/YT seenAt · Markets delete tombstones · clear ISA
+
+### Improved — Markets (next 25p · 6–10)
+6. **Ticker deletion tombstones** so removals sync across devices
+7. **Thumb CTA** Add commodity / Add FX / Add index
+8. **Rows keyboard accessible** (tabIndex · Enter/Space · aria-selected)
+9. **Retry buttons** aria-labels with section name + unavailable count
+10. **Jump chips** `aria-controls` + section `role=tabpanel`
+
+### Improved — Mobile / tablet (next 25p · 11–15)
+11. **Settings** thumb CTA (Sync now + Smoke)
+12. **Today** thumb CTA (Sync / Markets / Digest / To Do’s)
+13. **PTR** Settings + Staking + Planning + Smoke
+14. **Bottom-nav long-press** History/Budgets/Import/Family/Documents/Journal/Rules → Sync now
+15. **Staking + Planning + Achievements** thumb CTA
+
+### Improved — Today / productivity (next 25p · 16–20)
+16. **Refresh & open** uses `?refresh=1` consumed on News/YouTube mount
+17. **What arrived chip** on Today after sync
+18. **Toast** when Mark all read clears News/YouTube unread
+19. **Follow-up job card** in next-action stack when no interview due
+20. **Bill next-action** Open recurring + Mark paid/Skip toast
+
+### Quality (next 25p · 21–25)
+21. **Axe** Predictive + Insights + API
+22. **Axe** Review + Smoke
+23. **Axe** Job detail + Liability detail
+24. **Playwright** Today/Settings thumbs · Refresh & open query · PTR Settings/Staking
+25. Tip harness **1.2.81**
+
 ## [1.2.80] - 2026-07-18
 
 ### Improved — Sync / trust (next 25o · 1–5)

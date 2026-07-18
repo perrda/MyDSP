@@ -82,7 +82,12 @@ export function loadYoutubeState(): YoutubeState {
   return seeded
 }
 
-export function saveYoutubeState(state: YoutubeState): void {
+function touchYoutubePrefs(state: YoutubeState): void {
+  state.prefsUpdatedAt = new Date().toISOString()
+}
+
+export function saveYoutubeState(state: YoutubeState, opts?: { touchPrefs?: boolean }): void {
+  if (opts?.touchPrefs !== false) touchYoutubePrefs(state)
   writeState({
     ...state,
     version: 1,
@@ -195,13 +200,44 @@ export function importYoutubeFromBackup(raw: unknown): void {
   if (!raw || typeof raw !== 'object') return
   const parsed = raw as YoutubeState
   if (parsed.version !== 1 || !Array.isArray(parsed.channels)) return
-  const channels = parsed.channels.map(normalizeChannel).slice(0, MAX_YOUTUBE_CHANNELS)
+  const local = loadYoutubeState()
+  const remotePrefsAt = Date.parse(parsed.prefsUpdatedAt || '') || 0
+  const localPrefsAt = Date.parse(local.prefsUpdatedAt || '') || 0
+
+  // Union channels by channelId (keep local row when both have it).
+  const byId = new Map<string, YoutubeChannel>()
+  for (const c of local.channels.map(normalizeChannel)) byId.set(c.channelId, c)
+  let nextOrder = local.channels.reduce((m, c) => Math.max(m, c.sortOrder), -1) + 1
+  for (const c of parsed.channels.map(normalizeChannel)) {
+    if (byId.has(c.channelId)) continue
+    byId.set(c.channelId, { ...c, sortOrder: nextOrder++ })
+  }
+  const channels = [...byId.values()]
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+    .slice(0, MAX_YOUTUBE_CHANNELS)
+
+  const remoteSeenAt = typeof parsed.seenAt === 'string' ? parsed.seenAt : undefined
+  const localSeenAt = typeof local.seenAt === 'string' ? local.seenAt : undefined
+  const remoteSeenMs = Date.parse(remoteSeenAt || '') || 0
+  const localSeenMs = Date.parse(localSeenAt || '') || 0
+  const seenAt =
+    remoteSeenMs >= localSeenMs
+      ? remoteSeenAt || localSeenAt
+      : localSeenAt || remoteSeenAt
+
   writeState(
     {
       version: 1,
       channels,
-      lastRefreshAt: parsed.lastRefreshAt,
-      seenAt: typeof parsed.seenAt === 'string' ? parsed.seenAt : undefined,
+      lastRefreshAt:
+        remotePrefsAt >= localPrefsAt
+          ? parsed.lastRefreshAt || local.lastRefreshAt
+          : local.lastRefreshAt || parsed.lastRefreshAt,
+      seenAt,
+      prefsUpdatedAt:
+        remotePrefsAt >= localPrefsAt
+          ? parsed.prefsUpdatedAt || local.prefsUpdatedAt
+          : local.prefsUpdatedAt || parsed.prefsUpdatedAt,
     },
     { fromSync: true },
   )

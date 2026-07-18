@@ -38,6 +38,7 @@ import {
   getAutoSyncStatus,
   getLastSyncLatencyKind,
   subscribeAutoSync,
+  syncNow,
   type AutoSyncStatus,
 } from '../services/sync/autoSyncService'
 import { loadSyncConfig } from '../services/sync/syncService'
@@ -277,6 +278,7 @@ export function Dashboard() {
   const [youtubeFetchedAt, setYoutubeFetchedAt] = useState(
     () => loadYoutubeVideosCache().fetchedAt ?? null,
   )
+  const [whatArrivedChip, setWhatArrivedChip] = useState<string | null>(null)
 
   useEffect(() => subscribeAutoSync(setSyncStatus), [])
   useEffect(() => {
@@ -654,11 +656,26 @@ export function Dashboard() {
 
   const markBillPaid = (id: number) => {
     setData((prev) => markRecurringPaid(prev, id))
+    toastSuccess('Bill marked paid')
   }
 
   const skipBill = (id: number) => {
     setData((prev) => skipRecurringOccurrence(prev, id))
+    toastSuccess('Bill skipped')
   }
+
+  useEffect(() => {
+    const onArrived = (ev: Event) => {
+      const detail = (ev as CustomEvent<{ summary?: string | null; extrasSummary?: string | null }>)
+        .detail
+      const summary = detail?.summary || detail?.extrasSummary || null
+      if (!summary) return
+      setWhatArrivedChip(summary)
+      window.setTimeout(() => setWhatArrivedChip(null), 8_000)
+    }
+    window.addEventListener('mydsp-sync-applied', onArrived)
+    return () => window.removeEventListener('mydsp-sync-applied', onArrived)
+  }, [])
 
   /** Soonest active goal with deadline within 30 days (inclusive). */
   const soonGoal = useMemo(() => {
@@ -1062,6 +1079,34 @@ export function Dashboard() {
                 </div>
               )
             }
+            if (card.kind === 'followup') {
+              return (
+                <div
+                  key={`followup-${card.jobId}`}
+                  className="today-next-action-card today-followup-next-action surface p-4 md:p-5 rounded-xl md:rounded-none shadow-sm md:shadow-none"
+                >
+                  <Link to={`/jobs/${card.jobId}`} className="block group">
+                    <p className="text-[11px] uppercase tracking-wider text-text-subtle mb-1">
+                      {card.label}
+                    </p>
+                    <p className="text-base md:text-lg font-bold tracking-tight group-hover:text-accent line-clamp-1">
+                      {card.companyName}
+                    </p>
+                    <p className="text-xs text-text-muted mt-1 font-light line-clamp-1">
+                      {card.jobTitle}
+                    </p>
+                  </Link>
+                  <div className="today-followup-actions today-focus-actions flex flex-wrap gap-2 mt-3">
+                    <Link
+                      to={`/jobs/${card.jobId}`}
+                      className="btn-primary btn-sm inline-flex items-center"
+                    >
+                      Open job
+                    </Link>
+                  </div>
+                </div>
+              )
+            }
             if (card.kind === 'bill') {
               const billNote = latestRecurringCommentary(card.bill)
               return (
@@ -1100,6 +1145,12 @@ export function Dashboard() {
                     >
                       Skip
                     </button>
+                    <Link
+                      to="/recurring"
+                      className="btn-ghost btn-sm inline-flex items-center today-bill-open-recurring"
+                    >
+                      Open recurring
+                    </Link>
                   </div>
                 </div>
               )
@@ -1321,9 +1372,8 @@ export function Dashboard() {
               ) : null}
             </Link>
             <Link
-              to="/news"
+              to="/news?refresh=1"
               className="btn-ghost btn-sm text-xs min-h-9 today-news-refresh-open"
-              onClick={() => window.dispatchEvent(new CustomEvent('mydsp-news-refresh'))}
             >
               Refresh & open
             </Link>
@@ -1335,6 +1385,7 @@ export function Dashboard() {
                   const now = new Date().toISOString()
                   setNewsSeenAt(now)
                   setNewsUnread(0)
+                  toastSuccess('News marked all read')
                 }}
               >
                 Mark all read
@@ -1354,9 +1405,8 @@ export function Dashboard() {
               ) : null}
             </Link>
             <Link
-              to="/youtube"
+              to="/youtube?refresh=1"
               className="btn-ghost btn-sm text-xs min-h-9 today-youtube-refresh-open"
-              onClick={() => window.dispatchEvent(new CustomEvent('mydsp-youtube-refresh'))}
             >
               Refresh & open
             </Link>
@@ -1368,6 +1418,7 @@ export function Dashboard() {
                   const now = new Date().toISOString()
                   setYoutubeSeenAt(now)
                   setYoutubeUnread(0)
+                  toastSuccess('YouTube marked all read')
                 }}
               >
                 Mark all read
@@ -1375,6 +1426,14 @@ export function Dashboard() {
             ) : null}
           </div>
         </div>
+        {whatArrivedChip ? (
+          <p
+            className="today-what-arrived-chip mt-3 text-xs text-accent font-medium"
+            role="status"
+          >
+            What arrived · {whatArrivedChip}
+          </p>
+        ) : null}
         {(newsFetchedAt || youtubeFetchedAt) && relativeTick >= 0 ? (
           <p
             className="today-media-trust mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs text-text-subtle"
@@ -1700,6 +1759,32 @@ export function Dashboard() {
           </ul>
         )}
       </div>
+
+      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary today actions">
+        <button
+          type="button"
+          className="btn-primary btn-sm inline-flex items-center gap-1.5 today-sync-thumb"
+          onClick={() => {
+            void syncNow().then(() => toastSuccess('Sync now finished'))
+          }}
+        >
+          Sync now
+        </button>
+        <Link to="/markets" className="btn-secondary btn-sm inline-flex items-center">
+          Markets
+        </Link>
+        <button
+          type="button"
+          className="btn-secondary btn-sm inline-flex items-center today-digest-thumb"
+          onClick={openWeeklyDigest}
+        >
+          Digest
+        </button>
+        <Link to="/todos" className="btn-ghost btn-sm inline-flex items-center">
+          To Do&apos;s
+        </Link>
+      </div>
+      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }

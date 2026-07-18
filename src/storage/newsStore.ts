@@ -88,7 +88,12 @@ export function loadNewsState(): NewsState {
   return seeded
 }
 
-export function saveNewsState(state: NewsState): void {
+function touchNewsPrefs(state: NewsState): void {
+  state.prefsUpdatedAt = new Date().toISOString()
+}
+
+export function saveNewsState(state: NewsState, opts?: { touchPrefs?: boolean }): void {
+  if (opts?.touchPrefs !== false) touchNewsPrefs(state)
   writeState({
     ...state,
     version: 1,
@@ -202,16 +207,46 @@ export function importNewsFromBackup(raw: unknown): void {
   if (!raw || typeof raw !== 'object') return
   const parsed = raw as NewsState
   if (parsed.version !== 1 || !Array.isArray(parsed.tags)) return
+  const local = loadNewsState()
+  const remotePrefsAt = Date.parse(parsed.prefsUpdatedAt || '') || 0
+  const localPrefsAt = Date.parse(local.prefsUpdatedAt || '') || 0
+  const preferRemotePrefs = remotePrefsAt >= localPrefsAt && remotePrefsAt > 0
+
+  // Union tags by normalized ticker (keep local row when both have it).
+  const byTag = new Map<string, NewsTag>()
+  for (const t of local.tags.map(normalizeTag)) byTag.set(t.tag, t)
+  let nextOrder = local.tags.reduce((m, t) => Math.max(m, t.sortOrder), -1) + 1
+  for (const t of parsed.tags.map(normalizeTag)) {
+    if (byTag.has(t.tag)) continue
+    byTag.set(t.tag, { ...t, sortOrder: nextOrder++ })
+  }
+
+  const remoteSeenAt = typeof parsed.seenAt === 'string' ? parsed.seenAt : undefined
+  const localSeenAt = typeof local.seenAt === 'string' ? local.seenAt : undefined
+  const remoteSeenMs = Date.parse(remoteSeenAt || '') || 0
+  const localSeenMs = Date.parse(localSeenAt || '') || 0
+  const seenAt =
+    remoteSeenMs >= localSeenMs
+      ? remoteSeenAt || localSeenAt
+      : localSeenAt || remoteSeenAt
+
+  const collapsedSrc = preferRemotePrefs ? parsed.collapsed : local.collapsed ?? parsed.collapsed
   writeState(
     {
       version: 1,
-      tags: parsed.tags.map(normalizeTag),
+      tags: [...byTag.values()],
       collapsed: {
-        top: Boolean(parsed.collapsed?.top),
-        tagged: Boolean(parsed.collapsed?.tagged),
+        top: Boolean(collapsedSrc?.top),
+        tagged: Boolean(collapsedSrc?.tagged),
       },
-      lastRefreshAt: parsed.lastRefreshAt,
-      seenAt: typeof parsed.seenAt === 'string' ? parsed.seenAt : undefined,
+      lastRefreshAt: preferRemotePrefs
+        ? parsed.lastRefreshAt || local.lastRefreshAt
+        : local.lastRefreshAt || parsed.lastRefreshAt,
+      seenAt,
+      prefsUpdatedAt:
+        remotePrefsAt >= localPrefsAt
+          ? parsed.prefsUpdatedAt || local.prefsUpdatedAt
+          : local.prefsUpdatedAt || parsed.prefsUpdatedAt,
     },
     { fromSync: true },
   )

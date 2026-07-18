@@ -1,9 +1,12 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.78**
+**Current version: 1.2.81**
 
-## Completed (through v1.2.78)
+## Completed (through v1.2.81)
 
+- Sync / Markets / Today polish (next25p tip 1–25): News/YouTube prefs LWW, Favourites layout LWW, Markets deletion tombstones, keyboard rows, Add commodity/FX/index thumbs, Today Sync thumb + Refresh & open `?refresh=1`, follow-up next-action, PTR Settings/Staking/Planning/Smoke, axe Predictive/Insights/API/Review/Smoke/Job+Liability detail
+- Sync / Markets / Today polish (next25o tip 1–25): bottom-nav slots LWW, journal What arrived, Markets density/collapse LWW, jump tablist, Compact thumb, section as-of, paper NW overflow, Family/Docs/Journal/Rules thumbs, interview Mark done, axe Staking→Achievements
+- Sync / Markets / Today polish (next25n tip 1–25): Todos/Jobs filter LWW, YT last-good, Markets jump-retry/search-select, phone Notify, long-press Recurring/Tax/Compare, Today Mark all read/media trust
 - News / YouTube polish (next25m tip 1–25): Yahoo RSS primary headlines, last-good merge, background media refresh, YouTube upload bell/desktop alerts, Worker no-store on feed errors, smoke Yahoo RSS body probe, status-strip + tablet selection polish
 - Sync / prefs polish (next25l tip 1–25): Recurring sort / drift / concentration / Spending+News filters LWW, Equities/Crypto thumb, jump unavailable badges, tag/Yield toggle, Spending/Liabilities/Goals/Trips thumb, PTR expand, Today debt pulse, Jobs follow-up, bills-due nav hint, axe Family/Documents
 - Sync / Markets / Today polish (next25k tip 1–25): Quote Worker identity smoke, digest/compare prefs LWW, jump-chip active highlight, paper NW chip, sticky header offsets, News/YT thumb CTA, Today trust strip, interview next-action, Todos Due today chips, PTR Todos/Jobs/Spending, axe History/Budgets, Markets sticky e2e

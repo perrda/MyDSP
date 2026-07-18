@@ -1257,6 +1257,8 @@ export function MarketsPage() {
       <section
         key={section}
         id={`markets-section-${section}`}
+        role="tabpanel"
+        aria-labelledby={`markets-jump-${section}`}
         className={`border border-border bg-bg-elevated overflow-hidden ${sectionSorting ? '' : 'mb-6'}`}
       >
         <div
@@ -1496,6 +1498,7 @@ export function MarketsPage() {
                           type="button"
                           className="btn-secondary btn-sm min-h-9"
                           disabled={sectionBusy}
+                          aria-label={`Retry ${unavailableCount} unavailable in ${SECTION_JUMP_LABEL[section]}`}
                           onClick={() => void refreshSection(section)}
                         >
                           Retry unavailable
@@ -1518,6 +1521,7 @@ export function MarketsPage() {
                           type="button"
                           className="btn-secondary btn-sm min-h-9"
                           disabled={sectionBusy}
+                          aria-label={`Retry all unavailable in ${SECTION_JUMP_LABEL[section]}`}
                           onClick={() => void refreshSection(section)}
                         >
                           Retry section
@@ -1558,6 +1562,10 @@ export function MarketsPage() {
                   return (
                     <div
                       id={`market-${t.symbol.replace(/[^a-zA-Z0-9]/g, '_')}`}
+                      role="button"
+                      tabIndex={0}
+                      aria-selected={quoteDetail?.ticker.id === t.id}
+                      aria-label={`${t.symbol}${t.name ? ` · ${t.name}` : ''}`}
                       className={`markets-row px-4 sm:px-5 flex items-center gap-2 sm:gap-4 ${
                         compact ? 'py-2 min-h-11' : 'py-3.5'
                       } ${focused ? 'ring-2 ring-inset ring-accent bg-accent/5' : ''} ${
@@ -1568,6 +1576,12 @@ export function MarketsPage() {
                         justSyncedPulse && fromSync ? ' sync-just-added' : ''
                       }${quoteDetail?.ticker.id === t.id ? ' markets-row--selected' : ''}`}
                       onClick={() => setQuoteDetail({ ticker: t, quote: q })}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          setQuoteDetail({ ticker: t, quote: q })
+                        }
+                      }}
                       onTouchStart={() => {
                         if (sorting) return
                         if (longPressTimer.current) window.clearTimeout(longPressTimer.current)
@@ -2140,6 +2154,7 @@ export function MarketsPage() {
                 id={`markets-jump-${section}`}
                 href={`#markets-section-${section}`}
                 role="tab"
+                aria-controls={`markets-section-${section}`}
                 tabIndex={active || (!activeJumpSection && section === sectionOrder[0]) ? 0 : -1}
                 className={`markets-section-jump-chip btn-ghost btn-sm${
                   active ? ' markets-section-jump-chip--active border-accent text-accent' : ''
@@ -2671,6 +2686,27 @@ export function MarketsPage() {
           onClick={() => openCreate('crypto')}
         >
           <Plus size={16} strokeWidth={2} /> Add crypto
+        </button>
+        <button
+          type="button"
+          className="btn-secondary btn-sm inline-flex items-center gap-1.5 markets-add-commodity-thumb"
+          onClick={() => openCreate('commodity')}
+        >
+          <Plus size={16} strokeWidth={2} /> Add commodity
+        </button>
+        <button
+          type="button"
+          className="btn-secondary btn-sm inline-flex items-center gap-1.5 markets-add-fx-thumb"
+          onClick={() => openCreate('fx')}
+        >
+          <Plus size={16} strokeWidth={2} /> Add FX
+        </button>
+        <button
+          type="button"
+          className="btn-secondary btn-sm inline-flex items-center gap-1.5 markets-add-index-thumb"
+          onClick={() => openCreate('index')}
+        >
+          <Plus size={16} strokeWidth={2} /> Add index
         </button>
         <button
           type="button"

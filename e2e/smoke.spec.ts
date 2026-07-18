@@ -131,6 +131,34 @@ test.describe('MyDSP smoke', () => {
     await expect(page.getByText(/Journal \/ Rules/i).first()).toBeVisible()
   })
 
+  test('Today and Settings thumb CTAs', async ({ page }) => {
+    await page.goto('/')
+    await expect(page.getByText(/Today|Overview|MyDSP/i).first()).toBeVisible({ timeout: 20_000 })
+    await expect(page.locator('.thumb-cta-bar').first()).toBeVisible()
+    await expect(page.locator('.thumb-cta-bar').getByRole('button', { name: /Sync now/i }).first()).toBeVisible()
+
+    await page.goto('/settings')
+    await expect(page.getByText(/Settings/i).first()).toBeVisible({ timeout: 20_000 })
+    await expect(page.locator('.thumb-cta-bar').first()).toBeVisible()
+    await expect(page.locator('.thumb-cta-bar').getByText(/Smoke/i).first()).toBeVisible()
+  })
+
+  test('News refresh=1 query is consumed', async ({ page }) => {
+    await page.goto('/news?refresh=1')
+    await expect(page.getByRole('heading', { name: /News/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await expect(page).not.toHaveURL(/refresh=1/)
+  })
+
+  test('smoke PTR includes Settings Staking Planning', async ({ page }) => {
+    await page.goto('/smoke')
+    await expect(page.getByText(/PTR YouTube \/ Tax \/ Compare/i).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await expect(page.getByText(/Settings \/ Staking \/ Planning \/ Smoke/i).first()).toBeVisible()
+  })
+
   test('YouTube page uses Quote Worker for feeds', async ({ page }) => {
     await page.goto('/youtube')
     await expect(page.getByRole('heading', { name: /YouTube/i }).first()).toBeVisible({
