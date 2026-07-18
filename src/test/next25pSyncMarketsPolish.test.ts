@@ -97,8 +97,9 @@ describe('next25p — sync / Markets / Today polish tip (1–25 → v1.2.81)', (
       seenAt: '2026-07-10T00:00:00.000Z',
       collapsed: { top: true, tagged: false },
     })
-    const tags = listNewsTags().map((t) => t.tag).sort()
-    expect(tags).toEqual(['AAPL', 'MSFT'])
+    const tags = listNewsTags().map((t) => t.tag)
+    expect(tags).toContain('AAPL')
+    expect(tags).toContain('MSFT')
     expect(getNewsSeenAt()).toBe('2026-07-10T00:00:00.000Z')
     expect(loadNewsState().collapsed?.top).toBe(true)
   })

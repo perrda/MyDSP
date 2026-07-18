@@ -170,8 +170,8 @@ describe('next25k — sync / Markets / Today polish tip (1–25 → v1.2.80)', (
     expect(dash).toMatch(/\/todos\?focus=/)
     expect(dash).toMatch(/today-news-refresh-open/)
     expect(dash).toMatch(/today-youtube-refresh-open/)
-    expect(dash).toMatch(/mydsp-news-refresh/)
-    expect(dash).toMatch(/mydsp-youtube-refresh/)
+    expect(dash).toMatch(/\/news\?refresh=1/)
+    expect(dash).toMatch(/\/youtube\?refresh=1/)
   })
 
   it('18–19: Bill Mark paid + interview next-action', () => {
