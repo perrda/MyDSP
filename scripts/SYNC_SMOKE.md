@@ -18,6 +18,7 @@ Run after every production deploy (`npm run deploy` + `npm run deploy:sync` if s
 9. **Long-press sync chip** — on phone, long-press the sync strip → Sync now + success flash (same as Settings → Sync now)
 10. **What arrived** — after a successful pull, a toast summarizes new todos/jobs/goals when highlights exist
 11. **News / YouTube cross-device** — refresh News on A (Yahoo headlines) → B shows last-good headlines before B refreshes; add a YouTube favourite on A → B gains the channel + cached videos after sync (upload-alert toggle stays per device)
+12. **Bottom nav + filter prefs** — reorder middle bottom-nav tabs on A → B matches after sync; set Todos Due today and Jobs Needs follow-up on A → B shows the same quick filters
 
 ## Pass criteria
 All steps succeed without clearing site data. If any fail, capture the Sync activity log (Settings → Devices / Sync) before retrying.

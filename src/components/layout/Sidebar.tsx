@@ -47,6 +47,7 @@ import {
   saveNavLayout,
   type NavLayout,
 } from '../../storage/navOrder'
+import { dueWithinDays } from '../../domain/recurringDueStrip'
 import { newsUnreadFromCache } from '../../storage/newsStore'
 import { youtubeUnreadFromCache } from '../../storage/youtubeStore'
 import { prefetchRouteChunk } from '../../hooks/useIdlePrefetch'
@@ -112,6 +113,10 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const [youtubeUnread, setYoutubeUnread] = useState(() => youtubeUnreadFromCache())
   const { pathname, hash } = useLocation()
   const { data } = usePortfolio()
+  const billsDueSoon = useMemo(
+    () => dueWithinDays(data.recurringTransactions, 7).length > 0,
+    [data.recurringTransactions],
+  )
   const taxLabel =
     (data.settings.taxResidency || 'GB') === 'GB' ? 'UK CGT' : `Tax (${data.settings.taxResidency})`
   const syncActive = pathname === '/settings' && hash === '#sync'
@@ -207,6 +212,12 @@ export function Sidebar({ open, onClose }: SidebarProps) {
               <span
                 className="sidebar-unread"
                 aria-label={`${youtubeUnread} unread videos`}
+              />
+            ) : null}
+            {(link.to === '/recurring' || link.to === '/spending') && billsDueSoon ? (
+              <span
+                className="sidebar-unread sidebar-bills-due"
+                aria-label="Bills due within 7 days"
               />
             ) : null}
           </span>

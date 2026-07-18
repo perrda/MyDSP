@@ -300,9 +300,9 @@ export function SmokePage() {
       {
         id: 'ptr-routes',
         label:
-          'PTR YouTube / Tax / Compare / Todos / Jobs / Spending / Liabilities / Goals / Trips / History / Budgets / Import / Family / Documents',
+          'PTR YouTube / Tax / Compare / Todos / Jobs / Spending / Liabilities / Goals / Trips / History / Budgets / Import / Family / Documents / Journal / Rules',
         detail:
-          'Pull-to-refresh is enabled on YouTube, Tax, Compare, Todos, Jobs, Spending, Liabilities, Goals, Trips, History, Budgets, Import, Family, and Documents (plus Today / Markets / News)',
+          'Pull-to-refresh is enabled on YouTube, Tax, Compare, Todos, Jobs, Spending, Liabilities, Goals, Trips, History, Budgets, Import, Family, Documents, Journal, and Rules (plus Today / Markets / News)',
         to: '/youtube',
         done: true,
       },

@@ -354,6 +354,7 @@ export function setMarketsCollapsed(
 ): void {
   const state = loadMarketsState()
   state.collapsed = { ...state.collapsed, [section]: collapsed }
+  touchPrefs(state)
   saveMarketsState(state)
 }
 
@@ -482,29 +483,6 @@ export function importMarketsFromBackup(raw: unknown): void {
     byKey.set(k, { ...t, sortOrder: nextOrder++ })
   }
 
-  const collapsedLocal = local?.collapsed
-  const collapsedRemote = parsed.collapsed
-  const collapsed: MarketsCollapsed = {
-    crypto: Boolean(collapsedRemote?.crypto ?? collapsedLocal?.crypto),
-    equities: Boolean(collapsedRemote?.equities ?? collapsedLocal?.equities),
-    commodities: Boolean(
-      (collapsedRemote as MarketsCollapsed | undefined)?.commodities ??
-        (collapsedLocal as MarketsCollapsed | undefined)?.commodities,
-    ),
-    indices: Boolean(
-      (collapsedRemote as MarketsCollapsed | undefined)?.indices ??
-        (collapsedLocal as MarketsCollapsed | undefined)?.indices,
-    ),
-    fx: Boolean(
-      (collapsedRemote as MarketsCollapsed | undefined)?.fx ??
-        (collapsedLocal as MarketsCollapsed | undefined)?.fx,
-    ),
-    crosses: Boolean(
-      (collapsedRemote as MarketsCollapsed | undefined)?.crosses ??
-        (collapsedLocal as MarketsCollapsed | undefined)?.crosses,
-    ),
-  }
-
   const remoteOrder = normalizeSectionOrder((parsed as MarketsState).sectionOrder)
   const localOrder = normalizeSectionOrder((local as MarketsState | null)?.sectionOrder)
   const remotePrefsAt = Date.parse((parsed as MarketsState).prefsUpdatedAt || '') || 0
@@ -519,14 +497,27 @@ export function importMarketsFromBackup(raw: unknown): void {
       ? remoteOrder
       : localOrder
 
+  const collapsedLocal = local?.collapsed
+  const collapsedRemote = parsed.collapsed
+  const collapsedSrc = preferRemotePrefs ? collapsedRemote : collapsedLocal ?? collapsedRemote
+  const collapsed: MarketsCollapsed = {
+    crypto: Boolean(collapsedSrc?.crypto),
+    equities: Boolean(collapsedSrc?.equities),
+    commodities: Boolean((collapsedSrc as MarketsCollapsed | undefined)?.commodities),
+    indices: Boolean((collapsedSrc as MarketsCollapsed | undefined)?.indices),
+    fx: Boolean((collapsedSrc as MarketsCollapsed | undefined)?.fx),
+    crosses: Boolean((collapsedSrc as MarketsCollapsed | undefined)?.crosses),
+  }
+
   const density: MarketsDensity = preferRemotePrefs
     ? (parsed as MarketsState).density === 'compact'
       ? 'compact'
       : 'comfortable'
-    : (local as MarketsState | null)?.density === 'compact' ||
-        (parsed as MarketsState).density === 'compact'
+    : (local as MarketsState | null)?.density === 'compact'
       ? 'compact'
-      : 'comfortable'
+      : (parsed as MarketsState).density === 'compact' && localPrefsAt === 0
+        ? 'compact'
+        : 'comfortable'
   const timeframeRaw = preferRemotePrefs
     ? (parsed as MarketsState).timeframe
     : ((local as MarketsState | null)?.timeframe ?? (parsed as MarketsState).timeframe)

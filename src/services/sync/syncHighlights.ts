@@ -104,6 +104,7 @@ export type WorkspaceExtrasFlags = {
   newsFilter?: boolean
   todosQuickFilter?: boolean
   jobsFilter?: boolean
+  bottomNavSlots?: boolean
   markets?: boolean
   news?: boolean
   youtube?: boolean
@@ -125,6 +126,7 @@ const EXTRAS_LABELS: Array<[keyof WorkspaceExtrasFlags, string]> = [
   ['newsFilter', 'News filter'],
   ['todosQuickFilter', 'Todos quick filter'],
   ['jobsFilter', 'Jobs filter'],
+  ['bottomNavSlots', 'Bottom nav slots'],
   ['markets', 'Markets watchlist'],
   ['news', 'News tags'],
   ['youtube', 'YouTube channels'],
@@ -158,6 +160,7 @@ export function workspaceExtrasFlagsFromPreview(extras: {
   newsFilter?: unknown
   todosQuickFilter?: unknown
   jobsFilter?: unknown
+  bottomNavSlots?: unknown
   markets?: unknown
   news?: unknown
   youtube?: unknown
@@ -179,6 +182,7 @@ export function workspaceExtrasFlagsFromPreview(extras: {
     newsFilter: extras.newsFilter != null,
     todosQuickFilter: extras.todosQuickFilter != null,
     jobsFilter: extras.jobsFilter != null,
+    bottomNavSlots: extras.bottomNavSlots != null,
     markets: extras.markets != null,
     news: extras.news != null,
     youtube: extras.youtube != null,
@@ -222,6 +226,10 @@ export function collectSyncHighlights(
         'spending',
         (remote.spending ?? []).map((t) => t.id),
       )
+      bump(
+        'journal',
+        (remote.journal ?? []).map((t) => t.id),
+      )
       continue
     }
     bump('todoItems', diffNewIds(local.todoItems ?? [], remote.todoItems ?? []))
@@ -229,6 +237,7 @@ export function collectSyncHighlights(
     bump('jobApplications', diffNewIds(local.jobApplications ?? [], remote.jobApplications ?? []))
     bump('goals', diffNewIds(local.goals ?? [], remote.goals ?? []))
     bump('spending', diffNewIds(local.spending ?? [], remote.spending ?? []))
+    bump('journal', diffNewIds(local.journal ?? [], remote.journal ?? []))
   }
   return out
 }

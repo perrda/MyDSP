@@ -258,6 +258,7 @@ export interface MergePreview {
     newsFilter?: unknown
     todosQuickFilter?: unknown
     jobsFilter?: unknown
+    bottomNavSlots?: unknown
   }
 }
 
@@ -665,6 +666,7 @@ async function decryptEnvelope(
     if (a.newsFilter != null) extras.newsFilter = a.newsFilter
     if (a.todosQuickFilter != null) extras.todosQuickFilter = a.todosQuickFilter
     if (a.jobsFilter != null) extras.jobsFilter = a.jobsFilter
+    if (a.bottomNavSlots != null) extras.bottomNavSlots = a.bottomNavSlots
     if (Object.keys(extras).length > 0) workspaceExtras = extras
   }
 
@@ -851,6 +853,10 @@ export async function applyMergePreview(
 
   if (preview.workspaceExtras?.navLayout != null) {
     importNavLayoutFromBackup(preview.workspaceExtras.navLayout)
+  }
+  if (preview.workspaceExtras?.bottomNavSlots != null) {
+    const { importBottomNavSlotsFromBackup } = await import('../../storage/bottomNavSlots')
+    importBottomNavSlotsFromBackup(preview.workspaceExtras.bottomNavSlots)
   }
   if (preview.workspaceExtras?.markets != null) {
     importMarketsFromBackup(preview.workspaceExtras.markets)

@@ -59,7 +59,7 @@ describe('next25 markets / money clarity', () => {
   it('wires As-of sticky, notes UI, FX explainer, cost·P&L, tax exports panel', () => {
     const markets = readFileSync(resolve(__dirname, '../pages/MarketsPage.tsx'), 'utf8')
     expect(markets).toMatch(/markets-section-asof/)
-    expect(markets).toMatch(/sectionAsOfLabel/)
+    expect(markets).toMatch(/sectionAsOfIso/)
     expect(markets).toMatch(/notes/)
     expect(markets).toMatch(/fxExplainerOpen/)
     expect(markets).toMatch(/GBP storage/)
@@ -80,6 +80,6 @@ describe('next25 markets / money clarity', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8')) as {
       version: string
     }
-    expect(pkg.version).toBe('1.2.79')
+    expect(pkg.version).toBe('1.2.80')
   })
 })

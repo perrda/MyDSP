@@ -30,6 +30,7 @@ import {
 import { dueWithinDays } from '../domain/recurringDueStrip'
 import { markRecurringPaid, skipRecurringOccurrence } from '../domain/recurringActions'
 import { monthlyRecurringTotal } from '../domain/recurringHelpers'
+import { needsFollowUp } from '../domain/jobs'
 import { isDueToday, isOverdue } from '../domain/todos'
 import { snoozeDueDateOneDay } from '../domain/todoSnooze'
 import { sparklineTrendFromSeries } from '../domain/sparklineSeries'
@@ -135,9 +136,10 @@ const ALERT_BORDER: Record<string, string> = {
 
 const QUICK_PRIMARY = { to: '/markets', label: 'Markets', icon: CandlestickChart }
 const QUICK_SECONDARY = [
-  { to: '/todos', label: "To Do's" },
-  { to: '/liabilities', label: 'Liabilities' },
-  { to: '/goals', label: 'Goals' },
+  { to: '/todos', label: "To Do's", badge: 'todos' as const },
+  { to: '/jobs', label: 'Jobs', badge: 'jobs' as const },
+  { to: '/liabilities', label: 'Liabilities', badge: null },
+  { to: '/goals', label: 'Goals', badge: null },
 ] as const
 
 const ISA_ALLOWANCE_GBP = 20_000
@@ -336,6 +338,19 @@ export function Dashboard() {
       .filter((t) => isDueToday(t) || isOverdue(t))
       .slice(0, 4)
   }, [data.todoItems])
+
+  const todayTodosDueCount = useMemo(
+    () =>
+      (data.todoItems ?? []).filter(
+        (t) => t.status !== 'done' && t.status !== 'archived' && (isDueToday(t) || isOverdue(t)),
+      ).length,
+    [data.todoItems],
+  )
+
+  const jobsFollowUpCount = useMemo(
+    () => (data.jobApplications ?? []).filter((a) => needsFollowUp(a)).length,
+    [data.jobApplications],
+  )
 
   const marketsCount = useMemo(() => listMarketTickers().length, [syncStatus.lastAt])
 
@@ -619,6 +634,21 @@ export function Dashboard() {
       todoItems: (prev.todoItems ?? []).map((i) =>
         i.id === id ? { ...i, dueDate, updatedAt: now } : i,
       ),
+    }))
+  }
+
+  const markInterviewDone = (jobId: number) => {
+    const now = new Date().toISOString()
+    setData((prev) => ({
+      ...prev,
+      jobApplications: (prev.jobApplications ?? []).map((app) => {
+        if (app.id !== jobId) return app
+        const interviews = (app.interviews ?? []).map((iv) => {
+          if (iv.completedAt || (iv.outcome && iv.outcome !== 'pending')) return iv
+          return { ...iv, outcome: 'passed' as const, completedAt: now }
+        })
+        return { ...app, interviews, updatedAt: now }
+      }),
     }))
   }
 
@@ -999,21 +1029,37 @@ export function Dashboard() {
             }
             if (card.kind === 'interview') {
               return (
-                <Link
+                <div
                   key={`interview-${card.jobId}`}
-                  to={`/jobs/${card.jobId}`}
-                  className="today-next-action-card today-interview-next-action surface p-4 md:p-5 rounded-xl md:rounded-none shadow-sm md:shadow-none block group"
+                  className="today-next-action-card today-interview-next-action surface p-4 md:p-5 rounded-xl md:rounded-none shadow-sm md:shadow-none"
                 >
-                  <p className="text-[11px] uppercase tracking-wider text-text-subtle mb-1">
-                    Interview due
-                  </p>
-                  <p className="text-base md:text-lg font-bold tracking-tight group-hover:text-accent line-clamp-1">
-                    {card.companyName}
-                  </p>
-                  <p className="text-xs text-text-muted mt-1 font-light line-clamp-1">
-                    {card.jobTitle} · {formatDate(card.scheduledDate)}
-                  </p>
-                </Link>
+                  <Link to={`/jobs/${card.jobId}`} className="block group">
+                    <p className="text-[11px] uppercase tracking-wider text-text-subtle mb-1">
+                      Interview due
+                    </p>
+                    <p className="text-base md:text-lg font-bold tracking-tight group-hover:text-accent line-clamp-1">
+                      {card.companyName}
+                    </p>
+                    <p className="text-xs text-text-muted mt-1 font-light line-clamp-1">
+                      {card.jobTitle} · {formatDate(card.scheduledDate)}
+                    </p>
+                  </Link>
+                  <div className="today-interview-actions today-focus-actions flex flex-wrap gap-2 mt-3">
+                    <button
+                      type="button"
+                      className="btn-primary btn-sm"
+                      onClick={() => markInterviewDone(card.jobId)}
+                    >
+                      Mark done
+                    </button>
+                    <Link
+                      to={`/jobs/${card.jobId}`}
+                      className="btn-ghost btn-sm inline-flex items-center"
+                    >
+                      Open
+                    </Link>
+                  </div>
+                </div>
               )
             }
             if (card.kind === 'bill') {
@@ -1247,9 +1293,19 @@ export function Dashboard() {
             <Link
               key={l.to}
               to={l.to}
-              className="text-sm font-semibold text-accent hover:underline"
+              className="text-sm font-semibold text-accent hover:underline inline-flex items-center gap-1.5"
             >
               {l.label} →
+              {l.badge === 'todos' && todayTodosDueCount > 0 ? (
+                <span className="today-todos-due-badge inline-flex items-center text-[11px] font-bold tabular-nums px-2 py-0.5 bg-accent/15 text-accent border border-accent/30 rounded-full">
+                  {todayTodosDueCount}
+                </span>
+              ) : null}
+              {l.badge === 'jobs' && jobsFollowUpCount > 0 ? (
+                <span className="today-jobs-follow-up-badge inline-flex items-center text-[11px] font-bold tabular-nums px-2 py-0.5 bg-accent/15 text-accent border border-accent/30 rounded-full">
+                  {jobsFollowUpCount}
+                </span>
+              ) : null}
             </Link>
           ))}
           <div className="inline-flex flex-wrap items-center gap-1.5">

@@ -104,6 +104,12 @@ export function ComparePage() {
   const [inviteOpen, setInviteOpen] = useState(false)
   const [digestOpen, setDigestOpen] = useState(false)
   const [digestInput, setDigestInput] = useState<WeeklyDigestInput | null>(null)
+  const [relativeTick, setRelativeTick] = useState(0)
+
+  useEffect(() => {
+    const id = window.setInterval(() => setRelativeTick((n) => n + 1), 30_000)
+    return () => window.clearInterval(id)
+  }, [])
 
   useEffect(() => {
     setSelected((prev) => {
@@ -164,6 +170,7 @@ export function ComparePage() {
   const compareSyncAsOf = useMemo(() => {
     void scanToken
     void filling
+    void relativeTick
     const quotes = loadMarketQuotesCache()
     const tickers = listMarketTickers()
     let newest = 0
@@ -184,11 +191,12 @@ export function ComparePage() {
     if (!updatedAt) return null
     const age = quoteAgeLabel(updatedAt)
     return age ? `Holdings from last synced · ${age}` : 'Holdings from last synced'
-  }, [scanToken, filling])
+  }, [scanToken, filling, relativeTick])
 
   const quoteSlaChip = useMemo(() => {
     void scanToken
     void filling
+    void relativeTick
     const list = [...loadMarketQuotesCache().values()].filter((q) => q.last > 0)
     if (!hasStaleSyncedQuotes(list)) return null
     let oldest = 0
@@ -199,7 +207,7 @@ export function ComparePage() {
     }
     if (oldest <= QUOTE_FRESHNESS_SLA_MS) return null
     return `Synced quotes past ${formatSlaAge(QUOTE_FRESHNESS_SLA_MS)} SLA · oldest ${formatSlaAge(oldest)}`
-  }, [scanToken, filling])
+  }, [scanToken, filling, relativeTick])
 
   const weekSnap = useMemo(() => {
     const all = buildPortfolioComparison()

@@ -260,7 +260,7 @@ function fxTriangleSuggestion(
 }
 
 /** Freshest quote `updatedAt` in the section, else Markets `lastRefreshAt`. */
-function sectionAsOfLabel(
+function sectionAsOfIso(
   tickers: MarketTicker[],
   quotes: Map<string, MarketQuote>,
   lastRefreshAt?: string,
@@ -277,12 +277,27 @@ function sectionAsOfLabel(
     if (Number.isFinite(ms)) freshest = ms
   }
   if (!freshest) return null
-  return `As of ${new Date(freshest).toLocaleString('en-GB', {
+  return new Date(freshest).toISOString()
+}
+
+function formatMarketsRelative(iso: string): string {
+  const t = Date.parse(iso)
+  if (!Number.isFinite(t)) return ''
+  const mins = Math.round((Date.now() - t) / 60_000)
+  if (mins < 1) return 'just now'
+  if (mins < 60) return `${mins}m ago`
+  const hrs = Math.round(mins / 60)
+  if (hrs < 48) return `${hrs}h ago`
+  return `${Math.round(hrs / 24)}d ago`
+}
+
+function formatMarketsAbsolute(iso: string): string {
+  return new Date(iso).toLocaleString('en-GB', {
     day: 'numeric',
     month: 'short',
     hour: '2-digit',
     minute: '2-digit',
-  })}`
+  })
 }
 
 function sectionTotals(
@@ -536,7 +551,13 @@ export function MarketsPage() {
   const [searchText, setSearchText] = useState('')
   const [yieldSort, setYieldSort] = useState(() => getMarketsYieldSort())
   const [online, setOnline] = useState(() => isOnline())
+  const [relativeTick, setRelativeTick] = useState(0)
   const [activeJumpSection, setActiveJumpSection] = useState<SectionKey | null>(null)
+
+  useEffect(() => {
+    const id = window.setInterval(() => setRelativeTick((n) => n + 1), 30_000)
+    return () => window.clearInterval(id)
+  }, [])
   const applyYieldSort = useCallback((next: boolean) => {
     setYieldSort(next)
     setMarketsYieldSort(next)
@@ -1226,7 +1247,10 @@ export function MarketsPage() {
     const totals = sectionTotals(items, quotes, holdings)
     const isCollapsed = searchQuery ? false : collapsed[section]
     const isRateSection = section === 'fx' || section === 'crosses' || section === 'indices'
-    const asOf = sectionAsOfLabel(items, quotes, loadMarketsState().lastRefreshAt)
+    const asOfIso = sectionAsOfIso(items, quotes, loadMarketsState().lastRefreshAt)
+    const asOf = asOfIso
+      ? `Updated ${formatMarketsRelative(asOfIso)}${relativeTick >= 0 ? '' : ''} · ${formatMarketsAbsolute(asOfIso)}`
+      : null
     const sectionBusy = sectionRefreshing === section || refreshing
 
     return (
@@ -1587,9 +1611,23 @@ export function MarketsPage() {
                               )
                             })()}
                           {t.tag ? (
-                            <span className="text-[10px] uppercase tracking-wider text-text-subtle">
-                              {t.tag}
-                            </span>
+                            showMarketsTagYieldChips ? (
+                              <button
+                                type="button"
+                                className="markets-row-tag-filter text-[10px] uppercase tracking-wider text-accent font-semibold hover:underline"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setTagFilter(t.tag!)
+                                  setMarketsTagFilter(t.tag!)
+                                }}
+                              >
+                                {t.tag}
+                              </button>
+                            ) : (
+                              <span className="text-[10px] uppercase tracking-wider text-text-subtle">
+                                {t.tag}
+                              </span>
+                            )
                           ) : null}
                           {ownedRoute ? (
                             <Link
@@ -1732,6 +1770,22 @@ export function MarketsPage() {
                                 label: 'Edit',
                                 onClick: () => openEdit(t),
                               },
+                              ...(t.kind === 'commodity'
+                                ? [
+                                    {
+                                      id: 'paper-nw',
+                                      label: t.includeInNetWorth
+                                        ? 'Exclude from NW'
+                                        : 'Include in NW',
+                                      onClick: () => {
+                                        updateMarketTicker(t.id, {
+                                          includeInNetWorth: !t.includeInNetWorth,
+                                        })
+                                        reloadList()
+                                      },
+                                    },
+                                  ]
+                                : []),
                               {
                                 id: 'remove',
                                 label: 'Remove',
@@ -1746,6 +1800,25 @@ export function MarketsPage() {
                             onClick={(e) => e.stopPropagation()}
                             onKeyDown={(e) => e.stopPropagation()}
                           >
+                            {t.kind === 'commodity' ? (
+                              <OverflowMenu
+                                label={`Paper NW for ${t.symbol}`}
+                                items={[
+                                  {
+                                    id: 'paper-nw',
+                                    label: t.includeInNetWorth
+                                      ? 'Exclude from NW'
+                                      : 'Include in NW',
+                                    onClick: () => {
+                                      updateMarketTicker(t.id, {
+                                        includeInNetWorth: !t.includeInNetWorth,
+                                      })
+                                      reloadList()
+                                    },
+                                  },
+                                ]}
+                              />
+                            ) : null}
                             <button
                               type="button"
                               className="btn-ghost btn-sm p-2 min-h-11 min-w-11"
@@ -2020,7 +2093,35 @@ export function MarketsPage() {
         </div>
         <nav
           className="markets-section-jump-chips"
+          role="tablist"
           aria-label="Jump to market section"
+          onKeyDown={(e) => {
+            const idx = Math.max(
+              0,
+              sectionOrder.indexOf(activeJumpSection ?? sectionOrder[0]!),
+            )
+            let next = idx
+            if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+              next = (idx + 1) % sectionOrder.length
+            } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+              next = (idx - 1 + sectionOrder.length) % sectionOrder.length
+            } else if (e.key === 'Home') {
+              next = 0
+            } else if (e.key === 'End') {
+              next = sectionOrder.length - 1
+            } else {
+              return
+            }
+            e.preventDefault()
+            const section = sectionOrder[next]!
+            setActiveJumpSection(section)
+            document
+              .getElementById(`markets-jump-${section}`)
+              ?.focus()
+            document
+              .getElementById(`markets-section-${section}`)
+              ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }}
         >
           {sectionOrder.map((section) => {
             const active = activeJumpSection === section
@@ -2036,10 +2137,14 @@ export function MarketsPage() {
             return (
               <a
                 key={section}
+                id={`markets-jump-${section}`}
                 href={`#markets-section-${section}`}
+                role="tab"
+                tabIndex={active || (!activeJumpSection && section === sectionOrder[0]) ? 0 : -1}
                 className={`markets-section-jump-chip btn-ghost btn-sm${
                   active ? ' markets-section-jump-chip--active border-accent text-accent' : ''
                 }${unavailableCount > 0 ? ' markets-jump-unavailable' : ''}`}
+                aria-selected={active ? true : false}
                 aria-current={active ? 'true' : undefined}
                 aria-label={
                   unavailableCount > 0 ? `${ariaLabel} — retry section` : ariaLabel
@@ -2566,6 +2671,26 @@ export function MarketsPage() {
           onClick={() => openCreate('crypto')}
         >
           <Plus size={16} strokeWidth={2} /> Add crypto
+        </button>
+        <button
+          type="button"
+          className={`btn-ghost btn-sm markets-density-thumb ${
+            density === 'compact' ? 'border-accent text-accent' : ''
+          }`}
+          aria-pressed={density === 'compact'}
+          aria-label={
+            density === 'comfortable'
+              ? 'Switch to compact density'
+              : 'Switch to comfortable density'
+          }
+          onClick={() => {
+            const next: MarketsDensity =
+              density === 'comfortable' ? 'compact' : 'comfortable'
+            setMarketsDensity(next)
+            setDensity(next)
+          }}
+        >
+          {density === 'comfortable' ? 'Compact' : 'Comfortable'}
         </button>
       </div>
       <div className="thumb-cta-bar-spacer" aria-hidden />
