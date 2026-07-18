@@ -184,6 +184,50 @@ export async function probeQuoteWorkerYoutubeAllowlist(
 }
 
 /**
+ * Soft probe — Google News host still allowlisted even when upstream is flaky.
+ * Upstream 4xx/5xx still counts as allowlisted — only 403 "Host not allowed" fails.
+ */
+export async function probeQuoteWorkerNewsGoogleAllowlist(
+  baseUrl: string = DEFAULT_QUOTE_WORKER_URL,
+  fetchImpl: typeof fetch = fetch,
+): Promise<ReachabilityResult> {
+  const root = baseUrl.replace(/\/$/, '')
+  const probe = `${root}/quote?url=${encodeURIComponent(NEWS_GOOGLE_ALLOWLIST_PROBE)}`
+  try {
+    const res = await fetchImpl(probe, {
+      method: 'GET',
+      mode: 'cors',
+      cache: 'no-store',
+      signal: AbortSignal.timeout(10000),
+    })
+    if (res.status === 403) {
+      let detail = `HTTP 403 — Google News host may not be allowlisted`
+      try {
+        const body = (await res.json()) as { error?: string }
+        if (body.error) detail = body.error
+      } catch {
+        /* ignore */
+      }
+      return { ok: false, status: 403, detail }
+    }
+    if (res.status > 0) {
+      return {
+        ok: true,
+        status: res.status,
+        detail: `Google News allowlisted (Worker HTTP ${res.status})`,
+      }
+    }
+    return { ok: false, status: 0, detail: 'Worker returned empty status' }
+  } catch (e) {
+    return {
+      ok: false,
+      status: 0,
+      detail: e instanceof Error ? e.message : 'Google News allowlist probe failed',
+    }
+  }
+}
+
+/**
  * Confirm Quote Worker can proxy Yahoo Finance RSS (primary News source).
  * Requires HTTP 200 + feed-shaped body — not merely "not 403".
  */

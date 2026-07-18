@@ -131,11 +131,17 @@ export function NewsPage() {
   const [taggedVisible, setTaggedVisible] = useState(NEWS_PAGE)
   const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
   const [online, setOnline] = useState(() => isOnline())
+  const [relativeTick, setRelativeTick] = useState(0)
   const inFlight = useRef(false)
 
   useEffect(() => {
     setTaggedVisible(NEWS_PAGE)
   }, [filterTag])
+
+  useEffect(() => {
+    const id = window.setInterval(() => setRelativeTick((n) => n + 1), 30_000)
+    return () => window.clearInterval(id)
+  }, [])
 
   const applyCacheToState = useCallback(() => {
     const cached = loadNewsArticlesCache()
@@ -306,7 +312,7 @@ export function NewsPage() {
           {refreshing
             ? 'Updating headlines…'
             : lastAt
-              ? `Updated ${formatRelative(lastAt)} · ${formatDateTime(lastAt)}`
+              ? `Updated ${formatRelative(lastAt)}${relativeTick >= 0 ? '' : ''} · ${formatDateTime(lastAt)}`
               : 'Headlines not loaded yet'}
           {error && !cachedMode ? ` · ${error}` : ''}
           {statusMsg ? ` · ${statusMsg}` : ''}
@@ -537,12 +543,14 @@ export function NewsPage() {
                     const portfolio = loadPortfolio()
                     const existing = new Set(listNewsTags().map((t) => t.tag.toUpperCase()))
                     let added = 0
+                    let firstAdded: string | null = null
                     for (const e of portfolio.equities) {
                       const sym = e.symbol.trim().toUpperCase()
                       if (!sym || existing.has(sym)) continue
                       try {
                         addNewsTag({ tag: sym, label: e.name })
                         existing.add(sym)
+                        if (!firstAdded) firstAdded = sym
                         added++
                       } catch {
                         /* ignore */
@@ -554,12 +562,17 @@ export function NewsPage() {
                       try {
                         addNewsTag({ tag: sym, label: c.name })
                         existing.add(sym)
+                        if (!firstAdded) firstAdded = sym
                         added++
                       } catch {
                         /* ignore */
                       }
                     }
                     setTags(listNewsTags())
+                    if (firstAdded) {
+                      setFilterTag(firstAdded)
+                      saveNewsFilterTag(firstAdded)
+                    }
                     setStatusMsg(
                       added > 0
                         ? `Added ${added} meta-tag${added === 1 ? '' : 's'} from Owned holdings`

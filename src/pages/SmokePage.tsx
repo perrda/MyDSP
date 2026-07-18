@@ -21,6 +21,7 @@ import {
   checkSyncUrlReachable,
   pingQuoteWorker,
   probeQuoteWorkerNewsAllowlist,
+  probeQuoteWorkerNewsGoogleAllowlist,
   probeQuoteWorkerYoutubeAllowlist,
 } from '../domain/smokeChecks'
 import { loadIsaRemainingDraft } from '../domain/isaPrefs'
@@ -39,6 +40,7 @@ type CheckId =
   | 'quote-identity'
   | 'quote-allowlist'
   | 'quote-news-allowlist'
+  | 'quote-news-google-allowlist'
   | 'isa-remaining'
   | 'ptr-routes'
   | 'sync-url'
@@ -175,10 +177,11 @@ export function SmokePage() {
     setBusy(true)
     const backupOk = (await backupExistsIndexed()) || backupExistsLocal()
     const cfg = loadSyncConfig()
-    const [quote, allowlist, newsAllowlist, syncUrl] = await Promise.all([
+    const [quote, allowlist, newsAllowlist, newsGoogleAllowlist, syncUrl] = await Promise.all([
       pingQuoteWorker(),
       probeQuoteWorkerYoutubeAllowlist(),
       probeQuoteWorkerNewsAllowlist(),
+      probeQuoteWorkerNewsGoogleAllowlist(),
       cfg.remoteUrl.trim()
         ? checkSyncUrlReachable(cfg.remoteUrl)
         : Promise.resolve({
@@ -281,6 +284,13 @@ export function SmokePage() {
         done: newsAllowlist.ok,
       },
       {
+        id: 'quote-news-google-allowlist',
+        label: 'Worker Google News soft allowlist',
+        detail: newsGoogleAllowlist.detail || 'Google News host allowlisted (soft)',
+        to: '/news',
+        done: newsGoogleAllowlist.ok,
+      },
+      {
         id: 'isa-remaining',
         label: 'ISA remaining override',
         detail: isaRemainingConfigured().detail,
@@ -290,9 +300,9 @@ export function SmokePage() {
       {
         id: 'ptr-routes',
         label:
-          'PTR YouTube / Tax / Compare / Todos / Jobs / Spending / Liabilities / Goals / Trips / History / Budgets / Import',
+          'PTR YouTube / Tax / Compare / Todos / Jobs / Spending / Liabilities / Goals / Trips / History / Budgets / Import / Family / Documents',
         detail:
-          'Pull-to-refresh is enabled on YouTube, Tax, Compare, Todos, Jobs, Spending, Liabilities, Goals, Trips, History, Budgets, and Import (plus Today / Markets / News)',
+          'Pull-to-refresh is enabled on YouTube, Tax, Compare, Todos, Jobs, Spending, Liabilities, Goals, Trips, History, Budgets, Import, Family, and Documents (plus Today / Markets / News)',
         to: '/youtube',
         done: true,
       },

@@ -256,6 +256,8 @@ export interface MergePreview {
     portfolioConcentration?: unknown
     spendingFilters?: unknown
     newsFilter?: unknown
+    todosQuickFilter?: unknown
+    jobsFilter?: unknown
   }
 }
 
@@ -661,6 +663,8 @@ async function decryptEnvelope(
     if (a.portfolioConcentration != null) extras.portfolioConcentration = a.portfolioConcentration
     if (a.spendingFilters != null) extras.spendingFilters = a.spendingFilters
     if (a.newsFilter != null) extras.newsFilter = a.newsFilter
+    if (a.todosQuickFilter != null) extras.todosQuickFilter = a.todosQuickFilter
+    if (a.jobsFilter != null) extras.jobsFilter = a.jobsFilter
     if (Object.keys(extras).length > 0) workspaceExtras = extras
   }
 
@@ -911,6 +915,14 @@ export async function applyMergePreview(
   if (preview.workspaceExtras?.newsFilter != null) {
     const { importNewsFilterFromBackup } = await import('../../domain/newsFilterPrefs')
     importNewsFilterFromBackup(preview.workspaceExtras.newsFilter)
+  }
+  if (preview.workspaceExtras?.todosQuickFilter != null) {
+    const { importTodosQuickFilterFromBackup } = await import('../../domain/todosQuickFilterPrefs')
+    importTodosQuickFilterFromBackup(preview.workspaceExtras.todosQuickFilter)
+  }
+  if (preview.workspaceExtras?.jobsFilter != null) {
+    const { importJobsFilterFromBackup } = await import('../../domain/jobsFilterPrefs')
+    importJobsFilterFromBackup(preview.workspaceExtras.jobsFilter)
   }
 
   return { merged, conflicts: preview.conflicts, removedDupes: removed.length }

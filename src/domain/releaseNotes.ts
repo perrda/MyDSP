@@ -29,6 +29,24 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.79',
+    date: '2026-07-18',
+    bullets: [
+      {
+        text: 'Todos quick filter · Jobs follow-up filter sync LWW across devices',
+        to: '/settings#sync',
+      },
+      {
+        text: 'Markets jump retry · search select · Sync-prices report persists',
+        to: '/markets',
+      },
+      {
+        text: 'Today Mark all read · media trust · sidebar News/YT unread dots',
+        to: '/',
+      },
+    ],
+  },
+  {
     version: '1.2.78',
     date: '2026-07-18',
     bullets: [

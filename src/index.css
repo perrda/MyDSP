@@ -619,7 +619,8 @@ html.has-bottom-nav .floating-banner--toast {
 }
 
 .bottom-nav-unread,
-.bottom-nav-bills-due {
+.bottom-nav-bills-due,
+.sidebar-unread {
   position: absolute;
   top: -0.05rem;
   right: -0.2rem;
@@ -2567,13 +2568,14 @@ html.success-haptic-flash::after {
   min-height: 2.25rem;
 }
 
+.youtube-notify-chip {
+  white-space: nowrap;
+}
+
 @media (max-width: 767px) {
   .news-status-strip,
   .youtube-status-strip {
     gap: 0.35rem 0.5rem;
-  }
-  .youtube-notify-chip {
-    display: none;
   }
 }
 

@@ -73,9 +73,9 @@ npx wrangler deploy
 
 That’s it. Edits push about **4 seconds** after you change data (and pull first if another device updated cloud). Opening the app, returning to the tab, pull-to-refresh, or about **every 30 seconds** while open pulls newer cloud data.
 
-**What syncs:** portfolios + holdings, To Do's / Jobs, Favourites/nav layout, Markets **watchlist** (union merge), Markets **last-good quote cache** (prices show on another device before it refreshes), News tags + **last-good headlines cache**, YouTube channels + **video cache**, ISA remaining override, price-alert thresholds, Compare **week-Δ snapshots**, Digest **highlight edits**, Compare **selection**, Recurring **sort**, holdings **drift %**, portfolio **concentration %**, Spending **filters**, News **tag filter**, and full-backup extras.
+**What syncs:** portfolios + holdings, To Do's / Jobs, Favourites/nav layout, Markets **watchlist** (union merge), Markets **last-good quote cache** (prices show on another device before it refreshes), News tags + **last-good headlines cache**, YouTube channels + **video cache**, ISA remaining override, price-alert thresholds, Compare **week-Δ snapshots**, Digest **highlight edits**, Compare **selection**, Recurring **sort**, holdings **drift %**, portfolio **concentration %**, Spending **filters**, News **tag filter**, Todos **quick filter**, Jobs **filter** (incl. Needs follow-up), and full-backup extras.
 
-**What does not sync:** Finnhub (and other live provider) API keys, PIN / Face ID credentials, remembered passphrase storage, session-only provider health counters, launch path, UI panel open/collapsed prefs, Markets tag/Yield chip visibility, and settings recent jumps. Enter the Finnhub key on each device (Settings → Prices).
+**What does not sync:** Finnhub (and other live provider) API keys, PIN / Face ID credentials, remembered passphrase storage, session-only provider health counters, launch path, UI panel open/collapsed prefs, Markets tag/Yield chip visibility, YouTube upload-alert toggle, and settings recent jumps. Enter the Finnhub key on each device (Settings → Prices).
 
 ### Device-local prefs matrix
 
@@ -94,6 +94,9 @@ That’s it. Edits push about **4 seconds** after you change data (and pull firs
 | Portfolio concentration % | Yes | LWW fullArchive |
 | Spending filters | Yes | Query + category LWW |
 | News tag filter | Yes | LWW fullArchive |
+| Todos quick filter (Due today / High) | Yes | LWW fullArchive |
+| Jobs filter (Needs follow-up chip) | Yes | LWW fullArchive |
+| YouTube upload alert toggle | No | Notification category — device-local |
 | Finnhub / provider API keys | No | Enter on each device |
 | PIN / Face ID / unlock timeout | No | Security is device-local |
 | Remembered sync passphrase | No | Stored only in that browser |

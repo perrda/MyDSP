@@ -45,6 +45,10 @@ import {
 } from '../domain/todos'
 import { parseTodoQuickAdd } from '../domain/todoQuickAdd'
 import { moveTodoItemsToList } from '../domain/todoOcr'
+import {
+  loadTodosQuickFilter,
+  saveTodosQuickFilter,
+} from '../domain/todosQuickFilterPrefs'
 import { privacyClass, formatDate } from '../utils/format'
 
 const PRIORITY_COLORS = {
@@ -97,30 +101,6 @@ const SORT_SUMMARY: Record<TodoSortBy, string> = {
   'created-asc': 'Oldest',
   'title-asc': 'A–Z',
   'title-desc': 'Z–A',
-}
-
-const TODOS_QUICK_FILTER_KEY = 'mydsp_todos_quick_filter_v1'
-
-function loadTodosQuickFilter(): TodoFilterBy {
-  try {
-    const raw = localStorage.getItem(TODOS_QUICK_FILTER_KEY)
-    if (raw === 'today' || raw === 'high-priority') return raw
-  } catch {
-    /* ignore */
-  }
-  return 'all'
-}
-
-function saveTodosQuickFilter(next: TodoFilterBy): void {
-  try {
-    if (next === 'today' || next === 'high-priority') {
-      localStorage.setItem(TODOS_QUICK_FILTER_KEY, next)
-    } else {
-      localStorage.removeItem(TODOS_QUICK_FILTER_KEY)
-    }
-  } catch {
-    /* ignore */
-  }
 }
 
 /** Format YYYY-MM-DD due dates in local time without UTC day-shift. */

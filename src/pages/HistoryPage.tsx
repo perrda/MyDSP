@@ -141,6 +141,20 @@ export function HistoryPage() {
           }))
         }}
       />
+
+      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary history actions">
+        <button
+          type="button"
+          className="btn-primary btn-sm"
+          onClick={() => setData((prev) => appendManualSnapshot(prev))}
+        >
+          Snapshot now
+        </button>
+        <button type="button" className="btn-secondary btn-sm" onClick={exportCsv}>
+          Export CSV
+        </button>
+      </div>
+      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }

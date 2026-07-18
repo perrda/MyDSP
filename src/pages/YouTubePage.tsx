@@ -61,7 +61,13 @@ export function YouTubePage() {
   const [seenAt, setSeenAt] = useState(getYoutubeSeenAt)
   const [visibleCount, setVisibleCount] = useState(YT_PAGE)
   const [online, setOnline] = useState(() => isOnline())
+  const [relativeTick, setRelativeTick] = useState(0)
   const inFlight = useRef(false)
+
+  useEffect(() => {
+    const id = window.setInterval(() => setRelativeTick((n) => n + 1), 30_000)
+    return () => window.clearInterval(id)
+  }, [])
 
   const applyCacheToState = useCallback(() => {
     const cached = loadYoutubeVideosCache()
@@ -82,8 +88,8 @@ export function YouTubePage() {
     if (inFlight.current) return
     const list = listYoutubeChannels()
     if (list.length === 0) {
-      // Keep last-good videos if favourites were cleared temporarily; only clear UI when empty
-      setVideos([])
+      // Keep last-good videos when favourites are empty (cleared temporarily or sync lag)
+      applyCacheToState()
       try {
         notificationManager.syncCategory('youtube-uploads', [])
       } catch {
@@ -236,7 +242,7 @@ export function YouTubePage() {
           {refreshing
             ? ' · Updating…'
             : lastAt
-              ? ` · Updated ${formatRelative(lastAt)}`
+              ? ` · Updated ${formatRelative(lastAt)}${relativeTick >= 0 ? '' : ''} · ${formatDateTime(lastAt)}`
               : ''}
           {error && !cachedMode ? ` · ${error}` : ''}
         </span>
