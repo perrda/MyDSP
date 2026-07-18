@@ -411,6 +411,13 @@ export function GoalsPage() {
           setData((prev) => ({ ...prev, goals: prev.goals.filter((g) => g.id !== deleteId) }))
         }}
       />
+
+      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary goals actions">
+        <button type="button" className="btn-primary btn-sm" onClick={openCreate}>
+          Add goal
+        </button>
+      </div>
+      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }

@@ -29,6 +29,24 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.77',
+    date: '2026-07-18',
+    bullets: [
+      {
+        text: 'Recurring sort · drift/concentration · Spending/News filters sync LWW',
+        to: '/settings#sync',
+      },
+      {
+        text: 'Equities/Crypto thumb CTA · jump unavailable badges · tag/Yield toggle',
+        to: '/markets',
+      },
+      {
+        text: 'Spending/Liabilities/Goals/Trips thumb · Today debt pulse · Jobs follow-up',
+        to: '/',
+      },
+    ],
+  },
+  {
     version: '1.2.76',
     date: '2026-07-16',
     bullets: [

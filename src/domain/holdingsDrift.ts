@@ -5,7 +5,19 @@ import { lastSyncedHoldingPrices } from './lastSyncedHoldings'
 import { equityUnitPriceGbp } from './migrateEquityGbp'
 
 const KEY = 'mydsp_holdings_drift_pct'
+const META_KEY = 'mydsp_holdings_drift_pct_meta_v1'
 export const DEFAULT_HOLDINGS_DRIFT_PCT = 5
+
+export type HoldingsDriftBackup = {
+  pct: number
+  updatedAt: string
+}
+
+function clampDriftPct(pct: number): number {
+  return Number.isFinite(pct) && pct > 0
+    ? Math.min(50, Math.max(0.5, pct))
+    : DEFAULT_HOLDINGS_DRIFT_PCT
+}
 
 export function loadHoldingsDriftThresholdPct(): number {
   try {
@@ -19,10 +31,61 @@ export function loadHoldingsDriftThresholdPct(): number {
   }
 }
 
-export function saveHoldingsDriftThresholdPct(pct: number): void {
-  const n = Number.isFinite(pct) && pct > 0 ? Math.min(50, Math.max(0.5, pct)) : DEFAULT_HOLDINGS_DRIFT_PCT
+export function saveHoldingsDriftThresholdPct(
+  pct: number,
+  opts?: { markDirty?: boolean },
+): void {
+  const n = clampDriftPct(pct)
+  const next: HoldingsDriftBackup = { pct: n, updatedAt: new Date().toISOString() }
   try {
     localStorage.setItem(KEY, String(n))
+    localStorage.setItem(META_KEY, JSON.stringify(next))
+    window.dispatchEvent(new CustomEvent('mydsp-holdings-drift'))
+  } catch {
+    /* ignore */
+  }
+  if (opts?.markDirty !== false) {
+    void import('../services/sync/workspaceDirty').then((m) => m.markWorkspaceChangedForSync())
+  }
+}
+
+export function exportHoldingsDriftForBackup(): HoldingsDriftBackup | null {
+  try {
+    const metaRaw = localStorage.getItem(META_KEY)
+    if (metaRaw) {
+      const parsed = JSON.parse(metaRaw) as HoldingsDriftBackup
+      if (typeof parsed.pct === 'number' && Number.isFinite(parsed.pct)) {
+        return {
+          pct: clampDriftPct(parsed.pct),
+          updatedAt:
+            typeof parsed.updatedAt === 'string' ? parsed.updatedAt : new Date(0).toISOString(),
+        }
+      }
+    }
+    return { pct: loadHoldingsDriftThresholdPct(), updatedAt: new Date(0).toISOString() }
+  } catch {
+    return null
+  }
+}
+
+export function importHoldingsDriftFromBackup(raw: unknown): void {
+  if (!raw || typeof raw !== 'object') return
+  const remote = raw as HoldingsDriftBackup
+  if (typeof remote.pct !== 'number' || !Number.isFinite(remote.pct)) return
+  const local = exportHoldingsDriftForBackup()
+  const remoteAt = Date.parse(remote.updatedAt || '') || 0
+  const localAt = Date.parse(local?.updatedAt || '') || 0
+  if (local && localAt > remoteAt) return
+  const n = clampDriftPct(remote.pct)
+  try {
+    localStorage.setItem(KEY, String(n))
+    localStorage.setItem(
+      META_KEY,
+      JSON.stringify({
+        pct: n,
+        updatedAt: remote.updatedAt || new Date().toISOString(),
+      }),
+    )
     window.dispatchEvent(new CustomEvent('mydsp-holdings-drift'))
   } catch {
     /* ignore */

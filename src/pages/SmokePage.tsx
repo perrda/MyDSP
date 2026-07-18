@@ -289,9 +289,10 @@ export function SmokePage() {
       },
       {
         id: 'ptr-routes',
-        label: 'PTR YouTube / Tax / Compare / Todos / Jobs / Spending',
+        label:
+          'PTR YouTube / Tax / Compare / Todos / Jobs / Spending / Liabilities / Goals / Trips / History / Budgets / Import',
         detail:
-          'Pull-to-refresh is enabled on YouTube, Tax, Compare, Todos, Jobs, and Spending (plus Today / Markets / News)',
+          'Pull-to-refresh is enabled on YouTube, Tax, Compare, Todos, Jobs, Spending, Liabilities, Goals, Trips, History, Budgets, and Import (plus Today / Markets / News)',
         to: '/youtube',
         done: true,
       },

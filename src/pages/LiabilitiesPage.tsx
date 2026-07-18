@@ -616,6 +616,16 @@ export function LiabilitiesPage() {
           }
         }}
       />
+
+      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary liabilities actions">
+        <button type="button" className="btn-secondary btn-sm" onClick={() => openCreate('card')}>
+          Add card
+        </button>
+        <button type="button" className="btn-primary btn-sm" onClick={() => openCreate('loan')}>
+          Add loan
+        </button>
+      </div>
+      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }

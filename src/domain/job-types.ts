@@ -167,3 +167,4 @@ export type JobFilterBy =
   | 'high-priority'
   | 'remote'
   | 'no-response'
+  | 'follow-up'

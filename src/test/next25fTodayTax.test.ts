@@ -58,6 +58,6 @@ describe('next25f Today / digest / tax items 16-20', () => {
     expect(dashboard).toMatch(/weekToDateSpend/)
     expect(dashboard).toMatch(/today-week-to-date-spend/)
     expect(dashboard).toMatch(/WTD spend/)
-    expect(dashboard).toMatch(/to="\/spending"/)
+    expect(dashboard).toMatch(/to="\/budgets"/)
   })
 })

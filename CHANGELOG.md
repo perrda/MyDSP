@@ -1,5 +1,42 @@
 # MyDSP Changelog
 
+## [1.2.77] - 2026-07-18
+
+### Improved — Sync / trust (next 25l · 1–5)
+1. **Recurring sort LWW sync** — fullArchive  
+2. **Holdings drift % LWW sync**  
+3. **Portfolio concentration % LWW sync**  
+4. **Spending filter prefs LWW sync**  
+5. **What arrived covers new extras** — sort / drift / concentration / filters / news filter  
+
+### Improved — Markets (next 25l · 6–10)
+6. **Equities/Crypto phone thumb CTA** — Fill last synced · Use Markets prices  
+7. **Jump-chip unavailable badge** — count on section chips  
+8. **Persist News tag filter** — LWW  
+9. **Holdings From other device age** under drift banner  
+10. **Settings toggle: Markets tag + Yield % chips** — device-local  
+
+### Improved — Mobile / UI (next 25l · 11–15)
+11. **Spending thumb CTA**  
+12. **Liabilities thumb CTA + PTR**  
+13. **Goals + Trips thumb CTA**  
+14. **Bottom-nav long-press Spending/Settings → Sync now**  
+15. **PTR History / Budgets / Import / Goals / Trips**  
+
+### Improved — Today / productivity (next 25l · 16–20)
+16. **Persist Todos Due today / High priority chips**  
+17. **Jobs Needs follow-up quick chip**  
+18. **Today debt pulse chip**  
+19. **WTD spend → Budgets deep-link**  
+20. **Bottom-nav bills-due hint** on Recurring/Spending  
+
+### Quality (next 25l · 21–25)
+21. **Axe Family + Documents**  
+22. **`/smoke` PTR routes expand**  
+23. **Playwright Spending + Liabilities**  
+24. **Tip harness `next25lSyncPrefsPolish.test.ts`**  
+25. Tip **1.2.77**
+
 ## [1.2.76] - 2026-07-16
 
 ### Improved — Sync / trust (next 25k · 1–5)

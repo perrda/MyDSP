@@ -11,6 +11,7 @@ import {
   sortRecurringTransactions,
   type RecurringSort,
 } from '../domain/recurringHelpers'
+import { loadRecurringSort, saveRecurringSort } from '../domain/recurringSortPrefs'
 import type { ProgressCommentary, RecurringTransaction } from '../domain/types'
 import {
   formatDate,
@@ -34,20 +35,8 @@ const CATS = [
   'other',
 ]
 
-const SORT_KEY = 'mydsp_recurring_sort_v1'
-
 function nextId(items: { id: number }[]): number {
   return items.reduce((m, i) => Math.max(m, i.id), 0) + 1
-}
-
-function loadSort(): RecurringSort {
-  try {
-    const raw = localStorage.getItem(SORT_KEY)
-    if (RECURRING_SORT_OPTIONS.some((o) => o.id === raw)) return raw as RecurringSort
-  } catch {
-    /* ignore */
-  }
-  return 'due-asc'
 }
 
 const empty = {
@@ -65,7 +54,7 @@ export function RecurringPage() {
   const [form, setForm] = useState(empty)
   const [formError, setFormError] = useState<string | null>(null)
   const [deleteId, setDeleteId] = useState<number | null>(null)
-  const [sort, setSort] = useState<RecurringSort>(loadSort)
+  const [sort, setSort] = useState<RecurringSort>(() => loadRecurringSort())
   const [commentsFor, setCommentsFor] = useState<RecurringTransaction | null>(null)
 
   const items = useMemo(
@@ -153,11 +142,7 @@ export function RecurringPage() {
 
   const changeSort = (next: RecurringSort) => {
     setSort(next)
-    try {
-      localStorage.setItem(SORT_KEY, next)
-    } catch {
-      /* ignore */
-    }
+    saveRecurringSort(next)
   }
 
   return (

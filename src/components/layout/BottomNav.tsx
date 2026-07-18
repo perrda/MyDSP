@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import { useLayoutMode, useShowBottomNav } from '../../hooks/useShowBottomNav'
 import { prefetchRouteChunk } from '../../hooks/useIdlePrefetch'
@@ -8,6 +8,8 @@ import {
   saveBottomNavMiddleSlots,
 } from '../../storage/bottomNavSlots'
 import { BOTTOM_NAV_CATALOG, resolveBottomNavItems, type BottomNavItem } from '../../domain/bottomNav'
+import { dueWithinDays } from '../../domain/recurringDueStrip'
+import { usePortfolio } from '../../context/PortfolioContext'
 import { newsUnreadFromCache } from '../../storage/newsStore'
 import { youtubeUnreadFromCache } from '../../storage/youtubeStore'
 import { Modal } from '../ui/Modal'
@@ -37,6 +39,7 @@ export function BottomNav() {
   const show = useShowBottomNav()
   const mode = useLayoutMode()
   const { pathname } = useLocation()
+  const { data } = usePortfolio()
   const [items, setItems] = useState<BottomNavItem[]>(() => readItems())
   const [favSheetOpen, setFavSheetOpen] = useState(false)
   const [middleItems, setMiddleItems] = useState<BottomNavItem[]>(() => readMiddleItems())
@@ -45,6 +48,10 @@ export function BottomNav() {
   const longPressTimer = useRef<number | null>(null)
   const longPressFired = useRef(false)
   const lastOverviewTap = useRef(0)
+  const billsDueSoon = useMemo(
+    () => dueWithinDays(data.recurringTransactions, 7).length > 0,
+    [data.recurringTransactions],
+  )
 
   useEffect(() => {
     const refresh = () => {
@@ -116,7 +123,13 @@ export function BottomNav() {
         dispatchNewsRefresh()
       } else if (item.to === '/youtube') {
         dispatchYoutubeRefresh()
-      } else if (item.to === '/todos' || item.to === '/jobs') {
+      } else if (
+        item.to === '/todos' ||
+        item.to === '/jobs' ||
+        item.to === '/spending' ||
+        item.to === '/settings' ||
+        item.to.startsWith('/settings')
+      ) {
         void syncNow()
       } else {
         openFavouriteSheet()
@@ -212,6 +225,12 @@ export function BottomNav() {
                       <span
                         className="bottom-nav-unread"
                         aria-label={`${youtubeUnread} unread videos`}
+                      />
+                    ) : null}
+                    {(item.to === '/recurring' || item.to === '/spending') && billsDueSoon ? (
+                      <span
+                        className="bottom-nav-bills-due bottom-nav-unread"
+                        aria-label="Bills due within 7 days"
                       />
                     ) : null}
                   </span>

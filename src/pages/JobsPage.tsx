@@ -36,6 +36,7 @@ import {
   getDaysSinceApplied,
   getNextInterview,
   isDeadlineApproaching,
+  needsFollowUp,
   KANBAN_DROP_STATUS,
   parseCsvToJobApplications,
   parseJsonToJobApplications,
@@ -109,6 +110,10 @@ export function JobsPage() {
 
   const stats = useMemo(() => calculateJobStats(applications), [applications])
   const pipeline = useMemo(() => calculateJobPipelineCounts(applications), [applications])
+  const followUpCount = useMemo(
+    () => applications.filter((a) => needsFollowUp(a)).length,
+    [applications],
+  )
 
   const kanbanData = useMemo(() => {
     return KANBAN_COLUMNS.map((col) => ({
@@ -544,6 +549,23 @@ export function JobsPage() {
           ))}
         </nav>
       ) : null}
+
+      <div className="flex flex-wrap items-center gap-2 mb-3">
+        <button
+          type="button"
+          className={`jobs-follow-up-chip btn-sm ${
+            filterBy === 'follow-up' ? 'btn-secondary border-accent text-accent' : 'btn-ghost'
+          }`}
+          aria-pressed={filterBy === 'follow-up'}
+          onClick={() => setFilterBy(filterBy === 'follow-up' ? 'active' : 'follow-up')}
+          title="Applied/screening with no reply past 14 days, or overdue pending interview"
+        >
+          Needs follow-up
+          {followUpCount > 0 ? (
+            <span className="ml-1 tabular-nums text-text-subtle">({followUpCount})</span>
+          ) : null}
+        </button>
+      </div>
 
       <CollapsibleFilters
         id="jobs-filters"

@@ -146,20 +146,26 @@ describe('My Commodities + Finnhub reminder (v1.2.69)', () => {
   })
 
   it('prefers high-priority todos in the Today next-action stack', () => {
-    const data = ensureFinnhubSetupTodo(createEmptyPortfolio(), new Date('2026-07-16T12:00:00Z'))!
-    const finnhub = data.todoItems![0]!
+    const now = new Date()
+    const dueToday = [
+      now.getFullYear(),
+      String(now.getMonth() + 1).padStart(2, '0'),
+      String(now.getDate()).padStart(2, '0'),
+    ].join('-')
+    const data = ensureFinnhubSetupTodo(createEmptyPortfolio(), now)!
+    const finnhub = { ...data.todoItems![0]!, dueDate: dueToday }
     const low = {
       ...finnhub,
       id: 'low1',
       title: 'Low priority chore',
       priority: 'low' as const,
-      dueDate: '2026-07-16',
+      dueDate: dueToday,
       status: 'todo' as const,
       tags: [] as string[],
     }
     const stack = buildNextActionStack({
       todoItems: [low, finnhub],
-      now: new Date('2026-07-16T12:00:00Z'),
+      now,
     })
     expect(stack[0]?.kind).toBe('todo')
     if (stack[0]?.kind === 'todo') {
@@ -188,7 +194,7 @@ describe('My Commodities + Finnhub reminder (v1.2.69)', () => {
 
   it('package version is tip', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.76')
+    expect(pkg.version).toBe('1.2.77')
   })
 })
 

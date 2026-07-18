@@ -131,6 +131,20 @@ test.describe('MyDSP smoke', () => {
     })
   })
 
+  test('Spending and Liabilities routes render with thumb CTAs', async ({ page }) => {
+    await page.goto('/spending')
+    await expect(page.getByRole('heading', { name: /Spending/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await expect(page.locator('.thumb-cta-bar').first()).toBeVisible()
+
+    await page.goto('/liabilities')
+    await expect(page.getByRole('heading', { name: /Liabilities|Debt/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await expect(page.locator('.thumb-cta-bar').first()).toBeVisible()
+  })
+
   test('Markets sticky toolbar and section jump chips', async ({ page }) => {
     await page.goto('/markets')
     await expect(page.getByRole('heading', { name: /Markets/i }).first()).toBeVisible({

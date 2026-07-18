@@ -13,9 +13,11 @@ describe('markets watchlist chrome cleanup (v1.2.75)', () => {
     expect(page).toMatch(/eyebrow="Prices"/)
   })
 
-  it('hides tag + Yield % chips behind SHOW_MARKETS_TAG_YIELD_CHIPS', () => {
+  it('hides tag + Yield % chips behind loadShowMarketsTagYieldChips pref', () => {
     const page = readFileSync(resolve(__dirname, '../pages/MarketsPage.tsx'), 'utf8')
-    expect(page).toMatch(/SHOW_MARKETS_TAG_YIELD_CHIPS = false/)
+    expect(page).toMatch(/loadShowMarketsTagYieldChips/)
+    expect(page).toMatch(/subscribeShowMarketsTagYieldChips/)
+    expect(page).toMatch(/showMarketsTagYieldChips/)
     expect(page).toMatch(/activeTagFilter/)
     expect(page).toMatch(/MARKET_TICKER_TAGS/)
   })

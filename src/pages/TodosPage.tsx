@@ -99,6 +99,30 @@ const SORT_SUMMARY: Record<TodoSortBy, string> = {
   'title-desc': 'Z–A',
 }
 
+const TODOS_QUICK_FILTER_KEY = 'mydsp_todos_quick_filter_v1'
+
+function loadTodosQuickFilter(): TodoFilterBy {
+  try {
+    const raw = localStorage.getItem(TODOS_QUICK_FILTER_KEY)
+    if (raw === 'today' || raw === 'high-priority') return raw
+  } catch {
+    /* ignore */
+  }
+  return 'all'
+}
+
+function saveTodosQuickFilter(next: TodoFilterBy): void {
+  try {
+    if (next === 'today' || next === 'high-priority') {
+      localStorage.setItem(TODOS_QUICK_FILTER_KEY, next)
+    } else {
+      localStorage.removeItem(TODOS_QUICK_FILTER_KEY)
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
 /** Format YYYY-MM-DD due dates in local time without UTC day-shift. */
 function formatTodoDue(dueDate: string, dueTime?: string): string {
   let dateLabel = dueDate
@@ -125,7 +149,7 @@ export function TodosPage() {
     return sorted[0]?.id ?? null
   })
   const [sortBy, setSortBy] = useState<TodoSortBy>('order-asc')
-  const [filterBy, setFilterBy] = useState<TodoFilterBy>('all')
+  const [filterBy, setFilterBy] = useState<TodoFilterBy>(() => loadTodosQuickFilter())
   const [searchQuery, setSearchQuery] = useState('')
   const [quickAddText, setQuickAddText] = useState('')
   const [showCompleted, setShowCompleted] = useState(false)
@@ -909,7 +933,11 @@ export function TodosPage() {
                 </label>
                 <select
                   value={filterBy}
-                  onChange={(e) => setFilterBy(e.target.value as TodoFilterBy)}
+                  onChange={(e) => {
+                    const next = e.target.value as TodoFilterBy
+                    setFilterBy(next)
+                    saveTodosQuickFilter(next)
+                  }}
                   className="w-full px-3 py-2.5 bg-surface-hover border border-border rounded text-sm"
                 >
                   <option value="all">All Tasks</option>
@@ -951,7 +979,11 @@ export function TodosPage() {
                     : 'border-border bg-surface-hover text-text-muted hover:border-accent'
                 }`}
                 aria-pressed={filterBy === 'today'}
-                onClick={() => setFilterBy(filterBy === 'today' ? 'all' : 'today')}
+                onClick={() => {
+                  const next = filterBy === 'today' ? 'all' : 'today'
+                  setFilterBy(next)
+                  saveTodosQuickFilter(next)
+                }}
               >
                 Due today
               </button>
@@ -963,9 +995,11 @@ export function TodosPage() {
                     : 'border-border bg-surface-hover text-text-muted hover:border-accent'
                 }`}
                 aria-pressed={filterBy === 'high-priority'}
-                onClick={() =>
-                  setFilterBy(filterBy === 'high-priority' ? 'all' : 'high-priority')
-                }
+                onClick={() => {
+                  const next = filterBy === 'high-priority' ? 'all' : 'high-priority'
+                  setFilterBy(next)
+                  saveTodosQuickFilter(next)
+                }}
               >
                 High priority
               </button>

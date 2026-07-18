@@ -831,7 +831,7 @@ export function Dashboard() {
             ) : null}
           </div>
         ) : null}
-        {(monthlyBudgetPulse || weekToDateSpend.spent > 0 || cashRunway || fireChip) ? (
+        {(monthlyBudgetPulse || weekToDateSpend.spent > 0 || cashRunway || fireChip || liabilities > 0) ? (
           <div className="today-pulse-chips mt-4 flex flex-wrap gap-2">
             {monthlyBudgetPulse ? (
               <Link
@@ -852,7 +852,7 @@ export function Dashboard() {
             ) : null}
             {weekToDateSpend.spent > 0 ? (
               <Link
-                to="/spending"
+                to="/budgets"
                 className={`today-week-to-date-spend border border-border bg-surface-hover/60 px-3 py-2 text-xs hover:border-accent ${privacyClass(privacy)}`}
                 title={`Spend since ${weekToDateSpend.start}`}
               >
@@ -863,6 +863,19 @@ export function Dashboard() {
                   {formatGBP(weekToDateSpend.spent)}
                 </span>
                 <span className="block text-text-subtle">This week →</span>
+              </Link>
+            ) : null}
+            {liabilities > 0 ? (
+              <Link
+                to="/liabilities"
+                className={`today-debt-pulse border border-border bg-surface-hover/60 px-3 py-2 text-xs hover:border-accent ${privacyClass(privacy)}`}
+                title="Total liabilities"
+              >
+                <span className="block uppercase tracking-wider text-text-subtle font-semibold">
+                  Debt
+                </span>
+                <span className="block tabular-nums">{formatGBP(liabilities)}</span>
+                <span className="block text-text-subtle">Liabilities →</span>
               </Link>
             ) : null}
             {cashRunway ? (

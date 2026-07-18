@@ -55,6 +55,10 @@ import {
 } from '../domain/quoteFreshnessSla'
 import { normalizeCommoditySymbol } from '../domain/commodities'
 import { shouldShowCachedMode } from '../domain/marketsCachedMode'
+import {
+  loadShowMarketsTagYieldChips,
+  subscribeShowMarketsTagYieldChips,
+} from '../domain/marketsTagYieldPref'
 import { mergeMarketQuotes } from '../domain/marketQuotesCache'
 import { isOnline } from '../services/offlineQueue'
 import { sparklineTrendFromSeries } from '../domain/sparklineSeries'
@@ -123,12 +127,6 @@ const emptyForm: FormState = {
   avgCostGbp: '',
   includeInNetWorth: false,
 }
-
-/**
- * Tag chips (Core / Speculative / Income / Other) + Yield % sort — hidden for now.
- * Prefs + ticker.tag still persist; reintroduce via ROADMAP low-priority item.
- */
-const SHOW_MARKETS_TAG_YIELD_CHIPS = false
 
 function unavailableReason(q: MarketQuote | undefined): string {
   const src = (q?.source || '').toLowerCase()
@@ -487,6 +485,9 @@ export function MarketsPage() {
   const [tickers, setTickers] = useState(() => listMarketTickers())
   const [collapsed, setCollapsed] = useState(() => loadMarketsState().collapsed)
   const [sectionOrder, setSectionOrder] = useState<SectionKey[]>(() => getMarketSectionOrder())
+  const [showMarketsTagYieldChips, setShowMarketsTagYieldChips] = useState(() =>
+    loadShowMarketsTagYieldChips(),
+  )
   const [quotes, setQuotes] = useState<Map<string, MarketQuote>>(() => {
     const cached = loadMarketQuotesCache()
     return seedQuotesFromPortfolio(listMarketTickers(), data, cached)
@@ -536,6 +537,12 @@ export function MarketsPage() {
     // Show when lastError is a 429/quota hit (including consecutiveFailures >= 1 with that error).
     return true
   }, [providerHealth])
+
+  useEffect(() => {
+    return subscribeShowMarketsTagYieldChips(() => {
+      setShowMarketsTagYieldChips(loadShowMarketsTagYieldChips())
+    })
+  }, [])
 
   /** High-priority Finnhub API key reminder — once per browser session when no key. */
   useEffect(() => {
@@ -646,8 +653,8 @@ export function MarketsPage() {
 
   const searchQuery = searchText.trim().toLowerCase()
 
-  const activeTagFilter = SHOW_MARKETS_TAG_YIELD_CHIPS ? tagFilter : 'All'
-  const activeYieldSort = SHOW_MARKETS_TAG_YIELD_CHIPS ? yieldSort : false
+  const activeTagFilter = showMarketsTagYieldChips ? tagFilter : 'All'
+  const activeYieldSort = showMarketsTagYieldChips ? yieldSort : false
 
   const bySection = useMemo(
     () => {
@@ -1925,16 +1932,29 @@ export function MarketsPage() {
         >
           {sectionOrder.map((section) => {
             const active = activeJumpSection === section
+            const unavailableCount = bySection[section].filter(
+              (t) =>
+                quoteAvailabilityLabel(quotes.get(t.id), { refreshing: false }) === 'Unavailable',
+            ).length
+            const baseLabel = SECTION_JUMP_LABEL[section]
+            const ariaLabel =
+              unavailableCount > 0
+                ? `${baseLabel} · ${unavailableCount} unavailable`
+                : baseLabel
             return (
               <a
                 key={section}
                 href={`#markets-section-${section}`}
                 className={`markets-section-jump-chip btn-ghost btn-sm${
                   active ? ' markets-section-jump-chip--active border-accent text-accent' : ''
-                }`}
+                }${unavailableCount > 0 ? ' markets-jump-unavailable' : ''}`}
                 aria-current={active ? 'true' : undefined}
+                aria-label={ariaLabel}
+                title={unavailableCount > 0 ? ariaLabel : undefined}
               >
-                {SECTION_JUMP_LABEL[section]}
+                {unavailableCount > 0
+                  ? `${baseLabel} · ${unavailableCount}`
+                  : baseLabel}
               </a>
             )
           })}
@@ -1988,7 +2008,7 @@ export function MarketsPage() {
         </div>
       ) : null}
 
-      {SHOW_MARKETS_TAG_YIELD_CHIPS ? (
+      {showMarketsTagYieldChips ? (
         <div
           className="flex flex-wrap gap-2 mb-5"
           role="group"

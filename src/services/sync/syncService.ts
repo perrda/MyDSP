@@ -251,6 +251,11 @@ export interface MergePreview {
     compareWeekSnapshot?: unknown
     digestHighlights?: unknown
     compareSelection?: unknown
+    recurringSort?: unknown
+    holdingsDrift?: unknown
+    portfolioConcentration?: unknown
+    spendingFilters?: unknown
+    newsFilter?: unknown
   }
 }
 
@@ -651,6 +656,11 @@ async function decryptEnvelope(
     if (a.compareWeekSnapshot != null) extras.compareWeekSnapshot = a.compareWeekSnapshot
     if (a.digestHighlights != null) extras.digestHighlights = a.digestHighlights
     if (a.compareSelection != null) extras.compareSelection = a.compareSelection
+    if (a.recurringSort != null) extras.recurringSort = a.recurringSort
+    if (a.holdingsDrift != null) extras.holdingsDrift = a.holdingsDrift
+    if (a.portfolioConcentration != null) extras.portfolioConcentration = a.portfolioConcentration
+    if (a.spendingFilters != null) extras.spendingFilters = a.spendingFilters
+    if (a.newsFilter != null) extras.newsFilter = a.newsFilter
     if (Object.keys(extras).length > 0) workspaceExtras = extras
   }
 
@@ -879,6 +889,28 @@ export async function applyMergePreview(
       '../../domain/compareSelectionPrefs'
     )
     importCompareSelectionFromBackup(preview.workspaceExtras.compareSelection)
+  }
+  if (preview.workspaceExtras?.recurringSort != null) {
+    const { importRecurringSortFromBackup } = await import('../../domain/recurringSortPrefs')
+    importRecurringSortFromBackup(preview.workspaceExtras.recurringSort)
+  }
+  if (preview.workspaceExtras?.holdingsDrift != null) {
+    const { importHoldingsDriftFromBackup } = await import('../../domain/holdingsDrift')
+    importHoldingsDriftFromBackup(preview.workspaceExtras.holdingsDrift)
+  }
+  if (preview.workspaceExtras?.portfolioConcentration != null) {
+    const { importPortfolioConcentrationFromBackup } = await import(
+      '../../domain/portfolioConcentration'
+    )
+    importPortfolioConcentrationFromBackup(preview.workspaceExtras.portfolioConcentration)
+  }
+  if (preview.workspaceExtras?.spendingFilters != null) {
+    const { importSpendingFiltersFromBackup } = await import('../../domain/spendingFilterPrefs')
+    importSpendingFiltersFromBackup(preview.workspaceExtras.spendingFilters)
+  }
+  if (preview.workspaceExtras?.newsFilter != null) {
+    const { importNewsFilterFromBackup } = await import('../../domain/newsFilterPrefs')
+    importNewsFilterFromBackup(preview.workspaceExtras.newsFilter)
   }
 
   return { merged, conflicts: preview.conflicts, removedDupes: removed.length }
