@@ -98,8 +98,8 @@ describe('recurring sort / total / commentary', () => {
     expect(sidebar).not.toMatch(/To Do Lists/)
   })
 
-  it('package version is 1.2.69', () => {
+  it('package version is tip', () => {
     const pkg = JSON.parse(readFileSync(resolve('package.json'), 'utf8')) as { version: string }
-    expect(pkg.version).toBe('1.2.73')
+    expect(pkg.version).toBe('1.2.75')
   })
 })

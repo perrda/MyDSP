@@ -2118,6 +2118,8 @@ html.glass .sync-chip:focus-visible {
   box-shadow: inset 3px 0 0 color-mix(in srgb, #d97706 75%, transparent);
 }
 .markets-section-sticky {
+  /* Sit below app header + sticky Markets toolbar (search + section chips) */
+  top: calc(var(--app-header-offset, 3.5rem) + 7.25rem);
   backdrop-filter: blur(8px);
 }
 .holding-price-strip {
@@ -2557,14 +2559,17 @@ html.success-haptic-flash::after {
   }
 }
 
+.markets-sticky-toolbar {
+  top: var(--app-header-offset, 3.5rem);
+}
 .markets-section-jump-chips,
 .jobs-kanban-jump-chips {
   display: flex;
   flex-wrap: nowrap;
   gap: 0.5rem;
   overflow-x: auto;
-  padding: 0.25rem 0 0.75rem;
-  margin-bottom: 0.75rem;
+  padding: 0.5rem 0 0.25rem;
+  margin-bottom: 0;
   scrollbar-width: none;
 }
 .markets-section-jump-chips::-webkit-scrollbar,
@@ -2575,7 +2580,6 @@ html.success-haptic-flash::after {
   white-space: nowrap;
 }
 @media (orientation: landscape) {
-  .markets-section-jump-chips,
   .jobs-kanban-jump-chips {
     position: sticky;
     top: var(--app-header-offset, 3.5rem);
@@ -2587,7 +2591,7 @@ html.success-haptic-flash::after {
 }
 .markets-section-sticky,
 [id^='markets-section-'] {
-  scroll-margin-top: calc(var(--app-header-offset, 3.5rem) + 3rem);
+  scroll-margin-top: calc(var(--app-header-offset, 3.5rem) + 7.5rem);
 }
 
 .jobs-list-kanban-split {

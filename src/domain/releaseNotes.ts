@@ -29,6 +29,42 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.75',
+    date: '2026-07-16',
+    bullets: [
+      {
+        text: 'Quieter Markets chrome — Sync spinner only, no provider OK strip',
+        to: '/markets',
+      },
+      {
+        text: 'Tag + Yield % chips hidden for now · sticky Crypto/Equities jumps',
+        to: '/markets',
+      },
+      {
+        text: 'Markets header uses Prices · Markets (Watchlist eyebrow retired)',
+        to: '/markets',
+      },
+    ],
+  },
+  {
+    version: '1.2.74',
+    date: '2026-07-16',
+    bullets: [
+      {
+        text: 'deploy:quote / deploy:sync force --config so mydsp-quote deploys correctly',
+        to: '/settings#prices',
+      },
+      {
+        text: 'Wrangler no longer walks up to SPA redirect and redeploys mydspv1',
+        to: '/smoke',
+      },
+      {
+        text: 'Success must show Worker mydsp-quote, not mydspv1',
+        to: '/markets',
+      },
+    ],
+  },
+  {
     version: '1.2.73',
     date: '2026-07-16',
     bullets: [
