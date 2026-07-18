@@ -11,6 +11,7 @@ import { usePortfolio } from '../context/PortfolioContext'
 import { formatMonthLabel, monthKey, parseMonthParam, shiftMonth } from '../domain/monthUtils'
 import { categorySparklinesForMonth } from '../domain/spendingCategorySparkline'
 import { formatWeekDeltaLine, weekSpendDelta } from '../domain/spendingWeekDelta'
+import { loadSpendingFilters, saveSpendingFilters } from '../domain/spendingFilterPrefs'
 import type { SpendingEntry } from '../domain/types'
 import { formatDate, formatGBPPrecise, privacyClass } from '../utils/format'
 
@@ -26,22 +27,6 @@ const CATEGORIES = [
   'cash',
   'other',
 ]
-
-const FILTERS_KEY = 'mydsp_spend_filters'
-
-function loadFilters(): { query: string; category: string } {
-  try {
-    const raw = localStorage.getItem(FILTERS_KEY)
-    if (!raw) return { query: '', category: 'All' }
-    const parsed = JSON.parse(raw) as { query?: string; category?: string }
-    return {
-      query: typeof parsed.query === 'string' ? parsed.query : '',
-      category: typeof parsed.category === 'string' ? parsed.category : 'All',
-    }
-  } catch {
-    return { query: '', category: 'All' }
-  }
-}
 
 function nextId(items: { id: number }[]): number {
   return items.reduce((m, i) => Math.max(m, i.id), 0) + 1
@@ -82,7 +67,7 @@ const emptyForm = {
 export function SpendingPage() {
   const { data, privacy, setData } = usePortfolio()
   const [searchParams, setSearchParams] = useSearchParams()
-  const saved = useMemo(() => loadFilters(), [])
+  const saved = useMemo(() => loadSpendingFilters(), [])
   const categoryFromUrl = searchParams.get('category')
   const monthFromUrl = searchParams.get('month')
   const [query, setQuery] = useState(saved.query)
@@ -105,11 +90,7 @@ export function SpendingPage() {
   }, [monthFromUrl])
 
   useEffect(() => {
-    try {
-      localStorage.setItem(FILTERS_KEY, JSON.stringify({ query, category }))
-    } catch {
-      /* ignore */
-    }
+    saveSpendingFilters({ query, category })
   }, [query, category])
 
   useEffect(() => {
@@ -692,6 +673,18 @@ export function SpendingPage() {
           }))
         }}
       />
+
+      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary spending actions">
+        <button type="button" className="btn-primary btn-sm" onClick={openCreate}>
+          Add
+        </button>
+        {ym !== monthKey() ? (
+          <button type="button" className="btn-secondary btn-sm" onClick={() => setYm(monthKey())}>
+            Current month
+          </button>
+        ) : null}
+      </div>
+      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }

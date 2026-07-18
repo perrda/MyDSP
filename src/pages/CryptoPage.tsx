@@ -20,6 +20,8 @@ import {
   isSymbolDrifting,
   loadHoldingsDriftThresholdPct,
 } from '../domain/holdingsDrift'
+import { isSyncedRemoteQuote } from '../domain/marketQuotesSync'
+import { quoteAgeMs } from '../domain/quoteFreshnessSla'
 import {
   includedPortfolioHoldingValue,
   loadPortfolioConcentrationThresholdPct,
@@ -27,10 +29,38 @@ import {
 } from '../domain/portfolioConcentration'
 import type { CryptoHolding } from '../domain/types'
 import { addHoldingsMissingFromWatchlist, holdingsMissingFromWatchlist } from '../domain/addHoldingsToWatchlist'
+import { listMarketTickers, loadMarketQuotesCache } from '../storage/marketsStore'
 import { applySortOrder, sortBySortOrder } from '../utils/reorder'
 import { useWindowedList } from '../hooks/useWindowedList'
 import { formatGBP, formatGBPPrecise, formatPct, formatQty, privacyClass } from '../utils/format'
 import { useToasts } from '../components/ToastProvider'
+
+function formatQuoteAgeShort(ms: number): string {
+  const mins = Math.round(ms / 60_000)
+  if (mins < 1) return 'just now'
+  if (mins < 60) return `${mins}m ago`
+  const hours = Math.round(mins / 60)
+  if (hours < 48) return `${hours}h ago`
+  return `${Math.round(hours / 24)}d ago`
+}
+
+function syncedRemoteAgeForSymbols(symbols: string[], kind: 'equity' | 'crypto'): string | null {
+  if (symbols.length === 0) return null
+  const want = new Set(symbols.map((s) => s.trim().toUpperCase().replace(/^\^/, '')))
+  const quotes = loadMarketQuotesCache()
+  let newestAge: number | null = null
+  for (const t of listMarketTickers()) {
+    if (t.kind !== kind) continue
+    const key = t.symbol.trim().toUpperCase().replace(/^\^/, '')
+    if (!want.has(key)) continue
+    const q = quotes.get(t.id)
+    if (!isSyncedRemoteQuote(q) || !(q && q.last > 0)) continue
+    const age = quoteAgeMs(q)
+    if (age == null) continue
+    if (newestAge == null || age < newestAge) newestAge = age
+  }
+  return newestAge != null ? formatQuoteAgeShort(newestAge) : null
+}
 
 function nextId(items: { id: number }[]): number {
   return items.reduce((m, i) => Math.max(m, i.id), 0) + 1
@@ -124,6 +154,13 @@ export function CryptoPage() {
   )
   const showSkeleton = refreshing && holdings.length === 0
   const driftHits = useMemo(() => cryptoDriftHits(holdings), [holdings, data.settings.lastPriceUpdate])
+  const fromOtherDeviceAge = useMemo(
+    () => syncedRemoteAgeForSymbols(
+      driftHits.map((h) => h.symbol),
+      'crypto',
+    ),
+    [driftHits, data.settings.lastPriceUpdate],
+  )
   const driftThreshold = loadHoldingsDriftThresholdPct()
   const holdingsIncludedSummary = useMemo(() => {
     let includedValue = 0
@@ -402,17 +439,21 @@ export function CryptoPage() {
       </div>
 
       {driftHits.length > 0 ? (
-        <div
-          className="mb-4 px-4 py-3 border border-amber-500/40 bg-amber-500/10 text-sm text-amber-800 dark:text-amber-200 flex flex-wrap items-center justify-between gap-3"
-          role="status"
-        >
-          <span>
-            Markets live ≠ holding price by &gt;{driftThreshold}% on{' '}
-            {driftHits.map((h) => h.symbol).join(', ')}. Refresh Markets or fill last synced.
-          </span>
-          <button type="button" className="btn-secondary btn-sm bg-bg-elevated/80" onClick={fillFromLastSynced}>
-            Use Markets prices
-          </button>
+        <div className="mb-4" role="status">
+          <div className="px-4 py-3 border border-amber-500/40 bg-amber-500/10 text-sm text-amber-800 dark:text-amber-200 flex flex-wrap items-center justify-between gap-3">
+            <span>
+              Markets live ≠ holding price by &gt;{driftThreshold}% on{' '}
+              {driftHits.map((h) => h.symbol).join(', ')}. Refresh Markets or fill last synced.
+            </span>
+            <button type="button" className="btn-secondary btn-sm bg-bg-elevated/80" onClick={fillFromLastSynced}>
+              Use Markets prices
+            </button>
+          </div>
+          {fromOtherDeviceAge ? (
+            <p className="holdings-from-other-device mt-1.5 px-1 text-[11px] text-text-subtle">
+              From other device · {fromOtherDeviceAge}
+            </p>
+          ) : null}
         </div>
       ) : null}
 
@@ -825,6 +866,26 @@ export function CryptoPage() {
           setData((prev) => ({ ...prev, crypto: prev.crypto.filter((c) => c.id !== deleteId) }))
         }}
       />
+
+      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary crypto actions">
+        <button
+          type="button"
+          className="btn-secondary btn-sm"
+          disabled={holdings.length === 0}
+          onClick={fillFromLastSynced}
+        >
+          Fill last synced
+        </button>
+        <button
+          type="button"
+          className="btn-secondary btn-sm"
+          disabled={driftHits.length === 0}
+          onClick={fillFromLastSynced}
+        >
+          Use Markets prices
+        </button>
+      </div>
+      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }

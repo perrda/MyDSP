@@ -618,7 +618,8 @@ html.has-bottom-nav .floating-banner--toast {
   background: color-mix(in srgb, var(--accent) 10%, transparent);
 }
 
-.bottom-nav-unread {
+.bottom-nav-unread,
+.bottom-nav-bills-due {
   position: absolute;
   top: -0.05rem;
   right: -0.2rem;
@@ -2595,6 +2596,12 @@ html.success-haptic-flash::after {
   border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
   color: var(--accent);
   font-weight: 600;
+}
+.markets-jump-unavailable {
+  color: color-mix(in srgb, #d97706 85%, var(--text-muted));
+}
+.holdings-from-other-device {
+  letter-spacing: 0.01em;
 }
 .markets-paper-nw-chip {
   letter-spacing: 0.02em;

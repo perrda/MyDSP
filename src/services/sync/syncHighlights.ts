@@ -97,6 +97,11 @@ export type WorkspaceExtrasFlags = {
   compareWeekSnapshot?: boolean
   digestHighlights?: boolean
   compareSelection?: boolean
+  recurringSort?: boolean
+  holdingsDrift?: boolean
+  portfolioConcentration?: boolean
+  spendingFilters?: boolean
+  newsFilter?: boolean
   markets?: boolean
   news?: boolean
   youtube?: boolean
@@ -111,6 +116,11 @@ const EXTRAS_LABELS: Array<[keyof WorkspaceExtrasFlags, string]> = [
   ['compareWeekSnapshot', 'Compare week-Δ'],
   ['digestHighlights', 'digest highlights'],
   ['compareSelection', 'Compare selection'],
+  ['recurringSort', 'Recurring sort'],
+  ['holdingsDrift', 'drift threshold'],
+  ['portfolioConcentration', 'concentration threshold'],
+  ['spendingFilters', 'Spending filters'],
+  ['newsFilter', 'News filter'],
   ['markets', 'Markets watchlist'],
   ['news', 'News tags'],
   ['youtube', 'YouTube channels'],
@@ -137,6 +147,11 @@ export function workspaceExtrasFlagsFromPreview(extras: {
   compareWeekSnapshot?: unknown
   digestHighlights?: unknown
   compareSelection?: unknown
+  recurringSort?: unknown
+  holdingsDrift?: unknown
+  portfolioConcentration?: unknown
+  spendingFilters?: unknown
+  newsFilter?: unknown
   markets?: unknown
   news?: unknown
   youtube?: unknown
@@ -151,6 +166,11 @@ export function workspaceExtrasFlagsFromPreview(extras: {
     compareWeekSnapshot: extras.compareWeekSnapshot != null,
     digestHighlights: extras.digestHighlights != null,
     compareSelection: extras.compareSelection != null,
+    recurringSort: extras.recurringSort != null,
+    holdingsDrift: extras.holdingsDrift != null,
+    portfolioConcentration: extras.portfolioConcentration != null,
+    spendingFilters: extras.spendingFilters != null,
+    newsFilter: extras.newsFilter != null,
     markets: extras.markets != null,
     news: extras.news != null,
     youtube: extras.youtube != null,

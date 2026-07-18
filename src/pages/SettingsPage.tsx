@@ -89,6 +89,10 @@ import {
   savePortfolioConcentrationThresholdPct,
 } from '../domain/portfolioConcentration'
 import {
+  loadShowMarketsTagYieldChips,
+  saveShowMarketsTagYieldChips,
+} from '../domain/marketsTagYieldPref'
+import {
   allConflictsResolved,
   applyMergePreview,
   downloadEncryptedBackup,
@@ -357,6 +361,9 @@ export function SettingsPage() {
   const [driftPct, setDriftPct] = useState(() => loadHoldingsDriftThresholdPct())
   const [concentrationPct, setConcentrationPct] = useState(() =>
     loadPortfolioConcentrationThresholdPct(),
+  )
+  const [showMarketsTagYield, setShowMarketsTagYield] = useState(() =>
+    loadShowMarketsTagYieldChips(),
   )
   const [syncActivity, setSyncActivity] = useState<SyncActivityEntry[]>(() => loadSyncActivity())
   const [syncActivityFilter, setSyncActivityFilter] = useState<'all' | 'this' | 'others'>('all')
@@ -1213,11 +1220,14 @@ export function SettingsPage() {
                 </li>
                 <li>Launch path (on-open home section) — device-local</li>
                 <li>UI panel open / collapsed prefs — device-local</li>
-                <li>Recurring sort preference — device-local</li>
-                <li>Holdings drift % threshold — device-local</li>
-                <li>Settings recent jumps — device-local (optional)</li>
-                <li>Digest highlight edits — device-local</li>
+                <li>Settings recent jumps — device-local</li>
+                <li>Markets tag + Yield % chips visibility — device-local</li>
               </ul>
+              <p className="text-xs text-text-muted font-light mt-2 leading-relaxed">
+                These sync via fullArchive: portfolio concentration threshold, spending filters,
+                news tag filter, Recurring sort, holdings drift threshold, and digest highlight
+                edits.
+              </p>
             </div>
             <label className="flex items-start gap-3 cursor-pointer">
               <input
@@ -3389,6 +3399,26 @@ export function SettingsPage() {
         </SettingsSection>
 
         <SettingsSection id="prices" eyebrow="Prices" title="Live market data">
+          <label className="flex items-start gap-3 cursor-pointer mb-6 max-w-2xl">
+            <input
+              type="checkbox"
+              className="mt-1"
+              checked={showMarketsTagYield}
+              onChange={(e) => {
+                const on = e.target.checked
+                setShowMarketsTagYield(on)
+                saveShowMarketsTagYieldChips(on)
+                flash(on ? 'Markets tag + Yield % chips shown.' : 'Markets tag + Yield % chips hidden.')
+              }}
+            />
+            <span>
+              <span className="text-sm font-semibold block">Show Markets tag + Yield % chips</span>
+              <span className="text-xs text-text-muted font-light">
+                Device-local. When on, Markets shows Core/Speculative/Income tag filters and a Yield
+                % sort chip for equities.
+              </span>
+            </span>
+          </label>
           <p className="text-sm text-text-muted font-light mb-4 max-w-2xl leading-relaxed">
             Quotes always try the best live source first, then fail over automatically:
           </p>

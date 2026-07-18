@@ -25,13 +25,15 @@ import { useShowBottomNav } from '../../hooks/useShowBottomNav'
 import { useIdlePrefetch } from '../../hooks/useIdlePrefetch'
 import { triggerSuccessFlash } from '../../utils/successFlash'
 
-/** Pull-to-refresh on Today, Markets, holdings, News, YouTube, Tax, Compare, Todos, Jobs, Spending, Recurring (no page jump). */
+/** Pull-to-refresh on Today, Markets, holdings, News, YouTube, Tax, Compare, Todos, Jobs, Spending, Recurring, Liabilities, Goals, Trips, History, Budgets, Import (no page jump). */
 function allowPullToRefresh(pathname: string): boolean {
   if (pathname === '/' || pathname === '/markets') return true
   if (pathname === '/equities' || pathname === '/crypto' || pathname === '/news') return true
   if (pathname === '/youtube' || pathname === '/tax' || pathname === '/compare') return true
   if (pathname === '/todos' || pathname === '/jobs' || pathname === '/spending') return true
-  if (pathname === '/recurring') return true
+  if (pathname === '/recurring' || pathname === '/liabilities') return true
+  if (pathname === '/goals' || pathname === '/trips') return true
+  if (pathname === '/history' || pathname === '/budgets' || pathname === '/import') return true
   if (pathname.startsWith('/equities/') || pathname.startsWith('/crypto/')) return true
   return false
 }

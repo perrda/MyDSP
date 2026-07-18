@@ -130,6 +130,22 @@ export function hasNoResponse(application: JobApplication, daysThreshold = 14): 
   return days !== null && days > daysThreshold
 }
 
+/** Applied/screening with no reply past threshold, or a pending interview already overdue. */
+export function needsFollowUp(application: JobApplication, daysThreshold = 14): boolean {
+  if (['applied', 'screening'].includes(application.status) && application.appliedDate) {
+    const days = getDaysSinceApplied(application)
+    if (days !== null && days > daysThreshold) return true
+  }
+  const next = getNextInterview(application)
+  if (next?.scheduledDate) {
+    const due = next.scheduledDate.slice(0, 10)
+    const now = new Date()
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+    if (due < today) return true
+  }
+  return false
+}
+
 export function sortJobApplications(applications: JobApplication[], sortBy: JobSortBy): JobApplication[] {
   return [...applications].sort((a, b) => {
     switch (sortBy) {
@@ -190,6 +206,8 @@ export function filterJobApplications(applications: JobApplication[], filterBy: 
       return applications.filter((a) => a.remote === 'remote' && a.status !== 'archived')
     case 'no-response':
       return applications.filter((a) => hasNoResponse(a))
+    case 'follow-up':
+      return applications.filter((a) => needsFollowUp(a))
     default:
       return applications
   }

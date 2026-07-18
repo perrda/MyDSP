@@ -30,6 +30,7 @@ import {
   setNewsSeenAt,
   updateNewsTag,
 } from '../storage/newsStore'
+import { loadNewsFilterTag, saveNewsFilterTag } from '../domain/newsFilterPrefs'
 import { loadPortfolio } from '../storage/portfolioStore'
 import { formatDateTime } from '../utils/format'
 
@@ -124,7 +125,7 @@ export function NewsPage() {
   const [formLabel, setFormLabel] = useState('')
   const [formError, setFormError] = useState<string | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
-  const [filterTag, setFilterTag] = useState<string | 'all'>('all')
+  const [filterTag, setFilterTag] = useState<string | 'all'>(() => loadNewsFilterTag())
   const [sorting, setSorting] = useState(false)
   const [seenAt, setSeenAt] = useState(getNewsSeenAt)
   const [topVisible, setTopVisible] = useState(NEWS_PAGE)
@@ -434,7 +435,10 @@ export function NewsPage() {
               <button
                 type="button"
                 className={`btn-sm ${filterTag === 'all' ? 'btn-secondary' : 'btn-ghost'}`}
-                onClick={() => setFilterTag('all')}
+                onClick={() => {
+                  setFilterTag('all')
+                  saveNewsFilterTag('all')
+                }}
               >
                 All
               </button>
@@ -443,7 +447,10 @@ export function NewsPage() {
                   key={t.id}
                   type="button"
                   className={`btn-sm ${filterTag === t.tag ? 'btn-secondary' : 'btn-ghost'}`}
-                  onClick={() => setFilterTag(t.tag)}
+                  onClick={() => {
+                    setFilterTag(t.tag)
+                    saveNewsFilterTag(t.tag)
+                  }}
                 >
                   {t.tag}
                 </button>

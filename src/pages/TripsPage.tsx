@@ -465,6 +465,13 @@ export function TripsPage() {
           }))
         }}
       />
+
+      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary trips actions">
+        <button type="button" className="btn-primary btn-sm" onClick={openCreate}>
+          Add trip
+        </button>
+      </div>
+      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }

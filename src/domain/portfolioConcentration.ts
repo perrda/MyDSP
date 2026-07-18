@@ -2,7 +2,13 @@ import type { PortfolioData } from './types'
 import { equityUnitPriceGbp } from './migrateEquityGbp'
 
 const KEY = 'mydsp_portfolio_concentration_pct'
+const META_KEY = 'mydsp_portfolio_concentration_pct_meta_v1'
 export const DEFAULT_PORTFOLIO_CONCENTRATION_PCT = 25
+
+export type PortfolioConcentrationBackup = {
+  pct: number
+  updatedAt: string
+}
 
 export type PortfolioConcentrationHit = {
   kind: 'crypto' | 'equity'
@@ -11,6 +17,12 @@ export type PortfolioConcentrationHit = {
   name: string
   value: number
   weightPct: number
+}
+
+function clampConcentrationPct(pct: number): number {
+  return Number.isFinite(pct) && pct > 0
+    ? Math.min(100, Math.max(1, pct))
+    : DEFAULT_PORTFOLIO_CONCENTRATION_PCT
 }
 
 export function loadPortfolioConcentrationThresholdPct(): number {
@@ -25,13 +37,67 @@ export function loadPortfolioConcentrationThresholdPct(): number {
   }
 }
 
-export function savePortfolioConcentrationThresholdPct(pct: number): void {
-  const n =
-    Number.isFinite(pct) && pct > 0
-      ? Math.min(100, Math.max(1, pct))
-      : DEFAULT_PORTFOLIO_CONCENTRATION_PCT
+export function savePortfolioConcentrationThresholdPct(
+  pct: number,
+  opts?: { markDirty?: boolean },
+): void {
+  const n = clampConcentrationPct(pct)
+  const next: PortfolioConcentrationBackup = {
+    pct: n,
+    updatedAt: new Date().toISOString(),
+  }
   try {
     localStorage.setItem(KEY, String(n))
+    localStorage.setItem(META_KEY, JSON.stringify(next))
+    window.dispatchEvent(new CustomEvent('mydsp-portfolio-concentration'))
+  } catch {
+    /* ignore */
+  }
+  if (opts?.markDirty !== false) {
+    void import('../services/sync/workspaceDirty').then((m) => m.markWorkspaceChangedForSync())
+  }
+}
+
+export function exportPortfolioConcentrationForBackup(): PortfolioConcentrationBackup | null {
+  try {
+    const metaRaw = localStorage.getItem(META_KEY)
+    if (metaRaw) {
+      const parsed = JSON.parse(metaRaw) as PortfolioConcentrationBackup
+      if (typeof parsed.pct === 'number' && Number.isFinite(parsed.pct)) {
+        return {
+          pct: clampConcentrationPct(parsed.pct),
+          updatedAt:
+            typeof parsed.updatedAt === 'string' ? parsed.updatedAt : new Date(0).toISOString(),
+        }
+      }
+    }
+    return {
+      pct: loadPortfolioConcentrationThresholdPct(),
+      updatedAt: new Date(0).toISOString(),
+    }
+  } catch {
+    return null
+  }
+}
+
+export function importPortfolioConcentrationFromBackup(raw: unknown): void {
+  if (!raw || typeof raw !== 'object') return
+  const remote = raw as PortfolioConcentrationBackup
+  if (typeof remote.pct !== 'number' || !Number.isFinite(remote.pct)) return
+  const local = exportPortfolioConcentrationForBackup()
+  const remoteAt = Date.parse(remote.updatedAt || '') || 0
+  const localAt = Date.parse(local?.updatedAt || '') || 0
+  if (local && localAt > remoteAt) return
+  const n = clampConcentrationPct(remote.pct)
+  try {
+    localStorage.setItem(KEY, String(n))
+    localStorage.setItem(
+      META_KEY,
+      JSON.stringify({
+        pct: n,
+        updatedAt: remote.updatedAt || new Date().toISOString(),
+      }),
+    )
     window.dispatchEvent(new CustomEvent('mydsp-portfolio-concentration'))
   } catch {
     /* ignore */

@@ -12,11 +12,11 @@ describe('next25d markets / portfolio items 6-10', () => {
     expect(markets).toMatch(/No \$\{meta\.emptyLabel\} matches/)
   })
 
-  it('7: watchlist dividend yield displays; Yield % chip gated behind SHOW_MARKETS_TAG_YIELD_CHIPS', () => {
+  it('7: watchlist dividend yield displays; Yield % chip gated behind markets tag/yield pref', () => {
     const markets = readFileSync(resolve(__dirname, '../pages/MarketsPage.tsx'), 'utf8')
     expect(markets).toMatch(/sortByYieldDesc/)
     expect(markets).toMatch(/yieldSort/)
-    expect(markets).toMatch(/SHOW_MARKETS_TAG_YIELD_CHIPS/)
+    expect(markets).toMatch(/showMarketsTagYieldChips|loadShowMarketsTagYieldChips/)
     expect(markets).toMatch(/Sort equity watchlist by dividend yield/)
     expect(markets).toMatch(/Yield \{t\.yieldPct\.toFixed/)
   })

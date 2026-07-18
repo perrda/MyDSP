@@ -47,6 +47,26 @@ import {
   importCompareSelectionFromBackup,
 } from '../domain/compareSelectionPrefs'
 import {
+  exportRecurringSortForBackup,
+  importRecurringSortFromBackup,
+} from '../domain/recurringSortPrefs'
+import {
+  exportHoldingsDriftForBackup,
+  importHoldingsDriftFromBackup,
+} from '../domain/holdingsDrift'
+import {
+  exportPortfolioConcentrationForBackup,
+  importPortfolioConcentrationFromBackup,
+} from '../domain/portfolioConcentration'
+import {
+  exportSpendingFiltersForBackup,
+  importSpendingFiltersFromBackup,
+} from '../domain/spendingFilterPrefs'
+import {
+  exportNewsFilterForBackup,
+  importNewsFilterFromBackup,
+} from '../domain/newsFilterPrefs'
+import {
   exportPriceAlertThresholdsForBackup,
   importPriceAlertThresholdsFromBackup,
 } from '../domain/priceAlerts'
@@ -115,6 +135,16 @@ export interface FullBackupRecord extends FullBackupMeta {
   digestHighlights?: unknown
   /** Optional Compare selected portfolio ids */
   compareSelection?: unknown
+  /** Optional Recurring sort preference */
+  recurringSort?: unknown
+  /** Optional holdings drift % threshold */
+  holdingsDrift?: unknown
+  /** Optional portfolio concentration % threshold */
+  portfolioConcentration?: unknown
+  /** Optional Spending filter prefs */
+  spendingFilters?: unknown
+  /** Optional News tag filter */
+  newsFilter?: unknown
   /** Optional sidebar Favourites / Others layout (workspace-level) */
   navLayout?: unknown
   /** Optional phone/tablet bottom-nav middle slots */
@@ -142,6 +172,11 @@ function backupCanonical(record: Pick<
   | 'compareWeekSnapshot'
   | 'digestHighlights'
   | 'compareSelection'
+  | 'recurringSort'
+  | 'holdingsDrift'
+  | 'portfolioConcentration'
+  | 'spendingFilters'
+  | 'newsFilter'
   | 'navLayout'
   | 'bottomNavSlots'
   | 'documentBlobs'
@@ -161,6 +196,11 @@ function backupCanonical(record: Pick<
     compareWeekSnapshot: record.compareWeekSnapshot ?? null,
     digestHighlights: record.digestHighlights ?? null,
     compareSelection: record.compareSelection ?? null,
+    recurringSort: record.recurringSort ?? null,
+    holdingsDrift: record.holdingsDrift ?? null,
+    portfolioConcentration: record.portfolioConcentration ?? null,
+    spendingFilters: record.spendingFilters ?? null,
+    newsFilter: record.newsFilter ?? null,
     navLayout: record.navLayout ?? null,
     bottomNavSlots: record.bottomNavSlots ?? null,
     documentBlobs: record.documentBlobs ?? null,
@@ -185,6 +225,11 @@ export async function computeFullBackupChecksum(
     | 'compareWeekSnapshot'
     | 'digestHighlights'
     | 'compareSelection'
+    | 'recurringSort'
+    | 'holdingsDrift'
+    | 'portfolioConcentration'
+    | 'spendingFilters'
+    | 'newsFilter'
     | 'navLayout'
     | 'bottomNavSlots'
     | 'documentBlobs'
@@ -247,6 +292,11 @@ export function captureFullWorkspace(): Omit<
     compareWeekSnapshot: exportCompareWeekSnapshotForBackup() ?? undefined,
     digestHighlights: exportDigestHighlightsForBackup() ?? undefined,
     compareSelection: exportCompareSelectionForBackup() ?? undefined,
+    recurringSort: exportRecurringSortForBackup() ?? undefined,
+    holdingsDrift: exportHoldingsDriftForBackup() ?? undefined,
+    portfolioConcentration: exportPortfolioConcentrationForBackup() ?? undefined,
+    spendingFilters: exportSpendingFiltersForBackup() ?? undefined,
+    newsFilter: exportNewsFilterForBackup() ?? undefined,
     navLayout: exportNavLayoutForBackup() ?? undefined,
     bottomNavSlots: exportBottomNavSlotsForBackup() ?? undefined,
   }
@@ -460,6 +510,21 @@ export async function restoreFullWorkspace(record: FullBackupRecord): Promise<vo
   if (record.compareSelection) {
     importCompareSelectionFromBackup(record.compareSelection)
   }
+  if (record.recurringSort) {
+    importRecurringSortFromBackup(record.recurringSort)
+  }
+  if (record.holdingsDrift) {
+    importHoldingsDriftFromBackup(record.holdingsDrift)
+  }
+  if (record.portfolioConcentration) {
+    importPortfolioConcentrationFromBackup(record.portfolioConcentration)
+  }
+  if (record.spendingFilters) {
+    importSpendingFiltersFromBackup(record.spendingFilters)
+  }
+  if (record.newsFilter) {
+    importNewsFilterFromBackup(record.newsFilter)
+  }
   if (record.navLayout) {
     importNavLayoutFromBackup(record.navLayout)
   }
@@ -505,6 +570,13 @@ function fullBackupPayload(record: FullBackupRecord) {
     ...(record.compareSelection
       ? { compareSelection: record.compareSelection }
       : {}),
+    ...(record.recurringSort ? { recurringSort: record.recurringSort } : {}),
+    ...(record.holdingsDrift ? { holdingsDrift: record.holdingsDrift } : {}),
+    ...(record.portfolioConcentration
+      ? { portfolioConcentration: record.portfolioConcentration }
+      : {}),
+    ...(record.spendingFilters ? { spendingFilters: record.spendingFilters } : {}),
+    ...(record.newsFilter ? { newsFilter: record.newsFilter } : {}),
     ...(record.navLayout ? { navLayout: record.navLayout } : {}),
     ...(record.bottomNavSlots ? { bottomNavSlots: record.bottomNavSlots } : {}),
   }
@@ -652,6 +724,13 @@ export function parseFullBackupFile(raw: unknown): FullBackupRecord | null {
     markets: o.markets,
     news: o.news,
     youtube: o.youtube,
+    digestHighlights: o.digestHighlights,
+    compareSelection: o.compareSelection,
+    recurringSort: o.recurringSort,
+    holdingsDrift: o.holdingsDrift,
+    portfolioConcentration: o.portfolioConcentration,
+    spendingFilters: o.spendingFilters,
+    newsFilter: o.newsFilter,
     navLayout: o.navLayout,
     bottomNavSlots: o.bottomNavSlots,
     checksum: typeof o.checksum === 'string' ? o.checksum : undefined,
