@@ -1,5 +1,42 @@
 # MyDSP Changelog
 
+## [1.2.80] - 2026-07-18
+
+### Improved — Sync / trust (next 25o · 1–5)
+1. **Bottom nav middle slots** cloud LWW sync
+2. **Journal in What arrived** sync highlights
+3. **Markets density** true LWW via prefsUpdatedAt
+4. **Markets collapsed** LWW via prefsUpdatedAt
+5. **Docs + SYNC_SMOKE** bottom-nav + filter prefs + device-local notification prefs
+
+### Improved — Markets (next 25o · 6–10)
+6. **Section jump chips** keyboard tablist roving
+7. **Compact/Comfortable** on phone thumb bar
+8. **Section as-of** relative “Updated Xm ago” + absolute
+9. **Paper NW overflow** Include/Exclude without edit modal
+10. **Row tag → filter** when tag/Yield chips enabled
+
+### Improved — Mobile / tablet (next 25o · 11–15)
+11. **Family + Documents** thumb CTA
+12. **PTR Journal + Rules**
+13. **Bottom-nav long-press** Equities/Crypto/Liabilities/Goals → Sync now
+14. **Holding detail** Buy/Sell thumb CTA
+15. **Journal + Rules** thumb CTA
+
+### Improved — Today / productivity (next 25o · 16–20)
+16. **Jump-in To Do’s** due badge
+17. **Jump-in Jobs** + follow-up chip
+18. **Sidebar bills-due** dots on Recurring/Spending
+19. **Interview next-action** Mark done / Open
+20. **Compare SLA** relative tick while parked
+
+### Quality (next 25o · 21–25)
+21. **Axe** Staking + Planning
+22. **Axe** FIRE + Optimizer
+23. **Axe** Analytics + Achievements
+24. **Playwright** Family/Documents thumbs · Markets Compact · PTR Journal/Rules
+25. Tip harness **1.2.80**
+
 ## [1.2.79] - 2026-07-18
 
 ### Improved — Sync / trust (next 25n · 1–5)

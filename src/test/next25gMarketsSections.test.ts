@@ -97,6 +97,6 @@ describe('next25g — Markets section reorder + commodity timeframe (6–8)', ()
 
   it('package version is 1.2.70', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.79')
+    expect(pkg.version).toBe('1.2.80')
   })
 })

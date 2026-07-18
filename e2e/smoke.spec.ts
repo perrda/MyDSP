@@ -101,6 +101,36 @@ test.describe('MyDSP smoke', () => {
     await expect(page.getByText(/Yahoo|quote Worker|Updated/i).first()).toBeVisible()
   })
 
+  test('Family and Documents thumb CTAs', async ({ page }) => {
+    await page.goto('/family')
+    await expect(page.getByRole('heading', { name: /Family/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await expect(page.locator('.thumb-cta-bar').first()).toBeVisible()
+
+    await page.goto('/documents')
+    await expect(page.getByRole('heading', { name: /Documents/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await expect(page.locator('.thumb-cta-bar').first()).toBeVisible()
+  })
+
+  test('Markets Compact density on thumb bar', async ({ page }) => {
+    await page.goto('/markets')
+    await expect(page.getByRole('heading', { name: /Markets/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await expect(page.locator('.markets-density-thumb, .thumb-cta-bar').getByText(/Compact|Comfortable/i).first()).toBeVisible()
+  })
+
+  test('smoke PTR includes Journal and Rules', async ({ page }) => {
+    await page.goto('/smoke')
+    await expect(page.getByText(/PTR YouTube \/ Tax \/ Compare/i).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await expect(page.getByText(/Journal \/ Rules/i).first()).toBeVisible()
+  })
+
   test('YouTube page uses Quote Worker for feeds', async ({ page }) => {
     await page.goto('/youtube')
     await expect(page.getByRole('heading', { name: /YouTube/i }).first()).toBeVisible({

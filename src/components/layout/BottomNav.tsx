@@ -130,6 +130,10 @@ export function BottomNav() {
         item.to === '/recurring' ||
         item.to === '/tax' ||
         item.to === '/compare' ||
+        item.to === '/equities' ||
+        item.to === '/crypto' ||
+        item.to === '/liabilities' ||
+        item.to === '/goals' ||
         item.to === '/settings' ||
         item.to.startsWith('/settings')
       ) {

@@ -235,6 +235,13 @@ export function RulesPage() {
           }))
         }}
       />
+
+      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary rules actions">
+        <button type="button" className="btn-primary btn-sm" onClick={openCreate}>
+          Add rule
+        </button>
+      </div>
+      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }
