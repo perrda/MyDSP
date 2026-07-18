@@ -86,10 +86,20 @@ async function handleQuoteProxy(request) {
     })
     const body = await upstream.arrayBuffer()
     const headers = new Headers(corsHeaders(origin))
-    const ct = upstream.headers.get('Content-Type')
+    const ct = upstream.headers.get('Content-Type') || ''
     if (isFeed) {
-      headers.set('Content-Type', ct && ct.includes('xml') ? ct : 'application/xml; charset=utf-8')
-      headers.set('Cache-Control', 'public, max-age=180')
+      // Only cache successful feed bodies; never mislabel HTML error pages as XML
+      const okFeed = upstream.status >= 200 && upstream.status < 300
+      if (okFeed && (ct.includes('xml') || ct.includes('rss') || ct.includes('atom'))) {
+        headers.set('Content-Type', ct)
+        headers.set('Cache-Control', 'public, max-age=180')
+      } else if (okFeed) {
+        headers.set('Content-Type', 'application/xml; charset=utf-8')
+        headers.set('Cache-Control', 'public, max-age=180')
+      } else {
+        headers.set('Content-Type', ct || 'text/html; charset=utf-8')
+        headers.set('Cache-Control', 'no-store')
+      }
     } else {
       headers.set('Content-Type', ct || 'application/json')
     }

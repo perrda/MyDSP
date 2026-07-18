@@ -10,11 +10,12 @@ import {
 import { changePctFromSeries } from '../domain/sparklineSeries'
 
 describe('news + markets UX fixes (v1.2.69)', () => {
-  it('quote Worker allowlists Google News RSS hosts', () => {
+  it('quote Worker allowlists News RSS hosts (Yahoo + Google)', () => {
     const worker = readFileSync(resolve('quote-endpoint/worker.js'), 'utf8')
     expect(worker).toMatch(/news\.google\.com/)
     expect(worker).toMatch(/feeds\.finance\.yahoo\.com/)
     expect(worker).toMatch(/application\/rss\+xml/)
+    expect(worker).toMatch(/no-store/)
   })
 
   it('RSS fetch prefers quote Worker proxy', () => {
@@ -23,19 +24,20 @@ describe('news + markets UX fixes (v1.2.69)', () => {
     expect(rss).toMatch(/looksLikeFeed/)
   })
 
-  it('news feeds target Top 10 + 10 per tag via Google News', () => {
+  it('news feeds target Top 10 + 10 per tag via Yahoo (Google soft fallback)', () => {
     const feeds = readFileSync(resolve('src/services/newsFeeds.ts'), 'utf8')
     expect(feeds).toMatch(/fetchTopFinancialNews\(limit = 10\)/)
     expect(feeds).toMatch(/fetchNewsForTag\(tag: NewsTag, limit = 10\)/)
+    expect(feeds).toMatch(/feeds\.finance\.yahoo\.com/)
     expect(feeds).toMatch(/news\.google\.com/)
-    expect(feeds).not.toMatch(/feeds\.finance\.yahoo\.com/)
+    expect(feeds).toMatch(/TOP_YAHOO_SYMBOLS/)
   })
 
-  it('News page caches articles and shows progressive refresh', () => {
+  it('News page uses media refresh + last-good cache', () => {
     const page = readFileSync(resolve('src/pages/NewsPage.tsx'), 'utf8')
     expect(page).toMatch(/loadNewsArticlesCache/)
-    expect(page).toMatch(/saveNewsArticlesCache/)
-    expect(page).toMatch(/fetchTopFinancialNews\(10\)/)
+    expect(page).toMatch(/refreshNewsFeeds/)
+    expect(page).toMatch(/mydsp-news-articles/)
     expect(page).toMatch(/NEWS_PAGE = 10/)
   })
 
@@ -70,6 +72,6 @@ describe('news + markets UX fixes (v1.2.69)', () => {
 
   it('package version is tip', () => {
     const pkg = JSON.parse(readFileSync(resolve('package.json'), 'utf8')) as { version: string }
-    expect(pkg.version).toBe('1.2.77')
+    expect(pkg.version).toBe('1.2.78')
   })
 })

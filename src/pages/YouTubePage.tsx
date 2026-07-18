@@ -13,7 +13,8 @@ import { EmptyState, EmptyStateInline } from '../components/ui/EmptyState'
 import { ConfirmDialog, Field, Modal } from '../components/ui/Modal'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
 import { MAX_YOUTUBE_CHANNELS, type YoutubeChannel, type YoutubeVideo } from '../domain/youtube'
-import { fetchFavouriteVideos, resolveYoutubeChannel } from '../services/youtubeFeeds'
+import { resolveYoutubeChannel } from '../services/youtubeFeeds'
+import { refreshYoutubeFeeds } from '../services/mediaRefresh'
 import { isOnline } from '../services/offlineQueue'
 import {
   addYoutubeChannel,
@@ -23,12 +24,11 @@ import {
   loadYoutubeVideosCache,
   removeYoutubeChannel,
   reorderYoutubeChannels,
-  saveYoutubeVideosCache,
-  setYoutubeLastRefresh,
   setYoutubeSeenAt,
   updateYoutubeChannel,
 } from '../storage/youtubeStore'
 import { formatDateTime } from '../utils/format'
+import { notificationManager } from '../utils/notifications'
 
 function formatRelative(iso: string): string {
   const t = new Date(iso).getTime()
@@ -63,6 +63,16 @@ export function YouTubePage() {
   const [online, setOnline] = useState(() => isOnline())
   const inFlight = useRef(false)
 
+  const applyCacheToState = useCallback(() => {
+    const cached = loadYoutubeVideosCache()
+    if (cached.videos.length > 0 || listYoutubeChannels().length === 0) {
+      setVideos(cached.videos)
+    }
+    const st = loadYoutubeState()
+    if (st.lastRefreshAt) setLastAt(st.lastRefreshAt)
+    else if (cached.fetchedAt) setLastAt(cached.fetchedAt)
+  }, [])
+
   const reloadList = useCallback(() => {
     setChannels(listYoutubeChannels())
     setSeenAt(getYoutubeSeenAt())
@@ -72,29 +82,34 @@ export function YouTubePage() {
     if (inFlight.current) return
     const list = listYoutubeChannels()
     if (list.length === 0) {
+      // Keep last-good videos if favourites were cleared temporarily; only clear UI when empty
       setVideos([])
+      try {
+        notificationManager.syncCategory('youtube-uploads', [])
+      } catch {
+        /* ignore */
+      }
       return
     }
     inFlight.current = true
     setRefreshing(true)
     setError(null)
     try {
-      const vids = await fetchFavouriteVideos(list, 5, 40)
-      const at = new Date().toISOString()
-      setVideos(vids)
-      saveYoutubeVideosCache({ videos: vids, fetchedAt: at }, { markDirty: true })
-      setYoutubeLastRefresh(at)
-      setLastAt(at)
-      if (vids.length === 0) {
-        setError('No videos returned. Check channel URLs and try again.')
+      const result = await refreshYoutubeFeeds()
+      applyCacheToState()
+      if (!result.ok && !result.keptCache) {
+        setError(result.error || 'No videos returned. Check channel URLs and try again.')
+      } else if (result.keptCache) {
+        setError('Live feed unavailable — showing last-good cached videos.')
       }
     } catch (e) {
+      applyCacheToState()
       setError(e instanceof Error ? e.message : 'YouTube refresh failed')
     } finally {
       inFlight.current = false
       setRefreshing(false)
     }
-  }, [])
+  }, [applyCacheToState])
 
   useEffect(() => {
     void refresh()
@@ -117,17 +132,14 @@ export function YouTubePage() {
 
   useEffect(() => {
     const onRefresh = () => void refresh()
-    const onVideos = () => {
-      const { videos: cached } = loadYoutubeVideosCache()
-      setVideos(cached)
-    }
+    const onVideos = () => applyCacheToState()
     window.addEventListener('mydsp-youtube-refresh', onRefresh)
     window.addEventListener('mydsp-youtube-videos', onVideos)
     return () => {
       window.removeEventListener('mydsp-youtube-refresh', onRefresh)
       window.removeEventListener('mydsp-youtube-videos', onVideos)
     }
-  }, [refresh])
+  }, [refresh, applyCacheToState])
 
   useEffect(() => {
     const onOnline = () => setOnline(true)
@@ -141,11 +153,18 @@ export function YouTubePage() {
   }, [])
 
   const unreadCount = videos.filter((v) => !seenAt || v.publishedAt > seenAt).length
-  const cachedMode = videos.length > 0 && (!online || error !== null)
+  const cachedMode =
+    videos.length > 0 &&
+    (!online || (error !== null && error.toLowerCase().includes('unavailable')))
   const markYtRead = () => {
     const now = new Date().toISOString()
     setYoutubeSeenAt(now)
     setSeenAt(now)
+    try {
+      notificationManager.syncCategory('youtube-uploads', [])
+    } catch {
+      /* ignore */
+    }
   }
 
   const openCreate = () => {
@@ -196,7 +215,7 @@ export function YouTubePage() {
       <PageHeader
         eyebrow="Media"
         title="YouTube"
-        description={`Favourite finance channels (up to ${MAX_YOUTUBE_CHANNELS}). Latest uploads appear below — no API key required. Use the header refresh to force an update.`}
+        description={`Favourite finance channels (up to ${MAX_YOUTUBE_CHANNELS}). New uploads refresh with prices and appear in the bell — no API key required.`}
         action={
           <button
             type="button"
@@ -211,11 +230,15 @@ export function YouTubePage() {
         }
       />
 
-      <p className="text-xs text-text-subtle mb-4 flex flex-wrap items-center gap-2">
+      <p className="youtube-status-strip text-xs text-text-subtle mb-4 flex flex-wrap items-center gap-2 min-h-9">
         <span>
           {channels.length}/{MAX_YOUTUBE_CHANNELS} channels
-          {refreshing ? ' · Updating…' : lastAt ? ` · Last update ${formatDateTime(lastAt)}` : ''}
-          {error ? ` · ${error}` : ''}
+          {refreshing
+            ? ' · Updating…'
+            : lastAt
+              ? ` · Updated ${formatRelative(lastAt)}`
+              : ''}
+          {error && !cachedMode ? ` · ${error}` : ''}
         </span>
         {unreadCount > 0 ? (
           <span className="youtube-unread-chip inline-flex items-center gap-1 text-[11px] font-bold tabular-nums px-2 py-0.5 bg-accent/15 text-accent border border-accent/30 rounded-full">
@@ -269,8 +292,8 @@ export function YouTubePage() {
         {channels.length === 0 ? (
           <EmptyState
             icon={<Video size={40} strokeWidth={1.25} className="text-red-500" />}
-            title="No channels yet"
-            description={`Add up to ${MAX_YOUTUBE_CHANNELS} favourite finance channels. Paste a YouTube URL, @handle, or UC… id — no API key required.`}
+            title="Add favourite channels"
+            description={`Paste a YouTube URL, @handle, or UC… id (up to ${MAX_YOUTUBE_CHANNELS}). Latest uploads land here and in the notification bell when released.`}
             action={{ label: 'Add channel', onClick: openCreate }}
           />
         ) : (
@@ -336,13 +359,24 @@ export function YouTubePage() {
       >
         <div className="youtube-master-detail-list min-w-0">
           <section className="border border-border bg-bg-elevated mb-6 overflow-hidden">
-            <div className="px-4 sm:px-5 pt-4 pb-3 border-b border-border">
-              <p className="text-xl sm:text-2xl font-bold tracking-tight text-text mb-1">
-                Latest videos
-              </p>
-              <p className="label-uppercase text-[11px] text-text-subtle tabular-nums">
-                {videos.length} from your favourites
-              </p>
+            <div className="px-4 sm:px-5 pt-4 pb-3 border-b border-border flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-xl sm:text-2xl font-bold tracking-tight text-text mb-1">
+                  Latest videos
+                </p>
+                <p className="label-uppercase text-[11px] text-text-subtle tabular-nums">
+                  {videos.length} from your favourites
+                  {unreadCount > 0 ? ` · ${unreadCount} unread` : ''}
+                </p>
+              </div>
+              {unreadCount > 0 ? (
+                <span
+                  className="youtube-notify-chip shrink-0 text-[11px] font-bold tabular-nums px-2 py-0.5 bg-accent/15 text-accent border border-accent/30 rounded-full"
+                  title="New uploads also appear in the header bell"
+                >
+                  Notify · {unreadCount}
+                </span>
+              ) : null}
             </div>
             {videos.length === 0 ? (
               <EmptyStateInline

@@ -24,6 +24,7 @@ import { formatDateTime } from '../../utils/format'
 import { useShowBottomNav } from '../../hooks/useShowBottomNav'
 import { useIdlePrefetch } from '../../hooks/useIdlePrefetch'
 import { triggerSuccessFlash } from '../../utils/successFlash'
+import { refreshMediaFeeds } from '../../services/mediaRefresh'
 
 /** Pull-to-refresh on Today, Markets, holdings, News, YouTube, Tax, Compare, Todos, Jobs, Spending, Recurring, Liabilities, Goals, Trips, History, Budgets, Import (no page jump). */
 function allowPullToRefresh(pathname: string): boolean {
@@ -150,6 +151,21 @@ export function AppShell() {
     return () => navigator.serviceWorker.removeEventListener('message', onMessage)
   }, [])
 
+  // Background News + YouTube poll (same cadence spirit as prices) when app is open
+  useEffect(() => {
+    const MEDIA_POLL_MS = 15 * 60 * 1000
+    const tick = () => {
+      void refreshMediaFeeds()
+    }
+    // First media refresh shortly after mount so headlines are warm without opening News
+    const warm = window.setTimeout(tick, 2500)
+    const id = window.setInterval(tick, MEDIA_POLL_MS)
+    return () => {
+      window.clearTimeout(warm)
+      window.clearInterval(id)
+    }
+  }, [])
+
   const onRefresh = async () => {
     // Always refresh Markets / News / YouTube feeds — even when prices are
     // gated by privacy mode or throttle (those pages do not need holdings prices).
@@ -158,6 +174,7 @@ export function AppShell() {
     } catch {
       /* ignore */
     }
+    void refreshMediaFeeds()
 
     const r = await refreshPrices()
     if (r.skipped === 'privacy') {
@@ -186,6 +203,7 @@ export function AppShell() {
     } catch {
       /* ignore */
     }
+    void refreshMediaFeeds()
 
     const cfg = loadSyncConfig()
     if (!cfg.remoteUrl.trim() || !cfg.enabled || !getSessionSyncPassphrase()) {

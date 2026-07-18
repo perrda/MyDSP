@@ -276,7 +276,7 @@ export function SmokePage() {
       {
         id: 'quote-news-allowlist',
         label: 'Worker News allowlist',
-        detail: newsAllowlist.detail,
+        detail: newsAllowlist.detail || 'Yahoo Finance RSS via Quote Worker',
         to: '/news',
         done: newsAllowlist.ok,
       },

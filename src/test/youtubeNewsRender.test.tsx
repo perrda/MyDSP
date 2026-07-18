@@ -46,8 +46,8 @@ describe('YouTube + News page render QA', () => {
     )
 
     expect(screen.getByRole('heading', { name: 'YouTube' })).toBeTruthy()
-    expect(screen.getByText(/Favourite channels/i)).toBeTruthy()
-    expect(screen.getByText(/No channels yet/i)).toBeTruthy()
+    expect(screen.getByText('Favourite channels')).toBeTruthy()
+    expect(screen.getByText('Add favourite channels')).toBeTruthy()
     const addBtns = screen.getAllByRole('button', { name: /Add channel/i })
     expect(addBtns.length).toBeGreaterThan(0)
 
