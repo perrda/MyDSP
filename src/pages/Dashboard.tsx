@@ -671,7 +671,6 @@ export function Dashboard() {
       const summary = detail?.summary || detail?.extrasSummary || null
       if (!summary) return
       setWhatArrivedChip(summary)
-      window.setTimeout(() => setWhatArrivedChip(null), 8_000)
     }
     window.addEventListener('mydsp-sync-applied', onArrived)
     return () => window.removeEventListener('mydsp-sync-applied', onArrived)
@@ -781,6 +780,41 @@ export function Dashboard() {
           </div>
         }
       />
+
+      <nav
+        className="today-section-jump-chips mb-3 flex flex-wrap gap-1.5"
+        aria-label="Jump to Today section"
+      >
+        {(
+          [
+            ['today-next-action', 'Next'],
+            ['today-bills', 'Bills'],
+            ['today-media', 'Media'],
+            ['today-markets', 'Markets'],
+          ] as const
+        ).map(([id, label]) => (
+          <a
+            key={id}
+            href={`#${id}`}
+            className="today-section-jump-chip btn-ghost btn-sm text-xs"
+            onClick={(e) => {
+              e.preventDefault()
+              document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+            }}
+          >
+            {label}
+          </a>
+        ))}
+      </nav>
+
+      {queueLen > 0 ? (
+        <p className="today-offline-queue-chip mb-3 text-xs text-accent font-medium" role="status">
+          Offline queue · {queueLen} —{' '}
+          <Link to="/settings#sync" className="hover:underline">
+            open Sync
+          </Link>
+        </p>
+      ) : null}
 
       {showBackupNudge ? (
         <div
@@ -1012,7 +1046,7 @@ export function Dashboard() {
               return (
                 <div
                   key={`todo-${card.todo.id}`}
-                  className="today-next-action-card surface p-4 md:p-5 rounded-xl md:rounded-none shadow-sm md:shadow-none"
+                  className="today-next-action-card today-focus-pulse surface p-4 md:p-5 rounded-xl md:rounded-none shadow-sm md:shadow-none"
                 >
                   <Link to={`/todos?focus=${card.todo.id}`} className="block group">
                     <p className="text-[11px] uppercase tracking-wider text-text-subtle mb-1">
@@ -1083,7 +1117,7 @@ export function Dashboard() {
               return (
                 <div
                   key={`followup-${card.jobId}`}
-                  className="today-next-action-card today-followup-next-action surface p-4 md:p-5 rounded-xl md:rounded-none shadow-sm md:shadow-none"
+                  className="today-next-action-card today-followup-next-action today-focus-pulse surface p-4 md:p-5 rounded-xl md:rounded-none shadow-sm md:shadow-none"
                 >
                   <Link to={`/jobs/${card.jobId}`} className="block group">
                     <p className="text-[11px] uppercase tracking-wider text-text-subtle mb-1">
@@ -1322,7 +1356,10 @@ export function Dashboard() {
         </TodayAccordionSection>
       ) : null}
 
-      <div className="surface p-4 md:p-5 mb-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
+      <div
+        id="today-media"
+        className="surface p-4 md:p-5 mb-6 rounded-xl md:rounded-none shadow-sm md:shadow-none"
+      >
         <div className="flex items-center justify-between mb-3">
           <p className="text-xs uppercase tracking-wider text-text-subtle font-semibold">Jump in</p>
         </div>
@@ -1390,7 +1427,11 @@ export function Dashboard() {
               >
                 Mark all read
               </button>
-            ) : null}
+            ) : (
+              <span className="today-news-all-caught-up text-[11px] text-text-subtle font-medium">
+                All caught up
+              </span>
+            )}
           </div>
           <div className="inline-flex flex-wrap items-center gap-1.5">
             <Link
@@ -1423,16 +1464,29 @@ export function Dashboard() {
               >
                 Mark all read
               </button>
-            ) : null}
+            ) : (
+              <span className="today-youtube-all-caught-up text-[11px] text-text-subtle font-medium">
+                All caught up
+              </span>
+            )}
           </div>
         </div>
         {whatArrivedChip ? (
-          <p
-            className="today-what-arrived-chip mt-3 text-xs text-accent font-medium"
+          <div
+            className="today-what-arrived-chip mt-3 flex flex-wrap items-center gap-2 text-xs text-accent font-medium"
             role="status"
           >
-            What arrived · {whatArrivedChip}
-          </p>
+            <Link to="/settings#sync" className="hover:underline">
+              What arrived · {whatArrivedChip}
+            </Link>
+            <button
+              type="button"
+              className="btn-ghost btn-sm text-[11px] min-h-8 today-what-arrived-dismiss"
+              onClick={() => setWhatArrivedChip(null)}
+            >
+              Dismiss
+            </button>
+          </div>
         ) : null}
         {(newsFetchedAt || youtubeFetchedAt) && relativeTick >= 0 ? (
           <p
@@ -1461,6 +1515,7 @@ export function Dashboard() {
 
         {twoPane ? (
           <aside
+            id="today-markets"
             className="today-markets-pane surface p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none sticky"
             aria-label="Markets snapshot"
           >
@@ -1543,7 +1598,49 @@ export function Dashboard() {
               {marketsCount} ticker{marketsCount === 1 ? '' : 's'} watched · movers use quotes from the last 24h
             </p>
           </aside>
-        ) : null}
+        ) : (
+          <section
+            id="today-markets"
+            className="today-markets-pane surface p-4 mb-6 rounded-xl shadow-sm"
+            aria-label="Markets snapshot"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs uppercase tracking-wider text-text-subtle font-semibold">Markets</p>
+              <Link to="/markets" className="text-xs text-accent font-semibold">
+                Open
+              </Link>
+            </div>
+            {todayMovers.length === 0 ? (
+              <p className="text-sm text-text-muted font-light">
+                No fresh movers (last 24h) — open Markets to refresh.
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {todayMovers.slice(0, 5).map((m) => (
+                  <li key={m.id}>
+                    <Link
+                      to={`/markets?symbol=${encodeURIComponent(m.symbol)}`}
+                      className="flex items-baseline justify-between gap-2 hover:text-accent"
+                    >
+                      <span className="font-semibold tracking-tight">{m.symbol}</span>
+                      <span
+                        className={`tabular-nums text-sm markets-quote-price ${privacyClass(privacy)} ${
+                          m.changePct >= 0 ? 'text-emerald-500' : 'text-red-500'
+                        }`}
+                      >
+                        {m.changePct >= 0 ? '+' : ''}
+                        {m.changePct.toFixed(2)}%
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="text-[11px] text-text-subtle mt-3 font-light">
+              {marketsCount} ticker{marketsCount === 1 ? '' : 's'} watched · movers use quotes from the last 24h
+            </p>
+          </section>
+        )}
       </div>
 
       <GettingStartedChecklist />

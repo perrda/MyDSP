@@ -228,6 +228,47 @@ test.describe('MyDSP smoke', () => {
     await expect(page.locator('[id^="markets-section-"]').first()).toBeAttached()
   })
 
+  test('FIRE and Optimizer thumb CTAs', async ({ page }) => {
+    await page.goto('/fire')
+    await expect(page.getByRole('heading', { name: /FIRE calculator/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await expect(page.locator('.thumb-cta-bar').first()).toBeVisible()
+
+    await page.goto('/optimizer')
+    await expect(page.getByRole('heading', { name: /Debt optimizer/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await expect(page.locator('.thumb-cta-bar').first()).toBeVisible()
+  })
+
+  test('smoke PTR includes FIRE Optimizer', async ({ page }) => {
+    await page.goto('/smoke')
+    await expect(page.getByText(/PTR YouTube \/ Tax \/ Compare/i).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await expect(page.getByText(/FIRE \/ Optimizer \/ Achievements \/ API \/ Insights \/ Review/i).first()).toBeVisible()
+  })
+
+  test('launch path preference persists', async ({ page }) => {
+    await page.addInitScript(() => {
+      try {
+        localStorage.setItem('mydsp_launch_path', '/markets')
+        localStorage.setItem(
+          'mydsp_launch_path_meta_v1',
+          JSON.stringify({ path: '/markets', updatedAt: new Date().toISOString() }),
+        )
+      } catch {
+        /* ignore */
+      }
+    })
+    await page.goto('/')
+    await expect(page).toHaveURL(/\/markets/, { timeout: 20_000 })
+    await expect(page.getByRole('heading', { name: /Markets/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+  })
+
   test('offline queue enqueue surfaces in Settings Sync', async ({ page }) => {
     await page.addInitScript(() => {
       try {

@@ -20,6 +20,8 @@ Run after every production deploy (`npm run deploy` + `npm run deploy:sync` if s
 11. **News / YouTube cross-device** — refresh News on A (Yahoo headlines) → B shows last-good headlines before B refreshes; **Mark all read** on A → B’s unread count clears after sync (seenAt LWW); add a YouTube favourite on A → B gains the channel + cached videos after sync (upload-alert toggle stays per device)
 12. **Bottom nav + filter prefs** — reorder middle bottom-nav tabs on A → B matches after sync; set Todos Due today and Jobs Needs follow-up on A → B shows the same quick filters
 13. **Clear ISA override** — clear Tax ISA remaining on A → B clears too (empty remaining + meta `updatedAt`)
+14. **Launch path + UI panels** — set Launch path to Markets on A → B opens Markets after relaunch; expand a Filters panel on A → B keeps it open after sync
+15. **Markets tag/Yield + Settings jumps** — enable Show Markets tag + Yield % chips on A → B shows chips; open a Settings section on A → B’s recent jumps include it
 
 ## Pass criteria
 All steps succeed without clearing site data. If any fail, capture the Sync activity log (Settings → Devices / Sync) before retrying.

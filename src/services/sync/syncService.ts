@@ -259,6 +259,10 @@ export interface MergePreview {
     todosQuickFilter?: unknown
     jobsFilter?: unknown
     bottomNavSlots?: unknown
+    launchPath?: unknown
+    uiPanels?: unknown
+    marketsTagYield?: unknown
+    settingsRecentJumps?: unknown
   }
 }
 
@@ -667,6 +671,10 @@ async function decryptEnvelope(
     if (a.todosQuickFilter != null) extras.todosQuickFilter = a.todosQuickFilter
     if (a.jobsFilter != null) extras.jobsFilter = a.jobsFilter
     if (a.bottomNavSlots != null) extras.bottomNavSlots = a.bottomNavSlots
+    if (a.launchPath != null) extras.launchPath = a.launchPath
+    if (a.uiPanels != null) extras.uiPanels = a.uiPanels
+    if (a.marketsTagYield != null) extras.marketsTagYield = a.marketsTagYield
+    if (a.settingsRecentJumps != null) extras.settingsRecentJumps = a.settingsRecentJumps
     if (Object.keys(extras).length > 0) workspaceExtras = extras
   }
 
@@ -929,6 +937,22 @@ export async function applyMergePreview(
   if (preview.workspaceExtras?.jobsFilter != null) {
     const { importJobsFilterFromBackup } = await import('../../domain/jobsFilterPrefs')
     importJobsFilterFromBackup(preview.workspaceExtras.jobsFilter)
+  }
+  if (preview.workspaceExtras?.launchPath != null) {
+    const { importLaunchPathFromBackup } = await import('../../storage/launchPathStore')
+    importLaunchPathFromBackup(preview.workspaceExtras.launchPath)
+  }
+  if (preview.workspaceExtras?.uiPanels != null) {
+    const { importUiPanelsFromBackup } = await import('../../storage/uiPanelsStore')
+    importUiPanelsFromBackup(preview.workspaceExtras.uiPanels)
+  }
+  if (preview.workspaceExtras?.marketsTagYield != null) {
+    const { importMarketsTagYieldFromBackup } = await import('../../domain/marketsTagYieldPref')
+    importMarketsTagYieldFromBackup(preview.workspaceExtras.marketsTagYield)
+  }
+  if (preview.workspaceExtras?.settingsRecentJumps != null) {
+    const { importSettingsRecentJumpsFromBackup } = await import('../../domain/settingsSearch')
+    importSettingsRecentJumpsFromBackup(preview.workspaceExtras.settingsRecentJumps)
   }
 
   return { merged, conflicts: preview.conflicts, removedDupes: removed.length }

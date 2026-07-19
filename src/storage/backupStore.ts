@@ -29,6 +29,22 @@ import {
   importBottomNavSlotsFromBackup,
 } from './bottomNavSlots'
 import {
+  exportLaunchPathForBackup,
+  importLaunchPathFromBackup,
+} from './launchPathStore'
+import {
+  exportUiPanelsForBackup,
+  importUiPanelsFromBackup,
+} from './uiPanelsStore'
+import {
+  exportMarketsTagYieldForBackup,
+  importMarketsTagYieldFromBackup,
+} from '../domain/marketsTagYieldPref'
+import {
+  exportSettingsRecentJumpsForBackup,
+  importSettingsRecentJumpsFromBackup,
+} from '../domain/settingsSearch'
+import {
   exportYoutubeForBackup,
   exportYoutubeVideosForBackup,
   importYoutubeFromBackup,
@@ -161,6 +177,14 @@ export interface FullBackupRecord extends FullBackupMeta {
   navLayout?: unknown
   /** Optional phone/tablet bottom-nav middle slots */
   bottomNavSlots?: unknown
+  /** Optional on-launch home path */
+  launchPath?: unknown
+  /** Optional UI panel open/collapsed map */
+  uiPanels?: unknown
+  /** Optional Markets tag/Yield chips visibility */
+  marketsTagYield?: unknown
+  /** Optional Settings recent jump chips */
+  settingsRecentJumps?: unknown
   /** Optional file attachments (CV/PDFs) as base64 payloads */
   documentBlobs?: import('./documentBlobStore').DocumentBlobPayload[]
   documentBlobsSkipped?: number[]
@@ -193,6 +217,10 @@ function backupCanonical(record: Pick<
   | 'jobsFilter'
   | 'navLayout'
   | 'bottomNavSlots'
+  | 'launchPath'
+  | 'uiPanels'
+  | 'marketsTagYield'
+  | 'settingsRecentJumps'
   | 'documentBlobs'
 >): string {
   return JSON.stringify({
@@ -219,6 +247,10 @@ function backupCanonical(record: Pick<
     jobsFilter: record.jobsFilter ?? null,
     navLayout: record.navLayout ?? null,
     bottomNavSlots: record.bottomNavSlots ?? null,
+    launchPath: record.launchPath ?? null,
+    uiPanels: record.uiPanels ?? null,
+    marketsTagYield: record.marketsTagYield ?? null,
+    settingsRecentJumps: record.settingsRecentJumps ?? null,
     documentBlobs: record.documentBlobs ?? null,
   })
 }
@@ -250,6 +282,10 @@ export async function computeFullBackupChecksum(
     | 'jobsFilter'
     | 'navLayout'
     | 'bottomNavSlots'
+    | 'launchPath'
+    | 'uiPanels'
+    | 'marketsTagYield'
+    | 'settingsRecentJumps'
     | 'documentBlobs'
   >,
 ): Promise<string> {
@@ -319,6 +355,10 @@ export function captureFullWorkspace(): Omit<
     jobsFilter: exportJobsFilterForBackup() ?? undefined,
     navLayout: exportNavLayoutForBackup() ?? undefined,
     bottomNavSlots: exportBottomNavSlotsForBackup() ?? undefined,
+    launchPath: exportLaunchPathForBackup() ?? undefined,
+    uiPanels: exportUiPanelsForBackup() ?? undefined,
+    marketsTagYield: exportMarketsTagYieldForBackup() ?? undefined,
+    settingsRecentJumps: exportSettingsRecentJumpsForBackup() ?? undefined,
   }
 }
 
@@ -557,6 +597,18 @@ export async function restoreFullWorkspace(record: FullBackupRecord): Promise<vo
   if (record.bottomNavSlots) {
     importBottomNavSlotsFromBackup(record.bottomNavSlots)
   }
+  if (record.launchPath) {
+    importLaunchPathFromBackup(record.launchPath)
+  }
+  if (record.uiPanels) {
+    importUiPanelsFromBackup(record.uiPanels)
+  }
+  if (record.marketsTagYield) {
+    importMarketsTagYieldFromBackup(record.marketsTagYield)
+  }
+  if (record.settingsRecentJumps) {
+    importSettingsRecentJumpsFromBackup(record.settingsRecentJumps)
+  }
 }
 
 function fullBackupPayload(record: FullBackupRecord) {
@@ -607,6 +659,12 @@ function fullBackupPayload(record: FullBackupRecord) {
     ...(record.jobsFilter ? { jobsFilter: record.jobsFilter } : {}),
     ...(record.navLayout ? { navLayout: record.navLayout } : {}),
     ...(record.bottomNavSlots ? { bottomNavSlots: record.bottomNavSlots } : {}),
+    ...(record.launchPath ? { launchPath: record.launchPath } : {}),
+    ...(record.uiPanels ? { uiPanels: record.uiPanels } : {}),
+    ...(record.marketsTagYield ? { marketsTagYield: record.marketsTagYield } : {}),
+    ...(record.settingsRecentJumps
+      ? { settingsRecentJumps: record.settingsRecentJumps }
+      : {}),
   }
 }
 
@@ -763,6 +821,10 @@ export function parseFullBackupFile(raw: unknown): FullBackupRecord | null {
     jobsFilter: o.jobsFilter,
     navLayout: o.navLayout,
     bottomNavSlots: o.bottomNavSlots,
+    launchPath: o.launchPath,
+    uiPanels: o.uiPanels,
+    marketsTagYield: o.marketsTagYield,
+    settingsRecentJumps: o.settingsRecentJumps,
     checksum: typeof o.checksum === 'string' ? o.checksum : undefined,
   }
 }

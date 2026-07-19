@@ -106,6 +106,10 @@ export type WorkspaceExtrasFlags = {
   jobsFilter?: boolean
   bottomNavSlots?: boolean
   navLayout?: boolean
+  launchPath?: boolean
+  uiPanels?: boolean
+  marketsTagYield?: boolean
+  settingsRecentJumps?: boolean
   markets?: boolean
   news?: boolean
   youtube?: boolean
@@ -129,6 +133,10 @@ const EXTRAS_LABELS: Array<[keyof WorkspaceExtrasFlags, string]> = [
   ['jobsFilter', 'Jobs filter'],
   ['bottomNavSlots', 'Bottom nav slots'],
   ['navLayout', 'Favourites layout'],
+  ['launchPath', 'Launch path'],
+  ['uiPanels', 'UI panels'],
+  ['marketsTagYield', 'Markets tag/Yield chips'],
+  ['settingsRecentJumps', 'Settings jumps'],
   ['markets', 'Markets watchlist'],
   ['news', 'News tags'],
   ['youtube', 'YouTube channels'],
@@ -164,6 +172,10 @@ export function workspaceExtrasFlagsFromPreview(extras: {
   jobsFilter?: unknown
   bottomNavSlots?: unknown
   navLayout?: unknown
+  launchPath?: unknown
+  uiPanels?: unknown
+  marketsTagYield?: unknown
+  settingsRecentJumps?: unknown
   markets?: unknown
   news?: unknown
   youtube?: unknown
@@ -187,6 +199,10 @@ export function workspaceExtrasFlagsFromPreview(extras: {
     jobsFilter: extras.jobsFilter != null,
     bottomNavSlots: extras.bottomNavSlots != null,
     navLayout: extras.navLayout != null,
+    launchPath: extras.launchPath != null,
+    uiPanels: extras.uiPanels != null,
+    marketsTagYield: extras.marketsTagYield != null,
+    settingsRecentJumps: extras.settingsRecentJumps != null,
     markets: extras.markets != null,
     news: extras.news != null,
     youtube: extras.youtube != null,

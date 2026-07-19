@@ -29,6 +29,24 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.82',
+    date: '2026-07-19',
+    bullets: [
+      {
+        text: 'Launch path · UI panels · Markets tag/Yield · Settings jumps LWW',
+        to: '/settings#sync',
+      },
+      {
+        text: 'Markets undo remove · stale-from-sync Retry · quote Edit ticker',
+        to: '/markets',
+      },
+      {
+        text: 'Today jump chips · All caught up · dismissible What arrived · FIRE thumbs',
+        to: '/',
+      },
+    ],
+  },
+  {
     version: '1.2.81',
     date: '2026-07-18',
     bullets: [
