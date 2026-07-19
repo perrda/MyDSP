@@ -79,7 +79,7 @@ export function ImportPage() {
       <div className="surface border-l-2 border-l-border-strong px-5 py-3 mb-6">
         <p className="text-sm text-text-muted font-light">
           Open banking (PSD2) is not available — import CSVs only. See{' '}
-          <Link to="/settings#open-banking" className="text-accent hover:underline">
+          <Link to="/settings#open-banking" className="font-semibold underline hover:no-underline">
             Settings → Open banking
           </Link>
           .

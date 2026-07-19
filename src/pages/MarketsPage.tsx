@@ -1744,7 +1744,7 @@ export function MarketsPage() {
                                   ? 'text-text-subtle'
                                   : stale
                                     ? 'text-amber-600 dark:text-amber-400 font-semibold'
-                                    : 'text-emerald-600/80 dark:text-emerald-400/80'
+                                    : 'text-text-muted font-medium'
                               }`}
                             >
                               {label}
