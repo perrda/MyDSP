@@ -28,6 +28,9 @@ export const BOTTOM_NAV_SLOT_CHOICES = [
   '/compare',
   '/recurring',
   '/review',
+  '/budgets',
+  '/history',
+  '/family',
 ] as const
 
 export type BottomNavSlotsBackup = {

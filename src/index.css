@@ -2709,7 +2709,9 @@ html.success-haptic-flash::after {
 @media (min-width: 768px) and (max-width: 1023px) {
   .compare-sticky-toolbar,
   .tax-sticky-toolbar,
-  .review-sticky-month {
+  .review-sticky-month,
+  .spending-sticky-month,
+  .news-sticky-filters {
     position: sticky;
     top: var(--app-header-offset, 3.5rem);
     z-index: 8;

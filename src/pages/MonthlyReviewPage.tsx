@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { PageHeader, StatCard } from '../components/ui/PageHeader'
 import { usePortfolio } from '../context/PortfolioContext'
+import { loadReviewMonthPref, saveReviewMonthPref } from '../domain/reviewMonthPref'
 import { formatGBP, formatPct, privacyClass } from '../utils/format'
 
 function monthKey(d: Date): string {
@@ -16,7 +17,11 @@ function shiftMonth(ym: string, delta: number): string {
 
 export function MonthlyReviewPage() {
   const { data, breakdown, privacy } = usePortfolio()
-  const [ym, setYm] = useState(() => monthKey(new Date()))
+  const [ym, setYm] = useState(() => loadReviewMonthPref(monthKey(new Date())))
+  const setReviewYm = (next: string) => {
+    setYm(next)
+    saveReviewMonthPref(next)
+  }
 
   const thisMonth = useMemo(() => {
     const spend = data.spending.filter((s) => s.date.startsWith(ym))
@@ -64,7 +69,7 @@ export function MonthlyReviewPage() {
             <button
               type="button"
               className="btn-ghost btn-sm"
-              onClick={() => setYm(shiftMonth(ym, -1))}
+              onClick={() => setReviewYm(shiftMonth(ym, -1))}
             >
               Prev
             </button>
@@ -72,7 +77,7 @@ export function MonthlyReviewPage() {
             <button
               type="button"
               className="btn-ghost btn-sm"
-              onClick={() => setYm(shiftMonth(ym, 1))}
+              onClick={() => setReviewYm(shiftMonth(ym, 1))}
             >
               Next
             </button>

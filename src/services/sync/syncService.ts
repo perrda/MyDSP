@@ -271,6 +271,10 @@ export interface MergePreview {
     achievementsSeen?: unknown
     gettingStartedDismissed?: unknown
     whatArrivedDismiss?: unknown
+    todosSort?: unknown
+    jobsView?: unknown
+    liabilitiesRag?: unknown
+    reviewMonth?: unknown
   }
 }
 
@@ -691,6 +695,10 @@ async function decryptEnvelope(
     if (a.achievementsSeen != null) extras.achievementsSeen = a.achievementsSeen
     if (a.gettingStartedDismissed != null) extras.gettingStartedDismissed = a.gettingStartedDismissed
     if (a.whatArrivedDismiss != null) extras.whatArrivedDismiss = a.whatArrivedDismiss
+    if (a.todosSort != null) extras.todosSort = a.todosSort
+    if (a.jobsView != null) extras.jobsView = a.jobsView
+    if (a.liabilitiesRag != null) extras.liabilitiesRag = a.liabilitiesRag
+    if (a.reviewMonth != null) extras.reviewMonth = a.reviewMonth
     if (Object.keys(extras).length > 0) workspaceExtras = extras
   }
 
@@ -1003,6 +1011,22 @@ export async function applyMergePreview(
   if (preview.workspaceExtras?.whatArrivedDismiss != null) {
     const { importWhatArrivedDismissFromBackup } = await import('../../domain/whatArrivedDismissPref')
     importWhatArrivedDismissFromBackup(preview.workspaceExtras.whatArrivedDismiss)
+  }
+  if (preview.workspaceExtras?.todosSort != null) {
+    const { importTodosSortFromBackup } = await import('../../domain/todosSortPrefs')
+    importTodosSortFromBackup(preview.workspaceExtras.todosSort)
+  }
+  if (preview.workspaceExtras?.jobsView != null) {
+    const { importJobsViewFromBackup } = await import('../../domain/jobsViewPrefs')
+    importJobsViewFromBackup(preview.workspaceExtras.jobsView)
+  }
+  if (preview.workspaceExtras?.liabilitiesRag != null) {
+    const { importLiabilitiesRagFromBackup } = await import('../../domain/liabilitiesRagPref')
+    importLiabilitiesRagFromBackup(preview.workspaceExtras.liabilitiesRag)
+  }
+  if (preview.workspaceExtras?.reviewMonth != null) {
+    const { importReviewMonthFromBackup } = await import('../../domain/reviewMonthPref')
+    importReviewMonthFromBackup(preview.workspaceExtras.reviewMonth)
   }
 
   return { merged, conflicts: preview.conflicts, removedDupes: removed.length }

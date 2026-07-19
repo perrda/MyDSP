@@ -2494,7 +2494,8 @@ export function MarketsPage() {
           })}
           <button
             type="button"
-            className={`btn-sm ${yieldSort ? 'btn-primary' : 'btn-ghost'}`}
+            className={`btn-sm markets-yield-sort ${yieldSort ? 'btn-primary' : 'btn-ghost'}`}
+            data-testid="markets-yield-sort"
             aria-pressed={yieldSort}
             onClick={() => {
               applyYieldSort(!yieldSort)
@@ -2944,6 +2945,68 @@ export function MarketsPage() {
               </button>
               <button
                 type="button"
+                className="btn-secondary btn-sm markets-quote-copy-price"
+                data-testid="markets-quote-copy-price"
+                aria-label={`Copy price for ${quoteDetail.ticker.symbol}`}
+                onClick={() => {
+                  const sym = quoteDetail.ticker.symbol
+                  const q = quotes.get(quoteDetail.ticker.id)
+                  const price =
+                    q && q.last > 0
+                      ? `${sym} ${q.last.toFixed(q.last >= 100 ? 2 : 4)} ${q.unit || ''}`.trim()
+                      : sym
+                  void (async () => {
+                    try {
+                      if (navigator.clipboard?.writeText) {
+                        await navigator.clipboard.writeText(price)
+                        toastSuccess('Copied', `${price} copied to clipboard`)
+                      } else {
+                        toastError('Copy failed', 'Clipboard unavailable')
+                      }
+                    } catch {
+                      toastError('Copy failed', 'Could not copy price')
+                    }
+                  })()
+                }}
+              >
+                Copy price
+              </button>
+              <button
+                type="button"
+                className="btn-secondary btn-sm markets-quote-share"
+                data-testid="markets-quote-share"
+                aria-label={`Share quote for ${quoteDetail.ticker.symbol}`}
+                onClick={() => {
+                  const sym = quoteDetail.ticker.symbol
+                  const q = quotes.get(quoteDetail.ticker.id)
+                  const price =
+                    q && q.last > 0
+                      ? `${q.last.toFixed(q.last >= 100 ? 2 : 4)} ${q.unit || ''}`.trim()
+                      : 'n/a'
+                  const text = `${sym} · ${price}`
+                  void (async () => {
+                    try {
+                      if (navigator.share) {
+                        await navigator.share({ title: `${sym} quote`, text })
+                        return
+                      }
+                      if (navigator.clipboard?.writeText) {
+                        await navigator.clipboard.writeText(text)
+                        toastSuccess('Copied', 'Quote copied to clipboard')
+                        return
+                      }
+                      toastError('Share failed', 'Sharing unavailable')
+                    } catch (err) {
+                      if (err instanceof DOMException && err.name === 'AbortError') return
+                      toastError('Share failed', 'Could not share quote')
+                    }
+                  })()
+                }}
+              >
+                Share
+              </button>
+              <button
+                type="button"
                 className="btn-secondary btn-sm markets-quote-open-news"
                 data-testid="markets-quote-open-news"
                 aria-label={`Open News for ${quoteDetail.ticker.symbol}`}
@@ -2969,6 +3032,7 @@ export function MarketsPage() {
               <button
                 type="button"
                 className="btn-secondary btn-sm markets-quote-edit"
+                data-testid="markets-quote-edit"
                 onClick={() => {
                   const t = quoteDetail.ticker
                   setQuoteDetail(null)
@@ -3155,6 +3219,7 @@ export function MarketsPage() {
           <button
             type="button"
             className="btn-secondary btn-sm markets-undo-remove"
+            data-testid="markets-undo-remove"
             onClick={() => {
               try {
                 addMarketTicker({
@@ -3245,6 +3310,31 @@ export function MarketsPage() {
         >
           <Plus size={16} strokeWidth={2} /> Add index
         </button>
+        {(() => {
+          const eqMissing = holdingsMissingFromWatchlist(
+            data.equities.map((e) => ({ symbol: e.symbol, name: e.name })),
+            'equity',
+          )
+          const cryptoMissing = holdingsMissingFromWatchlist(
+            data.crypto.map((c) => ({ symbol: c.symbol, name: c.name })),
+            'crypto',
+          )
+          const total = eqMissing.length + cryptoMissing.length
+          if (total === 0) return null
+          return (
+            <button
+              type="button"
+              className="btn-secondary btn-sm inline-flex items-center gap-1.5 markets-add-from-holding-thumb"
+              data-testid="markets-add-from-holding-thumb"
+              onClick={() => {
+                if (eqMissing.length > 0) addFromHoldings('equity')
+                if (cryptoMissing.length > 0) addFromHoldings('crypto')
+              }}
+            >
+              <Plus size={16} strokeWidth={2} /> Add from holding ({total})
+            </button>
+          )
+        })()}
         <button
           type="button"
           className={`btn-ghost btn-sm markets-density-thumb ${

@@ -320,6 +320,18 @@ export function Dashboard() {
     updatedAt: string
   } | null>(null)
   const interviewUndoTimer = useRef<number | null>(null)
+  const [followupUndo, setFollowupUndo] = useState<{
+    jobId: number
+    updatedAt: string
+  } | null>(null)
+  const followupUndoTimer = useRef<number | null>(null)
+  const [focusSnoozeUndo, setFocusSnoozeUndo] = useState<{
+    id: number
+    dueDate?: string
+    updatedAt: string
+  } | null>(null)
+  const focusSnoozeUndoTimer = useRef<number | null>(null)
+  const [activeJumpSection, setActiveJumpSection] = useState<string | null>(null)
 
   useEffect(() => subscribeAutoSync(setSyncStatus), [])
   useEffect(() => {
@@ -745,12 +757,102 @@ export function Dashboard() {
     const dueDate = snoozeDueDateOneDay(focusTodoItem.dueDate)
     const now = new Date().toISOString()
     const id = focusTodoItem.id
+    setFocusSnoozeUndo({
+      id,
+      dueDate: focusTodoItem.dueDate,
+      updatedAt: focusTodoItem.updatedAt,
+    })
+    if (focusSnoozeUndoTimer.current) window.clearTimeout(focusSnoozeUndoTimer.current)
+    focusSnoozeUndoTimer.current = window.setTimeout(() => setFocusSnoozeUndo(null), 5_000)
     setData((prev) => ({
       ...prev,
       todoItems: (prev.todoItems ?? []).map((i) =>
         i.id === id ? { ...i, dueDate, updatedAt: now } : i,
       ),
     }))
+  }
+
+  const undoFocusSnooze = () => {
+    if (!focusSnoozeUndo) return
+    const snap = focusSnoozeUndo
+    setData((prev) => ({
+      ...prev,
+      todoItems: (prev.todoItems ?? []).map((i) =>
+        i.id === snap.id
+          ? { ...i, dueDate: snap.dueDate, updatedAt: snap.updatedAt }
+          : i,
+      ),
+    }))
+    setFocusSnoozeUndo(null)
+    if (focusSnoozeUndoTimer.current) {
+      window.clearTimeout(focusSnoozeUndoTimer.current)
+      focusSnoozeUndoTimer.current = null
+    }
+  }
+
+  const markFollowUpDone = (jobId: number) => {
+    const app = (data.jobApplications ?? []).find((a) => a.id === jobId)
+    if (!app) return
+    const now = new Date().toISOString()
+    setFollowupUndo({
+      jobId,
+      updatedAt: app.updatedAt,
+    })
+    if (followupUndoTimer.current) window.clearTimeout(followupUndoTimer.current)
+    followupUndoTimer.current = window.setTimeout(() => setFollowupUndo(null), 5_000)
+    setData((prev) => ({
+      ...prev,
+      jobApplications: (prev.jobApplications ?? []).map((a) => {
+        if (a.id !== jobId) return a
+        const nextId = (a.notes ?? []).reduce((m, n) => Math.max(m, n.id), 0) + 1
+        return {
+          ...a,
+          notes: [
+            ...(a.notes ?? []),
+            {
+              id: nextId,
+              content: 'Follow-up logged from Today',
+              type: 'follow-up' as const,
+              createdAt: now,
+              updatedAt: now,
+            },
+          ],
+          updatedAt: now,
+        }
+      }),
+    }))
+  }
+
+  const undoFollowUpDone = () => {
+    if (!followupUndo) return
+    const snap = followupUndo
+    setData((prev) => ({
+      ...prev,
+      jobApplications: (prev.jobApplications ?? []).map((a) => {
+        if (a.id !== snap.jobId) return a
+        let removed = false
+        const nextNotes = [...(a.notes ?? [])]
+          .reverse()
+          .filter((n) => {
+            if (
+              !removed &&
+              n.type === 'follow-up' &&
+              n.content === 'Follow-up logged from Today'
+            ) {
+              removed = true
+              return false
+            }
+            return true
+          })
+          .reverse()
+        return { ...a, notes: nextNotes, updatedAt: snap.updatedAt }
+      }),
+    }))
+    setFollowupUndo(null)
+    if (followupUndoTimer.current) {
+      window.clearTimeout(followupUndoTimer.current)
+      followupUndoTimer.current = null
+    }
   }
 
   const markInterviewDone = (jobId: number) => {
@@ -879,8 +981,53 @@ export function Dashboard() {
       if (focusUndoTimer.current) window.clearTimeout(focusUndoTimer.current)
       if (billUndoTimer.current) window.clearTimeout(billUndoTimer.current)
       if (interviewUndoTimer.current) window.clearTimeout(interviewUndoTimer.current)
+      if (followupUndoTimer.current) window.clearTimeout(followupUndoTimer.current)
+      if (focusSnoozeUndoTimer.current) window.clearTimeout(focusSnoozeUndoTimer.current)
     }
   }, [])
+
+  /** Highlight the jump chip for the Today section currently in view. */
+  useEffect(() => {
+    const sectionIds = [
+      'today-next-action',
+      'today-bills',
+      'today-goals',
+      'today-tax',
+      'today-debt',
+      'today-media',
+      'today-markets',
+    ]
+    const elements = sectionIds
+      .map((id) => document.getElementById(id))
+      .filter((el): el is HTMLElement => el != null)
+    if (elements.length === 0) return
+
+    const ratios = new Map<string, number>()
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          ratios.set(entry.target.id, entry.isIntersecting ? entry.intersectionRatio : 0)
+        }
+        let best: string | null = null
+        let bestRatio = 0
+        for (const id of sectionIds) {
+          const ratio = ratios.get(id) ?? 0
+          if (ratio > bestRatio) {
+            bestRatio = ratio
+            best = id
+          }
+        }
+        if (best) setActiveJumpSection(best)
+      },
+      {
+        root: null,
+        rootMargin: '-15% 0px -50% 0px',
+        threshold: [0, 0.1, 0.25, 0.5, 0.75, 1],
+      },
+    )
+    for (const el of elements) io.observe(el)
+    return () => io.disconnect()
+  }, [liabilities, nextActions.length])
 
   /** Soonest active goal with deadline within 30 days (inclusive). */
   const soonGoal = useMemo(() => {
@@ -997,22 +1144,32 @@ export function Dashboard() {
             ['today-bills', 'Bills', 'today-section-jump-bills'],
             ['today-goals', 'Goals', 'today-section-jump-goals'],
             ['today-tax', 'Tax', 'today-section-jump-tax'],
+            ...(liabilities > 0
+              ? ([['today-debt', 'Debt', 'today-section-jump-debt']] as const)
+              : []),
             ['today-media', 'Media', 'today-section-jump-media'],
             ['today-markets', 'Markets', 'today-section-jump-markets'],
           ] as const
-        ).map(([id, label, chipClass]) => (
-          <a
-            key={id}
-            href={`#${id}`}
-            className={`today-section-jump-chip ${chipClass} btn-ghost btn-sm text-xs`}
-            onClick={(e) => {
-              e.preventDefault()
-              document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-            }}
-          >
-            {label}
-          </a>
-        ))}
+        ).map(([id, label, chipClass]) => {
+          const active = activeJumpSection === id
+          return (
+            <a
+              key={id}
+              href={`#${id}`}
+              className={`today-section-jump-chip ${chipClass} btn-ghost btn-sm text-xs${
+                active ? ' today-section-jump-chip--active border-accent text-accent' : ''
+              }`}
+              aria-current={active ? 'true' : undefined}
+              onClick={(e) => {
+                e.preventDefault()
+                document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                setActiveJumpSection(id)
+              }}
+            >
+              {label}
+            </a>
+          )
+        })}
       </nav>
 
       {queueLen > 0 ? (
@@ -1192,6 +1349,7 @@ export function Dashboard() {
             ) : null}
             {liabilities > 0 ? (
               <Link
+                id="today-debt"
                 to="/liabilities"
                 className={`today-debt-pulse border border-border bg-surface-hover/60 px-3 py-2 text-xs hover:border-accent ${privacyClass(privacy)}`}
                 title="Total liabilities"
@@ -1223,6 +1381,7 @@ export function Dashboard() {
             {fireChip ? (
               <Link
                 to="/fire"
+                data-testid="today-fire-chip"
                 className={`today-fire-chip border border-border bg-surface-hover/60 px-3 py-2 text-xs hover:border-accent ${privacyClass(privacy)}`}
                 title="Regular FIRE from saved FIRE inputs"
               >
@@ -1350,9 +1509,16 @@ export function Dashboard() {
                     </p>
                   </Link>
                   <div className="today-followup-actions today-focus-actions flex flex-wrap gap-2 mt-3">
+                    <button
+                      type="button"
+                      className="btn-primary btn-sm"
+                      onClick={() => markFollowUpDone(card.jobId)}
+                    >
+                      Mark done
+                    </button>
                     <Link
                       to={`/jobs/${card.jobId}`}
-                      className="btn-primary btn-sm inline-flex items-center"
+                      className="btn-ghost btn-sm inline-flex items-center"
                     >
                       Open job
                     </Link>
@@ -1542,6 +1708,38 @@ export function Dashboard() {
               type="button"
               className="btn-secondary btn-sm today-interview-undo"
               onClick={undoInterviewDone}
+            >
+              Undo
+            </button>
+          </div>
+        ) : null}
+        {followupUndo ? (
+          <div
+            className="today-followup-undo-banner mt-2 flex flex-wrap items-center justify-between gap-2 surface px-3 py-2 border border-border"
+            role="status"
+          >
+            <p className="text-sm text-text-muted">Follow-up marked done</p>
+            <button
+              type="button"
+              className="btn-secondary btn-sm today-followup-undo"
+              data-testid="today-followup-undo"
+              onClick={undoFollowUpDone}
+            >
+              Undo
+            </button>
+          </div>
+        ) : null}
+        {focusSnoozeUndo ? (
+          <div
+            className="today-focus-snooze-undo-banner mt-2 flex flex-wrap items-center justify-between gap-2 surface px-3 py-2 border border-border"
+            role="status"
+          >
+            <p className="text-sm text-text-muted">Focus task snoozed</p>
+            <button
+              type="button"
+              className="btn-secondary btn-sm today-focus-snooze-undo"
+              data-testid="today-focus-snooze-undo"
+              onClick={undoFocusSnooze}
             >
               Undo
             </button>

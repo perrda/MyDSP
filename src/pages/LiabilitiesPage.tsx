@@ -9,6 +9,11 @@ import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
 import { usePortfolio } from '../context/PortfolioContext'
 import { dailyInterestGbp, ragClass, ragLabel, type LiabilityKind } from '../domain/liabilityHelpers'
 import type { CreditCard, Loan, RagStatus } from '../domain/types'
+import {
+  loadLiabilitiesRagFilter,
+  saveLiabilitiesRagFilter,
+  type LiabilitiesRagFilter,
+} from '../domain/liabilitiesRagPref'
 import { applySortOrder, sortBySortOrder } from '../utils/reorder'
 import { formatDate, formatGBP, formatPct, privacyClass } from '../utils/format'
 
@@ -17,7 +22,7 @@ function nextId(items: { id: number }[]): number {
 }
 
 type Kind = LiabilityKind
-type RagFilter = 'all' | RagStatus | 'unset'
+type RagFilter = LiabilitiesRagFilter
 
 export function LiabilitiesPage() {
   const { data, breakdown, privacy, setData } = usePortfolio()
@@ -37,7 +42,7 @@ export function LiabilitiesPage() {
     ragStatus: '' as '' | RagStatus,
   })
   const [deleteTarget, setDeleteTarget] = useState<{ kind: Kind; id: number } | null>(null)
-  const [ragFilter, setRagFilter] = useState<RagFilter>('all')
+  const [ragFilter, setRagFilter] = useState<RagFilter>(() => loadLiabilitiesRagFilter())
 
   const openCreate = (k: Kind) => {
     setKind(k)
@@ -274,7 +279,10 @@ export function LiabilitiesPage() {
             key={key}
             type="button"
             className={`btn-ghost btn-sm ${ragFilter === key ? 'border-accent text-accent' : ''}`}
-            onClick={() => setRagFilter(key)}
+            onClick={() => {
+              setRagFilter(key)
+              saveLiabilitiesRagFilter(key)
+            }}
           >
             {label}
           </button>

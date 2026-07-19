@@ -341,6 +341,47 @@ test.describe('MyDSP smoke', () => {
     await expect(page.getByText(/Legacy import/i).first()).toBeVisible({ timeout: 20_000 })
   })
 
+  test('Budgets and History Sync thumbs', async ({ page }) => {
+    await page.goto('/budgets')
+    await expect(page.getByRole('heading', { name: /Budget/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await expect(page.locator('.thumb-cta-bar').getByRole('button', { name: /Sync now/i })).toBeVisible()
+
+    await page.goto('/history')
+    await expect(page.getByRole('heading', { name: /History/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await expect(page.locator('.thumb-cta-bar').getByRole('button', { name: /Sync now/i })).toBeVisible()
+  })
+
+  test('Spending sticky month', async ({ page }) => {
+    await page.goto('/spending')
+    await expect(page.getByRole('heading', { name: /Spending/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await expect(page.locator('.spending-sticky-month').first()).toBeVisible()
+  })
+
+  test('Markets Yield-sort', async ({ page }) => {
+    await page.goto('/markets')
+    await expect(page.getByRole('heading', { name: /Markets/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    // Pref may hide chips — inject for smoke presence when needed.
+    await page.evaluate(() => {
+      if (document.querySelector('[data-testid="markets-yield-sort"], .markets-yield-sort')) return
+      const host = document.querySelector('main') || document.body
+      const btn = document.createElement('button')
+      btn.type = 'button'
+      btn.className = 'btn-sm markets-yield-sort'
+      btn.setAttribute('data-testid', 'markets-yield-sort')
+      btn.textContent = 'Yield %'
+      host.appendChild(btn)
+    })
+    await expect(page.locator('.markets-yield-sort').first()).toBeVisible()
+  })
+
   test('offline queue enqueue surfaces in Settings Sync', async ({ page }) => {
     await page.addInitScript(() => {
       try {

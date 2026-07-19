@@ -29,6 +29,8 @@ import { usePortfolio } from '../context/PortfolioContext'
 import { useToasts } from '../components/ToastProvider'
 import type { JobApplication, JobFilterBy, JobSortBy, JobStatus } from '../domain/job-types'
 import { loadJobsFilter, saveJobsFilter } from '../domain/jobsFilterPrefs'
+import { loadJobsView, saveJobsView } from '../domain/jobsViewPrefs'
+import { syncNow } from '../services/sync/autoSyncService'
 import {
   calculateJobStats,
   exportJobsToCsv,
@@ -61,8 +63,10 @@ const KANBAN_COLUMNS: Array<{ id: string; status: JobStatus[]; title: string; co
 export function JobsPage() {
   const { data, setData, privacy } = usePortfolio()
   const { success, error: showError } = useToasts()
-  const [viewMode, setViewMode] = useState<'kanban' | 'list' | 'analytics'>('kanban')
-  const [sortBy, setSortBy] = useState<JobSortBy>('updated-desc')
+  const [viewMode, setViewMode] = useState<'kanban' | 'list' | 'analytics'>(
+    () => loadJobsView().viewMode,
+  )
+  const [sortBy, setSortBy] = useState<JobSortBy>(() => loadJobsView().sortBy)
   const [filterBy, setFilterBy] = useState<JobFilterBy>(() => loadJobsFilter())
   const [searchQuery, setSearchQuery] = useState('')
   const [showForm, setShowForm] = useState(false)
@@ -505,21 +509,30 @@ export function JobsPage() {
       <div className="flex flex-wrap gap-2 mb-3">
         <button
           type="button"
-          onClick={() => setViewMode('kanban')}
+          onClick={() => {
+            setViewMode('kanban')
+            saveJobsView({ viewMode: 'kanban' })
+          }}
           className={`btn-sm ${viewMode === 'kanban' ? 'btn-primary' : 'btn-ghost'}`}
         >
           Kanban
         </button>
         <button
           type="button"
-          onClick={() => setViewMode('list')}
+          onClick={() => {
+            setViewMode('list')
+            saveJobsView({ viewMode: 'list' })
+          }}
           className={`btn-sm ${viewMode === 'list' ? 'btn-primary' : 'btn-ghost'}`}
         >
           List
         </button>
         <button
           type="button"
-          onClick={() => setViewMode('analytics')}
+          onClick={() => {
+            setViewMode('analytics')
+            saveJobsView({ viewMode: 'analytics' })
+          }}
           className={`btn-sm ${viewMode === 'analytics' ? 'btn-primary' : 'btn-ghost'}`}
         >
           Analytics
@@ -643,7 +656,11 @@ export function JobsPage() {
           {viewMode === 'list' && (
             <select
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as JobSortBy)}
+              onChange={(e) => {
+                const next = e.target.value as JobSortBy
+                setSortBy(next)
+                saveJobsView({ sortBy: next })
+              }}
               className="btn-ghost btn-sm"
             >
               <option value="updated-desc">Recently Updated</option>
@@ -878,6 +895,15 @@ export function JobsPage() {
             <Upload size={16} /> Import
           </button>
         )}
+        <button
+          type="button"
+          className="btn-secondary btn-sm"
+          onClick={() => {
+            void syncNow().then(() => success('Sync now finished'))
+          }}
+        >
+          Sync now
+        </button>
       </div>
       <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>

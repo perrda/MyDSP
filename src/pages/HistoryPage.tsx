@@ -4,10 +4,13 @@ import { PageHeader } from '../components/ui/PageHeader'
 import { ConfirmDialog } from '../components/ui/Modal'
 import { usePortfolio } from '../context/PortfolioContext'
 import { appendManualSnapshot, normalizeHistoryDate } from '../domain/history'
+import { useToasts } from '../components/ToastProvider'
+import { syncNow } from '../services/sync/autoSyncService'
 import { formatDate, formatGBP, privacyClass } from '../utils/format'
 
 export function HistoryPage() {
   const { data, setData, privacy } = usePortfolio()
+  const { success } = useToasts()
   const [deleteDate, setDeleteDate] = useState<string | null>(null)
 
   const rows = useMemo(
@@ -152,6 +155,15 @@ export function HistoryPage() {
         </button>
         <button type="button" className="btn-secondary btn-sm" onClick={exportCsv}>
           Export CSV
+        </button>
+        <button
+          type="button"
+          className="btn-secondary btn-sm"
+          onClick={() => {
+            void syncNow().then(() => success('Sync now finished'))
+          }}
+        >
+          Sync now
         </button>
       </div>
       <div className="thumb-cta-bar-spacer" aria-hidden />

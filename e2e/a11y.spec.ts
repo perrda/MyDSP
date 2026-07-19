@@ -775,6 +775,120 @@ test.describe('a11y gate', () => {
     expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
   })
 
+  test('Markets Yield-sort axe — iphone gate', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'iphone-14', 'CI gate targets iphone-14')
+    await page.goto('/markets')
+    await expect(page.getByRole('heading', { name: /Markets/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    // Inject Yield-sort + Edit controls when chips are hidden by prefs.
+    await page.evaluate(() => {
+      const host = document.querySelector('main') || document.body
+      if (!document.querySelector('.markets-yield-sort')) {
+        const btn = document.createElement('button')
+        btn.type = 'button'
+        btn.className = 'btn-sm markets-yield-sort'
+        btn.textContent = 'Yield %'
+        host.appendChild(btn)
+      }
+      if (!document.querySelector('.markets-quote-edit')) {
+        const btn = document.createElement('button')
+        btn.type = 'button'
+        btn.className = 'btn-sm markets-quote-edit'
+        btn.textContent = 'Edit ticker'
+        host.appendChild(btn)
+      }
+    })
+    await expect(page.locator('.markets-yield-sort').first()).toBeVisible()
+    const yieldResults = await new AxeBuilder({ page }).include('.markets-yield-sort').analyze()
+    const yieldSerious = yieldResults.violations.filter(
+      (v) => v.impact === 'serious' || v.impact === 'critical',
+    )
+    expect(yieldSerious, JSON.stringify(yieldSerious, null, 2)).toEqual([])
+    const editResults = await new AxeBuilder({ page }).include('.markets-quote-edit').analyze()
+    const editSerious = editResults.violations.filter(
+      (v) => v.impact === 'serious' || v.impact === 'critical',
+    )
+    expect(editSerious, JSON.stringify(editSerious, null, 2)).toEqual([])
+  })
+
+  test('Today follow-up Undo axe — iphone gate', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'iphone-14', 'CI gate targets iphone-14')
+    await page.goto('/')
+    await expect(page.locator('.today-section-jump-chips').first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await page.evaluate(() => {
+      const host = document.querySelector('.today-section-jump-chips')?.parentElement
+      if (!host || document.querySelector('.today-followup-undo-banner')) return
+      const banner = document.createElement('div')
+      banner.className =
+        'today-followup-undo-banner mt-2 flex flex-wrap items-center justify-between gap-2 surface px-3 py-2 border border-border'
+      banner.setAttribute('role', 'status')
+      banner.innerHTML =
+        '<span>Follow-up marked done</span><button type="button" class="btn-secondary btn-sm today-followup-undo">Undo</button>'
+      host.appendChild(banner)
+    })
+    await expect(page.locator('.today-followup-undo-banner').first()).toBeVisible()
+    const results = await new AxeBuilder({ page }).include('.today-followup-undo-banner').analyze()
+    const serious = results.violations.filter(
+      (v) => v.impact === 'serious' || v.impact === 'critical',
+    )
+    expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
+  })
+
+  test('Today FIRE chip axe — iphone gate', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'iphone-14', 'CI gate targets iphone-14')
+    await page.goto('/')
+    await expect(page.locator('.today-section-jump-chips').first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await page.evaluate(() => {
+      const host = document.querySelector('.today-section-jump-chips')?.parentElement
+      if (!host || document.querySelector('.today-fire-chip')) return
+      const a = document.createElement('a')
+      a.href = '/fire'
+      a.className =
+        'today-fire-chip border border-border bg-surface-hover/60 px-3 py-2 text-xs'
+      a.textContent = 'FIRE'
+      host.appendChild(a)
+    })
+    await expect(page.locator('.today-fire-chip').first()).toBeVisible()
+    const results = await new AxeBuilder({ page }).include('.today-fire-chip').analyze()
+    const serious = results.violations.filter(
+      (v) => v.impact === 'serious' || v.impact === 'critical',
+    )
+    expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
+  })
+
+  test('Tax sticky toolbar axe — iphone gate', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'iphone-14', 'CI gate targets iphone-14')
+    await page.goto('/tax')
+    await expect(page.getByRole('heading', { name: /Tax/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await expect(page.locator('.tax-sticky-toolbar').first()).toBeVisible()
+    const results = await new AxeBuilder({ page }).include('.tax-sticky-toolbar').analyze()
+    const serious = results.violations.filter(
+      (v) => v.impact === 'serious' || v.impact === 'critical',
+    )
+    expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
+  })
+
+  test('Review sticky month axe — iphone gate', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'iphone-14', 'CI gate targets iphone-14')
+    await page.goto('/review')
+    await expect(page.getByRole('heading', { name: /Monthly review/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await expect(page.locator('.review-sticky-month').first()).toBeVisible()
+    const results = await new AxeBuilder({ page }).include('.review-sticky-month').analyze()
+    const serious = results.violations.filter(
+      (v) => v.impact === 'serious' || v.impact === 'critical',
+    )
+    expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
+  })
+
   test('opening balance wizard has no serious axe violations', async ({ page }) => {
     await page.goto('/setup/opening')
     await expect(page.getByRole('heading', { name: /Opening balance wizard/i })).toBeVisible({
