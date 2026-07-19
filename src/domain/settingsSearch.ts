@@ -1,9 +1,15 @@
 /** Fuzzy Settings section search + recent jump chips (localStorage). */
 
 export const SETTINGS_RECENT_KEY = 'mydsp_settings_recent_jumps_v1'
+export const SETTINGS_RECENT_META_KEY = 'mydsp_settings_recent_jumps_meta_v1'
 export const SETTINGS_RECENT_MAX = 5
 
 export type SettingsSectionId = string
+
+export type SettingsRecentJumpsBackup = {
+  ids: string[]
+  updatedAt: string
+}
 
 /** Score a settings section for a query: startsWith > includes on id/keywords. */
 export function scoreSettingsSection(
@@ -69,14 +75,28 @@ export function loadRecentSettingsJumps(
 export function saveRecentSettingsJumps(
   ids: string[],
   storage: Storage = localStorage,
+  opts?: { markDirty?: boolean; fromSync?: boolean; updatedAt?: string },
 ): void {
+  const nextIds = ids.slice(0, SETTINGS_RECENT_MAX)
+  const updatedAt = opts?.updatedAt || new Date().toISOString()
   try {
-    storage.setItem(
-      SETTINGS_RECENT_KEY,
-      JSON.stringify(ids.slice(0, SETTINGS_RECENT_MAX)),
-    )
+    storage.setItem(SETTINGS_RECENT_KEY, JSON.stringify(nextIds))
+    if (!opts?.fromSync) {
+      storage.setItem(
+        SETTINGS_RECENT_META_KEY,
+        JSON.stringify({ ids: nextIds, updatedAt }),
+      )
+    } else {
+      storage.setItem(
+        SETTINGS_RECENT_META_KEY,
+        JSON.stringify({ ids: nextIds, updatedAt }),
+      )
+    }
   } catch {
     /* quota / private mode */
+  }
+  if (opts?.markDirty !== false && !opts?.fromSync && storage === localStorage) {
+    void import('../services/sync/workspaceDirty').then((m) => m.markWorkspaceChangedForSync())
   }
 }
 
@@ -89,6 +109,46 @@ export function recordSettingsJump(
   const next = [id, ...prev].slice(0, SETTINGS_RECENT_MAX)
   saveRecentSettingsJumps(next, storage)
   return next
+}
+
+export function exportSettingsRecentJumpsForBackup(): SettingsRecentJumpsBackup | null {
+  try {
+    const metaRaw = localStorage.getItem(SETTINGS_RECENT_META_KEY)
+    if (metaRaw) {
+      const parsed = JSON.parse(metaRaw) as SettingsRecentJumpsBackup
+      if (Array.isArray(parsed.ids)) {
+        return {
+          ids: parsed.ids.filter((x): x is string => typeof x === 'string').slice(0, SETTINGS_RECENT_MAX),
+          updatedAt:
+            typeof parsed.updatedAt === 'string' ? parsed.updatedAt : new Date(0).toISOString(),
+        }
+      }
+    }
+    const ids = loadRecentSettingsJumps()
+    if (ids.length === 0) return null
+    return { ids, updatedAt: new Date(0).toISOString() }
+  } catch {
+    return null
+  }
+}
+
+export function importSettingsRecentJumpsFromBackup(raw: unknown): void {
+  if (!raw || typeof raw !== 'object') return
+  const remote = raw as SettingsRecentJumpsBackup
+  if (!Array.isArray(remote.ids)) return
+  const local = exportSettingsRecentJumpsForBackup()
+  const remoteAt = Date.parse(remote.updatedAt || '') || 0
+  const localAt = Date.parse(local?.updatedAt || '') || 0
+  if (local && localAt > remoteAt) return
+  saveRecentSettingsJumps(
+    remote.ids.filter((x): x is string => typeof x === 'string'),
+    localStorage,
+    {
+      fromSync: true,
+      markDirty: false,
+      updatedAt: remote.updatedAt || new Date().toISOString(),
+    },
+  )
 }
 
 /** Human label for a settings section id (chip text). */

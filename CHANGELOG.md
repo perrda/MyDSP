@@ -1,5 +1,42 @@
 # MyDSP Changelog
 
+## [1.2.82] - 2026-07-19
+
+### Improved — Sync / trust (next 25q · 1–5)
+1. **Launch path** LWW via fullArchive
+2. **Markets tag/Yield chips** visibility LWW
+3. **Settings recent jumps** LWW
+4. **UI panels** open/collapsed LWW
+5. **Docs + SYNC_SMOKE + What arrived** extras for Launch path / UI panels / tag-Yield / Settings jumps
+
+### Improved — Markets (next 25q · 6–10)
+6. **Undo banner** after remove ticker (re-add)
+7. **Quote modal** Edit ticker + commodity NW badge
+8. **Section stale-from-sync** strip + Retry
+9. **Settings → Prices** hint when tag/Yield chips hidden
+10. Jump unavailable / section trust polish covered by stale + hint strips
+
+### Improved — Mobile / tablet (next 25q · 11–15)
+11. **Thumbs** API, Insights, Predictive, Review, FIRE, Optimizer
+12. **Thumbs** Job detail, Liability detail, Smoke
+13. **PTR** FIRE / Optimizer / Achievements / API / Insights / Review (+ detail routes)
+14. **Bottom-nav long-press** staking/planning/achievements/fire/optimizer/api/insights/review → Sync
+15. Landscape / thumb reach polish for new CTA bars
+
+### Improved — Today / productivity (next 25q · 16–20)
+16. **What arrived** dismissible + link to Settings Sync
+17. News/YT **All caught up** when unread = 0
+18. **Today section jump chips** (Next / Bills / Media / Markets)
+19. **Offline queue chip** on Today
+20. **Focus pulse** on todo / follow-up next-action cards
+
+### Quality (next 25q · 21–25)
+21. **Axe** Today offline-queue chip
+22. **Axe** Markets tag/Yield Settings hint
+23. **Axe** Legacy import
+24. **Playwright** FIRE/Optimizer thumbs · PTR FIRE/Optimizer · launch path
+25. Tip harness **1.2.82**
+
 ## [1.2.81] - 2026-07-18
 
 ### Improved — Sync / trust (next 25p · 1–5)

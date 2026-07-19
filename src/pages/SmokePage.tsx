@@ -300,9 +300,9 @@ export function SmokePage() {
       {
         id: 'ptr-routes',
         label:
-          'PTR YouTube / Tax / Compare / Todos / Jobs / Spending / Liabilities / Goals / Trips / History / Budgets / Import / Family / Documents / Journal / Rules / Settings / Staking / Planning / Smoke',
+          'PTR YouTube / Tax / Compare / Todos / Jobs / Spending / Liabilities / Goals / Trips / History / Budgets / Import / Family / Documents / Journal / Rules / Settings / Staking / Planning / FIRE / Optimizer / Achievements / API / Insights / Review / Smoke',
         detail:
-          'Pull-to-refresh is enabled on YouTube, Tax, Compare, Todos, Jobs, Spending, Liabilities, Goals, Trips, History, Budgets, Import, Family, Documents, Journal, and Rules (plus Today / Markets / News)',
+          'Pull-to-refresh is enabled on YouTube, Tax, Compare, Todos, Jobs, Spending, Liabilities, Goals, Trips, History, Budgets, Import, Family, Documents, Journal, Rules, FIRE, Optimizer, Achievements, API, Insights, and Review (plus Today / Markets / News)',
         to: '/youtube',
         done: true,
       },
@@ -418,6 +418,16 @@ export function SmokePage() {
           </li>
         ))}
       </ul>
+
+      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary smoke actions">
+        <Link to="/settings" className="btn-primary btn-sm">
+          Settings
+        </Link>
+        <Link to="/" className="btn-secondary btn-sm">
+          Today
+        </Link>
+      </div>
+      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }

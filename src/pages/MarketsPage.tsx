@@ -497,6 +497,8 @@ function quoteAvailabilityLabel(
 export function MarketsPage() {
   const { data, privacy, setData } = usePortfolio()
   const [searchParams, setSearchParams] = useSearchParams()
+  const [undoRemove, setUndoRemove] = useState<MarketTicker | null>(null)
+  const undoTimer = useRef<number | null>(null)
   const [tickers, setTickers] = useState(() => listMarketTickers())
   const [collapsed, setCollapsed] = useState(() => loadMarketsState().collapsed)
   const [sectionOrder, setSectionOrder] = useState<SectionKey[]>(() => getMarketSectionOrder())
@@ -1529,6 +1531,35 @@ export function MarketsPage() {
                       </div>
                     )
                   }
+                  const staleSynced = items.filter((t) => {
+                    const q = quotes.get(t.id)
+                    return Boolean(q && (q.source || '').startsWith('sync:') && isPastQuoteFreshnessSla(q))
+                  })
+                  if (staleSynced.length > 0) {
+                    const oldestMs = Math.max(
+                      ...staleSynced.map((t) => quoteAgeMs(quotes.get(t.id)) ?? 0),
+                    )
+                    return (
+                      <div
+                        className="markets-section-stale px-4 sm:px-5 py-2.5 flex flex-wrap items-center justify-between gap-2 border-b border-border bg-amber-500/8"
+                        role="status"
+                      >
+                        <span className="text-[11px] text-text-muted">
+                          {staleSynced.length} stale from sync
+                          {oldestMs > 0 ? ` · oldest ${formatSlaAge(oldestMs)}` : ''}
+                        </span>
+                        <button
+                          type="button"
+                          className="btn-secondary btn-sm min-h-9"
+                          disabled={sectionBusy}
+                          aria-label={`Retry stale quotes in ${SECTION_JUMP_LABEL[section]}`}
+                          onClick={() => void refreshSection(section)}
+                        >
+                          Retry section
+                        </button>
+                      </div>
+                    )
+                  }
                   return null
                 })()}
               <ReorderList
@@ -1713,7 +1744,7 @@ export function MarketsPage() {
                                   ? 'text-text-subtle'
                                   : stale
                                     ? 'text-amber-600 dark:text-amber-400 font-semibold'
-                                    : 'text-emerald-600/80 dark:text-emerald-400/80'
+                                    : 'text-text-muted font-medium'
                               }`}
                             >
                               {label}
@@ -2277,7 +2308,17 @@ export function MarketsPage() {
             Yield %
           </button>
         </div>
-      ) : null}
+      ) : (
+        <p className="markets-tag-yield-settings-hint mb-4 text-xs text-text-muted">
+          Tag + Yield chips are hidden.
+          <Link
+            to="/settings#prices"
+            className="ml-1 font-semibold underline hover:no-underline text-text"
+          >
+            Settings → Prices
+          </Link>
+        </p>
+      )}
 
       {(initialLoad || refreshing) &&
       ![...quotes.values()].some((q) => q.last > 0) ? (
@@ -2601,6 +2642,33 @@ export function MarketsPage() {
                 ? ` · Updated ${new Date(quoteDetail.quote.updatedAt).toLocaleString('en-GB')}`
                 : ''}
             </p>
+            {quoteDetail.ticker.kind === 'commodity' ? (
+              <p className="text-xs text-text-muted markets-quote-nw-badge">
+                {quoteDetail.ticker.includeInNetWorth
+                  ? 'Included in net worth (paper)'
+                  : 'Excluded from net worth'}
+              </p>
+            ) : null}
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="btn-secondary btn-sm markets-quote-edit"
+                onClick={() => {
+                  const t = quoteDetail.ticker
+                  setQuoteDetail(null)
+                  openEdit(t)
+                }}
+              >
+                Edit ticker
+              </button>
+              <button
+                type="button"
+                className="btn-ghost btn-sm"
+                onClick={() => setQuoteDetail(null)}
+              >
+                Close
+              </button>
+            </div>
           </div>
         ) : null}
       </Modal>
@@ -2638,14 +2706,60 @@ export function MarketsPage() {
         confirmLabel="Remove"
         onConfirm={() => {
           if (deleteId) {
+            const removed = tickers.find((t) => t.id === deleteId) ?? null
             removeMarketTicker(deleteId)
             setDeleteId(null)
             reloadList()
             void refresh()
+            if (removed) {
+              setUndoRemove(removed)
+              if (undoTimer.current) window.clearTimeout(undoTimer.current)
+              undoTimer.current = window.setTimeout(() => setUndoRemove(null), 8_000)
+            }
           }
         }}
         onClose={() => setDeleteId(null)}
       />
+
+      {undoRemove ? (
+        <div
+          className="markets-undo-banner mb-3 flex flex-wrap items-center justify-between gap-2 surface px-3 py-2 border border-border"
+          role="status"
+        >
+          <p className="text-sm text-text-muted">
+            Removed <span className="font-semibold text-text">{undoRemove.symbol}</span> from Markets
+          </p>
+          <button
+            type="button"
+            className="btn-secondary btn-sm markets-undo-remove"
+            onClick={() => {
+              try {
+                addMarketTicker({
+                  kind: undoRemove.kind,
+                  symbol: undoRemove.symbol,
+                  name: undoRemove.name,
+                  coingeckoId: undoRemove.coingeckoId,
+                  notes: undoRemove.notes,
+                  tag: undoRemove.tag,
+                  yieldPct: undoRemove.yieldPct,
+                  quantity: undoRemove.quantity,
+                  avgCostGbp: undoRemove.avgCostGbp,
+                  includeInNetWorth: undoRemove.includeInNetWorth,
+                  yieldManual: undoRemove.yieldManual,
+                })
+              } catch {
+                /* already re-added */
+              }
+              setUndoRemove(null)
+              if (undoTimer.current) window.clearTimeout(undoTimer.current)
+              reloadList()
+              void refresh()
+            }}
+          >
+            Undo
+          </button>
+        </div>
+      ) : null}
 
       <div className="thumb-cta-bar" role="toolbar" aria-label="Primary markets actions">
         <button

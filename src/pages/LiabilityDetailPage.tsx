@@ -642,6 +642,16 @@ export function LiabilityDetailPage() {
           setApplyConfirm(null)
         }}
       />
+
+      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary liability detail actions">
+        <Link to="/" className="btn-primary btn-sm">
+          Today
+        </Link>
+        <Link to="/liabilities" className="btn-secondary btn-sm">
+          Liabilities
+        </Link>
+      </div>
+      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }

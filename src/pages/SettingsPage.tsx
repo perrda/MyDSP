@@ -1218,17 +1218,14 @@ export function SettingsPage() {
                   Price-alert notification permission / OS prompts — thresholds sync; permission is
                   per device
                 </li>
-                <li>Launch path (on-open home section) — device-local</li>
-                <li>UI panel open / collapsed prefs — device-local</li>
-                <li>Settings recent jumps — device-local</li>
-                <li>Markets tag + Yield % chips visibility — device-local</li>
                 <li>YouTube upload alert toggle (bell / desktop) — device-local</li>
               </ul>
               <p className="text-xs text-text-muted font-light mt-2 leading-relaxed">
-                These sync via fullArchive: portfolio concentration threshold, spending filters,
-                news tag filter, Todos quick filter, Jobs filter, Bottom nav middle slots, Recurring sort,
-                holdings drift threshold, and digest highlight edits. Notification quiet-hours,
-                desktop banners, and sound stay device-local.
+                These sync via fullArchive: Launch path, UI panels, Markets tag/Yield chips, Settings
+                recent jumps, portfolio concentration threshold, spending filters, news tag filter,
+                Todos quick filter, Jobs filter, Bottom nav middle slots, Recurring sort, holdings
+                drift threshold, and digest highlight edits. Notification quiet-hours, desktop
+                banners, and sound stay device-local.
               </p>
             </div>
             <label className="flex items-start gap-3 cursor-pointer">

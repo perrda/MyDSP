@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { PageHeader } from '../components/ui/PageHeader'
 import { usePortfolio } from '../context/PortfolioContext'
 import { simulateDebt, type DebtStrategy } from '../domain/debt'
@@ -123,6 +124,16 @@ export function OptimizerPage() {
           </p>
         )}
       </div>
+
+      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary optimizer actions">
+        <Link to="/" className="btn-primary btn-sm">
+          Today
+        </Link>
+        <Link to="/liabilities" className="btn-secondary btn-sm">
+          Liabilities
+        </Link>
+      </div>
+      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }

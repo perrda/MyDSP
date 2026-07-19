@@ -938,6 +938,16 @@ export function JobDetailPage() {
         onClose={() => setConfirmState(null)}
         onConfirm={() => confirmState?.onConfirm()}
       />
+
+      <div className="thumb-cta-bar job-detail-nav-cta" role="toolbar" aria-label="Primary job detail actions">
+        <Link to="/" className="btn-primary btn-sm">
+          Today
+        </Link>
+        <Link to="/jobs" className="btn-secondary btn-sm">
+          Jobs
+        </Link>
+      </div>
+      <div className="thumb-cta-bar-spacer job-detail-nav-cta-spacer" aria-hidden />
     </div>
   )
 }

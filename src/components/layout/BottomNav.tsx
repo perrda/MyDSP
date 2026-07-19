@@ -141,6 +141,14 @@ export function BottomNav() {
         item.to === '/documents' ||
         item.to === '/journal' ||
         item.to === '/rules' ||
+        item.to === '/staking' ||
+        item.to === '/planning' ||
+        item.to === '/achievements' ||
+        item.to === '/fire' ||
+        item.to === '/optimizer' ||
+        item.to === '/api' ||
+        item.to === '/insights' ||
+        item.to === '/review' ||
         item.to === '/settings' ||
         item.to.startsWith('/settings')
       ) {

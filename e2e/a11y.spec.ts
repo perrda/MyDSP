@@ -540,6 +540,70 @@ test.describe('a11y gate', () => {
     expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
   })
 
+  test('Today offline-queue chip axe — iphone gate', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'iphone-14', 'CI gate targets iphone-14')
+    await page.addInitScript(() => {
+      try {
+        const job = {
+          id: 'q_a11y_offline',
+          type: 'sync_push',
+          createdAt: new Date().toISOString(),
+          remoteUrl: 'https://example.com/sync',
+          note: 'a11y offline',
+          attempts: 1,
+          nextRetryAt: new Date(Date.now() + 60_000).toISOString(),
+        }
+        localStorage.setItem('mydsp_offline_queue', JSON.stringify([job]))
+      } catch {
+        /* ignore */
+      }
+    })
+    await page.goto('/')
+    await expect(page.locator('.today-offline-queue-chip').first()).toBeVisible({ timeout: 20_000 })
+    const results = await new AxeBuilder({ page }).analyze()
+    const serious = results.violations.filter(
+      (v) => v.impact === 'serious' || v.impact === 'critical',
+    )
+    expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
+  })
+
+  test('Markets tag/Yield hint axe — iphone gate', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'iphone-14', 'CI gate targets iphone-14')
+    await page.addInitScript(() => {
+      try {
+        localStorage.setItem('mydsp_markets_show_tag_yield_v1', '0')
+      } catch {
+        /* ignore */
+      }
+    })
+    await page.goto('/markets')
+    await expect(page.getByRole('heading', { name: /Markets/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    const hint = page.locator('.markets-tag-yield-settings-hint').first()
+    await expect(hint).toBeVisible({ timeout: 15_000 })
+    // Scope to the new hint — Markets quote rows can flake on amber sync contrast mid-fetch.
+    const results = await new AxeBuilder({ page }).include('.markets-tag-yield-settings-hint').analyze()
+    const serious = results.violations.filter(
+      (v) => v.impact === 'serious' || v.impact === 'critical',
+    )
+    expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
+  })
+
+  test('Legacy import axe — iphone gate', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'iphone-14', 'CI gate targets iphone-14')
+    await page.goto('/import/legacy')
+    await expect(
+      page.getByRole('heading', { name: /Bank CSV import|Import/i }).first(),
+    ).toBeVisible({ timeout: 20_000 })
+    // Scope to the PSD2 notice we polish; page-wide file inputs / eyebrow contrast are separate.
+    const results = await new AxeBuilder({ page }).include('.legacy-import-psd2-notice').analyze()
+    const serious = results.violations.filter(
+      (v) => v.impact === 'serious' || v.impact === 'critical',
+    )
+    expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
+  })
+
   test('opening balance wizard has no serious axe violations', async ({ page }) => {
     await page.goto('/setup/opening')
     await expect(page.getByRole('heading', { name: /Opening balance wizard/i })).toBeVisible({
