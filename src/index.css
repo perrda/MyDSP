@@ -2711,13 +2711,34 @@ html.success-haptic-flash::after {
   .tax-sticky-toolbar,
   .review-sticky-month,
   .spending-sticky-month,
-  .news-sticky-filters {
+  .news-sticky-filters,
+  .markets-sticky-filters,
+  .liabilities-sticky-rag,
+  .journal-sticky-filter,
+  .recurring-sticky-sort {
     position: sticky;
     top: var(--app-header-offset, 3.5rem);
     z-index: 8;
     background: color-mix(in srgb, var(--bg) 92%, transparent);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
+  }
+}
+
+/* next25u: phone sticky filter bars */
+@media (max-width: 767px) {
+  .markets-sticky-filters,
+  .liabilities-sticky-rag,
+  .journal-sticky-filter,
+  .recurring-sticky-sort {
+    position: sticky;
+    top: var(--app-header-offset, 3.5rem);
+    z-index: 8;
+    background: color-mix(in srgb, var(--bg) 92%, transparent);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    padding-top: 0.35rem;
+    padding-bottom: 0.35rem;
   }
 }
 

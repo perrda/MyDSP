@@ -38,14 +38,14 @@ describe('next25i — sync / media / polish tip (1–25 → v1.2.80)', () => {
 
   it('package + release notes are 1.2.80', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.85')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.85')
+    expect(pkg.version).toBe('1.2.86')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.86')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.86',
       '1.2.85',
       '1.2.84',
       '1.2.83',
       '1.2.82',
-      '1.2.81',
     ])
   })
 
@@ -62,7 +62,7 @@ describe('next25i — sync / media / polish tip (1–25 → v1.2.80)', () => {
   it('2: What does not sync expands device-local prefs', () => {
     const settings = readFileSync(resolve(__dirname, '../pages/SettingsPage.tsx'), 'utf8')
     expect(settings).toMatch(/Accessibility prefs/)
-    expect(settings).toMatch(/Glass theme/)
+    expect(settings).toMatch(/Glass mode/)
     expect(settings).toMatch(/Price-alert notification permission/)
     const docs = readFileSync(resolve(__dirname, '../../SYNC_SETUP.md'), 'utf8')
     expect(docs).toMatch(/Device-local prefs matrix/)
@@ -245,6 +245,6 @@ describe('next25i — sync / media / polish tip (1–25 → v1.2.80)', () => {
     const docs = readFileSync(resolve(__dirname, '../../SYNC_SETUP.md'), 'utf8')
     expect(docs).toMatch(/Device-local prefs matrix/)
     expect(docs).toMatch(/ISA remaining override/)
-    expect(docs).toMatch(/Glass theme/)
+    expect(docs).toMatch(/Glass mode/)
   })
 })

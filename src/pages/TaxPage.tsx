@@ -3,7 +3,9 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { Download } from 'lucide-react'
 import { PageHeader } from '../components/ui/PageHeader'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
+import { useToasts } from '../components/ToastProvider'
 import { usePortfolio } from '../context/PortfolioContext'
+import { syncNow } from '../services/sync/autoSyncService'
 import { type Disposal } from '../domain/cgt'
 import {
   buildCgtReportHtml,
@@ -32,6 +34,7 @@ function nextId(items: { id: number }[]): number {
 
 export function TaxPage() {
   const { data, setData, privacy } = usePortfolio()
+  const { success } = useToasts()
   const [searchParams, setSearchParams] = useSearchParams()
   const residency = data.settings.taxResidency || 'GB'
   const pack = useMemo(() => getTaxPack(residency), [residency])
@@ -826,6 +829,15 @@ export function TaxPage() {
         ) : null}
         <button type="button" className="btn-secondary btn-sm" onClick={importFromJournal}>
           Import from journal
+        </button>
+        <button
+          type="button"
+          className="btn-secondary btn-sm"
+          onClick={() => {
+            void syncNow().then(() => success('Sync now finished'))
+          }}
+        >
+          Sync now
         </button>
       </div>
       <div className="thumb-cta-bar-spacer" aria-hidden />

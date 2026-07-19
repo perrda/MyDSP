@@ -1,5 +1,42 @@
 # MyDSP Changelog
 
+## [1.2.86] - 2026-07-19
+
+### Improved — Sync / trust (next 25u · 1–5)
+1. **Glass mode** LWW via fullArchive
+2. **Large text** LWW
+3. **Theme preference** (auto/light/dark) LWW
+4. **Accessibility prefs** (reduced motion · high contrast · chart CB) LWW
+5. **Docs + SYNC_SMOKE + What arrived** extras for Glass / Large text / Theme / Accessibility
+
+### Improved — Markets (next 25u · 6–10)
+6. **Sticky tag/Yield filter** bar
+7. **Copy % change** quote action
+8. **Timeframe chip** testid
+9. **Tag filter** chip testids
+10. **Undo retag** banner
+
+### Improved — Mobile / tablet (next 25u · 11–15)
+11. **Liabilities + Tax** Sync now thumbs
+12. **Liabilities** sticky RAG filter
+13. **Journal** sticky asset filter + Sync now
+14. **Recurring** Sync now + sticky sort chips
+15. **Bottom-nav** Documents + Journal slots
+
+### Improved — Today / productivity (next 25u · 16–20)
+16. **Focus Mark done** Undo testid
+17. **Bill + Interview** Undo testids
+18. **News Mark all read** 5s Undo
+19. **YouTube Mark all read** 5s Undo
+20. **Budget pulse + Cash runway** testids
+
+### Quality (next 25u · 21–25)
+21. **Axe** Markets sticky filters + Copy %
+22. **Axe** Today focus Undo + News Mark-all Undo
+23. **Axe** Liabilities sticky RAG + Journal sticky
+24. **Playwright** Liabilities/Tax Sync · Markets sticky filters · Today Mark-all Undo
+25. Tip harness **1.2.86**
+
 ## [1.2.85] - 2026-07-19
 
 ### Improved — Sync / trust (next 25t · 1–5)

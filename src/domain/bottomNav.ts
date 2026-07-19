@@ -22,6 +22,8 @@ import {
   PiggyBank,
   History,
   Users,
+  FileText,
+  BookOpen,
   type LucideIcon,
 } from 'lucide-react'
 import {
@@ -58,6 +60,8 @@ export const BOTTOM_NAV_CATALOG: Record<string, BottomNavItem> = {
   '/budgets': { to: '/budgets', label: 'Budgets', icon: PiggyBank },
   '/history': { to: '/history', label: 'History', icon: History },
   '/family': { to: '/family', label: 'Family', icon: Users },
+  '/documents': { to: '/documents', label: 'Docs', icon: FileText },
+  '/journal': { to: '/journal', label: 'Journal', icon: BookOpen },
   '/settings': { to: '/settings', label: 'Settings', icon: Settings },
 }
 
