@@ -93,6 +93,22 @@ import {
   importReviewMonthFromBackup,
 } from '../domain/reviewMonthPref'
 import {
+  exportGlassModeForBackup,
+  importGlassModeFromBackup,
+} from '../domain/glassModePref'
+import {
+  exportLargeTextForBackup,
+  importLargeTextFromBackup,
+} from '../domain/largeTextPref'
+import {
+  exportThemePrefForBackup,
+  importThemePrefFromBackup,
+} from '../domain/themePref'
+import {
+  exportA11yPrefsForBackup,
+  importA11yPrefsFromBackup,
+} from '../domain/a11yPrefsPref'
+import {
   exportYoutubeForBackup,
   exportYoutubeVideosForBackup,
   importYoutubeFromBackup,
@@ -257,6 +273,14 @@ export interface FullBackupRecord extends FullBackupMeta {
   liabilitiesRag?: unknown
   /** Optional Monthly Review selected month */
   reviewMonth?: unknown
+  /** Optional Glass Mode */
+  glassMode?: unknown
+  /** Optional large text mode */
+  largeText?: unknown
+  /** Optional theme preference (auto/light/dark) */
+  themePref?: unknown
+  /** Optional accessibility prefs blob */
+  a11yPrefs?: unknown
   /** Optional file attachments (CV/PDFs) as base64 payloads */
   documentBlobs?: import('./documentBlobStore').DocumentBlobPayload[]
   documentBlobsSkipped?: number[]
@@ -305,6 +329,10 @@ function backupCanonical(record: Pick<
   | 'jobsView'
   | 'liabilitiesRag'
   | 'reviewMonth'
+  | 'glassMode'
+  | 'largeText'
+  | 'themePref'
+  | 'a11yPrefs'
   | 'documentBlobs'
 >): string {
   return JSON.stringify({
@@ -347,6 +375,10 @@ function backupCanonical(record: Pick<
     jobsView: record.jobsView ?? null,
     liabilitiesRag: record.liabilitiesRag ?? null,
     reviewMonth: record.reviewMonth ?? null,
+    glassMode: record.glassMode ?? null,
+    largeText: record.largeText ?? null,
+    themePref: record.themePref ?? null,
+    a11yPrefs: record.a11yPrefs ?? null,
     documentBlobs: record.documentBlobs ?? null,
   })
 }
@@ -394,6 +426,10 @@ export async function computeFullBackupChecksum(
     | 'jobsView'
     | 'liabilitiesRag'
     | 'reviewMonth'
+    | 'glassMode'
+    | 'largeText'
+    | 'themePref'
+    | 'a11yPrefs'
     | 'documentBlobs'
   >,
 ): Promise<string> {
@@ -479,6 +515,10 @@ export function captureFullWorkspace(): Omit<
     jobsView: exportJobsViewForBackup() ?? undefined,
     liabilitiesRag: exportLiabilitiesRagForBackup() ?? undefined,
     reviewMonth: exportReviewMonthForBackup() ?? undefined,
+    glassMode: exportGlassModeForBackup() ?? undefined,
+    largeText: exportLargeTextForBackup() ?? undefined,
+    themePref: exportThemePrefForBackup() ?? undefined,
+    a11yPrefs: exportA11yPrefsForBackup() ?? undefined,
   }
 }
 
@@ -765,6 +805,18 @@ export async function restoreFullWorkspace(record: FullBackupRecord): Promise<vo
   if (record.reviewMonth) {
     importReviewMonthFromBackup(record.reviewMonth)
   }
+  if (record.glassMode) {
+    importGlassModeFromBackup(record.glassMode)
+  }
+  if (record.largeText) {
+    importLargeTextFromBackup(record.largeText)
+  }
+  if (record.themePref) {
+    importThemePrefFromBackup(record.themePref)
+  }
+  if (record.a11yPrefs) {
+    importA11yPrefsFromBackup(record.a11yPrefs)
+  }
 }
 
 function fullBackupPayload(record: FullBackupRecord) {
@@ -835,6 +887,10 @@ function fullBackupPayload(record: FullBackupRecord) {
     ...(record.jobsView ? { jobsView: record.jobsView } : {}),
     ...(record.liabilitiesRag ? { liabilitiesRag: record.liabilitiesRag } : {}),
     ...(record.reviewMonth ? { reviewMonth: record.reviewMonth } : {}),
+    ...(record.glassMode ? { glassMode: record.glassMode } : {}),
+    ...(record.largeText ? { largeText: record.largeText } : {}),
+    ...(record.themePref ? { themePref: record.themePref } : {}),
+    ...(record.a11yPrefs ? { a11yPrefs: record.a11yPrefs } : {}),
   }
 }
 
@@ -1007,6 +1063,10 @@ export function parseFullBackupFile(raw: unknown): FullBackupRecord | null {
     jobsView: o.jobsView,
     liabilitiesRag: o.liabilitiesRag,
     reviewMonth: o.reviewMonth,
+    glassMode: o.glassMode,
+    largeText: o.largeText,
+    themePref: o.themePref,
+    a11yPrefs: o.a11yPrefs,
     checksum: typeof o.checksum === 'string' ? o.checksum : undefined,
   }
 }

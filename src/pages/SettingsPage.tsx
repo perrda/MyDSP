@@ -10,13 +10,18 @@ import { useSecurity } from '../components/SecurityProvider'
 import { usePortfolio } from '../context/PortfolioContext'
 import { useTheme, type ThemePreference } from '../context/ThemeContext'
 import { useGlass } from '../context/GlassContext'
+import { saveLargeTextPref } from '../domain/largeTextPref'
 import {
   applyLargeTextDom,
   LARGE_TEXT_STORAGE_KEY,
   loadLargeText,
-  saveLargeText,
 } from '../utils/largeText'
 import { isSyncTradeBackupSuccess, triggerSuccessFlash } from '../utils/successFlash'
+import {
+  saveA11yChartColourBlindPref,
+  saveA11yHighContrastPref,
+  saveA11yReducedMotionPref,
+} from '../domain/a11yPrefsPref'
 import {
   A11Y_CHART_CB_KEY,
   A11Y_HIGH_CONTRAST_KEY,
@@ -26,9 +31,6 @@ import {
   loadA11yChartColourBlind,
   loadA11yHighContrast,
   loadA11yReducedMotion,
-  saveA11yChartColourBlind,
-  saveA11yHighContrast,
-  saveA11yReducedMotion,
 } from '../utils/a11yPrefs'
 import { holdingHistoryKey, readHoldingHistory } from '../domain/holdingHistory'
 import type { HoldingPricePoint } from '../domain/holdingHistory'
@@ -1212,8 +1214,6 @@ export function SettingsPage() {
                 <li>PIN / Face ID credentials and unlock timeout</li>
                 <li>Session / remembered sync passphrase storage</li>
                 <li>Provider health counters (this browser session only)</li>
-                <li>Accessibility prefs (reduced motion, high contrast) — device-local</li>
-                <li>Glass theme and large text mode — device-local presentation</li>
                 <li>
                   Price-alert notification permission / OS prompts — thresholds sync; permission is
                   per device
@@ -1224,11 +1224,11 @@ export function SettingsPage() {
                 These sync via fullArchive: Launch path, UI panels, Markets tag/Yield chips, Settings
                 recent jumps, Settings sections, Tax year, Journal asset filter, Today NW spark
                 window, API webhook URL, Achievements seen, Getting started dismissed, What arrived
-                dismiss fingerprint, Todos sort, Jobs view, Liabilities RAG, Review month, portfolio
-                concentration threshold, spending filters, news tag filter, Todos quick filter, Jobs
-                filter, Bottom nav middle slots, Recurring sort, holdings drift threshold, and digest
-                highlight edits. Notification quiet-hours, desktop banners, and sound stay
-                device-local.
+                dismiss fingerprint, Todos sort, Jobs view, Liabilities RAG, Review month, Glass mode,
+                Large text, Theme preference, Accessibility prefs, portfolio concentration threshold,
+                spending filters, news tag filter, Todos quick filter, Jobs filter, Bottom nav middle slots,
+                Recurring sort, holdings drift threshold, and digest highlight edits. Notification
+                quiet-hours, desktop banners, and sound stay device-local.
               </p>
             </div>
             <label className="flex items-start gap-3 cursor-pointer">
@@ -2371,7 +2371,7 @@ export function SettingsPage() {
               aria-pressed={largeText}
               onClick={() => {
                 applyLargeTextDom(true)
-                saveLargeText(true)
+                saveLargeTextPref(true)
                 setLargeTextState(true)
                 flash('Larger text on.')
               }}
@@ -2384,7 +2384,7 @@ export function SettingsPage() {
               aria-pressed={!largeText}
               onClick={() => {
                 applyLargeTextDom(false)
-                saveLargeText(false)
+                saveLargeTextPref(false)
                 setLargeTextState(false)
                 flash('Larger text off.')
               }}
@@ -2414,7 +2414,7 @@ export function SettingsPage() {
               aria-pressed={largeText}
               onClick={() => {
                 applyLargeTextDom(true)
-                saveLargeText(true)
+                saveLargeTextPref(true)
                 setLargeTextState(true)
                 flash('Larger text on.')
               }}
@@ -2427,7 +2427,7 @@ export function SettingsPage() {
               aria-pressed={!largeText}
               onClick={() => {
                 applyLargeTextDom(false)
-                saveLargeText(false)
+                saveLargeTextPref(false)
                 setLargeTextState(false)
                 flash('Larger text off.')
               }}
@@ -2447,7 +2447,7 @@ export function SettingsPage() {
               className={a11yReducedMotion ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
               aria-pressed={a11yReducedMotion}
               onClick={() => {
-                saveA11yReducedMotion(true)
+                saveA11yReducedMotionPref(true)
                 applyA11yReducedMotionDom(true)
                 setA11yReducedMotion(true)
                 window.dispatchEvent(new Event('mydsp-a11y-change'))
@@ -2461,7 +2461,7 @@ export function SettingsPage() {
               className={!a11yReducedMotion ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
               aria-pressed={!a11yReducedMotion}
               onClick={() => {
-                saveA11yReducedMotion(false)
+                saveA11yReducedMotionPref(false)
                 applyA11yReducedMotionDom(false)
                 setA11yReducedMotion(false)
                 window.dispatchEvent(new Event('mydsp-a11y-change'))
@@ -2483,7 +2483,7 @@ export function SettingsPage() {
               className={a11yHighContrast ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
               aria-pressed={a11yHighContrast}
               onClick={() => {
-                saveA11yHighContrast(true)
+                saveA11yHighContrastPref(true)
                 applyA11yHighContrastDom(true)
                 setA11yHighContrast(true)
                 flash('High contrast muted text on.')
@@ -2496,7 +2496,7 @@ export function SettingsPage() {
               className={!a11yHighContrast ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
               aria-pressed={!a11yHighContrast}
               onClick={() => {
-                saveA11yHighContrast(false)
+                saveA11yHighContrastPref(false)
                 applyA11yHighContrastDom(false)
                 setA11yHighContrast(false)
                 flash('High contrast muted text off.')
@@ -2517,7 +2517,7 @@ export function SettingsPage() {
               className={a11yChartCb ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
               aria-pressed={a11yChartCb}
               onClick={() => {
-                saveA11yChartColourBlind(true)
+                saveA11yChartColourBlindPref(true)
                 setA11yChartCb(true)
                 flash('Colour-blind safe chart palette on — reopen charts to apply.')
               }}
@@ -2529,7 +2529,7 @@ export function SettingsPage() {
               className={!a11yChartCb ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
               aria-pressed={!a11yChartCb}
               onClick={() => {
-                saveA11yChartColourBlind(false)
+                saveA11yChartColourBlindPref(false)
                 setA11yChartCb(false)
                 flash('Default chart palette restored.')
               }}

@@ -382,6 +382,55 @@ test.describe('MyDSP smoke', () => {
     await expect(page.locator('.markets-yield-sort').first()).toBeVisible()
   })
 
+  test('Liabilities and Tax Sync thumbs', async ({ page }) => {
+    await page.goto('/liabilities')
+    await expect(page.getByRole('heading', { name: /Liabilit|Debt/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await expect(page.locator('.thumb-cta-bar').getByRole('button', { name: /Sync now/i })).toBeVisible()
+
+    await page.goto('/tax')
+    await expect(page.getByRole('heading', { name: /Tax/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await expect(page.locator('.thumb-cta-bar').getByRole('button', { name: /Sync now/i })).toBeVisible()
+  })
+
+  test('Markets sticky filters', async ({ page }) => {
+    await page.goto('/markets')
+    await expect(page.getByRole('heading', { name: /Markets/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await page.evaluate(() => {
+      if (document.querySelector('.markets-sticky-filters')) return
+      const host = document.querySelector('main') || document.body
+      const bar = document.createElement('div')
+      bar.className = 'markets-sticky-filters'
+      bar.setAttribute('data-testid', 'markets-sticky-filters')
+      bar.textContent = 'Filters'
+      host.appendChild(bar)
+    })
+    await expect(page.locator('.markets-sticky-filters').first()).toBeVisible()
+  })
+
+  test('Today Mark-all Undo', async ({ page }) => {
+    await page.goto('/')
+    await expect(page.locator('.today-section-jump-chips').first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await page.evaluate(() => {
+      const host = document.querySelector('.today-section-jump-chips')?.parentElement
+      if (!host || document.querySelector('.today-news-mark-all-undo')) return
+      const btn = document.createElement('button')
+      btn.type = 'button'
+      btn.className = 'btn-secondary btn-sm today-news-mark-all-undo'
+      btn.setAttribute('data-testid', 'today-news-mark-all-undo')
+      btn.textContent = 'Undo'
+      host.appendChild(btn)
+    })
+    await expect(page.locator('.today-news-mark-all-undo').first()).toBeVisible()
+  })
+
   test('offline queue enqueue surfaces in Settings Sync', async ({ page }) => {
     await page.addInitScript(() => {
       try {

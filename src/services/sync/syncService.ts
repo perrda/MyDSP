@@ -275,6 +275,10 @@ export interface MergePreview {
     jobsView?: unknown
     liabilitiesRag?: unknown
     reviewMonth?: unknown
+    glassMode?: unknown
+    largeText?: unknown
+    themePref?: unknown
+    a11yPrefs?: unknown
   }
 }
 
@@ -699,6 +703,10 @@ async function decryptEnvelope(
     if (a.jobsView != null) extras.jobsView = a.jobsView
     if (a.liabilitiesRag != null) extras.liabilitiesRag = a.liabilitiesRag
     if (a.reviewMonth != null) extras.reviewMonth = a.reviewMonth
+    if (a.glassMode != null) extras.glassMode = a.glassMode
+    if (a.largeText != null) extras.largeText = a.largeText
+    if (a.themePref != null) extras.themePref = a.themePref
+    if (a.a11yPrefs != null) extras.a11yPrefs = a.a11yPrefs
     if (Object.keys(extras).length > 0) workspaceExtras = extras
   }
 
@@ -1027,6 +1035,22 @@ export async function applyMergePreview(
   if (preview.workspaceExtras?.reviewMonth != null) {
     const { importReviewMonthFromBackup } = await import('../../domain/reviewMonthPref')
     importReviewMonthFromBackup(preview.workspaceExtras.reviewMonth)
+  }
+  if (preview.workspaceExtras?.glassMode != null) {
+    const { importGlassModeFromBackup } = await import('../../domain/glassModePref')
+    importGlassModeFromBackup(preview.workspaceExtras.glassMode)
+  }
+  if (preview.workspaceExtras?.largeText != null) {
+    const { importLargeTextFromBackup } = await import('../../domain/largeTextPref')
+    importLargeTextFromBackup(preview.workspaceExtras.largeText)
+  }
+  if (preview.workspaceExtras?.themePref != null) {
+    const { importThemePrefFromBackup } = await import('../../domain/themePref')
+    importThemePrefFromBackup(preview.workspaceExtras.themePref)
+  }
+  if (preview.workspaceExtras?.a11yPrefs != null) {
+    const { importA11yPrefsFromBackup } = await import('../../domain/a11yPrefsPref')
+    importA11yPrefsFromBackup(preview.workspaceExtras.a11yPrefs)
   }
 
   return { merged, conflicts: preview.conflicts, removedDupes: removed.length }

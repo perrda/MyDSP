@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.85**
+**Current version: 1.2.86**
 
-## Completed (through v1.2.85)
+## Completed (through v1.2.86)
 
+- Sync / Markets / Today polish (next25u tip 1–25): Glass / Large text / Theme / Accessibility LWW, Markets sticky filters · Copy % · timeframe/tag testids · Undo retag, Liabilities/Tax Sync thumbs · sticky RAG/Journal/Recurring · Bottom-nav Documents/Journal, Today focus/bill/interview Undo testids · News/YouTube Mark-all Undo · Budget pulse/Cash runway testids, axe sticky filters/Copy % + focus/Mark-all Undo + Liabilities/Journal sticky
 - Sync / Markets / Today polish (next25t tip 1–25): Todos sort / Jobs view / Liabilities RAG / Review month LWW, Markets Yield-sort · quote Edit · Undo-remove · Add-from-holding · Copy price/Share, Budgets/History Sync thumbs · Spending sticky month · Bottom-nav Budgets/History/Family · News sticky filters · Todos/Jobs Sync thumbs, Today follow-up Undo · Debt jump · Focus Snooze Undo · FIRE chip · jump scroll-spy, axe Yield-sort/Edit + follow-up Undo/FIRE + Tax/Review sticky
 - Sync / Markets / Today polish (next25s tip 1–25): webhook / achievements seen / getting-started / What arrived dismiss LWW, Markets Open holding · price alert · Expand/Collapse · Retag · back-online toast, Compare/Tax sticky · Legacy PTR · Compare/Recurring/Review slots · Goals/Trips Sync thumb · Review sticky month, Today bill/interview Undo · Tax jump · budget next-action · What arrived Open first, axe Expand-all + bill Undo + Tax jump/Compare sticky
 - Sync / Markets / Today polish (next25r tip 1–25): Settings sections / Tax year / Journal filter / NW spark LWW, Markets quote Copy·News·Retry + Retry-all-stale + search clear + density trust + commodity paper NW, Analytics/Opening thumbs + Trips/Analytics long-press Sync, Today Goals jump / offline Retry / goal next-action / What arrived dismiss / Focus undo, axe Goals jump + Markets Retry-all + Analytics/Opening

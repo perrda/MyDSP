@@ -7,8 +7,12 @@ import {
   type ReactNode,
 } from 'react'
 import {
+  loadThemePreference,
+  saveThemePreference,
+  THEME_PREF_KEY,
+} from '../domain/themePref'
+import {
   msUntilNextDayNightSwitch,
-  parseThemePreference,
   resolveTheme,
   type Theme,
   type ThemePreference,
@@ -26,7 +30,7 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined)
 
-export const THEME_STORAGE_KEY = 'mydsp_theme'
+export const THEME_STORAGE_KEY = THEME_PREF_KEY
 
 function readBootstrappedTheme(): Theme {
   if (typeof document === 'undefined') return 'dark'
@@ -34,13 +38,7 @@ function readBootstrappedTheme(): Theme {
 }
 
 function readStoredPreference(): ThemePreference {
-  try {
-    const parsed = parseThemePreference(localStorage.getItem(THEME_STORAGE_KEY))
-    if (parsed) return parsed
-  } catch {
-    /* private mode */
-  }
-  return 'auto'
+  return loadThemePreference()
 }
 
 function applyDomTheme(next: Theme, withTransition: boolean) {
@@ -62,24 +60,30 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [preference, setPreferenceState] = useState<ThemePreference>(readStoredPreference)
   const [theme, setThemeState] = useState<Theme>(readBootstrappedTheme)
 
-  const persistPreference = useCallback((pref: ThemePreference) => {
-    try {
-      localStorage.setItem(THEME_STORAGE_KEY, pref)
-    } catch {
-      /* private mode */
-    }
-  }, [])
-
   const applyResolved = useCallback(
     (pref: ThemePreference, withTransition = true) => {
       const next = resolveTheme(pref)
       applyDomTheme(next, withTransition)
       setThemeState(next)
       setPreferenceState(pref)
-      persistPreference(pref)
+      saveThemePreference(pref)
     },
-    [persistPreference],
+    [],
   )
+
+  useEffect(() => {
+    const onPref = (e: Event) => {
+      const preference = (e as CustomEvent<{ preference?: ThemePreference }>).detail
+        ?.preference
+      if (!preference) return
+      const next = resolveTheme(preference)
+      applyDomTheme(next, true)
+      setThemeState(next)
+      setPreferenceState(preference)
+    }
+    window.addEventListener('mydsp-theme-pref', onPref)
+    return () => window.removeEventListener('mydsp-theme-pref', onPref)
+  }, [])
 
   const setPreference = useCallback(
     (pref: ThemePreference) => {

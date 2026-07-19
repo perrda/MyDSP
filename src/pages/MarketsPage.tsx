@@ -507,6 +507,11 @@ export function MarketsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [undoRemove, setUndoRemove] = useState<MarketTicker | null>(null)
   const undoTimer = useRef<number | null>(null)
+  const [undoRetag, setUndoRetag] = useState<{
+    ticker: MarketTicker
+    previousTag: MarketTicker['tag']
+  } | null>(null)
+  const undoRetagTimer = useRef<number | null>(null)
   const [tickers, setTickers] = useState(() => listMarketTickers())
   const [collapsed, setCollapsed] = useState(() => loadMarketsState().collapsed)
   const [sectionOrder, setSectionOrder] = useState<SectionKey[]>(() => getMarketSectionOrder())
@@ -1349,6 +1354,7 @@ export function MarketsPage() {
 
   const applyTickerTag = useCallback(
     (ticker: MarketTicker, tag: MarketTickerTag | '') => {
+      const previousTag = ticker.tag
       updateMarketTicker(ticker.id, { tag })
       reloadList()
       setQuoteDetail((prev) =>
@@ -1357,6 +1363,9 @@ export function MarketsPage() {
           : prev,
       )
       setRetagTicker(null)
+      setUndoRetag({ ticker, previousTag })
+      if (undoRetagTimer.current) window.clearTimeout(undoRetagTimer.current)
+      undoRetagTimer.current = window.setTimeout(() => setUndoRetag(null), 8_000)
       toastSuccess(
         tag ? `Tagged ${ticker.symbol}` : `Cleared tag on ${ticker.symbol}`,
         tag ? tag : 'No folder tag',
@@ -2318,9 +2327,10 @@ export function MarketsPage() {
                 id={`markets-tf-${tf}`}
                 type="button"
                 role="tab"
-                className={`btn-sm min-h-9 px-2.5 tabular-nums ${
+                className={`btn-sm min-h-9 px-2.5 tabular-nums markets-timeframe ${
                   timeframe === tf ? 'btn-secondary border-accent text-accent' : 'btn-ghost'
                 }`}
+                data-testid="markets-timeframe"
                 aria-selected={timeframe === tf}
                 tabIndex={timeframe === tf ? 0 : -1}
                 onClick={() => {
@@ -2471,17 +2481,20 @@ export function MarketsPage() {
 
       {showMarketsTagYieldChips ? (
         <div
-          className="flex flex-wrap gap-2 mb-5"
+          className="markets-sticky-filters flex flex-wrap gap-2 mb-5"
           role="group"
           aria-label="Filter and sort watchlist"
+          data-testid="markets-sticky-filters"
         >
           {(['All', ...MARKET_TICKER_TAGS] as const).map((tag) => {
             const on = tagFilter === tag
+            const slug = tag.toLowerCase().replace(/\s+/g, '-')
             return (
               <button
                 key={tag}
                 type="button"
-                className={`btn-sm ${on ? 'btn-primary' : 'btn-ghost'}`}
+                className={`btn-sm markets-tag-filter ${on ? 'btn-primary' : 'btn-ghost'}`}
+                data-testid={`markets-tag-filter-${slug}`}
                 aria-pressed={on}
                 onClick={() => {
                   setTagFilter(tag)
@@ -2973,6 +2986,32 @@ export function MarketsPage() {
               </button>
               <button
                 type="button"
+                className="btn-secondary btn-sm markets-quote-copy-change"
+                data-testid="markets-quote-copy-change"
+                aria-label={`Copy percent change for ${quoteDetail.ticker.symbol}`}
+                onClick={() => {
+                  const sym = quoteDetail.ticker.symbol
+                  const q = quotes.get(quoteDetail.ticker.id)
+                  const pct = formatPct(q?.changePct ?? 0, 2)
+                  const text = `${sym} ${pct} (${timeframe})`
+                  void (async () => {
+                    try {
+                      if (navigator.clipboard?.writeText) {
+                        await navigator.clipboard.writeText(text)
+                        toastSuccess('Copied', `${text} copied to clipboard`)
+                      } else {
+                        toastError('Copy failed', 'Clipboard unavailable')
+                      }
+                    } catch {
+                      toastError('Copy failed', 'Could not copy change')
+                    }
+                  })()
+                }}
+              >
+                Copy %
+              </button>
+              <button
+                type="button"
                 className="btn-secondary btn-sm markets-quote-share"
                 data-testid="markets-quote-share"
                 aria-label={`Share quote for ${quoteDetail.ticker.symbol}`}
@@ -3242,6 +3281,43 @@ export function MarketsPage() {
               if (undoTimer.current) window.clearTimeout(undoTimer.current)
               reloadList()
               void refresh()
+            }}
+          >
+            Undo
+          </button>
+        </div>
+      ) : null}
+
+      {undoRetag ? (
+        <div
+          className="markets-undo-retag-banner mb-3 flex flex-wrap items-center justify-between gap-2 surface px-3 py-2 border border-border"
+          role="status"
+        >
+          <p className="text-sm text-text-muted">
+            Retagged <span className="font-semibold text-text">{undoRetag.ticker.symbol}</span>
+          </p>
+          <button
+            type="button"
+            className="btn-secondary btn-sm markets-undo-retag"
+            data-testid="markets-undo-retag"
+            onClick={() => {
+              updateMarketTicker(undoRetag.ticker.id, {
+                tag: undoRetag.previousTag || '',
+              })
+              setUndoRetag(null)
+              if (undoRetagTimer.current) window.clearTimeout(undoRetagTimer.current)
+              reloadList()
+              setQuoteDetail((prev) =>
+                prev && prev.ticker.id === undoRetag.ticker.id
+                  ? {
+                      ...prev,
+                      ticker: {
+                        ...prev.ticker,
+                        tag: undoRetag.previousTag || undefined,
+                      },
+                    }
+                  : prev,
+              )
             }}
           >
             Undo

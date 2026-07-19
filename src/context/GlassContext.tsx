@@ -8,11 +8,11 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import { saveGlassModePref } from '../domain/glassModePref'
 import {
   applyGlassDom,
   GLASS_STORAGE_KEY,
   loadGlassMode,
-  saveGlassMode,
 } from '../utils/glassMode'
 
 interface GlassContextValue {
@@ -39,13 +39,22 @@ export function GlassProvider({ children }: { children: ReactNode }) {
       applyGlassDom(on)
       setGlassState(on)
     }
+    const onPref = (e: Event) => {
+      const on = Boolean((e as CustomEvent<{ on?: boolean }>).detail?.on)
+      applyGlassDom(on)
+      setGlassState(on)
+    }
     window.addEventListener('storage', onStorage)
-    return () => window.removeEventListener('storage', onStorage)
+    window.addEventListener('mydsp-glass-pref', onPref)
+    return () => {
+      window.removeEventListener('storage', onStorage)
+      window.removeEventListener('mydsp-glass-pref', onPref)
+    }
   }, [])
 
   const setGlass = useCallback((on: boolean) => {
     applyGlassDom(on)
-    saveGlassMode(on)
+    saveGlassModePref(on)
     setGlassState(on)
   }, [])
 

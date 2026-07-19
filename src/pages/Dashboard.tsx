@@ -73,11 +73,13 @@ import {
 } from '../domain/quoteFreshnessSla'
 import { listMarketTickers, loadMarketQuotesCache } from '../storage/marketsStore'
 import {
+  getNewsSeenAt,
   loadNewsArticlesCache,
   newsUnreadFromCache,
   setNewsSeenAt,
 } from '../storage/newsStore'
 import {
+  getYoutubeSeenAt,
   loadYoutubeVideosCache,
   setYoutubeSeenAt,
   youtubeUnreadFromCache,
@@ -331,6 +333,16 @@ export function Dashboard() {
     updatedAt: string
   } | null>(null)
   const focusSnoozeUndoTimer = useRef<number | null>(null)
+  const [newsMarkAllUndo, setNewsMarkAllUndo] = useState<{
+    previousSeenAt: string
+    previousUnread: number
+  } | null>(null)
+  const newsMarkAllUndoTimer = useRef<number | null>(null)
+  const [youtubeMarkAllUndo, setYoutubeMarkAllUndo] = useState<{
+    previousSeenAt: string
+    previousUnread: number
+  } | null>(null)
+  const youtubeMarkAllUndoTimer = useRef<number | null>(null)
   const [activeJumpSection, setActiveJumpSection] = useState<string | null>(null)
 
   useEffect(() => subscribeAutoSync(setSyncStatus), [])
@@ -983,6 +995,8 @@ export function Dashboard() {
       if (interviewUndoTimer.current) window.clearTimeout(interviewUndoTimer.current)
       if (followupUndoTimer.current) window.clearTimeout(followupUndoTimer.current)
       if (focusSnoozeUndoTimer.current) window.clearTimeout(focusSnoozeUndoTimer.current)
+      if (newsMarkAllUndoTimer.current) window.clearTimeout(newsMarkAllUndoTimer.current)
+      if (youtubeMarkAllUndoTimer.current) window.clearTimeout(youtubeMarkAllUndoTimer.current)
     }
   }, [])
 
@@ -1318,6 +1332,7 @@ export function Dashboard() {
             {monthlyBudgetPulse ? (
               <Link
                 to="/budgets"
+                data-testid="today-budget-pulse"
                 className={`today-budget-pulse border border-border bg-surface-hover/60 px-3 py-2 text-xs hover:border-accent ${privacyClass(privacy)}`}
                 title="This month spent versus all budget goal limits"
               >
@@ -1364,6 +1379,7 @@ export function Dashboard() {
             {cashRunway ? (
               <Link
                 to="/recurring"
+                data-testid="today-cash-runway"
                 className={`today-cash-runway border border-border bg-surface-hover/60 px-3 py-2 text-xs hover:border-accent ${privacyClass(privacy)}`}
                 title="Liquid-ish net worth divided by monthly recurring bills"
               >
@@ -1677,6 +1693,7 @@ export function Dashboard() {
             <button
               type="button"
               className="btn-secondary btn-sm today-focus-undo"
+              data-testid="today-focus-undo"
               onClick={undoFocusDone}
             >
               Undo
@@ -1692,6 +1709,7 @@ export function Dashboard() {
             <button
               type="button"
               className="btn-secondary btn-sm today-bill-undo"
+              data-testid="today-bill-undo"
               onClick={undoBillPaid}
             >
               Undo
@@ -1707,6 +1725,7 @@ export function Dashboard() {
             <button
               type="button"
               className="btn-secondary btn-sm today-interview-undo"
+              data-testid="today-interview-undo"
               onClick={undoInterviewDone}
             >
               Undo
@@ -1968,9 +1987,17 @@ export function Dashboard() {
                 type="button"
                 className="btn-ghost btn-sm text-xs min-h-9 today-news-mark-all-read"
                 onClick={() => {
+                  const previousSeenAt = getNewsSeenAt()
+                  const previousUnread = newsUnread
                   const now = new Date().toISOString()
                   setNewsSeenAt(now)
                   setNewsUnread(0)
+                  setNewsMarkAllUndo({ previousSeenAt, previousUnread })
+                  if (newsMarkAllUndoTimer.current) window.clearTimeout(newsMarkAllUndoTimer.current)
+                  newsMarkAllUndoTimer.current = window.setTimeout(
+                    () => setNewsMarkAllUndo(null),
+                    5_000,
+                  )
                   toastSuccess('News marked all read')
                 }}
               >
@@ -1982,6 +2009,30 @@ export function Dashboard() {
               </span>
             )}
           </div>
+          {newsMarkAllUndo ? (
+            <div
+              className="today-news-mark-all-undo-banner mt-2 flex flex-wrap items-center justify-between gap-2 surface px-3 py-2 border border-border"
+              role="status"
+            >
+              <p className="text-sm text-text-muted">News marked all read</p>
+              <button
+                type="button"
+                className="btn-secondary btn-sm today-news-mark-all-undo"
+                data-testid="today-news-mark-all-undo"
+                onClick={() => {
+                  setNewsSeenAt(newsMarkAllUndo.previousSeenAt)
+                  setNewsUnread(newsMarkAllUndo.previousUnread)
+                  setNewsMarkAllUndo(null)
+                  if (newsMarkAllUndoTimer.current) {
+                    window.clearTimeout(newsMarkAllUndoTimer.current)
+                    newsMarkAllUndoTimer.current = null
+                  }
+                }}
+              >
+                Undo
+              </button>
+            </div>
+          ) : null}
           <div className="inline-flex flex-wrap items-center gap-1.5">
             <Link
               to="/youtube"
@@ -2005,9 +2056,18 @@ export function Dashboard() {
                 type="button"
                 className="btn-ghost btn-sm text-xs min-h-9 today-youtube-mark-all-read"
                 onClick={() => {
+                  const previousSeenAt = getYoutubeSeenAt()
+                  const previousUnread = youtubeUnread
                   const now = new Date().toISOString()
                   setYoutubeSeenAt(now)
                   setYoutubeUnread(0)
+                  setYoutubeMarkAllUndo({ previousSeenAt, previousUnread })
+                  if (youtubeMarkAllUndoTimer.current)
+                    window.clearTimeout(youtubeMarkAllUndoTimer.current)
+                  youtubeMarkAllUndoTimer.current = window.setTimeout(
+                    () => setYoutubeMarkAllUndo(null),
+                    5_000,
+                  )
                   toastSuccess('YouTube marked all read')
                 }}
               >
@@ -2019,6 +2079,30 @@ export function Dashboard() {
               </span>
             )}
           </div>
+          {youtubeMarkAllUndo ? (
+            <div
+              className="today-youtube-mark-all-undo-banner mt-2 flex flex-wrap items-center justify-between gap-2 surface px-3 py-2 border border-border"
+              role="status"
+            >
+              <p className="text-sm text-text-muted">YouTube marked all read</p>
+              <button
+                type="button"
+                className="btn-secondary btn-sm today-youtube-mark-all-undo"
+                data-testid="today-youtube-mark-all-undo"
+                onClick={() => {
+                  setYoutubeSeenAt(youtubeMarkAllUndo.previousSeenAt)
+                  setYoutubeUnread(youtubeMarkAllUndo.previousUnread)
+                  setYoutubeMarkAllUndo(null)
+                  if (youtubeMarkAllUndoTimer.current) {
+                    window.clearTimeout(youtubeMarkAllUndoTimer.current)
+                    youtubeMarkAllUndoTimer.current = null
+                  }
+                }}
+              >
+                Undo
+              </button>
+            </div>
+          ) : null}
         </div>
         {whatArrivedChip ? (
           <div

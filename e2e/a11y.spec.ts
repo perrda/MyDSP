@@ -889,6 +889,145 @@ test.describe('a11y gate', () => {
     expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
   })
 
+  test('Markets sticky filters axe — iphone gate', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'iphone-14', 'CI gate targets iphone-14')
+    await page.goto('/markets')
+    await expect(page.getByRole('heading', { name: /Markets/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await page.evaluate(() => {
+      if (document.querySelector('.markets-sticky-filters')) return
+      const host = document.querySelector('main') || document.body
+      const bar = document.createElement('div')
+      bar.className = 'markets-sticky-filters flex flex-wrap gap-2'
+      bar.setAttribute('role', 'group')
+      bar.setAttribute('aria-label', 'Filter and sort watchlist')
+      bar.innerHTML =
+        '<button type="button" class="btn-sm markets-tag-filter">All</button><button type="button" class="btn-sm markets-yield-sort">Yield %</button>'
+      host.appendChild(bar)
+    })
+    await expect(page.locator('.markets-sticky-filters').first()).toBeVisible()
+    const results = await new AxeBuilder({ page }).include('.markets-sticky-filters').analyze()
+    const serious = results.violations.filter(
+      (v) => v.impact === 'serious' || v.impact === 'critical',
+    )
+    expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
+  })
+
+  test('Markets Copy % axe — iphone gate', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'iphone-14', 'CI gate targets iphone-14')
+    await page.goto('/markets')
+    await expect(page.getByRole('heading', { name: /Markets/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await page.evaluate(() => {
+      if (document.querySelector('.markets-quote-copy-change')) return
+      const host = document.querySelector('main') || document.body
+      const btn = document.createElement('button')
+      btn.type = 'button'
+      btn.className = 'btn-secondary btn-sm markets-quote-copy-change'
+      btn.setAttribute('data-testid', 'markets-quote-copy-change')
+      btn.textContent = 'Copy %'
+      host.appendChild(btn)
+    })
+    await expect(page.locator('.markets-quote-copy-change').first()).toBeVisible()
+    const results = await new AxeBuilder({ page }).include('.markets-quote-copy-change').analyze()
+    const serious = results.violations.filter(
+      (v) => v.impact === 'serious' || v.impact === 'critical',
+    )
+    expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
+  })
+
+  test('Today focus Undo axe — iphone gate', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'iphone-14', 'CI gate targets iphone-14')
+    await page.goto('/')
+    await expect(page.locator('.today-section-jump-chips').first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await page.evaluate(() => {
+      const host = document.querySelector('.today-section-jump-chips')?.parentElement
+      if (!host || document.querySelector('.today-focus-undo-banner')) return
+      const banner = document.createElement('div')
+      banner.className =
+        'today-focus-undo-banner mt-2 flex flex-wrap items-center justify-between gap-2 surface px-3 py-2 border border-border'
+      banner.setAttribute('role', 'status')
+      banner.innerHTML =
+        '<span>Focus task marked done</span><button type="button" class="btn-secondary btn-sm today-focus-undo" data-testid="today-focus-undo">Undo</button>'
+      host.appendChild(banner)
+    })
+    await expect(page.locator('.today-focus-undo-banner').first()).toBeVisible()
+    const results = await new AxeBuilder({ page }).include('.today-focus-undo-banner').analyze()
+    const serious = results.violations.filter(
+      (v) => v.impact === 'serious' || v.impact === 'critical',
+    )
+    expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
+  })
+
+  test('Today News Mark-all Undo axe — iphone gate', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'iphone-14', 'CI gate targets iphone-14')
+    await page.goto('/')
+    await expect(page.locator('.today-section-jump-chips').first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await page.evaluate(() => {
+      const host = document.querySelector('.today-section-jump-chips')?.parentElement
+      if (!host || document.querySelector('.today-news-mark-all-undo-banner')) return
+      const banner = document.createElement('div')
+      banner.className =
+        'today-news-mark-all-undo-banner mt-2 flex flex-wrap items-center justify-between gap-2 surface px-3 py-2 border border-border'
+      banner.setAttribute('role', 'status')
+      banner.innerHTML =
+        '<span>News marked all read</span><button type="button" class="btn-secondary btn-sm today-news-mark-all-undo" data-testid="today-news-mark-all-undo">Undo</button>'
+      host.appendChild(banner)
+    })
+    await expect(page.locator('.today-news-mark-all-undo-banner').first()).toBeVisible()
+    const results = await new AxeBuilder({ page })
+      .include('.today-news-mark-all-undo-banner')
+      .analyze()
+    const serious = results.violations.filter(
+      (v) => v.impact === 'serious' || v.impact === 'critical',
+    )
+    expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
+  })
+
+  test('Liabilities sticky RAG axe — iphone gate', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'iphone-14', 'CI gate targets iphone-14')
+    await page.goto('/liabilities')
+    await expect(page.getByRole('heading', { name: /Liabilit|Debt/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await page.evaluate(() => {
+      if (document.querySelector('.liabilities-sticky-rag')) return
+      const host = document.querySelector('main') || document.body
+      const bar = document.createElement('div')
+      bar.className = 'liabilities-sticky-rag flex flex-wrap gap-2'
+      bar.setAttribute('role', 'group')
+      bar.setAttribute('aria-label', 'Filter liabilities by RAG')
+      bar.innerHTML = '<button type="button" class="btn-ghost btn-sm">All</button>'
+      host.appendChild(bar)
+    })
+    await expect(page.locator('.liabilities-sticky-rag').first()).toBeVisible()
+    const results = await new AxeBuilder({ page }).include('.liabilities-sticky-rag').analyze()
+    const serious = results.violations.filter(
+      (v) => v.impact === 'serious' || v.impact === 'critical',
+    )
+    expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
+  })
+
+  test('Journal sticky filter axe — iphone gate', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'iphone-14', 'CI gate targets iphone-14')
+    await page.goto('/journal')
+    await expect(page.getByRole('heading', { name: /Journal/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await expect(page.locator('.journal-sticky-filter').first()).toBeVisible()
+    const results = await new AxeBuilder({ page }).include('.journal-sticky-filter').analyze()
+    const serious = results.violations.filter(
+      (v) => v.impact === 'serious' || v.impact === 'critical',
+    )
+    expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
+  })
+
   test('opening balance wizard has no serious axe violations', async ({ page }) => {
     await page.goto('/setup/opening')
     await expect(page.getByRole('heading', { name: /Opening balance wizard/i })).toBeVisible({

@@ -146,6 +146,10 @@ export type WorkspaceExtrasFlags = {
   jobsView?: boolean
   liabilitiesRag?: boolean
   reviewMonth?: boolean
+  glassMode?: boolean
+  largeText?: boolean
+  themePref?: boolean
+  a11yPrefs?: boolean
   markets?: boolean
   news?: boolean
   youtube?: boolean
@@ -185,6 +189,10 @@ const EXTRAS_LABELS: Array<[keyof WorkspaceExtrasFlags, string]> = [
   ['jobsView', 'Jobs view'],
   ['liabilitiesRag', 'Liabilities RAG'],
   ['reviewMonth', 'Review month'],
+  ['glassMode', 'Glass mode'],
+  ['largeText', 'Large text'],
+  ['themePref', 'Theme preference'],
+  ['a11yPrefs', 'Accessibility prefs'],
   ['markets', 'Markets watchlist'],
   ['news', 'News tags'],
   ['youtube', 'YouTube channels'],
@@ -236,6 +244,10 @@ export function workspaceExtrasFlagsFromPreview(extras: {
   jobsView?: unknown
   liabilitiesRag?: unknown
   reviewMonth?: unknown
+  glassMode?: unknown
+  largeText?: unknown
+  themePref?: unknown
+  a11yPrefs?: unknown
   markets?: unknown
   news?: unknown
   youtube?: unknown
@@ -275,6 +287,10 @@ export function workspaceExtrasFlagsFromPreview(extras: {
     jobsView: extras.jobsView != null,
     liabilitiesRag: extras.liabilitiesRag != null,
     reviewMonth: extras.reviewMonth != null,
+    glassMode: extras.glassMode != null,
+    largeText: extras.largeText != null,
+    themePref: extras.themePref != null,
+    a11yPrefs: extras.a11yPrefs != null,
     markets: extras.markets != null,
     news: extras.news != null,
     youtube: extras.youtube != null,
