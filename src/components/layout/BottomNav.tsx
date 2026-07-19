@@ -149,6 +149,8 @@ export function BottomNav() {
         item.to === '/api' ||
         item.to === '/insights' ||
         item.to === '/review' ||
+        item.to === '/trips' ||
+        item.to === '/analytics' ||
         item.to === '/settings' ||
         item.to.startsWith('/settings')
       ) {

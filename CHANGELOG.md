@@ -1,5 +1,42 @@
 # MyDSP Changelog
 
+## [1.2.83] - 2026-07-19
+
+### Improved — Sync / trust (next 25r · 1–5)
+1. **Settings sections** open/collapsed LWW via fullArchive
+2. **Tax year** selection LWW
+3. **Journal asset filter** LWW
+4. **Today NW spark** window (7d/30d) LWW
+5. **Docs + SYNC_SMOKE + What arrived** extras for Settings sections / Tax year / Journal filter / NW spark
+
+### Improved — Markets (next 25r · 6–10)
+6. **Quote modal** Copy symbol · Open News · Retry this quote
+7. **Retry all stale** toolbar CTA
+8. **Search clear** chip + Esc
+9. **Density trust strip** (sparklines hidden · sections collapsed)
+10. **Commodity quote modal** paper qty·cost·P&L + Include/Exclude NW
+
+### Improved — Mobile / tablet (next 25r · 11–15)
+11. **Analytics** thumb CTA (Export report + Predictive)
+12. **Opening wizard + Legacy import** thumb CTAs
+13. **Smoke PTR** checklist includes Analytics + Opening
+14. **Bottom-nav** Trips/Analytics slots + long-press → Sync
+15. **Analytics** tablet sticky KPI row
+
+### Improved — Today / productivity (next 25r · 16–20)
+16. **Goals jump chip** on Today section jumps
+17. **Offline queue chip** Retry now
+18. **Goal next-action** card when stack is otherwise empty
+19. **What arrived** dismiss persists for current fingerprint
+20. **Focus Mark done** 5s Undo toast
+
+### Quality (next 25r · 21–25)
+21. **Axe** Today Goals jump + What arrived chip
+22. **Axe** Markets Retry-all-stale control
+23. **Axe** Opening wizard thumb CTA (+ existing Analytics gate)
+24. **Playwright** Analytics thumbs · Markets search clear · Today Goals jump · smoke PTR Analytics/Opening
+25. Tip harness **1.2.83**
+
 ## [1.2.82] - 2026-07-19
 
 ### Improved — Sync / trust (next 25q · 1–5)

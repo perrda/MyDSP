@@ -356,6 +356,29 @@ export function OpeningBalanceWizardPage() {
           </div>
         </>
       )}
+
+      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary opening balance actions">
+        {rows.length > 0 ? (
+          <button
+            type="button"
+            className="btn-primary btn-sm"
+            disabled={busy || selectedCount === 0}
+            onClick={applySelected}
+            aria-label={`Save ${selectedCount} selected opening balance${selectedCount === 1 ? '' : 's'}`}
+            aria-busy={busy && busyLabel === 'apply'}
+          >
+            {busy && busyLabel === 'apply' ? 'Saving…' : 'Continue / Save'}
+          </button>
+        ) : (
+          <Link to="/settings#trade-history" className="btn-primary btn-sm">
+            Continue / Save
+          </Link>
+        )}
+        <Link to="/import" className="btn-secondary btn-sm">
+          Open enhanced import
+        </Link>
+      </div>
+      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }

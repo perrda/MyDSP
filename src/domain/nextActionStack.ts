@@ -1,13 +1,13 @@
-/** Today “next action” stack: up to 3 cards — todo / bill / interview / follow-up / top mover. */
+/** Today “next action” stack: up to 3 cards — todo / bill / interview / follow-up / goal / top mover. */
 
 import { getNextInterview, needsFollowUp } from './jobs'
 import type { JobApplication } from './job-types'
 import { dueWithinDays } from './recurringDueStrip'
 import { isDueToday, isOverdue } from './todos'
-import type { RecurringTransaction } from './types'
+import type { Goal, RecurringTransaction } from './types'
 import type { TodoItem } from './todo-types'
 
-export type NextActionKind = 'todo' | 'bill' | 'interview' | 'followup' | 'mover'
+export type NextActionKind = 'todo' | 'bill' | 'interview' | 'followup' | 'goal' | 'mover'
 
 export interface NextActionTodo {
   kind: 'todo'
@@ -36,6 +36,14 @@ export interface NextActionFollowUp {
   label: string
 }
 
+export interface NextActionGoal {
+  kind: 'goal'
+  goalId: number
+  name: string
+  deadline: string
+  label: string
+}
+
 export interface NextActionMover {
   kind: 'mover'
   symbol: string
@@ -47,6 +55,7 @@ export type NextActionCard =
   | NextActionBill
   | NextActionInterview
   | NextActionFollowUp
+  | NextActionGoal
   | NextActionMover
 
 export interface MoverInput {
@@ -54,15 +63,41 @@ export interface MoverInput {
   changePct: number
 }
 
+function pickSoonestGoal(goals: Goal[] | undefined, now: Date): Goal | null {
+  const start = new Date(now)
+  start.setHours(0, 0, 0, 0)
+  const startMs = start.getTime()
+  let upcoming: Goal | null = null
+  let upcomingAt = Infinity
+  let fallback: Goal | null = null
+  let fallbackAt = Infinity
+  for (const g of goals ?? []) {
+    if (!g.deadline) continue
+    const dl = Date.parse(`${g.deadline.slice(0, 10)}T00:00:00`)
+    if (!Number.isFinite(dl)) continue
+    if (dl >= startMs) {
+      if (dl < upcomingAt) {
+        upcomingAt = dl
+        upcoming = g
+      }
+    } else if (dl < fallbackAt) {
+      fallbackAt = dl
+      fallback = g
+    }
+  }
+  return upcoming ?? fallback
+}
+
 /**
  * Build a compact next-action stack (max 3): next incomplete todo,
  * soonest bill due within 7 days, soonest pending interview within 7 days,
- * and top absolute % mover.
+ * soonest goal when no todo/bill/interview/follow-up, and top absolute % mover.
  */
 export function buildNextActionStack(input: {
   todoItems?: TodoItem[]
   recurringTransactions?: RecurringTransaction[]
   jobApplications?: JobApplication[]
+  goals?: Goal[]
   movers?: MoverInput[]
   now?: Date
   max?: number
@@ -134,6 +169,26 @@ export function buildNextActionStack(input: {
         companyName: first.companyName,
         jobTitle: first.jobTitle,
         label: 'Needs follow-up',
+      })
+    }
+  }
+
+  const hasPrimaryAction = out.some(
+    (c) =>
+      c.kind === 'todo' ||
+      c.kind === 'bill' ||
+      c.kind === 'interview' ||
+      c.kind === 'followup',
+  )
+  if (!hasPrimaryAction) {
+    const soonest = pickSoonestGoal(input.goals, now)
+    if (soonest) {
+      out.push({
+        kind: 'goal',
+        goalId: soonest.id,
+        name: soonest.name,
+        deadline: soonest.deadline,
+        label: 'Goal',
       })
     }
   }

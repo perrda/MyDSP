@@ -14,6 +14,8 @@ import {
   Video,
   Landmark,
   Receipt,
+  Plane,
+  BarChart3,
   type LucideIcon,
 } from 'lucide-react'
 import {
@@ -42,6 +44,8 @@ export const BOTTOM_NAV_CATALOG: Record<string, BottomNavItem> = {
   '/youtube': { to: '/youtube', label: 'YouTube', icon: Video },
   '/liabilities': { to: '/liabilities', label: 'Debt', icon: Landmark },
   '/tax': { to: '/tax', label: 'Tax', icon: Receipt },
+  '/trips': { to: '/trips', label: 'Trips', icon: Plane },
+  '/analytics': { to: '/analytics', label: 'Analytics', icon: BarChart3 },
   '/settings': { to: '/settings', label: 'Settings', icon: Settings },
 }
 

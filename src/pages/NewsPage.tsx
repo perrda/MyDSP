@@ -219,6 +219,18 @@ export function NewsPage() {
   }, [searchParams, setSearchParams, refresh])
 
   useEffect(() => {
+    const tag = searchParams.get('tag')?.trim()
+    if (!tag) return
+    setFilterTag(tag)
+    saveNewsFilterTag(tag)
+    setNewsCollapsed('tagged', false)
+    setCollapsed((c) => (c.tagged ? { ...c, tagged: false } : c))
+    const next = new URLSearchParams(searchParams)
+    next.delete('tag')
+    setSearchParams(next, { replace: true })
+  }, [searchParams, setSearchParams])
+
+  useEffect(() => {
     const onOnline = () => setOnline(true)
     const onOffline = () => setOnline(false)
     window.addEventListener('online', onOnline)

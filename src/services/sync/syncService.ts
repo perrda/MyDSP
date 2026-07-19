@@ -261,8 +261,12 @@ export interface MergePreview {
     bottomNavSlots?: unknown
     launchPath?: unknown
     uiPanels?: unknown
+    settingsSections?: unknown
     marketsTagYield?: unknown
     settingsRecentJumps?: unknown
+    taxYear?: unknown
+    journalFilter?: unknown
+    nwSparkWindow?: unknown
   }
 }
 
@@ -673,8 +677,12 @@ async function decryptEnvelope(
     if (a.bottomNavSlots != null) extras.bottomNavSlots = a.bottomNavSlots
     if (a.launchPath != null) extras.launchPath = a.launchPath
     if (a.uiPanels != null) extras.uiPanels = a.uiPanels
+    if (a.settingsSections != null) extras.settingsSections = a.settingsSections
     if (a.marketsTagYield != null) extras.marketsTagYield = a.marketsTagYield
     if (a.settingsRecentJumps != null) extras.settingsRecentJumps = a.settingsRecentJumps
+    if (a.taxYear != null) extras.taxYear = a.taxYear
+    if (a.journalFilter != null) extras.journalFilter = a.journalFilter
+    if (a.nwSparkWindow != null) extras.nwSparkWindow = a.nwSparkWindow
     if (Object.keys(extras).length > 0) workspaceExtras = extras
   }
 
@@ -946,6 +954,10 @@ export async function applyMergePreview(
     const { importUiPanelsFromBackup } = await import('../../storage/uiPanelsStore')
     importUiPanelsFromBackup(preview.workspaceExtras.uiPanels)
   }
+  if (preview.workspaceExtras?.settingsSections != null) {
+    const { importSettingsSectionsFromBackup } = await import('../../storage/settingsSectionsStore')
+    importSettingsSectionsFromBackup(preview.workspaceExtras.settingsSections)
+  }
   if (preview.workspaceExtras?.marketsTagYield != null) {
     const { importMarketsTagYieldFromBackup } = await import('../../domain/marketsTagYieldPref')
     importMarketsTagYieldFromBackup(preview.workspaceExtras.marketsTagYield)
@@ -953,6 +965,18 @@ export async function applyMergePreview(
   if (preview.workspaceExtras?.settingsRecentJumps != null) {
     const { importSettingsRecentJumpsFromBackup } = await import('../../domain/settingsSearch')
     importSettingsRecentJumpsFromBackup(preview.workspaceExtras.settingsRecentJumps)
+  }
+  if (preview.workspaceExtras?.taxYear != null) {
+    const { importTaxYearFromBackup } = await import('../../domain/taxYearPref')
+    importTaxYearFromBackup(preview.workspaceExtras.taxYear)
+  }
+  if (preview.workspaceExtras?.journalFilter != null) {
+    const { importJournalFilterFromBackup } = await import('../../domain/journalFilterPref')
+    importJournalFilterFromBackup(preview.workspaceExtras.journalFilter)
+  }
+  if (preview.workspaceExtras?.nwSparkWindow != null) {
+    const { importNwSparkWindowFromBackup } = await import('../../domain/nwSparkWindowPref')
+    importNwSparkWindowFromBackup(preview.workspaceExtras.nwSparkWindow)
   }
 
   return { merged, conflicts: preview.conflicts, removedDupes: removed.length }

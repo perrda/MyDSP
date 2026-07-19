@@ -23,6 +23,7 @@ import {
 import { taxYearProgress } from '../domain/taxYearProgress'
 import { ISA_ALLOWANCE_GBP, isaUsedFromHoldings } from '../domain/isaHoldings'
 import { loadIsaRemainingDraft, saveIsaRemainingDraft } from '../domain/isaPrefs'
+import { loadTaxYearPref, saveTaxYearPref } from '../domain/taxYearPref'
 import { formatDate, formatGBP, formatGBPPrecise, privacyClass } from '../utils/format'
 
 function nextId(items: { id: number }[]): number {
@@ -36,7 +37,12 @@ export function TaxPage() {
   const pack = useMemo(() => getTaxPack(residency), [residency])
   const isUkTax = pack.code === 'GB' && pack.matching === 'uk-section104'
   const years = listPackYears(pack)
-  const [taxYear, setTaxYear] = useState(() => getCurrentPackYear(pack))
+  const [taxYear, setTaxYear] = useState(() => {
+    const current = getCurrentPackYear(pack)
+    const keys = listPackYears(pack)
+    const saved = loadTaxYearPref(current)
+    return keys.includes(saved) ? saved : current
+  })
   const [open, setOpen] = useState(false)
   const [deleteId, setDeleteId] = useState<number | null>(null)
   const [exportsExplainerOpen, setExportsExplainerOpen] = useState(false)
@@ -53,7 +59,8 @@ export function TaxPage() {
   useEffect(() => {
     const next = getCurrentPackYear(pack)
     const keys = listPackYears(pack)
-    setTaxYear((prev) => (keys.includes(prev) ? prev : next))
+    const saved = loadTaxYearPref(next)
+    setTaxYear(keys.includes(saved) ? saved : next)
   }, [pack])
 
   useEffect(() => {
@@ -77,10 +84,16 @@ export function TaxPage() {
   }, [isaRemainingDraft])
 
   useEffect(() => {
-    const onSyncApplied = () => setIsaRemainingDraft(loadIsaRemainingDraft())
+    const onSyncApplied = () => {
+      setIsaRemainingDraft(loadIsaRemainingDraft())
+      const next = getCurrentPackYear(pack)
+      const keys = listPackYears(pack)
+      const saved = loadTaxYearPref(next)
+      setTaxYear(keys.includes(saved) ? saved : next)
+    }
     window.addEventListener('mydsp-sync-applied', onSyncApplied)
     return () => window.removeEventListener('mydsp-sync-applied', onSyncApplied)
-  }, [])
+  }, [pack])
 
   const matchedRows = useMemo(() => {
     if (isUkTax) {
@@ -359,7 +372,11 @@ export function TaxPage() {
         <select
           className="sm:w-56"
           value={taxYear}
-          onChange={(e) => setTaxYear(e.target.value)}
+          onChange={(e) => {
+            const next = e.target.value
+            setTaxYear(next)
+            saveTaxYearPref(next)
+          }}
           aria-label="Tax year"
         >
           {years.map((y) => (

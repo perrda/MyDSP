@@ -269,6 +269,41 @@ test.describe('MyDSP smoke', () => {
     })
   })
 
+  test('Analytics thumb CTA', async ({ page }) => {
+    await page.goto('/analytics')
+    await expect(page.getByRole('heading', { name: /Analytics/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await expect(page.locator('.thumb-cta-bar').first()).toBeVisible()
+  })
+
+  test('Markets search clear', async ({ page }) => {
+    await page.goto('/markets')
+    await expect(page.getByRole('heading', { name: /Markets/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    const search = page.getByLabel(/Search watchlist/i).or(page.getByPlaceholder(/Search watchlist/i))
+    await search.first().fill('BTC')
+    const clear = page.locator('.markets-search-clear').first()
+    await expect(clear).toBeVisible()
+    // Esc clears search (also covers tip 8 keyboard path); avoid toast intercepts on Clear.
+    await search.first().press('Escape')
+    await expect(search.first()).toHaveValue('')
+  })
+
+  test('Today Goals jump chip', async ({ page }) => {
+    await page.goto('/')
+    const chip = page.locator('.today-section-jump-goals').first()
+    await expect(chip).toBeVisible({ timeout: 20_000 })
+    await expect(chip).toHaveAttribute('href', '#today-goals')
+  })
+
+  test('smoke PTR includes Analytics Opening', async ({ page }) => {
+    await page.goto('/smoke')
+    await expect(page.getByText(/Analytics/i).first()).toBeVisible({ timeout: 20_000 })
+    await expect(page.getByText(/Opening/i).first()).toBeVisible()
+  })
+
   test('offline queue enqueue surfaces in Settings Sync', async ({ page }) => {
     await page.addInitScript(() => {
       try {

@@ -604,6 +604,108 @@ test.describe('a11y gate', () => {
     expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
   })
 
+  test('Today Goals jump axe — iphone gate', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'iphone-14', 'CI gate targets iphone-14')
+    await page.goto('/')
+    await expect(page.locator('.today-section-jump-goals').first()).toBeVisible({
+      timeout: 20_000,
+    })
+    const results = await new AxeBuilder({ page }).include('.today-section-jump-chips').analyze()
+    const serious = results.violations.filter(
+      (v) => v.impact === 'serious' || v.impact === 'critical',
+    )
+    expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
+  })
+
+  test('Markets Retry-all-stale axe — iphone gate', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'iphone-14', 'CI gate targets iphone-14')
+    await page.addInitScript(() => {
+      try {
+        // Seed a stale watchlist quote so Retry-all can render without live fetch.
+        const now = Date.now()
+        localStorage.setItem(
+          'mydsp_markets_v1',
+          JSON.stringify({
+            tickers: [
+              {
+                id: 't_a11y_stale',
+                symbol: 'BTC-USD',
+                kind: 'crypto',
+                label: 'Bitcoin',
+                addedAt: new Date(now - 86_400_000).toISOString(),
+              },
+            ],
+            quotes: {
+              'BTC-USD': {
+                price: 1,
+                currency: 'USD',
+                asOf: new Date(now - 86_400_000).toISOString(),
+                source: 'sync',
+              },
+            },
+            updatedAt: new Date(now - 86_400_000).toISOString(),
+          }),
+        )
+      } catch {
+        /* ignore */
+      }
+    })
+    await page.goto('/markets')
+    await expect(page.getByRole('heading', { name: /Markets/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    const retry = page.locator('.markets-retry-all-stale').first()
+    if (await retry.isVisible().catch(() => false)) {
+      const results = await new AxeBuilder({ page }).include('.markets-retry-all-stale').analyze()
+      const serious = results.violations.filter(
+        (v) => v.impact === 'serious' || v.impact === 'critical',
+      )
+      expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
+    } else {
+      // Fallback: sticky toolbar remains axe-clean when no stale quotes.
+      const results = await new AxeBuilder({ page }).include('.markets-sticky-toolbar').analyze()
+      const serious = results.violations.filter(
+        (v) => v.impact === 'serious' || v.impact === 'critical',
+      )
+      expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
+    }
+  })
+
+  test('Today What arrived chip axe — iphone gate', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'iphone-14', 'CI gate targets iphone-14')
+    await page.goto('/')
+    await expect(page.locator('.today-section-jump-chips').first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await page.evaluate(() => {
+      window.dispatchEvent(
+        new CustomEvent('mydsp-sync-applied', {
+          detail: { summary: 'Settings sections · Tax year', extrasSummary: 'Settings sections' },
+        }),
+      )
+    })
+    await expect(page.locator('.today-what-arrived-chip').first()).toBeVisible({ timeout: 10_000 })
+    const results = await new AxeBuilder({ page }).include('.today-what-arrived-chip').analyze()
+    const serious = results.violations.filter(
+      (v) => v.impact === 'serious' || v.impact === 'critical',
+    )
+    expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
+  })
+
+  test('Opening wizard thumb CTA axe — iphone gate', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'iphone-14', 'CI gate targets iphone-14')
+    await page.goto('/setup/opening')
+    await expect(page.getByRole('heading', { name: /Opening balance wizard/i })).toBeVisible({
+      timeout: 20_000,
+    })
+    await expect(page.locator('.thumb-cta-bar').first()).toBeVisible()
+    const results = await new AxeBuilder({ page }).include('.thumb-cta-bar').analyze()
+    const serious = results.violations.filter(
+      (v) => v.impact === 'serious' || v.impact === 'critical',
+    )
+    expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
+  })
+
   test('opening balance wizard has no serious axe violations', async ({ page }) => {
     await page.goto('/setup/opening')
     await expect(page.getByRole('heading', { name: /Opening balance wizard/i })).toBeVisible({
