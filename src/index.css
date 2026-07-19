@@ -2319,12 +2319,21 @@ html.a11y-reduce-motion *::after {
   html.has-bottom-nav .thumb-cta-bar {
     bottom: calc(5.5rem + 0.25rem + env(safe-area-inset-bottom, 0px));
   }
+  .job-detail-nav-cta {
+    bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+  }
+  html.has-bottom-nav .job-detail-nav-cta {
+    bottom: calc(5.5rem + 4.75rem + env(safe-area-inset-bottom, 0px));
+  }
   /* Spacer so list content clears the fixed bar */
   .thumb-cta-bar-spacer {
     height: calc(4.25rem + env(safe-area-inset-bottom, 0px));
   }
   html.has-bottom-nav .thumb-cta-bar-spacer {
     height: calc(4.25rem + env(safe-area-inset-bottom, 0px));
+  }
+  .job-detail-nav-cta-spacer {
+    height: calc(8.75rem + env(safe-area-inset-bottom, 0px));
   }
 }
 @media (min-width: 640px) {

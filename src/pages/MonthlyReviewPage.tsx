@@ -128,6 +128,16 @@ export function MonthlyReviewPage() {
           </p>
         </div>
       </div>
+
+      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary monthly review actions">
+        <Link to="/" className="btn-primary btn-sm">
+          Today
+        </Link>
+        <Link to="/budgets" className="btn-secondary btn-sm">
+          Budgets
+        </Link>
+      </div>
+      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }

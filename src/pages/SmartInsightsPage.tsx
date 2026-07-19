@@ -357,6 +357,16 @@ export function SmartInsightsPage() {
             </p>
           </div>
         )}
+
+      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary smart insights actions">
+        <Link to="/" className="btn-primary btn-sm">
+          Today
+        </Link>
+        <Link to="/rules" className="btn-secondary btn-sm">
+          Rules
+        </Link>
+      </div>
+      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }

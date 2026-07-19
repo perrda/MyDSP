@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import { TrendingUp, TrendingDown, Minus, AlertTriangle, Award } from 'lucide-react'
 import { PageHeader } from '../components/ui/PageHeader'
 import { BackNav } from '../components/ui/BackNav'
@@ -334,6 +335,16 @@ export function PredictiveAnalyticsPage() {
           </ResponsiveContainer>
         </div>
       )}
+
+      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary predictive analytics actions">
+        <Link to="/" className="btn-primary btn-sm">
+          Today
+        </Link>
+        <Link to="/analytics" className="btn-secondary btn-sm">
+          Analytics
+        </Link>
+      </div>
+      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }

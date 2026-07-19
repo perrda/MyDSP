@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { PageHeader } from '../components/ui/PageHeader'
 import { Field, parseNum } from '../components/ui/Modal'
 import { usePortfolio } from '../context/PortfolioContext'
@@ -123,6 +124,16 @@ export function FirePage() {
           <span className="text-accent font-semibold">{formatGBP(result.passiveIncome)}</span> / year
         </p>
       </div>
+
+      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary FIRE actions">
+        <Link to="/" className="btn-primary btn-sm">
+          Today
+        </Link>
+        <Link to="/planning" className="btn-secondary btn-sm">
+          Planning
+        </Link>
+      </div>
+      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }

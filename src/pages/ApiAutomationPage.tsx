@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Download, Copy, Check, Code, Webhook, FileJson, FileSpreadsheet } from 'lucide-react'
 import { PageHeader } from '../components/ui/PageHeader'
 import { usePortfolio } from '../context/PortfolioContext'
@@ -434,6 +435,16 @@ export function ApiAutomationPage() {
           </li>
         </ul>
       </section>
+
+      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary API actions">
+        <Link to="/" className="btn-primary btn-sm">
+          Today
+        </Link>
+        <Link to="/settings" className="btn-secondary btn-sm">
+          Settings
+        </Link>
+      </div>
+      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }

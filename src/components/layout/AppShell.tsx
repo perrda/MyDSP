@@ -26,7 +26,7 @@ import { useIdlePrefetch } from '../../hooks/useIdlePrefetch'
 import { triggerSuccessFlash } from '../../utils/successFlash'
 import { refreshMediaFeeds } from '../../services/mediaRefresh'
 
-/** Pull-to-refresh on Today, Markets, holdings, News, YouTube, Tax, Compare, Todos, Jobs, Spending, Recurring, Liabilities, Goals, Trips, History, Budgets, Import, Family, Documents, Journal, Rules, Settings, Staking, Planning, Smoke (no page jump). */
+/** Pull-to-refresh on approved primary/detail routes (no page jump). */
 function allowPullToRefresh(pathname: string): boolean {
   if (pathname === '/' || pathname === '/markets') return true
   if (pathname === '/equities' || pathname === '/crypto' || pathname === '/news') return true
@@ -39,7 +39,12 @@ function allowPullToRefresh(pathname: string): boolean {
   if (pathname === '/journal' || pathname === '/rules') return true
   if (pathname === '/settings' || pathname.startsWith('/settings')) return true
   if (pathname === '/staking' || pathname === '/planning' || pathname === '/smoke') return true
+  if (pathname === '/fire' || pathname === '/optimizer' || pathname === '/achievements') return true
+  if (pathname === '/api' || pathname === '/insights' || pathname === '/review') return true
+  if (pathname === '/analytics' || pathname === '/analytics/predictive') return true
+  if (pathname === '/setup/opening') return true
   if (pathname.startsWith('/equities/') || pathname.startsWith('/crypto/')) return true
+  if (pathname.startsWith('/jobs/') || pathname.startsWith('/liabilities/')) return true
   return false
 }
 
