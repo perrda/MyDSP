@@ -24,6 +24,7 @@ Run after every production deploy (`npm run deploy` + `npm run deploy:sync` if s
 15. **Markets tag/Yield + Settings jumps** — enable Show Markets tag + Yield % chips on A → B shows chips; open a Settings section on A → B’s recent jumps include it
 16. **Settings sections + Tax year + Journal filter + NW spark** — expand a Settings accordion on A → B keeps it open after sync; pick a Tax year on A → B shows the same year; set Journal asset filter on A → B matches; toggle Today NW spark 30d on A → B shows 30d
 17. **API webhook + Achievements seen + Getting started + What arrived dismiss** — set API webhook URL on A → B shows the same URL after sync; unlock/seed achievements seen on A → B does not re-toast; dismiss Getting started on A → B stays dismissed; dismiss What arrived on A → B stays dismissed for that fingerprint
+18. **Todos sort + Jobs view + Liabilities RAG + Review month** — change Todos sort on A → B matches after sync; switch Jobs to List view on A → B opens List; set Liabilities RAG to Amber on A → B matches; pick a Review month on A → B shows the same month
 
 ## Pass criteria
 All steps succeed without clearing site data. If any fail, capture the Sync activity log (Settings → Devices / Sync) before retrying.

@@ -209,7 +209,7 @@ export function SpendingPage() {
         title="Spending ledger"
         description={`${formatMonthLabel(ym)} · filter by category, search, or jump to budgets.`}
         action={
-          <div className="flex flex-wrap gap-2 items-center w-full sm:w-auto">
+          <div className="spending-sticky-month flex flex-wrap gap-2 items-center w-full sm:w-auto">
             {/* Phone: compact month picker */}
             <div className="flex items-center gap-1.5 w-full sm:hidden">
               <button

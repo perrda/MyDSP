@@ -77,6 +77,22 @@ import {
   importWhatArrivedDismissFromBackup,
 } from '../domain/whatArrivedDismissPref'
 import {
+  exportTodosSortForBackup,
+  importTodosSortFromBackup,
+} from '../domain/todosSortPrefs'
+import {
+  exportJobsViewForBackup,
+  importJobsViewFromBackup,
+} from '../domain/jobsViewPrefs'
+import {
+  exportLiabilitiesRagForBackup,
+  importLiabilitiesRagFromBackup,
+} from '../domain/liabilitiesRagPref'
+import {
+  exportReviewMonthForBackup,
+  importReviewMonthFromBackup,
+} from '../domain/reviewMonthPref'
+import {
   exportYoutubeForBackup,
   exportYoutubeVideosForBackup,
   importYoutubeFromBackup,
@@ -233,6 +249,14 @@ export interface FullBackupRecord extends FullBackupMeta {
   gettingStartedDismissed?: unknown
   /** Optional What arrived dismiss fingerprint */
   whatArrivedDismiss?: unknown
+  /** Optional Todos sort preference */
+  todosSort?: unknown
+  /** Optional Jobs viewMode + list sort */
+  jobsView?: unknown
+  /** Optional Liabilities RAG filter */
+  liabilitiesRag?: unknown
+  /** Optional Monthly Review selected month */
+  reviewMonth?: unknown
   /** Optional file attachments (CV/PDFs) as base64 payloads */
   documentBlobs?: import('./documentBlobStore').DocumentBlobPayload[]
   documentBlobsSkipped?: number[]
@@ -277,6 +301,10 @@ function backupCanonical(record: Pick<
   | 'achievementsSeen'
   | 'gettingStartedDismissed'
   | 'whatArrivedDismiss'
+  | 'todosSort'
+  | 'jobsView'
+  | 'liabilitiesRag'
+  | 'reviewMonth'
   | 'documentBlobs'
 >): string {
   return JSON.stringify({
@@ -315,6 +343,10 @@ function backupCanonical(record: Pick<
     achievementsSeen: record.achievementsSeen ?? null,
     gettingStartedDismissed: record.gettingStartedDismissed ?? null,
     whatArrivedDismiss: record.whatArrivedDismiss ?? null,
+    todosSort: record.todosSort ?? null,
+    jobsView: record.jobsView ?? null,
+    liabilitiesRag: record.liabilitiesRag ?? null,
+    reviewMonth: record.reviewMonth ?? null,
     documentBlobs: record.documentBlobs ?? null,
   })
 }
@@ -358,6 +390,10 @@ export async function computeFullBackupChecksum(
     | 'achievementsSeen'
     | 'gettingStartedDismissed'
     | 'whatArrivedDismiss'
+    | 'todosSort'
+    | 'jobsView'
+    | 'liabilitiesRag'
+    | 'reviewMonth'
     | 'documentBlobs'
   >,
 ): Promise<string> {
@@ -439,6 +475,10 @@ export function captureFullWorkspace(): Omit<
     achievementsSeen: exportAchievementsSeenForBackup() ?? undefined,
     gettingStartedDismissed: exportGettingStartedDismissedForBackup() ?? undefined,
     whatArrivedDismiss: exportWhatArrivedDismissForBackup() ?? undefined,
+    todosSort: exportTodosSortForBackup() ?? undefined,
+    jobsView: exportJobsViewForBackup() ?? undefined,
+    liabilitiesRag: exportLiabilitiesRagForBackup() ?? undefined,
+    reviewMonth: exportReviewMonthForBackup() ?? undefined,
   }
 }
 
@@ -713,6 +753,18 @@ export async function restoreFullWorkspace(record: FullBackupRecord): Promise<vo
   if (record.whatArrivedDismiss) {
     importWhatArrivedDismissFromBackup(record.whatArrivedDismiss)
   }
+  if (record.todosSort) {
+    importTodosSortFromBackup(record.todosSort)
+  }
+  if (record.jobsView) {
+    importJobsViewFromBackup(record.jobsView)
+  }
+  if (record.liabilitiesRag) {
+    importLiabilitiesRagFromBackup(record.liabilitiesRag)
+  }
+  if (record.reviewMonth) {
+    importReviewMonthFromBackup(record.reviewMonth)
+  }
 }
 
 function fullBackupPayload(record: FullBackupRecord) {
@@ -779,6 +831,10 @@ function fullBackupPayload(record: FullBackupRecord) {
       ? { gettingStartedDismissed: record.gettingStartedDismissed }
       : {}),
     ...(record.whatArrivedDismiss ? { whatArrivedDismiss: record.whatArrivedDismiss } : {}),
+    ...(record.todosSort ? { todosSort: record.todosSort } : {}),
+    ...(record.jobsView ? { jobsView: record.jobsView } : {}),
+    ...(record.liabilitiesRag ? { liabilitiesRag: record.liabilitiesRag } : {}),
+    ...(record.reviewMonth ? { reviewMonth: record.reviewMonth } : {}),
   }
 }
 
@@ -947,6 +1003,10 @@ export function parseFullBackupFile(raw: unknown): FullBackupRecord | null {
     achievementsSeen: o.achievementsSeen,
     gettingStartedDismissed: o.gettingStartedDismissed,
     whatArrivedDismiss: o.whatArrivedDismiss,
+    todosSort: o.todosSort,
+    jobsView: o.jobsView,
+    liabilitiesRag: o.liabilitiesRag,
+    reviewMonth: o.reviewMonth,
     checksum: typeof o.checksum === 'string' ? o.checksum : undefined,
   }
 }

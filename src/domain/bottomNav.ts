@@ -19,6 +19,9 @@ import {
   GitCompareArrows,
   Repeat,
   CalendarRange,
+  PiggyBank,
+  History,
+  Users,
   type LucideIcon,
 } from 'lucide-react'
 import {
@@ -52,6 +55,9 @@ export const BOTTOM_NAV_CATALOG: Record<string, BottomNavItem> = {
   '/compare': { to: '/compare', label: 'Compare', icon: GitCompareArrows },
   '/recurring': { to: '/recurring', label: 'Recurring', icon: Repeat },
   '/review': { to: '/review', label: 'Review', icon: CalendarRange },
+  '/budgets': { to: '/budgets', label: 'Budgets', icon: PiggyBank },
+  '/history': { to: '/history', label: 'History', icon: History },
+  '/family': { to: '/family', label: 'Family', icon: Users },
   '/settings': { to: '/settings', label: 'Settings', icon: Settings },
 }
 

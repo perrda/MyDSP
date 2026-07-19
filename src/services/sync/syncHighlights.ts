@@ -142,6 +142,10 @@ export type WorkspaceExtrasFlags = {
   achievementsSeen?: boolean
   gettingStartedDismissed?: boolean
   whatArrivedDismiss?: boolean
+  todosSort?: boolean
+  jobsView?: boolean
+  liabilitiesRag?: boolean
+  reviewMonth?: boolean
   markets?: boolean
   news?: boolean
   youtube?: boolean
@@ -177,6 +181,10 @@ const EXTRAS_LABELS: Array<[keyof WorkspaceExtrasFlags, string]> = [
   ['achievementsSeen', 'Achievements seen'],
   ['gettingStartedDismissed', 'Getting started dismissed'],
   ['whatArrivedDismiss', 'What arrived dismiss'],
+  ['todosSort', 'Todos sort'],
+  ['jobsView', 'Jobs view'],
+  ['liabilitiesRag', 'Liabilities RAG'],
+  ['reviewMonth', 'Review month'],
   ['markets', 'Markets watchlist'],
   ['news', 'News tags'],
   ['youtube', 'YouTube channels'],
@@ -224,6 +232,10 @@ export function workspaceExtrasFlagsFromPreview(extras: {
   achievementsSeen?: unknown
   gettingStartedDismissed?: unknown
   whatArrivedDismiss?: unknown
+  todosSort?: unknown
+  jobsView?: unknown
+  liabilitiesRag?: unknown
+  reviewMonth?: unknown
   markets?: unknown
   news?: unknown
   youtube?: unknown
@@ -259,6 +271,10 @@ export function workspaceExtrasFlagsFromPreview(extras: {
     achievementsSeen: extras.achievementsSeen != null,
     gettingStartedDismissed: extras.gettingStartedDismissed != null,
     whatArrivedDismiss: extras.whatArrivedDismiss != null,
+    todosSort: extras.todosSort != null,
+    jobsView: extras.jobsView != null,
+    liabilitiesRag: extras.liabilitiesRag != null,
+    reviewMonth: extras.reviewMonth != null,
     markets: extras.markets != null,
     news: extras.news != null,
     youtube: extras.youtube != null,

@@ -6,6 +6,7 @@ import { PageHeader } from '../components/ui/PageHeader'
 import { Field, Modal, ConfirmDialog, parseNum } from '../components/ui/Modal'
 import { usePortfolio } from '../context/PortfolioContext'
 import { useToasts } from '../components/ToastProvider'
+import { syncNow } from '../services/sync/autoSyncService'
 import { formatMonthLabel, monthKey, parseMonthParam, shiftMonth, daysElapsedInMonth, daysInMonth } from '../domain/monthUtils'
 import { formatGBP, formatGBPPrecise, pct, privacyClass } from '../utils/format'
 
@@ -464,6 +465,15 @@ export function BudgetsPage() {
         </button>
         <button type="button" className="btn-secondary btn-sm" onClick={exportBudgetReport}>
           Export
+        </button>
+        <button
+          type="button"
+          className="btn-secondary btn-sm"
+          onClick={() => {
+            void syncNow().then(() => success('Sync now finished'))
+          }}
+        >
+          Sync now
         </button>
       </div>
       <div className="thumb-cta-bar-spacer" aria-hidden />

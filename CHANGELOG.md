@@ -1,5 +1,42 @@
 # MyDSP Changelog
 
+## [1.2.85] - 2026-07-19
+
+### Improved — Sync / trust (next 25t · 1–5)
+1. **Todos sort** LWW via fullArchive
+2. **Jobs viewMode + list sort** LWW
+3. **Liabilities RAG filter** LWW
+4. **Monthly Review month** LWW
+5. **Docs + SYNC_SMOKE + What arrived** extras for Todos sort / Jobs view / Liabilities RAG / Review month
+
+### Improved — Markets (next 25t · 6–10)
+6. **Yield % sort** chip testid
+7. **Quote modal Edit ticker** testid
+8. **Undo remove** banner testid
+9. **Add from holding** thumb CTA
+10. **Copy price + Share** quote actions
+
+### Improved — Mobile / tablet (next 25t · 11–15)
+11. **Budgets + History** Sync now thumbs
+12. **Spending** sticky month toolbar
+13. **Bottom-nav** Budgets / History / Family slots
+14. **News** sticky filter toolbar
+15. **Todos + Jobs** Sync now thumbs
+
+### Improved — Today / productivity (next 25t · 16–20)
+16. **Follow-up Mark done** 5s Undo
+17. **Debt jump chip** → `#today-debt`
+18. **Focus Snooze** 5s Undo
+19. **FIRE chip** deep-link testid
+20. **Jump-chip scroll-spy** active state
+
+### Quality (next 25t · 21–25)
+21. **Axe** Markets Yield-sort + quote Edit
+22. **Axe** Today follow-up Undo + FIRE chip
+23. **Axe** Tax sticky + Review sticky month
+24. **Playwright** Budgets/History Sync · Spending sticky · Markets Yield-sort
+25. Tip harness **1.2.85**
+
 ## [1.2.84] - 2026-07-19
 
 ### Improved — Sync / trust (next 25s · 1–5)

@@ -444,7 +444,7 @@ export function NewsPage() {
 
         {!collapsed.tagged && (
           <>
-            <div className="px-4 sm:px-5 py-3 flex flex-wrap gap-2 border-b border-border">
+            <div className="news-sticky-filters px-4 sm:px-5 py-3 flex flex-wrap gap-2 border-b border-border">
               <button
                 type="button"
                 className={`btn-sm ${filterTag === 'all' ? 'btn-secondary' : 'btn-ghost'}`}

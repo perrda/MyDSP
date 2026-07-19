@@ -132,6 +132,17 @@ export function hasNoResponse(application: JobApplication, daysThreshold = 14): 
 
 /** Applied/screening with no reply past threshold, or a pending interview already overdue. */
 export function needsFollowUp(application: JobApplication, daysThreshold = 14): boolean {
+  // A recent follow-up note clears the pulse until the threshold elapses again.
+  const lastFollowUpNote = [...(application.notes ?? [])]
+    .filter((n) => n.type === 'follow-up')
+    .sort((a, b) => Date.parse(b.createdAt || '') - Date.parse(a.createdAt || ''))[0]
+  if (lastFollowUpNote) {
+    const contacted = Date.parse(lastFollowUpNote.createdAt || '')
+    if (Number.isFinite(contacted)) {
+      const daysSince = (Date.now() - contacted) / (1000 * 60 * 60 * 24)
+      if (daysSince <= daysThreshold) return false
+    }
+  }
   if (['applied', 'screening'].includes(application.status) && application.appliedDate) {
     const days = getDaysSinceApplied(application)
     if (days !== null && days > daysThreshold) return true
