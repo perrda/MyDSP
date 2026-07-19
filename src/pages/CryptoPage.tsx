@@ -12,6 +12,7 @@ import { TradeModal } from '../components/ui/TradeModal'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
 import { SwipeHoldingRow } from '../components/ui/SwipeHoldingRow'
 import { usePortfolio } from '../context/PortfolioContext'
+import { syncNow } from '../services/sync/autoSyncService'
 import { applyTrade } from '../domain/trades'
 import { applyLastSyncedQuotesToHoldings } from '../domain/lastSyncedHoldings'
 import { appendHoldingPrices } from '../domain/holdingHistory'
@@ -102,7 +103,7 @@ const emptyForm = {
 
 export function CryptoPage() {
   const { data, breakdown, privacy, setData, refreshing } = usePortfolio()
-  const { error: showError, showToast } = useToasts()
+  const { error: showError, showToast, success } = useToasts()
   const navigate = useNavigate()
   const { crypto } = breakdown
   const [open, setOpen] = useState(false)
@@ -883,6 +884,15 @@ export function CryptoPage() {
           onClick={fillFromLastSynced}
         >
           Use Markets prices
+        </button>
+        <button
+          type="button"
+          className="btn-secondary btn-sm"
+          onClick={() => {
+            void syncNow().then(() => success('Sync now finished'))
+          }}
+        >
+          Sync now
         </button>
       </div>
       <div className="thumb-cta-bar-spacer" aria-hidden />

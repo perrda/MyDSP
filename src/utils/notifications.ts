@@ -300,6 +300,20 @@ class NotificationManager {
     }
     persistSettings(this.settings)
     this.settingsListeners.forEach((l) => l(this.getSettings()))
+    void import('../domain/notificationSettingsPref').then((m) =>
+      m.touchNotificationSettingsMeta(),
+    )
+  }
+
+  /** Apply settings from sync/backup without marking workspace dirty. */
+  applySettingsFromSync(settings: NotificationSettings): void {
+    this.settings = {
+      ...DEFAULT_SETTINGS,
+      ...settings,
+      categories: { ...DEFAULT_SETTINGS.categories, ...(settings.categories ?? {}) },
+    }
+    persistSettings(this.settings)
+    this.settingsListeners.forEach((l) => l(this.getSettings()))
   }
   
   getSettings(): NotificationSettings {

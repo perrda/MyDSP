@@ -51,14 +51,14 @@ describe('next25n — sync / Markets / Today polish tip (1–25 → v1.2.80)', (
 
   it('25: package + release notes are 1.2.80', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.86')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.86')
+    expect(pkg.version).toBe('1.2.87')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.87')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.87',
       '1.2.86',
       '1.2.85',
       '1.2.84',
       '1.2.83',
-      '1.2.82',
     ])
   })
 
@@ -75,12 +75,12 @@ describe('next25n — sync / Markets / Today polish tip (1–25 → v1.2.80)', (
     expect(todos).toMatch(/todosQuickFilterPrefs/)
   })
 
-  it('2: YouTube upload-alert documented device-local', () => {
+  it('2: YouTube upload-alert documented in notification settings sync', () => {
     const settings = readFileSync(resolve(__dirname, '../pages/SettingsPage.tsx'), 'utf8')
-    expect(settings).toMatch(/YouTube upload alert toggle/)
+    expect(settings).toMatch(/youtube-uploads/)
     const docs = readFileSync(resolve(__dirname, '../../SYNC_SETUP.md'), 'utf8')
-    expect(docs).toMatch(/YouTube upload-alert toggle/)
-    expect(docs).toMatch(/device-local/)
+    expect(docs).toMatch(/YouTube uploads/)
+    expect(docs).toMatch(/Notification settings/)
   })
 
   it('3: YouTube empty favourites keep last-good', () => {

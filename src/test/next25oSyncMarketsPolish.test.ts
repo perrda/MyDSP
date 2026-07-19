@@ -47,14 +47,14 @@ describe('next25o — sync / Markets / Today polish tip (1–25 → v1.2.80)', (
 
   it('25: package + release notes are 1.2.80', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.86')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.86')
+    expect(pkg.version).toBe('1.2.87')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.87')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.87',
       '1.2.86',
       '1.2.85',
       '1.2.84',
       '1.2.83',
-      '1.2.82',
     ])
   })
 
@@ -102,7 +102,7 @@ describe('next25o — sync / Markets / Today polish tip (1–25 → v1.2.80)', (
   it('5: SYNC_SETUP + SYNC_SMOKE bottom-nav docs', () => {
     const docs = readFileSync(resolve(__dirname, '../../SYNC_SETUP.md'), 'utf8')
     expect(docs).toMatch(/Bottom nav middle slots/)
-    expect(docs).toMatch(/Notification quiet-hours/)
+    expect(docs).toMatch(/Notification quiet hours/)
     const smoke = readFileSync(resolve(__dirname, '../../scripts/SYNC_SMOKE.md'), 'utf8')
     expect(smoke).toMatch(/Bottom nav \+ filter prefs/)
     const settings = readFileSync(resolve(__dirname, '../pages/SettingsPage.tsx'), 'utf8')

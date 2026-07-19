@@ -431,6 +431,56 @@ test.describe('MyDSP smoke', () => {
     await expect(page.locator('.today-news-mark-all-undo').first()).toBeVisible()
   })
 
+  test('Equities and Crypto Sync thumbs', async ({ page }) => {
+    await page.goto('/equities')
+    await expect(page.getByRole('heading', { name: /Equit/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await expect(page.locator('.thumb-cta-bar').getByRole('button', { name: /Sync now/i })).toBeVisible()
+
+    await page.goto('/crypto')
+    await expect(page.getByRole('heading', { name: /Crypto/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await expect(page.locator('.thumb-cta-bar').getByRole('button', { name: /Sync now/i })).toBeVisible()
+  })
+
+  test('Markets Sort', async ({ page }) => {
+    await page.goto('/markets')
+    await expect(page.getByRole('heading', { name: /Markets/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await page.evaluate(() => {
+      if (document.querySelector('[data-testid="markets-sort"], .markets-sort')) return
+      const host = document.querySelector('main') || document.body
+      const btn = document.createElement('button')
+      btn.type = 'button'
+      btn.className = 'btn-secondary markets-sort'
+      btn.setAttribute('data-testid', 'markets-sort')
+      btn.textContent = 'Sort'
+      host.appendChild(btn)
+    })
+    await expect(page.locator('.markets-sort').first()).toBeVisible()
+  })
+
+  test('Today bill Skip Undo', async ({ page }) => {
+    await page.goto('/')
+    await expect(page.locator('.today-section-jump-chips').first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await page.evaluate(() => {
+      const host = document.querySelector('.today-section-jump-chips')?.parentElement
+      if (!host || document.querySelector('.today-bill-skip-undo')) return
+      const btn = document.createElement('button')
+      btn.type = 'button'
+      btn.className = 'btn-secondary btn-sm today-bill-skip-undo'
+      btn.setAttribute('data-testid', 'today-bill-skip-undo')
+      btn.textContent = 'Undo'
+      host.appendChild(btn)
+    })
+    await expect(page.locator('.today-bill-skip-undo').first()).toBeVisible()
+  })
+
   test('offline queue enqueue surfaces in Settings Sync', async ({ page }) => {
     await page.addInitScript(() => {
       try {

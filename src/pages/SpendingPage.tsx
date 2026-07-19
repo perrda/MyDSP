@@ -8,6 +8,8 @@ import { PageHeader } from '../components/ui/PageHeader'
 import { CollapsibleFilters } from '../components/ui/CollapsibleFilters'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
 import { usePortfolio } from '../context/PortfolioContext'
+import { useToasts } from '../components/ToastProvider'
+import { syncNow } from '../services/sync/autoSyncService'
 import { formatMonthLabel, monthKey, parseMonthParam, shiftMonth } from '../domain/monthUtils'
 import { categorySparklinesForMonth } from '../domain/spendingCategorySparkline'
 import { formatWeekDeltaLine, weekSpendDelta } from '../domain/spendingWeekDelta'
@@ -66,6 +68,7 @@ const emptyForm = {
 
 export function SpendingPage() {
   const { data, privacy, setData } = usePortfolio()
+  const { success } = useToasts()
   const [searchParams, setSearchParams] = useSearchParams()
   const saved = useMemo(() => loadSpendingFilters(), [])
   const categoryFromUrl = searchParams.get('category')
@@ -683,6 +686,15 @@ export function SpendingPage() {
             Current month
           </button>
         ) : null}
+        <button
+          type="button"
+          className="btn-secondary btn-sm"
+          onClick={() => {
+            void syncNow().then(() => success('Sync now finished'))
+          }}
+        >
+          Sync now
+        </button>
       </div>
       <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>

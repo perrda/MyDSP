@@ -512,6 +512,11 @@ export function MarketsPage() {
     previousTag: MarketTicker['tag']
   } | null>(null)
   const undoRetagTimer = useRef<number | null>(null)
+  const [undoFx, setUndoFx] = useState<{
+    ticker: MarketTicker
+    previous: MarketQuote | null
+  } | null>(null)
+  const undoFxTimer = useRef<number | null>(null)
   const [tickers, setTickers] = useState(() => listMarketTickers())
   const [collapsed, setCollapsed] = useState(() => loadMarketsState().collapsed)
   const [sectionOrder, setSectionOrder] = useState<SectionKey[]>(() => getMarketSectionOrder())
@@ -1130,7 +1135,10 @@ export function MarketsPage() {
       const now = new Date().toISOString()
       setQuotes((prev) => {
         const pair = parseRatePair(suggestion.ticker.symbol)
-        const current = prev.get(suggestion.ticker.id)
+        const current = prev.get(suggestion.ticker.id) ?? null
+        setUndoFx({ ticker: suggestion.ticker, previous: current })
+        if (undoFxTimer.current) window.clearTimeout(undoFxTimer.current)
+        undoFxTimer.current = window.setTimeout(() => setUndoFx(null), 8_000)
         const next = new Map(prev)
         next.set(suggestion.ticker.id, {
           symbol: suggestion.ticker.symbol,
@@ -2117,7 +2125,8 @@ export function MarketsPage() {
           <div className="hidden sm:flex flex-wrap gap-2">
             <button
               type="button"
-              className="btn-primary btn-sm inline-flex items-center gap-1.5"
+              className="btn-primary btn-sm inline-flex items-center gap-1.5 markets-sync-prices"
+              data-testid="markets-sync-prices"
               disabled={refreshing || syncingPrices}
               aria-label="Sync prices now — refresh quotes and push to other devices"
               onClick={() => void syncPricesNow()}
@@ -2132,9 +2141,10 @@ export function MarketsPage() {
             <span className="inline-flex flex-wrap items-center gap-2">
               <button
                 type="button"
-                className={`btn-ghost btn-sm ${
+                className={`btn-ghost btn-sm markets-density ${
                   density === 'compact' ? 'border-accent text-accent' : ''
                 }`}
+                data-testid="markets-density"
                 aria-pressed={density === 'compact'}
                 aria-label={
                   density === 'comfortable'
@@ -2181,7 +2191,8 @@ export function MarketsPage() {
             </span>
             <button
               type="button"
-              className={`btn-secondary inline-flex items-center gap-2 ${sorting ? 'border-accent text-accent' : ''}`}
+              className={`btn-secondary inline-flex items-center gap-2 markets-sort ${sorting ? 'border-accent text-accent' : ''}`}
+              data-testid="markets-sort"
               aria-pressed={sorting}
               onClick={() => {
                 applyYieldSort(false)
@@ -2194,7 +2205,8 @@ export function MarketsPage() {
             </button>
             <button
               type="button"
-              className={`btn-secondary inline-flex items-center gap-2 ${sectionSorting ? 'border-accent text-accent' : ''}`}
+              className={`btn-secondary inline-flex items-center gap-2 markets-sections-sort ${sectionSorting ? 'border-accent text-accent' : ''}`}
+              data-testid="markets-sections-sort"
               aria-pressed={sectionSorting}
               aria-label={sectionSorting ? 'Done reordering sections' : 'Reorder Markets sections'}
               onClick={() => {
@@ -2469,7 +2481,8 @@ export function MarketsPage() {
             {firstFxTriangleSuggestion ? (
               <button
                 type="button"
-                className="btn-secondary btn-sm bg-bg-elevated/80"
+                className="btn-secondary btn-sm bg-bg-elevated/80 markets-fx-use-suggested"
+                data-testid="markets-fx-use-suggested"
                 onClick={() => applySuggestedFxRate(firstFxTriangleSuggestion)}
               >
                 Use suggested
@@ -3325,6 +3338,37 @@ export function MarketsPage() {
         </div>
       ) : null}
 
+      {undoFx ? (
+        <div
+          className="markets-undo-fx-banner mb-3 flex flex-wrap items-center justify-between gap-2 surface px-3 py-2 border border-border"
+          role="status"
+        >
+          <p className="text-sm text-text-muted">
+            Suggested FX applied to{' '}
+            <span className="font-semibold text-text">{undoFx.ticker.symbol}</span>
+          </p>
+          <button
+            type="button"
+            className="btn-secondary btn-sm markets-undo-fx"
+            data-testid="markets-undo-fx"
+            onClick={() => {
+              setQuotes((prev) => {
+                const next = new Map(prev)
+                if (undoFx.previous) next.set(undoFx.ticker.id, undoFx.previous)
+                else next.delete(undoFx.ticker.id)
+                saveMarketQuotesCache(next)
+                return next
+              })
+              setUndoFx(null)
+              if (undoFxTimer.current) window.clearTimeout(undoFxTimer.current)
+              setError(null)
+            }}
+          >
+            Undo
+          </button>
+        </div>
+      ) : null}
+
       <div className="thumb-cta-bar" role="toolbar" aria-label="Primary markets actions">
         <button
           type="button"
@@ -3335,7 +3379,8 @@ export function MarketsPage() {
         </button>
         <button
           type="button"
-          className="btn-secondary btn-sm inline-flex items-center gap-1.5"
+          className="btn-secondary btn-sm inline-flex items-center gap-1.5 markets-sync-prices"
+          data-testid="markets-sync-prices"
           disabled={refreshing || syncingPrices}
           aria-label="Sync prices now — refresh quotes and push to other devices"
           onClick={() => void syncPricesNow()}
@@ -3413,9 +3458,10 @@ export function MarketsPage() {
         })()}
         <button
           type="button"
-          className={`btn-ghost btn-sm markets-density-thumb ${
+          className={`btn-ghost btn-sm markets-density markets-density-thumb ${
             density === 'compact' ? 'border-accent text-accent' : ''
           }`}
+          data-testid="markets-density"
           aria-pressed={density === 'compact'}
           aria-label={
             density === 'comfortable'

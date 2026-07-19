@@ -109,6 +109,10 @@ import {
   importA11yPrefsFromBackup,
 } from '../domain/a11yPrefsPref'
 import {
+  exportNotificationSettingsForBackup,
+  importNotificationSettingsFromBackup,
+} from '../domain/notificationSettingsPref'
+import {
   exportYoutubeForBackup,
   exportYoutubeVideosForBackup,
   importYoutubeFromBackup,
@@ -281,6 +285,8 @@ export interface FullBackupRecord extends FullBackupMeta {
   themePref?: unknown
   /** Optional accessibility prefs blob */
   a11yPrefs?: unknown
+  /** Optional notification settings (quiet hours / desktop / sound / categories) */
+  notificationSettings?: unknown
   /** Optional file attachments (CV/PDFs) as base64 payloads */
   documentBlobs?: import('./documentBlobStore').DocumentBlobPayload[]
   documentBlobsSkipped?: number[]
@@ -333,6 +339,7 @@ function backupCanonical(record: Pick<
   | 'largeText'
   | 'themePref'
   | 'a11yPrefs'
+  | 'notificationSettings'
   | 'documentBlobs'
 >): string {
   return JSON.stringify({
@@ -379,6 +386,7 @@ function backupCanonical(record: Pick<
     largeText: record.largeText ?? null,
     themePref: record.themePref ?? null,
     a11yPrefs: record.a11yPrefs ?? null,
+    notificationSettings: record.notificationSettings ?? null,
     documentBlobs: record.documentBlobs ?? null,
   })
 }
@@ -430,6 +438,7 @@ export async function computeFullBackupChecksum(
     | 'largeText'
     | 'themePref'
     | 'a11yPrefs'
+    | 'notificationSettings'
     | 'documentBlobs'
   >,
 ): Promise<string> {
@@ -519,6 +528,7 @@ export function captureFullWorkspace(): Omit<
     largeText: exportLargeTextForBackup() ?? undefined,
     themePref: exportThemePrefForBackup() ?? undefined,
     a11yPrefs: exportA11yPrefsForBackup() ?? undefined,
+    notificationSettings: exportNotificationSettingsForBackup() ?? undefined,
   }
 }
 
@@ -817,6 +827,9 @@ export async function restoreFullWorkspace(record: FullBackupRecord): Promise<vo
   if (record.a11yPrefs) {
     importA11yPrefsFromBackup(record.a11yPrefs)
   }
+  if (record.notificationSettings) {
+    importNotificationSettingsFromBackup(record.notificationSettings)
+  }
 }
 
 function fullBackupPayload(record: FullBackupRecord) {
@@ -891,6 +904,9 @@ function fullBackupPayload(record: FullBackupRecord) {
     ...(record.largeText ? { largeText: record.largeText } : {}),
     ...(record.themePref ? { themePref: record.themePref } : {}),
     ...(record.a11yPrefs ? { a11yPrefs: record.a11yPrefs } : {}),
+    ...(record.notificationSettings
+      ? { notificationSettings: record.notificationSettings }
+      : {}),
   }
 }
 
@@ -1067,6 +1083,7 @@ export function parseFullBackupFile(raw: unknown): FullBackupRecord | null {
     largeText: o.largeText,
     themePref: o.themePref,
     a11yPrefs: o.a11yPrefs,
+    notificationSettings: o.notificationSettings,
     checksum: typeof o.checksum === 'string' ? o.checksum : undefined,
   }
 }

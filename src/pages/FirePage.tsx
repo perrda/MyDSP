@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import { PageHeader } from '../components/ui/PageHeader'
 import { Field, parseNum } from '../components/ui/Modal'
 import { usePortfolio } from '../context/PortfolioContext'
+import { useToasts } from '../components/ToastProvider'
+import { syncNow } from '../services/sync/autoSyncService'
 import { calcFire, type FireType } from '../domain/fire'
 import { formatGBP, privacyClass } from '../utils/format'
 
@@ -15,6 +17,7 @@ const TYPES: { id: FireType; label: string }[] = [
 
 export function FirePage() {
   const { data, breakdown, setData, privacy } = usePortfolio()
+  const { success } = useToasts()
   const [type, setType] = useState<FireType>('regular')
   const inputs = data.fireInputs
 
@@ -132,6 +135,15 @@ export function FirePage() {
         <Link to="/planning" className="btn-secondary btn-sm">
           Planning
         </Link>
+        <button
+          type="button"
+          className="btn-secondary btn-sm"
+          onClick={() => {
+            void syncNow().then(() => success('Sync now finished'))
+          }}
+        >
+          Sync now
+        </button>
       </div>
       <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>

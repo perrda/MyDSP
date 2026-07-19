@@ -24,6 +24,8 @@ import {
   Users,
   FileText,
   BookOpen,
+  ScrollText,
+  Flame,
   type LucideIcon,
 } from 'lucide-react'
 import {
@@ -62,6 +64,8 @@ export const BOTTOM_NAV_CATALOG: Record<string, BottomNavItem> = {
   '/family': { to: '/family', label: 'Family', icon: Users },
   '/documents': { to: '/documents', label: 'Docs', icon: FileText },
   '/journal': { to: '/journal', label: 'Journal', icon: BookOpen },
+  '/rules': { to: '/rules', label: 'Rules', icon: ScrollText },
+  '/fire': { to: '/fire', label: 'FIRE', icon: Flame },
   '/settings': { to: '/settings', label: 'Settings', icon: Settings },
 }
 

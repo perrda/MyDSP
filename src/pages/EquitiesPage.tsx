@@ -12,6 +12,7 @@ import { TradeModal } from '../components/ui/TradeModal'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
 import { SwipeHoldingRow } from '../components/ui/SwipeHoldingRow'
 import { usePortfolio } from '../context/PortfolioContext'
+import { syncNow } from '../services/sync/autoSyncService'
 import { applyTrade } from '../domain/trades'
 import { equityNeedsUsdToGbp } from '../domain/equityCurrency'
 import { equityUnitPriceGbp } from '../domain/migrateEquityGbp'
@@ -116,7 +117,7 @@ function taxDisposalHrefForEquity(
 
 export function EquitiesPage() {
   const { data, breakdown, privacy, setData, fxRates, refreshing } = usePortfolio()
-  const { error: showError, showToast } = useToasts()
+  const { error: showError, showToast, success } = useToasts()
   const navigate = useNavigate()
   const { equity } = breakdown
   const [open, setOpen] = useState(false)
@@ -988,6 +989,15 @@ export function EquitiesPage() {
           onClick={fillFromLastSynced}
         >
           Use Markets prices
+        </button>
+        <button
+          type="button"
+          className="btn-secondary btn-sm"
+          onClick={() => {
+            void syncNow().then(() => success('Sync now finished'))
+          }}
+        >
+          Sync now
         </button>
       </div>
       <div className="thumb-cta-bar-spacer" aria-hidden />
