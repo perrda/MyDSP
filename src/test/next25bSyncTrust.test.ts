@@ -92,6 +92,10 @@ describe('next25b sync / backup trust', () => {
       jobsFilter: null,
       navLayout: null,
       bottomNavSlots: null,
+      launchPath: null,
+      uiPanels: null,
+      marketsTagYield: null,
+      settingsRecentJumps: null,
       documentBlobs: null,
     })))
 
