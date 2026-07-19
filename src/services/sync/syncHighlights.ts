@@ -105,6 +105,7 @@ export type WorkspaceExtrasFlags = {
   todosQuickFilter?: boolean
   jobsFilter?: boolean
   bottomNavSlots?: boolean
+  navLayout?: boolean
   markets?: boolean
   news?: boolean
   youtube?: boolean
@@ -127,6 +128,7 @@ const EXTRAS_LABELS: Array<[keyof WorkspaceExtrasFlags, string]> = [
   ['todosQuickFilter', 'Todos quick filter'],
   ['jobsFilter', 'Jobs filter'],
   ['bottomNavSlots', 'Bottom nav slots'],
+  ['navLayout', 'Favourites layout'],
   ['markets', 'Markets watchlist'],
   ['news', 'News tags'],
   ['youtube', 'YouTube channels'],
@@ -161,6 +163,7 @@ export function workspaceExtrasFlagsFromPreview(extras: {
   todosQuickFilter?: unknown
   jobsFilter?: unknown
   bottomNavSlots?: unknown
+  navLayout?: unknown
   markets?: unknown
   news?: unknown
   youtube?: unknown
@@ -183,6 +186,7 @@ export function workspaceExtrasFlagsFromPreview(extras: {
     todosQuickFilter: extras.todosQuickFilter != null,
     jobsFilter: extras.jobsFilter != null,
     bottomNavSlots: extras.bottomNavSlots != null,
+    navLayout: extras.navLayout != null,
     markets: extras.markets != null,
     news: extras.news != null,
     youtube: extras.youtube != null,

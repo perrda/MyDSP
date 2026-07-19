@@ -51,15 +51,15 @@ describe('next25c quality / ops (21–25)', () => {
 
   it('21: RELEASE_NOTES archive (5 versions) + UpdateBanner See all + Settings whats-new', () => {
     expect(RELEASE_NOTES.length).toBeGreaterThanOrEqual(5)
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.80')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.81')
     expect(releaseNotesBullets(3)).toHaveLength(3)
     expect(releaseNotesArchive(5)).toHaveLength(5)
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.81',
       '1.2.80',
       '1.2.79',
       '1.2.78',
       '1.2.77',
-      '1.2.76',
     ])
 
 
@@ -200,6 +200,6 @@ describe('next25c quality / ops (21–25)', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8')) as {
       version: string
     }
-    expect(pkg.version).toBe('1.2.80')
+    expect(pkg.version).toBe('1.2.81')
   })
 })

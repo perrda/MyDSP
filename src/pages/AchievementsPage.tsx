@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import { PageHeader, StatCard } from '../components/ui/PageHeader'
 import { usePortfolio } from '../context/PortfolioContext'
 import { evaluateAchievements } from '../domain/achievements'
@@ -80,6 +81,16 @@ export function AchievementsPage() {
           </div>
         ))}
       </div>
+
+      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary achievements actions">
+        <Link to="/" className="btn-primary btn-sm">
+          Today
+        </Link>
+        <Link to="/goals" className="btn-secondary btn-sm">
+          Goals
+        </Link>
+      </div>
+      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }

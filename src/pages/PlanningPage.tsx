@@ -324,6 +324,24 @@ export function PlanningPage() {
           </div>
         </>
       )}
+
+      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary planning actions">
+        <button
+          type="button"
+          className="btn-primary btn-sm"
+          onClick={() => setTab('montecarlo')}
+        >
+          Monte Carlo
+        </button>
+        <button
+          type="button"
+          className="btn-secondary btn-sm"
+          onClick={() => setTab('rebalance')}
+        >
+          Rebalance
+        </button>
+      </div>
+      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }

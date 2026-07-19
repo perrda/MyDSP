@@ -26,7 +26,7 @@ import { useIdlePrefetch } from '../../hooks/useIdlePrefetch'
 import { triggerSuccessFlash } from '../../utils/successFlash'
 import { refreshMediaFeeds } from '../../services/mediaRefresh'
 
-/** Pull-to-refresh on Today, Markets, holdings, News, YouTube, Tax, Compare, Todos, Jobs, Spending, Recurring, Liabilities, Goals, Trips, History, Budgets, Import, Family, Documents, Journal, Rules (no page jump). */
+/** Pull-to-refresh on Today, Markets, holdings, News, YouTube, Tax, Compare, Todos, Jobs, Spending, Recurring, Liabilities, Goals, Trips, History, Budgets, Import, Family, Documents, Journal, Rules, Settings, Staking, Planning, Smoke (no page jump). */
 function allowPullToRefresh(pathname: string): boolean {
   if (pathname === '/' || pathname === '/markets') return true
   if (pathname === '/equities' || pathname === '/crypto' || pathname === '/news') return true
@@ -37,6 +37,8 @@ function allowPullToRefresh(pathname: string): boolean {
   if (pathname === '/history' || pathname === '/budgets' || pathname === '/import') return true
   if (pathname === '/family' || pathname === '/documents') return true
   if (pathname === '/journal' || pathname === '/rules') return true
+  if (pathname === '/settings' || pathname.startsWith('/settings')) return true
+  if (pathname === '/staking' || pathname === '/planning' || pathname === '/smoke') return true
   if (pathname.startsWith('/equities/') || pathname.startsWith('/crypto/')) return true
   return false
 }

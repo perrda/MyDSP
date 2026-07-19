@@ -441,21 +441,26 @@ async function doPull(cfg: SyncConfig, pass: string, reason: CycleReason): Promi
     } catch {
       /* ignore */
     }
-    try {
-      window.dispatchEvent(
-        new CustomEvent('mydsp-sync-applied', {
-          detail: { merged: result.merged, highlights },
-        }),
-      )
-    } catch {
-      /* ignore */
-    }
     {
       const entitySummary = hasHighlights ? summarizeSyncHighlights(highlights) : null
       const extrasSummary = summarizeWorkspaceExtras(
         workspaceExtrasFlagsFromPreview(preview.workspaceExtras),
       )
       const summary = [entitySummary, extrasSummary].filter(Boolean).join(' · ') || null
+      try {
+        window.dispatchEvent(
+          new CustomEvent('mydsp-sync-applied', {
+            detail: {
+              merged: result.merged,
+              highlights,
+              extrasSummary,
+              summary,
+            },
+          }),
+        )
+      } catch {
+        /* ignore */
+      }
       if (summary) {
         emitAppToast({
           type: 'success',

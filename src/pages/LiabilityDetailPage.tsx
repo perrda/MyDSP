@@ -343,9 +343,6 @@ export function LiabilityDetailPage() {
                   <dt className="text-text-subtle">Utilisation</dt>
                   <dd className="tabular-nums">{formatPct(util, 0).replace('+', '')}</dd>
                 </div>
-                <div className="progress-track mt-2">
-                  <div className="progress-fill" style={{ width: `${Math.min(util, 100)}%` }} />
-                </div>
               </>
             )}
             {loan && (
@@ -360,12 +357,6 @@ export function LiabilityDetailPage() {
                   <dt className="text-text-subtle">Paid down</dt>
                   <dd className="tabular-nums">{formatPct(paidPct, 0).replace('+', '')}</dd>
                 </div>
-                <div className="progress-track mt-2">
-                  <div
-                    className="progress-fill"
-                    style={{ width: `${Math.min(Math.max(paidPct, 0), 100)}%` }}
-                  />
-                </div>
               </>
             )}
             <div className="flex justify-between gap-4 pt-2">
@@ -373,7 +364,7 @@ export function LiabilityDetailPage() {
               <dd>
                 <button
                   type="button"
-                  className="text-[10px] font-bold uppercase tracking-widest text-accent"
+                  className="text-xs font-bold uppercase tracking-widest text-accent-bright"
                   onClick={() =>
                     patchItem({ includeInPortfolio: item.includeInPortfolio === false })
                   }
@@ -383,6 +374,19 @@ export function LiabilityDetailPage() {
               </dd>
             </div>
           </dl>
+          {card ? (
+            <div className="progress-track mt-3" aria-hidden>
+              <div className="progress-fill" style={{ width: `${Math.min(util, 100)}%` }} />
+            </div>
+          ) : null}
+          {loan ? (
+            <div className="progress-track mt-3" aria-hidden>
+              <div
+                className="progress-fill"
+                style={{ width: `${Math.min(Math.max(paidPct, 0), 100)}%` }}
+              />
+            </div>
+          ) : null}
 
           <div className="mt-8 pt-6 border-t border-border space-y-3">
             <p className="label-uppercase mb-3">Contacts</p>

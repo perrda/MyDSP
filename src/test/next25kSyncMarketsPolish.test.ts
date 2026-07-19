@@ -48,14 +48,14 @@ describe('next25k — sync / Markets / Today polish tip (1–25 → v1.2.80)', (
 
   it('25: package + release notes are 1.2.80', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.80')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.80')
+    expect(pkg.version).toBe('1.2.81')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.81')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.81',
       '1.2.80',
       '1.2.79',
       '1.2.78',
       '1.2.77',
-      '1.2.76',
     ])
   })
 
@@ -170,8 +170,8 @@ describe('next25k — sync / Markets / Today polish tip (1–25 → v1.2.80)', (
     expect(dash).toMatch(/\/todos\?focus=/)
     expect(dash).toMatch(/today-news-refresh-open/)
     expect(dash).toMatch(/today-youtube-refresh-open/)
-    expect(dash).toMatch(/mydsp-news-refresh/)
-    expect(dash).toMatch(/mydsp-youtube-refresh/)
+    expect(dash).toMatch(/\/news\?refresh=1/)
+    expect(dash).toMatch(/\/youtube\?refresh=1/)
   })
 
   it('18–19: Bill Mark paid + interview next-action', () => {

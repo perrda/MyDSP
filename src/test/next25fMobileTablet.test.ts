@@ -34,7 +34,7 @@ describe('next25f mobile / tablet items 11-15', () => {
       expect(src).toMatch(/ArrowDown/)
       expect(src).toMatch(/ArrowUp/)
       expect(src).toMatch(/matchMedia\('\(min-width: 900px\)'\)/)
-      expect(src).toMatch(/aria-selected/)
+      expect(src).toMatch(/\(selected\)/)
     }
   })
 

@@ -8,6 +8,8 @@ export interface NavLayout {
   others: string[]
   /** Whether the Others accordion is collapsed. */
   othersCollapsed: boolean
+  /** ISO time when Favourites / Others last changed (LWW on sync). */
+  updatedAt?: string
 }
 
 const KEY = 'mydsp_nav_layout'
@@ -126,6 +128,10 @@ export function saveNavLayout(
   opts?: { fromSync?: boolean },
 ): void {
   try {
+    const updatedAt =
+      opts?.fromSync && layout.updatedAt
+        ? layout.updatedAt
+        : new Date().toISOString()
     localStorage.setItem(
       KEY,
       JSON.stringify({
@@ -133,6 +139,7 @@ export function saveNavLayout(
         favourites: layout.favourites,
         others: layout.others,
         othersCollapsed: Boolean(layout.othersCollapsed),
+        updatedAt,
       }),
     )
     window.dispatchEvent(new Event('mydsp-nav-order'))
@@ -161,6 +168,7 @@ export function exportNavLayoutForBackup(): NavLayout | null {
           favourites: parsed.favourites.filter((p): p is string => typeof p === 'string'),
           others: parsed.others.filter((p): p is string => typeof p === 'string'),
           othersCollapsed: Boolean(parsed.othersCollapsed),
+          updatedAt: typeof parsed.updatedAt === 'string' ? parsed.updatedAt : undefined,
         }
       }
     }
@@ -196,6 +204,11 @@ export function importNavLayoutFromBackup(raw: unknown): void {
   const parsed = raw as Partial<NavLayout>
   if (parsed.version !== 1) return
   if (!Array.isArray(parsed.favourites) || !Array.isArray(parsed.others)) return
+  const local = exportNavLayoutForBackup()
+  const remoteAt = Date.parse(parsed.updatedAt || '') || 0
+  const localAt = Date.parse(local?.updatedAt || '') || 0
+  // LWW — keep newer local Favourites/Others when remote is older.
+  if (local && localAt > remoteAt && remoteAt > 0) return
   const favourites = parsed.favourites.filter((p): p is string => typeof p === 'string')
   const others = parsed.others.filter((p): p is string => typeof p === 'string')
   // Dedupe while preserving order (favourites win if listed in both)
@@ -218,6 +231,10 @@ export function importNavLayoutFromBackup(raw: unknown): void {
       favourites: favClean,
       others: othersClean,
       othersCollapsed: Boolean(parsed.othersCollapsed),
+      updatedAt:
+        typeof parsed.updatedAt === 'string'
+          ? parsed.updatedAt
+          : new Date().toISOString(),
     },
     { fromSync: true },
   )

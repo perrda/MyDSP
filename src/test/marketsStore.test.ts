@@ -127,18 +127,22 @@ describe('markets watchlist store', () => {
 
     const store = await import('../storage/marketsStore')
     store.loadMarketsState()
-    // Remove all indices, then add via alias without triggering merge mid-flight
+    // Remove all indices (writes deletion tombstones), then clear those tombs so
+    // mergeDefaultTickers can re-seed and we can exercise alias normalization.
     for (const t of store.listMarketTickers('index')) {
       store.removeMarketTicker(t.id)
     }
-    // Bypass mergeDefaultTickers by writing emptied indices then adding before reload
-    const state = store.loadMarketsState()
-    // merge will re-seed defaults — remove again from in-memory after and use update path
+    const emptied = store.loadMarketsState()
+    emptied.deletedTickers = (emptied.deletedTickers ?? []).filter(
+      (d) => !String(d.key).startsWith('index:'),
+    )
+    store.saveMarketsState(emptied)
+    store.loadMarketsState()
     const seeded = store.listMarketTickers('index').find((t) => t.symbol === '^GSPC')
     expect(seeded).toBeTruthy()
     store.updateMarketTicker(seeded!.id, { symbol: 'SPX', name: '' })
     expect(store.listMarketTickers('index').find((t) => t.id === seeded!.id)?.symbol).toBe('^GSPC')
-    expect(state.version).toBe(1)
+    expect(emptied.version).toBe(1)
   })
 
   it('exports and imports backup payload with rates', async () => {

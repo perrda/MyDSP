@@ -1,13 +1,13 @@
-/** Today “next action” stack: up to 3 cards — todo / bill / interview / top mover. */
+/** Today “next action” stack: up to 3 cards — todo / bill / interview / follow-up / top mover. */
 
-import { getNextInterview } from './jobs'
+import { getNextInterview, needsFollowUp } from './jobs'
 import type { JobApplication } from './job-types'
 import { dueWithinDays } from './recurringDueStrip'
 import { isDueToday, isOverdue } from './todos'
 import type { RecurringTransaction } from './types'
 import type { TodoItem } from './todo-types'
 
-export type NextActionKind = 'todo' | 'bill' | 'interview' | 'mover'
+export type NextActionKind = 'todo' | 'bill' | 'interview' | 'followup' | 'mover'
 
 export interface NextActionTodo {
   kind: 'todo'
@@ -28,6 +28,14 @@ export interface NextActionInterview {
   scheduledDate: string
 }
 
+export interface NextActionFollowUp {
+  kind: 'followup'
+  jobId: number
+  companyName: string
+  jobTitle: string
+  label: string
+}
+
 export interface NextActionMover {
   kind: 'mover'
   symbol: string
@@ -38,6 +46,7 @@ export type NextActionCard =
   | NextActionTodo
   | NextActionBill
   | NextActionInterview
+  | NextActionFollowUp
   | NextActionMover
 
 export interface MoverInput {
@@ -106,7 +115,28 @@ export function buildNextActionStack(input: {
     .sort(
       (a, b) => Date.parse(a.scheduledDate) - Date.parse(b.scheduledDate),
     )
-  if (interviewCandidates[0]) out.push(interviewCandidates[0])
+  if (interviewCandidates[0]) {
+    out.push(interviewCandidates[0])
+  } else {
+    // When no interview is due, surface a stale application that needs follow-up.
+    const followUps = (input.jobApplications ?? [])
+      .filter((app) => needsFollowUp(app))
+      .sort((a, b) => {
+        const aAt = Date.parse(a.appliedDate || a.updatedAt || '') || 0
+        const bAt = Date.parse(b.appliedDate || b.updatedAt || '') || 0
+        return aAt - bAt
+      })
+    const first = followUps[0]
+    if (first) {
+      out.push({
+        kind: 'followup',
+        jobId: first.id,
+        companyName: first.companyName,
+        jobTitle: first.jobTitle,
+        label: 'Needs follow-up',
+      })
+    }
+  }
 
   const movers = [...(input.movers ?? [])].sort(
     (a, b) => Math.abs(b.changePct) - Math.abs(a.changePct),

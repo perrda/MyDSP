@@ -216,6 +216,8 @@ export function addMarketTicker(input: {
     createdAt: new Date().toISOString(),
     sortOrder: maxOrder + 1,
   }
+  const tombKey = `${input.kind}:${symbol}`
+  state.deletedTickers = (state.deletedTickers ?? []).filter((d) => d.key !== tombKey)
   state.tickers.push(ticker)
   saveMarketsState(state)
   return ticker
@@ -303,6 +305,13 @@ export function updateMarketTicker(
 
 export function removeMarketTicker(id: string): void {
   const state = loadMarketsState()
+  const removed = state.tickers.find((t) => t.id === id)
+  if (removed) {
+    const key = `${removed.kind}:${normalizeMarketSymbol(removed.symbol)}`
+    const deletedAt = new Date().toISOString()
+    const rest = (state.deletedTickers ?? []).filter((d) => d.key !== key)
+    state.deletedTickers = [...rest, { key, deletedAt }]
+  }
   state.tickers = state.tickers.filter((t) => t.id !== id)
   saveMarketsState(state)
 }
@@ -470,15 +479,33 @@ export function importMarketsFromBackup(raw: unknown): void {
   const remoteTickers = parsed.tickers.map(normalizeTicker)
   const keyOf = (t: MarketTicker) => `${t.kind}:${normalizeMarketSymbol(t.symbol)}`
 
+  // Merge deletion tombstones (newest deletedAt wins per kind:SYMBOL).
+  const tombByKey = new Map<string, string>()
+  for (const d of [
+    ...((local as MarketsState | null)?.deletedTickers ?? []),
+    ...((parsed as MarketsState).deletedTickers ?? []),
+  ]) {
+    if (!d || typeof d.key !== 'string' || typeof d.deletedAt !== 'string') continue
+    const prev = tombByKey.get(d.key)
+    if (!prev || Date.parse(d.deletedAt) >= Date.parse(prev)) tombByKey.set(d.key, d.deletedAt)
+  }
+  const isTombstoned = (k: string) => tombByKey.has(k)
+
   // Union watchlists: keep local ticker when both have the same kind+symbol;
   // append remote-only tickers so a phone wipe cannot drop Mac-only crosses.
+  // Skip keys with deletion tombstones so removals sync across devices.
   const byKey = new Map<string, MarketTicker>()
   const localList = local?.tickers?.map(normalizeTicker) ?? []
-  for (const t of localList) byKey.set(keyOf(t), t)
+  for (const t of localList) {
+    const k = keyOf(t)
+    if (isTombstoned(k)) continue
+    byKey.set(k, t)
+  }
   let nextOrder =
     localList.reduce((m, t) => Math.max(m, typeof t.sortOrder === 'number' ? t.sortOrder : 0), 0) + 1
   for (const t of remoteTickers) {
     const k = keyOf(t)
+    if (isTombstoned(k)) continue
     if (byKey.has(k)) continue
     byKey.set(k, { ...t, sortOrder: nextOrder++ })
   }
@@ -553,6 +580,7 @@ export function importMarketsFromBackup(raw: unknown): void {
     tagFilter,
     yieldSort,
     prefsUpdatedAt,
+    deletedTickers: [...tombByKey.entries()].map(([key, deletedAt]) => ({ key, deletedAt })),
   })
   writeState(state, { fromSync: true })
 }

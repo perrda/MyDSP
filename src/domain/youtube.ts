@@ -31,6 +31,8 @@ export interface YoutubeState {
   lastRefreshAt?: string
   /** ISO cutoff — videos newer than this count as unread (syncs via workspace extras). */
   seenAt?: string
+  /** ISO time when channels / seenAt last changed (LWW on sync). */
+  prefsUpdatedAt?: string
 }
 
 export function newYoutubeChannelId(channelId: string): string {

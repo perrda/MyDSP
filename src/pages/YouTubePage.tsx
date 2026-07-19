@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   ArrowUpDown,
   ExternalLink,
@@ -146,6 +147,15 @@ export function YouTubePage() {
       window.removeEventListener('mydsp-youtube-videos', onVideos)
     }
   }, [refresh, applyCacheToState])
+
+  const [searchParams, setSearchParams] = useSearchParams()
+  useEffect(() => {
+    if (searchParams.get('refresh') !== '1') return
+    void refresh()
+    const next = new URLSearchParams(searchParams)
+    next.delete('refresh')
+    setSearchParams(next, { replace: true })
+  }, [searchParams, setSearchParams, refresh])
 
   useEffect(() => {
     const onOnline = () => setOnline(true)

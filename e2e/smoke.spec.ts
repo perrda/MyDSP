@@ -4,6 +4,7 @@ test.describe('MyDSP smoke', () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => {
       try {
+        localStorage.setItem('mydsp_theme', 'dark')
         localStorage.setItem(
           'fcc_security',
           JSON.stringify({
@@ -131,6 +132,34 @@ test.describe('MyDSP smoke', () => {
     await expect(page.getByText(/Journal \/ Rules/i).first()).toBeVisible()
   })
 
+  test('Today and Settings thumb CTAs', async ({ page }) => {
+    await page.goto('/')
+    await expect(page.getByText(/Today|Overview|MyDSP/i).first()).toBeVisible({ timeout: 20_000 })
+    await expect(page.locator('.thumb-cta-bar').first()).toBeVisible()
+    await expect(page.locator('.thumb-cta-bar').getByRole('button', { name: /Sync now/i }).first()).toBeVisible()
+
+    await page.goto('/settings')
+    await expect(page.getByText(/Settings/i).first()).toBeVisible({ timeout: 20_000 })
+    await expect(page.locator('.thumb-cta-bar').first()).toBeVisible()
+    await expect(page.locator('.thumb-cta-bar').getByText(/Smoke/i).first()).toBeVisible()
+  })
+
+  test('News refresh=1 query is consumed', async ({ page }) => {
+    await page.goto('/news?refresh=1')
+    await expect(page.getByRole('heading', { name: /News/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await expect(page).not.toHaveURL(/refresh=1/)
+  })
+
+  test('smoke PTR includes Settings Staking Planning', async ({ page }) => {
+    await page.goto('/smoke')
+    await expect(page.getByText(/PTR YouTube \/ Tax \/ Compare/i).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await expect(page.getByText(/Settings \/ Staking \/ Planning \/ Smoke/i).first()).toBeVisible()
+  })
+
   test('YouTube page uses Quote Worker for feeds', async ({ page }) => {
     await page.goto('/youtube')
     await expect(page.getByRole('heading', { name: /YouTube/i }).first()).toBeVisible({
@@ -153,7 +182,8 @@ test.describe('MyDSP smoke', () => {
 
   test('tax route renders with ISA allowance surface', async ({ page }) => {
     await page.goto('/tax')
-    await expect(page.getByText(/Capital gains|UK CGT|Tax/i).first()).toBeVisible({
+    // Avoid matching the sm-only AppShell eyebrow “Tax” (hidden on iphone).
+    await expect(page.getByRole('heading', { name: /UK CGT|Capital gains/i }).first()).toBeVisible({
       timeout: 20_000,
     })
     await expect(page.locator('.tax-isa-allowance-progress, .thumb-cta-bar').first()).toBeVisible()
@@ -192,7 +222,7 @@ test.describe('MyDSP smoke', () => {
     })
     const toolbar = page.locator('.markets-sticky-toolbar')
     await expect(toolbar).toBeVisible()
-    const jumps = page.getByRole('navigation', { name: /Jump to market section/i })
+    const jumps = page.getByRole('tablist', { name: /Jump to market section/i })
     await expect(jumps).toBeVisible()
     await expect(jumps.locator('.markets-section-jump-chip').first()).toBeVisible()
     await expect(page.locator('[id^="markets-section-"]').first()).toBeAttached()
@@ -224,7 +254,7 @@ test.describe('MyDSP smoke', () => {
       }
     })
     await page.goto('/settings#sync')
-    await expect(page.getByText(/Offline queue/i).first()).toBeVisible({ timeout: 20_000 })
+    await expect(page.getByText(/Offline queue ·/i).first()).toBeVisible({ timeout: 20_000 })
     await expect(page.getByText(/Retry now|e2e offline|sync push/i).first()).toBeVisible()
   })
 })

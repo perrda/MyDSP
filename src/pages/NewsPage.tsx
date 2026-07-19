@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   ArrowUpDown,
   ChevronDown,
@@ -207,6 +208,15 @@ export function NewsPage() {
     window.addEventListener('mydsp-news-refresh', onRefresh)
     return () => window.removeEventListener('mydsp-news-refresh', onRefresh)
   }, [refresh])
+
+  const [searchParams, setSearchParams] = useSearchParams()
+  useEffect(() => {
+    if (searchParams.get('refresh') !== '1') return
+    void refresh()
+    const next = new URLSearchParams(searchParams)
+    next.delete('refresh')
+    setSearchParams(next, { replace: true })
+  }, [searchParams, setSearchParams, refresh])
 
   useEffect(() => {
     const onOnline = () => setOnline(true)
