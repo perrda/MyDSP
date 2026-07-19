@@ -279,6 +279,7 @@ export interface MergePreview {
     largeText?: unknown
     themePref?: unknown
     a11yPrefs?: unknown
+    notificationSettings?: unknown
   }
 }
 
@@ -707,6 +708,7 @@ async function decryptEnvelope(
     if (a.largeText != null) extras.largeText = a.largeText
     if (a.themePref != null) extras.themePref = a.themePref
     if (a.a11yPrefs != null) extras.a11yPrefs = a.a11yPrefs
+    if (a.notificationSettings != null) extras.notificationSettings = a.notificationSettings
     if (Object.keys(extras).length > 0) workspaceExtras = extras
   }
 
@@ -1051,6 +1053,12 @@ export async function applyMergePreview(
   if (preview.workspaceExtras?.a11yPrefs != null) {
     const { importA11yPrefsFromBackup } = await import('../../domain/a11yPrefsPref')
     importA11yPrefsFromBackup(preview.workspaceExtras.a11yPrefs)
+  }
+  if (preview.workspaceExtras?.notificationSettings != null) {
+    const { importNotificationSettingsFromBackup } = await import(
+      '../../domain/notificationSettingsPref'
+    )
+    importNotificationSettingsFromBackup(preview.workspaceExtras.notificationSettings)
   }
 
   return { merged, conflicts: preview.conflicts, removedDupes: removed.length }

@@ -1,5 +1,42 @@
 # MyDSP Changelog
 
+## [1.2.87] - 2026-07-19
+
+### Improved — Sync / trust (next 25v · 1–5)
+1. **Quiet hours** LWW via notification settings fullArchive
+2. **Desktop banners preference** LWW (OS permission stays per device)
+3. **Sound toggle** LWW
+4. **Category toggles** LWW (price alerts · YouTube uploads)
+5. **Docs + SYNC_SMOKE + What arrived** extras for Notification settings
+
+### Improved — Markets (next 25v · 6–10)
+6. **Sort / Done** testid
+7. **Sections reorder** testid
+8. **Density** testid
+9. **Sync prices** testid
+10. **FX Use suggested + Undo**
+
+### Improved — Mobile / tablet (next 25v · 11–15)
+11. **Equities + Crypto** Sync now thumbs
+12. **Spending** Sync now thumb
+13. **Family + Documents** Sync now thumbs
+14. **Compare + Rules** Sync now thumbs
+15. **Bottom-nav** Rules + FIRE slots · FIRE Sync now
+
+### Improved — Today / productivity (next 25v · 16–20)
+16. **Bill Skip** 5s Undo
+17. **WTD + Debt pulse** testids
+18. **Money pulse** testid
+19. **Jump chips** Budget · Runway · FIRE + scroll-spy
+20. **What arrived** Open/Dismiss testids
+
+### Quality (next 25v · 21–25)
+21. **Axe** Markets Sort + Density
+22. **Axe** Today Skip Undo + What arrived
+23. **Axe** Equities Sync thumb + Compare sticky
+24. **Playwright** Equities/Crypto Sync · Markets Sort · Today bill-skip Undo
+25. Tip harness **1.2.87**
+
 ## [1.2.86] - 2026-07-19
 
 ### Improved — Sync / trust (next 25u · 1–5)

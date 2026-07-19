@@ -1218,17 +1218,17 @@ export function SettingsPage() {
                   Price-alert notification permission / OS prompts — thresholds sync; permission is
                   per device
                 </li>
-                <li>YouTube upload alert toggle (bell / desktop) — device-local</li>
               </ul>
               <p className="text-xs text-text-muted font-light mt-2 leading-relaxed">
                 These sync via fullArchive: Launch path, UI panels, Markets tag/Yield chips, Settings
                 recent jumps, Settings sections, Tax year, Journal asset filter, Today NW spark
                 window, API webhook URL, Achievements seen, Getting started dismissed, What arrived
                 dismiss fingerprint, Todos sort, Jobs view, Liabilities RAG, Review month, Glass mode,
-                Large text, Theme preference, Accessibility prefs, portfolio concentration threshold,
-                spending filters, news tag filter, Todos quick filter, Jobs filter, Bottom nav middle slots,
-                Recurring sort, holdings drift threshold, and digest highlight edits. Notification
-                quiet-hours, desktop banners, and sound stay device-local.
+                Large text, Theme preference, Accessibility prefs, Notification settings (quiet hours,
+                desktop banners preference, sound, category toggles incl. YouTube uploads), portfolio
+                concentration threshold, spending filters, news tag filter, Todos quick filter, Jobs
+                filter, Bottom nav middle slots, Recurring sort, holdings drift threshold, and digest
+                highlight edits. OS notification permission stays per device.
               </p>
             </div>
             <label className="flex items-start gap-3 cursor-pointer">

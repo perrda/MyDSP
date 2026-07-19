@@ -33,6 +33,8 @@ export const BOTTOM_NAV_SLOT_CHOICES = [
   '/family',
   '/documents',
   '/journal',
+  '/rules',
+  '/fire',
 ] as const
 
 export type BottomNavSlotsBackup = {

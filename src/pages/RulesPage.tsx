@@ -3,6 +3,8 @@ import { useSearchParams } from 'react-router-dom'
 import { PageHeader } from '../components/ui/PageHeader'
 import { ConfirmDialog, Field, Modal } from '../components/ui/Modal'
 import { usePortfolio } from '../context/PortfolioContext'
+import { useToasts } from '../components/ToastProvider'
+import { syncNow } from '../services/sync/autoSyncService'
 import { resolveCategory } from '../domain/merchantRules'
 import type { MerchantMatchType, MerchantRule } from '../domain/types'
 
@@ -35,6 +37,7 @@ const empty = {
 
 export function RulesPage() {
   const { data, setData } = usePortfolio()
+  const { success } = useToasts()
   const [searchParams, setSearchParams] = useSearchParams()
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<MerchantRule | null>(null)
@@ -239,6 +242,15 @@ export function RulesPage() {
       <div className="thumb-cta-bar" role="toolbar" aria-label="Primary rules actions">
         <button type="button" className="btn-primary btn-sm" onClick={openCreate}>
           Add rule
+        </button>
+        <button
+          type="button"
+          className="btn-secondary btn-sm"
+          onClick={() => {
+            void syncNow().then(() => success('Sync now finished'))
+          }}
+        >
+          Sync now
         </button>
       </div>
       <div className="thumb-cta-bar-spacer" aria-hidden />

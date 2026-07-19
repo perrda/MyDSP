@@ -4,6 +4,7 @@ import { GitCompareArrows, ArrowRight, RefreshCw } from 'lucide-react'
 import { PageHeader, StatCard } from '../components/ui/PageHeader'
 import { Modal } from '../components/ui/Modal'
 import { usePortfolio } from '../context/PortfolioContext'
+import { syncNow } from '../services/sync/autoSyncService'
 import {
   buildPortfolioComparison,
   comparisonTotals,
@@ -95,7 +96,7 @@ function portfolioSyncQuoteLabel(portfolioId: string): string | null {
 
 export function ComparePage() {
   const { privacy, portfolios, activeId, switchPortfolio, reload } = usePortfolio()
-  const { error: showError, showToast } = useToasts()
+  const { error: showError, showToast, success } = useToasts()
   const [selected, setSelected] = useState<string[]>(() =>
     loadCompareSelectedIds(portfolios.map((p) => p.id)),
   )
@@ -718,6 +719,15 @@ export function ComparePage() {
         </button>
         <button type="button" className="btn-secondary btn-sm" onClick={() => setInviteOpen(true)}>
           Add portfolio
+        </button>
+        <button
+          type="button"
+          className="btn-secondary btn-sm"
+          onClick={() => {
+            void syncNow().then(() => success('Sync now finished'))
+          }}
+        >
+          Sync now
         </button>
       </div>
       <div className="thumb-cta-bar-spacer" aria-hidden />

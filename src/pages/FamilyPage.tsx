@@ -3,6 +3,8 @@ import { AllocationRing } from '../components/charts/AllocationRing'
 import { PageHeader, StatCard } from '../components/ui/PageHeader'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
 import { usePortfolio } from '../context/PortfolioContext'
+import { useToasts } from '../components/ToastProvider'
+import { syncNow } from '../services/sync/autoSyncService'
 import { calcBreakdown } from '../domain/calc'
 import { calcFamilyTotals, type FamilyMemberType } from '../domain/family'
 import type { FamilyMember } from '../domain/types'
@@ -23,6 +25,7 @@ const empty = {
 
 export function FamilyPage() {
   const { data, setData, breakdown, privacy, portfolios, activeId } = usePortfolio()
+  const { success } = useToasts()
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<FamilyMember | null>(null)
   const [form, setForm] = useState(empty)
@@ -344,6 +347,15 @@ export function FamilyPage() {
       <div className="thumb-cta-bar" role="toolbar" aria-label="Primary family actions">
         <button type="button" className="btn-primary btn-sm" onClick={openCreate}>
           Add member
+        </button>
+        <button
+          type="button"
+          className="btn-secondary btn-sm"
+          onClick={() => {
+            void syncNow().then(() => success('Sync now finished'))
+          }}
+        >
+          Sync now
         </button>
       </div>
       <div className="thumb-cta-bar-spacer" aria-hidden />

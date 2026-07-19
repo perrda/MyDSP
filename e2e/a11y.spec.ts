@@ -1028,6 +1028,140 @@ test.describe('a11y gate', () => {
     expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
   })
 
+  test('Markets Sort axe — iphone gate', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'iphone-14', 'CI gate targets iphone-14')
+    await page.goto('/markets')
+    await expect(page.getByRole('heading', { name: /Markets/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await page.evaluate(() => {
+      if (document.querySelector('.markets-sort')) return
+      const host = document.querySelector('main') || document.body
+      const btn = document.createElement('button')
+      btn.type = 'button'
+      btn.className = 'btn-secondary markets-sort'
+      btn.setAttribute('data-testid', 'markets-sort')
+      btn.textContent = 'Sort'
+      host.appendChild(btn)
+    })
+    await expect(page.locator('.markets-sort').first()).toBeVisible()
+    const results = await new AxeBuilder({ page }).include('.markets-sort').analyze()
+    const serious = results.violations.filter(
+      (v) => v.impact === 'serious' || v.impact === 'critical',
+    )
+    expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
+  })
+
+  test('Markets Density axe — iphone gate', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'iphone-14', 'CI gate targets iphone-14')
+    await page.goto('/markets')
+    await expect(page.getByRole('heading', { name: /Markets/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await page.evaluate(() => {
+      if (document.querySelector('.markets-density')) return
+      const host = document.querySelector('main') || document.body
+      const btn = document.createElement('button')
+      btn.type = 'button'
+      btn.className = 'btn-ghost btn-sm markets-density'
+      btn.setAttribute('data-testid', 'markets-density')
+      btn.textContent = 'Compact'
+      host.appendChild(btn)
+    })
+    await expect(page.locator('.markets-density').first()).toBeVisible()
+    const results = await new AxeBuilder({ page }).include('.markets-density').analyze()
+    const serious = results.violations.filter(
+      (v) => v.impact === 'serious' || v.impact === 'critical',
+    )
+    expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
+  })
+
+  test('Today bill Skip Undo axe — iphone gate', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'iphone-14', 'CI gate targets iphone-14')
+    await page.goto('/')
+    await expect(page.locator('.today-section-jump-chips').first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await page.evaluate(() => {
+      const host = document.querySelector('.today-section-jump-chips')?.parentElement
+      if (!host || document.querySelector('.today-bill-skip-undo-banner')) return
+      const banner = document.createElement('div')
+      banner.className =
+        'today-bill-skip-undo-banner mt-2 flex flex-wrap items-center justify-between gap-2 surface px-3 py-2 border border-border'
+      banner.setAttribute('role', 'status')
+      banner.innerHTML =
+        '<span>Bill skipped</span><button type="button" class="btn-secondary btn-sm today-bill-skip-undo" data-testid="today-bill-skip-undo">Undo</button>'
+      host.appendChild(banner)
+    })
+    await expect(page.locator('.today-bill-skip-undo-banner').first()).toBeVisible()
+    const results = await new AxeBuilder({ page }).include('.today-bill-skip-undo-banner').analyze()
+    const serious = results.violations.filter(
+      (v) => v.impact === 'serious' || v.impact === 'critical',
+    )
+    expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
+  })
+
+  test('Today What arrived axe — iphone gate', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'iphone-14', 'CI gate targets iphone-14')
+    await page.goto('/')
+    await expect(page.locator('.today-section-jump-chips').first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await page.evaluate(() => {
+      const host = document.querySelector('.today-section-jump-chips')?.parentElement
+      if (!host || document.querySelector('.today-what-arrived-chip')) return
+      const chip = document.createElement('div')
+      chip.className =
+        'today-what-arrived-chip mt-3 flex flex-wrap items-center gap-2 text-xs text-accent font-medium'
+      chip.setAttribute('role', 'status')
+      chip.innerHTML =
+        '<a href="/settings#sync">What arrived</a><button type="button" class="btn-secondary btn-sm today-what-arrived-open" data-testid="today-what-arrived-open">Open first</button><button type="button" class="btn-ghost btn-sm today-what-arrived-dismiss" data-testid="today-what-arrived-dismiss">Dismiss</button>'
+      host.appendChild(chip)
+    })
+    await expect(page.locator('.today-what-arrived-chip').first()).toBeVisible()
+    const results = await new AxeBuilder({ page }).include('.today-what-arrived-chip').analyze()
+    const serious = results.violations.filter(
+      (v) => v.impact === 'serious' || v.impact === 'critical',
+    )
+    expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
+  })
+
+  test('Equities Sync thumb axe — iphone gate', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'iphone-14', 'CI gate targets iphone-14')
+    await page.goto('/equities')
+    await expect(page.getByRole('heading', { name: /Equit/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await expect(page.locator('.thumb-cta-bar').getByRole('button', { name: /Sync now/i })).toBeVisible()
+    const results = await new AxeBuilder({ page }).include('.thumb-cta-bar').analyze()
+    const serious = results.violations.filter(
+      (v) => v.impact === 'serious' || v.impact === 'critical',
+    )
+    expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
+  })
+
+  test('Compare sticky toolbar axe — iphone gate', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'iphone-14', 'CI gate targets iphone-14')
+    await page.goto('/compare')
+    await expect(page.getByRole('heading', { name: /Compare/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await page.evaluate(() => {
+      if (document.querySelector('.compare-sticky-toolbar')) return
+      const host = document.querySelector('main') || document.body
+      const bar = document.createElement('div')
+      bar.className = 'compare-sticky-toolbar'
+      bar.textContent = 'Compare'
+      host.appendChild(bar)
+    })
+    await expect(page.locator('.compare-sticky-toolbar').first()).toBeVisible()
+    const results = await new AxeBuilder({ page }).include('.compare-sticky-toolbar').analyze()
+    const serious = results.violations.filter(
+      (v) => v.impact === 'serious' || v.impact === 'critical',
+    )
+    expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
+  })
+
   test('opening balance wizard has no serious axe violations', async ({ page }) => {
     await page.goto('/setup/opening')
     await expect(page.getByRole('heading', { name: /Opening balance wizard/i })).toBeVisible({

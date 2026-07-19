@@ -150,6 +150,7 @@ export type WorkspaceExtrasFlags = {
   largeText?: boolean
   themePref?: boolean
   a11yPrefs?: boolean
+  notificationSettings?: boolean
   markets?: boolean
   news?: boolean
   youtube?: boolean
@@ -193,6 +194,7 @@ const EXTRAS_LABELS: Array<[keyof WorkspaceExtrasFlags, string]> = [
   ['largeText', 'Large text'],
   ['themePref', 'Theme preference'],
   ['a11yPrefs', 'Accessibility prefs'],
+  ['notificationSettings', 'Notification settings'],
   ['markets', 'Markets watchlist'],
   ['news', 'News tags'],
   ['youtube', 'YouTube channels'],
@@ -248,6 +250,7 @@ export function workspaceExtrasFlagsFromPreview(extras: {
   largeText?: unknown
   themePref?: unknown
   a11yPrefs?: unknown
+  notificationSettings?: unknown
   markets?: unknown
   news?: unknown
   youtube?: unknown
@@ -291,6 +294,7 @@ export function workspaceExtrasFlagsFromPreview(extras: {
     largeText: extras.largeText != null,
     themePref: extras.themePref != null,
     a11yPrefs: extras.a11yPrefs != null,
+    notificationSettings: extras.notificationSettings != null,
     markets: extras.markets != null,
     news: extras.news != null,
     youtube: extras.youtube != null,

@@ -316,6 +316,11 @@ export function Dashboard() {
     spendId: number
   } | null>(null)
   const billUndoTimer = useRef<number | null>(null)
+  const [billSkipUndo, setBillSkipUndo] = useState<{
+    id: number
+    previousNextDue: string
+  } | null>(null)
+  const billSkipUndoTimer = useRef<number | null>(null)
   const [interviewUndo, setInterviewUndo] = useState<{
     jobId: number
     interviews: Array<{ id: number; outcome?: string; completedAt?: string }>
@@ -962,8 +967,30 @@ export function Dashboard() {
   }
 
   const skipBill = (id: number) => {
+    const bill = data.recurringTransactions.find((r) => r.id === id)
+    if (!bill) return
+    const previousNextDue = bill.nextDue
     setData((prev) => skipRecurringOccurrence(prev, id))
+    setBillSkipUndo({ id, previousNextDue })
+    if (billSkipUndoTimer.current) window.clearTimeout(billSkipUndoTimer.current)
+    billSkipUndoTimer.current = window.setTimeout(() => setBillSkipUndo(null), 5_000)
     toastSuccess('Bill skipped')
+  }
+
+  const undoBillSkip = () => {
+    if (!billSkipUndo) return
+    const snap = billSkipUndo
+    setData((prev) => ({
+      ...prev,
+      recurringTransactions: (prev.recurringTransactions ?? []).map((r) =>
+        r.id === snap.id ? { ...r, nextDue: snap.previousNextDue } : r,
+      ),
+    }))
+    setBillSkipUndo(null)
+    if (billSkipUndoTimer.current) {
+      window.clearTimeout(billSkipUndoTimer.current)
+      billSkipUndoTimer.current = null
+    }
   }
 
   useEffect(() => {
@@ -997,6 +1024,7 @@ export function Dashboard() {
       if (focusSnoozeUndoTimer.current) window.clearTimeout(focusSnoozeUndoTimer.current)
       if (newsMarkAllUndoTimer.current) window.clearTimeout(newsMarkAllUndoTimer.current)
       if (youtubeMarkAllUndoTimer.current) window.clearTimeout(youtubeMarkAllUndoTimer.current)
+      if (billSkipUndoTimer.current) window.clearTimeout(billSkipUndoTimer.current)
     }
   }, [])
 
@@ -1008,6 +1036,9 @@ export function Dashboard() {
       'today-goals',
       'today-tax',
       'today-debt',
+      'today-budget-pulse',
+      'today-cash-runway',
+      'today-fire-chip',
       'today-media',
       'today-markets',
     ]
@@ -1161,6 +1192,15 @@ export function Dashboard() {
             ...(liabilities > 0
               ? ([['today-debt', 'Debt', 'today-section-jump-debt']] as const)
               : []),
+            ...(monthlyBudgetPulse
+              ? ([['today-budget-pulse', 'Budget', 'today-section-jump-budget']] as const)
+              : []),
+            ...(cashRunway
+              ? ([['today-cash-runway', 'Runway', 'today-section-jump-runway']] as const)
+              : []),
+            ...(fireChip
+              ? ([['today-fire-chip', 'FIRE', 'today-section-jump-fire']] as const)
+              : []),
             ['today-media', 'Media', 'today-section-jump-media'],
             ['today-markets', 'Markets', 'today-section-jump-markets'],
           ] as const
@@ -1223,7 +1263,10 @@ export function Dashboard() {
           {formatGBP(netWorth)}
         </p>
         {moneyPulse ? (
-          <p className="today-money-pulse text-sm text-text-muted font-light mb-2 tabular-nums">
+          <p
+            data-testid="today-money-pulse"
+            className="today-money-pulse text-sm text-text-muted font-light mb-2 tabular-nums"
+          >
             {moneyPulse}
           </p>
         ) : null}
@@ -1331,6 +1374,7 @@ export function Dashboard() {
           <div className="today-pulse-chips mt-4 flex flex-wrap gap-2">
             {monthlyBudgetPulse ? (
               <Link
+                id="today-budget-pulse"
                 to="/budgets"
                 data-testid="today-budget-pulse"
                 className={`today-budget-pulse border border-border bg-surface-hover/60 px-3 py-2 text-xs hover:border-accent ${privacyClass(privacy)}`}
@@ -1350,6 +1394,7 @@ export function Dashboard() {
             {weekToDateSpend.spent > 0 ? (
               <Link
                 to="/budgets"
+                data-testid="today-wtd-spend"
                 className={`today-week-to-date-spend border border-border bg-surface-hover/60 px-3 py-2 text-xs hover:border-accent ${privacyClass(privacy)}`}
                 title={`Spend since ${weekToDateSpend.start}`}
               >
@@ -1366,6 +1411,7 @@ export function Dashboard() {
               <Link
                 id="today-debt"
                 to="/liabilities"
+                data-testid="today-debt-pulse"
                 className={`today-debt-pulse border border-border bg-surface-hover/60 px-3 py-2 text-xs hover:border-accent ${privacyClass(privacy)}`}
                 title="Total liabilities"
               >
@@ -1378,6 +1424,7 @@ export function Dashboard() {
             ) : null}
             {cashRunway ? (
               <Link
+                id="today-cash-runway"
                 to="/recurring"
                 data-testid="today-cash-runway"
                 className={`today-cash-runway border border-border bg-surface-hover/60 px-3 py-2 text-xs hover:border-accent ${privacyClass(privacy)}`}
@@ -1396,6 +1443,7 @@ export function Dashboard() {
             ) : null}
             {fireChip ? (
               <Link
+                id="today-fire-chip"
                 to="/fire"
                 data-testid="today-fire-chip"
                 className={`today-fire-chip border border-border bg-surface-hover/60 px-3 py-2 text-xs hover:border-accent ${privacyClass(privacy)}`}
@@ -1711,6 +1759,22 @@ export function Dashboard() {
               className="btn-secondary btn-sm today-bill-undo"
               data-testid="today-bill-undo"
               onClick={undoBillPaid}
+            >
+              Undo
+            </button>
+          </div>
+        ) : null}
+        {billSkipUndo ? (
+          <div
+            className="today-bill-skip-undo-banner mt-2 flex flex-wrap items-center justify-between gap-2 surface px-3 py-2 border border-border"
+            role="status"
+          >
+            <p className="text-sm text-text-muted">Bill skipped</p>
+            <button
+              type="button"
+              className="btn-secondary btn-sm today-bill-skip-undo"
+              data-testid="today-bill-skip-undo"
+              onClick={undoBillSkip}
             >
               Undo
             </button>
@@ -2116,6 +2180,7 @@ export function Dashboard() {
               <Link
                 to={whatArrivedOpenHref}
                 className="btn-secondary btn-sm text-[11px] min-h-8 today-what-arrived-open"
+                data-testid="today-what-arrived-open"
               >
                 Open first
               </Link>
@@ -2123,6 +2188,7 @@ export function Dashboard() {
             <button
               type="button"
               className="btn-ghost btn-sm text-[11px] min-h-8 today-what-arrived-dismiss"
+              data-testid="today-what-arrived-dismiss"
               onClick={() => {
                 if (whatArrivedChip) {
                   saveWhatArrivedDismissPref(whatArrivedChip)

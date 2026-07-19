@@ -2730,7 +2730,8 @@ html.success-haptic-flash::after {
   .markets-sticky-filters,
   .liabilities-sticky-rag,
   .journal-sticky-filter,
-  .recurring-sticky-sort {
+  .recurring-sticky-sort,
+  .compare-sticky-toolbar {
     position: sticky;
     top: var(--app-header-offset, 3.5rem);
     z-index: 8;

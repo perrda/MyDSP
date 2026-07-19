@@ -112,6 +112,7 @@ describe('next25b sync / backup trust', () => {
       largeText: null,
       themePref: null,
       a11yPrefs: null,
+      notificationSettings: null,
       documentBlobs: null,
     })))
 
@@ -194,6 +195,6 @@ describe('next25b sync / backup trust', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8')) as {
       version: string
     }
-    expect(pkg.version).toBe('1.2.86')
+    expect(pkg.version).toBe('1.2.87')
   })
 })
