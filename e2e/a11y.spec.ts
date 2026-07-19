@@ -540,11 +540,48 @@ test.describe('a11y gate', () => {
     expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
   })
 
-  test('FIRE axe — iphone gate', async ({ page }, testInfo) => {
+  test('Today offline-queue chip axe — iphone gate', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'iphone-14', 'CI gate targets iphone-14')
-    await page.goto('/fire')
-    await expect(page.getByRole('heading', { name: /FIRE calculator/i }).first()).toBeVisible({
+    await page.addInitScript(() => {
+      try {
+        const job = {
+          id: 'q_a11y_offline',
+          type: 'sync_push',
+          createdAt: new Date().toISOString(),
+          remoteUrl: 'https://example.com/sync',
+          note: 'a11y offline',
+          attempts: 1,
+          nextRetryAt: new Date(Date.now() + 60_000).toISOString(),
+        }
+        localStorage.setItem('mydsp_offline_queue', JSON.stringify([job]))
+      } catch {
+        /* ignore */
+      }
+    })
+    await page.goto('/')
+    await expect(page.locator('.today-offline-queue-chip').first()).toBeVisible({ timeout: 20_000 })
+    const results = await new AxeBuilder({ page }).analyze()
+    const serious = results.violations.filter(
+      (v) => v.impact === 'serious' || v.impact === 'critical',
+    )
+    expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
+  })
+
+  test('Markets tag/Yield hint axe — iphone gate', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'iphone-14', 'CI gate targets iphone-14')
+    await page.addInitScript(() => {
+      try {
+        localStorage.setItem('mydsp_markets_show_tag_yield_v1', '0')
+      } catch {
+        /* ignore */
+      }
+    })
+    await page.goto('/markets')
+    await expect(page.getByRole('heading', { name: /Markets/i }).first()).toBeVisible({
       timeout: 20_000,
+    })
+    await expect(page.locator('.markets-tag-yield-settings-hint').first()).toBeVisible({
+      timeout: 15_000,
     })
     const results = await new AxeBuilder({ page }).analyze()
     const serious = results.violations.filter(
@@ -553,25 +590,12 @@ test.describe('a11y gate', () => {
     expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
   })
 
-  test('Optimizer axe — iphone gate', async ({ page }, testInfo) => {
+  test('Legacy import axe — iphone gate', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'iphone-14', 'CI gate targets iphone-14')
-    await page.goto('/optimizer')
-    await expect(page.getByRole('heading', { name: /Debt optimizer/i }).first()).toBeVisible({
-      timeout: 20_000,
-    })
-    const results = await new AxeBuilder({ page }).analyze()
-    const serious = results.violations.filter(
-      (v) => v.impact === 'serious' || v.impact === 'critical',
-    )
-    expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
-  })
-
-  test('Achievements axe — iphone gate', async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name !== 'iphone-14', 'CI gate targets iphone-14')
-    await page.goto('/achievements')
-    await expect(page.getByRole('heading', { name: /Achievements/i }).first()).toBeVisible({
-      timeout: 20_000,
-    })
+    await page.goto('/import/legacy')
+    await expect(
+      page.getByRole('heading', { name: /Bank CSV import|Import/i }).first(),
+    ).toBeVisible({ timeout: 20_000 })
     const results = await new AxeBuilder({ page }).analyze()
     const serious = results.violations.filter(
       (v) => v.impact === 'serious' || v.impact === 'critical',

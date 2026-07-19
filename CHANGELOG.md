@@ -31,9 +31,9 @@
 20. **Focus pulse** on todo / follow-up next-action cards
 
 ### Quality (next 25q · 21–25)
-21. **Axe** FIRE
-22. **Axe** Optimizer
-23. **Axe** Achievements
+21. **Axe** Today offline-queue chip
+22. **Axe** Markets tag/Yield Settings hint
+23. **Axe** Legacy import
 24. **Playwright** FIRE/Optimizer thumbs · PTR FIRE/Optimizer · launch path
 25. Tip harness **1.2.82**
 

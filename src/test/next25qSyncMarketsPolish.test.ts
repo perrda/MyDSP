@@ -236,11 +236,11 @@ describe('next25q — sync / Markets / Today polish tip (1–25 → v1.2.82)', (
     expect(css).toMatch(/\.today-focus-pulse/)
   })
 
-  it('21–24: axe FIRE/Optimizer/Achievements + e2e thumbs/PTR/launch path', () => {
+  it('21–24: axe Today offline / Markets tag hint / Legacy import + e2e thumbs/PTR/launch', () => {
     const a11y = readFileSync(resolve(__dirname, '../../e2e/a11y.spec.ts'), 'utf8')
-    expect(a11y).toMatch(/FIRE axe/)
-    expect(a11y).toMatch(/Optimizer axe/)
-    expect(a11y).toMatch(/Achievements axe/)
+    expect(a11y).toMatch(/Today offline-queue chip axe/)
+    expect(a11y).toMatch(/Markets tag\/Yield hint axe/)
+    expect(a11y).toMatch(/Legacy import axe/)
     const e2e = readFileSync(resolve(__dirname, '../../e2e/smoke.spec.ts'), 'utf8')
     expect(e2e).toMatch(/FIRE and Optimizer thumb CTAs/)
     expect(e2e).toMatch(/smoke PTR includes FIRE Optimizer/)
