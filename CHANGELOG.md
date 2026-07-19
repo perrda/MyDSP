@@ -1,5 +1,42 @@
 # MyDSP Changelog
 
+## [1.2.84] - 2026-07-19
+
+### Improved — Sync / trust (next 25s · 1–5)
+1. **API webhook URL** LWW via fullArchive
+2. **Achievements seen** LWW
+3. **Getting started dismissed** LWW
+4. **What arrived dismiss** fingerprint LWW
+5. **Docs + SYNC_SMOKE + What arrived** extras for webhook / achievements / getting-started / WA dismiss
+
+### Improved — Markets (next 25s · 6–10)
+6. **Quote modal Open holding** when Owned
+7. **Quote modal Set price alert**
+8. **Expand all / Collapse all** toolbar CTAs
+9. **Watchlist Retag** (Core / Speculative / Income / Other)
+10. **Back-online auto-retry** toast
+
+### Improved — Mobile / tablet (next 25s · 11–15)
+11. **Compare + Tax** tablet sticky toolbars
+12. **Legacy import PTR** + Smoke checklist
+13. **Bottom-nav** Compare/Recurring/Review slots (+ long-press Sync)
+14. **Goals + Trips** Sync now secondary thumb
+15. **Monthly Review** tablet sticky month picker
+
+### Improved — Today / productivity (next 25s · 16–20)
+16. **Bill Mark paid** 5s Undo
+17. **Interview Mark done** 5s Undo
+18. **Tax jump chip** + `#today-tax` strip
+19. **Budget-over next-action** card
+20. **What arrived Open first** deep-link CTA
+
+### Quality (next 25s · 21–25)
+21. **Axe** Markets Expand-all control
+22. **Axe** Today bill Undo banner
+23. **Axe** Today Tax jump + Compare sticky toolbar
+24. **Playwright** Goals/Trips Sync thumbs · Markets Expand-all · Today Tax jump · smoke PTR Legacy
+25. Tip harness **1.2.84**
+
 ## [1.2.83] - 2026-07-19
 
 ### Improved — Sync / trust (next 25r · 1–5)

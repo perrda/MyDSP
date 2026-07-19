@@ -73,7 +73,7 @@ npx wrangler deploy
 
 That’s it. Edits push about **4 seconds** after you change data (and pull first if another device updated cloud). Opening the app, returning to the tab, pull-to-refresh, or about **every 30 seconds** while open pulls newer cloud data.
 
-**What syncs:** portfolios + holdings, To Do's / Jobs, Favourites/nav layout (**LWW** by `updatedAt`), Bottom nav **middle slots**, Launch path, UI panel open/collapsed prefs, Settings section open/collapsed prefs, Markets tag/Yield chip visibility, Settings recent jumps, Tax year selection, Journal asset filter, Today NW spark window (7d/30d), Markets **watchlist** (union merge + **deletion tombstones**), Markets **last-good quote cache** (prices show on another device before it refreshes), News tags + collapsed/seenAt (**LWW** by `prefsUpdatedAt`) + **last-good headlines cache**, YouTube channels (**union** + seenAt LWW) + **video cache**, ISA remaining override (clearing syncs via empty remaining + meta), price-alert thresholds, Compare **week-Δ snapshots**, Digest **highlight edits**, Compare **selection**, Recurring **sort**, holdings **drift %**, portfolio **concentration %**, Spending **filters**, News **tag filter**, Todos **quick filter**, Jobs **filter** (incl. Needs follow-up), and full-backup extras.
+**What syncs:** portfolios + holdings, To Do's / Jobs, Favourites/nav layout (**LWW** by `updatedAt`), Bottom nav **middle slots**, Launch path, UI panel open/collapsed prefs, Settings section open/collapsed prefs, Markets tag/Yield chip visibility, Settings recent jumps, Tax year selection, Journal asset filter, Today NW spark window (7d/30d), API webhook URL, Achievements seen ids, Getting started dismissed, What arrived dismiss fingerprint, Markets **watchlist** (union merge + **deletion tombstones**), Markets **last-good quote cache** (prices show on another device before it refreshes), News tags + collapsed/seenAt (**LWW** by `prefsUpdatedAt`) + **last-good headlines cache**, YouTube channels (**union** + seenAt LWW) + **video cache**, ISA remaining override (clearing syncs via empty remaining + meta), price-alert thresholds, Compare **week-Δ snapshots**, Digest **highlight edits**, Compare **selection**, Recurring **sort**, holdings **drift %**, portfolio **concentration %**, Spending **filters**, News **tag filter**, Todos **quick filter**, Jobs **filter** (incl. Needs follow-up), and full-backup extras.
 
 **What does not sync:** Finnhub (and other live provider) API keys, PIN / Face ID credentials, remembered passphrase storage, session-only provider health counters, YouTube upload-alert toggle, notification quiet-hours / desktop / sound / category toggles (beyond thresholds). Enter the Finnhub key on each device (Settings → Prices).
 
@@ -106,6 +106,10 @@ That’s it. Edits push about **4 seconds** after you change data (and pull firs
 | Tax year selection | Yes | LWW fullArchive |
 | Journal asset filter | Yes | LWW fullArchive |
 | Today NW spark window (7d / 30d) | Yes | LWW fullArchive |
+| API webhook URL | Yes | LWW fullArchive |
+| Achievements seen ids | Yes | LWW fullArchive |
+| Getting started dismissed | Yes | LWW fullArchive |
+| What arrived dismiss fingerprint | Yes | LWW fullArchive |
 | YouTube upload alert toggle | No | Notification category — device-local |
 | Notification quiet-hours / desktop / sound | No | OS + device-local prefs |
 | Finnhub / provider API keys | No | Enter on each device |

@@ -9,8 +9,10 @@ import {
   getSessionSyncPassphrase,
 } from '../services/sync/sessionPassphrase'
 import { usePortfolio } from '../context/PortfolioContext'
-
-const DISMISS_KEY = 'mydsp_getting_started_dismissed'
+import {
+  loadGettingStartedDismissedPref,
+  saveGettingStartedDismissedPref,
+} from '../domain/gettingStartedDismissedPref'
 
 type Step = {
   id: string
@@ -19,20 +21,8 @@ type Step = {
   done: boolean
 }
 
-function loadDismissed(): boolean {
-  try {
-    return localStorage.getItem(DISMISS_KEY) === '1'
-  } catch {
-    return false
-  }
-}
-
 export function dismissGettingStarted(): void {
-  try {
-    localStorage.setItem(DISMISS_KEY, '1')
-  } catch {
-    /* ignore */
-  }
+  saveGettingStartedDismissedPref(true)
 }
 
 function buildSteps(data: ReturnType<typeof usePortfolio>['data']): Step[] {
@@ -73,7 +63,7 @@ function buildSteps(data: ReturnType<typeof usePortfolio>['data']): Step[] {
 
 export function GettingStartedChecklist() {
   const { data } = usePortfolio()
-  const [dismissed, setDismissed] = useState(loadDismissed)
+  const [dismissed, setDismissed] = useState(loadGettingStartedDismissedPref)
   const [, bump] = useState(0)
 
   const steps = buildSteps(data)

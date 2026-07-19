@@ -16,6 +16,9 @@ import {
   Receipt,
   Plane,
   BarChart3,
+  GitCompareArrows,
+  Repeat,
+  CalendarRange,
   type LucideIcon,
 } from 'lucide-react'
 import {
@@ -46,6 +49,9 @@ export const BOTTOM_NAV_CATALOG: Record<string, BottomNavItem> = {
   '/tax': { to: '/tax', label: 'Tax', icon: Receipt },
   '/trips': { to: '/trips', label: 'Trips', icon: Plane },
   '/analytics': { to: '/analytics', label: 'Analytics', icon: BarChart3 },
+  '/compare': { to: '/compare', label: 'Compare', icon: GitCompareArrows },
+  '/recurring': { to: '/recurring', label: 'Recurring', icon: Repeat },
+  '/review': { to: '/review', label: 'Review', icon: CalendarRange },
   '/settings': { to: '/settings', label: 'Settings', icon: Settings },
 }
 

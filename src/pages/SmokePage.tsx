@@ -300,9 +300,9 @@ export function SmokePage() {
       {
         id: 'ptr-routes',
         label:
-          'PTR YouTube / Tax / Compare / Todos / Jobs / Spending / Liabilities / Goals / Trips / History / Budgets / Import / Family / Documents / Journal / Rules / Settings / Staking / Planning / FIRE / Optimizer / Achievements / API / Insights / Review / Analytics / Opening / Smoke',
+          'PTR YouTube / Tax / Compare / Todos / Jobs / Spending / Liabilities / Goals / Trips / History / Budgets / Import / Legacy import / Family / Documents / Journal / Rules / Settings / Staking / Planning / FIRE / Optimizer / Achievements / API / Insights / Review / Analytics / Opening / Smoke',
         detail:
-          'Pull-to-refresh is enabled on YouTube, Tax, Compare, Todos, Jobs, Spending, Liabilities, Goals, Trips, History, Budgets, Import, Family, Documents, Journal, Rules, FIRE, Optimizer, Achievements, API, Insights, Review, Analytics, and Opening (plus Today / Markets / News)',
+          'Pull-to-refresh is enabled on YouTube, Tax, Compare, Todos, Jobs, Spending, Liabilities, Goals, Trips, History, Budgets, Import, Legacy import, Family, Documents, Journal, Rules, FIRE, Optimizer, Achievements, API, Insights, Review, Analytics, and Opening (plus Today / Markets / News)',
         to: '/youtube',
         done: true,
       },

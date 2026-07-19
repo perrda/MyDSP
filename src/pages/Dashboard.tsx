@@ -14,6 +14,7 @@ import { usePortfolio } from '../context/PortfolioContext'
 import { evaluateAchievements } from '../domain/achievements'
 import { buildAlerts } from '../domain/alerts'
 import { worstBudgetOffenders } from '../domain/budgetChart'
+import { getTaxPack } from '../domain/taxPacks'
 import { calcFire } from '../domain/fire'
 import { appendManualSnapshot } from '../domain/history'
 import { nearestGoalProjection, formatGoalProjectionLine } from '../domain/goalProjectedDate'
@@ -31,6 +32,10 @@ import {
   loadNwSparkWindowPref,
   saveNwSparkWindowPref,
 } from '../domain/nwSparkWindowPref'
+import {
+  loadWhatArrivedDismissPref,
+  saveWhatArrivedDismissPref,
+} from '../domain/whatArrivedDismissPref'
 import { dueWithinDays } from '../domain/recurringDueStrip'
 import { markRecurringPaid, skipRecurringOccurrence } from '../domain/recurringActions'
 import { monthlyRecurringTotal } from '../domain/recurringHelpers'
@@ -46,6 +51,11 @@ import {
   type AutoSyncStatus,
 } from '../services/sync/autoSyncService'
 import { loadSyncConfig, pushSync } from '../services/sync/syncService'
+import {
+  firstSyncHighlightHref,
+  peekSyncHighlights,
+  type SyncHighlightMap,
+} from '../services/sync/syncHighlights'
 import {
   loadOfflineQueue,
   removeOfflineJob,
@@ -180,7 +190,6 @@ function loadIsaRemaining(): number | null {
 type TodayPanelId = 'today-next-action' | 'today-bills' | 'today-goals'
 
 const TODAY_ACCORDION_QUERY = '(max-width: 639px), (orientation: portrait) and (max-width: 1023px)'
-const WHAT_ARRIVED_DISMISS_KEY = 'mydsp_what_arrived_dismissed_fp'
 
 function readTodayPanelOpen(id: TodayPanelId, fallback: boolean): boolean {
   return getUiPanelOpenState(id) ?? fallback
@@ -290,6 +299,7 @@ export function Dashboard() {
     () => loadYoutubeVideosCache().fetchedAt ?? null,
   )
   const [whatArrivedChip, setWhatArrivedChip] = useState<string | null>(null)
+  const [whatArrivedOpenHref, setWhatArrivedOpenHref] = useState<string | null>(null)
   const [focusUndo, setFocusUndo] = useState<{
     id: number
     status: string
@@ -297,6 +307,19 @@ export function Dashboard() {
     updatedAt: string
   } | null>(null)
   const focusUndoTimer = useRef<number | null>(null)
+  const [billUndo, setBillUndo] = useState<{
+    id: number
+    nextDue: string
+    lastPaidAt?: string
+    spendId: number
+  } | null>(null)
+  const billUndoTimer = useRef<number | null>(null)
+  const [interviewUndo, setInterviewUndo] = useState<{
+    jobId: number
+    interviews: Array<{ id: number; outcome?: string; completedAt?: string }>
+    updatedAt: string
+  } | null>(null)
+  const interviewUndoTimer = useRef<number | null>(null)
 
   useEffect(() => subscribeAutoSync(setSyncStatus), [])
   useEffect(() => {
@@ -457,7 +480,24 @@ export function Dashboard() {
     return `${live} live · ${unavailable} unavailable`
   }, [syncStatus.lastAt, marketsCount])
 
-  /** Next-action stack: todo / bill / interview / goal / top mover (max 3). */
+  const budgetPulse = useMemo(
+    () => worstBudgetOffenders(data.spending, data.budgetGoals).slice(0, 3),
+    [data.spending, data.budgetGoals],
+  )
+
+  const todayTaxStrip = useMemo(() => {
+    const taxPack = getTaxPack(data.settings.taxResidency || 'GB')
+    const disposalCount = (data.disposals ?? []).length
+    const detail =
+      disposalCount > 0
+        ? `${taxPack.label} · ${disposalCount} disposal${disposalCount === 1 ? '' : 's'}`
+        : taxPack.hasCgt
+          ? `${taxPack.label} · CGT pack`
+          : `${taxPack.label} · open capital gains`
+    return { detail }
+  }, [data.settings.taxResidency, data.disposals])
+
+  /** Next-action stack: todo / bill / interview / goal / budget / top mover (max 3). */
   const nextActions = useMemo(
     () =>
       buildNextActionStack({
@@ -465,9 +505,17 @@ export function Dashboard() {
         recurringTransactions: data.recurringTransactions,
         jobApplications: data.jobApplications,
         goals: data.goals,
+        budgetOffenders: budgetPulse,
         movers: todayMovers,
       }),
-    [data.todoItems, data.recurringTransactions, data.jobApplications, data.goals, todayMovers],
+    [
+      data.todoItems,
+      data.recurringTransactions,
+      data.jobApplications,
+      data.goals,
+      budgetPulse,
+      todayMovers,
+    ],
   )
 
   const focusTodoCard = nextActions.find((c) => c.kind === 'todo')
@@ -503,11 +551,6 @@ export function Dashboard() {
   )
 
   const alerts = useMemo(() => buildAlerts(data), [data])
-
-  const budgetPulse = useMemo(
-    () => worstBudgetOffenders(data.spending, data.budgetGoals).slice(0, 3),
-    [data.spending, data.budgetGoals],
-  )
 
   const monthlyBudgetPulse = useMemo(() => {
     const totalBudget = Object.values(data.budgetGoals ?? {})
@@ -711,23 +754,97 @@ export function Dashboard() {
   }
 
   const markInterviewDone = (jobId: number) => {
+    const app = (data.jobApplications ?? []).find((a) => a.id === jobId)
+    if (!app) return
+    const pending = (app.interviews ?? []).filter(
+      (iv) => !iv.completedAt && (!iv.outcome || iv.outcome === 'pending'),
+    )
+    if (pending.length === 0) return
+    setInterviewUndo({
+      jobId,
+      interviews: pending.map((iv) => ({
+        id: iv.id,
+        outcome: iv.outcome,
+        completedAt: iv.completedAt,
+      })),
+      updatedAt: app.updatedAt,
+    })
+    if (interviewUndoTimer.current) window.clearTimeout(interviewUndoTimer.current)
+    interviewUndoTimer.current = window.setTimeout(() => setInterviewUndo(null), 5_000)
     const now = new Date().toISOString()
     setData((prev) => ({
       ...prev,
-      jobApplications: (prev.jobApplications ?? []).map((app) => {
-        if (app.id !== jobId) return app
-        const interviews = (app.interviews ?? []).map((iv) => {
+      jobApplications: (prev.jobApplications ?? []).map((a) => {
+        if (a.id !== jobId) return a
+        const interviews = (a.interviews ?? []).map((iv) => {
           if (iv.completedAt || (iv.outcome && iv.outcome !== 'pending')) return iv
           return { ...iv, outcome: 'passed' as const, completedAt: now }
         })
-        return { ...app, interviews, updatedAt: now }
+        return { ...a, interviews, updatedAt: now }
       }),
     }))
   }
 
+  const undoInterviewDone = () => {
+    if (!interviewUndo) return
+    const snap = interviewUndo
+    const byId = new Map(snap.interviews.map((iv) => [iv.id, iv]))
+    setData((prev) => ({
+      ...prev,
+      jobApplications: (prev.jobApplications ?? []).map((a) => {
+        if (a.id !== snap.jobId) return a
+        const interviews = (a.interviews ?? []).map((iv) => {
+          const prior = byId.get(iv.id)
+          if (!prior) return iv
+          return {
+            ...iv,
+            outcome: (prior.outcome as typeof iv.outcome) ?? 'pending',
+            completedAt: prior.completedAt,
+          }
+        })
+        return { ...a, interviews, updatedAt: snap.updatedAt }
+      }),
+    }))
+    setInterviewUndo(null)
+    if (interviewUndoTimer.current) {
+      window.clearTimeout(interviewUndoTimer.current)
+      interviewUndoTimer.current = null
+    }
+  }
+
   const markBillPaid = (id: number) => {
+    const bill = (data.recurringTransactions ?? []).find((r) => r.id === id)
+    if (!bill) return
+    const spendId = (data.spending ?? []).reduce((m, s) => Math.max(m, s.id), 0) + 1
+    setBillUndo({
+      id,
+      nextDue: bill.nextDue,
+      lastPaidAt: bill.lastPaidAt,
+      spendId,
+    })
+    if (billUndoTimer.current) window.clearTimeout(billUndoTimer.current)
+    billUndoTimer.current = window.setTimeout(() => setBillUndo(null), 5_000)
     setData((prev) => markRecurringPaid(prev, id))
     toastSuccess('Bill marked paid')
+  }
+
+  const undoBillPaid = () => {
+    if (!billUndo) return
+    const snap = billUndo
+    setData((prev) => ({
+      ...prev,
+      spending: (prev.spending ?? []).filter((s) => s.id !== snap.spendId),
+      recurringTransactions: (prev.recurringTransactions ?? []).map((r) =>
+        r.id === snap.id
+          ? { ...r, nextDue: snap.nextDue, lastPaidAt: snap.lastPaidAt }
+          : r,
+      ),
+    }))
+    setBillUndo(null)
+    if (billUndoTimer.current) {
+      window.clearTimeout(billUndoTimer.current)
+      billUndoTimer.current = null
+    }
   }
 
   const skipBill = (id: number) => {
@@ -737,16 +854,18 @@ export function Dashboard() {
 
   useEffect(() => {
     const onArrived = (ev: Event) => {
-      const detail = (ev as CustomEvent<{ summary?: string | null; extrasSummary?: string | null }>)
-        .detail
+      const detail = (ev as CustomEvent<{
+        summary?: string | null
+        extrasSummary?: string | null
+        highlights?: SyncHighlightMap | null
+      }>).detail
       const summary = detail?.summary || detail?.extrasSummary || null
+      const highlights = detail?.highlights ?? peekSyncHighlights()
+      const openHref = firstSyncHighlightHref(highlights)
       if (summary) {
-        try {
-          if (localStorage.getItem(WHAT_ARRIVED_DISMISS_KEY) !== summary) {
-            setWhatArrivedChip(summary)
-          }
-        } catch {
+        if (loadWhatArrivedDismissPref() !== summary) {
           setWhatArrivedChip(summary)
+          setWhatArrivedOpenHref(openHref)
         }
       }
       setNwSparkDays(loadNwSparkWindowPref())
@@ -758,6 +877,8 @@ export function Dashboard() {
   useEffect(() => {
     return () => {
       if (focusUndoTimer.current) window.clearTimeout(focusUndoTimer.current)
+      if (billUndoTimer.current) window.clearTimeout(billUndoTimer.current)
+      if (interviewUndoTimer.current) window.clearTimeout(interviewUndoTimer.current)
     }
   }, [])
 
@@ -875,6 +996,7 @@ export function Dashboard() {
             ['today-next-action', 'Next', 'today-section-jump-next'],
             ['today-bills', 'Bills', 'today-section-jump-bills'],
             ['today-goals', 'Goals', 'today-section-jump-goals'],
+            ['today-tax', 'Tax', 'today-section-jump-tax'],
             ['today-media', 'Media', 'today-section-jump-media'],
             ['today-markets', 'Markets', 'today-section-jump-markets'],
           ] as const
@@ -1322,6 +1444,40 @@ export function Dashboard() {
                 </div>
               )
             }
+            if (card.kind === 'budget') {
+              return (
+                <div
+                  key={`budget-${card.category}`}
+                  className="today-next-action-card budget-next-action surface p-4 md:p-5 rounded-xl md:rounded-none shadow-sm md:shadow-none"
+                >
+                  <Link to="/budgets" className="block group">
+                    <p className="text-[11px] uppercase tracking-wider text-text-subtle mb-1">
+                      {card.label}
+                    </p>
+                    <p className="text-base md:text-lg font-bold tracking-tight group-hover:text-accent line-clamp-1 capitalize">
+                      {card.category}
+                    </p>
+                    <p className={`text-xs text-text-muted mt-1 tabular-nums ${privacyClass(privacy)}`}>
+                      {formatGBP(card.spent)} / {formatGBP(card.limit)} · {Math.round(card.ratio * 100)}%
+                    </p>
+                  </Link>
+                  <div className="today-budget-next-actions flex flex-wrap gap-2 mt-3">
+                    <Link
+                      to="/budgets"
+                      className="btn-primary btn-sm inline-flex items-center"
+                    >
+                      Open budgets
+                    </Link>
+                    <Link
+                      to={`/spending?category=${encodeURIComponent(card.category)}`}
+                      className="btn-ghost btn-sm inline-flex items-center"
+                    >
+                      Spending
+                    </Link>
+                  </div>
+                </div>
+              )
+            }
             return (
               <Link
                 key={`mover-${card.symbol}`}
@@ -1356,6 +1512,36 @@ export function Dashboard() {
               type="button"
               className="btn-secondary btn-sm today-focus-undo"
               onClick={undoFocusDone}
+            >
+              Undo
+            </button>
+          </div>
+        ) : null}
+        {billUndo ? (
+          <div
+            className="today-bill-undo-banner mt-2 flex flex-wrap items-center justify-between gap-2 surface px-3 py-2 border border-border"
+            role="status"
+          >
+            <p className="text-sm text-text-muted">Bill marked paid</p>
+            <button
+              type="button"
+              className="btn-secondary btn-sm today-bill-undo"
+              onClick={undoBillPaid}
+            >
+              Undo
+            </button>
+          </div>
+        ) : null}
+        {interviewUndo ? (
+          <div
+            className="today-interview-undo-banner mt-2 flex flex-wrap items-center justify-between gap-2 surface px-3 py-2 border border-border"
+            role="status"
+          >
+            <p className="text-sm text-text-muted">Interview marked done</p>
+            <button
+              type="button"
+              className="btn-secondary btn-sm today-interview-undo"
+              onClick={undoInterviewDone}
             >
               Undo
             </button>
@@ -1505,6 +1691,23 @@ export function Dashboard() {
       ) : null}
 
       <div
+        id="today-tax"
+        className="today-tax-strip surface p-3 md:p-4 mb-3 rounded-xl md:rounded-none shadow-sm md:shadow-none flex flex-wrap items-center justify-between gap-2"
+      >
+        <div className="min-w-0">
+          <p className="text-xs uppercase tracking-wider text-text-subtle font-semibold mb-0.5">
+            Tax
+          </p>
+          <p className="text-sm text-text-muted font-light">
+            {todayTaxStrip.detail}
+          </p>
+        </div>
+        <Link to="/tax" className="btn-secondary btn-sm shrink-0">
+          Open Tax
+        </Link>
+      </div>
+
+      <div
         id="today-media"
         className="surface p-4 md:p-5 mb-6 rounded-xl md:rounded-none shadow-sm md:shadow-none"
       >
@@ -1627,18 +1830,23 @@ export function Dashboard() {
             <Link to="/settings#sync" className="hover:underline">
               What arrived · {whatArrivedChip}
             </Link>
+            {whatArrivedOpenHref ? (
+              <Link
+                to={whatArrivedOpenHref}
+                className="btn-secondary btn-sm text-[11px] min-h-8 today-what-arrived-open"
+              >
+                Open first
+              </Link>
+            ) : null}
             <button
               type="button"
               className="btn-ghost btn-sm text-[11px] min-h-8 today-what-arrived-dismiss"
               onClick={() => {
-                try {
-                  if (whatArrivedChip) {
-                    localStorage.setItem(WHAT_ARRIVED_DISMISS_KEY, whatArrivedChip)
-                  }
-                } catch {
-                  /* private mode */
+                if (whatArrivedChip) {
+                  saveWhatArrivedDismissPref(whatArrivedChip)
                 }
                 setWhatArrivedChip(null)
+                setWhatArrivedOpenHref(null)
               }}
             >
               Dismiss

@@ -54,7 +54,7 @@ export function MonthlyReviewPage() {
         title="Monthly review"
         description="Income, spend by category, and month-over-month change."
         action={
-          <div className="flex flex-wrap gap-2">
+          <div className="review-sticky-month flex flex-wrap gap-2">
             <Link to="/budgets" className="btn-ghost btn-sm">
               Budgets
             </Link>

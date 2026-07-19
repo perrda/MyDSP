@@ -61,6 +61,22 @@ import {
   importNwSparkWindowFromBackup,
 } from '../domain/nwSparkWindowPref'
 import {
+  exportWebhookUrlForBackup,
+  importWebhookUrlFromBackup,
+} from '../domain/webhookUrlPref'
+import {
+  exportAchievementsSeenForBackup,
+  importAchievementsSeenFromBackup,
+} from '../domain/achievementsSeenPref'
+import {
+  exportGettingStartedDismissedForBackup,
+  importGettingStartedDismissedFromBackup,
+} from '../domain/gettingStartedDismissedPref'
+import {
+  exportWhatArrivedDismissForBackup,
+  importWhatArrivedDismissFromBackup,
+} from '../domain/whatArrivedDismissPref'
+import {
   exportYoutubeForBackup,
   exportYoutubeVideosForBackup,
   importYoutubeFromBackup,
@@ -209,6 +225,14 @@ export interface FullBackupRecord extends FullBackupMeta {
   journalFilter?: unknown
   /** Optional Today NW spark window (7/30) */
   nwSparkWindow?: unknown
+  /** Optional API webhook URL */
+  webhookUrl?: unknown
+  /** Optional achievements seen ids */
+  achievementsSeen?: unknown
+  /** Optional getting-started checklist dismissed */
+  gettingStartedDismissed?: unknown
+  /** Optional What arrived dismiss fingerprint */
+  whatArrivedDismiss?: unknown
   /** Optional file attachments (CV/PDFs) as base64 payloads */
   documentBlobs?: import('./documentBlobStore').DocumentBlobPayload[]
   documentBlobsSkipped?: number[]
@@ -249,6 +273,10 @@ function backupCanonical(record: Pick<
   | 'taxYear'
   | 'journalFilter'
   | 'nwSparkWindow'
+  | 'webhookUrl'
+  | 'achievementsSeen'
+  | 'gettingStartedDismissed'
+  | 'whatArrivedDismiss'
   | 'documentBlobs'
 >): string {
   return JSON.stringify({
@@ -283,6 +311,10 @@ function backupCanonical(record: Pick<
     taxYear: record.taxYear ?? null,
     journalFilter: record.journalFilter ?? null,
     nwSparkWindow: record.nwSparkWindow ?? null,
+    webhookUrl: record.webhookUrl ?? null,
+    achievementsSeen: record.achievementsSeen ?? null,
+    gettingStartedDismissed: record.gettingStartedDismissed ?? null,
+    whatArrivedDismiss: record.whatArrivedDismiss ?? null,
     documentBlobs: record.documentBlobs ?? null,
   })
 }
@@ -322,6 +354,10 @@ export async function computeFullBackupChecksum(
     | 'taxYear'
     | 'journalFilter'
     | 'nwSparkWindow'
+    | 'webhookUrl'
+    | 'achievementsSeen'
+    | 'gettingStartedDismissed'
+    | 'whatArrivedDismiss'
     | 'documentBlobs'
   >,
 ): Promise<string> {
@@ -399,6 +435,10 @@ export function captureFullWorkspace(): Omit<
     taxYear: exportTaxYearForBackup() ?? undefined,
     journalFilter: exportJournalFilterForBackup() ?? undefined,
     nwSparkWindow: exportNwSparkWindowForBackup() ?? undefined,
+    webhookUrl: exportWebhookUrlForBackup() ?? undefined,
+    achievementsSeen: exportAchievementsSeenForBackup() ?? undefined,
+    gettingStartedDismissed: exportGettingStartedDismissedForBackup() ?? undefined,
+    whatArrivedDismiss: exportWhatArrivedDismissForBackup() ?? undefined,
   }
 }
 
@@ -661,6 +701,18 @@ export async function restoreFullWorkspace(record: FullBackupRecord): Promise<vo
   if (record.nwSparkWindow) {
     importNwSparkWindowFromBackup(record.nwSparkWindow)
   }
+  if (record.webhookUrl) {
+    importWebhookUrlFromBackup(record.webhookUrl)
+  }
+  if (record.achievementsSeen) {
+    importAchievementsSeenFromBackup(record.achievementsSeen)
+  }
+  if (record.gettingStartedDismissed) {
+    importGettingStartedDismissedFromBackup(record.gettingStartedDismissed)
+  }
+  if (record.whatArrivedDismiss) {
+    importWhatArrivedDismissFromBackup(record.whatArrivedDismiss)
+  }
 }
 
 function fullBackupPayload(record: FullBackupRecord) {
@@ -721,6 +773,12 @@ function fullBackupPayload(record: FullBackupRecord) {
     ...(record.taxYear ? { taxYear: record.taxYear } : {}),
     ...(record.journalFilter ? { journalFilter: record.journalFilter } : {}),
     ...(record.nwSparkWindow ? { nwSparkWindow: record.nwSparkWindow } : {}),
+    ...(record.webhookUrl ? { webhookUrl: record.webhookUrl } : {}),
+    ...(record.achievementsSeen ? { achievementsSeen: record.achievementsSeen } : {}),
+    ...(record.gettingStartedDismissed
+      ? { gettingStartedDismissed: record.gettingStartedDismissed }
+      : {}),
+    ...(record.whatArrivedDismiss ? { whatArrivedDismiss: record.whatArrivedDismiss } : {}),
   }
 }
 
@@ -885,6 +943,10 @@ export function parseFullBackupFile(raw: unknown): FullBackupRecord | null {
     taxYear: o.taxYear,
     journalFilter: o.journalFilter,
     nwSparkWindow: o.nwSparkWindow,
+    webhookUrl: o.webhookUrl,
+    achievementsSeen: o.achievementsSeen,
+    gettingStartedDismissed: o.gettingStartedDismissed,
+    whatArrivedDismiss: o.whatArrivedDismiss,
     checksum: typeof o.checksum === 'string' ? o.checksum : undefined,
   }
 }

@@ -87,6 +87,30 @@ export function summarizeSyncHighlights(ids: SyncHighlightMap, maxParts = 4): st
   return hidden > 0 ? `${shown.join(' · ')} · ${hidden} more` : shown.join(' · ')
 }
 
+/** Deep-link to the first entity that arrived in a sync highlight map. */
+export function firstSyncHighlightHref(ids: SyncHighlightMap | null | undefined): string | null {
+  if (!ids) return null
+  const order: SyncHighlightCollection[] = [
+    'todoItems',
+    'todoLists',
+    'jobApplications',
+    'goals',
+    'spending',
+    'journal',
+  ]
+  for (const key of order) {
+    const id = ids[key]?.[0]
+    if (id == null) continue
+    if (key === 'todoItems') return `/todos?focus=${id}`
+    if (key === 'todoLists') return `/todos?list=${id}`
+    if (key === 'jobApplications') return `/jobs/${id}`
+    if (key === 'goals') return `/goals?note=${id}`
+    if (key === 'spending') return `/spending?highlight=${id}`
+    if (key === 'journal') return `/journal?highlight=${id}`
+  }
+  return null
+}
+
 /** Human labels for workspace extras applied on pull (quotes, media caches, ISA, …). */
 export type WorkspaceExtrasFlags = {
   marketQuotes?: boolean
@@ -114,6 +138,10 @@ export type WorkspaceExtrasFlags = {
   taxYear?: boolean
   journalFilter?: boolean
   nwSparkWindow?: boolean
+  webhookUrl?: boolean
+  achievementsSeen?: boolean
+  gettingStartedDismissed?: boolean
+  whatArrivedDismiss?: boolean
   markets?: boolean
   news?: boolean
   youtube?: boolean
@@ -145,6 +173,10 @@ const EXTRAS_LABELS: Array<[keyof WorkspaceExtrasFlags, string]> = [
   ['taxYear', 'Tax year'],
   ['journalFilter', 'Journal filter'],
   ['nwSparkWindow', 'NW spark window'],
+  ['webhookUrl', 'API webhook URL'],
+  ['achievementsSeen', 'Achievements seen'],
+  ['gettingStartedDismissed', 'Getting started dismissed'],
+  ['whatArrivedDismiss', 'What arrived dismiss'],
   ['markets', 'Markets watchlist'],
   ['news', 'News tags'],
   ['youtube', 'YouTube channels'],
@@ -188,6 +220,10 @@ export function workspaceExtrasFlagsFromPreview(extras: {
   taxYear?: unknown
   journalFilter?: unknown
   nwSparkWindow?: unknown
+  webhookUrl?: unknown
+  achievementsSeen?: unknown
+  gettingStartedDismissed?: unknown
+  whatArrivedDismiss?: unknown
   markets?: unknown
   news?: unknown
   youtube?: unknown
@@ -219,6 +255,10 @@ export function workspaceExtrasFlagsFromPreview(extras: {
     taxYear: extras.taxYear != null,
     journalFilter: extras.journalFilter != null,
     nwSparkWindow: extras.nwSparkWindow != null,
+    webhookUrl: extras.webhookUrl != null,
+    achievementsSeen: extras.achievementsSeen != null,
+    gettingStartedDismissed: extras.gettingStartedDismissed != null,
+    whatArrivedDismiss: extras.whatArrivedDismiss != null,
     markets: extras.markets != null,
     news: extras.news != null,
     youtube: extras.youtube != null,

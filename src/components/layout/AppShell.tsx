@@ -35,6 +35,7 @@ function allowPullToRefresh(pathname: string): boolean {
   if (pathname === '/recurring' || pathname === '/liabilities') return true
   if (pathname === '/goals' || pathname === '/trips') return true
   if (pathname === '/history' || pathname === '/budgets' || pathname === '/import') return true
+  if (pathname === '/import/legacy') return true
   if (pathname === '/family' || pathname === '/documents') return true
   if (pathname === '/journal' || pathname === '/rules') return true
   if (pathname === '/settings' || pathname.startsWith('/settings')) return true

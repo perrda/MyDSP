@@ -304,6 +304,43 @@ test.describe('MyDSP smoke', () => {
     await expect(page.getByText(/Opening/i).first()).toBeVisible()
   })
 
+  test('Goals and Trips Sync thumbs', async ({ page }) => {
+    await page.goto('/goals')
+    await expect(page.getByRole('heading', { name: /Goals/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await expect(page.locator('.thumb-cta-bar').getByRole('button', { name: /Sync now/i })).toBeVisible()
+
+    await page.goto('/trips')
+    await expect(page.getByRole('heading', { name: /Trips/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await expect(page.locator('.thumb-cta-bar').getByRole('button', { name: /Sync now/i })).toBeVisible()
+  })
+
+  test('Markets Expand-all', async ({ page }) => {
+    await page.goto('/markets')
+    await expect(page.getByRole('heading', { name: /Markets/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    // Phone: Expand/Collapse live in thumb CTA (header controls are sm+).
+    await expect(page.locator('.thumb-cta-bar .markets-expand-all').first()).toBeVisible()
+    await expect(page.locator('.thumb-cta-bar .markets-collapse-all').first()).toBeVisible()
+  })
+
+  test('Today Tax jump chip', async ({ page }) => {
+    await page.goto('/')
+    const chip = page.locator('.today-section-jump-tax').first()
+    await expect(chip).toBeVisible({ timeout: 20_000 })
+    await expect(chip).toHaveAttribute('href', '#today-tax')
+    await expect(page.locator('#today-tax').first()).toBeAttached()
+  })
+
+  test('smoke PTR includes Legacy import', async ({ page }) => {
+    await page.goto('/smoke')
+    await expect(page.getByText(/Legacy import/i).first()).toBeVisible({ timeout: 20_000 })
+  })
+
   test('offline queue enqueue surfaces in Settings Sync', async ({ page }) => {
     await page.addInitScript(() => {
       try {

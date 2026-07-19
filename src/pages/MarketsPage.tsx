@@ -22,6 +22,10 @@ import { OverflowMenu } from '../components/ui/OverflowMenu'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
 import { usePortfolio } from '../context/PortfolioContext'
 import { saveNewsFilterTag } from '../domain/newsFilterPrefs'
+import {
+  loadPriceAlertThresholds,
+  savePriceAlertThresholds,
+} from '../domain/priceAlerts'
 import { applyLastSyncedQuotesToHoldings } from '../domain/lastSyncedHoldings'
 import { includedPortfolioHoldingValue } from '../domain/portfolioConcentration'
 import { equityUnitPriceGbp } from '../domain/migrateEquityGbp'
@@ -499,7 +503,7 @@ function quoteAvailabilityLabel(
 export function MarketsPage() {
   const { data, privacy, setData } = usePortfolio()
   const navigate = useNavigate()
-  const { success: toastSuccess, error: toastError } = useToasts()
+  const { success: toastSuccess, error: toastError, showToast } = useToasts()
   const [searchParams, setSearchParams] = useSearchParams()
   const [undoRemove, setUndoRemove] = useState<MarketTicker | null>(null)
   const undoTimer = useRef<number | null>(null)
@@ -552,6 +556,11 @@ export function MarketsPage() {
   const [quoteDetail, setQuoteDetail] = useState<{ ticker: MarketTicker; quote?: MarketQuote } | null>(
     null,
   )
+  const [priceAlertEdit, setPriceAlertEdit] = useState<{
+    key: string
+    changePct: string
+  } | null>(null)
+  const [retagTicker, setRetagTicker] = useState<MarketTicker | null>(null)
   const [fxExplainerOpen, setFxExplainerOpen] = useState(false)
   const [tagFilter, setTagFilter] = useState<MarketTickerTag | 'All'>(() => getMarketsTagFilter())
   const [searchText, setSearchText] = useState('')
@@ -1047,13 +1056,23 @@ export function MarketsPage() {
   useEffect(() => {
     const onOnline = () => {
       setOnline(true)
+      const wasPendingRetry = pendingRetryOnline.current
       const hasUnavailable = tickersRef.current.some(
         (t) =>
           quoteAvailabilityLabel(quotesRef.current.get(t.id), { refreshing: false }) ===
           'Unavailable',
       )
-      if (hasUnavailable || pendingRetryOnline.current) {
+      if (hasUnavailable || wasPendingRetry) {
         pendingRetryOnline.current = false
+        if (wasPendingRetry) {
+          setError(null)
+          showToast({
+            type: 'success',
+            title: 'Back online',
+            message: 'Retrying unavailable quotes',
+            className: 'markets-back-online-toast',
+          })
+        }
         void retryUnavailable()
       }
     }
@@ -1064,7 +1083,7 @@ export function MarketsPage() {
       window.removeEventListener('online', onOnline)
       window.removeEventListener('offline', onOffline)
     }
-  }, [retryUnavailable])
+  }, [retryUnavailable, showToast])
 
   useEffect(() => {
     const onQuotes = () => {
@@ -1298,6 +1317,53 @@ export function MarketsPage() {
     setMarketsCollapsed(section, next)
     setCollapsed((c) => ({ ...c, [section]: next }))
   }
+
+  const setAllSectionsCollapsed = useCallback((value: boolean) => {
+    const next = {
+      crypto: value,
+      equities: value,
+      commodities: value,
+      indices: value,
+      fx: value,
+      crosses: value,
+    } as const
+    for (const section of Object.keys(next) as SectionKey[]) {
+      setMarketsCollapsed(section, value)
+    }
+    setCollapsed({ ...next })
+  }, [])
+
+  const openPriceAlertForSymbol = useCallback((symbol: string) => {
+    const key = symbol.trim()
+    if (!key) return
+    const existing = loadPriceAlertThresholds().find(
+      (th) =>
+        th.key.toUpperCase() === key.toUpperCase() ||
+        th.key.replace('^', '').toUpperCase() === key.replace('^', '').toUpperCase(),
+    )
+    setPriceAlertEdit({
+      key: existing?.key ?? key,
+      changePct: String(existing?.changePct ?? 3),
+    })
+  }, [])
+
+  const applyTickerTag = useCallback(
+    (ticker: MarketTicker, tag: MarketTickerTag | '') => {
+      updateMarketTicker(ticker.id, { tag })
+      reloadList()
+      setQuoteDetail((prev) =>
+        prev && prev.ticker.id === ticker.id
+          ? { ...prev, ticker: { ...prev.ticker, tag: tag || undefined } }
+          : prev,
+      )
+      setRetagTicker(null)
+      toastSuccess(
+        tag ? `Tagged ${ticker.symbol}` : `Cleared tag on ${ticker.symbol}`,
+        tag ? tag : 'No folder tag',
+      )
+    },
+    [reloadList, toastSuccess],
+  )
 
   const renderSection = (section: SectionKey) => {
     const meta = SECTION_META[section]
@@ -1872,12 +1938,18 @@ export function MarketsPage() {
                       <div className="shrink-0">
                         {compact ? (
                           <OverflowMenu
+                            className="markets-retag"
                             label={`Actions for ${t.symbol}`}
                             items={[
                               {
                                 id: 'edit',
                                 label: 'Edit',
                                 onClick: () => openEdit(t),
+                              },
+                              {
+                                id: 'retag',
+                                label: t.tag ? `Retag (${t.tag})` : 'Retag',
+                                onClick: () => setRetagTicker(t),
                               },
                               ...(t.kind === 'commodity'
                                 ? [
@@ -1909,25 +1981,33 @@ export function MarketsPage() {
                             onClick={(e) => e.stopPropagation()}
                             onKeyDown={(e) => e.stopPropagation()}
                           >
-                            {t.kind === 'commodity' ? (
-                              <OverflowMenu
-                                label={`Paper NW for ${t.symbol}`}
-                                items={[
-                                  {
-                                    id: 'paper-nw',
-                                    label: t.includeInNetWorth
-                                      ? 'Exclude from NW'
-                                      : 'Include in NW',
-                                    onClick: () => {
-                                      updateMarketTicker(t.id, {
-                                        includeInNetWorth: !t.includeInNetWorth,
-                                      })
-                                      reloadList()
-                                    },
-                                  },
-                                ]}
-                              />
-                            ) : null}
+                            <OverflowMenu
+                              className="markets-retag"
+                              label={`Retag ${t.symbol}`}
+                              items={[
+                                {
+                                  id: 'retag',
+                                  label: t.tag ? `Retag (${t.tag})` : 'Retag',
+                                  onClick: () => setRetagTicker(t),
+                                },
+                                ...(t.kind === 'commodity'
+                                  ? [
+                                      {
+                                        id: 'paper-nw',
+                                        label: t.includeInNetWorth
+                                          ? 'Exclude from NW'
+                                          : 'Include in NW',
+                                        onClick: () => {
+                                          updateMarketTicker(t.id, {
+                                            includeInNetWorth: !t.includeInNetWorth,
+                                          })
+                                          reloadList()
+                                        },
+                                      },
+                                    ]
+                                  : []),
+                              ]}
+                            />
                             <button
                               type="button"
                               className="btn-ghost btn-sm p-2 min-h-11 min-w-11"
@@ -2060,6 +2140,24 @@ export function MarketsPage() {
                 }}
               >
                 {density === 'comfortable' ? 'Compact' : 'Comfortable'}
+              </button>
+              <button
+                type="button"
+                className="btn-ghost btn-sm markets-expand-all"
+                data-testid="markets-expand-all"
+                aria-label="Expand all Markets sections"
+                onClick={() => setAllSectionsCollapsed(false)}
+              >
+                Expand all
+              </button>
+              <button
+                type="button"
+                className="btn-ghost btn-sm markets-collapse-all"
+                data-testid="markets-collapse-all"
+                aria-label="Collapse all Markets sections"
+                onClick={() => setAllSectionsCollapsed(true)}
+              >
+                Collapse all
               </button>
               <span
                 className="markets-density-trust text-xs text-text-muted tabular-nums"
@@ -2793,6 +2891,34 @@ export function MarketsPage() {
               </div>
             ) : null}
             <div className="flex flex-wrap gap-2">
+              {(() => {
+                const ownedRoute =
+                  quoteDetail.ticker.kind === 'crypto' || quoteDetail.ticker.kind === 'equity'
+                    ? ownedHoldingRouteByKey.get(
+                        `${quoteDetail.ticker.kind}:${normPortfolioSymbol(quoteDetail.ticker.symbol)}`,
+                      )
+                    : undefined
+                return ownedRoute ? (
+                  <Link
+                    to={ownedRoute}
+                    className="btn-secondary btn-sm markets-quote-open-holding"
+                    data-testid="markets-quote-open-holding"
+                    aria-label={`Open holding for ${quoteDetail.ticker.symbol}`}
+                    onClick={() => setQuoteDetail(null)}
+                  >
+                    Open holding
+                  </Link>
+                ) : null
+              })()}
+              <button
+                type="button"
+                className="btn-secondary btn-sm markets-quote-price-alert"
+                data-testid="markets-quote-price-alert"
+                aria-label={`Set price alert for ${quoteDetail.ticker.symbol}`}
+                onClick={() => openPriceAlertForSymbol(quoteDetail.ticker.symbol)}
+              >
+                Set price alert
+              </button>
               <button
                 type="button"
                 className="btn-secondary btn-sm markets-quote-copy"
@@ -2857,6 +2983,113 @@ export function MarketsPage() {
                 onClick={() => setQuoteDetail(null)}
               >
                 Close
+              </button>
+            </div>
+          </div>
+        ) : null}
+      </Modal>
+
+      <Modal
+        open={Boolean(priceAlertEdit)}
+        title={
+          priceAlertEdit ? `Price alert · ${priceAlertEdit.key}` : 'Set price alert'
+        }
+        onClose={() => setPriceAlertEdit(null)}
+      >
+        {priceAlertEdit ? (
+          <div className="space-y-4">
+            <p className="text-sm text-text-muted">
+              Alert when absolute move reaches this threshold (bell notifications).
+            </p>
+            <Field label="Threshold % move" hint="e.g. 3 for ±3%">
+              <input
+                type="number"
+                min={0.1}
+                step={0.1}
+                className="text-sm"
+                value={priceAlertEdit.changePct}
+                aria-label={`Alert threshold % for ${priceAlertEdit.key}`}
+                onChange={(e) =>
+                  setPriceAlertEdit((prev) =>
+                    prev ? { ...prev, changePct: e.target.value } : prev,
+                  )
+                }
+              />
+            </Field>
+            <div className="flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                className="btn-ghost btn-sm"
+                onClick={() => setPriceAlertEdit(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn-primary btn-sm"
+                aria-label={`Save price alert for ${priceAlertEdit.key}`}
+                onClick={() => {
+                  const pct = Number(priceAlertEdit.changePct)
+                  if (!Number.isFinite(pct) || pct <= 0) {
+                    toastError('Invalid threshold', 'Enter a percentage greater than 0')
+                    return
+                  }
+                  const key = priceAlertEdit.key.trim()
+                  const existing = loadPriceAlertThresholds()
+                  const idx = existing.findIndex(
+                    (th) =>
+                      th.key.toUpperCase() === key.toUpperCase() ||
+                      th.key.replace('^', '').toUpperCase() ===
+                        key.replace('^', '').toUpperCase(),
+                  )
+                  const next = [...existing]
+                  if (idx >= 0) next[idx] = { key: existing[idx]!.key, changePct: pct }
+                  else next.push({ key, changePct: pct })
+                  savePriceAlertThresholds(next)
+                  setPriceAlertEdit(null)
+                  toastSuccess('Price alert saved', `${key} ±${pct}%`)
+                }}
+              >
+                Save alert
+              </button>
+            </div>
+          </div>
+        ) : null}
+      </Modal>
+
+      <Modal
+        open={Boolean(retagTicker)}
+        title={retagTicker ? `Retag · ${retagTicker.symbol}` : 'Retag'}
+        onClose={() => setRetagTicker(null)}
+      >
+        {retagTicker ? (
+          <div className="markets-retag space-y-3" data-testid="markets-retag">
+            <p className="text-sm text-text-muted">
+              Apply a watchlist folder tag (Core · Speculative · Income · Other). Tags persist even
+              when filter chips are hidden.
+            </p>
+            <div className="flex flex-wrap gap-2" role="group" aria-label={`Retag ${retagTicker.symbol}`}>
+              {MARKET_TICKER_TAGS.map((tag) => (
+                <button
+                  key={tag}
+                  type="button"
+                  className={`btn-secondary btn-sm ${
+                    retagTicker.tag === tag ? 'border-accent text-accent' : ''
+                  }`}
+                  aria-pressed={retagTicker.tag === tag}
+                  aria-label={`Tag ${retagTicker.symbol} as ${tag}`}
+                  onClick={() => applyTickerTag(retagTicker, tag)}
+                >
+                  {tag}
+                </button>
+              ))}
+              <button
+                type="button"
+                className="btn-ghost btn-sm"
+                aria-label={`Clear tag on ${retagTicker.symbol}`}
+                onClick={() => applyTickerTag(retagTicker, '')}
+              >
+                Clear tag
               </button>
             </div>
           </div>
@@ -3031,6 +3264,22 @@ export function MarketsPage() {
           }}
         >
           {density === 'comfortable' ? 'Compact' : 'Comfortable'}
+        </button>
+        <button
+          type="button"
+          className="btn-ghost btn-sm markets-expand-all"
+          aria-label="Expand all Markets sections"
+          onClick={() => setAllSectionsCollapsed(false)}
+        >
+          Expand all
+        </button>
+        <button
+          type="button"
+          className="btn-ghost btn-sm markets-collapse-all"
+          aria-label="Collapse all Markets sections"
+          onClick={() => setAllSectionsCollapsed(true)}
+        >
+          Collapse all
         </button>
         <span
           className="markets-density-trust text-xs text-text-muted tabular-nums self-center"
