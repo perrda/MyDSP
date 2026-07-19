@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { ArrowRight, CandlestickChart, ChevronDown, ChevronUp } from 'lucide-react'
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { GettingStartedChecklist } from '../components/GettingStartedChecklist'
 import { AllocationRing, NetWorthChart } from '../components/charts/LazyCharts'
 import { BudgetSparkline } from '../components/charts/BudgetSparkline'
@@ -27,6 +27,10 @@ import {
   netWorthSparkSeries,
   type NwSparkWindow,
 } from '../domain/netWorthSparkline'
+import {
+  loadNwSparkWindowPref,
+  saveNwSparkWindowPref,
+} from '../domain/nwSparkWindowPref'
 import { dueWithinDays } from '../domain/recurringDueStrip'
 import { markRecurringPaid, skipRecurringOccurrence } from '../domain/recurringActions'
 import { monthlyRecurringTotal } from '../domain/recurringHelpers'
@@ -41,8 +45,13 @@ import {
   syncNow,
   type AutoSyncStatus,
 } from '../services/sync/autoSyncService'
-import { loadSyncConfig } from '../services/sync/syncService'
-import { loadOfflineQueue } from '../services/offlineQueue'
+import { loadSyncConfig, pushSync } from '../services/sync/syncService'
+import {
+  loadOfflineQueue,
+  removeOfflineJob,
+  retryOfflineJobNow,
+} from '../services/offlineQueue'
+import { getSessionSyncPassphrase } from '../services/sync/sessionPassphrase'
 import { LAST_BACKUP_KEY } from '../storage/backupStore'
 import { hasFinnhubKey } from '../domain/finnhubReminder'
 import { isSyncedRemoteQuote } from '../domain/marketQuotesSync'
@@ -171,6 +180,7 @@ function loadIsaRemaining(): number | null {
 type TodayPanelId = 'today-next-action' | 'today-bills' | 'today-goals'
 
 const TODAY_ACCORDION_QUERY = '(max-width: 639px), (orientation: portrait) and (max-width: 1023px)'
+const WHAT_ARRIVED_DISMISS_KEY = 'mydsp_what_arrived_dismissed_fp'
 
 function readTodayPanelOpen(id: TodayPanelId, fallback: boolean): boolean {
   return getUiPanelOpenState(id) ?? fallback
@@ -255,7 +265,8 @@ function TodayAccordionSection({
 }
 
 export function Dashboard() {
-  const { data, breakdown, privacy, fccDataPresent, setData, goalProgress } = usePortfolio()
+  const { data, breakdown, privacy, fccDataPresent, setData, goalProgress, refreshPrices } =
+    usePortfolio()
   const { netWorth, assets, liabilities, crypto, equity, liability } = breakdown
   const { reminders } = useSmartReminders()
   const { success: toastSuccess } = useToasts()
@@ -263,7 +274,7 @@ export function Dashboard() {
   const [digestInput, setDigestInput] = useState<WeeklyDigestInput | null>(null)
   const [syncStatus, setSyncStatus] = useState<AutoSyncStatus>(() => getAutoSyncStatus())
   const [queueLen, setQueueLen] = useState(() => loadOfflineQueue().length)
-  const [nwSparkDays, setNwSparkDays] = useState<NwSparkWindow>(7)
+  const [nwSparkDays, setNwSparkDays] = useState<NwSparkWindow>(() => loadNwSparkWindowPref())
   /** iPad / wide Stage Manager: Today | Markets two-pane when ≥900px. */
   const [twoPane, setTwoPane] = useState(() =>
     typeof window !== 'undefined' ? window.matchMedia('(min-width: 900px)').matches : false,
@@ -279,6 +290,13 @@ export function Dashboard() {
     () => loadYoutubeVideosCache().fetchedAt ?? null,
   )
   const [whatArrivedChip, setWhatArrivedChip] = useState<string | null>(null)
+  const [focusUndo, setFocusUndo] = useState<{
+    id: number
+    status: string
+    completedAt?: string
+    updatedAt: string
+  } | null>(null)
+  const focusUndoTimer = useRef<number | null>(null)
 
   useEffect(() => subscribeAutoSync(setSyncStatus), [])
   useEffect(() => {
@@ -439,16 +457,17 @@ export function Dashboard() {
     return `${live} live · ${unavailable} unavailable`
   }, [syncStatus.lastAt, marketsCount])
 
-  /** Next-action stack: todo / bill / top mover (max 3). */
+  /** Next-action stack: todo / bill / interview / goal / top mover (max 3). */
   const nextActions = useMemo(
     () =>
       buildNextActionStack({
         todoItems: data.todoItems,
         recurringTransactions: data.recurringTransactions,
         jobApplications: data.jobApplications,
+        goals: data.goals,
         movers: todayMovers,
       }),
-    [data.todoItems, data.recurringTransactions, data.jobApplications, todayMovers],
+    [data.todoItems, data.recurringTransactions, data.jobApplications, data.goals, todayMovers],
   )
 
   const focusTodoCard = nextActions.find((c) => c.kind === 'todo')
@@ -616,6 +635,14 @@ export function Dashboard() {
     if (!focusTodoItem) return
     const now = new Date().toISOString()
     const id = focusTodoItem.id
+    setFocusUndo({
+      id,
+      status: focusTodoItem.status,
+      completedAt: focusTodoItem.completedAt,
+      updatedAt: focusTodoItem.updatedAt,
+    })
+    if (focusUndoTimer.current) window.clearTimeout(focusUndoTimer.current)
+    focusUndoTimer.current = window.setTimeout(() => setFocusUndo(null), 5_000)
     setData((prev) => ({
       ...prev,
       todoItems: (prev.todoItems ?? []).map((i) =>
@@ -624,6 +651,50 @@ export function Dashboard() {
           : i,
       ),
     }))
+  }
+
+  const undoFocusDone = () => {
+    if (!focusUndo) return
+    const snap = focusUndo
+    setData((prev) => ({
+      ...prev,
+      todoItems: (prev.todoItems ?? []).map((i) =>
+        i.id === snap.id
+          ? {
+              ...i,
+              status: snap.status as typeof i.status,
+              completedAt: snap.completedAt,
+              updatedAt: snap.updatedAt,
+            }
+          : i,
+      ),
+    }))
+    setFocusUndo(null)
+    if (focusUndoTimer.current) {
+      window.clearTimeout(focusUndoTimer.current)
+      focusUndoTimer.current = null
+    }
+  }
+
+  const retryOfflineQueue = () => {
+    const queue = loadOfflineQueue()
+    for (const j of queue) retryOfflineJobNow(j.id)
+    for (const job of loadOfflineQueue()) {
+      if (job.type === 'quote_refresh') {
+        void refreshPrices().then(() => removeOfflineJob(job.id))
+        continue
+      }
+      if (job.type === 'sync_push' && job.remoteUrl) {
+        const pass = getSessionSyncPassphrase()
+        if (!pass) continue
+        void pushSync(job.remoteUrl, pass)
+          .then(() => removeOfflineJob(job.id))
+          .catch(() => {
+            /* keep queued */
+          })
+      }
+    }
+    void syncNow().then(() => toastSuccess('Offline queue retry started'))
   }
 
   const snoozeFocus = () => {
@@ -669,11 +740,25 @@ export function Dashboard() {
       const detail = (ev as CustomEvent<{ summary?: string | null; extrasSummary?: string | null }>)
         .detail
       const summary = detail?.summary || detail?.extrasSummary || null
-      if (!summary) return
-      setWhatArrivedChip(summary)
+      if (summary) {
+        try {
+          if (localStorage.getItem(WHAT_ARRIVED_DISMISS_KEY) !== summary) {
+            setWhatArrivedChip(summary)
+          }
+        } catch {
+          setWhatArrivedChip(summary)
+        }
+      }
+      setNwSparkDays(loadNwSparkWindowPref())
     }
     window.addEventListener('mydsp-sync-applied', onArrived)
     return () => window.removeEventListener('mydsp-sync-applied', onArrived)
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (focusUndoTimer.current) window.clearTimeout(focusUndoTimer.current)
+    }
   }, [])
 
   /** Soonest active goal with deadline within 30 days (inclusive). */
@@ -787,16 +872,17 @@ export function Dashboard() {
       >
         {(
           [
-            ['today-next-action', 'Next'],
-            ['today-bills', 'Bills'],
-            ['today-media', 'Media'],
-            ['today-markets', 'Markets'],
+            ['today-next-action', 'Next', 'today-section-jump-next'],
+            ['today-bills', 'Bills', 'today-section-jump-bills'],
+            ['today-goals', 'Goals', 'today-section-jump-goals'],
+            ['today-media', 'Media', 'today-section-jump-media'],
+            ['today-markets', 'Markets', 'today-section-jump-markets'],
           ] as const
-        ).map(([id, label]) => (
+        ).map(([id, label, chipClass]) => (
           <a
             key={id}
             href={`#${id}`}
-            className="today-section-jump-chip btn-ghost btn-sm text-xs"
+            className={`today-section-jump-chip ${chipClass} btn-ghost btn-sm text-xs`}
             onClick={(e) => {
               e.preventDefault()
               document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -812,7 +898,15 @@ export function Dashboard() {
           Offline queue · {queueLen} —{' '}
           <Link to="/settings#sync" className="hover:underline">
             open Sync
-          </Link>
+          </Link>{' '}
+          <button
+            type="button"
+            className="btn-ghost btn-sm text-[11px] min-h-8 today-offline-queue-retry"
+            onClick={retryOfflineQueue}
+            aria-label="Retry offline queue now"
+          >
+            Retry now
+          </button>
         </p>
       ) : null}
 
@@ -859,7 +953,10 @@ export function Dashboard() {
                       nwSparkDays === d ? 'text-accent font-bold' : ''
                     }`}
                     aria-pressed={nwSparkDays === d}
-                    onClick={() => setNwSparkDays(d)}
+                    onClick={() => {
+                      setNwSparkDays(d)
+                      saveNwSparkWindowPref(d)
+                    }}
                   >
                     {d === 7 ? '7d' : '30d'}
                   </button>
@@ -1141,6 +1238,42 @@ export function Dashboard() {
                 </div>
               )
             }
+            if (card.kind === 'goal') {
+              return (
+                <div
+                  key={`goal-${card.goalId}`}
+                  className="today-next-action-card goal-next-action surface p-4 md:p-5 rounded-xl md:rounded-none shadow-sm md:shadow-none"
+                >
+                  <Link to="/goals" className="block group">
+                    <p className="text-[11px] uppercase tracking-wider text-text-subtle mb-1">
+                      {card.label}
+                    </p>
+                    <p className="text-base md:text-lg font-bold tracking-tight group-hover:text-accent line-clamp-1">
+                      {card.name}
+                    </p>
+                    {card.deadline ? (
+                      <p className="text-xs text-text-muted mt-1 font-light">
+                        Due {formatDate(card.deadline)}
+                      </p>
+                    ) : null}
+                  </Link>
+                  <div className="today-goal-next-actions flex flex-wrap gap-2 mt-3">
+                    <Link
+                      to="/goals"
+                      className="btn-primary btn-sm inline-flex items-center"
+                    >
+                      Open
+                    </Link>
+                    <Link
+                      to={`/goals?note=${card.goalId}`}
+                      className="btn-secondary btn-sm inline-flex items-center"
+                    >
+                      Log note
+                    </Link>
+                  </div>
+                </div>
+              )
+            }
             if (card.kind === 'bill') {
               const billNote = latestRecurringCommentary(card.bill)
               return (
@@ -1213,6 +1346,21 @@ export function Dashboard() {
             )
           })
         )}
+        {focusUndo ? (
+          <div
+            className="today-focus-undo-banner mt-2 flex flex-wrap items-center justify-between gap-2 surface px-3 py-2 border border-border"
+            role="status"
+          >
+            <p className="text-sm text-text-muted">Focus task marked done</p>
+            <button
+              type="button"
+              className="btn-secondary btn-sm today-focus-undo"
+              onClick={undoFocusDone}
+            >
+              Undo
+            </button>
+          </div>
+        ) : null}
       </TodayAccordionSection>
 
       {showBillsStrip.length > 0 ? (
@@ -1482,7 +1630,16 @@ export function Dashboard() {
             <button
               type="button"
               className="btn-ghost btn-sm text-[11px] min-h-8 today-what-arrived-dismiss"
-              onClick={() => setWhatArrivedChip(null)}
+              onClick={() => {
+                try {
+                  if (whatArrivedChip) {
+                    localStorage.setItem(WHAT_ARRIVED_DISMISS_KEY, whatArrivedChip)
+                  }
+                } catch {
+                  /* private mode */
+                }
+                setWhatArrivedChip(null)
+              }}
             >
               Dismiss
             </button>

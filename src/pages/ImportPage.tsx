@@ -204,6 +204,28 @@ export function ImportPage() {
           </div>
         </>
       )}
+
+      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary legacy import actions">
+        {rows.length > 0 ? (
+          <button type="button" className="btn-primary btn-sm" onClick={importSelected}>
+            Continue / Save
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="btn-primary btn-sm"
+            onClick={() =>
+              (document.querySelector('input[type="file"]') as HTMLInputElement | null)?.click()
+            }
+          >
+            Continue / Save
+          </button>
+        )}
+        <Link to="/import" className="btn-secondary btn-sm">
+          Open enhanced import
+        </Link>
+      </div>
+      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }

@@ -23,6 +23,8 @@ export const BOTTOM_NAV_SLOT_CHOICES = [
   '/youtube',
   '/liabilities',
   '/tax',
+  '/trips',
+  '/analytics',
 ] as const
 
 export type BottomNavSlotsBackup = {

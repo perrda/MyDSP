@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.82**
+**Current version: 1.2.83**
 
-## Completed (through v1.2.82)
+## Completed (through v1.2.83)
 
+- Sync / Markets / Today polish (next25r tip 1–25): Settings sections / Tax year / Journal filter / NW spark LWW, Markets quote Copy·News·Retry + Retry-all-stale + search clear + density trust + commodity paper NW, Analytics/Opening thumbs + Trips/Analytics long-press Sync, Today Goals jump / offline Retry / goal next-action / What arrived dismiss / Focus undo, axe Goals jump + Markets Retry-all + Analytics/Opening
 - Sync / Markets / Today polish (next25q tip 1–25): Launch path / UI panels / Markets tag-Yield / Settings jumps LWW, Markets undo remove + stale Retry + quote Edit, FIRE/Optimizer/API thumbs + PTR + long-press Sync, Today jump chips / All caught up / offline queue / focus pulse, axe Today offline-queue + Markets tag hint + Legacy import
 - Sync / Markets / Today polish (next25p tip 1–25): News/YouTube prefs LWW, Favourites layout LWW, Markets deletion tombstones, keyboard rows, Add commodity/FX/index thumbs, Today Sync thumb + Refresh & open `?refresh=1`, follow-up next-action, PTR Settings/Staking/Planning/Smoke, axe Predictive/Insights/API/Review/Smoke/Job+Liability detail
 - Sync / Markets / Today polish (next25o tip 1–25): bottom-nav slots LWW, journal What arrived, Markets density/collapse LWW, jump tablist, Compact thumb, section as-of, paper NW overflow, Family/Docs/Journal/Rules thumbs, interview Mark done, axe Staking→Achievements

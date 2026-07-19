@@ -37,6 +37,10 @@ import {
   importUiPanelsFromBackup,
 } from './uiPanelsStore'
 import {
+  exportSettingsSectionsForBackup,
+  importSettingsSectionsFromBackup,
+} from './settingsSectionsStore'
+import {
   exportMarketsTagYieldForBackup,
   importMarketsTagYieldFromBackup,
 } from '../domain/marketsTagYieldPref'
@@ -44,6 +48,18 @@ import {
   exportSettingsRecentJumpsForBackup,
   importSettingsRecentJumpsFromBackup,
 } from '../domain/settingsSearch'
+import {
+  exportTaxYearForBackup,
+  importTaxYearFromBackup,
+} from '../domain/taxYearPref'
+import {
+  exportJournalFilterForBackup,
+  importJournalFilterFromBackup,
+} from '../domain/journalFilterPref'
+import {
+  exportNwSparkWindowForBackup,
+  importNwSparkWindowFromBackup,
+} from '../domain/nwSparkWindowPref'
 import {
   exportYoutubeForBackup,
   exportYoutubeVideosForBackup,
@@ -181,10 +197,18 @@ export interface FullBackupRecord extends FullBackupMeta {
   launchPath?: unknown
   /** Optional UI panel open/collapsed map */
   uiPanels?: unknown
+  /** Optional Settings section open/collapsed map */
+  settingsSections?: unknown
   /** Optional Markets tag/Yield chips visibility */
   marketsTagYield?: unknown
   /** Optional Settings recent jump chips */
   settingsRecentJumps?: unknown
+  /** Optional Tax year selection */
+  taxYear?: unknown
+  /** Optional Journal asset filter */
+  journalFilter?: unknown
+  /** Optional Today NW spark window (7/30) */
+  nwSparkWindow?: unknown
   /** Optional file attachments (CV/PDFs) as base64 payloads */
   documentBlobs?: import('./documentBlobStore').DocumentBlobPayload[]
   documentBlobsSkipped?: number[]
@@ -219,8 +243,12 @@ function backupCanonical(record: Pick<
   | 'bottomNavSlots'
   | 'launchPath'
   | 'uiPanels'
+  | 'settingsSections'
   | 'marketsTagYield'
   | 'settingsRecentJumps'
+  | 'taxYear'
+  | 'journalFilter'
+  | 'nwSparkWindow'
   | 'documentBlobs'
 >): string {
   return JSON.stringify({
@@ -249,8 +277,12 @@ function backupCanonical(record: Pick<
     bottomNavSlots: record.bottomNavSlots ?? null,
     launchPath: record.launchPath ?? null,
     uiPanels: record.uiPanels ?? null,
+    settingsSections: record.settingsSections ?? null,
     marketsTagYield: record.marketsTagYield ?? null,
     settingsRecentJumps: record.settingsRecentJumps ?? null,
+    taxYear: record.taxYear ?? null,
+    journalFilter: record.journalFilter ?? null,
+    nwSparkWindow: record.nwSparkWindow ?? null,
     documentBlobs: record.documentBlobs ?? null,
   })
 }
@@ -284,8 +316,12 @@ export async function computeFullBackupChecksum(
     | 'bottomNavSlots'
     | 'launchPath'
     | 'uiPanels'
+    | 'settingsSections'
     | 'marketsTagYield'
     | 'settingsRecentJumps'
+    | 'taxYear'
+    | 'journalFilter'
+    | 'nwSparkWindow'
     | 'documentBlobs'
   >,
 ): Promise<string> {
@@ -357,8 +393,12 @@ export function captureFullWorkspace(): Omit<
     bottomNavSlots: exportBottomNavSlotsForBackup() ?? undefined,
     launchPath: exportLaunchPathForBackup() ?? undefined,
     uiPanels: exportUiPanelsForBackup() ?? undefined,
+    settingsSections: exportSettingsSectionsForBackup() ?? undefined,
     marketsTagYield: exportMarketsTagYieldForBackup() ?? undefined,
     settingsRecentJumps: exportSettingsRecentJumpsForBackup() ?? undefined,
+    taxYear: exportTaxYearForBackup() ?? undefined,
+    journalFilter: exportJournalFilterForBackup() ?? undefined,
+    nwSparkWindow: exportNwSparkWindowForBackup() ?? undefined,
   }
 }
 
@@ -603,11 +643,23 @@ export async function restoreFullWorkspace(record: FullBackupRecord): Promise<vo
   if (record.uiPanels) {
     importUiPanelsFromBackup(record.uiPanels)
   }
+  if (record.settingsSections) {
+    importSettingsSectionsFromBackup(record.settingsSections)
+  }
   if (record.marketsTagYield) {
     importMarketsTagYieldFromBackup(record.marketsTagYield)
   }
   if (record.settingsRecentJumps) {
     importSettingsRecentJumpsFromBackup(record.settingsRecentJumps)
+  }
+  if (record.taxYear) {
+    importTaxYearFromBackup(record.taxYear)
+  }
+  if (record.journalFilter) {
+    importJournalFilterFromBackup(record.journalFilter)
+  }
+  if (record.nwSparkWindow) {
+    importNwSparkWindowFromBackup(record.nwSparkWindow)
   }
 }
 
@@ -661,10 +713,14 @@ function fullBackupPayload(record: FullBackupRecord) {
     ...(record.bottomNavSlots ? { bottomNavSlots: record.bottomNavSlots } : {}),
     ...(record.launchPath ? { launchPath: record.launchPath } : {}),
     ...(record.uiPanels ? { uiPanels: record.uiPanels } : {}),
+    ...(record.settingsSections ? { settingsSections: record.settingsSections } : {}),
     ...(record.marketsTagYield ? { marketsTagYield: record.marketsTagYield } : {}),
     ...(record.settingsRecentJumps
       ? { settingsRecentJumps: record.settingsRecentJumps }
       : {}),
+    ...(record.taxYear ? { taxYear: record.taxYear } : {}),
+    ...(record.journalFilter ? { journalFilter: record.journalFilter } : {}),
+    ...(record.nwSparkWindow ? { nwSparkWindow: record.nwSparkWindow } : {}),
   }
 }
 
@@ -823,8 +879,12 @@ export function parseFullBackupFile(raw: unknown): FullBackupRecord | null {
     bottomNavSlots: o.bottomNavSlots,
     launchPath: o.launchPath,
     uiPanels: o.uiPanels,
+    settingsSections: o.settingsSections,
     marketsTagYield: o.marketsTagYield,
     settingsRecentJumps: o.settingsRecentJumps,
+    taxYear: o.taxYear,
+    journalFilter: o.journalFilter,
+    nwSparkWindow: o.nwSparkWindow,
     checksum: typeof o.checksum === 'string' ? o.checksum : undefined,
   }
 }

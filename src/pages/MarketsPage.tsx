@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   ArrowUpDown,
   ChevronDown,
@@ -13,6 +13,7 @@ import {
   Trash2,
 } from 'lucide-react'
 import { Sparkline } from '../components/charts/Sparkline'
+import { useToasts } from '../components/ToastProvider'
 import { PageHeader } from '../components/ui/PageHeader'
 import { EmptyStateInline } from '../components/ui/EmptyState'
 import { MarketsHoldingsSkeleton } from '../components/ui/MarketsHoldingsSkeleton'
@@ -20,6 +21,7 @@ import { ConfirmDialog, Field, Modal } from '../components/ui/Modal'
 import { OverflowMenu } from '../components/ui/OverflowMenu'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
 import { usePortfolio } from '../context/PortfolioContext'
+import { saveNewsFilterTag } from '../domain/newsFilterPrefs'
 import { applyLastSyncedQuotesToHoldings } from '../domain/lastSyncedHoldings'
 import { includedPortfolioHoldingValue } from '../domain/portfolioConcentration'
 import { equityUnitPriceGbp } from '../domain/migrateEquityGbp'
@@ -496,6 +498,8 @@ function quoteAvailabilityLabel(
 
 export function MarketsPage() {
   const { data, privacy, setData } = usePortfolio()
+  const navigate = useNavigate()
+  const { success: toastSuccess, error: toastError } = useToasts()
   const [searchParams, setSearchParams] = useSearchParams()
   const [undoRemove, setUndoRemove] = useState<MarketTicker | null>(null)
   const undoTimer = useRef<number | null>(null)
@@ -979,6 +983,66 @@ export function MarketsPage() {
       await refresh(kind)
     }
   }, [tickers, quotes, refresh])
+
+  const quoteNeedsStaleRetry = useCallback((q: MarketQuote | undefined) => {
+    if (quoteAvailabilityLabel(q, { refreshing: false }) === 'Unavailable') return true
+    if (isStaleQuote(q)) return true
+    if (q && (q.source || '').startsWith('sync:') && isPastQuoteFreshnessSla(q)) return true
+    return false
+  }, [])
+
+  const hasStaleOrUnavailable = useMemo(() => {
+    for (const t of tickers) {
+      if (quoteNeedsStaleRetry(quotes.get(t.id))) return true
+    }
+    return false
+  }, [tickers, quotes, quoteNeedsStaleRetry])
+
+  const retryAllStale = useCallback(async () => {
+    if (!isOnline()) {
+      pendingRetryOnline.current = true
+      setError('You are offline — retry stale quotes when back online')
+      return
+    }
+    pendingRetryOnline.current = false
+    const kinds = new Set<MarketAssetKind>()
+    for (const t of tickers) {
+      if (quoteNeedsStaleRetry(quotes.get(t.id))) kinds.add(t.kind)
+    }
+    if (kinds.size === 0) {
+      await refresh()
+      return
+    }
+    for (const kind of kinds) {
+      await refresh(kind)
+    }
+  }, [tickers, quotes, refresh, quoteNeedsStaleRetry])
+
+  /** Keep quote modal / detail panel in sync with live quotes + ticker edits. */
+  useEffect(() => {
+    setQuoteDetail((prev) => {
+      if (!prev) return prev
+      const t = tickers.find((x) => x.id === prev.ticker.id)
+      if (!t) return null
+      return { ticker: t, quote: quotes.get(t.id) ?? prev.quote }
+    })
+  }, [tickers, quotes])
+
+  const densityTrust = useMemo(() => {
+    let collapsedCount = 0
+    let hiddenSparklines = 0
+    if (!searchQuery) {
+      for (const section of sectionOrder) {
+        if (!collapsed[section]) continue
+        collapsedCount += 1
+        for (const t of bySection[section]) {
+          const q = quotes.get(t.id)
+          if (q && q.sparkline.length > 1) hiddenSparklines += 1
+        }
+      }
+    }
+    return { collapsedCount, hiddenSparklines }
+  }, [searchQuery, sectionOrder, collapsed, bySection, quotes])
 
   useEffect(() => {
     const onOnline = () => {
@@ -1976,26 +2040,38 @@ export function MarketsPage() {
               />
               {syncingPrices || refreshing ? 'Syncing…' : 'Sync prices'}
             </button>
-            <button
-              type="button"
-              className={`btn-ghost btn-sm ${
-                density === 'compact' ? 'border-accent text-accent' : ''
-              }`}
-              aria-pressed={density === 'compact'}
-              aria-label={
-                density === 'comfortable'
-                  ? 'Switch to compact density'
-                  : 'Switch to comfortable density'
-              }
-              onClick={() => {
-                const next: MarketsDensity =
-                  density === 'comfortable' ? 'compact' : 'comfortable'
-                setMarketsDensity(next)
-                setDensity(next)
-              }}
-            >
-              {density === 'comfortable' ? 'Compact' : 'Comfortable'}
-            </button>
+            <span className="inline-flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                className={`btn-ghost btn-sm ${
+                  density === 'compact' ? 'border-accent text-accent' : ''
+                }`}
+                aria-pressed={density === 'compact'}
+                aria-label={
+                  density === 'comfortable'
+                    ? 'Switch to compact density'
+                    : 'Switch to comfortable density'
+                }
+                onClick={() => {
+                  const next: MarketsDensity =
+                    density === 'comfortable' ? 'compact' : 'comfortable'
+                  setMarketsDensity(next)
+                  setDensity(next)
+                }}
+              >
+                {density === 'comfortable' ? 'Compact' : 'Comfortable'}
+              </button>
+              <span
+                className="markets-density-trust text-xs text-text-muted tabular-nums"
+                role="status"
+                aria-label={`${densityTrust.hiddenSparklines} sparklines hidden, ${densityTrust.collapsedCount} sections collapsed`}
+              >
+                {densityTrust.hiddenSparklines} sparkline
+                {densityTrust.hiddenSparklines === 1 ? '' : 's'} hidden ·{' '}
+                {densityTrust.collapsedCount} section
+                {densityTrust.collapsedCount === 1 ? '' : 's'} collapsed
+              </span>
+            </span>
             <button
               type="button"
               className={`btn-secondary inline-flex items-center gap-2 ${sorting ? 'border-accent text-accent' : ''}`}
@@ -2077,13 +2153,37 @@ export function MarketsPage() {
               id="markets-search-input"
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  e.preventDefault()
+                  setSearchText('')
+                }
+              }}
               placeholder="Search watchlist by symbol or name"
               aria-label="Search watchlist by symbol or name"
               className="min-w-[14rem] flex-1"
             />
             {searchText ? (
-              <button type="button" className="btn-ghost btn-sm" onClick={() => setSearchText('')}>
+              <button
+                type="button"
+                className="btn-ghost btn-sm markets-search-clear"
+                data-testid="markets-search-clear"
+                aria-label="Clear markets search"
+                onClick={() => setSearchText('')}
+              >
                 Clear
+              </button>
+            ) : null}
+            {hasStaleOrUnavailable ? (
+              <button
+                type="button"
+                className="btn-secondary btn-sm markets-retry-all-stale"
+                data-testid="markets-retry-all-stale"
+                disabled={refreshing}
+                aria-label="Retry all stale and unavailable quotes"
+                onClick={() => void retryAllStale()}
+              >
+                Retry all stale
               </button>
             ) : null}
           </div>
@@ -2643,13 +2743,103 @@ export function MarketsPage() {
                 : ''}
             </p>
             {quoteDetail.ticker.kind === 'commodity' ? (
-              <p className="text-xs text-text-muted markets-quote-nw-badge">
-                {quoteDetail.ticker.includeInNetWorth
-                  ? 'Included in net worth (paper)'
-                  : 'Excluded from net worth'}
-              </p>
+              <div className="space-y-2">
+                {quoteDetail.ticker.quantity != null &&
+                quoteDetail.ticker.quantity > 0 &&
+                quoteDetail.quote &&
+                quoteDetail.quote.last > 0 ? (
+                  <p
+                    className={`markets-quote-paper-block text-sm tabular-nums text-text-muted ${privacyClass(privacy)}`}
+                  >
+                    {quoteDetail.ticker.quantity}
+                    {' · cost '}
+                    {quoteDetail.ticker.avgCostGbp != null
+                      ? formatGBP(quoteDetail.ticker.quantity * quoteDetail.ticker.avgCostGbp)
+                      : '—'}
+                    {' · P&L '}
+                    {quoteDetail.ticker.avgCostGbp != null
+                      ? formatGBP(
+                          quoteDetail.ticker.quantity * quoteDetail.quote.last -
+                            quoteDetail.ticker.quantity * quoteDetail.ticker.avgCostGbp,
+                          { signed: true },
+                        )
+                      : '—'}
+                  </p>
+                ) : null}
+                <button
+                  type="button"
+                  className="btn-ghost btn-sm markets-quote-nw-badge"
+                  aria-label={
+                    quoteDetail.ticker.includeInNetWorth
+                      ? 'Exclude paper position from net worth'
+                      : 'Include paper position in net worth'
+                  }
+                  aria-pressed={Boolean(quoteDetail.ticker.includeInNetWorth)}
+                  onClick={() => {
+                    const next = !quoteDetail.ticker.includeInNetWorth
+                    updateMarketTicker(quoteDetail.ticker.id, { includeInNetWorth: next })
+                    reloadList()
+                    setQuoteDetail((prev) =>
+                      prev
+                        ? { ...prev, ticker: { ...prev.ticker, includeInNetWorth: next } }
+                        : prev,
+                    )
+                  }}
+                >
+                  {quoteDetail.ticker.includeInNetWorth
+                    ? 'Exclude from NW'
+                    : 'Include in NW'}
+                </button>
+              </div>
             ) : null}
             <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="btn-secondary btn-sm markets-quote-copy"
+                data-testid="markets-quote-copy"
+                aria-label={`Copy symbol ${quoteDetail.ticker.symbol}`}
+                onClick={() => {
+                  const sym = quoteDetail.ticker.symbol
+                  void (async () => {
+                    try {
+                      if (navigator.clipboard?.writeText) {
+                        await navigator.clipboard.writeText(sym)
+                        toastSuccess('Copied', `${sym} copied to clipboard`)
+                      } else {
+                        toastError('Copy failed', 'Clipboard unavailable')
+                      }
+                    } catch {
+                      toastError('Copy failed', 'Could not copy symbol')
+                    }
+                  })()
+                }}
+              >
+                Copy symbol
+              </button>
+              <button
+                type="button"
+                className="btn-secondary btn-sm markets-quote-open-news"
+                data-testid="markets-quote-open-news"
+                aria-label={`Open News for ${quoteDetail.ticker.symbol}`}
+                onClick={() => {
+                  const tag = quoteDetail.ticker.symbol.trim()
+                  if (tag) saveNewsFilterTag(tag)
+                  setQuoteDetail(null)
+                  navigate(tag ? `/news?tag=${encodeURIComponent(tag)}` : '/news')
+                }}
+              >
+                Open News
+              </button>
+              <button
+                type="button"
+                className="btn-secondary btn-sm markets-quote-retry"
+                data-testid="markets-quote-retry"
+                disabled={refreshing}
+                aria-label={`Retry quote for ${quoteDetail.ticker.symbol}`}
+                onClick={() => void refresh(quoteDetail.ticker.kind)}
+              >
+                Retry this quote
+              </button>
               <button
                 type="button"
                 className="btn-secondary btn-sm markets-quote-edit"
@@ -2842,6 +3032,17 @@ export function MarketsPage() {
         >
           {density === 'comfortable' ? 'Compact' : 'Comfortable'}
         </button>
+        <span
+          className="markets-density-trust text-xs text-text-muted tabular-nums self-center"
+          data-testid="markets-density-trust"
+          role="status"
+          aria-label={`${densityTrust.hiddenSparklines} sparklines hidden, ${densityTrust.collapsedCount} sections collapsed`}
+        >
+          {densityTrust.hiddenSparklines} sparkline
+          {densityTrust.hiddenSparklines === 1 ? '' : 's'} hidden ·{' '}
+          {densityTrust.collapsedCount} section
+          {densityTrust.collapsedCount === 1 ? '' : 's'} collapsed
+        </span>
       </div>
       <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>

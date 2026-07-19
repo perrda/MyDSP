@@ -114,7 +114,9 @@ export function AnalyticsPage() {
         </svg>
       </Link>
 
-      <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px mb-8 ${privacyClass(privacy)}`}>
+      <div
+        className={`analytics-kpi-row grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px mb-8 ${privacyClass(privacy)}`}
+      >
         <StatCard label="Net worth" value={formatGBP(netWorth)} />
         <StatCard label="Debt ratio" value={`${debtRatio.toFixed(1)}%`} hint="Liabilities / assets" />
         <StatCard
@@ -245,6 +247,26 @@ export function AnalyticsPage() {
       </div>
 
       <AdvancedAnalyticsDashboard />
+
+      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary analytics actions">
+        <ExportReportButton
+          data={data}
+          breakdown={breakdown}
+          options={{
+            includeHoldings: true,
+            includeSpending: true,
+            includeBudgets: true,
+            includeGoals: true,
+            includeTodos: false,
+            includeJobs: false,
+          }}
+          label="Export report"
+        />
+        <Link to="/analytics/predictive" className="btn-secondary btn-sm">
+          Predictive
+        </Link>
+      </div>
+      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }

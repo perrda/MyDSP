@@ -108,8 +108,12 @@ export type WorkspaceExtrasFlags = {
   navLayout?: boolean
   launchPath?: boolean
   uiPanels?: boolean
+  settingsSections?: boolean
   marketsTagYield?: boolean
   settingsRecentJumps?: boolean
+  taxYear?: boolean
+  journalFilter?: boolean
+  nwSparkWindow?: boolean
   markets?: boolean
   news?: boolean
   youtube?: boolean
@@ -135,8 +139,12 @@ const EXTRAS_LABELS: Array<[keyof WorkspaceExtrasFlags, string]> = [
   ['navLayout', 'Favourites layout'],
   ['launchPath', 'Launch path'],
   ['uiPanels', 'UI panels'],
+  ['settingsSections', 'Settings sections'],
   ['marketsTagYield', 'Markets tag/Yield chips'],
   ['settingsRecentJumps', 'Settings jumps'],
+  ['taxYear', 'Tax year'],
+  ['journalFilter', 'Journal filter'],
+  ['nwSparkWindow', 'NW spark window'],
   ['markets', 'Markets watchlist'],
   ['news', 'News tags'],
   ['youtube', 'YouTube channels'],
@@ -174,8 +182,12 @@ export function workspaceExtrasFlagsFromPreview(extras: {
   navLayout?: unknown
   launchPath?: unknown
   uiPanels?: unknown
+  settingsSections?: unknown
   marketsTagYield?: unknown
   settingsRecentJumps?: unknown
+  taxYear?: unknown
+  journalFilter?: unknown
+  nwSparkWindow?: unknown
   markets?: unknown
   news?: unknown
   youtube?: unknown
@@ -201,8 +213,12 @@ export function workspaceExtrasFlagsFromPreview(extras: {
     navLayout: extras.navLayout != null,
     launchPath: extras.launchPath != null,
     uiPanels: extras.uiPanels != null,
+    settingsSections: extras.settingsSections != null,
     marketsTagYield: extras.marketsTagYield != null,
     settingsRecentJumps: extras.settingsRecentJumps != null,
+    taxYear: extras.taxYear != null,
+    journalFilter: extras.journalFilter != null,
+    nwSparkWindow: extras.nwSparkWindow != null,
     markets: extras.markets != null,
     news: extras.news != null,
     youtube: extras.youtube != null,

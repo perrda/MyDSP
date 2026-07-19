@@ -1,8 +1,12 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { PageHeader } from '../components/ui/PageHeader'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
 import { usePortfolio } from '../context/PortfolioContext'
+import {
+  loadJournalFilterPref,
+  saveJournalFilterPref,
+} from '../domain/journalFilterPref'
 import {
   applyTrade,
   deleteJournalTrade,
@@ -78,9 +82,15 @@ export function JournalPage() {
   const [editing, setEditing] = useState<JournalEntry | null>(null)
   const [form, setForm] = useState(empty)
   const [deleteId, setDeleteId] = useState<number | null>(null)
-  const [filter, setFilter] = useState('All')
+  const [filter, setFilter] = useState(() => loadJournalFilterPref())
   const [applyHolding, setApplyHolding] = useState(true)
   const [inferKind, setInferKind] = useState<'crypto' | 'equity'>('equity')
+
+  useEffect(() => {
+    const onSyncApplied = () => setFilter(loadJournalFilterPref())
+    window.addEventListener('mydsp-sync-applied', onSyncApplied)
+    return () => window.removeEventListener('mydsp-sync-applied', onSyncApplied)
+  }, [])
 
   const holdingSymbols = useMemo(() => {
     const set = new Set<string>()
@@ -89,10 +99,11 @@ export function JournalPage() {
     return [...set].sort()
   }, [data.crypto, data.equities])
 
-  const assets = useMemo(
-    () => ['All', ...Array.from(new Set([...holdingSymbols, ...data.journal.map((j) => j.asset)])).sort()],
-    [data.journal, holdingSymbols],
-  )
+  const assets = useMemo(() => {
+    const set = new Set([...holdingSymbols, ...data.journal.map((j) => j.asset)])
+    if (filter && filter !== 'All') set.add(filter)
+    return ['All', ...Array.from(set).sort()]
+  }, [data.journal, holdingSymbols, filter])
 
   const sortedJournal = useMemo(
     () => sortBySortOrder(data.journal, (a, b) => (b.date ?? '').localeCompare(a.date ?? '')),
@@ -220,7 +231,15 @@ export function JournalPage() {
         <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle mb-2">
           Asset filter
         </label>
-        <select className="sm:w-48" value={filter} onChange={(e) => setFilter(e.target.value)}>
+        <select
+          className="sm:w-48"
+          value={filter}
+          onChange={(e) => {
+            const next = e.target.value
+            setFilter(next)
+            saveJournalFilterPref(next)
+          }}
+        >
           {assets.map((a) => (
             <option key={a} value={a}>
               {a}

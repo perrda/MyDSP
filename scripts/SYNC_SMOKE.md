@@ -22,6 +22,7 @@ Run after every production deploy (`npm run deploy` + `npm run deploy:sync` if s
 13. **Clear ISA override** — clear Tax ISA remaining on A → B clears too (empty remaining + meta `updatedAt`)
 14. **Launch path + UI panels** — set Launch path to Markets on A → B opens Markets after relaunch; expand a Filters panel on A → B keeps it open after sync
 15. **Markets tag/Yield + Settings jumps** — enable Show Markets tag + Yield % chips on A → B shows chips; open a Settings section on A → B’s recent jumps include it
+16. **Settings sections + Tax year + Journal filter + NW spark** — expand a Settings accordion on A → B keeps it open after sync; pick a Tax year on A → B shows the same year; set Journal asset filter on A → B matches; toggle Today NW spark 30d on A → B shows 30d
 
 ## Pass criteria
 All steps succeed without clearing site data. If any fail, capture the Sync activity log (Settings → Devices / Sync) before retrying.
