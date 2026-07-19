@@ -267,6 +267,10 @@ export interface MergePreview {
     taxYear?: unknown
     journalFilter?: unknown
     nwSparkWindow?: unknown
+    webhookUrl?: unknown
+    achievementsSeen?: unknown
+    gettingStartedDismissed?: unknown
+    whatArrivedDismiss?: unknown
   }
 }
 
@@ -683,6 +687,10 @@ async function decryptEnvelope(
     if (a.taxYear != null) extras.taxYear = a.taxYear
     if (a.journalFilter != null) extras.journalFilter = a.journalFilter
     if (a.nwSparkWindow != null) extras.nwSparkWindow = a.nwSparkWindow
+    if (a.webhookUrl != null) extras.webhookUrl = a.webhookUrl
+    if (a.achievementsSeen != null) extras.achievementsSeen = a.achievementsSeen
+    if (a.gettingStartedDismissed != null) extras.gettingStartedDismissed = a.gettingStartedDismissed
+    if (a.whatArrivedDismiss != null) extras.whatArrivedDismiss = a.whatArrivedDismiss
     if (Object.keys(extras).length > 0) workspaceExtras = extras
   }
 
@@ -977,6 +985,24 @@ export async function applyMergePreview(
   if (preview.workspaceExtras?.nwSparkWindow != null) {
     const { importNwSparkWindowFromBackup } = await import('../../domain/nwSparkWindowPref')
     importNwSparkWindowFromBackup(preview.workspaceExtras.nwSparkWindow)
+  }
+  if (preview.workspaceExtras?.webhookUrl != null) {
+    const { importWebhookUrlFromBackup } = await import('../../domain/webhookUrlPref')
+    importWebhookUrlFromBackup(preview.workspaceExtras.webhookUrl)
+  }
+  if (preview.workspaceExtras?.achievementsSeen != null) {
+    const { importAchievementsSeenFromBackup } = await import('../../domain/achievementsSeenPref')
+    importAchievementsSeenFromBackup(preview.workspaceExtras.achievementsSeen)
+  }
+  if (preview.workspaceExtras?.gettingStartedDismissed != null) {
+    const { importGettingStartedDismissedFromBackup } = await import(
+      '../../domain/gettingStartedDismissedPref'
+    )
+    importGettingStartedDismissedFromBackup(preview.workspaceExtras.gettingStartedDismissed)
+  }
+  if (preview.workspaceExtras?.whatArrivedDismiss != null) {
+    const { importWhatArrivedDismissFromBackup } = await import('../../domain/whatArrivedDismissPref')
+    importWhatArrivedDismissFromBackup(preview.workspaceExtras.whatArrivedDismiss)
   }
 
   return { merged, conflicts: preview.conflicts, removedDupes: removed.length }

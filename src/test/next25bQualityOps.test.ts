@@ -184,6 +184,6 @@ describe('next25b quality / ops (21–25)', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8')) as {
       version: string
     }
-    expect(pkg.version).toBe('1.2.83')
+    expect(pkg.version).toBe('1.2.84')
   })
 })

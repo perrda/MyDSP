@@ -706,6 +706,75 @@ test.describe('a11y gate', () => {
     expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
   })
 
+  test('Markets Expand-all axe — iphone gate', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'iphone-14', 'CI gate targets iphone-14')
+    await page.goto('/markets')
+    await expect(page.getByRole('heading', { name: /Markets/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    // Header Expand-all is sm+; phone uses thumb CTA bar.
+    const expand = page.locator('.thumb-cta-bar .markets-expand-all').first()
+    await expect(expand).toBeVisible({ timeout: 15_000 })
+    const results = await new AxeBuilder({ page }).include('.thumb-cta-bar .markets-expand-all').analyze()
+    const serious = results.violations.filter(
+      (v) => v.impact === 'serious' || v.impact === 'critical',
+    )
+    expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
+  })
+
+  test('Today bill Undo axe — iphone gate', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'iphone-14', 'CI gate targets iphone-14')
+    await page.goto('/')
+    await expect(page.locator('.today-section-jump-chips').first()).toBeVisible({
+      timeout: 20_000,
+    })
+    // Inject undo banner into DOM for scoped axe (Mark paid path needs seeded bills).
+    await page.evaluate(() => {
+      const host = document.querySelector('.today-section-jump-chips')?.parentElement
+      if (!host || document.querySelector('.today-bill-undo-banner')) return
+      const banner = document.createElement('div')
+      banner.className =
+        'today-bill-undo-banner mt-2 flex flex-wrap items-center justify-between gap-2 surface px-3 py-2 border border-border'
+      banner.setAttribute('role', 'status')
+      banner.innerHTML =
+        '<span>Bill marked paid</span><button type="button" class="btn-secondary btn-sm today-bill-undo">Undo</button>'
+      host.appendChild(banner)
+    })
+    await expect(page.locator('.today-bill-undo-banner').first()).toBeVisible()
+    const results = await new AxeBuilder({ page }).include('.today-bill-undo-banner').analyze()
+    const serious = results.violations.filter(
+      (v) => v.impact === 'serious' || v.impact === 'critical',
+    )
+    expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
+  })
+
+  test('Today Tax jump axe — iphone gate', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'iphone-14', 'CI gate targets iphone-14')
+    await page.goto('/')
+    await expect(page.locator('.today-section-jump-tax').first()).toBeVisible({
+      timeout: 20_000,
+    })
+    const results = await new AxeBuilder({ page }).include('.today-section-jump-chips').analyze()
+    const serious = results.violations.filter(
+      (v) => v.impact === 'serious' || v.impact === 'critical',
+    )
+    expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
+  })
+
+  test('Compare sticky toolbar axe — iphone gate', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'iphone-14', 'CI gate targets iphone-14')
+    await page.goto('/compare')
+    await expect(page.getByRole('heading', { name: /Compare/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await expect(page.locator('.compare-sticky-toolbar').first()).toBeVisible()
+    const results = await new AxeBuilder({ page }).include('.compare-sticky-toolbar').analyze()
+    const serious = results.violations.filter(
+      (v) => v.impact === 'serious' || v.impact === 'critical',
+    )
+    expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
+  })
+
   test('opening balance wizard has no serious axe violations', async ({ page }) => {
     await page.goto('/setup/opening')
     await expect(page.getByRole('heading', { name: /Opening balance wizard/i })).toBeVisible({

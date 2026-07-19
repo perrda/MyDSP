@@ -410,7 +410,7 @@ export function ComparePage() {
         }
       />
 
-      <div className="surface p-5 sm:p-6 mb-8">
+      <div className="compare-sticky-toolbar surface p-5 sm:p-6 mb-8">
         <p className="label-uppercase mb-4">Include</p>
         <div className="flex flex-wrap gap-2" role="group" aria-label="Filter portfolios">
           {portfolios.map((p) => {

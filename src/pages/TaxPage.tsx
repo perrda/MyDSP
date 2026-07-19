@@ -365,7 +365,7 @@ export function TaxPage() {
         </div>
       ) : null}
 
-      <div className="surface p-5 sm:p-6 mb-px">
+      <div className="tax-sticky-toolbar surface p-5 sm:p-6 mb-px">
         <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle mb-2">
           {pack.yearKind === 'uk-apr' ? 'UK tax year' : 'Tax year'}
         </label>

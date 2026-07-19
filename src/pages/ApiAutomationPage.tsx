@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Download, Copy, Check, Code, Webhook, FileJson, FileSpreadsheet } from 'lucide-react'
 import { PageHeader } from '../components/ui/PageHeader'
@@ -13,8 +13,7 @@ import {
   API_ENDPOINTS,
   generateApiDocs,
 } from '../domain/apiExport'
-
-const WEBHOOK_URL_KEY = 'mydsp_webhook_url'
+import { loadWebhookUrlPref, saveWebhookUrlPref } from '../domain/webhookUrlPref'
 
 function buildSignedPing(portfolioIdHint: string) {
   const timestamp = new Date().toISOString()
@@ -36,24 +35,9 @@ export function ApiAutomationPage() {
   const { success, error: showError } = useToasts()
 
   const [copied, setCopied] = useState<string | null>(null)
-  const [webhookUrl, setWebhookUrl] = useState(() => {
-    try {
-      return localStorage.getItem(WEBHOOK_URL_KEY) ?? ''
-    } catch {
-      return ''
-    }
-  })
+  const [webhookUrl, setWebhookUrl] = useState(() => loadWebhookUrlPref())
   const [webhookStatus, setWebhookStatus] = useState<string | null>(null)
   const [testing, setTesting] = useState(false)
-
-  useEffect(() => {
-    try {
-      if (webhookUrl.trim()) localStorage.setItem(WEBHOOK_URL_KEY, webhookUrl.trim())
-      else localStorage.removeItem(WEBHOOK_URL_KEY)
-    } catch {
-      /* ignore */
-    }
-  }, [webhookUrl])
 
   const portfolioSnapshot = useMemo(() => exportPortfolioSummary(data), [data])
   const snapshotJson = useMemo(
@@ -362,7 +346,11 @@ export function ApiAutomationPage() {
             className="mt-2 w-full max-w-xl"
             placeholder="https://hooks.example.com/mydsp"
             value={webhookUrl}
-            onChange={(e) => setWebhookUrl(e.target.value)}
+            onChange={(e) => {
+              const next = e.target.value
+              setWebhookUrl(next)
+              saveWebhookUrlPref(next)
+            }}
             autoComplete="off"
           />
         </label>

@@ -1223,10 +1223,11 @@ export function SettingsPage() {
               <p className="text-xs text-text-muted font-light mt-2 leading-relaxed">
                 These sync via fullArchive: Launch path, UI panels, Markets tag/Yield chips, Settings
                 recent jumps, Settings sections, Tax year, Journal asset filter, Today NW spark
-                window, portfolio concentration threshold, spending filters, news tag filter,
-                Todos quick filter, Jobs filter, Bottom nav middle slots, Recurring sort, holdings
-                drift threshold, and digest highlight edits. Notification quiet-hours, desktop
-                banners, and sound stay device-local.
+                window, API webhook URL, Achievements seen, Getting started dismissed, What arrived
+                dismiss fingerprint, portfolio concentration threshold, spending filters, news tag
+                filter, Todos quick filter, Jobs filter, Bottom nav middle slots, Recurring sort,
+                holdings drift threshold, and digest highlight edits. Notification quiet-hours,
+                desktop banners, and sound stay device-local.
               </p>
             </div>
             <label className="flex items-start gap-3 cursor-pointer">

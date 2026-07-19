@@ -29,6 +29,24 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.84',
+    date: '2026-07-19',
+    bullets: [
+      {
+        text: 'Webhook · achievements · getting-started · What arrived dismiss LWW',
+        to: '/settings#sync',
+      },
+      {
+        text: 'Markets Open holding · price alert · Expand/Collapse · Retag',
+        to: '/markets',
+      },
+      {
+        text: 'Today bill/interview Undo · Tax jump · budget next-action',
+        to: '/',
+      },
+    ],
+  },
+  {
     version: '1.2.83',
     date: '2026-07-19',
     bullets: [

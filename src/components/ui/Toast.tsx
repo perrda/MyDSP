@@ -9,6 +9,8 @@ export interface Toast {
   title: string
   message?: string
   duration?: number
+  /** Optional class for stable test / harness targeting */
+  className?: string
   action?: {
     label: string
     onClick: () => void
@@ -70,7 +72,7 @@ export function ToastItem({ toast, onDismiss }: ToastItemProps) {
         isExiting
           ? 'opacity-0 translate-x-full'
           : 'opacity-100 translate-x-0 animate-slide-in-right'
-      }`}
+      } ${toast.className ?? ''}`}
       role="status"
       aria-live="polite"
     >

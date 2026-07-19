@@ -1,4 +1,4 @@
-/** Today “next action” stack: up to 3 cards — todo / bill / interview / follow-up / goal / top mover. */
+/** Today “next action” stack: up to 3 cards — todo / bill / interview / follow-up / goal / budget / top mover. */
 
 import { getNextInterview, needsFollowUp } from './jobs'
 import type { JobApplication } from './job-types'
@@ -7,7 +7,14 @@ import { isDueToday, isOverdue } from './todos'
 import type { Goal, RecurringTransaction } from './types'
 import type { TodoItem } from './todo-types'
 
-export type NextActionKind = 'todo' | 'bill' | 'interview' | 'followup' | 'goal' | 'mover'
+export type NextActionKind =
+  | 'todo'
+  | 'bill'
+  | 'interview'
+  | 'followup'
+  | 'goal'
+  | 'budget'
+  | 'mover'
 
 export interface NextActionTodo {
   kind: 'todo'
@@ -44,6 +51,15 @@ export interface NextActionGoal {
   label: string
 }
 
+export interface NextActionBudget {
+  kind: 'budget'
+  category: string
+  spent: number
+  limit: number
+  ratio: number
+  label: string
+}
+
 export interface NextActionMover {
   kind: 'mover'
   symbol: string
@@ -56,11 +72,19 @@ export type NextActionCard =
   | NextActionInterview
   | NextActionFollowUp
   | NextActionGoal
+  | NextActionBudget
   | NextActionMover
 
 export interface MoverInput {
   symbol: string
   changePct: number
+}
+
+export interface BudgetOffenderInput {
+  category: string
+  spent: number
+  limit: number
+  ratio: number
 }
 
 function pickSoonestGoal(goals: Goal[] | undefined, now: Date): Goal | null {
@@ -91,13 +115,15 @@ function pickSoonestGoal(goals: Goal[] | undefined, now: Date): Goal | null {
 /**
  * Build a compact next-action stack (max 3): next incomplete todo,
  * soonest bill due within 7 days, soonest pending interview within 7 days,
- * soonest goal when no todo/bill/interview/follow-up, and top absolute % mover.
+ * over-budget category when offenders exist, soonest goal when no primary,
+ * and top absolute % mover.
  */
 export function buildNextActionStack(input: {
   todoItems?: TodoItem[]
   recurringTransactions?: RecurringTransaction[]
   jobApplications?: JobApplication[]
   goals?: Goal[]
+  budgetOffenders?: BudgetOffenderInput[]
   movers?: MoverInput[]
   now?: Date
   max?: number
@@ -128,6 +154,20 @@ export function buildNextActionStack(input: {
   const bill = dueWithinDays(input.recurringTransactions, 7, now)[0] ?? null
   if (bill) {
     out.push({ kind: 'bill', bill })
+  }
+
+  const overBudget = [...(input.budgetOffenders ?? [])]
+    .filter((b) => b.limit > 0 && b.ratio >= 1)
+    .sort((a, b) => b.ratio - a.ratio)[0]
+  if (overBudget) {
+    out.push({
+      kind: 'budget',
+      category: overBudget.category,
+      spent: overBudget.spent,
+      limit: overBudget.limit,
+      ratio: overBudget.ratio,
+      label: 'Over budget',
+    })
   }
 
   const interviewCandidates = (input.jobApplications ?? [])
@@ -178,7 +218,8 @@ export function buildNextActionStack(input: {
       c.kind === 'todo' ||
       c.kind === 'bill' ||
       c.kind === 'interview' ||
-      c.kind === 'followup',
+      c.kind === 'followup' ||
+      c.kind === 'budget',
   )
   if (!hasPrimaryAction) {
     const soonest = pickSoonestGoal(input.goals, now)
