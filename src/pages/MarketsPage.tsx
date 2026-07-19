@@ -2309,9 +2309,12 @@ export function MarketsPage() {
           </button>
         </div>
       ) : (
-        <p className="markets-tag-yield-settings-hint mb-4 text-xs text-text-subtle">
-          Tag + Yield chips are hidden —{' '}
-          <Link to="/settings#prices" className="text-accent font-medium hover:underline">
+        <p className="markets-tag-yield-settings-hint mb-4 text-xs text-text-muted">
+          Tag + Yield chips are hidden.
+          <Link
+            to="/settings#prices"
+            className="ml-1 font-semibold underline hover:no-underline text-text"
+          >
             Settings → Prices
           </Link>
         </p>

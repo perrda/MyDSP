@@ -76,14 +76,16 @@ export function ImportPage() {
         description="Upload Monzo or generic bank CSVs. Merchant rules apply first, then keyword guesses. Income rows are deselected by default."
       />
 
-      <div className="surface border-l-2 border-l-border-strong px-5 py-3 mb-6">
+      <div className="legacy-import-psd2-notice surface border-l-2 border-l-border-strong px-5 py-3 mb-6">
         <p className="text-sm text-text-muted font-light">
-          Open banking (PSD2) is not available — import CSVs only. See{' '}
-          <Link to="/settings#open-banking" className="font-semibold underline hover:no-underline">
-            Settings → Open banking
-          </Link>
-          .
+          Open banking (PSD2) is not available — import CSVs only.
         </p>
+        <Link
+          to="/settings#open-banking"
+          className="inline-block mt-1 text-sm font-semibold underline hover:no-underline"
+        >
+          Settings → Open banking
+        </Link>
       </div>
       {message && (
         <div className="surface border-l-2 border-l-accent px-5 py-4 mb-6" role="status">
