@@ -21,6 +21,7 @@ import { ConfirmDialog, Field, Modal } from '../components/ui/Modal'
 import { OverflowMenu } from '../components/ui/OverflowMenu'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
 import { usePortfolio } from '../context/PortfolioContext'
+import { useCssVarFromElementSize } from '../hooks/useCssVarFromElementSize'
 import { saveNewsFilterTag } from '../domain/newsFilterPrefs'
 import {
   loadPriceAlertThresholds,
@@ -602,6 +603,7 @@ export function MarketsPage() {
   }, [])
   const longPressTimer = useRef<number | null>(null)
   const sectionLongPressTimer = useRef<number | null>(null)
+  const marketsToolbarRef = useRef<HTMLDivElement | null>(null)
   const refreshInFlight = useRef(false)
   const pendingRetryOnline = useRef(false)
   const quotesRef = useRef(quotes)
@@ -1253,6 +1255,8 @@ export function MarketsPage() {
     return () => window.clearInterval(id)
   }, [refresh])
 
+  useCssVarFromElementSize(marketsToolbarRef, '--markets-toolbar-height')
+
   const openCreate = (kind: MarketAssetKind) => {
     setEditing(null)
     setAddKind(kind)
@@ -1443,10 +1447,10 @@ export function MarketsPage() {
         id={`markets-section-${section}`}
         role="tabpanel"
         aria-labelledby={`markets-jump-${section}`}
-        className={`border border-border bg-bg-elevated overflow-hidden ${sectionSorting ? '' : 'mb-6'}`}
+        className={`markets-section border border-border bg-bg-elevated ${sectionSorting ? '' : 'mb-6'}`}
       >
         <div
-          className={`markets-section-sticky sticky z-[5] bg-bg-elevated px-4 sm:px-5 flex items-start justify-between gap-3 border-b border-border ${density === 'compact' ? 'pt-3 pb-2' : 'pt-4 pb-3'}`}
+          className={`markets-section-sticky sticky z-[8] px-4 sm:px-5 flex items-start justify-between gap-3 border-b border-border ${density === 'compact' ? 'pt-3 pb-2' : 'pt-4 pb-3'}`}
           onContextMenu={(e) => {
             if (sectionSorting) return
             e.preventDefault()
@@ -2289,7 +2293,10 @@ export function MarketsPage() {
           </button>
         </div>
       ) : null}
-      <div className="markets-sticky-toolbar sticky z-[9] -mx-1 mb-3 bg-bg/95 px-1 py-1.5 backdrop-blur supports-[backdrop-filter]:bg-bg/80">
+      <div
+        ref={marketsToolbarRef}
+        className="markets-sticky-toolbar sticky z-[9] -mx-1 mb-3 bg-bg/95 px-1 py-1.5 backdrop-blur supports-[backdrop-filter]:bg-bg/80"
+      >
         <div className="markets-in-list-search surface border border-border-strong px-3 py-2">
           <label className="sr-only" htmlFor="markets-search-input">
             Search watchlist

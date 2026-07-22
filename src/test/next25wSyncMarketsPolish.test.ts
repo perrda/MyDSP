@@ -6,14 +6,14 @@ import { RELEASE_NOTES, releaseNotesArchive } from '../domain/releaseNotes'
 describe('next25w — responsive / landscape polish tip (1–25 → v1.2.88)', () => {
   it('25: package + release notes are 1.2.88', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.91')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.91')
+    expect(pkg.version).toBe('1.2.92')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.92')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.92',
       '1.2.91',
       '1.2.90',
       '1.2.89',
       '1.2.88',
-      '1.2.87',
     ])
   })
 

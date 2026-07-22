@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.91**
+**Current version: 1.2.92**
 
-## Completed (through v1.2.91)
+## Completed (through v1.2.92)
 
+- Markets sticky section containment (v1.2.92): measured toolbar height · opaque section headers · no overflow-hidden clipping (fixes BTC above My Crypto + red pill slice) · Equities/Crypto holdings sticky totals · `sticky-section-headers.mdc`
 - Clean sync / digest chrome (v1.2.91): Weekly digest in Sidebar only · no Overview Cloud Sync / Digest hero CTAs · manual refresh only via header `…` → Refresh · no Sync now thumbs / Markets Refresh / chip long-press · `clean-sync-refresh-ux.mdc`
 - Markets refresh + passphrase chip (v1.2.90): brief Refreshing data banner · auto-refresh · no permanent Sync prices CTA · Unlock sync amber chip (passphrase ≠ Markets failure)
 - Alert quiet + chart axis standard (v1.2.89): Concentration Review Holding calendar-month dismiss · To Do launch toasts only reminder/overdue · Backup nudge dismiss · Chart X/Y axis rules in `domain/chartAxis.ts` (1D→ALL · GBP/USD/THB/BTC) across all money charts

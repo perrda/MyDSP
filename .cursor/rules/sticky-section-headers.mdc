@@ -1,0 +1,25 @@
+---
+description: Sticky section headers must not orphan list rows or clip row chrome
+alwaysApply: true
+---
+
+# Sticky headers + list rows
+
+## Never combine these
+
+- Do **not** put `overflow: hidden` on a section/card that also has a `position: sticky` section header and scrolling rows. That clips row chrome (sparklines, red/green `%` pills) into a gap above the header — e.g. BTC appearing above “My Crypto”.
+
+## Sticky `top` must be measured
+
+- When a page has a sticky toolbar (search / filters / jump chips) **above** sticky section headers, publish the toolbar height to a CSS variable via `ResizeObserver` (`useCssVarFromElementSize`) and use it in `top` / `scroll-margin-top`.
+- Do **not** hardcode toolbar offsets like `7.25rem` unless they are a fallback default only.
+
+## Opaque sticky headers
+
+- Sticky section headers that sit over list rows must use an **opaque** `background-color: var(--bg-elevated)` (no translucent glass bleed). Rows sliding underneath must not show through.
+
+## Shared patterns
+
+- Markets sections: `.markets-section` + `.markets-section-sticky` + `--markets-toolbar-height`
+- Equities / Crypto holdings: `.holdings-sticky-search` + `.holdings-sticky-totals` + `--holdings-search-height`
+---

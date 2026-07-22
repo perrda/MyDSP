@@ -39,6 +39,7 @@ import { addHoldingsMissingFromWatchlist, holdingsMissingFromWatchlist } from '.
 import { listMarketTickers, loadMarketQuotesCache } from '../storage/marketsStore'
 import { applySortOrder, sortBySortOrder } from '../utils/reorder'
 import { useWindowedList } from '../hooks/useWindowedList'
+import { useCssVarFromElementSize } from '../hooks/useCssVarFromElementSize'
 import {
   formatGBP,
   formatGBPPrecise,
@@ -135,6 +136,8 @@ export function EquitiesPage() {
   const [searchText, setSearchText] = useState('')
   const [selectedHoldingId, setSelectedHoldingId] = useState<number | null>(null)
   const corpActionToastKeyRef = useRef('')
+  const holdingsSearchRef = useRef<HTMLDivElement | null>(null)
+  useCssVarFromElementSize(holdingsSearchRef, '--holdings-search-height')
 
   const holdings = useMemo(() => sortBySortOrder(data.equities), [data.equities])
   const includedPortfolioValue = useMemo(() => includedPortfolioHoldingValue(data), [data])
@@ -458,7 +461,10 @@ export function EquitiesPage() {
         }
       />
 
-      <div className="holdings-in-list-search holdings-sticky-search sticky z-[9] -mx-1 mb-4 bg-bg/95 px-1 py-2 backdrop-blur supports-[backdrop-filter]:bg-bg/80">
+      <div
+        ref={holdingsSearchRef}
+        className="holdings-in-list-search holdings-sticky-search sticky z-[9] -mx-1 mb-4 bg-bg/95 px-1 py-2 backdrop-blur supports-[backdrop-filter]:bg-bg/80"
+      >
         <div className="surface border border-border-strong px-3 py-2.5">
           <label className="sr-only" htmlFor="equities-search-input">
             Search equity holdings
@@ -487,7 +493,7 @@ export function EquitiesPage() {
       </div>
 
       <div
-        className={`holdings-included-value-bar holdings-sticky-totals sticky z-[8] -mx-1 mb-4 border border-border bg-bg-elevated/95 px-3 py-2 text-xs text-text-muted shadow-sm backdrop-blur supports-[backdrop-filter]:bg-bg-elevated/85 ${privacyClass(privacy)}`}
+        className={`holdings-included-value-bar holdings-sticky-totals sticky z-[8] -mx-1 mb-4 border border-border bg-bg-elevated px-3 py-2 text-xs text-text-muted shadow-sm ${privacyClass(privacy)}`}
         role="status"
       >
         <div className="flex flex-wrap items-center justify-between gap-2">
