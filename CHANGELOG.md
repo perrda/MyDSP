@@ -1,11 +1,21 @@
 # MyDSP Changelog
 
-## [1.2.89] - 2026-07-22
+## [1.2.90] - 2026-07-22
 
 ### Fixed — Markets refresh + sync chip
 - **Sync prices nag removed:** Markets no longer keeps a permanent primary Sync prices CTA. Opening Markets auto-refreshes quotes; a brief **Refreshing data** status shows for ~2s then disappears. Quiet **Refresh** remains for manual use.
 - **Partial quote gaps:** one automatic retry after ~3.5s when some sources miss.
 - **Passphrase chip:** red meant “cloud sync needs your passphrase”, not that Markets is broken. Relabelled **Unlock sync**, amber attention tone, clearer tooltip. Markets prices still work while cloud sync waits for unlock.
+
+## [1.2.89] - 2026-07-22
+
+### Fixed — Alert quiet + chart axes
+- **Concentration banner:** Review Holding dismisses that symbol’s alert until the 1st of the month after next (~one calendar month)
+- **To Do launch toasts:** only when a Reminder has fired or the task is Overdue (Finnhub setup todos never launch-toast)
+- **Backup nudge:** Dismiss quiet for a calendar month
+- **Chart X-axis:** unique `xKey` + interval ticks — 1D hourly · 1W daily · 1M weekly · 12M monthly · YTD adaptive · 5Y yearly · ALL by span (fixes repeated “Jul 26”)
+- **Chart Y-axis:** shared `formatChartYTick` for GBP / USD / THB / BTC across Portfolio, Holding, Spending, Planning, Predictive, Advanced charts
+- Canonical rules live in `src/domain/chartAxis.ts` + `src/domain/alertDismiss.ts`
 
 ## [1.2.88] - 2026-07-22
 

@@ -63,6 +63,11 @@ import {
 } from '../services/offlineQueue'
 import { getSessionSyncPassphrase } from '../services/sync/sessionPassphrase'
 import { LAST_BACKUP_KEY } from '../storage/backupStore'
+import {
+  BACKUP_NUDGE_DISMISS_ID,
+  dismissAlertForCalendarMonth,
+  isAlertDismissed,
+} from '../domain/alertDismiss'
 import { hasFinnhubKey } from '../domain/finnhubReminder'
 import { isSyncedRemoteQuote } from '../domain/marketQuotesSync'
 import {
@@ -560,7 +565,10 @@ export function Dashboard() {
   const syncCfg = loadSyncConfig()
   const syncEnabled = Boolean(syncCfg.enabled && syncCfg.remoteUrl.trim())
 
+  const [backupDismissTick, setBackupDismissTick] = useState(0)
   const showBackupNudge = useMemo(() => {
+    void backupDismissTick
+    if (isAlertDismissed(BACKUP_NUDGE_DISMISS_ID)) return false
     try {
       const last = localStorage.getItem(LAST_BACKUP_KEY)
       if (!last) return true
@@ -570,7 +578,7 @@ export function Dashboard() {
     } catch {
       return false
     }
-  }, [syncStatus.lastAt])
+  }, [syncStatus.lastAt, backupDismissTick])
 
   const recentJournal = [...(data.journal ?? [])]
     .sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''))
@@ -1251,13 +1259,26 @@ export function Dashboard() {
 
       {showBackupNudge ? (
         <div
-          className="backup-nudge mb-3 px-3 py-2 text-xs text-text-muted border border-border/70 bg-surface/40 rounded-lg md:rounded-none"
+          className="backup-nudge mb-3 px-3 py-2 text-xs text-text-muted border border-border/70 bg-surface/40 rounded-lg md:rounded-none flex flex-wrap items-center justify-between gap-2"
           role="status"
         >
-          Weekly backup overdue —{' '}
-          <Link to="/settings#full-backup" className="text-accent hover:underline font-semibold">
-            open Settings backups
-          </Link>
+          <span>
+            Weekly backup overdue —{' '}
+            <Link to="/settings#full-backup" className="text-accent hover:underline font-semibold">
+              open Settings backups
+            </Link>
+          </span>
+          <button
+            type="button"
+            className="btn-ghost btn-sm text-[11px] min-h-8"
+            aria-label="Dismiss backup reminder for a calendar month"
+            onClick={() => {
+              dismissAlertForCalendarMonth(BACKUP_NUDGE_DISMISS_ID)
+              setBackupDismissTick((n) => n + 1)
+            }}
+          >
+            Dismiss
+          </button>
         </div>
       ) : null}
 

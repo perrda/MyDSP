@@ -20,6 +20,7 @@ import {
   Radar,
 } from 'recharts'
 import { formatGBP } from '../../utils/format'
+import { formatChartYTick } from '../../domain/chartAxis'
 
 interface Spending {
   date: string
@@ -65,6 +66,8 @@ export function MonthlySpendingTrend({ spending, privacy }: SpendingTrendsProps)
             <YAxis 
               stroke="var(--text-muted)"
               tick={{ fill: 'var(--text-muted)', fontSize: 12 }}
+              tickFormatter={(v: number) => formatChartYTick(v)}
+              width={56}
             />
             <Tooltip
               contentStyle={{
@@ -117,6 +120,7 @@ export function CategoryBreakdownChart({ spending, privacy }: SpendingTrendsProp
               type="number"
               stroke="var(--text-muted)"
               tick={{ fill: 'var(--text-muted)', fontSize: 12 }}
+              tickFormatter={(v: number) => formatChartYTick(v)}
             />
             <YAxis 
               type="category"
@@ -234,6 +238,8 @@ export function WeekdaySpendingPattern({ spending, privacy }: SpendingTrendsProp
             <YAxis 
               stroke="var(--text-muted)"
               tick={{ fill: 'var(--text-muted)', fontSize: 12 }}
+              tickFormatter={(v: number) => formatChartYTick(v)}
+              width={56}
             />
             <Tooltip
               contentStyle={{

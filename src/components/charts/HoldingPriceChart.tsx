@@ -10,10 +10,10 @@ import {
 } from 'recharts'
 import {
   filterByRange,
-  formatChartTick,
   formatChartTooltipLabel,
   type ChartRange,
 } from '../../domain/history'
+import { buildChartAxisRows, formatChartYTick } from '../../domain/chartAxis'
 import type { HoldingPricePoint } from '../../domain/holdingHistory'
 import { resolveHoldingSeries } from '../../domain/staticPrices'
 import type { PortfolioData } from '../../domain/types'
@@ -60,15 +60,18 @@ export function HoldingPriceChart({ data, kind, symbol, seed = [], privacy, titl
   }, [data, kind, symbol])
 
   const filtered = useMemo(() => filterByRange(series, range), [series, range])
+  const chartAxis = useMemo(() => buildChartAxisRows(filtered, range), [filtered, range])
   const chartData = useMemo(
     () =>
-      filtered.map((p) => ({
-        tick: formatChartTick(p.date, range, p.at),
+      chartAxis.rows.map((p) => ({
+        xKey: p.xKey,
+        tick: p.tick,
         fullDate: p.at ?? p.date,
         price: p.price,
       })),
-    [filtered, range],
+    [chartAxis],
   )
+  const xTickKeys = chartAxis.tickKeys
   const delta =
     chartData.length >= 2
       ? chartData[chartData.length - 1].price - chartData[0].price
@@ -118,15 +121,20 @@ export function HoldingPriceChart({ data, kind, symbol, seed = [], privacy, titl
               </defs>
               <CartesianGrid stroke="var(--border)" vertical={false} />
               <XAxis
-                dataKey="tick"
+                dataKey="xKey"
+                ticks={xTickKeys}
+                tickFormatter={(key: string) => {
+                  const row = chartData.find((r) => r.xKey === key)
+                  return row?.tick ?? ''
+                }}
                 tick={{ fill: 'var(--text-muted)', fontSize: 10, fontWeight: 500 }}
                 axisLine={{ stroke: 'var(--border)' }}
                 tickLine={false}
-                minTickGap={32}
+                minTickGap={28}
                 interval="preserveStartEnd"
               />
               <YAxis
-                tickFormatter={(v: number) => formatGBP(v, { compact: true })}
+                tickFormatter={(v: number) => formatChartYTick(v)}
                 tick={{ fill: 'var(--text-muted)', fontSize: 10, fontWeight: 500 }}
                 axisLine={false}
                 tickLine={false}

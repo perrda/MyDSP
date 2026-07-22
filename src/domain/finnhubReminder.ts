@@ -62,7 +62,7 @@ export function ensureFinnhubSetupTodo(
     priority: 'high',
     status: 'todo',
     dueDate: due,
-    reminderDate: due,
+    // No reminderDate — avoid launch toasts; task stays visible on To Do's / Today until done
     tags: [FINNHUB_TODO_TAG, 'setup', 'markets'],
     isFinanceRelated: true,
     sortOrder: nextSortOrderForList(data.todoItems ?? [], list.id),

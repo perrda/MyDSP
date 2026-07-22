@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
-describe('Markets refresh UX + passphrase chip (v1.2.89)', () => {
+describe('Markets refresh UX + passphrase chip (v1.2.90)', () => {
   it('Markets uses brief Refreshing data banner instead of permanent Sync prices CTA', () => {
     const page = readFileSync(resolve(__dirname, '../pages/MarketsPage.tsx'), 'utf8')
     expect(page).toMatch(/markets-refreshing-banner/)
