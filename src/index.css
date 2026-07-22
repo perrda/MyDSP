@@ -694,6 +694,52 @@ html.has-bottom-nav .floating-banner--toast {
   html.has-bottom-nav .floating-banner--toast {
     bottom: calc(3.75rem + env(safe-area-inset-bottom, 0px));
   }
+  /* next25w: thumb CTAs track the shorter landscape bottom-nav */
+  html.has-bottom-nav .thumb-cta-bar {
+    bottom: calc(3.75rem + 0.25rem + env(safe-area-inset-bottom, 0px));
+  }
+  html.has-bottom-nav .thumb-cta-bar-spacer {
+    height: calc(3.5rem + env(safe-area-inset-bottom, 0px));
+  }
+  html.has-bottom-nav .job-detail-nav-cta {
+    bottom: calc(3.75rem + 3.5rem + env(safe-area-inset-bottom, 0px));
+  }
+  .markets-sticky-toolbar,
+  .markets-sticky-filters,
+  .todos-sticky-filters,
+  .jobs-sticky-filters,
+  .budgets-sticky-month,
+  .youtube-sticky-status,
+  .today-section-jump-chips {
+    top: var(--app-header-offset, 3rem);
+  }
+  .today-section-jump-chips,
+  .today-pulse-chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .today-section-jump-chips::-webkit-scrollbar,
+  .today-pulse-chips::-webkit-scrollbar {
+    display: none;
+  }
+  .markets-section-jump-chips {
+    padding-top: 0.25rem;
+  }
+  .markets-density-trust {
+    max-width: 100%;
+    white-space: normal;
+  }
+}
+
+/* next25w: landscape tablet Today Markets pane scrolls within viewport */
+@media (orientation: landscape) and (min-width: 900px) {
+  .today-two-pane .today-markets-pane {
+    max-height: calc(100dvh - var(--app-header-offset, 3.5rem) - 2rem);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
 }
 
 /* iPad / Stage Manager mid widths */
@@ -2715,7 +2761,11 @@ html.success-haptic-flash::after {
   .markets-sticky-filters,
   .liabilities-sticky-rag,
   .journal-sticky-filter,
-  .recurring-sticky-sort {
+  .recurring-sticky-sort,
+  .todos-sticky-filters,
+  .jobs-sticky-filters,
+  .budgets-sticky-month,
+  .youtube-sticky-status {
     position: sticky;
     top: var(--app-header-offset, 3.5rem);
     z-index: 8;
@@ -2731,7 +2781,11 @@ html.success-haptic-flash::after {
   .liabilities-sticky-rag,
   .journal-sticky-filter,
   .recurring-sticky-sort,
-  .compare-sticky-toolbar {
+  .compare-sticky-toolbar,
+  .todos-sticky-filters,
+  .jobs-sticky-filters,
+  .budgets-sticky-month,
+  .youtube-sticky-status {
     position: sticky;
     top: var(--app-header-offset, 3.5rem);
     z-index: 8;

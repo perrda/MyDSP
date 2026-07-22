@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { PageHeader } from '../components/ui/PageHeader'
+import { useToasts } from '../components/ToastProvider'
 import { usePortfolio } from '../context/PortfolioContext'
 import { simulateDebt, type DebtStrategy } from '../domain/debt'
+import { syncNow } from '../services/sync/autoSyncService'
 import { formatGBP, privacyClass } from '../utils/format'
 
 const STRATEGIES: { id: DebtStrategy; name: string; desc: string }[] = [
@@ -13,6 +15,7 @@ const STRATEGIES: { id: DebtStrategy; name: string; desc: string }[] = [
 
 export function OptimizerPage() {
   const { data, privacy } = usePortfolio()
+  const { success } = useToasts()
   const [strategy, setStrategy] = useState<DebtStrategy>('avalanche')
   const [extra, setExtra] = useState(500)
 
@@ -132,6 +135,15 @@ export function OptimizerPage() {
         <Link to="/liabilities" className="btn-secondary btn-sm">
           Liabilities
         </Link>
+        <button
+          type="button"
+          className="btn-secondary btn-sm"
+          onClick={() => {
+            void syncNow().then(() => success('Sync now finished'))
+          }}
+        >
+          Sync now
+        </button>
       </div>
       <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>

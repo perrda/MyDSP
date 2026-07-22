@@ -286,9 +286,12 @@ export function Dashboard() {
   const [syncStatus, setSyncStatus] = useState<AutoSyncStatus>(() => getAutoSyncStatus())
   const [queueLen, setQueueLen] = useState(() => loadOfflineQueue().length)
   const [nwSparkDays, setNwSparkDays] = useState<NwSparkWindow>(() => loadNwSparkWindowPref())
-  /** iPad / wide Stage Manager: Today | Markets two-pane when ≥900px. */
+  /** iPad / wide Stage Manager: Today | Markets two-pane when ≥900px (incl. landscape tablets). */
   const [twoPane, setTwoPane] = useState(() =>
-    typeof window !== 'undefined' ? window.matchMedia('(min-width: 900px)').matches : false,
+    typeof window !== 'undefined'
+      ? window.matchMedia('(min-width: 900px), (orientation: landscape) and (min-width: 1024px)')
+          .matches
+      : false,
   )
   const todayAccordionEnabled = useTodayAccordionEnabled()
   const [youtubeUnread, setYoutubeUnread] = useState(() => youtubeUnreadFromCache())
@@ -387,7 +390,9 @@ export function Dashboard() {
     return () => window.removeEventListener('mydsp-offline-queue', refresh)
   }, [])
   useEffect(() => {
-    const mq = window.matchMedia('(min-width: 900px)')
+    const mq = window.matchMedia(
+      '(min-width: 900px), (orientation: landscape) and (min-width: 1024px)',
+    )
     const sync = () => setTwoPane(mq.matches)
     sync()
     mq.addEventListener('change', sync)
@@ -1235,6 +1240,7 @@ export function Dashboard() {
           <button
             type="button"
             className="btn-ghost btn-sm text-[11px] min-h-8 today-offline-queue-retry"
+            data-testid="today-offline-queue-retry"
             onClick={retryOfflineQueue}
             aria-label="Retry offline queue now"
           >

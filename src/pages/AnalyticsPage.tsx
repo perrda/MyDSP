@@ -13,12 +13,15 @@ import {
 import { ExportReportButton } from '../components/ExportReport'
 import { AdvancedAnalyticsDashboard } from '../components/AdvancedAnalyticsDashboard'
 import { PageHeader, StatCard } from '../components/ui/PageHeader'
+import { useToasts } from '../components/ToastProvider'
 import { usePortfolio } from '../context/PortfolioContext'
 import { performanceSummary } from '../domain/performance'
+import { syncNow } from '../services/sync/autoSyncService'
 import { formatGBP, formatPct, privacyClass } from '../utils/format'
 
 export function AnalyticsPage() {
   const { data, breakdown, privacy } = usePortfolio()
+  const { success } = useToasts()
   const { netWorth, assets, liabilities, crypto, equity, liability } = breakdown
 
   const debtRatio = assets > 0 ? (liabilities / assets) * 100 : 0
@@ -265,6 +268,15 @@ export function AnalyticsPage() {
         <Link to="/analytics/predictive" className="btn-secondary btn-sm">
           Predictive
         </Link>
+        <button
+          type="button"
+          className="btn-secondary btn-sm"
+          onClick={() => {
+            void syncNow().then(() => success('Sync now finished'))
+          }}
+        >
+          Sync now
+        </button>
       </div>
       <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>

@@ -1140,6 +1140,51 @@ test.describe('a11y gate', () => {
     expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
   })
 
+  test('Todos sticky filters axe — iphone gate', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'iphone-14', 'CI gate targets iphone-14')
+    await page.goto('/todos')
+    await expect(page.getByRole('heading', { name: /To Do/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await expect(page.locator('.todos-sticky-filters').first()).toBeVisible()
+    const results = await new AxeBuilder({ page }).include('.todos-sticky-filters').analyze()
+    const serious = results.violations.filter(
+      (v) => v.impact === 'serious' || v.impact === 'critical',
+    )
+    expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
+  })
+
+  test('Budgets sticky month axe — iphone gate', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'iphone-14', 'CI gate targets iphone-14')
+    await page.goto('/budgets')
+    await expect(page.getByRole('heading', { name: /Budgets/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await expect(page.locator('.budgets-sticky-month').first()).toBeVisible()
+    const results = await new AxeBuilder({ page }).include('.budgets-sticky-month').analyze()
+    const serious = results.violations.filter(
+      (v) => v.impact === 'serious' || v.impact === 'critical',
+    )
+    expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
+  })
+
+  test('Planning Sync thumb landscape axe', async ({ page }, testInfo) => {
+    test.skip(
+      testInfo.project.name !== 'iphone-14-landscape',
+      'Landscape phone gate',
+    )
+    await page.goto('/planning')
+    await expect(page.getByRole('heading', { name: /Rebalance|Monte Carlo/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await expect(page.locator('.thumb-cta-bar').getByRole('button', { name: /Sync now/i })).toBeVisible()
+    const results = await new AxeBuilder({ page }).include('.thumb-cta-bar').analyze()
+    const serious = results.violations.filter(
+      (v) => v.impact === 'serious' || v.impact === 'critical',
+    )
+    expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
+  })
+
   test('Compare sticky toolbar axe — iphone gate', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'iphone-14', 'CI gate targets iphone-14')
     await page.goto('/compare')

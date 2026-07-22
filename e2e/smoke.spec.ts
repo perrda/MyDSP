@@ -445,6 +445,64 @@ test.describe('MyDSP smoke', () => {
     await expect(page.locator('.thumb-cta-bar').getByRole('button', { name: /Sync now/i })).toBeVisible()
   })
 
+  test('Review Analytics Optimizer Planning Sync thumbs', async ({ page }) => {
+    for (const { path, heading } of [
+      { path: '/review', heading: /Monthly review/i },
+      { path: '/analytics', heading: /Analytics/i },
+      { path: '/optimizer', heading: /Debt optimizer/i },
+      { path: '/planning', heading: /Rebalance|Monte Carlo|Planning/i },
+    ]) {
+      await page.goto(path)
+      await expect(page.getByRole('heading', { name: heading }).first()).toBeVisible({
+        timeout: 20_000,
+      })
+      await expect(
+        page.locator('.thumb-cta-bar').getByRole('button', { name: /Sync now/i }),
+      ).toBeVisible()
+    }
+  })
+
+  test('Todos Jobs Budgets YouTube sticky filters', async ({ page }) => {
+    await page.goto('/todos')
+    await expect(page.getByRole('heading', { name: /To Do/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await expect(page.locator('.todos-sticky-filters').first()).toBeVisible()
+
+    await page.goto('/jobs')
+    await expect(page.getByRole('heading', { name: /Jobs/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await expect(page.locator('.jobs-sticky-filters').first()).toBeVisible()
+
+    await page.goto('/budgets')
+    await expect(page.getByRole('heading', { name: /Budgets/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await expect(page.locator('.budgets-sticky-month').first()).toBeVisible()
+
+    await page.goto('/youtube')
+    await expect(page.getByRole('heading', { name: /YouTube/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    await expect(page.locator('.youtube-sticky-status').first()).toBeVisible()
+  })
+
+  test('landscape thumb CTA clears short bottom-nav', async ({ page }, testInfo) => {
+    test.skip(
+      !testInfo.project.name.includes('landscape'),
+      'Landscape projects only',
+    )
+    await page.goto('/planning')
+    await expect(page.getByRole('heading', { name: /Rebalance|Monte Carlo/i }).first()).toBeVisible({
+      timeout: 20_000,
+    })
+    const bar = page.locator('.thumb-cta-bar').first()
+    await expect(bar.getByRole('button', { name: /Sync now/i })).toBeVisible()
+    const bottom = await bar.evaluate((el) => getComputedStyle(el).bottom)
+    expect(bottom).toBeTruthy()
+  })
+
   test('Markets Sort', async ({ page }) => {
     await page.goto('/markets')
     await expect(page.getByRole('heading', { name: /Markets/i }).first()).toBeVisible({
