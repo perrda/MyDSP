@@ -64,14 +64,14 @@ describe('next25u — sync / Markets / Today polish tip (1–25 → v1.2.87)', (
 
   it('25: package + release notes are 1.2.87', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.90')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.90')
+    expect(pkg.version).toBe('1.2.91')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.91')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.91',
       '1.2.90',
       '1.2.89',
       '1.2.88',
       '1.2.87',
-      '1.2.86',
     ])
   })
 
@@ -194,7 +194,7 @@ describe('next25u — sync / Markets / Today polish tip (1–25 → v1.2.87)', (
       'RecurringPage.tsx',
     ]) {
       const src = readFileSync(resolve(__dirname, `../pages/${file}`), 'utf8')
-      expect(src).toMatch(/Sync now/)
+      expect(src).not.toMatch(/^\s*Sync now\s*$/m)
       expect(src).toMatch(/thumb-cta-bar/)
     }
     const liab = readFileSync(resolve(__dirname, '../pages/LiabilitiesPage.tsx'), 'utf8')

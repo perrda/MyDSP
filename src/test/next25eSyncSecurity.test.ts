@@ -9,14 +9,13 @@ import {
 import { summarizeSyncHighlights } from '../services/sync/syncHighlights'
 
 describe('next25e sync / security (1-5)', () => {
-  it('1: SyncStatusChip long-press forces sync with success flash on phone and desktop', () => {
+  it('1: SyncStatusChip is status-only (tap Settings; no long-press sync)', () => {
     const chip = readFileSync(resolve(__dirname, '../components/SyncStatusChip.tsx'), 'utf8')
-    expect(chip).toMatch(/LONG_PRESS_MS/)
-    expect(chip).toMatch(/forceSyncNow/)
-    expect(chip).toMatch(/triggerSuccessFlash/)
-    expect(chip).toMatch(/onPointerDown/)
-    expect(chip).toMatch(/Long-press to sync now/)
-    expect(chip).toMatch(/sync-chip--flash/)
+    expect(chip).not.toMatch(/LONG_PRESS_MS/)
+    expect(chip).not.toMatch(/forceSyncNow/)
+    expect(chip).not.toMatch(/Long-press to sync now/)
+    expect(chip).toMatch(/Tap to open Settings/)
+    expect(chip).toMatch(/Unlock sync/)
 
     const shell = readFileSync(resolve(__dirname, '../components/layout/AppShell.tsx'), 'utf8')
     expect(shell).toMatch(/<SyncStatusChip \/>/)

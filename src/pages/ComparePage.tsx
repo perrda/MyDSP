@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { GitCompareArrows, ArrowRight, RefreshCw } from 'lucide-react'
+import { GitCompareArrows, ArrowRight } from 'lucide-react'
 import { PageHeader, StatCard } from '../components/ui/PageHeader'
 import { Modal } from '../components/ui/Modal'
 import { usePortfolio } from '../context/PortfolioContext'
-import { syncNow } from '../services/sync/autoSyncService'
 import {
   buildPortfolioComparison,
   comparisonTotals,
@@ -96,7 +95,7 @@ function portfolioSyncQuoteLabel(portfolioId: string): string | null {
 
 export function ComparePage() {
   const { privacy, portfolios, activeId, switchPortfolio, reload } = usePortfolio()
-  const { error: showError, showToast, success } = useToasts()
+  const { error: showError, showToast } = useToasts()
   const [selected, setSelected] = useState<string[]>(() =>
     loadCompareSelectedIds(portfolios.map((p) => p.id)),
   )
@@ -241,11 +240,6 @@ export function ComparePage() {
     )
   }
 
-  const refresh = () => {
-    reload()
-    setScanToken((n) => n + 1)
-  }
-
   const fillFromLastSynced = () => {
     setFilling(true)
     try {
@@ -347,6 +341,12 @@ export function ComparePage() {
     setDigestOpen(true)
   }
 
+  useEffect(() => {
+    const open = () => exportWeeklyDigest()
+    window.addEventListener('mydsp-open-weekly-digest', open)
+    return () => window.removeEventListener('mydsp-open-weekly-digest', open)
+  })
+
   return (
     <div>
       <WeeklyDigestModal
@@ -380,15 +380,6 @@ export function ComparePage() {
             </button>
             <button
               type="button"
-              className="btn-ghost btn-sm weekly-digest-btn"
-              disabled={rows.length === 0}
-              onClick={exportWeeklyDigest}
-              title="Preview and share weekly HTML digest (not emailed)"
-            >
-              Digest Preview/Share
-            </button>
-            <button
-              type="button"
               className="btn-ghost btn-sm"
               disabled={filling || selected.length === 0}
               onClick={fillFromLastSynced}
@@ -403,9 +394,6 @@ export function ComparePage() {
                 : cacheAgeLabel
                   ? `Fill from last synced (${cacheAgeLabel})`
                   : 'Fill from last synced'}
-            </button>
-            <button type="button" className="btn-secondary btn-sm" onClick={refresh}>
-              Refresh
             </button>
           </div>
         }
@@ -696,10 +684,6 @@ export function ComparePage() {
       </Modal>
 
       <div className="thumb-cta-bar" role="toolbar" aria-label="Primary compare actions">
-        <button type="button" className="btn-primary btn-sm inline-flex items-center gap-1.5" onClick={refresh}>
-          <RefreshCw size={16} strokeWidth={2} />
-          Refresh
-        </button>
         <button
           type="button"
           className="btn-secondary btn-sm"
@@ -719,15 +703,6 @@ export function ComparePage() {
         </button>
         <button type="button" className="btn-secondary btn-sm" onClick={() => setInviteOpen(true)}>
           Add portfolio
-        </button>
-        <button
-          type="button"
-          className="btn-secondary btn-sm"
-          onClick={() => {
-            void syncNow().then(() => success('Sync now finished'))
-          }}
-        >
-          Sync now
         </button>
       </div>
       <div className="thumb-cta-bar-spacer" aria-hidden />

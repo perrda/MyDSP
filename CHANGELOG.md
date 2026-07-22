@@ -1,5 +1,13 @@
 # MyDSP Changelog
 
+## [1.2.91] - 2026-07-22
+
+### Improved — Clean sync / digest chrome
+- **Digest** moved to burger Sidebar (**Weekly digest**) — removed from Today hero, Markets aside, Compare header, and Today thumb
+- **Cloud Sync →** removed from Today Overview; cloud sync stays automatic (+ Unlock sync status chip → Settings)
+- **Manual refresh** only via header `…` → Refresh (all viewports) — removed page Sync now thumbs, Markets/Compare Refresh CTAs, sync-chip long-press, and bottom-nav long-press sync/refresh
+- Cursor rule `clean-sync-refresh-ux.mdc` locks this in going forward
+
 ## [1.2.90] - 2026-07-22
 
 ### Fixed — Markets refresh + sync chip

@@ -998,8 +998,6 @@ export function MarketsPage() {
         persistSyncPricesReport(`Sync prices: ${live} live · ${failed} failed`)
       } else if (!cfg.enabled || !cfg.remoteUrl.trim()) {
         persistSyncPricesReport(null)
-        // Quiet after auto-refresh; only hint when user manually Refresh'd without cloud sync
-        setError('Prices refreshed locally — enable Cloud Sync in Settings to push to other devices')
       } else {
         persistSyncPricesReport(null)
       }
@@ -1135,7 +1133,7 @@ export function MarketsPage() {
       }
     }
     const onRefresh = () => {
-      void refresh()
+      void syncPricesNow()
     }
     window.addEventListener('mydsp-markets-quotes', onQuotes)
     window.addEventListener('mydsp-markets-refresh', onRefresh)
@@ -1143,7 +1141,7 @@ export function MarketsPage() {
       window.removeEventListener('mydsp-markets-quotes', onQuotes)
       window.removeEventListener('mydsp-markets-refresh', onRefresh)
     }
-  }, [refresh])
+  }, [refresh, syncPricesNow])
 
   const slaChip = useMemo(() => {
     const list = [...quotes.values()].filter((q) => q.last > 0)
@@ -1242,10 +1240,10 @@ export function MarketsPage() {
   }, [reloadList])
 
   useEffect(() => {
-    const onGlobal = () => void refresh()
+    const onGlobal = () => void syncPricesNow()
     window.addEventListener('mydsp-global-refresh', onGlobal)
     return () => window.removeEventListener('mydsp-global-refresh', onGlobal)
-  }, [refresh])
+  }, [syncPricesNow])
 
   useEffect(() => {
     // Back off slightly vs 30s to reduce Yahoo CORS-proxy hammering while tabs stay open
@@ -1534,19 +1532,6 @@ export function MarketsPage() {
                 <HelpCircle size={16} strokeWidth={1.75} />
               </button>
             ) : null}
-            <button
-              type="button"
-              className="btn-ghost btn-sm p-2 min-h-10 min-w-10"
-              aria-label={`Refresh ${meta.title}`}
-              disabled={sectionBusy}
-              onClick={() => void refreshSection(section)}
-            >
-              <RefreshCw
-                size={16}
-                strokeWidth={1.75}
-                className={sectionRefreshing === section ? 'animate-spin' : undefined}
-              />
-            </button>
             <button
               type="button"
               className="btn-ghost btn-sm p-2 min-h-10 min-w-10"
@@ -2160,22 +2145,6 @@ export function MarketsPage() {
         title="Markets"
         action={
           <div className="hidden sm:flex flex-wrap gap-2">
-            <button
-              type="button"
-              className="btn-ghost btn-sm inline-flex items-center gap-1.5 markets-sync-prices"
-              data-testid="markets-sync-prices"
-              disabled={refreshing || syncingPrices}
-              aria-label="Refresh market data now"
-              title="Refresh market data"
-              onClick={() => void syncPricesNow()}
-            >
-              <RefreshCw
-                size={14}
-                strokeWidth={1.75}
-                className={refreshing || syncingPrices ? 'animate-spin' : undefined}
-              />
-              Refresh
-            </button>
             <span className="inline-flex flex-wrap items-center gap-2">
               <button
                 type="button"
@@ -3445,18 +3414,7 @@ export function MarketsPage() {
             <RefreshCw size={16} strokeWidth={2} className="animate-spin" aria-hidden />
             Refreshing data
           </span>
-        ) : (
-          <button
-            type="button"
-            className="btn-ghost btn-sm inline-flex items-center gap-1.5 markets-sync-prices"
-            data-testid="markets-sync-prices"
-            aria-label="Refresh market data now"
-            onClick={() => void syncPricesNow()}
-          >
-            <RefreshCw size={16} strokeWidth={2} />
-            Refresh
-          </button>
-        )}
+        ) : null}
         <button
           type="button"
           className="btn-secondary btn-sm inline-flex items-center gap-1.5"

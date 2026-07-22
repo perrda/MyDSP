@@ -18,9 +18,8 @@ interface ToolbarControlsProps {
 /**
  * Workspace controls — designed so a ~390px phone header never overflows.
  *
- * Phone (&lt;768px): Portfolio · Currency · Notifications · More
- * More menu: Refresh · Privacy · Theme · Glass · Search
- * Tablet / desktop (≥768px): full strip (refresh one-tap).
+ * All viewports: Portfolio · Currency · Notifications · More
+ * More menu (only place for manual refresh): Refresh · Privacy · Theme · Glass · Search
  */
 export function ToolbarControls({
   portfolioSelect,
@@ -53,82 +52,60 @@ export function ToolbarControls({
     }
   }, [moreOpen])
 
-  useEffect(() => {
-    const mq = window.matchMedia('(min-width: 768px)')
-    const onChange = () => {
-      if (mq.matches) setMoreOpen(false)
-    }
-    mq.addEventListener('change', onChange)
-    return () => mq.removeEventListener('change', onChange)
-  }, [])
-
-  const refreshBtn = (opts?: { inMenu?: boolean }) => (
-    <button
-      type="button"
-      onClick={() => {
-        onRefresh()
-        setMoreOpen(false)
-      }}
-      disabled={refreshing}
-      className="toolbar-icon"
-      title="Refresh all live data"
-      aria-label={refreshing ? 'Refreshing data' : 'Refresh all data'}
-      role={opts?.inMenu ? 'menuitem' : undefined}
-    >
-      <RefreshCw size={16} strokeWidth={1.5} className={refreshing ? 'animate-spin' : ''} />
-    </button>
-  )
-
   return (
     <div className="toolbar-cluster" role="toolbar" aria-label="Workspace controls" ref={wrapRef}>
       {portfolioSelect}
       {currencySelect}
 
-      {/* Tablet / desktop: full strip */}
-      <div className="toolbar-actions-desktop">
-        {refreshBtn()}
-        <NotificationCenter />
-        <PrivacyToggle privacy={privacy} onToggle={onPrivacyToggle} />
-        <ThemeToggle />
-        <GlassToggle />
-        <GlobalSearch />
-      </div>
+      <NotificationCenter />
+      <div className="toolbar-more-wrap">
+        <button
+          type="button"
+          className={`toolbar-icon ${moreOpen ? 'is-active' : ''}`}
+          aria-haspopup="menu"
+          aria-expanded={moreOpen}
+          aria-controls={menuId}
+          aria-label={moreOpen ? 'Close workspace menu' : 'More workspace controls'}
+          title="More"
+          onClick={() => setMoreOpen((v) => !v)}
+        >
+          <Ellipsis size={18} strokeWidth={1.5} />
+        </button>
 
-      {/* Phone only: bell + More — refresh lives in the menu */}
-      <div className="toolbar-actions-mobile">
-        <NotificationCenter />
-        <div className="toolbar-more-wrap">
-          <button
-            type="button"
-            className={`toolbar-icon ${moreOpen ? 'is-active' : ''}`}
-            aria-haspopup="menu"
-            aria-expanded={moreOpen}
-            aria-controls={menuId}
-            aria-label={moreOpen ? 'Close workspace menu' : 'More workspace controls'}
-            title="More"
-            onClick={() => setMoreOpen((v) => !v)}
+        {moreOpen ? (
+          <div
+            id={menuId}
+            role="menu"
+            aria-label="Workspace actions"
+            className="toolbar-more-menu"
           >
-            <Ellipsis size={18} strokeWidth={1.5} />
-          </button>
-
-          {moreOpen ? (
-            <div
-              id={menuId}
-              role="menu"
-              aria-label="Workspace actions"
-              className="toolbar-more-menu"
-            >
-              <div className="toolbar-more-row" role="none">
-                {refreshBtn({ inMenu: true })}
-                <PrivacyToggle privacy={privacy} onToggle={onPrivacyToggle} />
-                <ThemeToggle />
-                <GlassToggle />
-                <GlobalSearch />
-              </div>
-              <p className="toolbar-more-hint">Refresh · Privacy · Theme · Glass · Search</p>
+            <div className="toolbar-more-row" role="none">
+              <button
+                type="button"
+                onClick={() => {
+                  onRefresh()
+                  setMoreOpen(false)
+                }}
+                disabled={refreshing}
+                className="toolbar-icon"
+                title="Refresh all live data"
+                aria-label={refreshing ? 'Refreshing data' : 'Refresh all data'}
+                role="menuitem"
+              >
+                <RefreshCw
+                  size={16}
+                  strokeWidth={1.5}
+                  className={refreshing ? 'animate-spin' : ''}
+                />
+              </button>
+              <PrivacyToggle privacy={privacy} onToggle={onPrivacyToggle} />
+              <ThemeToggle />
+              <GlassToggle />
+              <GlobalSearch />
             </div>
-          ) : null}
-        </div>
+            <p className="toolbar-more-hint">Refresh · Privacy · Theme · Glass · Search</p>
+          </div>
+        ) : null}
       </div>
     </div>
   )

@@ -29,6 +29,24 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.91',
+    date: '2026-07-22',
+    bullets: [
+      {
+        text: 'Weekly digest in Sidebar — off Today/Compare hero',
+        to: '/',
+      },
+      {
+        text: 'Manual refresh only via … → Refresh (no Sync thumbs)',
+        to: '/settings#sync',
+      },
+      {
+        text: 'Cloud sync stays automatic · Unlock sync chip → Settings',
+        to: '/settings#sync',
+      },
+    ],
+  },
+  {
     version: '1.2.90',
     date: '2026-07-22',
     bullets: [

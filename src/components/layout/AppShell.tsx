@@ -177,6 +177,7 @@ export function AppShell() {
   }, [])
 
   const onRefresh = async () => {
+    // Manual refresh lives only in header … → Refresh.
     // Always refresh Markets / News / YouTube feeds — even when prices are
     // gated by privacy mode or throttle (those pages do not need holdings prices).
     try {
@@ -185,6 +186,16 @@ export function AppShell() {
       /* ignore */
     }
     void refreshMediaFeeds()
+
+    const cfg = loadSyncConfig()
+    if (cfg.remoteUrl.trim() && cfg.enabled && getSessionSyncPassphrase()) {
+      try {
+        await syncNow()
+        setSyncCfg(loadSyncConfig())
+      } catch {
+        /* price refresh still runs below */
+      }
+    }
 
     const r = await refreshPrices()
     if (r.skipped === 'privacy') {

@@ -6,18 +6,18 @@ import { RELEASE_NOTES, releaseNotesArchive } from '../domain/releaseNotes'
 describe('next25w — responsive / landscape polish tip (1–25 → v1.2.88)', () => {
   it('25: package + release notes are 1.2.88', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.90')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.90')
+    expect(pkg.version).toBe('1.2.91')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.91')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.91',
       '1.2.90',
       '1.2.89',
       '1.2.88',
       '1.2.87',
-      '1.2.86',
     ])
   })
 
-  it('1–5: Review / Analytics / Optimizer / Planning Sync thumbs + docs', () => {
+  it('1–5: Review / Analytics / Optimizer / Planning keep thumb bars (Sync now removed)', () => {
     for (const file of [
       'MonthlyReviewPage.tsx',
       'AnalyticsPage.tsx',
@@ -25,9 +25,9 @@ describe('next25w — responsive / landscape polish tip (1–25 → v1.2.88)', (
       'PlanningPage.tsx',
     ]) {
       const src = readFileSync(resolve(__dirname, `../pages/${file}`), 'utf8')
-      expect(src).toMatch(/Sync now/)
+      expect(src).not.toMatch(/^\s*Sync now\s*$/m)
       expect(src).toMatch(/thumb-cta-bar/)
-      expect(src).toMatch(/syncNow/)
+      expect(src).not.toMatch(/syncNow/)
     }
     const setup = readFileSync(resolve(__dirname, '../../SYNC_SETUP.md'), 'utf8')
     expect(setup).toMatch(/Monthly Review/)

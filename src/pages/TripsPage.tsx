@@ -2,9 +2,7 @@ import { useMemo, useState } from 'react'
 import { PageHeader, StatCard } from '../components/ui/PageHeader'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
-import { useToasts } from '../components/ToastProvider'
 import { usePortfolio } from '../context/PortfolioContext'
-import { syncNow } from '../services/sync/autoSyncService'
 import { calcSplitBalance, tripSpend } from '../domain/splits'
 import type { Trip } from '../domain/types'
 import { applySortOrder, sortBySortOrder } from '../utils/reorder'
@@ -24,7 +22,6 @@ const emptyTrip = {
 
 export function TripsPage() {
   const { data, setData, privacy } = usePortfolio()
-  const { success: toastSuccess } = useToasts()
   const [tab, setTab] = useState<'trips' | 'splits'>('trips')
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<Trip | null>(null)
@@ -472,15 +469,6 @@ export function TripsPage() {
       <div className="thumb-cta-bar" role="toolbar" aria-label="Primary trips actions">
         <button type="button" className="btn-primary btn-sm" onClick={openCreate}>
           Add trip
-        </button>
-        <button
-          type="button"
-          className="btn-secondary btn-sm"
-          onClick={() => {
-            void syncNow().then(() => toastSuccess('Sync now finished'))
-          }}
-        >
-          Sync now
         </button>
       </div>
       <div className="thumb-cta-bar-spacer" aria-hidden />

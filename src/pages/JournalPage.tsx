@@ -2,9 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { PageHeader } from '../components/ui/PageHeader'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
-import { useToasts } from '../components/ToastProvider'
 import { usePortfolio } from '../context/PortfolioContext'
-import { syncNow } from '../services/sync/autoSyncService'
 import {
   loadJournalFilterPref,
   saveJournalFilterPref,
@@ -80,7 +78,6 @@ function JournalRowBody({
 
 export function JournalPage() {
   const { data, setData, privacy } = usePortfolio()
-  const { success } = useToasts()
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<JournalEntry | null>(null)
   const [form, setForm] = useState(empty)
@@ -461,15 +458,6 @@ export function JournalPage() {
       <div className="thumb-cta-bar" role="toolbar" aria-label="Primary journal actions">
         <button type="button" className="btn-primary btn-sm" onClick={openCreate}>
           Add entry
-        </button>
-        <button
-          type="button"
-          className="btn-secondary btn-sm"
-          onClick={() => {
-            void syncNow().then(() => success('Sync now finished'))
-          }}
-        >
-          Sync now
         </button>
       </div>
       <div className="thumb-cta-bar-spacer" aria-hidden />

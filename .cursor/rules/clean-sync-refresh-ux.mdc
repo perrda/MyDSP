@@ -1,0 +1,28 @@
+---
+description: Keep sync/refresh UI clean — no page-level Sync/Refresh CTAs; digest in burger nav
+alwaysApply: true
+---
+
+# Clean sync / refresh / digest UX
+
+## Manual refresh — one place only
+
+- **Only** the header `…` (More) menu **Refresh** control may trigger a user-initiated full refresh (prices, media feeds, and cloud sync when configured).
+- Do **not** add page-level **Sync now**, **Sync prices**, **Cloud Sync →**, or **Refresh** buttons/thumbs/header actions anywhere else in the product chrome.
+- Do **not** restore long-press force-sync on the sync status chip or bottom-nav items.
+- Auto-refresh when quotes are stale (and brief non-interactive “Refreshing data” status) is encouraged.
+- **Settings → Sync** may keep setup controls (Remote URL, passphrase, Automatic sync, and a Sync now for first-device setup). That is configuration, not Overview chrome.
+
+## Digest
+
+- **Weekly digest** (Preview/Share) lives in the **burger / Sidebar** only — not in the Today/Overview hero, Markets aside, or Compare header.
+- Opening digest from the sidebar may navigate to `/?digest=1` or dispatch `mydsp-open-weekly-digest`.
+
+## Sync status chip
+
+- The header chip is **status + deep-link to Settings → Sync** (e.g. Unlock sync). It must not offer another manual sync gesture.
+
+## Pull-to-refresh
+
+- PTR may remain as a gesture on approved routes; it must not add visible Sync/Refresh CTAs.
+---

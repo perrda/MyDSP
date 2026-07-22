@@ -1,10 +1,8 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { PageHeader, StatCard } from '../components/ui/PageHeader'
-import { useToasts } from '../components/ToastProvider'
 import { usePortfolio } from '../context/PortfolioContext'
 import { loadReviewMonthPref, saveReviewMonthPref } from '../domain/reviewMonthPref'
-import { syncNow } from '../services/sync/autoSyncService'
 import { formatGBP, formatPct, privacyClass } from '../utils/format'
 
 function monthKey(d: Date): string {
@@ -19,7 +17,6 @@ function shiftMonth(ym: string, delta: number): string {
 
 export function MonthlyReviewPage() {
   const { data, breakdown, privacy } = usePortfolio()
-  const { success } = useToasts()
   const [ym, setYm] = useState(() => loadReviewMonthPref(monthKey(new Date())))
   const setReviewYm = (next: string) => {
     setYm(next)
@@ -144,15 +141,6 @@ export function MonthlyReviewPage() {
         <Link to="/budgets" className="btn-secondary btn-sm">
           Budgets
         </Link>
-        <button
-          type="button"
-          className="btn-secondary btn-sm"
-          onClick={() => {
-            void syncNow().then(() => success('Sync now finished'))
-          }}
-        >
-          Sync now
-        </button>
       </div>
       <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>

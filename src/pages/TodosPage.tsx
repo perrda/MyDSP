@@ -50,7 +50,6 @@ import {
   saveTodosQuickFilter,
 } from '../domain/todosQuickFilterPrefs'
 import { loadTodosSort, saveTodosSort } from '../domain/todosSortPrefs'
-import { syncNow } from '../services/sync/autoSyncService'
 import { privacyClass, formatDate } from '../utils/format'
 
 const PRIORITY_COLORS = {
@@ -1245,15 +1244,6 @@ export function TodosPage() {
         </button>
         <button type="button" onClick={openCreateList} className="btn-secondary btn-sm">
           <Plus size={16} /> New List
-        </button>
-        <button
-          type="button"
-          className="btn-secondary btn-sm"
-          onClick={() => {
-            void syncNow().then(() => success('Sync now finished'))
-          }}
-        >
-          Sync now
         </button>
       </div>
       <div className="thumb-cta-bar-spacer" aria-hidden />

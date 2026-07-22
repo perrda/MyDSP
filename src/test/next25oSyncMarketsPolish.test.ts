@@ -47,14 +47,14 @@ describe('next25o — sync / Markets / Today polish tip (1–25 → v1.2.80)', (
 
   it('25: package + release notes are 1.2.80', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.90')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.90')
+    expect(pkg.version).toBe('1.2.91')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.91')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.91',
       '1.2.90',
       '1.2.89',
       '1.2.88',
       '1.2.87',
-      '1.2.86',
     ])
   })
 
@@ -118,7 +118,7 @@ describe('next25o — sync / Markets / Today polish tip (1–25 → v1.2.80)', (
     expect(page).toMatch(/markets-row-tag-filter/)
   })
 
-  it('11–15: Family/Docs/Journal/Rules thumbs · PTR · long-press · holding', () => {
+  it('11–15: Family/Docs/Journal/Rules thumbs · PTR · Favourites long-press · holding', () => {
     const family = readFileSync(resolve(__dirname, '../pages/FamilyPage.tsx'), 'utf8')
     const docs = readFileSync(resolve(__dirname, '../pages/DocumentsPage.tsx'), 'utf8')
     const journal = readFileSync(resolve(__dirname, '../pages/JournalPage.tsx'), 'utf8')
@@ -133,10 +133,8 @@ describe('next25o — sync / Markets / Today polish tip (1–25 → v1.2.80)', (
     expect(shell).toMatch(/pathname === '\/journal'/)
     expect(shell).toMatch(/pathname === '\/rules'/)
     const nav = readFileSync(resolve(__dirname, '../components/layout/BottomNav.tsx'), 'utf8')
-    expect(nav).toMatch(/item\.to === '\/equities'/)
-    expect(nav).toMatch(/item\.to === '\/crypto'/)
-    expect(nav).toMatch(/item\.to === '\/liabilities'/)
-    expect(nav).toMatch(/item\.to === '\/goals'/)
+    expect(nav).toMatch(/openFavouriteSheet/)
+    expect(nav).not.toMatch(/syncNow\(\)/)
   })
 
   it('16–20: Today badges · sidebar bills · interview actions · Compare tick', () => {

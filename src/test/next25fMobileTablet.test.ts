@@ -3,25 +3,27 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 describe('next25f mobile / tablet items 11-15', () => {
-  it('11: Dashboard and Compare use WeeklyDigestModal for digest Preview/Share', () => {
+  it('11: Dashboard and Compare keep WeeklyDigestModal; digest CTA is in Sidebar', () => {
     const dashboard = readFileSync(resolve(__dirname, '../pages/Dashboard.tsx'), 'utf8')
     const compare = readFileSync(resolve(__dirname, '../pages/ComparePage.tsx'), 'utf8')
+    const sidebar = readFileSync(resolve(__dirname, '../components/layout/Sidebar.tsx'), 'utf8')
 
     expect(dashboard).toMatch(/WeeklyDigestModal/)
-    expect(dashboard).toMatch(/Digest Preview\/Share/)
+    expect(dashboard).not.toMatch(/Digest Preview\/Share/)
     expect(dashboard).not.toMatch(/downloadWeeklyDigest/)
     expect(compare).toMatch(/WeeklyDigestModal/)
-    expect(compare).toMatch(/Digest Preview\/Share/)
+    expect(compare).not.toMatch(/Digest Preview\/Share/)
     expect(compare).not.toMatch(/downloadWeeklyDigest/)
+    expect(sidebar).toMatch(/Weekly digest/)
   })
 
-  it('12: Today two-pane side rail exposes a sticky digest Preview button', () => {
+  it('12: Today two-pane Markets rail stays sticky without a digest Preview button', () => {
     const dashboard = readFileSync(resolve(__dirname, '../pages/Dashboard.tsx'), 'utf8')
     const css = readFileSync(resolve(__dirname, '../index.css'), 'utf8')
 
     expect(dashboard).toMatch(/twoPane/)
-    expect(dashboard).toMatch(/today-two-pane-digest-preview/)
-    expect(dashboard).toMatch(/Digest Preview/)
+    expect(dashboard).not.toMatch(/today-two-pane-digest-preview/)
+    expect(dashboard).not.toMatch(/Digest Preview/)
     expect(css).toMatch(/\.today-two-pane \.today-markets-pane/)
   })
 

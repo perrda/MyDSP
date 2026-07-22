@@ -56,13 +56,13 @@ describe('next25c markets / valuations (6–10)', () => {
     expect(markets).toMatch(/<Sparkline/)
   })
 
-  it('7: per-section refresh filters tickers by kind', async () => {
+  it('7: per-section refresh filters tickers by kind (control removed; refresh(kind) remains)', async () => {
     const markets = readFileSync(resolve(__dirname, '../pages/MarketsPage.tsx'), 'utf8')
     expect(markets).toMatch(/refreshSection/)
     expect(markets).toMatch(/RefreshCw/)
     expect(markets).toMatch(/refresh\(kind\)/)
     expect(markets).toMatch(/listMarketTickers\(kind\)/)
-    expect(markets).toMatch(/aria-label=\{`Refresh \$\{meta\.title\}`\}/)
+    expect(markets).not.toMatch(/aria-label=\{`Refresh \$\{meta\.title\}`\}/)
   })
 
   it('8: corporateActionNote on EquityHolding — detail edit + list badge', async () => {
@@ -161,6 +161,6 @@ describe('next25c markets / valuations (6–10)', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8')) as {
       version: string
     }
-    expect(pkg.version).toBe('1.2.90')
+    expect(pkg.version).toBe('1.2.91')
   })
 })

@@ -14,11 +14,11 @@ describe('next25f quality / ops items 21-25', () => {
     expect(a11y).toMatch(/\/crypto\/1/)
   })
 
-  it('22: Playwright smoke mentions digest Preview/Share, not only download', () => {
+  it('22: Playwright smoke opens digest from Sidebar Weekly digest', () => {
     const smoke = readFileSync(resolve(__dirname, '../../e2e/smoke.spec.ts'), 'utf8')
 
-    expect(smoke).toMatch(/weekly digest Preview\/Share modal/)
-    expect(smoke).toMatch(/Digest Preview/)
+    expect(smoke).toMatch(/weekly digest Preview\/Share modal opens from Sidebar/)
+    expect(smoke).toMatch(/Weekly digest/)
     expect(smoke).toMatch(/Highlights to include/)
     expect(smoke).toMatch(/Share\|Copy HTML/)
   })

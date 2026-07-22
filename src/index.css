@@ -345,27 +345,13 @@ html.theme-transitioning *::after {
 
 .toolbar-actions-desktop {
   display: none;
-  align-items: center;
-  gap: inherit;
-  flex-shrink: 0;
 }
 .toolbar-actions-mobile {
-  display: flex;
-  align-items: center;
-  gap: inherit;
-  flex-shrink: 0;
+  display: none;
 }
 .toolbar-more-wrap {
   position: relative;
   flex-shrink: 0;
-}
-@media (min-width: 768px) {
-  .toolbar-actions-desktop {
-    display: flex;
-  }
-  .toolbar-actions-mobile {
-    display: none;
-  }
 }
 
 .toolbar-more-menu {

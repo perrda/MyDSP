@@ -59,12 +59,13 @@ test.describe('MyDSP smoke', () => {
     await expect(page.getByText(/Encrypted cloud sync|Cloud Sync|Sync/i).first()).toBeVisible()
   })
 
-  test('weekly digest Preview/Share modal opens from Today', async ({ page }) => {
+  test('weekly digest Preview/Share modal opens from Sidebar', async ({ page }) => {
     await page.goto('/')
-    await expect(page.getByRole('button', { name: /Digest Preview\/Share/i })).toBeVisible({
+    await page.getByRole('button', { name: /Open menu|Open navigation|Menu/i }).first().click()
+    await expect(page.getByRole('button', { name: /Weekly digest/i })).toBeVisible({
       timeout: 20_000,
     })
-    await page.getByRole('button', { name: /Digest Preview\/Share/i }).click()
+    await page.getByRole('button', { name: /Weekly digest/i }).click()
     const dialog = page.getByRole('dialog', { name: 'Weekly digest' })
     await expect(dialog).toBeVisible()
     await expect(dialog.getByRole('heading', { name: 'Weekly digest', level: 2 })).toBeVisible()

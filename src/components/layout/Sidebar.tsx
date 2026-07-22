@@ -291,6 +291,21 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         </div>
 
         <div className="px-3 pt-3 pb-1 space-y-1 border-b border-border">
+          <button
+            type="button"
+            className="nav-link nav-link-flex w-full text-left"
+            onClick={() => {
+              onClose()
+              if (pathname === '/' || pathname.startsWith('/compare')) {
+                window.dispatchEvent(new CustomEvent('mydsp-open-weekly-digest'))
+                return
+              }
+              window.location.assign('/?digest=1')
+            }}
+          >
+            <Newspaper size={16} strokeWidth={1.5} />
+            Weekly digest
+          </button>
           <NavLink
             to="/settings#sync"
             onClick={onClose}
