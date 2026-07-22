@@ -177,88 +177,15 @@ export function periodChange(
   return rangeChange(history, legacyToRange(period))
 }
 
-const MONTHS_SHORT = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-] as const
+/** @deprecated Prefer importing from domain/chartAxis — re-exported for call-site stability. */
+export {
+  formatChartDayMonth,
+  formatChartMonthYear,
+  formatChartTick,
+  formatChartTooltipLabel,
+  buildChartAxisRows,
+  formatChartYTick,
+  formatChartPctTick,
+  chartXIntervalFor,
+} from './chartAxis'
 
-/** Parse YYYY-MM-DD (or ISO datetime) as local calendar date. */
-function chartDayParts(isoDate: string): { day: number; month: number; year: number } | null {
-  const dayStr = isoDate.slice(0, 10)
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dayStr)
-  if (!m) return null
-  return { year: Number(m[1]), month: Number(m[2]), day: Number(m[3]) }
-}
-
-/** e.g. 12 Jul */
-export function formatChartDayMonth(isoDate: string): string {
-  const p = chartDayParts(isoDate)
-  if (!p) return isoDate.slice(0, 10)
-  return `${String(p.day).padStart(2, '0')} ${MONTHS_SHORT[p.month - 1]}`
-}
-
-/** e.g. Jul 26 */
-export function formatChartMonthYear(isoDate: string): string {
-  const p = chartDayParts(isoDate)
-  if (!p) return isoDate.slice(0, 7)
-  return `${MONTHS_SHORT[p.month - 1]} ${String(p.year).slice(2)}`
-}
-
-function dayOfYear(d: Date): number {
-  const start = new Date(d.getFullYear(), 0, 0)
-  const diff = d.getTime() - start.getTime()
-  return Math.floor(diff / 86_400_000)
-}
-
-/**
- * Axis tick labels by range:
- * - 1D / 1W / 1M → DD MMM (1D with time → DD MMM HH:MM)
- * - 12M / 5Y / ALL → MMM YY
- * - YTD → DD MMM early in the year, MMM YY once past ~day 100
- */
-export function formatChartTick(
-  isoDate: string,
-  range: ChartRange,
-  at?: string,
-  now = new Date(),
-): string {
-  if (range === '1D') {
-    const base = formatChartDayMonth(isoDate)
-    if (at && at.length >= 16) {
-      const hm = at.slice(11, 16)
-      if (/^\d{2}:\d{2}$/.test(hm)) return `${base} ${hm}`
-    }
-    return base
-  }
-  if (range === '1W' || range === '1M') return formatChartDayMonth(isoDate)
-  if (range === 'YTD') {
-    return dayOfYear(now) <= 100
-      ? formatChartDayMonth(isoDate)
-      : formatChartMonthYear(isoDate)
-  }
-  // 12M, 5Y, ALL
-  return formatChartMonthYear(isoDate)
-}
-
-/** Tooltip header — always human-readable. */
-export function formatChartTooltipLabel(isoOrAt: string): string {
-  if (!isoOrAt) return ''
-  if (isoOrAt.length >= 16 && isoOrAt.includes('T')) {
-    const base = formatChartDayMonth(isoOrAt)
-    const hm = isoOrAt.slice(11, 16)
-    return /^\d{2}:\d{2}$/.test(hm) ? `${base} ${hm}` : base
-  }
-  const p = chartDayParts(isoOrAt)
-  if (!p) return isoOrAt
-  return `${formatChartDayMonth(isoOrAt)} ${p.year}`
-}

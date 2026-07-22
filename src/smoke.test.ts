@@ -62,11 +62,11 @@ describe('history', () => {
     const earlyYear = new Date('2026-02-10T12:00:00')
 
     expect(formatChartTick('2026-07-12', '1D')).toBe('12 Jul')
-    expect(formatChartTick('2026-07-12', '1D', '2026-07-12T14:30:00.000Z')).toBe('12 Jul 14:30')
+    expect(formatChartTick('2026-07-12', '1D', '2026-07-12T14:30:00.000Z')).toBe('14:30')
     expect(formatChartTick('2026-06-03', '1W')).toBe('03 Jun')
     expect(formatChartTick('2026-05-12', '1M')).toBe('12 May')
     expect(formatChartTick('2026-03-15', '12M')).toBe('Mar 26')
-    expect(formatChartTick('2024-11-01', '5Y')).toBe('Nov 24')
+    expect(formatChartTick('2024-11-01', '5Y')).toBe('2024')
     expect(formatChartTick('2026-05-12', 'ALL')).toBe('May 26')
     expect(formatChartTick('2026-02-14', 'YTD', undefined, earlyYear)).toBe('14 Feb')
     expect(formatChartTick('2026-05-12', 'YTD', undefined, midYear)).toBe('May 26')

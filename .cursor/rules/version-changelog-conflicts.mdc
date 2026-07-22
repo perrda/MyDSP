@@ -1,0 +1,19 @@
+---
+description: Auto-resolve version/changelog conflicts across stacked MyDSP PRs
+alwaysApply: true
+---
+
+# Version & changelog conflict resolution
+
+When merging/rebasing feature branches onto `main` (or each other), **resolve version conflicts without asking the user**:
+
+1. **Never overwrite** an already-shipped `CHANGELOG` / `ROADMAP` / `releaseNotes` entry for a version that is on `main`.
+2. **Keep both** feature write-ups: renumber the incoming branch to `max(main tip, other open PR tips) + 0.0.1` (patch bump).
+3. Typical stack (newest first in docs):
+   - Newest PR → highest version
+   - Older open PR / `main` tip → keep their versions intact
+4. Always update together: `package.json`, `package-lock.json`, `CHANGELOG.md`, `ROADMAP.md`, `src/domain/releaseNotes.ts`, and tip-harness `expect(pkg.version)` / `releaseNotesArchive(5)` windows.
+5. Prefer **merge main into the feature branch** (or rebase), resolve, push, then update the PR body with the new version — do not leave conflict markers for the user.
+6. After fixing one PR, **proactively rebase/merge subsequent open stacked PRs** the same way so the next merge is clean.
+
+Example: `main` is `1.2.88`, PR A claimed `1.2.88` → renumber A to `1.2.89`. PR B also claimed `1.2.89` → renumber B to `1.2.90` after merging A’s tip.

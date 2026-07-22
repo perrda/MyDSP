@@ -21,6 +21,7 @@ import {
   normalizeTargets,
 } from '../domain/rebalance'
 import { formatGBP, formatPct, privacyClass } from '../utils/format'
+import { formatChartYTick } from '../domain/chartAxis'
 
 export function PlanningPage() {
   const { data, setData, breakdown, privacy } = usePortfolio()
@@ -303,7 +304,7 @@ export function PlanningPage() {
                 <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
                 <XAxis dataKey="year" tick={{ fill: 'var(--text-muted)', fontSize: 11, fontWeight: 500 }} />
                 <YAxis
-                  tickFormatter={(v: number) => formatGBP(v, { compact: true })}
+                  tickFormatter={(v: number) => formatChartYTick(v)}
                   tick={{ fill: 'var(--text-muted)', fontSize: 11, fontWeight: 500 }}
                   width={64}
                 />
