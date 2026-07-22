@@ -184,13 +184,12 @@ export function CryptoPage() {
   }, [holdings])
   const concentrationThreshold = loadPortfolioConcentrationThresholdPct()
   const [dismissTick, setDismissTick] = useState(0)
-  const concentrationHits = useMemo(
-    () =>
-      portfolioConcentrationHits(data, concentrationThreshold).filter(
-        (h) => !isAlertDismissed(concentrationDismissId(h.symbol)),
-      ),
-    [data, concentrationThreshold, dismissTick],
-  )
+  const concentrationHits = useMemo(() => {
+    void dismissTick
+    return portfolioConcentrationHits(data, concentrationThreshold).filter(
+      (h) => !isAlertDismissed(concentrationDismissId(h.symbol)),
+    )
+  }, [data, concentrationThreshold, dismissTick])
 
   const fillFromLastSynced = () => {
     const snapshot = data
