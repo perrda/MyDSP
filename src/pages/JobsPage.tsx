@@ -588,6 +588,7 @@ export function JobsPage() {
 
       <CollapsibleFilters
         id="jobs-filters"
+        className="jobs-sticky-filters"
         title="Filters & search"
         summary={
           [

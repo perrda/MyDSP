@@ -18,6 +18,15 @@ export default defineConfig({
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
     { name: 'iphone-14', use: { ...devices['iPhone 14'] } },
-    { name: 'ipad-air', use: { ...devices['iPad Air'] } },
+    {
+      name: 'iphone-14-landscape',
+      use: { ...devices['iPhone 14 landscape'] },
+    },
+    /* Project id kept as ipad-air; Playwright 1.52 ships iPad (gen 7), not "iPad Air". */
+    { name: 'ipad-air', use: { ...devices['iPad (gen 7)'] } },
+    {
+      name: 'ipad-air-landscape',
+      use: { ...devices['iPad (gen 7) landscape'] },
+    },
   ],
 })

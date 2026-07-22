@@ -155,7 +155,10 @@ export function BudgetsPage() {
         title="Budgets"
         description={`${formatMonthLabel(ym)} · ${rows.length} categories tracked`}
         action={
-          <div className="flex flex-wrap gap-2 items-center">
+          <div
+            className="budgets-sticky-month flex flex-wrap gap-2 items-center"
+            data-testid="budgets-sticky-month"
+          >
             <button
               type="button"
               className="btn-ghost btn-sm min-h-11"

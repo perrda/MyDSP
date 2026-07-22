@@ -1,6 +1,6 @@
 # MyDSP Changelog
 
-## [1.2.88] - 2026-07-22
+## [1.2.89] - 2026-07-22
 
 ### Fixed — Alert quiet + chart axes
 - **Concentration banner:** Review Holding dismisses that symbol’s alert until the 1st of the month after next (~one calendar month)
@@ -9,6 +9,43 @@
 - **Chart X-axis:** unique `xKey` + interval ticks — 1D hourly · 1W daily · 1M weekly · 12M monthly · YTD adaptive · 5Y yearly · ALL by span (fixes repeated “Jul 26”)
 - **Chart Y-axis:** shared `formatChartYTick` for GBP / USD / THB / BTC across Portfolio, Holding, Spending, Planning, Predictive, Advanced charts
 - Canonical rules live in `src/domain/chartAxis.ts` + `src/domain/alertDismiss.ts`
+
+## [1.2.88] - 2026-07-22
+
+### Improved — Sync / trust (next 25w · 1–5)
+1. **Monthly Review** Sync now thumb
+2. **Analytics** Sync now thumb
+3. **Debt optimizer** Sync now thumb
+4. **Planning** Sync now thumb
+5. **Docs + SYNC_SMOKE** planning-surface Sync thumbs
+
+### Improved — Markets (next 25w · 6–10)
+6. **Short-landscape** sticky toolbar/filter offsets
+7. **Thumb CTA** clears shorter landscape bottom-nav
+8. **Jump chips** padding in short landscape
+9. **Density trust** wraps on narrow landscape
+10. **Today Markets pane** scrolls in landscape two-pane
+
+### Improved — Mobile / tablet (next 25w · 11–15)
+11. **Todos** sticky Filters panel
+12. **Jobs** sticky Filters panel
+13. **Budgets** sticky month controls
+14. **YouTube** sticky status strip
+15. **Playwright** iPad project uses real `iPad (gen 7)` device
+
+### Improved — Today / productivity (next 25w · 16–20)
+16. **Jump / pulse chips** horizontal overflow scroll in short landscape
+17. **Offline queue Retry** testid
+18. **Two-pane** matchMedia includes landscape tablets ≥1024px
+19. **Landscape Markets pane** max-height scroll
+20. **Planning Sync** landscape smoke gate
+
+### Quality (next 25w · 21–25)
+21. **Axe** Todos sticky filters + Budgets sticky month
+22. **Axe** Planning Sync thumb (iphone-14-landscape)
+23. **Playwright** iphone-14-landscape + ipad-air-landscape projects
+24. **Smoke** Review/Analytics/Optimizer/Planning Sync · sticky filters · landscape thumb
+25. Tip harness **1.2.88**
 
 ## [1.2.87] - 2026-07-19
 

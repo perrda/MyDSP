@@ -27,6 +27,7 @@ Run after every production deploy (`npm run deploy` + `npm run deploy:sync` if s
 18. **Todos sort + Jobs view + Liabilities RAG + Review month** — change Todos sort on A → B matches after sync; switch Jobs to List view on A → B opens List; set Liabilities RAG to Amber on A → B matches; pick a Review month on A → B shows the same month
 19. **Glass mode + Large text + Theme + Accessibility** — turn Glass Mode on A → B frosts after sync; enable Larger text on A → B scales after sync; set Theme to Light on A → B matches; enable Reduced motion on A → B applies after sync
 20. **Notification settings** — set quiet hours / sound / YouTube uploads category on A → B matches after sync (OS notification permission stays per device)
+21. **Planning-surface Sync thumbs** — on phone, Monthly Review / Analytics / Debt optimizer / Planning show **Sync now** in the thumb CTA bar (same as Equities/FIRE)
 
 ## Pass criteria
 All steps succeed without clearing site data. If any fail, capture the Sync activity log (Settings → Devices / Sync) before retrying.
