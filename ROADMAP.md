@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.88**
+**Current version: 1.2.89**
 
-## Completed (through v1.2.88)
+## Completed (through v1.2.89)
 
+- Markets refresh + passphrase chip (v1.2.89): brief Refreshing data banner · auto-refresh · no permanent Sync prices CTA · Unlock sync amber chip (passphrase ≠ Markets failure)
 - Sync / Markets / Today polish (next25w tip 1–25): Review/Analytics/Optimizer/Planning Sync thumbs · landscape sticky/thumb/jump/density polish · Todos/Jobs/Budgets/YouTube sticky · Today jump overflow + offline Retry testid + landscape two-pane · Playwright iPhone/iPad landscape projects (fixed iPad device) + sticky axe
 - Sync / Markets / Today polish (next25v tip 1–25): Notification settings LWW (quiet hours · desktop · sound · categories), Markets Sort/Sections/Density/Sync-prices testids · FX Use suggested Undo, Equities/Crypto/Spending/Family/Docs/Compare/Rules/FIRE Sync thumbs · Bottom-nav Rules/FIRE, Today bill Skip Undo · WTD/Debt/Money pulse testids · Budget/Runway/FIRE jump chips · What arrived testids, axe Sort/Density + Skip Undo/What arrived + Equities Sync/Compare sticky
 - Sync / Markets / Today polish (next25u tip 1–25): Glass / Large text / Theme / Accessibility LWW, Markets sticky filters · Copy % · timeframe/tag testids · Undo retag, Liabilities/Tax Sync thumbs · sticky RAG/Journal/Recurring · Bottom-nav Documents/Journal, Today focus/bill/interview Undo testids · News/YouTube Mark-all Undo · Budget pulse/Cash runway testids, axe sticky filters/Copy % + focus/Mark-all Undo + Liabilities/Journal sticky

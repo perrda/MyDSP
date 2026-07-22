@@ -528,6 +528,10 @@ export function MarketsPage() {
     return seedQuotesFromPortfolio(listMarketTickers(), data, cached)
   })
   const [refreshing, setRefreshing] = useState(false)
+  const [refreshBanner, setRefreshBanner] = useState(false)
+  const refreshBannerTimer = useRef<number | null>(null)
+  const partialRetryTimer = useRef<number | null>(null)
+  const partialRetryArmed = useRef(false)
   const [initialLoad, setInitialLoad] = useState(true)
   const [error, setError] = useState<string | null>(() => {
     try {
@@ -548,6 +552,15 @@ export function MarketsPage() {
     } catch {
       /* ignore */
     }
+  }, [])
+  const flashRefreshingBanner = useCallback(() => {
+    setRefreshBanner(true)
+    if (refreshBannerTimer.current) window.clearTimeout(refreshBannerTimer.current)
+    // Brief status only — auto-refresh runs without a permanent Sync prices CTA
+    refreshBannerTimer.current = window.setTimeout(() => {
+      setRefreshBanner(false)
+      refreshBannerTimer.current = null
+    }, 2000)
   }, [])
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<MarketTicker | null>(null)
@@ -888,6 +901,7 @@ export function MarketsPage() {
     if (list.length === 0) return
     if (refreshInFlight.current) return
     refreshInFlight.current = true
+    flashRefreshingBanner()
     setRefreshing(true)
     setError(null)
     try {
@@ -916,6 +930,20 @@ export function MarketsPage() {
             (liveCount < shown ? ` (${shown - liveCount} cached)` : '') +
             ' — retrying sources shortly.',
         )
+        if (!partialRetryArmed.current) {
+          partialRetryArmed.current = true
+          if (partialRetryTimer.current) window.clearTimeout(partialRetryTimer.current)
+          partialRetryTimer.current = window.setTimeout(() => {
+            partialRetryTimer.current = null
+            window.dispatchEvent(new Event('mydsp-markets-refresh'))
+          }, 3500)
+        }
+      } else {
+        partialRetryArmed.current = false
+        if (partialRetryTimer.current) {
+          window.clearTimeout(partialRetryTimer.current)
+          partialRetryTimer.current = null
+        }
       }
     } catch (e) {
       // Keep last-good quotes on total failure
@@ -925,7 +953,7 @@ export function MarketsPage() {
       setRefreshing(false)
       setInitialLoad(false)
     }
-  }, [data, setData, timeframe])
+  }, [data, setData, timeframe, flashRefreshingBanner])
 
   const refreshSection = useCallback(
     async (section: SectionKey) => {
@@ -944,6 +972,7 @@ export function MarketsPage() {
   const syncPricesNow = useCallback(async () => {
     if (syncingPrices) return
     setSyncingPrices(true)
+    flashRefreshingBanner()
     try {
       await refresh()
       if (!isOnline()) {
@@ -969,6 +998,7 @@ export function MarketsPage() {
         persistSyncPricesReport(`Sync prices: ${live} live · ${failed} failed`)
       } else if (!cfg.enabled || !cfg.remoteUrl.trim()) {
         persistSyncPricesReport(null)
+        // Quiet after auto-refresh; only hint when user manually Refresh'd without cloud sync
         setError('Prices refreshed locally — enable Cloud Sync in Settings to push to other devices')
       } else {
         persistSyncPricesReport(null)
@@ -978,7 +1008,7 @@ export function MarketsPage() {
     } finally {
       setSyncingPrices(false)
     }
-  }, [refresh, syncingPrices, persistSyncPricesReport])
+  }, [refresh, syncingPrices, persistSyncPricesReport, flashRefreshingBanner])
 
   const retryUnavailable = useCallback(async () => {
     if (!isOnline()) {
@@ -1179,6 +1209,13 @@ export function MarketsPage() {
   useEffect(() => {
     void refresh()
   }, [refresh])
+
+  useEffect(() => {
+    return () => {
+      if (refreshBannerTimer.current) window.clearTimeout(refreshBannerTimer.current)
+      if (partialRetryTimer.current) window.clearTimeout(partialRetryTimer.current)
+    }
+  }, [])
 
   // If holdings load after first paint, seed any still-blank rows from portfolio prices
   useEffect(() => {
@@ -2125,10 +2162,11 @@ export function MarketsPage() {
           <div className="hidden sm:flex flex-wrap gap-2">
             <button
               type="button"
-              className="btn-primary btn-sm inline-flex items-center gap-1.5 markets-sync-prices"
+              className="btn-ghost btn-sm inline-flex items-center gap-1.5 markets-sync-prices"
               data-testid="markets-sync-prices"
               disabled={refreshing || syncingPrices}
-              aria-label="Sync prices now — refresh quotes and push to other devices"
+              aria-label="Refresh market data now"
+              title="Refresh market data"
               onClick={() => void syncPricesNow()}
             >
               <RefreshCw
@@ -2136,7 +2174,7 @@ export function MarketsPage() {
                 strokeWidth={1.75}
                 className={refreshing || syncingPrices ? 'animate-spin' : undefined}
               />
-              {syncingPrices || refreshing ? 'Syncing…' : 'Sync prices'}
+              Refresh
             </button>
             <span className="inline-flex flex-wrap items-center gap-2">
               <button
@@ -2183,10 +2221,9 @@ export function MarketsPage() {
                 role="status"
                 aria-label={`${densityTrust.hiddenSparklines} sparklines hidden, ${densityTrust.collapsedCount} sections collapsed`}
               >
-                {densityTrust.hiddenSparklines} sparkline
-                {densityTrust.hiddenSparklines === 1 ? '' : 's'} hidden ·{' '}
-                {densityTrust.collapsedCount} section
-                {densityTrust.collapsedCount === 1 ? '' : 's'} collapsed
+                {densityTrust.collapsedCount > 0 || densityTrust.hiddenSparklines > 0
+                  ? `${densityTrust.hiddenSparklines} sparkline${densityTrust.hiddenSparklines === 1 ? '' : 's'} hidden · ${densityTrust.collapsedCount} section${densityTrust.collapsedCount === 1 ? '' : 's'} collapsed`
+                  : null}
               </span>
             </span>
             <button
@@ -2222,8 +2259,29 @@ export function MarketsPage() {
         }
       />
 
+      {refreshBanner ? (
+        <div
+          className="markets-refreshing-banner mb-3 px-3 py-2 text-xs font-semibold tracking-wide uppercase text-accent border border-accent/35 bg-accent/10 rounded-lg md:rounded-none inline-flex items-center gap-2"
+          role="status"
+          aria-live="polite"
+          data-testid="markets-refreshing-banner"
+        >
+          <RefreshCw size={14} strokeWidth={2} className="animate-spin shrink-0" aria-hidden />
+          Refreshing data
+        </div>
+      ) : null}
+
       {statusHint ? (
-        <p className="text-xs text-text-subtle mb-2" role="status">
+        <p
+          className={`text-xs mb-2 ${
+            /retrying sources/i.test(statusHint)
+              ? 'text-text-subtle'
+              : /failed|error|offline/i.test(statusHint)
+                ? 'text-amber-800 dark:text-amber-200'
+                : 'text-text-subtle'
+          }`}
+          role="status"
+        >
           {statusHint}
         </p>
       ) : null}
@@ -3377,21 +3435,28 @@ export function MarketsPage() {
         >
           <Plus size={16} strokeWidth={2} /> Add equity
         </button>
-        <button
-          type="button"
-          className="btn-secondary btn-sm inline-flex items-center gap-1.5 markets-sync-prices"
-          data-testid="markets-sync-prices"
-          disabled={refreshing || syncingPrices}
-          aria-label="Sync prices now — refresh quotes and push to other devices"
-          onClick={() => void syncPricesNow()}
-        >
-          <RefreshCw
-            size={16}
-            strokeWidth={2}
-            className={refreshing || syncingPrices ? 'animate-spin' : undefined}
-          />
-          {syncingPrices || refreshing ? 'Syncing…' : 'Sync prices'}
-        </button>
+        {refreshBanner ? (
+          <span
+            className="markets-sync-prices btn-secondary btn-sm inline-flex items-center gap-1.5 opacity-90 pointer-events-none"
+            data-testid="markets-sync-prices"
+            role="status"
+            aria-live="polite"
+          >
+            <RefreshCw size={16} strokeWidth={2} className="animate-spin" aria-hidden />
+            Refreshing data
+          </span>
+        ) : (
+          <button
+            type="button"
+            className="btn-ghost btn-sm inline-flex items-center gap-1.5 markets-sync-prices"
+            data-testid="markets-sync-prices"
+            aria-label="Refresh market data now"
+            onClick={() => void syncPricesNow()}
+          >
+            <RefreshCw size={16} strokeWidth={2} />
+            Refresh
+          </button>
+        )}
         <button
           type="button"
           className="btn-secondary btn-sm inline-flex items-center gap-1.5"

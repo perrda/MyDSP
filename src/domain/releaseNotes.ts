@@ -29,6 +29,24 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.89',
+    date: '2026-07-22',
+    bullets: [
+      {
+        text: 'Markets: brief Refreshing data · auto-refresh (no Sync prices nag)',
+        to: '/markets',
+      },
+      {
+        text: 'Unlock sync chip (amber) — passphrase ≠ Markets failure',
+        to: '/settings#sync',
+      },
+      {
+        text: 'Partial quote gaps auto-retry once shortly after',
+        to: '/markets',
+      },
+    ],
+  },
+  {
     version: '1.2.88',
     date: '2026-07-22',
     bullets: [
