@@ -10,7 +10,7 @@ describe('Markets refresh UX + passphrase chip (v1.2.90)', () => {
     expect(page).toMatch(/flashRefreshingBanner/)
     expect(page).toMatch(/2000/)
     expect(page).not.toMatch(/btn-primary btn-sm inline-flex items-center gap-1\.5 markets-sync-prices/)
-    expect(page).toMatch(/aria-label="Refresh market data now"/)
+    expect(page).not.toMatch(/aria-label="Refresh market data now"/)
   })
 
   it('Passphrase chip is Unlock sync with amber attention tone', () => {

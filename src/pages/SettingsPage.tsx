@@ -4205,22 +4205,6 @@ export function SettingsPage() {
       </div>
 
       <div className="thumb-cta-bar" role="toolbar" aria-label="Primary settings actions">
-        <button
-          type="button"
-          className="btn-primary btn-sm settings-sync-thumb"
-          onClick={() => {
-            void (async () => {
-              try {
-                await forceSyncNow()
-                flash('Sync now finished.')
-              } catch {
-                flash('Sync failed — check Remote URL and passphrase.')
-              }
-            })()
-          }}
-        >
-          Sync now
-        </button>
         <Link to="/smoke" className="btn-secondary btn-sm settings-smoke-thumb">
           Smoke checklist
         </Link>

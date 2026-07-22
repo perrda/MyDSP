@@ -5,9 +5,7 @@ import { EmptyState } from '../components/ui/EmptyState'
 import { PageHeader } from '../components/ui/PageHeader'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
-import { useToasts } from '../components/ToastProvider'
 import { usePortfolio } from '../context/PortfolioContext'
-import { syncNow } from '../services/sync/autoSyncService'
 import {
   estimateMonthlySurplus,
   formatGoalProjectionLine,
@@ -33,7 +31,6 @@ const empty = {
 
 export function GoalsPage() {
   const { data, setData, goalCurrent, goalProgress, privacy } = usePortfolio()
-  const { success: toastSuccess } = useToasts()
   const [searchParams, setSearchParams] = useSearchParams()
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<Goal | null>(null)
@@ -418,15 +415,6 @@ export function GoalsPage() {
       <div className="thumb-cta-bar" role="toolbar" aria-label="Primary goals actions">
         <button type="button" className="btn-primary btn-sm" onClick={openCreate}>
           Add goal
-        </button>
-        <button
-          type="button"
-          className="btn-secondary btn-sm"
-          onClick={() => {
-            void syncNow().then(() => toastSuccess('Sync now finished'))
-          }}
-        >
-          Sync now
         </button>
       </div>
       <div className="thumb-cta-bar-spacer" aria-hidden />

@@ -3,9 +3,7 @@ import { MessageSquareText } from 'lucide-react'
 import { PageHeader } from '../components/ui/PageHeader'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
 import { ProgressCommentaryPanel } from '../components/ProgressCommentaryPanel'
-import { useToasts } from '../components/ToastProvider'
 import { usePortfolio } from '../context/PortfolioContext'
-import { syncNow } from '../services/sync/autoSyncService'
 import { markRecurringPaid } from '../domain/recurringActions'
 import {
   monthlyRecurringTotal,
@@ -51,7 +49,6 @@ const empty = {
 
 export function RecurringPage() {
   const { data, setData, privacy } = usePortfolio()
-  const { success } = useToasts()
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<RecurringTransaction | null>(null)
   const [form, setForm] = useState(empty)
@@ -413,15 +410,6 @@ export function RecurringPage() {
             Mark paid
           </button>
         ) : null}
-        <button
-          type="button"
-          className="btn-secondary btn-sm"
-          onClick={() => {
-            void syncNow().then(() => success('Sync now finished'))
-          }}
-        >
-          Sync now
-        </button>
       </div>
       <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>

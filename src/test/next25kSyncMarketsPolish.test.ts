@@ -48,14 +48,14 @@ describe('next25k — sync / Markets / Today polish tip (1–25 → v1.2.80)', (
 
   it('25: package + release notes are 1.2.80', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.90')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.90')
+    expect(pkg.version).toBe('1.2.91')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.91')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.91',
       '1.2.90',
       '1.2.89',
       '1.2.88',
       '1.2.87',
-      '1.2.86',
     ])
   })
 
@@ -145,11 +145,12 @@ describe('next25k — sync / Markets / Today polish tip (1–25 → v1.2.80)', (
     expect(yt).toMatch(/Primary YouTube actions/)
   })
 
-  it('13: Bottom-nav long-press Todos/Jobs → Sync now', () => {
+  it('13: Bottom-nav long-press Today opens digest; other slots open Favourites (no syncNow)', () => {
     const nav = readFileSync(resolve(__dirname, '../components/layout/BottomNav.tsx'), 'utf8')
-    expect(nav).toMatch(/\/todos/)
-    expect(nav).toMatch(/\/jobs/)
-    expect(nav).toMatch(/syncNow\(\)/)
+    expect(nav).toMatch(/isDigestLongPressItem/)
+    expect(nav).not.toMatch(/syncNow\(\)/)
+    expect(nav).toMatch(/mydsp-open-weekly-digest/)
+    expect(nav).toMatch(/openFavouriteSheet/)
   })
 
   it('14: Jobs portrait sticky column jump chips', () => {

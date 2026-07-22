@@ -71,14 +71,14 @@ describe('next25p — sync / Markets / Today polish tip (1–25 → v1.2.81)', (
 
   it('25: package + release notes are 1.2.81', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.90')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.90')
+    expect(pkg.version).toBe('1.2.91')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.91')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.91',
       '1.2.90',
       '1.2.89',
       '1.2.88',
       '1.2.87',
-      '1.2.86',
     ])
   })
 
@@ -205,13 +205,14 @@ describe('next25p — sync / Markets / Today polish tip (1–25 → v1.2.81)', (
   it('11–15: Settings/Today/Staking/Planning/Achievements thumbs · PTR · long-press', () => {
     const settings = readFileSync(resolve(__dirname, '../pages/SettingsPage.tsx'), 'utf8')
     expect(settings).toMatch(/thumb-cta-bar/)
-    expect(settings).toMatch(/Sync now/)
+    expect(settings).toMatch(/Sync now/) // Settings → Sync panel setup control
     expect(settings).toMatch(/Smoke checklist/)
+    expect(settings).not.toMatch(/settings-sync-thumb/)
     const dash = readFileSync(resolve(__dirname, '../pages/Dashboard.tsx'), 'utf8')
     expect(dash).toMatch(/Primary today actions/)
-    expect(dash).toMatch(/Sync now/)
+    expect(dash).not.toMatch(/^\s*Sync now\s*$/m)
     expect(dash).toMatch(/>\s*Markets\s*</)
-    expect(dash).toMatch(/>\s*Digest\s*</)
+    expect(dash).not.toMatch(/today-digest-thumb/)
     expect(dash).toMatch(/To Do/)
     const staking = readFileSync(resolve(__dirname, '../pages/StakingPage.tsx'), 'utf8')
     const planning = readFileSync(resolve(__dirname, '../pages/PlanningPage.tsx'), 'utf8')
@@ -225,13 +226,8 @@ describe('next25p — sync / Markets / Today polish tip (1–25 → v1.2.81)', (
     expect(shell).toMatch(/pathname === '\/planning'/)
     expect(shell).toMatch(/pathname === '\/smoke'/)
     const nav = readFileSync(resolve(__dirname, '../components/layout/BottomNav.tsx'), 'utf8')
-    expect(nav).toMatch(/item\.to === '\/history'/)
-    expect(nav).toMatch(/item\.to === '\/budgets'/)
-    expect(nav).toMatch(/item\.to === '\/import'/)
-    expect(nav).toMatch(/item\.to === '\/family'/)
-    expect(nav).toMatch(/item\.to === '\/documents'/)
-    expect(nav).toMatch(/item\.to === '\/journal'/)
-    expect(nav).toMatch(/item\.to === '\/rules'/)
+    expect(nav).toMatch(/openFavouriteSheet/)
+    expect(nav).not.toMatch(/syncNow\(\)/)
   })
 
   it('16–20: refresh=1 · What arrived · Mark all read toast · follow-up · bill actions', () => {

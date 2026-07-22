@@ -6,9 +6,7 @@ import { EmptyState } from '../components/ui/EmptyState'
 import { PageHeader } from '../components/ui/PageHeader'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
-import { useToasts } from '../components/ToastProvider'
 import { usePortfolio } from '../context/PortfolioContext'
-import { syncNow } from '../services/sync/autoSyncService'
 import { dailyInterestGbp, ragClass, ragLabel, type LiabilityKind } from '../domain/liabilityHelpers'
 import type { CreditCard, Loan, RagStatus } from '../domain/types'
 import {
@@ -28,7 +26,6 @@ type RagFilter = LiabilitiesRagFilter
 
 export function LiabilitiesPage() {
   const { data, breakdown, privacy, setData } = usePortfolio()
-  const { success } = useToasts()
   const { liability } = breakdown
 
   const [open, setOpen] = useState(false)
@@ -639,15 +636,6 @@ export function LiabilitiesPage() {
         </button>
         <button type="button" className="btn-primary btn-sm" onClick={() => openCreate('loan')}>
           Add loan
-        </button>
-        <button
-          type="button"
-          className="btn-secondary btn-sm"
-          onClick={() => {
-            void syncNow().then(() => success('Sync now finished'))
-          }}
-        >
-          Sync now
         </button>
       </div>
       <div className="thumb-cta-bar-spacer" aria-hidden />

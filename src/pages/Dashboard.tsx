@@ -712,6 +712,20 @@ export function Dashboard() {
     return () => window.removeEventListener('mydsp-open-weekly-digest', open)
   })
 
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search)
+      if (params.get('digest') !== '1') return
+      openWeeklyDigest()
+      params.delete('digest')
+      const next = params.toString()
+      const url = `${window.location.pathname}${next ? `?${next}` : ''}${window.location.hash}`
+      window.history.replaceState({}, '', url)
+    } catch {
+      /* ignore */
+    }
+  }, [])
+
   const onSnapshot = () => {
     setData((prev) => appendManualSnapshot(prev))
   }
@@ -1161,7 +1175,7 @@ export function Dashboard() {
               }
               return `Last sync ${new Date(syncStatus.lastAt).toLocaleString()}`
             })()
-          : 'Ready to sync'
+          : 'Cloud sync ready'
 
   return (
     <div className="pb-8 md:pb-0">
@@ -1175,21 +1189,6 @@ export function Dashboard() {
         eyebrow="MyDSP"
         title="Today"
         description="Net worth, tasks due now, sync health, and Markets — act first, explore below."
-        action={
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              className="btn-ghost btn-sm weekly-digest-btn"
-              onClick={openWeeklyDigest}
-              title="Preview and share weekly HTML digest (not emailed)"
-            >
-              Digest Preview/Share
-            </button>
-            <Link to="/settings#sync" className="btn-secondary btn-sm inline-flex">
-              Cloud Sync <ArrowRight size={14} strokeWidth={1.5} />
-            </Link>
-          </div>
-        }
       />
 
       <nav
@@ -2261,19 +2260,9 @@ export function Dashboard() {
           >
             <div className="flex items-center justify-between mb-3">
               <p className="text-xs uppercase tracking-wider text-text-subtle font-semibold">Markets</p>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  className="today-two-pane-digest-preview text-xs text-accent font-semibold"
-                  onClick={openWeeklyDigest}
-                  title="Preview and share weekly HTML digest (not emailed)"
-                >
-                  Digest Preview
-                </button>
-                <Link to="/markets" className="text-xs text-accent font-semibold">
-                  Open
-                </Link>
-              </div>
+              <Link to="/markets" className="text-xs text-accent font-semibold">
+                Open
+              </Link>
             </div>
             {priceLagChip || finnhubQuotaLimited || quoteSlaChip || quotePartialChip ? (
               <div
@@ -2598,25 +2587,9 @@ export function Dashboard() {
       </div>
 
       <div className="thumb-cta-bar" role="toolbar" aria-label="Primary today actions">
-        <button
-          type="button"
-          className="btn-primary btn-sm inline-flex items-center gap-1.5 today-sync-thumb"
-          onClick={() => {
-            void syncNow().then(() => toastSuccess('Sync now finished'))
-          }}
-        >
-          Sync now
-        </button>
         <Link to="/markets" className="btn-secondary btn-sm inline-flex items-center">
           Markets
         </Link>
-        <button
-          type="button"
-          className="btn-secondary btn-sm inline-flex items-center today-digest-thumb"
-          onClick={openWeeklyDigest}
-        >
-          Digest
-        </button>
         <Link to="/todos" className="btn-ghost btn-sm inline-flex items-center">
           To Do&apos;s
         </Link>

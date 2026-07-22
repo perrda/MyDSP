@@ -30,7 +30,6 @@ import { useToasts } from '../components/ToastProvider'
 import type { JobApplication, JobFilterBy, JobSortBy, JobStatus } from '../domain/job-types'
 import { loadJobsFilter, saveJobsFilter } from '../domain/jobsFilterPrefs'
 import { loadJobsView, saveJobsView } from '../domain/jobsViewPrefs'
-import { syncNow } from '../services/sync/autoSyncService'
 import {
   calculateJobStats,
   exportJobsToCsv,
@@ -896,15 +895,6 @@ export function JobsPage() {
             <Upload size={16} /> Import
           </button>
         )}
-        <button
-          type="button"
-          className="btn-secondary btn-sm"
-          onClick={() => {
-            void syncNow().then(() => success('Sync now finished'))
-          }}
-        >
-          Sync now
-        </button>
       </div>
       <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>

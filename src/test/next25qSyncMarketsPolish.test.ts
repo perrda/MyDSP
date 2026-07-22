@@ -67,14 +67,14 @@ describe('next25q — sync / Markets / Today polish tip (1–25 → v1.2.87)', (
 
   it('25: package + release notes are 1.2.83', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.90')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.90')
+    expect(pkg.version).toBe('1.2.91')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.91')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.91',
       '1.2.90',
       '1.2.89',
       '1.2.88',
       '1.2.87',
-      '1.2.86',
     ])
   })
 
@@ -187,7 +187,7 @@ describe('next25q — sync / Markets / Today polish tip (1–25 → v1.2.87)', (
     expect(page).toMatch(/Settings → Prices/)
   })
 
-  it('11–15: FIRE/Optimizer/API thumbs · PTR · long-press Sync', () => {
+  it('11–15: FIRE/Optimizer/API thumbs · PTR · no long-press Sync', () => {
     for (const file of [
       'FirePage.tsx',
       'OptimizerPage.tsx',
@@ -210,12 +210,8 @@ describe('next25q — sync / Markets / Today polish tip (1–25 → v1.2.87)', (
     expect(shell).toMatch(/pathname === '\/insights'/)
     expect(shell).toMatch(/pathname === '\/review'/)
     const nav = readFileSync(resolve(__dirname, '../components/layout/BottomNav.tsx'), 'utf8')
-    expect(nav).toMatch(/item\.to === '\/staking'/)
-    expect(nav).toMatch(/item\.to === '\/fire'/)
-    expect(nav).toMatch(/item\.to === '\/optimizer'/)
-    expect(nav).toMatch(/item\.to === '\/api'/)
-    expect(nav).toMatch(/item\.to === '\/insights'/)
-    expect(nav).toMatch(/item\.to === '\/review'/)
+    expect(nav).toMatch(/openFavouriteSheet/)
+    expect(nav).not.toMatch(/syncNow\(\)/)
     const smoke = readFileSync(resolve(__dirname, '../pages/SmokePage.tsx'), 'utf8')
     expect(smoke).toMatch(/FIRE \/ Optimizer \/ Achievements \/ API \/ Insights \/ Review/)
   })

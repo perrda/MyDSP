@@ -51,15 +51,15 @@ describe('next25c quality / ops (21–25)', () => {
 
   it('21: RELEASE_NOTES archive (5 versions) + UpdateBanner See all + Settings whats-new', () => {
     expect(RELEASE_NOTES.length).toBeGreaterThanOrEqual(5)
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.90')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.91')
     expect(releaseNotesBullets(3)).toHaveLength(3)
     expect(releaseNotesArchive(5)).toHaveLength(5)
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.91',
       '1.2.90',
       '1.2.89',
       '1.2.88',
       '1.2.87',
-      '1.2.86',
     ])
 
 
@@ -188,18 +188,21 @@ describe('next25c quality / ops (21–25)', () => {
     ).toBe(5_000)
 
     const dash = readFileSync(resolve(__dirname, '../pages/Dashboard.tsx'), 'utf8')
-    expect(dash).toMatch(/weekly-digest-btn/)
     expect(dash).toMatch(/WeeklyDigestModal/)
+    expect(dash).toMatch(/mydsp-open-weekly-digest/)
+
+    const sidebar = readFileSync(resolve(__dirname, '../components/layout/Sidebar.tsx'), 'utf8')
+    expect(sidebar).toMatch(/Weekly digest/)
 
     const compare = readFileSync(resolve(__dirname, '../pages/ComparePage.tsx'), 'utf8')
-    expect(compare).toMatch(/weekly-digest-btn/)
     expect(compare).toMatch(/WeeklyDigestModal/)
+    expect(compare).toMatch(/mydsp-open-weekly-digest/)
   })
 
   it('package version is 1.2.70', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8')) as {
       version: string
     }
-    expect(pkg.version).toBe('1.2.90')
+    expect(pkg.version).toBe('1.2.91')
   })
 })

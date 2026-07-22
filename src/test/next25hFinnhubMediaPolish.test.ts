@@ -42,14 +42,14 @@ describe('next25h — Finnhub / media / polish tip (1–25 → v1.2.80)', () => 
 
   it('package + release notes are 1.2.80', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.90')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.90')
+    expect(pkg.version).toBe('1.2.91')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.91')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.91',
       '1.2.90',
       '1.2.89',
       '1.2.88',
       '1.2.87',
-      '1.2.86',
     ])
   })
 
@@ -89,7 +89,8 @@ describe('next25h — Finnhub / media / polish tip (1–25 → v1.2.80)', () => 
   it('4: Sync prices now offline honesty', () => {
     const page = readFileSync(resolve(__dirname, '../pages/MarketsPage.tsx'), 'utf8')
     expect(page).toMatch(/Offline — quotes refreshed from cache only/)
-    expect(page).toMatch(/enable Cloud Sync in Settings/)
+    expect(page).toMatch(/syncPricesNow/)
+    expect(page).not.toMatch(/enable Cloud Sync in Settings to push/)
   })
 
   it('5: Settings What does not sync panel', () => {
@@ -158,10 +159,13 @@ describe('next25h — Finnhub / media / polish tip (1–25 → v1.2.80)', () => 
     expect(page).toMatch(/Retry unavailable/)
   })
 
-  it('14: bottom-nav long-press Markets refresh', () => {
+  it('14: bottom-nav long-press no longer refreshes Markets (… Refresh only)', () => {
     const nav = readFileSync(resolve(__dirname, '../components/layout/BottomNav.tsx'), 'utf8')
-    expect(nav).toMatch(/mydsp-markets-refresh/)
-    expect(nav).toMatch(/item\.to === '\/markets'/)
+    expect(nav).not.toMatch(/mydsp-markets-refresh/)
+    expect(nav).toMatch(/openFavouriteSheet/)
+    const markets = readFileSync(resolve(__dirname, '../pages/MarketsPage.tsx'), 'utf8')
+    expect(markets).toMatch(/mydsp-markets-refresh/)
+    expect(markets).toMatch(/mydsp-global-refresh/)
   })
 
   it('15: holding drift Use Markets one-tap retained', () => {

@@ -58,14 +58,14 @@ describe('next25g — sync prices polish tip (1–25 → v1.2.70)', () => {
 
   it('package + release notes tip is current (1.2.80+)', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.90')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.90')
+    expect(pkg.version).toBe('1.2.91')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.91')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.91',
       '1.2.90',
       '1.2.89',
       '1.2.88',
       '1.2.87',
-      '1.2.86',
     ])
   })
 
@@ -111,7 +111,7 @@ describe('next25g — sync prices polish tip (1–25 → v1.2.70)', () => {
     expect(store.loadMarketsState().prefsUpdatedAt).toBe(remote.prefsUpdatedAt)
   })
 
-  it('5: Sync prices now refreshes + syncNow on desktop and phone thumb bar', () => {
+  it('5: syncPricesNow still powers auto-refresh + brief Refreshing data status', () => {
     const page = readFileSync(resolve(__dirname, '../pages/MarketsPage.tsx'), 'utf8')
     expect(page).toMatch(/syncPricesNow/)
     expect(page).toMatch(/await syncNow\(\)/)
@@ -119,6 +119,7 @@ describe('next25g — sync prices polish tip (1–25 → v1.2.70)', () => {
     expect(page).toMatch(/markets-sync-prices/)
     expect(page).toMatch(/Refreshing data/)
     expect(page).toMatch(/flashRefreshingBanner/)
+    expect(page).not.toMatch(/aria-label="Refresh market data now"/)
   })
 
   it('6: commodity Yahoo fallbacks retry alternate symbols', () => {
@@ -130,10 +131,10 @@ describe('next25g — sync prices polish tip (1–25 → v1.2.70)', () => {
     expect(prices).toMatch(/for \(const sym of candidates\)/)
   })
 
-  it('7: per-section refresh + as-of remain wired', () => {
+  it('7: section as-of remains; per-section Refresh control removed', () => {
     const page = readFileSync(resolve(__dirname, '../pages/MarketsPage.tsx'), 'utf8')
-    expect(page).toMatch(/refreshSection/)
     expect(page).toMatch(/markets-section-asof/)
+    expect(page).not.toMatch(/aria-label=\{`Refresh \$\{meta\.title\}`\}/)
   })
 
   it('8: mergeQuotesForSync preserves sparkline/% when winner is thin', () => {
@@ -184,7 +185,8 @@ describe('next25g — sync prices polish tip (1–25 → v1.2.70)', () => {
 
   it('11–15: UI polish — tight header, PTR no jump, mixed CTA, drag ghost, long-press Sections', () => {
     const page = readFileSync(resolve(__dirname, '../pages/MarketsPage.tsx'), 'utf8')
-    expect(page).toMatch(/Refresh market data now/)
+    expect(page).toMatch(/Refreshing data/)
+    expect(page).not.toMatch(/Refresh market data now/)
     expect(page).toMatch(/markets-section-mixed/)
     expect(page).toMatch(/Retry unavailable/)
     expect(page).toMatch(/sectionLongPressTimer/)
@@ -239,12 +241,12 @@ describe('next25g — sync prices polish tip (1–25 → v1.2.70)', () => {
     expect(compare).toMatch(/as of/)
   })
 
-  it('20: digest honesty — Preview/Share not emailed + fresh movers copy', () => {
+  it('20: digest honesty — Sidebar Weekly digest + fresh movers copy', () => {
+    const sidebar = readFileSync(resolve(__dirname, '../components/layout/Sidebar.tsx'), 'utf8')
+    expect(sidebar).toMatch(/Weekly digest/)
     const dash = readFileSync(resolve(__dirname, '../pages/Dashboard.tsx'), 'utf8')
-    expect(dash).toMatch(/not emailed/)
     expect(dash).toMatch(/No fresh Markets movers/)
-    const compare = readFileSync(resolve(__dirname, '../pages/ComparePage.tsx'), 'utf8')
-    expect(compare).toMatch(/not emailed/)
+    expect(dash).toMatch(/WeeklyDigestModal/)
   })
 
   it('21: tip tests cover sync quote merge helpers', () => {

@@ -14,7 +14,6 @@ import { newsUnreadFromCache } from '../../storage/newsStore'
 import { youtubeUnreadFromCache } from '../../storage/youtubeStore'
 import { Modal } from '../ui/Modal'
 import { ReorderHandle, ReorderList } from '../ui/Reorderable'
-import { syncNow } from '../../services/sync/autoSyncService'
 
 function readItems(): BottomNavItem[] {
   return resolveBottomNavItems(loadBottomNavMiddleSlots())
@@ -99,16 +98,6 @@ export function BottomNav() {
     window.dispatchEvent(new CustomEvent('mydsp-open-weekly-digest'))
   }
 
-  const dispatchMarketsRefresh = () => {
-    window.dispatchEvent(new CustomEvent('mydsp-markets-refresh'))
-  }
-  const dispatchNewsRefresh = () => {
-    window.dispatchEvent(new CustomEvent('mydsp-news-refresh'))
-  }
-  const dispatchYoutubeRefresh = () => {
-    window.dispatchEvent(new CustomEvent('mydsp-youtube-refresh'))
-  }
-
   const startLongPress = (item: BottomNavItem) => {
     longPressFired.current = false
     clearLongPress()
@@ -117,44 +106,6 @@ export function BottomNav() {
       longPressTimer.current = null
       if (isDigestLongPressItem(item)) {
         dispatchWeeklyDigestOpen()
-      } else if (item.to === '/markets') {
-        dispatchMarketsRefresh()
-      } else if (item.to === '/news') {
-        dispatchNewsRefresh()
-      } else if (item.to === '/youtube') {
-        dispatchYoutubeRefresh()
-      } else if (
-        item.to === '/todos' ||
-        item.to === '/jobs' ||
-        item.to === '/spending' ||
-        item.to === '/recurring' ||
-        item.to === '/tax' ||
-        item.to === '/compare' ||
-        item.to === '/equities' ||
-        item.to === '/crypto' ||
-        item.to === '/liabilities' ||
-        item.to === '/goals' ||
-        item.to === '/history' ||
-        item.to === '/budgets' ||
-        item.to === '/import' ||
-        item.to === '/family' ||
-        item.to === '/documents' ||
-        item.to === '/journal' ||
-        item.to === '/rules' ||
-        item.to === '/staking' ||
-        item.to === '/planning' ||
-        item.to === '/achievements' ||
-        item.to === '/fire' ||
-        item.to === '/optimizer' ||
-        item.to === '/api' ||
-        item.to === '/insights' ||
-        item.to === '/review' ||
-        item.to === '/trips' ||
-        item.to === '/analytics' ||
-        item.to === '/settings' ||
-        item.to.startsWith('/settings')
-      ) {
-        void syncNow()
       } else {
         openFavouriteSheet()
       }

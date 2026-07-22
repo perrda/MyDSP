@@ -67,14 +67,14 @@ describe('next25r — sync / Markets / Today polish tip (1–25 → v1.2.87)', (
 
   it('25: package + release notes are 1.2.87', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.90')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.90')
+    expect(pkg.version).toBe('1.2.91')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.91')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.91',
       '1.2.90',
       '1.2.89',
       '1.2.88',
       '1.2.87',
-      '1.2.86',
     ])
   })
 
@@ -182,7 +182,7 @@ describe('next25r — sync / Markets / Today polish tip (1–25 → v1.2.87)', (
     expect(news).toMatch(/tag/)
   })
 
-  it('11–15: Analytics/Opening thumbs · Smoke PTR · Trips/Analytics long-press', () => {
+  it('11–15: Analytics/Opening thumbs · Smoke PTR · no Trips/Analytics long-press sync', () => {
     for (const file of ['AnalyticsPage.tsx', 'OpeningBalanceWizardPage.tsx', 'ImportPage.tsx']) {
       const src = readFileSync(resolve(__dirname, `../pages/${file}`), 'utf8')
       expect(src).toMatch(/thumb-cta-bar/)
@@ -194,8 +194,8 @@ describe('next25r — sync / Markets / Today polish tip (1–25 → v1.2.87)', (
     expect(slots).toMatch(/\/trips/)
     expect(slots).toMatch(/\/analytics/)
     const nav = readFileSync(resolve(__dirname, '../components/layout/BottomNav.tsx'), 'utf8')
-    expect(nav).toMatch(/item\.to === '\/trips'/)
-    expect(nav).toMatch(/item\.to === '\/analytics'/)
+    expect(nav).toMatch(/openFavouriteSheet/)
+    expect(nav).not.toMatch(/syncNow\(\)/)
     const css = readFileSync(resolve(__dirname, '../index.css'), 'utf8')
     expect(css).toMatch(/analytics-kpi-row/)
   })

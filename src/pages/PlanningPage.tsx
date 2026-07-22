@@ -10,9 +10,7 @@ import {
 } from 'recharts'
 import { PageHeader, StatCard } from '../components/ui/PageHeader'
 import { Field, parseNum } from '../components/ui/Modal'
-import { useToasts } from '../components/ToastProvider'
 import { usePortfolio } from '../context/PortfolioContext'
-import { syncNow } from '../services/sync/autoSyncService'
 import { runMonteCarlo } from '../domain/monteCarlo'
 import {
   calcAllocation,
@@ -25,7 +23,6 @@ import { formatChartYTick } from '../domain/chartAxis'
 
 export function PlanningPage() {
   const { data, setData, breakdown, privacy } = usePortfolio()
-  const { success } = useToasts()
   const [tab, setTab] = useState<'rebalance' | 'montecarlo'>('rebalance')
   const [pending, startTransition] = useTransition()
   const [mcYears, setMcYears] = useState('10')
@@ -343,15 +340,6 @@ export function PlanningPage() {
           onClick={() => setTab('rebalance')}
         >
           Rebalance
-        </button>
-        <button
-          type="button"
-          className="btn-secondary btn-sm"
-          onClick={() => {
-            void syncNow().then(() => success('Sync now finished'))
-          }}
-        >
-          Sync now
         </button>
       </div>
       <div className="thumb-cta-bar-spacer" aria-hidden />

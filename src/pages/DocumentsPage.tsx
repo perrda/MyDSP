@@ -4,8 +4,6 @@ import { PageHeader } from '../components/ui/PageHeader'
 import { ConfirmDialog, Field, Modal } from '../components/ui/Modal'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
 import { usePortfolio } from '../context/PortfolioContext'
-import { useToasts } from '../components/ToastProvider'
-import { syncNow } from '../services/sync/autoSyncService'
 import type { DocumentNote } from '../domain/types'
 import {
   deleteDocumentBlob,
@@ -42,7 +40,6 @@ const empty = { name: '', note: '', linkedKind: '' as DocumentNote['linkedKind']
 
 export function DocumentsPage() {
   const { data, setData } = usePortfolio()
-  const { success } = useToasts()
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<DocumentNote | null>(null)
   const [form, setForm] = useState(empty)
@@ -303,15 +300,6 @@ export function DocumentsPage() {
       <div className="thumb-cta-bar" role="toolbar" aria-label="Primary documents actions">
         <button type="button" className="btn-primary btn-sm" onClick={openCreate}>
           Add document
-        </button>
-        <button
-          type="button"
-          className="btn-secondary btn-sm"
-          onClick={() => {
-            void syncNow().then(() => success('Sync now finished'))
-          }}
-        >
-          Sync now
         </button>
       </div>
       <div className="thumb-cta-bar-spacer" aria-hidden />

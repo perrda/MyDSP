@@ -4,11 +4,14 @@ import { describe, expect, it } from 'vitest'
 import { titleCaseHeader } from '../components/ui/PageHeader'
 
 describe('UI polish Top 10 chrome', () => {
-  it('surfaces full toolbar actions from tablet widths (768px)', () => {
-    const css = readFileSync(resolve(__dirname, '../index.css'), 'utf8')
-    expect(css).toMatch(
-      /@media \(min-width:\s*768px\)\s*\{[\s\S]*?\.toolbar-actions-desktop\s*\{[\s\S]*?display:\s*flex/,
+  it('surfaces More-menu toolbar controls on all viewports (manual Refresh only there)', () => {
+    const toolbar = readFileSync(
+      resolve(__dirname, '../components/layout/ToolbarControls.tsx'),
+      'utf8',
     )
+    expect(toolbar).toMatch(/Refresh · Privacy · Theme · Glass · Search/)
+    expect(toolbar).toMatch(/More workspace controls/)
+    expect(toolbar).not.toMatch(/toolbar-actions-desktop/)
   })
 
   it('keeps PageHeader titles phone-only to avoid double titles with the shell', () => {
