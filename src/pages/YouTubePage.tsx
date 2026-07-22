@@ -246,7 +246,10 @@ export function YouTubePage() {
         }
       />
 
-      <p className="youtube-status-strip text-xs text-text-subtle mb-4 flex flex-wrap items-center gap-2 min-h-9">
+      <p
+        className="youtube-sticky-status youtube-status-strip text-xs text-text-subtle mb-4 flex flex-wrap items-center gap-2 min-h-9"
+        data-testid="youtube-sticky-status"
+      >
         <span>
           {channels.length}/{MAX_YOUTUBE_CHANNELS} channels
           {refreshing

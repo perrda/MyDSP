@@ -866,6 +866,7 @@ export function TodosPage() {
           {/* Filters collapsed by default — Import / Screenshot / Export stay on the header */}
           <CollapsibleFilters
             id="todos-filters"
+            className="todos-sticky-filters"
             title="Filters & search"
             summary={filterSummary}
             activeCount={filterActiveCount}

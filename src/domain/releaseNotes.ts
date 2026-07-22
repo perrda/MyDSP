@@ -29,6 +29,24 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.88',
+    date: '2026-07-22',
+    bullets: [
+      {
+        text: 'Review · Analytics · Optimizer · Planning Sync now thumbs',
+        to: '/review',
+      },
+      {
+        text: 'Landscape thumb CTA / sticky Todos·Jobs·Budgets·YouTube',
+        to: '/todos',
+      },
+      {
+        text: 'Playwright iPhone/iPad landscape projects + sticky axe',
+        to: '/settings#sync',
+      },
+    ],
+  },
+  {
     version: '1.2.87',
     date: '2026-07-19',
     bullets: [
