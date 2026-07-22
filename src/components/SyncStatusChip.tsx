@@ -40,7 +40,8 @@ function chipLabel(
     case 'error':
       return compact ? 'Error' : 'Sync error'
     case 'needs-passphrase':
-      return compact ? 'Key' : 'Passphrase'
+      // Cloud sync encryption key — not a Markets quote failure
+      return compact ? 'Unlock' : 'Unlock sync'
     case 'disabled':
       return null
     case 'idle': {
@@ -60,13 +61,17 @@ function chipLabel(
 }
 
 function chipTone(state: AutoSyncStatus['state'], offlineQueued: number): string {
-  if (state === 'conflict' || state === 'error' || state === 'needs-passphrase') {
+  if (state === 'conflict' || state === 'error') {
     return 'sync-chip sync-chip--warn'
+  }
+  if (state === 'needs-passphrase') {
+    // Amber = action needed (unlock passphrase); red reserved for broken sync
+    return 'sync-chip sync-chip--attention'
   }
   if (state === 'pulling' || state === 'pushing') {
     return 'sync-chip sync-chip--busy'
   }
-  if (offlineQueued > 0) return 'sync-chip sync-chip--warn'
+  if (offlineQueued > 0) return 'sync-chip sync-chip--attention'
   return 'sync-chip sync-chip--ok'
 }
 
@@ -169,7 +174,9 @@ export function SyncStatusChip({ compact = false }: SyncStatusChipProps) {
   if (!label) return null
 
   const detailParts = [
-    status.message,
+    status.state === 'needs-passphrase'
+      ? 'Cloud sync is waiting for your passphrase — Markets prices still work. Tap to unlock in Settings → Sync.'
+      : status.message,
     status.lastAt ? `Last sync ${new Date(status.lastAt).toLocaleString()}` : null,
     queueLen > 0 ? `${queueLen} offline job(s)` : null,
     'Long-press to sync now',
@@ -184,7 +191,11 @@ export function SyncStatusChip({ compact = false }: SyncStatusChipProps) {
         compact ? ' sync-chip--compact' : ''
       }${flashLabel ? ' sync-chip--flash' : ''}`}
       title={detail}
-      aria-label={`Cloud sync: ${label}. Long-press to sync now; tap to open Settings.`}
+      aria-label={
+        status.state === 'needs-passphrase'
+          ? 'Cloud sync needs passphrase unlock. Markets prices are separate. Tap Settings to unlock.'
+          : `Cloud sync: ${label}. Long-press to sync now; tap to open Settings.`
+      }
       onPointerDown={() => startLongPressTimer()}
       onPointerUp={clearLongPressTimer}
       onPointerCancel={clearLongPressTimer}

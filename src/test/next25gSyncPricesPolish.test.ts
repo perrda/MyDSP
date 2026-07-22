@@ -58,14 +58,14 @@ describe('next25g — sync prices polish tip (1–25 → v1.2.70)', () => {
 
   it('package + release notes tip is current (1.2.80+)', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.89')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.89')
+    expect(pkg.version).toBe('1.2.90')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.90')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.90',
       '1.2.89',
       '1.2.88',
       '1.2.87',
       '1.2.86',
-      '1.2.85',
     ])
   })
 
@@ -114,10 +114,11 @@ describe('next25g — sync prices polish tip (1–25 → v1.2.70)', () => {
   it('5: Sync prices now refreshes + syncNow on desktop and phone thumb bar', () => {
     const page = readFileSync(resolve(__dirname, '../pages/MarketsPage.tsx'), 'utf8')
     expect(page).toMatch(/syncPricesNow/)
-    expect(page).toMatch(/Sync prices now/)
     expect(page).toMatch(/await syncNow\(\)/)
     expect(page).toMatch(/thumb-cta-bar/)
-    expect(page).toMatch(/Sync prices/)
+    expect(page).toMatch(/markets-sync-prices/)
+    expect(page).toMatch(/Refreshing data/)
+    expect(page).toMatch(/flashRefreshingBanner/)
   })
 
   it('6: commodity Yahoo fallbacks retry alternate symbols', () => {
@@ -183,7 +184,7 @@ describe('next25g — sync prices polish tip (1–25 → v1.2.70)', () => {
 
   it('11–15: UI polish — tight header, PTR no jump, mixed CTA, drag ghost, long-press Sections', () => {
     const page = readFileSync(resolve(__dirname, '../pages/MarketsPage.tsx'), 'utf8')
-    expect(page).toMatch(/Sync prices now — refresh quotes and push to other devices/)
+    expect(page).toMatch(/Refresh market data now/)
     expect(page).toMatch(/markets-section-mixed/)
     expect(page).toMatch(/Retry unavailable/)
     expect(page).toMatch(/sectionLongPressTimer/)

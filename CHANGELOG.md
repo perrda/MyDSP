@@ -1,5 +1,12 @@
 # MyDSP Changelog
 
+## [1.2.90] - 2026-07-22
+
+### Fixed — Markets refresh + sync chip
+- **Sync prices nag removed:** Markets no longer keeps a permanent primary Sync prices CTA. Opening Markets auto-refreshes quotes; a brief **Refreshing data** status shows for ~2s then disappears. Quiet **Refresh** remains for manual use.
+- **Partial quote gaps:** one automatic retry after ~3.5s when some sources miss.
+- **Passphrase chip:** red meant “cloud sync needs your passphrase”, not that Markets is broken. Relabelled **Unlock sync**, amber attention tone, clearer tooltip. Markets prices still work while cloud sync waits for unlock.
+
 ## [1.2.89] - 2026-07-22
 
 ### Fixed — Alert quiet + chart axes

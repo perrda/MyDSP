@@ -9,7 +9,7 @@ describe('markets watchlist chrome cleanup (v1.2.75)', () => {
     expect(page).not.toMatch(/Updating quotes/)
     expect(page).not.toMatch(/markets-provider-health/)
     expect(page).toMatch(/animate-spin/)
-    expect(page).toMatch(/Sync prices/)
+    expect(page).toMatch(/Refreshing data/)
     expect(page).toMatch(/eyebrow="Prices"/)
   })
 
