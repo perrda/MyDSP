@@ -28,7 +28,8 @@ describe('markets watchlist chrome cleanup (v1.2.75)', () => {
     expect(page).toMatch(/markets-sticky-toolbar/)
     expect(page).toMatch(/SECTION_JUMP_LABEL/)
     expect(css).toMatch(/\.markets-sticky-toolbar/)
-    expect(css).toMatch(/scroll-margin-top: calc\(var\(--app-header-offset/)
+    expect(css).toMatch(/--markets-toolbar-height/)
+    expect(css).toMatch(/scroll-margin-top:\s*calc\(/)
   })
 
   it('shell title no longer uses Watchlist eyebrow', () => {

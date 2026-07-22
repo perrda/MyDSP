@@ -1,5 +1,12 @@
 # MyDSP Changelog
 
+## [1.2.92] - 2026-07-22
+
+### Fixed — Markets section sticky rows
+- **Row above section header:** sticky “My Crypto / My Equities …” headers used a hardcoded toolbar offset + `overflow: hidden`, so the first ticker (e.g. BTC) could sit in a gap above the header and clip a red `%` pill between header and the next row
+- **Fix:** measure Markets toolbar height (`--markets-toolbar-height`), opaque sticky headers, no section `overflow: hidden` — same pattern for Equities/Crypto holdings sticky totals
+- Cursor rule `sticky-section-headers.mdc` locks this in
+
 ## [1.2.91] - 2026-07-22
 
 ### Improved — Clean sync / digest chrome

@@ -2161,10 +2161,31 @@ html.glass .sync-chip:focus-visible {
 .markets-row--stale {
   box-shadow: inset 3px 0 0 color-mix(in srgb, #d97706 75%, transparent);
 }
+.markets-section {
+  /* Do not use overflow:hidden — it clips sticky section headers and slices row chrome
+     (e.g. red % pills) into a gap above “My Crypto” / “My Equities”. */
+  overflow: visible;
+  isolation: isolate;
+}
 .markets-section-sticky {
-  /* Sit below app header + sticky Markets toolbar (search + section chips) */
-  top: calc(var(--app-header-offset, 3.5rem) + 7.25rem);
-  backdrop-filter: blur(8px);
+  /* Sit below app header + live Markets toolbar height (ResizeObserver → --markets-toolbar-height) */
+  top: calc(var(--app-header-offset, 3.5rem) + var(--markets-toolbar-height, 7.25rem));
+  z-index: 8;
+  /* Opaque fill so scrolling rows (sparklines / ChangeBadge) never bleed through */
+  background-color: var(--bg-elevated);
+  background-image: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: 0 1px 0 var(--border);
+}
+/* Glass theme makes --bg-elevated translucent — force solid occlusion for sticky headers */
+html.glass.dark .markets-section-sticky,
+html.glass.dark .holdings-sticky-totals {
+  background-color: #121214;
+}
+html.glass.light .markets-section-sticky,
+html.glass.light .holdings-sticky-totals {
+  background-color: #ffffff;
 }
 .holding-price-strip {
   border-left: 3px solid var(--accent);
@@ -2641,7 +2662,11 @@ html.success-haptic-flash::after {
   top: var(--app-header-offset, 3.5rem);
 }
 .holdings-sticky-totals {
-  top: calc(var(--app-header-offset, 3.5rem) + 4.25rem);
+  /* Sit under the live holdings search height (ResizeObserver → --holdings-search-height) */
+  top: calc(var(--app-header-offset, 3.5rem) + var(--holdings-search-height, 4.25rem));
+  background-color: var(--bg-elevated);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 .markets-detail-sticky,
 .news-master-detail-panel,
@@ -2702,7 +2727,9 @@ html.success-haptic-flash::after {
 }
 .markets-section-sticky,
 [id^='markets-section-'] {
-  scroll-margin-top: calc(var(--app-header-offset, 3.5rem) + 7.5rem);
+  scroll-margin-top: calc(
+    var(--app-header-offset, 3.5rem) + var(--markets-toolbar-height, 7.5rem) + 0.25rem
+  );
 }
 
 .jobs-list-kanban-split {

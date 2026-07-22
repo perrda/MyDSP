@@ -29,6 +29,24 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.92',
+    date: '2026-07-22',
+    bullets: [
+      {
+        text: 'Markets: tickers stay under My Crypto/Equities headers',
+        to: '/markets',
+      },
+      {
+        text: 'No clipped % pills between sticky section header and rows',
+        to: '/markets',
+      },
+      {
+        text: 'Equities/Crypto holdings sticky totals track search height',
+        to: '/equities',
+      },
+    ],
+  },
+  {
     version: '1.2.91',
     date: '2026-07-22',
     bullets: [
