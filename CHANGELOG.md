@@ -1,5 +1,15 @@
 # MyDSP Changelog
 
+## [1.2.88] - 2026-07-22
+
+### Fixed — Alert quiet + chart axes
+- **Concentration banner:** Review Holding dismisses that symbol’s alert until the 1st of the month after next (~one calendar month)
+- **To Do launch toasts:** only when a Reminder has fired or the task is Overdue (Finnhub setup todos never launch-toast)
+- **Backup nudge:** Dismiss quiet for a calendar month
+- **Chart X-axis:** unique `xKey` + interval ticks — 1D hourly · 1W daily · 1M weekly · 12M monthly · YTD adaptive · 5Y yearly · ALL by span (fixes repeated “Jul 26”)
+- **Chart Y-axis:** shared `formatChartYTick` for GBP / USD / THB / BTC across Portfolio, Holding, Spending, Planning, Predictive, Advanced charts
+- Canonical rules live in `src/domain/chartAxis.ts` + `src/domain/alertDismiss.ts`
+
 ## [1.2.87] - 2026-07-19
 
 ### Improved — Sync / trust (next 25v · 1–5)

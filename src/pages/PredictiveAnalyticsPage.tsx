@@ -13,6 +13,7 @@ import {
   type SpendingTrend,
 } from '../domain/advancedAnalytics'
 import { formatGBP } from '../utils/format'
+import { formatChartYTick, formatChartPctTick } from '../domain/chartAxis'
 import {
   LineChart,
   Line,
@@ -188,7 +189,7 @@ export function PredictiveAnalyticsPage() {
             <AreaChart data={netWorthForecast}>
               <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
               <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-              <YAxis tick={{ fontSize: 12 }} tickFormatter={(val) => formatGBP(val)} />
+              <YAxis tick={{ fontSize: 12 }} tickFormatter={(val) => formatChartYTick(val)} width={56} />
               <Tooltip
                 formatter={(val: any) => formatGBP(Number(val))}
                 contentStyle={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
@@ -318,7 +319,7 @@ export function PredictiveAnalyticsPage() {
             <LineChart data={savingsRateTrend}>
               <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
               <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-              <YAxis tick={{ fontSize: 12 }} tickFormatter={(val) => `${val}%`} />
+              <YAxis tick={{ fontSize: 12 }} tickFormatter={(val) => formatChartPctTick(val)} />
               <Tooltip
                 formatter={(val: any) => `${Number(val)}%`}
                 contentStyle={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }}

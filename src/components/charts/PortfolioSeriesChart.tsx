@@ -12,11 +12,11 @@ import {
 } from 'recharts'
 import {
   filterByRange,
-  formatChartTick,
   formatChartTooltipLabel,
   rangeChange,
   type ChartRange,
 } from '../../domain/history'
+import { buildChartAxisRows, formatChartYTick } from '../../domain/chartAxis'
 import type { HistoryPoint } from '../../domain/types'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
 import { formatGBP, formatPct, privacyClass } from '../../utils/format'
@@ -88,10 +88,12 @@ export function PortfolioSeriesChart({
     ? SERIES.filter((s) => s.key !== primary).map((s) => s.key)
     : lines
 
+  const chartAxis = useMemo(() => buildChartAxisRows(filtered, range), [filtered, range])
   const chartData = useMemo(
     () =>
-      filtered.map((h) => ({
-        tick: formatChartTick(h.date, range, h.at),
+      chartAxis.rows.map((h) => ({
+        xKey: h.xKey,
+        tick: h.tick,
         fullDate: h.at ?? h.date,
         netWorth: h.netWorth,
         crypto: h.crypto ?? 0,
@@ -99,8 +101,9 @@ export function PortfolioSeriesChart({
         liabilities: h.liabilities ?? 0,
         assets: h.assets ?? (h.crypto ?? 0) + (h.equity ?? 0),
       })),
-    [filtered, range],
+    [chartAxis],
   )
+  const xTickKeys = chartAxis.tickKeys
 
   const primaryDef = SERIES.find((s) => s.key === primary) ?? SERIES[0]
   
@@ -181,15 +184,20 @@ export function PortfolioSeriesChart({
               </defs>
               <CartesianGrid stroke="var(--border)" vertical={false} strokeOpacity={0.5} />
               <XAxis
-                dataKey="tick"
+                dataKey="xKey"
+                ticks={xTickKeys}
+                tickFormatter={(key: string) => {
+                  const row = chartData.find((r) => r.xKey === key)
+                  return row?.tick ?? ''
+                }}
                 tick={{ fill: 'var(--text-muted)', fontSize: 10, fontWeight: 500 }}
                 axisLine={{ stroke: 'var(--border)' }}
                 tickLine={false}
-                minTickGap={32}
+                minTickGap={28}
                 interval="preserveStartEnd"
               />
               <YAxis
-                tickFormatter={(v: number) => formatGBP(v, { compact: true })}
+                tickFormatter={(v: number) => formatChartYTick(v)}
                 tick={{ fill: 'var(--text-muted)', fontSize: 10, fontWeight: 500 }}
                 axisLine={false}
                 tickLine={false}

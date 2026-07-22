@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.87**
+**Current version: 1.2.88**
 
-## Completed (through v1.2.87)
+## Completed (through v1.2.88)
 
+- Alert quiet + chart axis standard (v1.2.88): Concentration Review Holding calendar-month dismiss · To Do launch toasts only reminder/overdue · Backup nudge dismiss · Chart X/Y axis rules in `domain/chartAxis.ts` (1D→ALL · GBP/USD/THB/BTC) across all money charts
 - Sync / Markets / Today polish (next25v tip 1–25): Notification settings LWW (quiet hours · desktop · sound · categories), Markets Sort/Sections/Density/Sync-prices testids · FX Use suggested Undo, Equities/Crypto/Spending/Family/Docs/Compare/Rules/FIRE Sync thumbs · Bottom-nav Rules/FIRE, Today bill Skip Undo · WTD/Debt/Money pulse testids · Budget/Runway/FIRE jump chips · What arrived testids, axe Sort/Density + Skip Undo/What arrived + Equities Sync/Compare sticky
 - Sync / Markets / Today polish (next25u tip 1–25): Glass / Large text / Theme / Accessibility LWW, Markets sticky filters · Copy % · timeframe/tag testids · Undo retag, Liabilities/Tax Sync thumbs · sticky RAG/Journal/Recurring · Bottom-nav Documents/Journal, Today focus/bill/interview Undo testids · News/YouTube Mark-all Undo · Budget pulse/Cash runway testids, axe sticky filters/Copy % + focus/Mark-all Undo + Liabilities/Journal sticky
 - Sync / Markets / Today polish (next25t tip 1–25): Todos sort / Jobs view / Liabilities RAG / Review month LWW, Markets Yield-sort · quote Edit · Undo-remove · Add-from-holding · Copy price/Share, Budgets/History Sync thumbs · Spending sticky month · Bottom-nav Budgets/History/Family · News sticky filters · Todos/Jobs Sync thumbs, Today follow-up Undo · Debt jump · Focus Snooze Undo · FIRE chip · jump scroll-spy, axe Yield-sort/Edit + follow-up Undo/FIRE + Tax/Review sticky

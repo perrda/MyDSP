@@ -126,44 +126,50 @@ function calculateReminders(data: any): Reminder[] {
     }
   })
 
-  // High priority todos due soon
+  // High priority todos: only toast when overdue OR a reminder has fired
   ;(data.todoItems || []).forEach((todo: any) => {
     if (todo.status === 'done' || todo.status === 'archived') return
-    if (!todo.dueDate) return
+    // Setup / system todos (e.g. Finnhub key) stay on the list — never launch-toast
+    if (Array.isArray(todo.tags) && todo.tags.includes('finnhub')) return
 
-    const dueDate = new Date(todo.dueDate)
-    const daysUntil = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+    const dueDate = todo.dueDate && /^\d{4}-\d{2}-\d{2}$/.test(todo.dueDate)
+      ? new Date(todo.dueDate + 'T12:00:00')
+      : null
+    const daysUntilDue = dueDate
+      ? Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+      : null
+    const overdue = daysUntilDue != null && daysUntilDue < 0
 
-    if (todo.priority === 'high') {
-      if (daysUntil < 0) {
-        reminders.push({
-          id: `todo-overdue-${todo.id}`,
-          type: 'todo',
-          priority: 'high',
-          title: 'Task overdue',
-          message: `"${todo.title}" was due ${Math.abs(daysUntil)} days ago`,
-          action: { label: "View To Do's", path: '/todos' },
-        })
-      } else if (daysUntil === 0) {
-        reminders.push({
-          id: `todo-today-${todo.id}`,
-          type: 'todo',
-          priority: 'high',
-          title: 'Task due today',
-          message: `"${todo.title}" is due today`,
-          action: { label: "View To Do's", path: '/todos' },
-        })
-      } else if (daysUntil <= 2) {
-        reminders.push({
-          id: `todo-soon-${todo.id}`,
-          type: 'todo',
-          priority: 'medium',
-          title: 'Task due soon',
-          message: `"${todo.title}" is due in ${daysUntil} days`,
-          action: { label: "View To Do's", path: '/todos' },
-        })
-      }
+    const reminderDate =
+      todo.reminderDate && /^\d{4}-\d{2}-\d{2}$/.test(todo.reminderDate)
+        ? todo.reminderDate
+        : null
+    const today = now.toISOString().slice(0, 10)
+    const reminderDue = Boolean(reminderDate && reminderDate <= today)
+
+    if (!overdue && !reminderDue) return
+
+    if (overdue) {
+      reminders.push({
+        id: `todo-overdue-${todo.id}`,
+        type: 'todo',
+        priority: 'high',
+        title: 'Task overdue',
+        message: `"${todo.title}" was due ${Math.abs(daysUntilDue!)} days ago`,
+        action: { label: "View To Do's", path: '/todos' },
+      })
+      return
     }
+
+    // Reminder fired (today or earlier) — surface once as high priority
+    reminders.push({
+      id: `todo-reminder-${todo.id}`,
+      type: 'todo',
+      priority: todo.priority === 'high' ? 'high' : 'medium',
+      title: 'Task reminder',
+      message: `"${todo.title}"${dueDate && daysUntilDue === 0 ? ' is due today' : reminderDate === today ? ' reminder is due' : ' has a reminder'}`,
+      action: { label: "View To Do's", path: '/todos' },
+    })
   })
 
   // Job application deadlines

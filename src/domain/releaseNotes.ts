@@ -29,6 +29,24 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.88',
+    date: '2026-07-22',
+    bullets: [
+      {
+        text: 'Concentration Review Holding quiet for a calendar month',
+        to: '/equities',
+      },
+      {
+        text: 'To Do launch toasts only for reminder/overdue',
+        to: '/',
+      },
+      {
+        text: 'Chart X/Y axis standard (1D→ALL · GBP/USD/THB/BTC)',
+        to: '/markets',
+      },
+    ],
+  },
+  {
     version: '1.2.87',
     date: '2026-07-19',
     bullets: [

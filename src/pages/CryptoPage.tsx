@@ -28,6 +28,11 @@ import {
   loadPortfolioConcentrationThresholdPct,
   portfolioConcentrationHits,
 } from '../domain/portfolioConcentration'
+import {
+  concentrationDismissId,
+  dismissAlertForCalendarMonth,
+  isAlertDismissed,
+} from '../domain/alertDismiss'
 import type { CryptoHolding } from '../domain/types'
 import { addHoldingsMissingFromWatchlist, holdingsMissingFromWatchlist } from '../domain/addHoldingsToWatchlist'
 import { listMarketTickers, loadMarketQuotesCache } from '../storage/marketsStore'
@@ -178,9 +183,13 @@ export function CryptoPage() {
     return { includedValue, includedCount, excludedCount }
   }, [holdings])
   const concentrationThreshold = loadPortfolioConcentrationThresholdPct()
+  const [dismissTick, setDismissTick] = useState(0)
   const concentrationHits = useMemo(
-    () => portfolioConcentrationHits(data, concentrationThreshold),
-    [data, concentrationThreshold],
+    () =>
+      portfolioConcentrationHits(data, concentrationThreshold).filter(
+        (h) => !isAlertDismissed(concentrationDismissId(h.symbol)),
+      ),
+    [data, concentrationThreshold, dismissTick],
   )
 
   const fillFromLastSynced = () => {
@@ -472,6 +481,10 @@ export function CryptoPage() {
           <Link
             to={`/${concentrationHits[0]!.kind === 'equity' ? 'equities' : 'crypto'}/${concentrationHits[0]!.id}`}
             className="btn-secondary btn-sm bg-bg-elevated/80"
+            onClick={() => {
+              dismissAlertForCalendarMonth(concentrationDismissId(concentrationHits[0]!.symbol))
+              setDismissTick((n) => n + 1)
+            }}
           >
             Review holding
           </Link>
