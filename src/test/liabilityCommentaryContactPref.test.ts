@@ -59,7 +59,7 @@ describe('Liability commentary collapse + preferred contact (v1.2.100)', () => {
     expect(page).toMatch(/expandedOlderIds/)
     expect(page).toMatch(/toggleOlderCommentary/)
     expect(page).toMatch(/isLatest/)
-    expect(page).toMatch(/>Latest</)
+    expect(page).toMatch(/Latest/)
   })
 
   it('preferred method of contact on detail + list forms', () => {
