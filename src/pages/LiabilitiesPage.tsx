@@ -8,7 +8,7 @@ import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
 import { usePortfolio } from '../context/PortfolioContext'
 import { dailyInterestGbp, ragClass, ragLabel, type LiabilityKind } from '../domain/liabilityHelpers'
-import type { CreditCard, Loan, RagStatus } from '../domain/types'
+import type { CreditCard, LiabilityContactMethod, Loan, RagStatus } from '../domain/types'
 import {
   loadLiabilitiesRagFilter,
   saveLiabilitiesRagFilter,
@@ -43,6 +43,8 @@ export function LiabilitiesPage() {
     contactPhone: '',
     contactEmail: '',
     contactUrl: '',
+    preferredContactMethod: '' as '' | LiabilityContactMethod,
+    preferredContactOther: '',
   })
   const [deleteTarget, setDeleteTarget] = useState<{ kind: Kind; id: number } | null>(null)
   const [ragFilter, setRagFilter] = useState<RagFilter>(() => loadLiabilitiesRagFilter())
@@ -62,6 +64,8 @@ export function LiabilitiesPage() {
       contactPhone: '',
       contactEmail: '',
       contactUrl: '',
+      preferredContactMethod: '',
+      preferredContactOther: '',
     })
     setOpen(true)
   }
@@ -81,6 +85,8 @@ export function LiabilitiesPage() {
       contactPhone: c.contactPhone ?? '',
       contactEmail: c.contactEmail ?? '',
       contactUrl: c.contactUrl ?? '',
+      preferredContactMethod: c.preferredContactMethod ?? '',
+      preferredContactOther: c.preferredContactOther ?? '',
     })
     setOpen(true)
   }
@@ -100,6 +106,8 @@ export function LiabilitiesPage() {
       contactPhone: l.contactPhone ?? '',
       contactEmail: l.contactEmail ?? '',
       contactUrl: l.contactUrl ?? '',
+      preferredContactMethod: l.preferredContactMethod ?? '',
+      preferredContactOther: l.preferredContactOther ?? '',
     })
     setOpen(true)
   }
@@ -109,6 +117,11 @@ export function LiabilitiesPage() {
     const contactPhone = form.contactPhone.trim() || undefined
     const contactEmail = form.contactEmail.trim() || undefined
     const contactUrl = form.contactUrl.trim() || undefined
+    const preferredContactMethod = form.preferredContactMethod || undefined
+    const preferredContactOther =
+      preferredContactMethod === 'other'
+        ? form.preferredContactOther.trim() || undefined
+        : undefined
     if (kind === 'card') {
       const card: CreditCard = {
         id: editingCard?.id ?? nextId(data.creditCards),
@@ -121,6 +134,8 @@ export function LiabilitiesPage() {
         contactPhone,
         contactEmail,
         contactUrl,
+        preferredContactMethod,
+        preferredContactOther,
         commentaries: editingCard?.commentaries,
         ragStatus: rag,
         sortOrder: editingCard?.sortOrder,
@@ -143,6 +158,8 @@ export function LiabilitiesPage() {
         contactPhone,
         contactEmail,
         contactUrl,
+        preferredContactMethod,
+        preferredContactOther,
         commentaries: editingLoan?.commentaries,
         ragStatus: rag,
         sortOrder: editingLoan?.sortOrder,
@@ -629,6 +646,39 @@ export function LiabilitiesPage() {
                   />
                 </Field>
               </div>
+              <Field label="Preferred method of contact">
+                <select
+                  data-testid="liability-form-contact-preferred"
+                  value={form.preferredContactMethod}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      preferredContactMethod: e.target.value as '' | LiabilityContactMethod,
+                    })
+                  }
+                >
+                  <option value="">Not set</option>
+                  <option value="phone">Phone</option>
+                  <option value="email">Email</option>
+                  <option value="web">Web</option>
+                  <option value="other">Other</option>
+                </select>
+              </Field>
+              {form.preferredContactMethod === 'other' ? (
+                <Field label="Other — details">
+                  <input
+                    type="text"
+                    data-testid="liability-form-contact-preferred-other"
+                    value={form.preferredContactOther}
+                    onChange={(e) =>
+                      setForm({ ...form, preferredContactOther: e.target.value })
+                    }
+                    placeholder="e.g. In-app chat, WhatsApp…"
+                  />
+                </Field>
+              ) : (
+                <div className="hidden md:block" aria-hidden />
+              )}
             </div>
           </div>
           {(editingCard || editingLoan) && (

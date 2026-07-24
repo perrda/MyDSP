@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.99**
+**Current version: 1.2.100**
 
-## Completed (through v1.2.99)
+## Completed (through v1.2.100)
 
+- Liability commentary collapse + preferred contact (v1.2.100): older notes collapse (latest stays open) · Preferred method Phone/Email/Web/Other with free-text details
 - Liability lender contacts CRUD (v1.2.99): Phone / Email / URL editable + saved per card/loan · inline Add/Edit on detail · fields on Add/Edit liability modal
 - Mobile / tablet / landscape QA (v1.2.98): measured header + thumb CTA heights · slim Markets/News/YouTube thumbs · no overlapping fixed chrome · landscape phone CTAs · sticky Tag/Yield under toolbar · `mobile-tablet-landscape.mdc`
 - Markets Assets/Timeframe/Format panels (v1.2.97): remove search + partial-price status · exclusive disclosure toggles under Prices header
