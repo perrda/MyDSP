@@ -49,10 +49,9 @@ test.describe('MyDSP smoke', () => {
     await expect(page.getByRole('heading', { name: /Markets/i }).first()).toBeVisible({
       timeout: 20_000,
     })
-    const search = page.getByLabel(/Search watchlist/i).or(page.getByPlaceholder(/Search watchlist/i))
-    if (await search.first().isVisible().catch(() => false)) {
-      await search.first().fill('BTC')
-    }
+    await expect(page.getByTestId('markets-panel-assets')).toBeVisible()
+    await page.getByTestId('markets-panel-assets').click()
+    await expect(page.locator('.markets-section-jump-chips').first()).toBeVisible()
 
     await page.goto('/settings')
     await expect(page.getByText(/Settings/i).first()).toBeVisible({ timeout: 20_000 })
@@ -278,18 +277,20 @@ test.describe('MyDSP smoke', () => {
     await expect(page.locator('.thumb-cta-bar').first()).toBeVisible()
   })
 
-  test('Markets search clear', async ({ page }) => {
+  test('Markets Assets / Timeframe / Format panels', async ({ page }) => {
     await page.goto('/markets')
     await expect(page.getByRole('heading', { name: /Markets/i }).first()).toBeVisible({
       timeout: 20_000,
     })
-    const search = page.getByLabel(/Search watchlist/i).or(page.getByPlaceholder(/Search watchlist/i))
-    await search.first().fill('BTC')
-    const clear = page.locator('.markets-search-clear').first()
-    await expect(clear).toBeVisible()
-    // Esc clears search (also covers tip 8 keyboard path); avoid toast intercepts on Clear.
-    await search.first().press('Escape')
-    await expect(search.first()).toHaveValue('')
+    await expect(page.getByTestId('markets-panel-assets')).toBeVisible()
+    await expect(page.locator('.markets-section-jump-chips')).toHaveCount(0)
+    await page.getByTestId('markets-panel-assets').click()
+    await expect(page.locator('.markets-section-jump-chips').first()).toBeVisible()
+    await page.getByTestId('markets-panel-timeframe').click()
+    await expect(page.locator('.markets-timeframe-row').first()).toBeVisible()
+    await expect(page.locator('.markets-section-jump-chips')).toHaveCount(0)
+    await page.getByTestId('markets-panel-format').click()
+    await expect(page.locator('.markets-view-controls').first()).toBeVisible()
   })
 
   test('Today Goals jump chip', async ({ page }) => {

@@ -29,6 +29,24 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.97',
+    date: '2026-07-24',
+    bullets: [
+      {
+        text: 'Markets: Assets / Timeframe / Format toggles (chips on demand)',
+        to: '/markets',
+      },
+      {
+        text: 'Search bar + “Showing n/m prices” status removed',
+        to: '/markets',
+      },
+      {
+        text: 'Cleaner Markets sticky toolbar under Prices header',
+        to: '/markets',
+      },
+    ],
+  },
+  {
     version: '1.2.96',
     date: '2026-07-24',
     bullets: [

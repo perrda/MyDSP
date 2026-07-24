@@ -67,14 +67,14 @@ describe('next25r — sync / Markets / Today polish tip (1–25 → v1.2.87)', (
 
   it('25: package + release notes are 1.2.87', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.96')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.96')
+    expect(pkg.version).toBe('1.2.97')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.97')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.97',
       '1.2.96',
       '1.2.95',
       '1.2.94',
       '1.2.93',
-      '1.2.92',
     ])
   })
 
@@ -168,14 +168,15 @@ describe('next25r — sync / Markets / Today polish tip (1–25 → v1.2.87)', (
     expect(settings).toMatch(/Settings sections|Tax year|Journal filter|NW spark/)
   })
 
-  it('6–10: Markets quote actions · search clear · density · paper NW', () => {
+  it('6–10: Markets quote actions · panel toggles · density · paper NW', () => {
     const page = readFileSync(resolve(__dirname, '../pages/MarketsPage.tsx'), 'utf8')
     expect(page).toMatch(/markets-quote-copy/)
     expect(page).toMatch(/markets-quote-open-news/)
     expect(page).toMatch(/markets-quote-retry/)
     // Retry-all-stale removed — 60s poll + … Refresh cover freshness
     expect(page).not.toMatch(/markets-retry-all-stale/)
-    expect(page).toMatch(/markets-search-clear/)
+    expect(page).not.toMatch(/markets-search-clear/)
+    expect(page).toMatch(/markets-panel-toggles/)
     expect(page).toMatch(/markets-density-trust/)
     expect(page).toMatch(/markets-quote-paper-block/)
     expect(page).toMatch(/markets-quote-nw-badge/)
@@ -222,7 +223,7 @@ describe('next25r — sync / Markets / Today polish tip (1–25 → v1.2.87)', (
     expect(a11y).toMatch(/Analytics axe/)
     const e2e = readFileSync(resolve(__dirname, '../../e2e/smoke.spec.ts'), 'utf8')
     expect(e2e).toMatch(/Analytics thumb CTA/)
-    expect(e2e).toMatch(/Markets search clear/)
+    expect(e2e).toMatch(/Markets Assets \/ Timeframe \/ Format panels/)
     expect(e2e).toMatch(/Today Goals jump chip/)
     expect(e2e).toMatch(/smoke PTR includes Analytics Opening/)
   })
