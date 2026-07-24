@@ -1339,11 +1339,11 @@ function TodoItemCard({
             <button
               type="button"
               onClick={() => onEdit(item)}
-              className="btn-ghost btn-sm p-2 min-h-9 min-w-9"
+              className="btn-ghost btn-sm btn-icon-edit p-2 min-h-9 min-w-9"
               title="Edit"
               aria-label="Edit task"
             >
-              <Edit2 size={14} />
+              <Edit2 size={16} strokeWidth={1.75} className="icon-edit" aria-hidden />
             </button>
             <button
               type="button"
@@ -1447,10 +1447,10 @@ function TodoItemCard({
           <button
             type="button"
             onClick={() => onEdit(item)}
-            className="btn-ghost btn-sm text-xs px-3 min-h-10"
+            className="btn-ghost btn-sm btn-icon-edit text-xs px-3 min-h-10"
             aria-label="Edit task"
           >
-            <Edit2 size={15} /> Edit
+            <Edit2 size={16} strokeWidth={1.75} className="icon-edit" aria-hidden /> Edit
           </button>
           <button
             type="button"

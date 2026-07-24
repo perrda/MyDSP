@@ -933,6 +933,28 @@ html.has-bottom-nav .floating-banner--toast {
   letter-spacing: 0.06em;
   min-height: 2.25rem;
 }
+
+/* Edit (pencil) — Lucide stroke tips must not clip inside tight icon buttons */
+.btn-icon-edit,
+button[aria-label^='Edit'],
+button[aria-label*='Edit '] {
+  overflow: visible;
+  line-height: 0;
+}
+.btn-icon-edit svg,
+button[aria-label^='Edit'] svg,
+button[aria-label*='Edit '] svg,
+svg.icon-edit,
+svg.lucide-pencil,
+svg.lucide-edit-2,
+svg.lucide-square-pen {
+  overflow: visible !important;
+  flex-shrink: 0;
+  display: block;
+  /* Give stroke tips room beyond the 24 viewBox edge */
+  padding: 1px;
+  box-sizing: content-box;
+}
 @media (min-width: 640px) {
   .btn-sm {
     padding: 0.5rem 1rem;

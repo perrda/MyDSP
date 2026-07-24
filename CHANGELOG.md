@@ -1,5 +1,12 @@
 # MyDSP Changelog
 
+## [1.2.93] - 2026-07-24
+
+### Fixed — Markets defaults + Edit pencil
+- **24H default:** every fresh open shows prices/rates `%` change on the **24H** timeframe (web / tablet / mobile); prior session picks of 1W/1M/12M no longer stick across reloads
+- **60s quote refresh:** Markets background poll and cloud auto-sync cadence are **60 seconds**; quiet polls no longer flash “Refreshing data” every few seconds (fixed a refresh loop that re-fired when holdings updated)
+- **Edit pencil:** full Lucide pencil visible on Markets / News / YouTube Edit controls (`overflow: visible` + consistent icon sizing)
+
 ## [1.2.92] - 2026-07-22
 
 ### Fixed — Markets section sticky rows

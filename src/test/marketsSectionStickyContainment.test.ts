@@ -6,14 +6,14 @@ import { RELEASE_NOTES, releaseNotesArchive } from '../domain/releaseNotes'
 describe('Markets section sticky row containment (v1.2.92)', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.92')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.92')
+    expect(pkg.version).toBe('1.2.93')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.93')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.93',
       '1.2.92',
       '1.2.91',
       '1.2.90',
       '1.2.89',
-      '1.2.88',
     ])
   })
 

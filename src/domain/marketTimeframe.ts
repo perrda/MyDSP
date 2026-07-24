@@ -4,6 +4,30 @@ export type MarketTimeframe = '24H' | '1W' | '1M' | '12M'
 
 export const MARKET_TIMEFRAMES: MarketTimeframe[] = ['24H', '1W', '1M', '12M']
 
+/** Product default for % change + sparklines on every fresh app/session open. */
+export const DEFAULT_MARKET_TF: MarketTimeframe = '24H'
+
+/** Background Markets quote poll while the tab stays open (ms). */
+export const MARKETS_QUOTE_POLL_MS = 60_000
+
+const SESSION_TF_BOOT_KEY = 'mydsp_markets_tf_session_v1'
+
+/**
+ * Timeframe for a fresh browser session always starts at 24H.
+ * After the user picks another window in this session, that choice is kept until reload.
+ */
+export function bootMarketsTimeframe(persisted: MarketTimeframe | undefined): MarketTimeframe {
+  try {
+    if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem(SESSION_TF_BOOT_KEY) === '1') {
+      return isMarketTimeframe(persisted) ? persisted : DEFAULT_MARKET_TF
+    }
+    sessionStorage?.setItem(SESSION_TF_BOOT_KEY, '1')
+  } catch {
+    /* private mode — still return default */
+  }
+  return DEFAULT_MARKET_TF
+}
+
 export function isMarketTimeframe(v: unknown): v is MarketTimeframe {
   return v === '24H' || v === '1W' || v === '1M' || v === '12M'
 }

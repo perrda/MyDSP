@@ -3,6 +3,7 @@
 import { equityNeedsUsdToGbp } from '../domain/equityCurrency'
 import { commodityYahooFallbacks } from '../domain/commodities'
 import {
+  DEFAULT_MARKET_TF,
   frankfurterDaysForTimeframe,
   geckoDaysForTimeframe,
   yahooChartParamsForTimeframe,
@@ -80,7 +81,6 @@ const geckoSearchCache = new Map<string, string>()
 let geckoCooldownUntil = 0
 
 /** Default Markets window — % badge and sparkline always share the same series. */
-const DEFAULT_MARKET_TF: MarketTimeframe = '24H'
 const SPARKLINE_HOURS = 24
 const SPARKLINE_MAX_POINTS = 48
 
