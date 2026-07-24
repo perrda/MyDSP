@@ -29,6 +29,24 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.94',
+    date: '2026-07-24',
+    bullets: [
+      {
+        text: 'Markets: compact Compact/Expand/Sort/Sections controls',
+        to: '/markets',
+      },
+      {
+        text: 'CRYPTO→CROSSES jump chips as clear segment buttons',
+        to: '/markets',
+      },
+      {
+        text: 'Retry all stale removed — 60s poll + … Refresh',
+        to: '/markets',
+      },
+    ],
+  },
+  {
     version: '1.2.93',
     date: '2026-07-24',
     bullets: [

@@ -155,6 +155,6 @@ describe('next25c mobile / tablet (11–15)', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8')) as {
       version: string
     }
-    expect(pkg.version).toBe('1.2.93')
+    expect(pkg.version).toBe('1.2.94')
   })
 })

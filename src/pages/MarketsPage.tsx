@@ -4,13 +4,17 @@ import {
   ArrowUpDown,
   ChevronDown,
   ChevronUp,
+  FoldVertical,
   HelpCircle,
+  LayoutList,
   Moon,
   Pencil,
   Plus,
   RefreshCw,
+  Rows3,
   Sun,
   Trash2,
+  UnfoldVertical,
 } from 'lucide-react'
 import { Sparkline } from '../components/charts/Sparkline'
 import { useToasts } from '../components/ToastProvider'
@@ -1051,40 +1055,6 @@ export function MarketsPage() {
       await refresh(kind)
     }
   }, [tickers, quotes, refresh])
-
-  const quoteNeedsStaleRetry = useCallback((q: MarketQuote | undefined) => {
-    if (quoteAvailabilityLabel(q, { refreshing: false }) === 'Unavailable') return true
-    if (isStaleQuote(q)) return true
-    if (q && (q.source || '').startsWith('sync:') && isPastQuoteFreshnessSla(q)) return true
-    return false
-  }, [])
-
-  const hasStaleOrUnavailable = useMemo(() => {
-    for (const t of tickers) {
-      if (quoteNeedsStaleRetry(quotes.get(t.id))) return true
-    }
-    return false
-  }, [tickers, quotes, quoteNeedsStaleRetry])
-
-  const retryAllStale = useCallback(async () => {
-    if (!isOnline()) {
-      pendingRetryOnline.current = true
-      setError('You are offline — retry stale quotes when back online')
-      return
-    }
-    pendingRetryOnline.current = false
-    const kinds = new Set<MarketAssetKind>()
-    for (const t of tickers) {
-      if (quoteNeedsStaleRetry(quotes.get(t.id))) kinds.add(t.kind)
-    }
-    if (kinds.size === 0) {
-      await refresh()
-      return
-    }
-    for (const kind of kinds) {
-      await refresh(kind)
-    }
-  }, [tickers, quotes, refresh, quoteNeedsStaleRetry])
 
   /** Keep quote modal / detail panel in sync with live quotes + ticker edits. */
   useEffect(() => {
@@ -2175,60 +2145,55 @@ export function MarketsPage() {
         eyebrow="Prices"
         title="Markets"
         action={
-          <div className="hidden sm:flex flex-wrap gap-2">
-            <span className="inline-flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                className={`btn-ghost btn-sm markets-density ${
-                  density === 'compact' ? 'border-accent text-accent' : ''
-                }`}
-                data-testid="markets-density"
-                aria-pressed={density === 'compact'}
-                aria-label={
-                  density === 'comfortable'
-                    ? 'Switch to compact density'
-                    : 'Switch to comfortable density'
-                }
-                onClick={() => {
-                  const next: MarketsDensity =
-                    density === 'comfortable' ? 'compact' : 'comfortable'
-                  setMarketsDensity(next)
-                  setDensity(next)
-                }}
-              >
-                {density === 'comfortable' ? 'Compact' : 'Comfortable'}
-              </button>
-              <button
-                type="button"
-                className="btn-ghost btn-sm markets-expand-all"
-                data-testid="markets-expand-all"
-                aria-label="Expand all Markets sections"
-                onClick={() => setAllSectionsCollapsed(false)}
-              >
-                Expand all
-              </button>
-              <button
-                type="button"
-                className="btn-ghost btn-sm markets-collapse-all"
-                data-testid="markets-collapse-all"
-                aria-label="Collapse all Markets sections"
-                onClick={() => setAllSectionsCollapsed(true)}
-              >
-                Collapse all
-              </button>
-              <span
-                className="markets-density-trust text-xs text-text-muted tabular-nums"
-                role="status"
-                aria-label={`${densityTrust.hiddenSparklines} sparklines hidden, ${densityTrust.collapsedCount} sections collapsed`}
-              >
-                {densityTrust.collapsedCount > 0 || densityTrust.hiddenSparklines > 0
-                  ? `${densityTrust.hiddenSparklines} sparkline${densityTrust.hiddenSparklines === 1 ? '' : 's'} hidden · ${densityTrust.collapsedCount} section${densityTrust.collapsedCount === 1 ? '' : 's'} collapsed`
-                  : null}
-              </span>
-            </span>
+          <div
+            className="markets-view-controls ui-seg-group ui-seg-group--tight hidden sm:inline-flex"
+            role="toolbar"
+            aria-label="Markets view controls"
+          >
             <button
               type="button"
-              className={`btn-secondary inline-flex items-center gap-2 markets-sort ${sorting ? 'border-accent text-accent' : ''}`}
+              className={`ui-seg markets-density${density === 'compact' ? ' is-active' : ''}`}
+              data-testid="markets-density"
+              aria-pressed={density === 'compact'}
+              aria-label={
+                density === 'comfortable'
+                  ? 'Switch to compact density'
+                  : 'Switch to comfortable density'
+              }
+              onClick={() => {
+                const next: MarketsDensity =
+                  density === 'comfortable' ? 'compact' : 'comfortable'
+                setMarketsDensity(next)
+                setDensity(next)
+              }}
+            >
+              <Rows3 size={13} strokeWidth={1.75} aria-hidden />
+              {density === 'comfortable' ? 'Compact' : 'Comfortable'}
+            </button>
+            <button
+              type="button"
+              className="ui-seg markets-expand-all"
+              data-testid="markets-expand-all"
+              aria-label="Expand all Markets sections"
+              onClick={() => setAllSectionsCollapsed(false)}
+            >
+              <UnfoldVertical size={13} strokeWidth={1.75} aria-hidden />
+              Expand
+            </button>
+            <button
+              type="button"
+              className="ui-seg markets-collapse-all"
+              data-testid="markets-collapse-all"
+              aria-label="Collapse all Markets sections"
+              onClick={() => setAllSectionsCollapsed(true)}
+            >
+              <FoldVertical size={13} strokeWidth={1.75} aria-hidden />
+              Collapse
+            </button>
+            <span className="ui-seg-divider" aria-hidden />
+            <button
+              type="button"
+              className={`ui-seg markets-sort${sorting ? ' is-active' : ''}`}
               data-testid="markets-sort"
               aria-pressed={sorting}
               onClick={() => {
@@ -2237,12 +2202,12 @@ export function MarketsPage() {
                 setSorting((v) => !v)
               }}
             >
-              <ArrowUpDown size={14} strokeWidth={1.75} />
+              <ArrowUpDown size={13} strokeWidth={1.75} aria-hidden />
               {sorting ? 'Done' : 'Sort'}
             </button>
             <button
               type="button"
-              className={`btn-secondary inline-flex items-center gap-2 markets-sections-sort ${sectionSorting ? 'border-accent text-accent' : ''}`}
+              className={`ui-seg markets-sections-sort${sectionSorting ? ' is-active' : ''}`}
               data-testid="markets-sections-sort"
               aria-pressed={sectionSorting}
               aria-label={sectionSorting ? 'Done reordering sections' : 'Reorder Markets sections'}
@@ -2252,9 +2217,20 @@ export function MarketsPage() {
                 setSectionSorting((v) => !v)
               }}
             >
-              <ArrowUpDown size={14} strokeWidth={1.75} />
+              <LayoutList size={13} strokeWidth={1.75} aria-hidden />
               {sectionSorting ? 'Done' : 'Sections'}
             </button>
+            {densityTrust.collapsedCount > 0 || densityTrust.hiddenSparklines > 0 ? (
+              <span
+                className="markets-density-trust text-text-muted tabular-nums"
+                role="status"
+                aria-label={`${densityTrust.hiddenSparklines} sparklines hidden, ${densityTrust.collapsedCount} sections collapsed`}
+              >
+                {densityTrust.hiddenSparklines} spark
+                {densityTrust.hiddenSparklines === 1 ? '' : 's'} · {densityTrust.collapsedCount}{' '}
+                collapsed
+              </span>
+            ) : null}
           </div>
         }
       />
@@ -2346,7 +2322,7 @@ export function MarketsPage() {
             {searchText ? (
               <button
                 type="button"
-                className="btn-ghost btn-sm markets-search-clear"
+                className="ui-seg markets-search-clear"
                 data-testid="markets-search-clear"
                 aria-label="Clear markets search"
                 onClick={() => setSearchText('')}
@@ -2354,21 +2330,9 @@ export function MarketsPage() {
                 Clear
               </button>
             ) : null}
-            {hasStaleOrUnavailable ? (
-              <button
-                type="button"
-                className="btn-secondary btn-sm markets-retry-all-stale"
-                data-testid="markets-retry-all-stale"
-                disabled={refreshing}
-                aria-label="Retry all stale and unavailable quotes"
-                onClick={() => void retryAllStale()}
-              >
-                Retry all stale
-              </button>
-            ) : null}
           </div>
           <div
-            className="mt-2 flex flex-wrap items-center gap-1.5"
+            className="mt-2 ui-seg-group ui-seg-group--tight"
             role="tablist"
             aria-label="Sparkline and percent change timeframe"
             onKeyDown={(e) => {
@@ -2400,8 +2364,8 @@ export function MarketsPage() {
                 id={`markets-tf-${tf}`}
                 type="button"
                 role="tab"
-                className={`btn-sm min-h-9 px-2.5 tabular-nums markets-timeframe ${
-                  timeframe === tf ? 'btn-secondary border-accent text-accent' : 'btn-ghost'
+                className={`ui-seg tabular-nums markets-timeframe${
+                  timeframe === tf ? ' is-active' : ''
                 }`}
                 data-testid="markets-timeframe"
                 aria-selected={timeframe === tf}
@@ -2418,7 +2382,7 @@ export function MarketsPage() {
           </div>
         </div>
         <nav
-          className="markets-section-jump-chips"
+          className="markets-section-jump-chips ui-seg-group"
           role="tablist"
           aria-label="Jump to market section"
           onKeyDown={(e) => {
@@ -2468,8 +2432,8 @@ export function MarketsPage() {
                 role="tab"
                 aria-controls={`markets-section-${section}`}
                 tabIndex={active || (!activeJumpSection && section === sectionOrder[0]) ? 0 : -1}
-                className={`markets-section-jump-chip btn-ghost btn-sm${
-                  active ? ' markets-section-jump-chip--active border-accent text-accent' : ''
+                className={`markets-section-jump-chip ui-seg${
+                  active ? ' is-active markets-section-jump-chip--active' : ''
                 }${unavailableCount > 0 ? ' markets-jump-unavailable' : ''}`}
                 aria-selected={active ? true : false}
                 aria-current={active ? 'true' : undefined}
@@ -3515,8 +3479,8 @@ export function MarketsPage() {
         })()}
         <button
           type="button"
-          className={`btn-ghost btn-sm markets-density markets-density-thumb ${
-            density === 'compact' ? 'border-accent text-accent' : ''
+          className={`ui-seg markets-density markets-density-thumb${
+            density === 'compact' ? ' is-active' : ''
           }`}
           data-testid="markets-density"
           aria-pressed={density === 'compact'}
@@ -3532,23 +3496,26 @@ export function MarketsPage() {
             setDensity(next)
           }}
         >
+          <Rows3 size={13} strokeWidth={1.75} aria-hidden />
           {density === 'comfortable' ? 'Compact' : 'Comfortable'}
         </button>
         <button
           type="button"
-          className="btn-ghost btn-sm markets-expand-all"
+          className="ui-seg markets-expand-all"
           aria-label="Expand all Markets sections"
           onClick={() => setAllSectionsCollapsed(false)}
         >
-          Expand all
+          <UnfoldVertical size={13} strokeWidth={1.75} aria-hidden />
+          Expand
         </button>
         <button
           type="button"
-          className="btn-ghost btn-sm markets-collapse-all"
+          className="ui-seg markets-collapse-all"
           aria-label="Collapse all Markets sections"
           onClick={() => setAllSectionsCollapsed(true)}
         >
-          Collapse all
+          <FoldVertical size={13} strokeWidth={1.75} aria-hidden />
+          Collapse
         </button>
         <span
           className="markets-density-trust text-xs text-text-muted tabular-nums self-center"
@@ -3556,10 +3523,8 @@ export function MarketsPage() {
           role="status"
           aria-label={`${densityTrust.hiddenSparklines} sparklines hidden, ${densityTrust.collapsedCount} sections collapsed`}
         >
-          {densityTrust.hiddenSparklines} sparkline
-          {densityTrust.hiddenSparklines === 1 ? '' : 's'} hidden ·{' '}
-          {densityTrust.collapsedCount} section
-          {densityTrust.collapsedCount === 1 ? '' : 's'} collapsed
+          {densityTrust.hiddenSparklines} spark
+          {densityTrust.hiddenSparklines === 1 ? '' : 's'} · {densityTrust.collapsedCount} collapsed
         </span>
       </div>
       <div className="thumb-cta-bar-spacer" aria-hidden />

@@ -1222,8 +1222,8 @@ export function Dashboard() {
             <a
               key={id}
               href={`#${id}`}
-              className={`today-section-jump-chip ${chipClass} btn-ghost btn-sm text-xs${
-                active ? ' today-section-jump-chip--active border-accent text-accent' : ''
+              className={`today-section-jump-chip ui-seg ${chipClass}${
+                active ? ' is-active today-section-jump-chip--active' : ''
               }`}
               aria-current={active ? 'true' : undefined}
               onClick={(e) => {

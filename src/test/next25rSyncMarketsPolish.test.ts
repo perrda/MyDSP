@@ -67,14 +67,14 @@ describe('next25r — sync / Markets / Today polish tip (1–25 → v1.2.87)', (
 
   it('25: package + release notes are 1.2.87', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.93')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.93')
+    expect(pkg.version).toBe('1.2.94')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.94')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.94',
       '1.2.93',
       '1.2.92',
       '1.2.91',
       '1.2.90',
-      '1.2.89',
     ])
   })
 
@@ -168,12 +168,13 @@ describe('next25r — sync / Markets / Today polish tip (1–25 → v1.2.87)', (
     expect(settings).toMatch(/Settings sections|Tax year|Journal filter|NW spark/)
   })
 
-  it('6–10: Markets quote actions · Retry-all · search clear · density · paper NW', () => {
+  it('6–10: Markets quote actions · search clear · density · paper NW', () => {
     const page = readFileSync(resolve(__dirname, '../pages/MarketsPage.tsx'), 'utf8')
     expect(page).toMatch(/markets-quote-copy/)
     expect(page).toMatch(/markets-quote-open-news/)
     expect(page).toMatch(/markets-quote-retry/)
-    expect(page).toMatch(/markets-retry-all-stale/)
+    // Retry-all-stale removed — 60s poll + … Refresh cover freshness
+    expect(page).not.toMatch(/markets-retry-all-stale/)
     expect(page).toMatch(/markets-search-clear/)
     expect(page).toMatch(/markets-density-trust/)
     expect(page).toMatch(/markets-quote-paper-block/)

@@ -1,5 +1,12 @@
 # MyDSP Changelog
 
+## [1.2.94] - 2026-07-24
+
+### Improved — Markets toolbar chrome
+- **Compact view tools:** Compact / Expand / Collapse / Sort / Sections are shared `ui-seg` controls (icon + short label) — clear, minimal, no oversized secondary buttons
+- **Retry all stale removed:** 60s quiet quote poll + header `…` → Refresh cover freshness; per-row Retry remains
+- **Section jumps:** CRYPTO → CROSSES (and Today / Jobs jumps, News/YouTube Sort) use the same bordered segment buttons for consistent chrome
+
 ## [1.2.93] - 2026-07-24
 
 ### Fixed — Markets defaults + Edit pencil
