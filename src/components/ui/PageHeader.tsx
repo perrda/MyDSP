@@ -39,8 +39,8 @@ export function PageHeader({ eyebrow, title, description, action }: PageHeaderPr
   return (
     <div className="page-header flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4 mb-6 md:mb-8">
       <div className="page-header__copy min-w-0 flex-1">
-        <p className="eyebrow mb-2 md:mb-3 text-xs md:text-sm sm:hidden">{eyebrow}</p>
-        <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight leading-tight sm:hidden">
+        <p className="eyebrow app-page-eyebrow mb-2 md:mb-3 sm:hidden">{eyebrow}</p>
+        <h2 className="app-page-title font-bold tracking-tight leading-tight sm:hidden">
           {hasAccentSplit ? (
             <>
               {lead}{' '}

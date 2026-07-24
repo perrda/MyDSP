@@ -1,8 +1,8 @@
 /** Markets sparkline / % change windows — sparkline and badge use the same series. */
 
-export type MarketTimeframe = '24H' | '1W' | '1M' | '12M'
+export type MarketTimeframe = '24H' | '1W' | '1M' | '12M' | 'YTD' | 'ALL'
 
-export const MARKET_TIMEFRAMES: MarketTimeframe[] = ['24H', '1W', '1M', '12M']
+export const MARKET_TIMEFRAMES: MarketTimeframe[] = ['24H', '1W', '1M', '12M', 'YTD', 'ALL']
 
 /** Product default for % change + sparklines on every fresh app/session open. */
 export const DEFAULT_MARKET_TF: MarketTimeframe = '24H'
@@ -29,7 +29,19 @@ export function bootMarketsTimeframe(persisted: MarketTimeframe | undefined): Ma
 }
 
 export function isMarketTimeframe(v: unknown): v is MarketTimeframe {
-  return v === '24H' || v === '1W' || v === '1M' || v === '12M'
+  return (
+    v === '24H' ||
+    v === '1W' ||
+    v === '1M' ||
+    v === '12M' ||
+    v === 'YTD' ||
+    v === 'ALL'
+  )
+}
+
+function daysSinceYearStart(now = new Date()): number {
+  const start = new Date(now.getFullYear(), 0, 1)
+  return Math.max(1, Math.ceil((now.getTime() - start.getTime()) / (24 * 60 * 60 * 1000)))
 }
 
 /** Yahoo chart interval + range for each Markets window. */
@@ -65,6 +77,24 @@ export function yahooChartParamsForTimeframe(tf: MarketTimeframe): {
         windowMs: 366 * 24 * 60 * 60 * 1000,
         maxPoints: 64,
       }
+    case 'YTD': {
+      const days = daysSinceYearStart()
+      return {
+        interval: '1d',
+        range: 'ytd',
+        fallbackRange: '1y',
+        windowMs: days * 24 * 60 * 60 * 1000,
+        maxPoints: 96,
+      }
+    }
+    case 'ALL':
+      return {
+        interval: '1wk',
+        range: 'max',
+        fallbackRange: '10y',
+        windowMs: 10 * 366 * 24 * 60 * 60 * 1000,
+        maxPoints: 120,
+      }
     case '24H':
     default:
       return {
@@ -78,7 +108,7 @@ export function yahooChartParamsForTimeframe(tf: MarketTimeframe): {
 }
 
 /** CoinGecko `days=` for market_chart. */
-export function geckoDaysForTimeframe(tf: MarketTimeframe): number {
+export function geckoDaysForTimeframe(tf: MarketTimeframe): number | 'max' {
   switch (tf) {
     case '1W':
       return 7
@@ -86,6 +116,10 @@ export function geckoDaysForTimeframe(tf: MarketTimeframe): number {
       return 30
     case '12M':
       return 365
+    case 'YTD':
+      return daysSinceYearStart()
+    case 'ALL':
+      return 'max'
     case '24H':
     default:
       return 1
@@ -101,6 +135,10 @@ export function frankfurterDaysForTimeframe(tf: MarketTimeframe): number {
       return 30
     case '12M':
       return 365
+    case 'YTD':
+      return daysSinceYearStart()
+    case 'ALL':
+      return 3650
     case '24H':
     default:
       return 5

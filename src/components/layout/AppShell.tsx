@@ -269,8 +269,8 @@ export function AppShell() {
             <div className="hidden sm:flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
               <div className="hidden sm:block w-[3px] h-7 bg-accent shrink-0" aria-hidden />
               <div className="min-w-0">
-                <p className="eyebrow tracking-[0.2em]">{meta.eyebrow}</p>
-                <h1 className="text-base sm:text-lg font-bold tracking-tight truncate leading-tight">
+                <p className="app-header-eyebrow eyebrow">{meta.eyebrow}</p>
+                <h1 className="app-header-title truncate leading-tight">
                   {meta.title}
                 </h1>
               </div>

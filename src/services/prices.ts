@@ -483,7 +483,11 @@ async function fetchFinnhubSparkline(
     const to = Math.floor(Date.now() / 1000)
     const from = to - Math.floor(params.windowMs / 1000)
     const resolution =
-      timeframe === '24H' ? '5' : timeframe === '12M' ? 'D' : timeframe === '1M' ? '60' : '60'
+      timeframe === '24H'
+        ? '5'
+        : timeframe === '1W' || timeframe === '1M'
+          ? '60'
+          : 'D'
     const url =
       `https://finnhub.io/api/v1/stock/candle?symbol=${encodeURIComponent(symbol)}` +
       `&resolution=${resolution}&from=${from}&to=${to}&token=${encodeURIComponent(finnhubKey)}`

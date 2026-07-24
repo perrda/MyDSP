@@ -2141,99 +2141,7 @@ export function MarketsPage() {
 
   return (
     <div>
-      <PageHeader
-        eyebrow="Prices"
-        title="Markets"
-        action={
-          <div
-            className="markets-view-controls ui-seg-group ui-seg-group--tight hidden sm:inline-flex"
-            role="toolbar"
-            aria-label="Markets view controls"
-          >
-            <button
-              type="button"
-              className={`ui-seg markets-density${density === 'compact' ? ' is-active' : ''}`}
-              data-testid="markets-density"
-              aria-pressed={density === 'compact'}
-              aria-label={
-                density === 'comfortable'
-                  ? 'Switch to compact density'
-                  : 'Switch to comfortable density'
-              }
-              onClick={() => {
-                const next: MarketsDensity =
-                  density === 'comfortable' ? 'compact' : 'comfortable'
-                setMarketsDensity(next)
-                setDensity(next)
-              }}
-            >
-              <Rows3 size={13} strokeWidth={1.75} aria-hidden />
-              {density === 'comfortable' ? 'Compact' : 'Comfortable'}
-            </button>
-            <button
-              type="button"
-              className="ui-seg markets-expand-all"
-              data-testid="markets-expand-all"
-              aria-label="Expand all Markets sections"
-              onClick={() => setAllSectionsCollapsed(false)}
-            >
-              <UnfoldVertical size={13} strokeWidth={1.75} aria-hidden />
-              Expand
-            </button>
-            <button
-              type="button"
-              className="ui-seg markets-collapse-all"
-              data-testid="markets-collapse-all"
-              aria-label="Collapse all Markets sections"
-              onClick={() => setAllSectionsCollapsed(true)}
-            >
-              <FoldVertical size={13} strokeWidth={1.75} aria-hidden />
-              Collapse
-            </button>
-            <span className="ui-seg-divider" aria-hidden />
-            <button
-              type="button"
-              className={`ui-seg markets-sort${sorting ? ' is-active' : ''}`}
-              data-testid="markets-sort"
-              aria-pressed={sorting}
-              onClick={() => {
-                applyYieldSort(false)
-                setSectionSorting(false)
-                setSorting((v) => !v)
-              }}
-            >
-              <ArrowUpDown size={13} strokeWidth={1.75} aria-hidden />
-              {sorting ? 'Done' : 'Sort'}
-            </button>
-            <button
-              type="button"
-              className={`ui-seg markets-sections-sort${sectionSorting ? ' is-active' : ''}`}
-              data-testid="markets-sections-sort"
-              aria-pressed={sectionSorting}
-              aria-label={sectionSorting ? 'Done reordering sections' : 'Reorder Markets sections'}
-              onClick={() => {
-                applyYieldSort(false)
-                setSorting(false)
-                setSectionSorting((v) => !v)
-              }}
-            >
-              <LayoutList size={13} strokeWidth={1.75} aria-hidden />
-              {sectionSorting ? 'Done' : 'Sections'}
-            </button>
-            {densityTrust.collapsedCount > 0 || densityTrust.hiddenSparklines > 0 ? (
-              <span
-                className="markets-density-trust text-text-muted tabular-nums"
-                role="status"
-                aria-label={`${densityTrust.hiddenSparklines} sparklines hidden, ${densityTrust.collapsedCount} sections collapsed`}
-              >
-                {densityTrust.hiddenSparklines} spark
-                {densityTrust.hiddenSparklines === 1 ? '' : 's'} · {densityTrust.collapsedCount}{' '}
-                collapsed
-              </span>
-            ) : null}
-          </div>
-        }
-      />
+      <PageHeader eyebrow="Prices" title="Markets" />
 
       {refreshBanner ? (
         <div
@@ -2300,39 +2208,128 @@ export function MarketsPage() {
         ref={marketsToolbarRef}
         className="markets-sticky-toolbar sticky z-[9] -mx-1 mb-3 bg-bg/95 px-1 py-1.5 backdrop-blur supports-[backdrop-filter]:bg-bg/80"
       >
-        <div className="markets-in-list-search surface border border-border-strong px-3 py-2">
-          <label className="sr-only" htmlFor="markets-search-input">
-            Search watchlist
-          </label>
-          <div className="flex flex-wrap items-center gap-2">
-            <input
-              id="markets-search-input"
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Escape') {
-                  e.preventDefault()
-                  setSearchText('')
-                }
-              }}
-              placeholder="Search watchlist by symbol or name"
-              aria-label="Search watchlist by symbol or name"
-              className="min-w-[14rem] flex-1"
-            />
-            {searchText ? (
-              <button
-                type="button"
-                className="ui-seg markets-search-clear"
-                data-testid="markets-search-clear"
-                aria-label="Clear markets search"
-                onClick={() => setSearchText('')}
-              >
-                Clear
-              </button>
-            ) : null}
+        <div className="markets-toolbar-stack">
+          <div className="markets-in-list-search surface border border-border-strong px-3 py-2">
+            <label className="sr-only" htmlFor="markets-search-input">
+              Search watchlist by symbol or name
+            </label>
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                id="markets-search-input"
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    e.preventDefault()
+                    setSearchText('')
+                  }
+                }}
+                placeholder=""
+                aria-label="Search watchlist by symbol or name"
+                className="min-w-[14rem] flex-1"
+              />
+              {searchText ? (
+                <button
+                  type="button"
+                  className="ui-seg markets-search-clear"
+                  data-testid="markets-search-clear"
+                  aria-label="Clear markets search"
+                  onClick={() => setSearchText('')}
+                >
+                  Clear
+                </button>
+              ) : null}
+            </div>
           </div>
+
+          <nav
+            className="markets-section-jump-chips ui-seg-group ui-seg-group--tight"
+            role="tablist"
+            aria-label="Jump to market section"
+            onKeyDown={(e) => {
+              const idx = Math.max(
+                0,
+                sectionOrder.indexOf(activeJumpSection ?? sectionOrder[0]!),
+              )
+              let next = idx
+              if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                next = (idx + 1) % sectionOrder.length
+              } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                next = (idx - 1 + sectionOrder.length) % sectionOrder.length
+              } else if (e.key === 'Home') {
+                next = 0
+              } else if (e.key === 'End') {
+                next = sectionOrder.length - 1
+              } else {
+                return
+              }
+              e.preventDefault()
+              const section = sectionOrder[next]!
+              setActiveJumpSection(section)
+              document.getElementById(`markets-jump-${section}`)?.focus()
+              document
+                .getElementById(`markets-section-${section}`)
+                ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+            }}
+          >
+            {sectionOrder.map((section) => {
+              const active = activeJumpSection === section
+              const unavailableCount = bySection[section].filter(
+                (t) =>
+                  quoteAvailabilityLabel(quotes.get(t.id), { refreshing: false }) ===
+                  'Unavailable',
+              ).length
+              const baseLabel = SECTION_JUMP_LABEL[section]
+              const ariaLabel =
+                unavailableCount > 0
+                  ? `${baseLabel} · ${unavailableCount} unavailable`
+                  : baseLabel
+              return (
+                <a
+                  key={section}
+                  id={`markets-jump-${section}`}
+                  href={`#markets-section-${section}`}
+                  role="tab"
+                  aria-controls={`markets-section-${section}`}
+                  tabIndex={active || (!activeJumpSection && section === sectionOrder[0]) ? 0 : -1}
+                  className={`markets-section-jump-chip ui-seg${
+                    active ? ' is-active markets-section-jump-chip--active' : ''
+                  }${unavailableCount > 0 ? ' markets-jump-unavailable' : ''}`}
+                  aria-selected={active ? true : false}
+                  aria-current={active ? 'true' : undefined}
+                  aria-label={
+                    unavailableCount > 0 ? `${ariaLabel} — retry section` : ariaLabel
+                  }
+                  title={
+                    unavailableCount > 0
+                      ? `${ariaLabel} — click to jump and retry`
+                      : undefined
+                  }
+                  onClick={(e) => {
+                    if (unavailableCount <= 0) return
+                    e.preventDefault()
+                    setCollapsed((prev) => {
+                      if (!prev[section]) return prev
+                      const next = { ...prev, [section]: false }
+                      setMarketsCollapsed(section, false)
+                      return next
+                    })
+                    document
+                      .getElementById(`markets-section-${section}`)
+                      ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                    void refreshSection(section)
+                  }}
+                >
+                  {unavailableCount > 0
+                    ? `${baseLabel} · ${unavailableCount}`
+                    : baseLabel}
+                </a>
+              )
+            })}
+          </nav>
+
           <div
-            className="mt-2 ui-seg-group ui-seg-group--tight"
+            className="markets-timeframe-row ui-seg-group ui-seg-group--tight"
             role="tablist"
             aria-label="Sparkline and percent change timeframe"
             onKeyDown={(e) => {
@@ -2354,8 +2351,7 @@ export function MarketsPage() {
               const tf = MARKET_TIMEFRAMES[next]!
               setMarketsTimeframe(tf)
               setTimeframe(tf)
-              const el = document.getElementById(`markets-tf-${tf}`)
-              el?.focus()
+              document.getElementById(`markets-tf-${tf}`)?.focus()
             }}
           >
             {MARKET_TIMEFRAMES.map((tf) => (
@@ -2380,93 +2376,97 @@ export function MarketsPage() {
               </button>
             ))}
           </div>
-        </div>
-        <nav
-          className="markets-section-jump-chips ui-seg-group"
-          role="tablist"
-          aria-label="Jump to market section"
-          onKeyDown={(e) => {
-            const idx = Math.max(
-              0,
-              sectionOrder.indexOf(activeJumpSection ?? sectionOrder[0]!),
-            )
-            let next = idx
-            if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
-              next = (idx + 1) % sectionOrder.length
-            } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
-              next = (idx - 1 + sectionOrder.length) % sectionOrder.length
-            } else if (e.key === 'Home') {
-              next = 0
-            } else if (e.key === 'End') {
-              next = sectionOrder.length - 1
-            } else {
-              return
-            }
-            e.preventDefault()
-            const section = sectionOrder[next]!
-            setActiveJumpSection(section)
-            document
-              .getElementById(`markets-jump-${section}`)
-              ?.focus()
-            document
-              .getElementById(`markets-section-${section}`)
-              ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-          }}
-        >
-          {sectionOrder.map((section) => {
-            const active = activeJumpSection === section
-            const unavailableCount = bySection[section].filter(
-              (t) =>
-                quoteAvailabilityLabel(quotes.get(t.id), { refreshing: false }) === 'Unavailable',
-            ).length
-            const baseLabel = SECTION_JUMP_LABEL[section]
-            const ariaLabel =
-              unavailableCount > 0
-                ? `${baseLabel} · ${unavailableCount} unavailable`
-                : baseLabel
-            return (
-              <a
-                key={section}
-                id={`markets-jump-${section}`}
-                href={`#markets-section-${section}`}
-                role="tab"
-                aria-controls={`markets-section-${section}`}
-                tabIndex={active || (!activeJumpSection && section === sectionOrder[0]) ? 0 : -1}
-                className={`markets-section-jump-chip ui-seg${
-                  active ? ' is-active markets-section-jump-chip--active' : ''
-                }${unavailableCount > 0 ? ' markets-jump-unavailable' : ''}`}
-                aria-selected={active ? true : false}
-                aria-current={active ? 'true' : undefined}
-                aria-label={
-                  unavailableCount > 0 ? `${ariaLabel} — retry section` : ariaLabel
-                }
-                title={
-                  unavailableCount > 0
-                    ? `${ariaLabel} — click to jump and retry`
-                    : undefined
-                }
-                onClick={(e) => {
-                  if (unavailableCount <= 0) return
-                  e.preventDefault()
-                  setCollapsed((prev) => {
-                    if (!prev[section]) return prev
-                    const next = { ...prev, [section]: false }
-                    setMarketsCollapsed(section, false)
-                    return next
-                  })
-                  document
-                    .getElementById(`markets-section-${section}`)
-                    ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-                  void refreshSection(section)
-                }}
+
+          <div
+            className="markets-view-controls ui-seg-group ui-seg-group--tight"
+            role="toolbar"
+            aria-label="Markets view controls"
+          >
+            <button
+              type="button"
+              className={`ui-seg markets-density${density === 'compact' ? ' is-active' : ''}`}
+              data-testid="markets-density"
+              aria-pressed={density === 'compact'}
+              aria-label={
+                density === 'comfortable'
+                  ? 'Switch to compact density'
+                  : 'Switch to comfortable density'
+              }
+              onClick={() => {
+                const next: MarketsDensity =
+                  density === 'comfortable' ? 'compact' : 'comfortable'
+                setMarketsDensity(next)
+                setDensity(next)
+              }}
+            >
+              <Rows3 size={13} strokeWidth={1.75} aria-hidden />
+              {density === 'comfortable' ? 'Compact' : 'Comfortable'}
+            </button>
+            <button
+              type="button"
+              className="ui-seg markets-expand-all"
+              data-testid="markets-expand-all"
+              aria-label="Expand all Markets sections"
+              onClick={() => setAllSectionsCollapsed(false)}
+            >
+              <UnfoldVertical size={13} strokeWidth={1.75} aria-hidden />
+              Expand
+            </button>
+            <button
+              type="button"
+              className="ui-seg markets-collapse-all"
+              data-testid="markets-collapse-all"
+              aria-label="Collapse all Markets sections"
+              onClick={() => setAllSectionsCollapsed(true)}
+            >
+              <FoldVertical size={13} strokeWidth={1.75} aria-hidden />
+              Collapse
+            </button>
+            <span className="ui-seg-divider" aria-hidden />
+            <button
+              type="button"
+              className={`ui-seg markets-sort${sorting ? ' is-active' : ''}`}
+              data-testid="markets-sort"
+              aria-pressed={sorting}
+              onClick={() => {
+                applyYieldSort(false)
+                setSectionSorting(false)
+                setSorting((v) => !v)
+              }}
+            >
+              <ArrowUpDown size={13} strokeWidth={1.75} aria-hidden />
+              {sorting ? 'Done' : 'Sort'}
+            </button>
+            <button
+              type="button"
+              className={`ui-seg markets-sections-sort${sectionSorting ? ' is-active' : ''}`}
+              data-testid="markets-sections-sort"
+              aria-pressed={sectionSorting}
+              aria-label={
+                sectionSorting ? 'Done reordering sections' : 'Reorder Markets sections'
+              }
+              onClick={() => {
+                applyYieldSort(false)
+                setSorting(false)
+                setSectionSorting((v) => !v)
+              }}
+            >
+              <LayoutList size={13} strokeWidth={1.75} aria-hidden />
+              {sectionSorting ? 'Done' : 'Sections'}
+            </button>
+            {densityTrust.collapsedCount > 0 || densityTrust.hiddenSparklines > 0 ? (
+              <span
+                className="markets-density-trust text-text-muted tabular-nums"
+                role="status"
+                aria-label={`${densityTrust.hiddenSparklines} sparklines hidden, ${densityTrust.collapsedCount} sections collapsed`}
               >
-                {unavailableCount > 0
-                  ? `${baseLabel} · ${unavailableCount}`
-                  : baseLabel}
-              </a>
-            )
-          })}
-        </nav>
+                {densityTrust.hiddenSparklines} spark
+                {densityTrust.hiddenSparklines === 1 ? '' : 's'} · {densityTrust.collapsedCount}{' '}
+                collapsed
+              </span>
+            ) : null}
+          </div>
+        </div>
       </div>
 
       {cachedMode ? (
@@ -2558,17 +2558,7 @@ export function MarketsPage() {
             Yield %
           </button>
         </div>
-      ) : (
-        <p className="markets-tag-yield-settings-hint mb-4 text-xs text-text-muted">
-          Tag + Yield chips are hidden.
-          <Link
-            to="/settings#prices"
-            className="ml-1 font-semibold underline hover:no-underline text-text"
-          >
-            Settings → Prices
-          </Link>
-        </p>
-      )}
+      ) : null}
 
       {(initialLoad || refreshing) &&
       ![...quotes.values()].some((q) => q.last > 0) ? (

@@ -1,5 +1,12 @@
 # MyDSP Changelog
 
+## [1.2.96] - 2026-07-24
+
+### Improved — Markets toolbar layout + page headers
+- **Cleaner Markets chrome:** search placeholder text removed; CRYPTO→CROSSES first, then timeframes (**24H / 1W / 1M / 12M / YTD / ALL**), then Compact / Expand / Collapse / Sort / Sections — aligned stack
+- **Tag + Yield hint removed** from Markets (chips remain available in Settings → Prices)
+- **Larger section headers app-wide:** shell/page eyebrows + titles match Markets “My Crypto” title scale on web / tablet / phone
+
 ## [1.2.95] - 2026-07-24
 
 ### Fixed — YouTube / News cross-device sync

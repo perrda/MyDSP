@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.95**
+**Current version: 1.2.96**
 
-## Completed (through v1.2.95)
+## Completed (through v1.2.96)
 
+- Markets toolbar layout + headers (v1.2.96): asset jumps → timeframes (YTD/ALL) → view controls · no search placeholder / Tag+Yield hint · app-wide page headers match My Crypto scale
 - YouTube / News cross-device sync (v1.2.95): silent empty seeds · workspace extras apply during portfolio conflicts · YouTube/News deletion tombstones · `media-cross-device-sync.mdc`
 - Markets minimal toolbar (v1.2.94): shared `ui-seg` Compact/Expand/Collapse/Sort/Sections · remove Retry all stale · CRYPTO→CROSSES (and Today/Jobs jumps, News/YouTube Sort) as consistent segment buttons
 - Markets 24H default · 60s quiet poll · Edit pencil (v1.2.93): fresh session always boots `%`/sparklines at 24H · Markets quote poll + auto-sync PERIODIC_MS = 60s · no refresh loop on holdings write · full pencil Edit icons
