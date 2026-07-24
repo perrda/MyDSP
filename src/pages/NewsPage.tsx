@@ -531,11 +531,11 @@ export function NewsPage() {
                       <Newspaper size={14} className="text-text-subtle shrink-0" aria-hidden />
                       <button
                         type="button"
-                        className="btn-ghost btn-sm p-2 min-h-9 min-w-9"
+                        className="btn-ghost btn-sm btn-icon-edit p-2 min-h-9 min-w-9"
                         aria-label={`Edit ${t.tag}`}
                         onClick={() => openEdit(t)}
                       >
-                        <Pencil size={14} />
+                        <Pencil size={16} strokeWidth={1.75} className="icon-edit" aria-hidden />
                       </button>
                       <button
                         type="button"

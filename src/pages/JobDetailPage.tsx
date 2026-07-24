@@ -436,14 +436,15 @@ export function JobDetailPage() {
         description={application.companyName}
         action={
           <div className="hidden sm:flex gap-2">
-            <button type="button" onClick={() => setShowJobForm(true)} className="btn-ghost btn-sm">
-              <Edit2 size={14} /> Edit Details
+            <button type="button" onClick={() => setShowJobForm(true)} className="btn-ghost btn-sm btn-icon-edit">
+              <Edit2 size={16} strokeWidth={1.75} className="icon-edit" aria-hidden /> Edit Details
             </button>
             <button type="button" onClick={() => handleCreateLinkedTodo()} className="btn-secondary btn-sm">
               <Plus size={14} /> Add Todo
             </button>
-            <button type="button" onClick={() => setEditMode(!editMode)} className="btn-ghost btn-sm">
-              {editMode ? <X size={14} /> : <Edit2 size={14} />} {editMode ? 'Done' : 'Quick Edit'}
+            <button type="button" onClick={() => setEditMode(!editMode)} className="btn-ghost btn-sm btn-icon-edit">
+              {editMode ? <X size={14} /> : <Edit2 size={16} strokeWidth={1.75} className="icon-edit" aria-hidden />}{' '}
+              {editMode ? 'Done' : 'Quick Edit'}
             </button>
             <button type="button" onClick={handleDeleteApplication} className="btn-ghost btn-sm text-red-500">
               <Trash2 size={14} /> Delete
@@ -454,8 +455,8 @@ export function JobDetailPage() {
 
       {/* Sticky Save / action bar — above bottom nav, safe-area aware */}
       <div className="job-detail-action-bar" role="toolbar" aria-label="Job actions">
-        <button type="button" onClick={() => setShowJobForm(true)} className="btn-ghost btn-sm min-h-11">
-          <Edit2 size={14} /> Edit
+        <button type="button" onClick={() => setShowJobForm(true)} className="btn-ghost btn-sm btn-icon-edit min-h-11">
+          <Edit2 size={16} strokeWidth={1.75} className="icon-edit" aria-hidden /> Edit
         </button>
         <button type="button" onClick={() => handleCreateLinkedTodo()} className="btn-secondary btn-sm min-h-11">
           <Plus size={14} /> Todo
@@ -463,9 +464,10 @@ export function JobDetailPage() {
         <button
           type="button"
           onClick={() => setEditMode(!editMode)}
-          className={`btn-sm min-h-11 ${editMode ? 'btn-primary' : 'btn-ghost'}`}
+          className={`btn-sm btn-icon-edit min-h-11 ${editMode ? 'btn-primary' : 'btn-ghost'}`}
         >
-          {editMode ? <X size={14} /> : <Edit2 size={14} />} {editMode ? 'Save' : 'Quick Edit'}
+          {editMode ? <X size={14} /> : <Edit2 size={16} strokeWidth={1.75} className="icon-edit" aria-hidden />}{' '}
+          {editMode ? 'Save' : 'Quick Edit'}
         </button>
       </div>
 

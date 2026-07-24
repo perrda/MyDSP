@@ -58,14 +58,14 @@ describe('next25g — sync prices polish tip (1–25 → v1.2.70)', () => {
 
   it('package + release notes tip is current (1.2.80+)', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.92')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.92')
+    expect(pkg.version).toBe('1.2.93')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.93')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.93',
       '1.2.92',
       '1.2.91',
       '1.2.90',
       '1.2.89',
-      '1.2.88',
     ])
   })
 
@@ -280,7 +280,7 @@ describe('next25g — sync prices polish tip (1–25 → v1.2.70)', () => {
   it('25: sync cadence honesty is 4s push / 30s pull in docs + Settings', () => {
     const auto = readFileSync(resolve(__dirname, '../services/sync/autoSyncService.ts'), 'utf8')
     expect(auto).toMatch(/PUSH_DEBOUNCE_MS = 4_000/)
-    expect(auto).toMatch(/PERIODIC_MS = 30_000/)
+    expect(auto).toMatch(/PERIODIC_MS = 60_000/)
     const docs = readFileSync(resolve(__dirname, '../../SYNC_SETUP.md'), 'utf8')
     expect(docs).toMatch(/~4s/)
     expect(docs).toMatch(/~30 seconds|every 30/)

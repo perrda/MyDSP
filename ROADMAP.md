@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.92**
+**Current version: 1.2.93**
 
-## Completed (through v1.2.92)
+## Completed (through v1.2.93)
 
+- Markets 24H default · 60s quiet poll · Edit pencil (v1.2.93): fresh session always boots `%`/sparklines at 24H · Markets quote poll + auto-sync PERIODIC_MS = 60s · no refresh loop on holdings write · full pencil Edit icons
 - Markets sticky section containment (v1.2.92): measured toolbar height · opaque section headers · no overflow-hidden clipping (fixes BTC above My Crypto + red pill slice) · Equities/Crypto holdings sticky totals · `sticky-section-headers.mdc`
 - Clean sync / digest chrome (v1.2.91): Weekly digest in Sidebar only · no Overview Cloud Sync / Digest hero CTAs · manual refresh only via header `…` → Refresh · no Sync now thumbs / Markets Refresh / chip long-press · `clean-sync-refresh-ux.mdc`
 - Markets refresh + passphrase chip (v1.2.90): brief Refreshing data banner · auto-refresh · no permanent Sync prices CTA · Unlock sync amber chip (passphrase ≠ Markets failure)

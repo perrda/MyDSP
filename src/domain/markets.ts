@@ -188,6 +188,7 @@ export function createEmptyMarketsState(): MarketsState {
     })),
     collapsed: { ...DEFAULT_COLLAPSED },
     sectionOrder: [...DEFAULT_SECTION_ORDER],
+    timeframe: '24H',
   }
 }
 

@@ -74,7 +74,13 @@ import { getMarketsProviderHealth } from '../services/marketsProviderHealth'
 import { syncNow } from '../services/sync/autoSyncService'
 import { loadSyncConfig } from '../services/sync/syncService'
 import { KNOWN_CRYPTO_SYMBOLS } from '../services/prices'
-import { MARKET_TIMEFRAMES, type MarketTimeframe } from '../domain/marketTimeframe'
+import {
+  bootMarketsTimeframe,
+  DEFAULT_MARKET_TF,
+  MARKETS_QUOTE_POLL_MS,
+  MARKET_TIMEFRAMES,
+  type MarketTimeframe,
+} from '../domain/marketTimeframe'
 import {
   addMarketTicker,
   getMarketSectionOrder,
@@ -572,7 +578,9 @@ export function MarketsPage() {
   const [sorting, setSorting] = useState(false)
   const [sectionSorting, setSectionSorting] = useState(false)
   const [density, setDensity] = useState<MarketsDensity>(() => getMarketsDensity())
-  const [timeframe, setTimeframe] = useState<MarketTimeframe>(() => getMarketsTimeframe())
+  const [timeframe, setTimeframe] = useState<MarketTimeframe>(() =>
+    bootMarketsTimeframe(getMarketsTimeframe()),
+  )
   const [sectionRefreshing, setSectionRefreshing] = useState<SectionKey | null>(null)
   const [syncingPrices, setSyncingPrices] = useState(false)
   const [justSyncedPulse, setJustSyncedPulse] = useState(false)
@@ -610,6 +618,10 @@ export function MarketsPage() {
   quotesRef.current = quotes
   const tickersRef = useRef(tickers)
   tickersRef.current = tickers
+  const dataRef = useRef(data)
+  dataRef.current = data
+  const timeframeRef = useRef(timeframe)
+  timeframeRef.current = timeframe
   const providerHealth = useMemo(() => getMarketsProviderHealth(), [quotes, refreshing])
   const finnhubQuotaLimited = useMemo(() => {
     const fh = providerHealth.find((p) => p.id === 'finnhub')
@@ -893,69 +905,76 @@ export function MarketsPage() {
     setSectionOrder(getMarketSectionOrder())
   }, [])
 
-  const refresh = useCallback(async (kind?: MarketAssetKind) => {
-    const list = kind ? listMarketTickers(kind) : listMarketTickers()
-    if (!kind && list.length === 0) {
-      setQuotes(new Map())
-      saveMarketQuotesCache(new Map())
-      return
-    }
-    if (list.length === 0) return
-    if (refreshInFlight.current) return
-    refreshInFlight.current = true
-    flashRefreshingBanner()
-    setRefreshing(true)
-    setError(null)
-    try {
-      const finnhubKey =
-        data.settings.finnhubKey || localStorage.getItem('finnhub_key') || ''
-      const next = await refreshMarketQuotes(list, {
-        finnhubKey,
-        manualCryptoPrices: data.settings.manualCryptoPrices,
-        timeframe,
-      })
-      const allTickers = listMarketTickers()
-      const previous = seedQuotesFromPortfolio(allTickers, data, quotesRef.current)
-      const merged = mergeMarketQuotes(previous, next)
-      setQuotes(merged)
-      // Mark workspace dirty so quote cache + holdings push to other devices promptly
-      saveMarketQuotesCache(merged, { markDirty: true })
-      // Push live Markets prints into holdings so Equities / net worth stay real-time
-      setData((prev) => applyLastSyncedQuotesToHoldings(prev, { overwrite: true }).data)
-      const at = new Date().toISOString()
-      setMarketsLastRefresh(at)
-      const liveCount = [...merged.values()].filter((q) => q.last > 0 && !isStaleQuote(q)).length
-      const shown = [...merged.values()].filter((q) => q.last > 0).length
-      if (!kind && shown < allTickers.length) {
-        setError(
-          `Showing ${shown}/${allTickers.length} prices` +
-            (liveCount < shown ? ` (${shown - liveCount} cached)` : '') +
-            ' — retrying sources shortly.',
-        )
-        if (!partialRetryArmed.current) {
-          partialRetryArmed.current = true
-          if (partialRetryTimer.current) window.clearTimeout(partialRetryTimer.current)
-          partialRetryTimer.current = window.setTimeout(() => {
-            partialRetryTimer.current = null
-            window.dispatchEvent(new Event('mydsp-markets-refresh'))
-          }, 3500)
-        }
-      } else {
-        partialRetryArmed.current = false
-        if (partialRetryTimer.current) {
-          window.clearTimeout(partialRetryTimer.current)
-          partialRetryTimer.current = null
-        }
+  const refresh = useCallback(
+    async (kind?: MarketAssetKind, opts?: { quiet?: boolean }) => {
+      const list = kind ? listMarketTickers(kind) : listMarketTickers()
+      if (!kind && list.length === 0) {
+        setQuotes(new Map())
+        saveMarketQuotesCache(new Map())
+        return
       }
-    } catch (e) {
-      // Keep last-good quotes on total failure
-      setError(e instanceof Error ? e.message : 'Price refresh failed — showing last synced prices')
-    } finally {
-      refreshInFlight.current = false
-      setRefreshing(false)
-      setInitialLoad(false)
-    }
-  }, [data, setData, timeframe, flashRefreshingBanner])
+      if (list.length === 0) return
+      if (refreshInFlight.current) return
+      refreshInFlight.current = true
+      // Quiet polls must not flash “Refreshing data” — that felt like constant refresh
+      if (!opts?.quiet) flashRefreshingBanner()
+      setRefreshing(true)
+      setError(null)
+      try {
+        const portfolio = dataRef.current
+        const finnhubKey =
+          portfolio.settings.finnhubKey || localStorage.getItem('finnhub_key') || ''
+        const next = await refreshMarketQuotes(list, {
+          finnhubKey,
+          manualCryptoPrices: portfolio.settings.manualCryptoPrices,
+          timeframe: timeframeRef.current,
+        })
+        const allTickers = listMarketTickers()
+        const previous = seedQuotesFromPortfolio(allTickers, portfolio, quotesRef.current)
+        const merged = mergeMarketQuotes(previous, next)
+        setQuotes(merged)
+        // Mark workspace dirty so quote cache + holdings push to other devices promptly
+        saveMarketQuotesCache(merged, { markDirty: true })
+        // Push live Markets prints into holdings so Equities / net worth stay real-time
+        setData((prev) => applyLastSyncedQuotesToHoldings(prev, { overwrite: true }).data)
+        const at = new Date().toISOString()
+        setMarketsLastRefresh(at)
+        const liveCount = [...merged.values()].filter((q) => q.last > 0 && !isStaleQuote(q)).length
+        const shown = [...merged.values()].filter((q) => q.last > 0).length
+        if (!kind && shown < allTickers.length) {
+          setError(
+            `Showing ${shown}/${allTickers.length} prices` +
+              (liveCount < shown ? ` (${shown - liveCount} cached)` : '') +
+              ' — retrying sources shortly.',
+          )
+          if (!partialRetryArmed.current) {
+            partialRetryArmed.current = true
+            if (partialRetryTimer.current) window.clearTimeout(partialRetryTimer.current)
+            partialRetryTimer.current = window.setTimeout(() => {
+              partialRetryTimer.current = null
+              window.dispatchEvent(
+                new CustomEvent('mydsp-markets-refresh', { detail: { quiet: true } }),
+              )
+            }, 3500)
+          }
+        } else {
+          partialRetryArmed.current = false
+          if (partialRetryTimer.current) {
+            window.clearTimeout(partialRetryTimer.current)
+            partialRetryTimer.current = null
+          }
+        }
+      } catch (e) {
+        // Keep last-good quotes on total failure
+        setError(e instanceof Error ? e.message : 'Price refresh failed — showing last synced prices')
+      } finally {
+        refreshInFlight.current = false
+        setRefreshing(false)
+        setInitialLoad(false)
+      }
+    },
+    [setData, flashRefreshingBanner],
+  )
 
   const refreshSection = useCallback(
     async (section: SectionKey) => {
@@ -1134,8 +1153,9 @@ export function MarketsPage() {
         window.setTimeout(() => setJustSyncedPulse(false), 2800)
       }
     }
-    const onRefresh = () => {
-      void syncPricesNow()
+    const onRefresh = (ev: Event) => {
+      const quiet = Boolean((ev as CustomEvent<{ quiet?: boolean }>).detail?.quiet)
+      void refresh(undefined, { quiet })
     }
     window.addEventListener('mydsp-markets-quotes', onQuotes)
     window.addEventListener('mydsp-markets-refresh', onRefresh)
@@ -1143,7 +1163,7 @@ export function MarketsPage() {
       window.removeEventListener('mydsp-markets-quotes', onQuotes)
       window.removeEventListener('mydsp-markets-refresh', onRefresh)
     }
-  }, [refresh, syncPricesNow])
+  }, [refresh])
 
   const slaChip = useMemo(() => {
     const list = [...quotes.values()].filter((q) => q.last > 0)
@@ -1206,9 +1226,17 @@ export function MarketsPage() {
     [data.crypto, data.equities, refresh, reloadList],
   )
 
+  // Fresh session → persist 24H default so sync/LWW matches what the UI shows
+  useEffect(() => {
+    if (timeframe === DEFAULT_MARKET_TF && getMarketsTimeframe() !== DEFAULT_MARKET_TF) {
+      setMarketsTimeframe(DEFAULT_MARKET_TF)
+    }
+  }, [timeframe])
+
+  // Mount + timeframe change only — refresh must NOT depend on `data` (it writes holdings)
   useEffect(() => {
     void refresh()
-  }, [refresh])
+  }, [refresh, timeframe])
 
   useEffect(() => {
     return () => {
@@ -1248,10 +1276,9 @@ export function MarketsPage() {
   }, [syncPricesNow])
 
   useEffect(() => {
-    // Back off slightly vs 30s to reduce Yahoo CORS-proxy hammering while tabs stay open
     const id = window.setInterval(() => {
-      if (document.visibilityState === 'visible') void refresh()
-    }, 45_000)
+      if (document.visibilityState === 'visible') void refresh(undefined, { quiet: true })
+    }, MARKETS_QUOTE_POLL_MS)
     return () => window.clearInterval(id)
   }, [refresh])
 
@@ -2053,11 +2080,11 @@ export function MarketsPage() {
                             />
                             <button
                               type="button"
-                              className="btn-ghost btn-sm p-2 min-h-11 min-w-11"
+                              className="btn-ghost btn-sm btn-icon-edit p-2 min-h-11 min-w-11"
                               aria-label={`Edit ${t.symbol}`}
                               onClick={() => openEdit(t)}
                             >
-                              <Pencil size={14} strokeWidth={1.5} />
+                              <Pencil size={16} strokeWidth={1.75} className="icon-edit" aria-hidden />
                             </button>
                             <button
                               type="button"
