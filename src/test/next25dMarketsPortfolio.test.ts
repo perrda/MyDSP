@@ -6,7 +6,7 @@ describe('next25d markets / portfolio items 6-10', () => {
   it('6: Markets has sticky in-list search by symbol/name', () => {
     const markets = readFileSync(resolve(__dirname, '../pages/MarketsPage.tsx'), 'utf8')
     expect(markets).toMatch(/markets-in-list-search/)
-    expect(markets).toMatch(/Search watchlist by symbol or name/)
+    expect(markets).toMatch(/aria-label="Search watchlist by symbol or name"/)
     expect(markets).toMatch(/matchesMarketsSearch/)
     expect(markets).toMatch(/markets-sticky-toolbar/)
     expect(markets).toMatch(/No \$\{meta\.emptyLabel\} matches/)

@@ -57,7 +57,10 @@ describe('news + markets UX fixes (v1.2.69)', () => {
   })
 
   it('timeframe helpers map Yahoo/Gecko windows', () => {
-    expect(MARKET_TIMEFRAMES).toEqual(['24H', '1W', '1M', '12M'])
+    expect(MARKET_TIMEFRAMES).toEqual(['24H', '1W', '1M', '12M', 'YTD', 'ALL'])
+    expect(yahooChartParamsForTimeframe('YTD').range).toBe('ytd')
+    expect(yahooChartParamsForTimeframe('ALL').range).toBe('max')
+    expect(geckoDaysForTimeframe('ALL')).toBe('max')
     expect(isMarketTimeframe('1M')).toBe(true)
     expect(yahooChartParamsForTimeframe('24H').interval).toBe('5m')
     expect(yahooChartParamsForTimeframe('12M').interval).toBe('1d')
@@ -72,6 +75,6 @@ describe('news + markets UX fixes (v1.2.69)', () => {
 
   it('package version is tip', () => {
     const pkg = JSON.parse(readFileSync(resolve('package.json'), 'utf8')) as { version: string }
-    expect(pkg.version).toBe('1.2.95')
+    expect(pkg.version).toBe('1.2.96')
   })
 })

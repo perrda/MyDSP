@@ -67,14 +67,14 @@ describe('next25q — sync / Markets / Today polish tip (1–25 → v1.2.87)', (
 
   it('25: package + release notes are 1.2.83', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.95')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.95')
+    expect(pkg.version).toBe('1.2.96')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.96')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.96',
       '1.2.95',
       '1.2.94',
       '1.2.93',
       '1.2.92',
-      '1.2.91',
     ])
   })
 
@@ -174,7 +174,7 @@ describe('next25q — sync / Markets / Today polish tip (1–25 → v1.2.87)', (
     expect(settings).toMatch(/Launch path, UI panels, Markets tag\/Yield chips, Settings/)
   })
 
-  it('6–10: Markets undo · quote Edit · stale strip · Settings Prices hint', () => {
+  it('6–10: Markets undo · quote Edit · stale strip (no Tag/Yield hint)', () => {
     const page = readFileSync(resolve(__dirname, '../pages/MarketsPage.tsx'), 'utf8')
     expect(page).toMatch(/markets-undo-banner/)
     expect(page).toMatch(/markets-undo-remove/)
@@ -183,8 +183,9 @@ describe('next25q — sync / Markets / Today polish tip (1–25 → v1.2.87)', (
     expect(page).toMatch(/markets-quote-nw-badge/)
     expect(page).toMatch(/markets-section-stale/)
     expect(page).toMatch(/Retry stale quotes/)
-    expect(page).toMatch(/markets-tag-yield-settings-hint/)
-    expect(page).toMatch(/Settings → Prices/)
+    // Tag + Yield settings hint removed — chips stay Settings-only when hidden
+    expect(page).not.toMatch(/markets-tag-yield-settings-hint/)
+    expect(page).not.toMatch(/Tag \+ Yield chips are hidden/)
   })
 
   it('11–15: FIRE/Optimizer/API thumbs · PTR · no long-press Sync', () => {
@@ -235,7 +236,7 @@ describe('next25q — sync / Markets / Today polish tip (1–25 → v1.2.87)', (
   it('21–24: axe Today offline / Markets tag hint / Legacy import + e2e thumbs/PTR/launch', () => {
     const a11y = readFileSync(resolve(__dirname, '../../e2e/a11y.spec.ts'), 'utf8')
     expect(a11y).toMatch(/Today offline-queue chip axe/)
-    expect(a11y).toMatch(/Markets tag\/Yield hint axe/)
+    expect(a11y).toMatch(/Markets sticky toolbar axe/)
     expect(a11y).toMatch(/Legacy import axe/)
     const e2e = readFileSync(resolve(__dirname, '../../e2e/smoke.spec.ts'), 'utf8')
     expect(e2e).toMatch(/FIRE and Optimizer thumb CTAs/)

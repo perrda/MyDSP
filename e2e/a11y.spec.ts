@@ -567,23 +567,14 @@ test.describe('a11y gate', () => {
     expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
   })
 
-  test('Markets tag/Yield hint axe — iphone gate', async ({ page }, testInfo) => {
+  test('Markets sticky toolbar axe — iphone gate', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'iphone-14', 'CI gate targets iphone-14')
-    await page.addInitScript(() => {
-      try {
-        localStorage.setItem('mydsp_markets_show_tag_yield_v1', '0')
-      } catch {
-        /* ignore */
-      }
-    })
     await page.goto('/markets')
     await expect(page.getByRole('heading', { name: /Markets/i }).first()).toBeVisible({
       timeout: 20_000,
     })
-    const hint = page.locator('.markets-tag-yield-settings-hint').first()
-    await expect(hint).toBeVisible({ timeout: 15_000 })
-    // Scope to the new hint — Markets quote rows can flake on amber sync contrast mid-fetch.
-    const results = await new AxeBuilder({ page }).include('.markets-tag-yield-settings-hint').analyze()
+    // Tag/Yield hint removed — keep Markets sticky toolbar axe-clean.
+    const results = await new AxeBuilder({ page }).include('.markets-sticky-toolbar').analyze()
     const serious = results.violations.filter(
       (v) => v.impact === 'serious' || v.impact === 'critical',
     )

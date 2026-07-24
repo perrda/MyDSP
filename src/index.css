@@ -1065,6 +1065,47 @@ svg.lucide-square-pen {
   text-transform: uppercase;
 }
 
+/* Page / shell section headers — match Markets “My Crypto” title scale app-wide */
+.app-header-eyebrow,
+.app-page-eyebrow {
+  font-size: 1.25rem;
+  line-height: 1.15;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+}
+@media (min-width: 640px) {
+  .app-header-eyebrow,
+  .app-page-eyebrow {
+    font-size: 1.5rem;
+  }
+}
+.app-header-title,
+.app-page-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+@media (min-width: 640px) {
+  .app-header-title,
+  .app-page-title {
+    font-size: 1.5rem;
+  }
+}
+
+.markets-toolbar-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+.markets-toolbar-stack .markets-section-jump-chips,
+.markets-toolbar-stack .markets-timeframe-row,
+.markets-toolbar-stack .markets-view-controls {
+  padding: 0;
+  margin: 0;
+}
+
 .headline-xl,
 .headline-lg,
 .headline-md,

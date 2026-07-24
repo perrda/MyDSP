@@ -29,6 +29,24 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.96',
+    date: '2026-07-24',
+    bullets: [
+      {
+        text: 'Markets: CRYPTO→timeframes→Compact aligned; YTD/ALL added',
+        to: '/markets',
+      },
+      {
+        text: 'Larger Prices/section headers match My Crypto scale',
+        to: '/markets',
+      },
+      {
+        text: 'Search placeholder + Tag/Yield hint removed from Markets',
+        to: '/markets',
+      },
+    ],
+  },
+  {
     version: '1.2.95',
     date: '2026-07-24',
     bullets: [
