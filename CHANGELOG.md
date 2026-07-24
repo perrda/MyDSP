@@ -1,5 +1,13 @@
 # MyDSP Changelog
 
+## [1.2.95] - 2026-07-24
+
+### Fixed — YouTube / News cross-device sync
+- **Empty seed no longer dirties sync:** first open on web/mobile (unread badges) was writing empty YouTube/News/Markets state and marking the workspace dirty — that could push empty favourites over channels added on iPad/tablet
+- **Media applies during portfolio conflicts:** parked portfolio conflicts no longer block `applyWorkspaceExtrasFromPreview` (YouTube channels, News tags/headlines, Markets)
+- **Deletion tombstones:** removing a YouTube favourite or News tag syncs across web / tablet / mobile (union merge no longer resurrects removals)
+- Cursor rule `media-cross-device-sync.mdc` locks this in going forward
+
 ## [1.2.94] - 2026-07-24
 
 ### Improved — Markets toolbar chrome

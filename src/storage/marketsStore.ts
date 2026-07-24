@@ -137,8 +137,10 @@ export function loadMarketsState(): MarketsState {
     if (added.length > 0 || hadLegacyHeatDensity || hadNoSectionOrder) writeState(state)
     return state
   }
+  // Silent seed — nav chrome may load Markets before the first pull; never mark
+  // sync dirty or a fresh device can push an empty watchlist over the cloud.
   const seeded = createEmptyMarketsState()
-  writeState(seeded)
+  writeState(seeded, { silent: true })
   return seeded
 }
 

@@ -77,8 +77,10 @@ export function loadYoutubeState(): YoutubeState {
     }
     return normalized
   }
+  // Silent seed — unread badges call load on every open; never mark sync dirty
+  // or a fresh web/mobile device can push empty favourites over the cloud.
   const seeded = migrateLegacySeenAt(createEmptyYoutubeState())
-  writeState(seeded)
+  writeState(seeded, { silent: true })
   return seeded
 }
 
@@ -99,6 +101,19 @@ export function listYoutubeChannels(): YoutubeChannel[] {
   return [...loadYoutubeState().channels].sort((a, b) => a.sortOrder - b.sortOrder)
 }
 
+function mergeChannelTombstones(
+  local: YoutubeState['deletedChannels'],
+  remote: YoutubeState['deletedChannels'],
+): Array<{ channelId: string; deletedAt: string }> {
+  const byId = new Map<string, string>()
+  for (const d of [...(local ?? []), ...(remote ?? [])]) {
+    if (!d || typeof d.channelId !== 'string' || typeof d.deletedAt !== 'string') continue
+    const prev = byId.get(d.channelId)
+    if (!prev || Date.parse(d.deletedAt) >= Date.parse(prev)) byId.set(d.channelId, d.deletedAt)
+  }
+  return [...byId.entries()].map(([channelId, deletedAt]) => ({ channelId, deletedAt }))
+}
+
 export function addYoutubeChannel(input: {
   channelId: string
   title: string
@@ -114,6 +129,8 @@ export function addYoutubeChannel(input: {
   if (state.channels.some((c) => c.channelId === channelId)) {
     throw new Error('This channel is already in your favourites.')
   }
+  // Re-adding clears any tombstone so the favourite can sync again.
+  state.deletedChannels = (state.deletedChannels ?? []).filter((d) => d.channelId !== channelId)
   const maxOrder = state.channels.reduce((m, c) => Math.max(m, c.sortOrder), -1)
   const row: YoutubeChannel = {
     id: newYoutubeChannelId(channelId),
@@ -151,7 +168,13 @@ export function updateYoutubeChannel(
 
 export function removeYoutubeChannel(id: string): void {
   const state = loadYoutubeState()
+  const removed = state.channels.find((c) => c.id === id)
   state.channels = state.channels.filter((c) => c.id !== id)
+  if (removed?.channelId) {
+    const deletedAt = new Date().toISOString()
+    const rest = (state.deletedChannels ?? []).filter((d) => d.channelId !== removed.channelId)
+    state.deletedChannels = [...rest, { channelId: removed.channelId, deletedAt }]
+  }
   saveYoutubeState(state)
 }
 
@@ -204,11 +227,19 @@ export function importYoutubeFromBackup(raw: unknown): void {
   const remotePrefsAt = Date.parse(parsed.prefsUpdatedAt || '') || 0
   const localPrefsAt = Date.parse(local.prefsUpdatedAt || '') || 0
 
+  const deletedChannels = mergeChannelTombstones(local.deletedChannels, parsed.deletedChannels)
+  const tombstoned = new Set(deletedChannels.map((d) => d.channelId))
+
   // Union channels by channelId (keep local row when both have it).
+  // Skip tombstoned ids so removals sync across web / tablet / mobile.
   const byId = new Map<string, YoutubeChannel>()
-  for (const c of local.channels.map(normalizeChannel)) byId.set(c.channelId, c)
+  for (const c of local.channels.map(normalizeChannel)) {
+    if (tombstoned.has(c.channelId)) continue
+    byId.set(c.channelId, c)
+  }
   let nextOrder = local.channels.reduce((m, c) => Math.max(m, c.sortOrder), -1) + 1
   for (const c of parsed.channels.map(normalizeChannel)) {
+    if (tombstoned.has(c.channelId)) continue
     if (byId.has(c.channelId)) continue
     byId.set(c.channelId, { ...c, sortOrder: nextOrder++ })
   }
@@ -229,6 +260,7 @@ export function importYoutubeFromBackup(raw: unknown): void {
     {
       version: 1,
       channels,
+      deletedChannels,
       lastRefreshAt:
         remotePrefsAt >= localPrefsAt
           ? parsed.lastRefreshAt || local.lastRefreshAt
