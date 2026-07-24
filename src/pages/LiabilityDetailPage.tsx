@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ExternalLink, Mail, Pencil, Phone, Trash2 } from 'lucide-react'
+import { ChevronDown, ChevronUp, ExternalLink, Mail, Pencil, Phone, Trash2 } from 'lucide-react'
 import { PageHeader } from '../components/ui/PageHeader'
 import { BackNav } from '../components/ui/BackNav'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
@@ -17,8 +17,30 @@ import {
   suggestRag,
   type LiabilityKind,
 } from '../domain/liabilityHelpers'
-import type { CreditCard, LiabilityCommentary, Loan, RagStatus } from '../domain/types'
+import type {
+  CreditCard,
+  LiabilityCommentary,
+  LiabilityContactMethod,
+  Loan,
+  RagStatus,
+} from '../domain/types'
 import { formatDateTime, formatGBP, formatPct, privacyClass } from '../utils/format'
+
+const CONTACT_METHODS: { value: LiabilityContactMethod; label: string }[] = [
+  { value: 'phone', label: 'Phone' },
+  { value: 'email', label: 'Email' },
+  { value: 'web', label: 'Web' },
+  { value: 'other', label: 'Other' },
+]
+
+function preferredMethodLabel(
+  method: LiabilityContactMethod | undefined,
+  other?: string,
+): string | null {
+  if (!method) return null
+  if (method === 'other') return other?.trim() ? `Other — ${other.trim()}` : 'Other'
+  return CONTACT_METHODS.find((m) => m.value === method)?.label ?? method
+}
 
 function asKind(raw: string | undefined): LiabilityKind | null {
   if (raw === 'card' || raw === 'loan') return raw
@@ -39,13 +61,21 @@ export function LiabilityDetailPage() {
     return data.loans.find((l) => l.id === id) ?? null
   }, [data.creditCards, data.loans, kind, id])
 
-  const [contactForm, setContactForm] = useState({ phone: '', email: '', url: '' })
+  const [contactForm, setContactForm] = useState({
+    phone: '',
+    email: '',
+    url: '',
+    preferredMethod: '' as '' | LiabilityContactMethod,
+    preferredOther: '',
+  })
   const [contactEditing, setContactEditing] = useState(false)
   const [contactOpen, setContactOpen] = useState(false)
   const [noteText, setNoteText] = useState('')
   const [editingNote, setEditingNote] = useState<LiabilityCommentary | null>(null)
   const [deleteNoteId, setDeleteNoteId] = useState<number | null>(null)
   const [clearContactsConfirm, setClearContactsConfirm] = useState(false)
+  /** Older commentary ids the user has expanded (newest is always open). */
+  const [expandedOlderIds, setExpandedOlderIds] = useState<Set<number>>(() => new Set())
   const [extraPay, setExtraPay] = useState('200')
   const [lumpSum, setLumpSum] = useState('')
   const [applyConfirm, setApplyConfirm] = useState<'lump' | 'paid' | null>(null)
@@ -94,6 +124,13 @@ export function LiabilityDetailPage() {
         if ('contactPhone' in patch && !patch.contactPhone) delete next.contactPhone
         if ('contactEmail' in patch && !patch.contactEmail) delete next.contactEmail
         if ('contactUrl' in patch && !patch.contactUrl) delete next.contactUrl
+        if ('preferredContactMethod' in patch && !patch.preferredContactMethod) {
+          delete next.preferredContactMethod
+          delete next.preferredContactOther
+        }
+        if ('preferredContactOther' in patch && !patch.preferredContactOther) {
+          delete next.preferredContactOther
+        }
         return next
       }
       if (kind === 'card') {
@@ -113,47 +150,52 @@ export function LiabilityDetailPage() {
     patchItem({ ragStatus: status })
   }
 
+  const contactFormFromItem = () => ({
+    phone: item.contactPhone ?? '',
+    email: item.contactEmail ?? '',
+    url: item.contactUrl ?? '',
+    preferredMethod: (item.preferredContactMethod ?? '') as '' | LiabilityContactMethod,
+    preferredOther: item.preferredContactOther ?? '',
+  })
+
   const openContact = () => {
-    setContactForm({
-      phone: item.contactPhone ?? '',
-      email: item.contactEmail ?? '',
-      url: item.contactUrl ?? '',
-    })
+    setContactForm(contactFormFromItem())
     setContactEditing(true)
     setContactOpen(true)
   }
 
   const beginInlineContactEdit = () => {
-    setContactForm({
-      phone: item.contactPhone ?? '',
-      email: item.contactEmail ?? '',
-      url: item.contactUrl ?? '',
-    })
+    setContactForm(contactFormFromItem())
     setContactEditing(true)
   }
 
   const cancelContactEdit = () => {
     setContactEditing(false)
     setContactOpen(false)
-    setContactForm({
-      phone: item.contactPhone ?? '',
-      email: item.contactEmail ?? '',
-      url: item.contactUrl ?? '',
-    })
+    setContactForm(contactFormFromItem())
   }
 
   const saveContact = () => {
     const phone = contactForm.phone.trim()
     const email = contactForm.email.trim()
     const url = contactForm.url.trim()
+    const preferredContactMethod = contactForm.preferredMethod || undefined
+    const preferredContactOther =
+      preferredContactMethod === 'other'
+        ? contactForm.preferredOther.trim() || undefined
+        : undefined
     patchItem({
       contactPhone: phone || undefined,
       contactEmail: email || undefined,
       contactUrl: url || undefined,
+      preferredContactMethod,
+      preferredContactOther,
     })
     setContactEditing(false)
     setContactOpen(false)
-    success(phone || email || url ? 'Contacts saved' : 'Contacts cleared')
+    success(
+      phone || email || url || preferredContactMethod ? 'Contacts saved' : 'Contacts cleared',
+    )
   }
 
   const clearContacts = () => {
@@ -161,15 +203,37 @@ export function LiabilityDetailPage() {
       contactPhone: undefined,
       contactEmail: undefined,
       contactUrl: undefined,
+      preferredContactMethod: undefined,
+      preferredContactOther: undefined,
     })
-    setContactForm({ phone: '', email: '', url: '' })
+    setContactForm({
+      phone: '',
+      email: '',
+      url: '',
+      preferredMethod: '',
+      preferredOther: '',
+    })
     setContactEditing(false)
     setContactOpen(false)
     setClearContactsConfirm(false)
     success('Contacts cleared')
   }
 
-  const hasContacts = Boolean(item.contactPhone || item.contactEmail || item.contactUrl)
+  const hasContacts = Boolean(
+    item.contactPhone ||
+      item.contactEmail ||
+      item.contactUrl ||
+      item.preferredContactMethod,
+  )
+
+  const toggleOlderCommentary = (noteId: number) => {
+    setExpandedOlderIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(noteId)) next.delete(noteId)
+      else next.add(noteId)
+      return next
+    })
+  }
 
   const saveNote = () => {
     const text = noteText.trim()
@@ -331,37 +395,82 @@ export function LiabilityDetailPage() {
           </div>
         </div>
 
-        <div className="space-y-px">
-          {commentaries.map((c) => (
-            <article key={c.id} className="surface-nested p-4 sm:p-5">
-              <div className="flex flex-wrap items-start justify-between gap-3 mb-2">
-                <p className="text-[11px] text-text-subtle tabular-nums">
-                  {formatDateTime(c.createdAt)}
-                  {c.updatedAt !== c.createdAt ? ` · edited ${formatDateTime(c.updatedAt)}` : ''}
-                </p>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    className="btn-ghost btn-sm"
-                    onClick={() => {
-                      setEditingNote(c)
-                      setNoteText(c.text)
-                    }}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    className="btn-ghost btn-sm"
-                    onClick={() => setDeleteNoteId(c.id)}
-                  >
-                    Delete
-                  </button>
+        <div className="space-y-px" data-testid="liability-commentary-list">
+          {commentaries.map((c, index) => {
+            const isLatest = index === 0
+            const expanded = isLatest || expandedOlderIds.has(c.id)
+            const preview =
+              c.text.length > 120 ? `${c.text.slice(0, 120).trimEnd()}…` : c.text
+            return (
+              <article
+                key={c.id}
+                className="surface-nested p-4 sm:p-5"
+                data-testid={isLatest ? 'liability-commentary-latest' : 'liability-commentary-older'}
+                data-expanded={expanded ? 'true' : 'false'}
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3 mb-2">
+                  <div className="flex flex-wrap items-center gap-2 min-w-0">
+                    {isLatest ? (
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-accent">
+                        Latest
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        className="btn-ghost btn-sm inline-flex items-center gap-1 min-h-9 px-2"
+                        data-testid={`liability-commentary-toggle-${c.id}`}
+                        aria-expanded={expanded}
+                        onClick={() => toggleOlderCommentary(c.id)}
+                      >
+                        {expanded ? (
+                          <ChevronUp size={14} strokeWidth={1.75} aria-hidden />
+                        ) : (
+                          <ChevronDown size={14} strokeWidth={1.75} aria-hidden />
+                        )}
+                        {expanded ? 'Collapse' : 'Expand'}
+                      </button>
+                    )}
+                    <p className="text-[11px] text-text-subtle tabular-nums">
+                      {formatDateTime(c.createdAt)}
+                      {c.updatedAt !== c.createdAt
+                        ? ` · edited ${formatDateTime(c.updatedAt)}`
+                        : ''}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      className="btn-ghost btn-sm"
+                      onClick={() => {
+                        setEditingNote(c)
+                        setNoteText(c.text)
+                      }}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-ghost btn-sm"
+                      onClick={() => setDeleteNoteId(c.id)}
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
-              </div>
-              <p className="text-sm whitespace-pre-wrap leading-relaxed">{c.text}</p>
-            </article>
-          ))}
+                {expanded ? (
+                  <p className="text-sm whitespace-pre-wrap leading-relaxed">{c.text}</p>
+                ) : (
+                  <button
+                    type="button"
+                    className="text-left w-full text-sm text-text-muted leading-relaxed line-clamp-2"
+                    onClick={() => toggleOlderCommentary(c.id)}
+                  >
+                    {preview}
+                  </button>
+                )}
+              </article>
+            )
+          })}
           {commentaries.length === 0 && (
             <p className="text-sm text-text-subtle py-2">
               No commentary yet — add your first call or progress update above.
@@ -494,6 +603,38 @@ export function LiabilityDetailPage() {
                     placeholder="https://"
                   />
                 </Field>
+                <Field label="Preferred method of contact">
+                  <select
+                    data-testid="liability-contact-preferred"
+                    value={contactForm.preferredMethod}
+                    onChange={(e) =>
+                      setContactForm({
+                        ...contactForm,
+                        preferredMethod: e.target.value as '' | LiabilityContactMethod,
+                      })
+                    }
+                  >
+                    <option value="">Not set</option>
+                    {CONTACT_METHODS.map((m) => (
+                      <option key={m.value} value={m.value}>
+                        {m.label}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                {contactForm.preferredMethod === 'other' ? (
+                  <Field label="Other — details">
+                    <input
+                      type="text"
+                      data-testid="liability-contact-preferred-other"
+                      value={contactForm.preferredOther}
+                      onChange={(e) =>
+                        setContactForm({ ...contactForm, preferredOther: e.target.value })
+                      }
+                      placeholder="e.g. In-app chat, WhatsApp…"
+                    />
+                  </Field>
+                ) : null}
                 <div className="flex flex-wrap gap-2">
                   <button type="submit" className="btn-primary btn-sm" data-testid="liability-contacts-save">
                     Save contacts
@@ -515,6 +656,25 @@ export function LiabilityDetailPage() {
               </form>
             ) : (
               <div className="space-y-3">
+                {(() => {
+                  const preferred = preferredMethodLabel(
+                    item.preferredContactMethod,
+                    item.preferredContactOther,
+                  )
+                  return preferred ? (
+                    <p
+                      className="text-sm font-semibold text-text"
+                      data-testid="liability-contact-preferred-display"
+                    >
+                      <span className="label-uppercase text-text-subtle font-bold mr-2">
+                        Preferred
+                      </span>
+                      {preferred}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-text-subtle">No preferred method</p>
+                  )
+                })()}
                 {item.contactPhone ? (
                   <a
                     href={`tel:${item.contactPhone}`}
@@ -735,6 +895,36 @@ export function LiabilityDetailPage() {
               placeholder="https://"
             />
           </Field>
+          <Field label="Preferred method of contact">
+            <select
+              value={contactForm.preferredMethod}
+              onChange={(e) =>
+                setContactForm({
+                  ...contactForm,
+                  preferredMethod: e.target.value as '' | LiabilityContactMethod,
+                })
+              }
+            >
+              <option value="">Not set</option>
+              {CONTACT_METHODS.map((m) => (
+                <option key={m.value} value={m.value}>
+                  {m.label}
+                </option>
+              ))}
+            </select>
+          </Field>
+          {contactForm.preferredMethod === 'other' ? (
+            <Field label="Other — details">
+              <input
+                type="text"
+                value={contactForm.preferredOther}
+                onChange={(e) =>
+                  setContactForm({ ...contactForm, preferredOther: e.target.value })
+                }
+                placeholder="e.g. In-app chat, WhatsApp…"
+              />
+            </Field>
+          ) : null}
           <div className="flex flex-wrap justify-end gap-3">
             {hasContacts ? (
               <button
@@ -758,7 +948,7 @@ export function LiabilityDetailPage() {
       <ConfirmDialog
         open={clearContactsConfirm}
         title="Clear contacts"
-        body="Remove phone, email, and URL for this lender?"
+        body="Remove phone, email, URL, and preferred method for this lender?"
         confirmLabel="Clear"
         onClose={() => setClearContactsConfirm(false)}
         onConfirm={clearContacts}

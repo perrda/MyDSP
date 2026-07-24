@@ -29,6 +29,24 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.100',
+    date: '2026-07-24',
+    bullets: [
+      {
+        text: 'Liability commentary: older notes collapse; latest stays open',
+        to: '/liabilities',
+      },
+      {
+        text: 'Preferred method of contact — Phone / Email / Web / Other',
+        to: '/liabilities',
+      },
+      {
+        text: 'Other method lets you type chat / WhatsApp details',
+        to: '/liabilities',
+      },
+    ],
+  },
+  {
     version: '1.2.99',
     date: '2026-07-24',
     bullets: [

@@ -11,6 +11,7 @@ import type {
   Goal,
   HistoryPoint,
   JournalEntry,
+  LiabilityContactMethod,
   Loan,
   MerchantRule,
   PaidOffDebt,
@@ -121,10 +122,17 @@ function optionalContact(v: unknown): string | undefined {
   return s || undefined
 }
 
+function normalizePreferredContactMethod(v: unknown): LiabilityContactMethod | undefined {
+  const s = str(v).trim().toLowerCase()
+  if (s === 'phone' || s === 'email' || s === 'web' || s === 'other') return s
+  return undefined
+}
+
 function normalizeCreditCards(raw: unknown): CreditCard[] {
   return asArray(raw).map((item, i) => {
     const r = (item ?? {}) as Record<string, unknown>
     const commentaries = normalizeCommentaries(r.commentaries)
+    const preferredContactMethod = normalizePreferredContactMethod(r.preferredContactMethod)
     return {
       id: num(r.id, i + 1),
       name: str(r.name, 'Card'),
@@ -136,6 +144,11 @@ function normalizeCreditCards(raw: unknown): CreditCard[] {
       contactPhone: optionalContact(r.contactPhone),
       contactEmail: optionalContact(r.contactEmail),
       contactUrl: optionalContact(r.contactUrl),
+      preferredContactMethod,
+      preferredContactOther:
+        preferredContactMethod === 'other'
+          ? optionalContact(r.preferredContactOther)
+          : undefined,
       ragStatus: normalizeRag(r.ragStatus),
       commentaries: commentaries.length ? commentaries : undefined,
       sortOrder: r.sortOrder !== undefined ? num(r.sortOrder, i) : undefined,
@@ -147,6 +160,7 @@ function normalizeLoans(raw: unknown): Loan[] {
   return asArray(raw).map((item, i) => {
     const r = (item ?? {}) as Record<string, unknown>
     const commentaries = normalizeCommentaries(r.commentaries)
+    const preferredContactMethod = normalizePreferredContactMethod(r.preferredContactMethod)
     return {
       id: num(r.id, i + 1),
       name: str(r.name, 'Loan'),
@@ -158,6 +172,11 @@ function normalizeLoans(raw: unknown): Loan[] {
       contactPhone: optionalContact(r.contactPhone),
       contactEmail: optionalContact(r.contactEmail),
       contactUrl: optionalContact(r.contactUrl),
+      preferredContactMethod,
+      preferredContactOther:
+        preferredContactMethod === 'other'
+          ? optionalContact(r.preferredContactOther)
+          : undefined,
       ragStatus: normalizeRag(r.ragStatus),
       commentaries: commentaries.length ? commentaries : undefined,
       sortOrder: r.sortOrder !== undefined ? num(r.sortOrder, i) : undefined,

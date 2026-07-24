@@ -72,6 +72,8 @@ export interface EquityHolding {
   corporateActionDate?: string
 }
 
+export type LiabilityContactMethod = 'phone' | 'email' | 'web' | 'other'
+
 export interface CreditCard {
   id: number
   name: string
@@ -83,6 +85,10 @@ export interface CreditCard {
   contactPhone?: string
   contactEmail?: string
   contactUrl?: string
+  /** Preferred channel for this lender */
+  preferredContactMethod?: LiabilityContactMethod
+  /** Free-text details when preferredContactMethod is `other` */
+  preferredContactOther?: string
   ragStatus?: RagStatus
   commentaries?: ProgressCommentary[]
   sortOrder?: number
@@ -99,6 +105,8 @@ export interface Loan {
   contactPhone?: string
   contactEmail?: string
   contactUrl?: string
+  preferredContactMethod?: LiabilityContactMethod
+  preferredContactOther?: string
   ragStatus?: RagStatus
   commentaries?: ProgressCommentary[]
   sortOrder?: number

@@ -1,5 +1,11 @@
 # MyDSP Changelog
 
+## [1.2.100] - 2026-07-24
+
+### Improved — Liability commentary + preferred contact
+- **Commentary:** newest note stays fully open at the top (Latest); older entries collapse by default with Expand / Collapse
+- **Preferred method of contact:** Phone · Email · Web · Other (type details) on liability detail Contacts and Add/Edit forms — saved per card/loan
+
 ## [1.2.99] - 2026-07-24
 
 ### Added — Liability lender contacts CRUD
