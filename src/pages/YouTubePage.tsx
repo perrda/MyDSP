@@ -235,12 +235,12 @@ export function YouTubePage() {
         action={
           <button
             type="button"
-            className={`btn-secondary inline-flex items-center gap-2 ${sorting ? 'border-accent text-accent' : ''}`}
+            className={`ui-seg${sorting ? ' is-active' : ''}`}
             aria-pressed={sorting}
             onClick={() => setSorting((v) => !v)}
             disabled={channels.length === 0}
           >
-            <ArrowUpDown size={14} strokeWidth={1.75} />
+            <ArrowUpDown size={13} strokeWidth={1.75} aria-hidden />
             {sorting ? 'Done' : 'Sort'}
           </button>
         }

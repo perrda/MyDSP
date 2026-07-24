@@ -549,27 +549,25 @@ export function JobsPage() {
       </div>
 
       {viewMode === 'kanban' ? (
-        <nav className="jobs-kanban-jump-chips" aria-label="Jump to job columns">
+        <nav className="jobs-kanban-jump-chips ui-seg-group" aria-label="Jump to job columns">
           {kanbanData.map((column) => (
             <button
               key={column.id}
               type="button"
-              className="btn-ghost btn-sm"
+              className="ui-seg"
               onClick={() => jumpToKanbanColumn(column.title)}
             >
               {column.title}
-              <span className="ml-1 text-text-subtle tabular-nums">({column.applications.length})</span>
+              <span className="tabular-nums opacity-70">({column.applications.length})</span>
             </button>
           ))}
         </nav>
       ) : null}
 
-      <div className="flex flex-wrap items-center gap-2 mb-3">
+      <div className="ui-seg-group mb-3">
         <button
           type="button"
-          className={`jobs-follow-up-chip btn-sm ${
-            filterBy === 'follow-up' ? 'btn-secondary border-accent text-accent' : 'btn-ghost'
-          }`}
+          className={`jobs-follow-up-chip ui-seg${filterBy === 'follow-up' ? ' is-active' : ''}`}
           aria-pressed={filterBy === 'follow-up'}
           onClick={() => {
             const next: JobFilterBy = filterBy === 'follow-up' ? 'active' : 'follow-up'
@@ -580,7 +578,7 @@ export function JobsPage() {
         >
           Needs follow-up
           {followUpCount > 0 ? (
-            <span className="ml-1 tabular-nums text-text-subtle">({followUpCount})</span>
+            <span className="tabular-nums opacity-70">({followUpCount})</span>
           ) : null}
         </button>
       </div>

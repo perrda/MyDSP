@@ -654,21 +654,12 @@ test.describe('a11y gate', () => {
     await expect(page.getByRole('heading', { name: /Markets/i }).first()).toBeVisible({
       timeout: 20_000,
     })
-    const retry = page.locator('.markets-retry-all-stale').first()
-    if (await retry.isVisible().catch(() => false)) {
-      const results = await new AxeBuilder({ page }).include('.markets-retry-all-stale').analyze()
-      const serious = results.violations.filter(
-        (v) => v.impact === 'serious' || v.impact === 'critical',
-      )
-      expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
-    } else {
-      // Fallback: sticky toolbar remains axe-clean when no stale quotes.
-      const results = await new AxeBuilder({ page }).include('.markets-sticky-toolbar').analyze()
-      const serious = results.violations.filter(
-        (v) => v.impact === 'serious' || v.impact === 'critical',
-      )
-      expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
-    }
+    // Retry-all-stale removed — 60s quiet poll + header … Refresh cover freshness.
+    const results = await new AxeBuilder({ page }).include('.markets-sticky-toolbar').analyze()
+    const serious = results.violations.filter(
+      (v) => v.impact === 'serious' || v.impact === 'critical',
+    )
+    expect(serious, JSON.stringify(serious, null, 2)).toEqual([])
   })
 
   test('Today What arrived chip axe — iphone gate', async ({ page }, testInfo) => {
