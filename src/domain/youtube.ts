@@ -33,6 +33,8 @@ export interface YoutubeState {
   seenAt?: string
   /** ISO time when channels / seenAt last changed (LWW on sync). */
   prefsUpdatedAt?: string
+  /** Tombstones for removed favourites so union merge does not resurrect them across devices. */
+  deletedChannels?: Array<{ channelId: string; deletedAt: string }>
 }
 
 export function newYoutubeChannelId(channelId: string): string {

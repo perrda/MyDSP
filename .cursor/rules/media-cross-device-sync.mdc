@@ -1,0 +1,28 @@
+---
+description: YouTube favourites, News tags/headlines, and Markets watchlist must sync across every device form factor
+alwaysApply: true
+---
+
+# Media & workspace extras — cross-device sync (imperative)
+
+YouTube favourite channels, News tags / last-good headlines, and Markets watchlists **must sync across web, tablet, and mobile**. Never treat them as device-local.
+
+## Required behavior
+
+1. **fullArchive / workspaceExtras** — YouTube (`youtube` + `youtubeVideos`), News (`news` + `newsArticles` + `newsFilter`), and Markets (`markets` + `marketQuotes`) stay in the encrypted sync envelope.
+2. **Mark dirty on real edits** — add/remove/reorder channel or tag, Mark all read, etc. call `markWorkspaceChangedForSync()` so auto-sync pushes (~4s).
+3. **Never mark dirty on first-load seed** — `loadYoutubeState` / `loadNewsState` / `loadMarketsState` empty seeds must use `{ silent: true }`. Unread badges call these on every open; a dirty empty seed can push over another device’s favourites.
+4. **Union + tombstones** — merges union by id; removals use tombstones (`deletedChannels` / `deletedTags` / Markets `deletedTickers`) so deletes propagate and do not resurrect.
+5. **Conflicts must not block media** — when portfolio conflicts are parked, still call `applyWorkspaceExtrasFromPreview` so YouTube / News / Markets apply on web/tablet/mobile.
+6. **All form factors** — same Sync Remote URL + passphrase + Automatic sync + Remember passphrase. No separate “tablet-only” or “PWA-only” media store.
+
+## Do not
+
+- Store favourite channels / news tags only in sessionStorage or a device-local key outside fullArchive.
+- Skip `markWorkspaceChangedForSync` on channel/tag mutations.
+- Return early from pull on portfolio conflicts without applying workspace extras.
+- Document YouTube/News as “per device” (notification **OS permission** stays per device; **category toggles and favourites sync**).
+
+## When adding new media prefs
+
+Add export/import helpers, wire them into `captureFullWorkspace` + `applyWorkspaceExtrasFromPreview`, mark dirty on edit, cover with a tip-harness / sync test, and update `SYNC_SETUP.md` / `SYNC_SMOKE.md`.

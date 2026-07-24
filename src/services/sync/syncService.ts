@@ -856,43 +856,13 @@ export async function previewImport(file: File, passphrase: string): Promise<Mer
   return buildMergePreview('import', envelope, remoteByPortfolio, documentBlobs, workspaceExtras)
 }
 
-/** Persist a reviewed merge plan. Uses resolutions for same-id conflicts. */
-export async function applyMergePreview(
+/** Apply Markets / News / YouTube / prefs extras without touching portfolios.
+ * Safe to call when portfolio conflicts are parked — media must still sync
+ * across web, tablet, and mobile.
+ */
+export async function applyWorkspaceExtrasFromPreview(
   preview: MergePreview,
-  resolutions: Record<string, ConflictChoice> = {},
-): Promise<{ merged: number; conflicts: SyncConflict[]; removedDupes: number }> {
-  let merged = 0
-  for (const plan of preview.portfolios) {
-    if (plan.isNew || !plan.local) {
-      savePortfolioImmediate(plan.remote, plan.portfolioId)
-      merged++
-      continue
-    }
-    const scoped: Record<string, ConflictChoice> = {}
-    for (const c of plan.conflicts) {
-      const k = conflictKey(c)
-      if (resolutions[k]) scoped[k] = resolutions[k]
-    }
-    const next = mergeWithResolutions(plan.local, plan.remote, scoped)
-    savePortfolioImmediate(next, plan.portfolioId)
-    merged++
-  }
-
-  // preview.registryPortfolios is already name-deduped vs local
-  localStorage.setItem('fcc_portfolios', JSON.stringify(preview.registryPortfolios))
-  const { removed } = dedupePortfoliosByName()
-  if (preview.activePortfolioId) {
-    const ids = new Set(listPortfolios().map((p) => p.id))
-    if (ids.has(preview.activePortfolioId)) {
-      setActivePortfolioId(preview.activePortfolioId)
-    }
-  }
-
-  if (preview.documentBlobs && preview.documentBlobs.length > 0) {
-    const { importDocumentBlobs } = await import('../../storage/documentBlobStore')
-    await importDocumentBlobs(preview.documentBlobs)
-  }
-
+): Promise<void> {
   if (preview.workspaceExtras?.navLayout != null) {
     importNavLayoutFromBackup(preview.workspaceExtras.navLayout)
   }
@@ -1060,6 +1030,47 @@ export async function applyMergePreview(
     )
     importNotificationSettingsFromBackup(preview.workspaceExtras.notificationSettings)
   }
+}
+
+/** Persist a reviewed merge plan. Uses resolutions for same-id conflicts. */
+export async function applyMergePreview(
+  preview: MergePreview,
+  resolutions: Record<string, ConflictChoice> = {},
+): Promise<{ merged: number; conflicts: SyncConflict[]; removedDupes: number }> {
+  let merged = 0
+  for (const plan of preview.portfolios) {
+    if (plan.isNew || !plan.local) {
+      savePortfolioImmediate(plan.remote, plan.portfolioId)
+      merged++
+      continue
+    }
+    const scoped: Record<string, ConflictChoice> = {}
+    for (const c of plan.conflicts) {
+      const k = conflictKey(c)
+      if (resolutions[k]) scoped[k] = resolutions[k]
+    }
+    const next = mergeWithResolutions(plan.local, plan.remote, scoped)
+    savePortfolioImmediate(next, plan.portfolioId)
+    merged++
+  }
+
+  // preview.registryPortfolios is already name-deduped vs local
+  localStorage.setItem('fcc_portfolios', JSON.stringify(preview.registryPortfolios))
+  const { removed } = dedupePortfoliosByName()
+  if (preview.activePortfolioId) {
+    const ids = new Set(listPortfolios().map((p) => p.id))
+    if (ids.has(preview.activePortfolioId)) {
+      setActivePortfolioId(preview.activePortfolioId)
+    }
+  }
+
+  if (preview.documentBlobs && preview.documentBlobs.length > 0) {
+    const { importDocumentBlobs } = await import('../../storage/documentBlobStore')
+    await importDocumentBlobs(preview.documentBlobs)
+  }
+
+  await applyWorkspaceExtrasFromPreview(preview)
+
 
   return { merged, conflicts: preview.conflicts, removedDupes: removed.length }
 }
@@ -1075,6 +1086,8 @@ export async function pullAndMerge(
 ): Promise<{ merged: number; conflicts: SyncConflict[]; preview?: MergePreview }> {
   const preview = await previewPull(url, passphrase)
   if (preview.conflicts.length > 0 && !allConflictsResolved(preview.conflicts, resolutions)) {
+    // Portfolio conflicts must not block YouTube / News / Markets extras
+    await applyWorkspaceExtrasFromPreview(preview)
     return { merged: 0, conflicts: preview.conflicts, preview }
   }
   const result = await applyMergePreview(preview, resolutions)
@@ -1091,6 +1104,7 @@ export async function importEncryptedFile(
 ): Promise<{ merged: number; conflicts: SyncConflict[]; preview?: MergePreview }> {
   const preview = await previewImport(file, passphrase)
   if (preview.conflicts.length > 0 && !allConflictsResolved(preview.conflicts, resolutions)) {
+    await applyWorkspaceExtrasFromPreview(preview)
     return { merged: 0, conflicts: preview.conflicts, preview }
   }
   const result = await applyMergePreview(preview, resolutions)

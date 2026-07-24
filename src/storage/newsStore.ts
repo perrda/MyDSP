@@ -83,8 +83,10 @@ export function loadNewsState(): NewsState {
     }
     return normalized
   }
+  // Silent seed — unread badges call load on every open; never mark sync dirty
+  // or a fresh web/mobile device can push empty tags over the cloud.
   const seeded = migrateLegacySeenAt(createEmptyNewsState())
-  writeState(seeded)
+  writeState(seeded, { silent: true })
   return seeded
 }
 
@@ -105,6 +107,21 @@ export function listNewsTags(): NewsTag[] {
   return [...loadNewsState().tags].sort((a, b) => a.sortOrder - b.sortOrder)
 }
 
+function mergeTagTombstones(
+  local: NewsState['deletedTags'],
+  remote: NewsState['deletedTags'],
+): Array<{ tag: string; deletedAt: string }> {
+  const byTag = new Map<string, string>()
+  for (const d of [...(local ?? []), ...(remote ?? [])]) {
+    if (!d || typeof d.tag !== 'string' || typeof d.deletedAt !== 'string') continue
+    const key = normalizeNewsTag(d.tag)
+    if (!key) continue
+    const prev = byTag.get(key)
+    if (!prev || Date.parse(d.deletedAt) >= Date.parse(prev)) byTag.set(key, d.deletedAt)
+  }
+  return [...byTag.entries()].map(([tag, deletedAt]) => ({ tag, deletedAt }))
+}
+
 export function addNewsTag(input: { tag: string; label?: string }): NewsTag {
   const tag = normalizeNewsTag(input.tag)
   if (!tag) throw new Error('Tag is required.')
@@ -115,6 +132,8 @@ export function addNewsTag(input: { tag: string; label?: string }): NewsTag {
   if (state.tags.some((t) => t.tag === tag)) {
     throw new Error('This tag is already on News.')
   }
+  // Re-adding clears any tombstone so the tag can sync again.
+  state.deletedTags = (state.deletedTags ?? []).filter((d) => d.tag !== tag)
   const maxOrder = state.tags.reduce((m, t) => Math.max(m, t.sortOrder), -1)
   const row: NewsTag = {
     id: newNewsTagId(tag),
@@ -152,7 +171,13 @@ export function updateNewsTag(
 
 export function removeNewsTag(id: string): void {
   const state = loadNewsState()
+  const removed = state.tags.find((t) => t.id === id)
   state.tags = state.tags.filter((t) => t.id !== id)
+  if (removed?.tag) {
+    const deletedAt = new Date().toISOString()
+    const rest = (state.deletedTags ?? []).filter((d) => d.tag !== removed.tag)
+    state.deletedTags = [...rest, { tag: removed.tag, deletedAt }]
+  }
   saveNewsState(state)
 }
 
@@ -212,11 +237,19 @@ export function importNewsFromBackup(raw: unknown): void {
   const localPrefsAt = Date.parse(local.prefsUpdatedAt || '') || 0
   const preferRemotePrefs = remotePrefsAt >= localPrefsAt && remotePrefsAt > 0
 
+  const deletedTags = mergeTagTombstones(local.deletedTags, parsed.deletedTags)
+  const tombstoned = new Set(deletedTags.map((d) => d.tag))
+
   // Union tags by normalized ticker (keep local row when both have it).
+  // Skip tombstoned tags so removals sync across web / tablet / mobile.
   const byTag = new Map<string, NewsTag>()
-  for (const t of local.tags.map(normalizeTag)) byTag.set(t.tag, t)
+  for (const t of local.tags.map(normalizeTag)) {
+    if (tombstoned.has(t.tag)) continue
+    byTag.set(t.tag, t)
+  }
   let nextOrder = local.tags.reduce((m, t) => Math.max(m, t.sortOrder), -1) + 1
   for (const t of parsed.tags.map(normalizeTag)) {
+    if (tombstoned.has(t.tag)) continue
     if (byTag.has(t.tag)) continue
     byTag.set(t.tag, { ...t, sortOrder: nextOrder++ })
   }
@@ -235,6 +268,7 @@ export function importNewsFromBackup(raw: unknown): void {
     {
       version: 1,
       tags: [...byTag.values()],
+      deletedTags,
       collapsed: {
         top: Boolean(collapsedSrc?.top),
         tagged: Boolean(collapsedSrc?.tagged),
@@ -260,7 +294,7 @@ export interface NewsArticlesCache {
   fetchedAt?: string
 }
 
-/** Last-good headlines — survive reloads and failed refreshes (not synced). */
+/** Last-good headlines — survive reloads and failed refreshes (synced via fullArchive). */
 export function loadNewsArticlesCache(): NewsArticlesCache {
   try {
     const raw = localStorage.getItem(ARTICLES_KEY)

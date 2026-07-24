@@ -13,6 +13,7 @@ import { enqueueOfflineJob } from '../offlineQueue'
 import {
   allConflictsResolved,
   applyMergePreview,
+  applyWorkspaceExtrasFromPreview,
   fetchRemoteMeta,
   getLocalDeviceId,
   loadSyncConfig,
@@ -377,6 +378,15 @@ async function doPull(cfg: SyncConfig, pass: string, reason: CycleReason): Promi
       resolutions = resolveAllRemote(preview)
     } else if (!allConflictsResolved(preview.conflicts, resolutions)) {
       pendingConflictPreview = preview
+      // Portfolio conflicts must not block YouTube / News / Markets across devices
+      beginApplyingRemote()
+      try {
+        await applyWorkspaceExtrasFromPreview(preview)
+      } catch (e) {
+        console.warn('[auto-sync] workspace extras while conflict parked:', e)
+      } finally {
+        endApplyingRemote()
+      }
       emit({
         state: 'conflict',
         message: `${preview.conflicts.length} conflict(s) — open Settings → Sync`,

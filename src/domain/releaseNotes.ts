@@ -29,6 +29,24 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.95',
+    date: '2026-07-24',
+    bullets: [
+      {
+        text: 'YouTube favourites sync web ↔ tablet ↔ mobile',
+        to: '/youtube',
+      },
+      {
+        text: 'News tags/headlines sync; removals stay removed',
+        to: '/news',
+      },
+      {
+        text: 'Empty first-open no longer overwrites cloud favourites',
+        to: '/settings#sync',
+      },
+    ],
+  },
+  {
     version: '1.2.94',
     date: '2026-07-24',
     bullets: [

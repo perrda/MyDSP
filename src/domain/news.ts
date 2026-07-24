@@ -35,6 +35,8 @@ export interface NewsState {
   seenAt?: string
   /** ISO time when tags / collapsed / seenAt last changed (LWW on sync). */
   prefsUpdatedAt?: string
+  /** Tombstones for removed tags so union merge does not resurrect them across devices. */
+  deletedTags?: Array<{ tag: string; deletedAt: string }>
 }
 
 export const DEFAULT_NEWS_TAGS: Omit<NewsTag, 'id' | 'createdAt' | 'sortOrder'>[] = [

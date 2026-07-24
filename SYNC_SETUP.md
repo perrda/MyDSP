@@ -85,8 +85,8 @@ That’s it. Edits push about **4 seconds** after you change data (and pull firs
 |-------------|--------|--------|
 | Portfolios, holdings, todos, jobs, goals | Yes | Core workspace blobs |
 | Markets watchlist + last-good quotes | Yes | Union merge / deletion tombstones / LWW quotes |
-| News tags + collapsed/seenAt + headlines | Yes | Tag union + prefsUpdatedAt LWW; headlines last-good |
-| YouTube channels + video cache | Yes | Channel union + seenAt LWW |
+| News tags + collapsed/seenAt + headlines | Yes | Tag union + deletion tombstones + prefsUpdatedAt LWW; headlines last-good (web/tablet/mobile) |
+| YouTube channels + video cache | Yes | Channel union + deletion tombstones + seenAt LWW (web/tablet/mobile) |
 | Favourites / Others nav layout | Yes | LWW by updatedAt |
 | ISA remaining override | Yes | Tax page override (LWW; clear syncs) |
 | Price-alert thresholds | Yes | OS notification permission stays per device |
