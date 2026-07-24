@@ -158,6 +158,6 @@ describe('next25 today / productivity', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8')) as {
       version: string
     }
-    expect(pkg.version).toBe('1.2.98')
+    expect(pkg.version).toBe('1.2.99')
   })
 })

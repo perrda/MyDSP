@@ -40,6 +40,9 @@ export function LiabilitiesPage() {
     limit: '',
     original: '',
     ragStatus: '' as '' | RagStatus,
+    contactPhone: '',
+    contactEmail: '',
+    contactUrl: '',
   })
   const [deleteTarget, setDeleteTarget] = useState<{ kind: Kind; id: number } | null>(null)
   const [ragFilter, setRagFilter] = useState<RagFilter>(() => loadLiabilitiesRagFilter())
@@ -56,6 +59,9 @@ export function LiabilitiesPage() {
       limit: '',
       original: '',
       ragStatus: '',
+      contactPhone: '',
+      contactEmail: '',
+      contactUrl: '',
     })
     setOpen(true)
   }
@@ -72,6 +78,9 @@ export function LiabilitiesPage() {
       limit: String(c.limit),
       original: '',
       ragStatus: c.ragStatus ?? '',
+      contactPhone: c.contactPhone ?? '',
+      contactEmail: c.contactEmail ?? '',
+      contactUrl: c.contactUrl ?? '',
     })
     setOpen(true)
   }
@@ -88,12 +97,18 @@ export function LiabilitiesPage() {
       limit: '',
       original: String(l.original),
       ragStatus: l.ragStatus ?? '',
+      contactPhone: l.contactPhone ?? '',
+      contactEmail: l.contactEmail ?? '',
+      contactUrl: l.contactUrl ?? '',
     })
     setOpen(true)
   }
 
   const save = () => {
     const rag = form.ragStatus || undefined
+    const contactPhone = form.contactPhone.trim() || undefined
+    const contactEmail = form.contactEmail.trim() || undefined
+    const contactUrl = form.contactUrl.trim() || undefined
     if (kind === 'card') {
       const card: CreditCard = {
         id: editingCard?.id ?? nextId(data.creditCards),
@@ -103,9 +118,9 @@ export function LiabilitiesPage() {
         minPay: parseNum(form.minPay),
         limit: parseNum(form.limit),
         includeInPortfolio: editingCard?.includeInPortfolio ?? true,
-        contactPhone: editingCard?.contactPhone,
-        contactEmail: editingCard?.contactEmail,
-        contactUrl: editingCard?.contactUrl,
+        contactPhone,
+        contactEmail,
+        contactUrl,
         commentaries: editingCard?.commentaries,
         ragStatus: rag,
         sortOrder: editingCard?.sortOrder,
@@ -125,9 +140,9 @@ export function LiabilitiesPage() {
         minPay: parseNum(form.minPay),
         original: parseNum(form.original) || parseNum(form.balance),
         includeInPortfolio: editingLoan?.includeInPortfolio ?? true,
-        contactPhone: editingLoan?.contactPhone,
-        contactEmail: editingLoan?.contactEmail,
-        contactUrl: editingLoan?.contactUrl,
+        contactPhone,
+        contactEmail,
+        contactUrl,
         commentaries: editingLoan?.commentaries,
         ragStatus: rag,
         sortOrder: editingLoan?.sortOrder,
@@ -580,6 +595,42 @@ export function LiabilitiesPage() {
               <option value="green">Green — on track</option>
             </select>
           </Field>
+          <div>
+            <h3 className="font-bold mb-3">Lender contacts</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Field label="Phone">
+                <input
+                  type="tel"
+                  autoComplete="tel"
+                  data-testid="liability-form-contact-phone"
+                  value={form.contactPhone}
+                  onChange={(e) => setForm({ ...form, contactPhone: e.target.value })}
+                  placeholder="+44…"
+                />
+              </Field>
+              <Field label="Email">
+                <input
+                  type="email"
+                  autoComplete="email"
+                  data-testid="liability-form-contact-email"
+                  value={form.contactEmail}
+                  onChange={(e) => setForm({ ...form, contactEmail: e.target.value })}
+                  placeholder="collections@lender.com"
+                />
+              </Field>
+              <div className="md:col-span-2">
+                <Field label="URL">
+                  <input
+                    type="url"
+                    data-testid="liability-form-contact-url"
+                    value={form.contactUrl}
+                    onChange={(e) => setForm({ ...form, contactUrl: e.target.value })}
+                    placeholder="https://"
+                  />
+                </Field>
+              </div>
+            </div>
+          </div>
           {(editingCard || editingLoan) && (
             <p className="text-sm text-text-muted font-light leading-relaxed border border-border p-4">
               Call notes and progress commentary live on the full debt workspace — tap{' '}
