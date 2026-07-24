@@ -2088,7 +2088,28 @@ export function MarketsPage() {
 
   return (
     <div>
-      <PageHeader eyebrow="Prices" title="Markets" />
+      <PageHeader
+        eyebrow="Prices"
+        title="Markets"
+        action={
+          <div className="hidden sm:flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              className="btn-primary btn-sm inline-flex items-center gap-1.5"
+              onClick={() => openCreate('equity')}
+            >
+              <Plus size={16} strokeWidth={2} /> Add equity
+            </button>
+            <button
+              type="button"
+              className="btn-secondary btn-sm inline-flex items-center gap-1.5"
+              onClick={() => openCreate('crypto')}
+            >
+              <Plus size={16} strokeWidth={2} /> Add crypto
+            </button>
+          </div>
+        }
+      />
 
       {refreshBanner ? (
         <div
@@ -2137,18 +2158,10 @@ export function MarketsPage() {
       ) : null}
       {slaChip ? (
         <div
-          className="markets-quote-sla-chip mb-3 px-3 py-2 text-xs border border-border bg-surface/50 rounded-lg md:rounded-none flex flex-wrap items-center justify-between gap-2"
+          className="markets-quote-sla-chip mb-3 px-3 py-2 text-xs border border-border bg-surface/50 rounded-lg md:rounded-none flex flex-wrap items-center gap-2"
           role="status"
         >
           <span>{slaChip}</span>
-          <button
-            type="button"
-            className="btn-secondary btn-sm min-h-9"
-            disabled={refreshing}
-            onClick={() => void refresh()}
-          >
-            Refresh now
-          </button>
         </div>
       ) : null}
       <div
@@ -2411,6 +2424,7 @@ export function MarketsPage() {
             {densityTrust.collapsedCount > 0 || densityTrust.hiddenSparklines > 0 ? (
               <span
                 className="markets-density-trust text-text-muted tabular-nums"
+                data-testid="markets-density-trust"
                 role="status"
                 aria-label={`${densityTrust.hiddenSparklines} sparklines hidden, ${densityTrust.collapsedCount} sections collapsed`}
               >
@@ -3347,6 +3361,13 @@ export function MarketsPage() {
         >
           <Plus size={16} strokeWidth={2} /> Add equity
         </button>
+        <button
+          type="button"
+          className="btn-secondary btn-sm inline-flex items-center gap-1.5"
+          onClick={() => openCreate('crypto')}
+        >
+          <Plus size={16} strokeWidth={2} /> Add crypto
+        </button>
         {refreshBanner ? (
           <span
             className="markets-sync-prices btn-secondary btn-sm inline-flex items-center gap-1.5 opacity-90 pointer-events-none"
@@ -3368,34 +3389,6 @@ export function MarketsPage() {
           onClick={() => void retryUnavailable()}
         >
           {online ? 'Retry unavailable' : 'Retry when online'}
-        </button>
-        <button
-          type="button"
-          className="btn-secondary btn-sm inline-flex items-center gap-1.5"
-          onClick={() => openCreate('crypto')}
-        >
-          <Plus size={16} strokeWidth={2} /> Add crypto
-        </button>
-        <button
-          type="button"
-          className="btn-secondary btn-sm inline-flex items-center gap-1.5 markets-add-commodity-thumb"
-          onClick={() => openCreate('commodity')}
-        >
-          <Plus size={16} strokeWidth={2} /> Add commodity
-        </button>
-        <button
-          type="button"
-          className="btn-secondary btn-sm inline-flex items-center gap-1.5 markets-add-fx-thumb"
-          onClick={() => openCreate('fx')}
-        >
-          <Plus size={16} strokeWidth={2} /> Add FX
-        </button>
-        <button
-          type="button"
-          className="btn-secondary btn-sm inline-flex items-center gap-1.5 markets-add-index-thumb"
-          onClick={() => openCreate('index')}
-        >
-          <Plus size={16} strokeWidth={2} /> Add index
         </button>
         {(() => {
           const eqMissing = holdingsMissingFromWatchlist(
@@ -3422,55 +3415,6 @@ export function MarketsPage() {
             </button>
           )
         })()}
-        <button
-          type="button"
-          className={`ui-seg markets-density markets-density-thumb${
-            density === 'compact' ? ' is-active' : ''
-          }`}
-          data-testid="markets-density"
-          aria-pressed={density === 'compact'}
-          aria-label={
-            density === 'comfortable'
-              ? 'Switch to compact density'
-              : 'Switch to comfortable density'
-          }
-          onClick={() => {
-            const next: MarketsDensity =
-              density === 'comfortable' ? 'compact' : 'comfortable'
-            setMarketsDensity(next)
-            setDensity(next)
-          }}
-        >
-          <Rows3 size={13} strokeWidth={1.75} aria-hidden />
-          {density === 'comfortable' ? 'Compact' : 'Comfortable'}
-        </button>
-        <button
-          type="button"
-          className="ui-seg markets-expand-all"
-          aria-label="Expand all Markets sections"
-          onClick={() => setAllSectionsCollapsed(false)}
-        >
-          <UnfoldVertical size={13} strokeWidth={1.75} aria-hidden />
-          Expand
-        </button>
-        <button
-          type="button"
-          className="ui-seg markets-collapse-all"
-          aria-label="Collapse all Markets sections"
-          onClick={() => setAllSectionsCollapsed(true)}
-        >
-          <FoldVertical size={13} strokeWidth={1.75} aria-hidden />
-          Collapse
-        </button>
-        <span
-          className="markets-density-trust text-xs text-text-muted tabular-nums self-center"
-          data-testid="markets-density-trust"
-          role="status"
-          aria-label={`${densityTrust.hiddenSparklines} sparklines hidden, ${densityTrust.collapsedCount} sections collapsed`}
-        >
-          {densityTrust.hiddenSparklines} spark
-          {densityTrust.hiddenSparklines === 1 ? '' : 's'} · {densityTrust.collapsedCount} collapsed
-        </span>
       </div>
       <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>

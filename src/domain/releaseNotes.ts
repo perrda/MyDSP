@@ -29,6 +29,24 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.98',
+    date: '2026-07-24',
+    bullets: [
+      {
+        text: 'Mobile/tablet: no overlapping thumb CTAs (measured heights)',
+        to: '/markets',
+      },
+      {
+        text: 'Portrait + landscape phone: thumb bars stay reachable',
+        to: '/markets',
+      },
+      {
+        text: 'Markets/News/YouTube thumbs slimmed — Refresh only via … menu',
+        to: '/settings#sync',
+      },
+    ],
+  },
+  {
     version: '1.2.97',
     date: '2026-07-24',
     bullets: [

@@ -194,7 +194,7 @@ describe('My Commodities + Finnhub reminder (v1.2.69)', () => {
 
   it('package version is tip', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.97')
+    expect(pkg.version).toBe('1.2.98')
   })
 })
 

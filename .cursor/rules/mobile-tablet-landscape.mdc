@@ -1,0 +1,46 @@
+---
+description: MyDSP mobile/tablet portrait+landscape layout — no overlapping controls
+alwaysApply: true
+---
+
+# Mobile / tablet / landscape QA (MyDSP style)
+
+Encode these preferences so future agents do **not** reintroduce clutter or overlapping chrome.
+
+## Thumb CTA bars (phone + short landscape)
+
+- `.thumb-cta-bar` is for **primary create actions only** (Add X, Mark all read, Retry unavailable). One row preferred; wrap is OK only for 2–4 essential buttons.
+- **Never** duplicate Format / density / Expand / Collapse / Sort controls into the thumb bar — those live in page toolbars / disclosure panels.
+- **Never** put page-level **Refresh** / **Sync now** in thumb bars (see `clean-sync-refresh-ux.mdc`). Non-interactive “Refreshing data” status is fine.
+- Spacer height must use **measured** `--thumb-cta-height` (ResizeObserver), not a hardcoded `4.25rem` alone.
+- Keep thumb CTAs available in **landscape phone** (`orientation: landscape` + short height), not only `max-width: 639px`.
+
+## No overlapping fixed chrome
+
+- Fixed bars (thumb CTA, Job Detail action bar, bottom nav, floating banners/toasts) must **stack with measured offsets** — never guess two fixed heights that can wrap and collide.
+- Floating banners/toasts clear `--thumb-cta-height` as well as the bottom nav.
+- Job Detail: measure `--job-detail-action-height`; nav CTA sits above the action bar.
+
+## Sticky stacks
+
+- App header height → `--app-header-offset` (measured from `.app-header`, includes sync strip / meta).
+- Markets sticky Tag/Yield filters sit **under** `--markets-toolbar-height`, not at the same `top` as the toolbar.
+- Do **not** put `overflow: hidden` on `.app-header-row` / `.toolbar-cluster` — it clips More / Notifications menus.
+
+## Markets chrome
+
+- Prefer disclosure panels (Assets / Timeframe / Format) over permanent chip rows.
+- Default timeframe **24H**; quiet poll ~**60s**; no noisy “Showing n/m prices” status; no useless Markets search.
+- Section add buttons cover commodity / FX / index — thumb stays Add equity + Add crypto (+ conditional holding / retry).
+
+## Tablet (≥sm)
+
+- When thumb bars hide, PageHeader (or section empty states) must still expose primary Add actions.
+- Portrait **and** landscape must both remain usable — equal priority with phone.
+
+## Visual / UX style (carry forward)
+
+- Minimal clear chrome; no overlapping buttons; full Edit pencils (no clipped icons).
+- Cross-device sync for YouTube / News / Markets is imperative.
+- Headers: Prices/section eyebrows+titles match My Crypto title scale.
+---
