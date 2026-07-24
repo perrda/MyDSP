@@ -606,19 +606,6 @@ export function YouTubePage() {
         <button
           type="button"
           className="btn-primary btn-sm inline-flex items-center gap-1.5"
-          disabled={refreshing}
-          onClick={() => void refresh()}
-        >
-          <RefreshCw
-            size={16}
-            strokeWidth={2}
-            className={refreshing ? 'animate-spin' : undefined}
-          />
-          {refreshing ? 'Refreshing…' : 'Refresh'}
-        </button>
-        <button
-          type="button"
-          className="btn-secondary btn-sm inline-flex items-center gap-1.5"
           onClick={openCreate}
           disabled={channels.length >= MAX_YOUTUBE_CHANNELS}
         >

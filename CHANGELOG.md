@@ -1,5 +1,16 @@
 # MyDSP Changelog
 
+## [1.2.98] - 2026-07-24
+
+### Fixed — Mobile / tablet portrait + landscape QA
+- **Measured chrome:** live `--app-header-offset` and `--thumb-cta-height` so sticky stacks and spacers clear real headers / multi-row thumb bars
+- **No overlapping buttons:** slim Markets thumb (Add equity/crypto + retry); Format density stays in the Format panel; Job Detail action bar measured for nav CTA stack
+- **Landscape phone:** thumb CTAs + Job Detail action bar stay available when width ≥640 but height is short
+- **Menus not clipped:** phone header/toolbar `overflow: visible` so More / Notifications menus escape the row
+- **Markets sticky Tag/Yield** sit under the measured toolbar; banners clear thumb height
+- **Clean sync:** removed Markets “Refresh now”, News/YouTube thumb Refresh (header `…` → Refresh only)
+- Cursor rule `mobile-tablet-landscape.mdc` locks preferences going forward
+
 ## [1.2.97] - 2026-07-24
 
 ### Improved — Markets Assets / Timeframe / Format panels

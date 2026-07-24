@@ -47,14 +47,14 @@ describe('next25o — sync / Markets / Today polish tip (1–25 → v1.2.80)', (
 
   it('25: package + release notes are 1.2.80', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.97')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.97')
+    expect(pkg.version).toBe('1.2.98')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.98')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.98',
       '1.2.97',
       '1.2.96',
       '1.2.95',
       '1.2.94',
-      '1.2.93',
     ])
   })
 
@@ -112,7 +112,8 @@ describe('next25o — sync / Markets / Today polish tip (1–25 → v1.2.80)', (
   it('6–10: Markets jump tablist · density thumb · as-of · paper NW · row tag', () => {
     const page = readFileSync(resolve(__dirname, '../pages/MarketsPage.tsx'), 'utf8')
     expect(page).toMatch(/markets-section-jump-chips[\s\S]*role=\"tablist\"/)
-    expect(page).toMatch(/markets-density-thumb/)
+    expect(page).toMatch(/markets-density/)
+    expect(page).toMatch(/data-testid="markets-density"/)
     expect(page).toMatch(/formatMarketsRelative/)
     expect(page).toMatch(/Exclude from NW|Include in NW/)
     expect(page).toMatch(/markets-row-tag-filter/)

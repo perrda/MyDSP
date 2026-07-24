@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
   Calendar,
@@ -25,6 +25,7 @@ import { DocumentModal } from '../components/DocumentModal'
 import { JobFormModal } from '../components/JobFormModal'
 import { usePortfolio } from '../context/PortfolioContext'
 import { useToasts } from '../components/ToastProvider'
+import { useCssVarFromElementSize } from '../hooks/useCssVarFromElementSize'
 import type { JobApplication, JobContact, JobInterview, JobNote, JobStatus } from '../domain/job-types'
 import { getDaysSinceApplied, STATUS_COLORS, STATUS_LABELS } from '../domain/jobs'
 import { createJobLinkedTodo } from '../domain/jobTodos'
@@ -57,6 +58,8 @@ export function JobDetailPage() {
     confirmLabel?: string
     onConfirm: () => void
   } | null>(null)
+  const actionBarRef = useRef<HTMLDivElement | null>(null)
+  useCssVarFromElementSize(actionBarRef, '--job-detail-action-height')
 
   const application = useMemo(
     () => data.jobApplications?.find((app) => app.id === Number(id)),
@@ -454,7 +457,12 @@ export function JobDetailPage() {
       />
 
       {/* Sticky Save / action bar — above bottom nav, safe-area aware */}
-      <div className="job-detail-action-bar" role="toolbar" aria-label="Job actions">
+      <div
+        ref={actionBarRef}
+        className="job-detail-action-bar"
+        role="toolbar"
+        aria-label="Job actions"
+      >
         <button type="button" onClick={() => setShowJobForm(true)} className="btn-ghost btn-sm btn-icon-edit min-h-11">
           <Edit2 size={16} strokeWidth={1.75} className="icon-edit" aria-hidden /> Edit
         </button>

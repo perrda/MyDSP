@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { usePortfolio } from '../../context/PortfolioContext'
 import { DISPLAY_CURRENCIES } from '../../services/fx'
@@ -23,6 +23,8 @@ import { PageRouteTransition } from './PageRouteTransition'
 import { formatDateTime } from '../../utils/format'
 import { useShowBottomNav } from '../../hooks/useShowBottomNav'
 import { useIdlePrefetch } from '../../hooks/useIdlePrefetch'
+import { useCssVarFromElementSize } from '../../hooks/useCssVarFromElementSize'
+import { usePublishThumbCtaHeight } from '../../hooks/usePublishThumbCtaHeight'
 import { triggerSuccessFlash } from '../../utils/successFlash'
 import { refreshMediaFeeds } from '../../services/mediaRefresh'
 
@@ -90,6 +92,7 @@ const titles: Record<string, { eyebrow: string; title: string }> = {
 export function AppShell() {
   const [open, setOpen] = useState(false)
   const showBottomNav = useShowBottomNav()
+  const headerRef = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
     document.documentElement.classList.toggle('has-bottom-nav', showBottomNav)
@@ -97,6 +100,8 @@ export function AppShell() {
   }, [showBottomNav])
   useIdlePrefetch()
   const { pathname } = useLocation()
+  useCssVarFromElementSize(headerRef, '--app-header-offset')
+  usePublishThumbCtaHeight([pathname, showBottomNav])
   const {
     portfolios,
     activeId,
@@ -263,7 +268,7 @@ export function AppShell() {
       <Sidebar open={open} onClose={() => setOpen(false)} />
 
       <div className="app-main">
-        <header className="app-header" role="banner" aria-label="App header">
+        <header ref={headerRef} className="app-header" role="banner" aria-label="App header">
           <div className="app-header-row">
             <MenuButton onClick={() => setOpen(true)} />
             <div className="hidden sm:flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">

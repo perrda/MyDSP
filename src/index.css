@@ -289,6 +289,9 @@ html.theme-transitioning *::after {
 
 :root {
   --app-header-offset: calc(3.5rem + env(safe-area-inset-top, 0px));
+  --thumb-cta-height: 0px;
+  --job-detail-action-height: 0px;
+  --markets-toolbar-height: 7.5rem;
 }
 
 .settings-search-sticky {
@@ -577,18 +580,25 @@ html.theme-transitioning *::after {
   padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
 }
 
-/* Floating banners / toasts sit above the bottom tab bar when present */
+/* Floating banners / toasts sit above the bottom tab bar + any thumb CTA */
 .floating-banner {
-  bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+  bottom: max(
+    1rem,
+    calc(var(--thumb-cta-height, 0px) + env(safe-area-inset-bottom, 0px) + 0.5rem)
+  );
 }
 html.has-bottom-nav .floating-banner {
-  bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+  bottom: calc(
+    5.5rem + var(--thumb-cta-height, 0px) + env(safe-area-inset-bottom, 0px) + 0.35rem
+  );
 }
 .floating-banner--toast {
-  bottom: 1rem;
+  bottom: max(1rem, calc(var(--thumb-cta-height, 0px) + 0.5rem));
 }
 html.has-bottom-nav .floating-banner--toast {
-  bottom: calc(5.5rem + 0.5rem + env(safe-area-inset-bottom, 0px));
+  bottom: calc(
+    5.5rem + var(--thumb-cta-height, 0px) + 0.5rem + env(safe-area-inset-bottom, 0px)
+  );
 }
 
 /* Bottom nav active affordance (beyond accent colour alone) */
@@ -678,17 +688,25 @@ html.has-bottom-nav .floating-banner--toast {
   }
   html.has-bottom-nav .floating-banner,
   html.has-bottom-nav .floating-banner--toast {
-    bottom: calc(3.75rem + env(safe-area-inset-bottom, 0px));
+    bottom: calc(
+      3.75rem + var(--thumb-cta-height, 0px) + env(safe-area-inset-bottom, 0px) + 0.35rem
+    );
   }
   /* next25w: thumb CTAs track the shorter landscape bottom-nav */
   html.has-bottom-nav .thumb-cta-bar {
     bottom: calc(3.75rem + 0.25rem + env(safe-area-inset-bottom, 0px));
   }
   html.has-bottom-nav .thumb-cta-bar-spacer {
-    height: calc(3.5rem + env(safe-area-inset-bottom, 0px));
+    height: calc(var(--thumb-cta-height, 3.5rem) + 0.5rem);
   }
   html.has-bottom-nav .job-detail-nav-cta {
-    bottom: calc(3.75rem + 3.5rem + env(safe-area-inset-bottom, 0px));
+    bottom: calc(
+      3.75rem + var(--job-detail-action-height, 3.5rem) + 0.35rem +
+        env(safe-area-inset-bottom, 0px)
+    );
+  }
+  html.has-bottom-nav .job-detail-action-bar {
+    bottom: calc(3.75rem + 0.35rem + env(safe-area-inset-bottom, 0px));
   }
   .markets-sticky-toolbar,
   .markets-sticky-filters,
@@ -698,6 +716,11 @@ html.has-bottom-nav .floating-banner--toast {
   .youtube-sticky-status,
   .today-section-jump-chips {
     top: var(--app-header-offset, 3rem);
+  }
+  .markets-sticky-filters {
+    top: calc(
+      var(--app-header-offset, 3rem) + var(--markets-toolbar-height, 7.5rem) + 0.15rem
+    );
   }
   .today-section-jump-chips,
   .today-pulse-chips {
@@ -1590,8 +1613,8 @@ select:focus {
     min-height: 3.25rem;
     padding: 0.4rem 0.75rem;
     gap: 0.375rem;
-    /* Clip overflow so controls never paint over the burger */
-    overflow: hidden;
+    /* Must stay visible — More / Notifications menus escape below the row */
+    overflow: visible;
   }
 
   .toolbar-cluster {
@@ -1599,7 +1622,7 @@ select:focus {
     min-width: 0;
     max-width: 100%;
     justify-content: flex-end;
-    overflow: hidden;
+    overflow: visible;
     gap: 0.25rem;
   }
 
@@ -2330,7 +2353,7 @@ html.glass .sync-chip:focus-visible {
 }
 .markets-section-sticky {
   /* Sit below app header + live Markets toolbar height (ResizeObserver → --markets-toolbar-height) */
-  top: calc(var(--app-header-offset, 3.5rem) + var(--markets-toolbar-height, 7.25rem));
+  top: calc(var(--app-header-offset, 3.5rem) + var(--markets-toolbar-height, 7.5rem));
   z-index: 8;
   /* Opaque fill so scrolling rows (sparklines / ChangeBadge) never bleed through */
   background-color: var(--bg-elevated);
@@ -2405,6 +2428,7 @@ html.glass.light .holdings-sticky-totals {
 }
 .job-detail-action-bar > button {
   flex: 1 1 auto;
+  min-height: 2.75rem;
 }
 html.has-bottom-nav .job-detail-action-bar {
   bottom: calc(5.5rem + 0.5rem + env(safe-area-inset-bottom, 0px));
@@ -2412,6 +2436,12 @@ html.has-bottom-nav .job-detail-action-bar {
 @media (min-width: 640px) {
   .job-detail-action-bar {
     display: none;
+  }
+}
+/* Landscape phone (wide but short): keep Job Detail action bar reachable */
+@media (orientation: landscape) and (max-height: 500px) {
+  .job-detail-action-bar {
+    display: flex;
   }
 }
 
@@ -2512,11 +2542,11 @@ html.a11y-reduce-motion *::after {
   }
 }
 
-/* Sticky bottom CTA cluster above bottom-nav (phone); hidden ≥sm */
+/* Sticky bottom CTA cluster above bottom-nav (phone + short landscape); hidden on tall ≥sm */
 .thumb-cta-bar {
   display: none;
 }
-@media (max-width: 639px) {
+@media (max-width: 639px), (orientation: landscape) and (max-height: 500px) {
   .thumb-cta-bar {
     display: flex;
     position: fixed;
@@ -2534,6 +2564,10 @@ html.a11y-reduce-motion *::after {
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     box-shadow: 0 -4px 24px color-mix(in srgb, var(--bg) 40%, transparent);
+    /* Cap height so a runaway wrap never covers the whole viewport */
+    max-height: min(40dvh, 12rem);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
   .thumb-cta-bar > button,
   .thumb-cta-bar > a {
@@ -2545,25 +2579,35 @@ html.a11y-reduce-motion *::after {
     bottom: calc(5.5rem + 0.25rem + env(safe-area-inset-bottom, 0px));
   }
   .job-detail-nav-cta {
-    bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+    bottom: calc(
+      var(--job-detail-action-height, 4.75rem) + 0.35rem + env(safe-area-inset-bottom, 0px)
+    );
   }
   html.has-bottom-nav .job-detail-nav-cta {
-    bottom: calc(5.5rem + 4.75rem + env(safe-area-inset-bottom, 0px));
+    bottom: calc(
+      5.5rem + var(--job-detail-action-height, 4.75rem) + 0.35rem +
+        env(safe-area-inset-bottom, 0px)
+    );
   }
-  /* Spacer so list content clears the fixed bar */
+  /* Spacer clears the live measured thumb bar (ResizeObserver → --thumb-cta-height) */
   .thumb-cta-bar-spacer {
-    height: calc(4.25rem + env(safe-area-inset-bottom, 0px));
-  }
-  html.has-bottom-nav .thumb-cta-bar-spacer {
-    height: calc(4.25rem + env(safe-area-inset-bottom, 0px));
+    display: block;
+    height: calc(var(--thumb-cta-height, 4.25rem) + 0.75rem);
   }
   .job-detail-nav-cta-spacer {
-    height: calc(8.75rem + env(safe-area-inset-bottom, 0px));
+    height: calc(
+      var(--thumb-cta-height, 3.5rem) + var(--job-detail-action-height, 4.75rem) + 1rem
+    );
   }
 }
 @media (min-width: 640px) {
   .thumb-cta-bar-spacer {
     display: none;
+  }
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  .thumb-cta-bar-spacer {
+    display: block;
   }
 }
 
@@ -2595,7 +2639,10 @@ html.a11y-reduce-motion *::after {
   }
   html.has-bottom-nav .floating-banner,
   html.has-bottom-nav .floating-banner--toast {
-    bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+    bottom: max(
+      1rem,
+      calc(var(--thumb-cta-height, 0px) + env(safe-area-inset-bottom, 0px) + 0.5rem)
+    );
   }
 }
 
@@ -2819,6 +2866,12 @@ html.success-haptic-flash::after {
 .markets-sticky-toolbar {
   top: var(--app-header-offset, 3.5rem);
 }
+.markets-sticky-filters {
+  /* Sit under the live Markets toolbar (ResizeObserver → --markets-toolbar-height) */
+  top: calc(
+    var(--app-header-offset, 3.5rem) + var(--markets-toolbar-height, 7.5rem) + 0.15rem
+  );
+}
 .holdings-sticky-search {
   top: var(--app-header-offset, 3.5rem);
 }
@@ -2960,6 +3013,11 @@ html.success-haptic-flash::after {
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
   }
+  .markets-sticky-filters {
+    top: calc(
+      var(--app-header-offset, 3.5rem) + var(--markets-toolbar-height, 7.5rem) + 0.15rem
+    );
+  }
 }
 
 /* next25u: phone sticky filter bars */
@@ -2981,6 +3039,11 @@ html.success-haptic-flash::after {
     -webkit-backdrop-filter: blur(10px);
     padding-top: 0.35rem;
     padding-bottom: 0.35rem;
+  }
+  .markets-sticky-filters {
+    top: calc(
+      var(--app-header-offset, 3.5rem) + var(--markets-toolbar-height, 7.5rem) + 0.15rem
+    );
   }
 }
 

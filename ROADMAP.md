@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.97**
+**Current version: 1.2.98**
 
-## Completed (through v1.2.97)
+## Completed (through v1.2.98)
 
+- Mobile / tablet / landscape QA (v1.2.98): measured header + thumb CTA heights · slim Markets/News/YouTube thumbs · no overlapping fixed chrome · landscape phone CTAs · sticky Tag/Yield under toolbar · `mobile-tablet-landscape.mdc`
 - Markets Assets/Timeframe/Format panels (v1.2.97): remove search + partial-price status · exclusive disclosure toggles under Prices header
 - Markets toolbar layout + headers (v1.2.96): asset jumps → timeframes (YTD/ALL) → view controls · no search placeholder / Tag+Yield hint · app-wide page headers match My Crypto scale
 - YouTube / News cross-device sync (v1.2.95): silent empty seeds · workspace extras apply during portfolio conflicts · YouTube/News deletion tombstones · `media-cross-device-sync.mdc`
