@@ -515,11 +515,6 @@ export function MarketsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [undoRemove, setUndoRemove] = useState<MarketTicker | null>(null)
   const undoTimer = useRef<number | null>(null)
-  const [undoRetag, setUndoRetag] = useState<{
-    ticker: MarketTicker
-    previousTag: MarketTicker['tag']
-  } | null>(null)
-  const undoRetagTimer = useRef<number | null>(null)
   const [undoFx, setUndoFx] = useState<{
     ticker: MarketTicker
     previous: MarketQuote | null
@@ -593,7 +588,6 @@ export function MarketsPage() {
     key: string
     changePct: string
   } | null>(null)
-  const [retagTicker, setRetagTicker] = useState<MarketTicker | null>(null)
   const [fxExplainerOpen, setFxExplainerOpen] = useState(false)
   const [tagFilter, setTagFilter] = useState<MarketTickerTag | 'All'>(() => getMarketsTagFilter())
   const [yieldSort, setYieldSort] = useState(() => getMarketsYieldSort())
@@ -1346,28 +1340,6 @@ export function MarketsPage() {
     })
   }, [])
 
-  const applyTickerTag = useCallback(
-    (ticker: MarketTicker, tag: MarketTickerTag | '') => {
-      const previousTag = ticker.tag
-      updateMarketTicker(ticker.id, { tag })
-      reloadList()
-      setQuoteDetail((prev) =>
-        prev && prev.ticker.id === ticker.id
-          ? { ...prev, ticker: { ...prev.ticker, tag: tag || undefined } }
-          : prev,
-      )
-      setRetagTicker(null)
-      setUndoRetag({ ticker, previousTag })
-      if (undoRetagTimer.current) window.clearTimeout(undoRetagTimer.current)
-      undoRetagTimer.current = window.setTimeout(() => setUndoRetag(null), 8_000)
-      toastSuccess(
-        tag ? `Tagged ${ticker.symbol}` : `Cleared tag on ${ticker.symbol}`,
-        tag ? tag : 'No folder tag',
-      )
-    },
-    [reloadList, toastSuccess],
-  )
-
   const renderSection = (section: SectionKey) => {
     const meta = SECTION_META[section]
     const items = bySection[section]
@@ -1925,18 +1897,12 @@ export function MarketsPage() {
                       <div className="shrink-0">
                         {compact ? (
                           <OverflowMenu
-                            className="markets-retag"
                             label={`Actions for ${t.symbol}`}
                             items={[
                               {
                                 id: 'edit',
                                 label: 'Edit',
                                 onClick: () => openEdit(t),
-                              },
-                              {
-                                id: 'retag',
-                                label: t.tag ? `Retag (${t.tag})` : 'Retag',
-                                onClick: () => setRetagTicker(t),
                               },
                               ...(t.kind === 'commodity'
                                 ? [
@@ -1968,33 +1934,25 @@ export function MarketsPage() {
                             onClick={(e) => e.stopPropagation()}
                             onKeyDown={(e) => e.stopPropagation()}
                           >
-                            <OverflowMenu
-                              className="markets-retag"
-                              label={`Retag ${t.symbol}`}
-                              items={[
-                                {
-                                  id: 'retag',
-                                  label: t.tag ? `Retag (${t.tag})` : 'Retag',
-                                  onClick: () => setRetagTicker(t),
-                                },
-                                ...(t.kind === 'commodity'
-                                  ? [
-                                      {
-                                        id: 'paper-nw',
-                                        label: t.includeInNetWorth
-                                          ? 'Exclude from NW'
-                                          : 'Include in NW',
-                                        onClick: () => {
-                                          updateMarketTicker(t.id, {
-                                            includeInNetWorth: !t.includeInNetWorth,
-                                          })
-                                          reloadList()
-                                        },
-                                      },
-                                    ]
-                                  : []),
-                              ]}
-                            />
+                            {t.kind === 'commodity' ? (
+                              <OverflowMenu
+                                label={`More actions for ${t.symbol}`}
+                                items={[
+                                  {
+                                    id: 'paper-nw',
+                                    label: t.includeInNetWorth
+                                      ? 'Exclude from NW'
+                                      : 'Include in NW',
+                                    onClick: () => {
+                                      updateMarketTicker(t.id, {
+                                        includeInNetWorth: !t.includeInNetWorth,
+                                      })
+                                      reloadList()
+                                    },
+                                  },
+                                ]}
+                              />
+                            ) : null}
                             <button
                               type="button"
                               className="btn-ghost btn-sm btn-icon-edit p-2 min-h-11 min-w-11"
@@ -3158,45 +3116,6 @@ export function MarketsPage() {
       </Modal>
 
       <Modal
-        open={Boolean(retagTicker)}
-        title={retagTicker ? `Retag · ${retagTicker.symbol}` : 'Retag'}
-        onClose={() => setRetagTicker(null)}
-      >
-        {retagTicker ? (
-          <div className="markets-retag space-y-3" data-testid="markets-retag">
-            <p className="text-sm text-text-muted">
-              Apply a watchlist folder tag (Core · Speculative · Income · Other). Tags persist even
-              when filter chips are hidden.
-            </p>
-            <div className="flex flex-wrap gap-2" role="group" aria-label={`Retag ${retagTicker.symbol}`}>
-              {MARKET_TICKER_TAGS.map((tag) => (
-                <button
-                  key={tag}
-                  type="button"
-                  className={`btn-secondary btn-sm ${
-                    retagTicker.tag === tag ? 'border-accent text-accent' : ''
-                  }`}
-                  aria-pressed={retagTicker.tag === tag}
-                  aria-label={`Tag ${retagTicker.symbol} as ${tag}`}
-                  onClick={() => applyTickerTag(retagTicker, tag)}
-                >
-                  {tag}
-                </button>
-              ))}
-              <button
-                type="button"
-                className="btn-ghost btn-sm"
-                aria-label={`Clear tag on ${retagTicker.symbol}`}
-                onClick={() => applyTickerTag(retagTicker, '')}
-              >
-                Clear tag
-              </button>
-            </div>
-          </div>
-        ) : null}
-      </Modal>
-
-      <Modal
         open={fxExplainerOpen}
         title="FX & display currency"
         onClose={() => setFxExplainerOpen(false)}
@@ -3278,43 +3197,6 @@ export function MarketsPage() {
               if (undoTimer.current) window.clearTimeout(undoTimer.current)
               reloadList()
               void refresh()
-            }}
-          >
-            Undo
-          </button>
-        </div>
-      ) : null}
-
-      {undoRetag ? (
-        <div
-          className="markets-undo-retag-banner mb-3 flex flex-wrap items-center justify-between gap-2 surface px-3 py-2 border border-border"
-          role="status"
-        >
-          <p className="text-sm text-text-muted">
-            Retagged <span className="font-semibold text-text">{undoRetag.ticker.symbol}</span>
-          </p>
-          <button
-            type="button"
-            className="btn-secondary btn-sm markets-undo-retag"
-            data-testid="markets-undo-retag"
-            onClick={() => {
-              updateMarketTicker(undoRetag.ticker.id, {
-                tag: undoRetag.previousTag || '',
-              })
-              setUndoRetag(null)
-              if (undoRetagTimer.current) window.clearTimeout(undoRetagTimer.current)
-              reloadList()
-              setQuoteDetail((prev) =>
-                prev && prev.ticker.id === undoRetag.ticker.id
-                  ? {
-                      ...prev,
-                      ticker: {
-                        ...prev.ticker,
-                        tag: undoRetag.previousTag || undefined,
-                      },
-                    }
-                  : prev,
-              )
             }}
           >
             Undo

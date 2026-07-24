@@ -175,6 +175,6 @@ describe('next25b markets / portfolio (6–10)', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8')) as {
       version: string
     }
-    expect(pkg.version).toBe('1.2.100')
+    expect(pkg.version).toBe('1.2.101')
   })
 })
