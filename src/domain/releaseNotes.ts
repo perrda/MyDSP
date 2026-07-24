@@ -40,6 +40,10 @@ export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
         text: 'Folder tags still editable via Edit → Tag / folder',
         to: '/markets',
       },
+      {
+        text: 'Cleaner Markets row chrome on web / tablet / phone',
+        to: '/markets',
+      },
     ],
   },
   {
