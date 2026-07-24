@@ -1,5 +1,11 @@
 # MyDSP Changelog
 
+## [1.2.101] - 2026-07-24
+
+### Improved — Markets row actions
+- **Retag removed** from Markets watchlist rows (Crypto, Equities, etc.) — row actions are **Edit** and **Remove** only
+- Folder tags remain available when editing a ticker (Edit → Tag / folder)
+
 ## [1.2.100] - 2026-07-24
 
 ### Improved — Liability commentary + preferred contact

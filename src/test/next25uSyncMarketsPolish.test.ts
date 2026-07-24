@@ -64,14 +64,14 @@ describe('next25u — sync / Markets / Today polish tip (1–25 → v1.2.87)', (
 
   it('25: package + release notes are 1.2.87', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.100')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.100')
+    expect(pkg.version).toBe('1.2.101')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.101')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.101',
       '1.2.100',
       '1.2.99',
       '1.2.98',
       '1.2.97',
-      '1.2.96',
     ])
   })
 
@@ -168,13 +168,13 @@ describe('next25u — sync / Markets / Today polish tip (1–25 → v1.2.87)', (
     expect(settings).toMatch(/Accessibility prefs/)
   })
 
-  it('6–10: Markets sticky filters · Copy % · timeframe · tag filter · Undo retag', () => {
+  it('6–10: Markets sticky filters · Copy % · timeframe · tag filter · no Undo retag', () => {
     const page = readFileSync(resolve(__dirname, '../pages/MarketsPage.tsx'), 'utf8')
     expect(page).toMatch(/markets-sticky-filters/)
     expect(page).toMatch(/markets-quote-copy-change/)
     expect(page).toMatch(/markets-timeframe/)
     expect(page).toMatch(/markets-tag-filter/)
-    expect(page).toMatch(/markets-undo-retag/)
+    expect(page).not.toMatch(/markets-undo-retag/)
     const css = readFileSync(resolve(__dirname, '../index.css'), 'utf8')
     expect(css).toMatch(/markets-sticky-filters/)
   })

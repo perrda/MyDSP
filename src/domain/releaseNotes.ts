@@ -29,6 +29,24 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.101',
+    date: '2026-07-24',
+    bullets: [
+      {
+        text: 'Markets rows: Retag removed — Edit and Remove only',
+        to: '/markets',
+      },
+      {
+        text: 'Folder tags still editable via Edit → Tag / folder',
+        to: '/markets',
+      },
+      {
+        text: 'Cleaner Markets row chrome on web / tablet / phone',
+        to: '/markets',
+      },
+    ],
+  },
+  {
     version: '1.2.100',
     date: '2026-07-24',
     bullets: [
