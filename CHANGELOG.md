@@ -1,5 +1,13 @@
 # MyDSP Changelog
 
+## [1.2.99] - 2026-07-24
+
+### Added — Liability lender contacts CRUD
+- **Phone / Email / URL** are fully editable and saved per credit card and loan
+- **Detail workspace:** Contacts section has Add / Edit inline form, Save, Cancel, and Clear all
+- **Add / Edit liability modal:** Lender contacts fields on create and edit for cards and loans
+- Values sync with the portfolio (same path as balance / RAG) across devices when cloud sync is configured
+
 ## [1.2.98] - 2026-07-24
 
 ### Fixed — Mobile / tablet portrait + landscape QA

@@ -29,6 +29,24 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.99',
+    date: '2026-07-24',
+    bullets: [
+      {
+        text: 'Liabilities: edit & save lender Phone / Email / URL per card or loan',
+        to: '/liabilities',
+      },
+      {
+        text: 'Contacts section has Add/Edit inline — Clear all supported',
+        to: '/liabilities',
+      },
+      {
+        text: 'Add/Edit liability form includes lender contact fields',
+        to: '/liabilities',
+      },
+    ],
+  },
+  {
     version: '1.2.98',
     date: '2026-07-24',
     bullets: [

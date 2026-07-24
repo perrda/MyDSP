@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ExternalLink, Mail, Phone } from 'lucide-react'
+import { ExternalLink, Mail, Pencil, Phone, Trash2 } from 'lucide-react'
 import { PageHeader } from '../components/ui/PageHeader'
 import { BackNav } from '../components/ui/BackNav'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
+import { useToasts } from '../components/ToastProvider'
 import { usePortfolio } from '../context/PortfolioContext'
 import {
   dailyInterestGbp,
@@ -30,6 +31,7 @@ export function LiabilityDetailPage() {
   const id = Number(idParam)
   const navigate = useNavigate()
   const { data, breakdown, privacy, setData } = usePortfolio()
+  const { success } = useToasts()
 
   const item: CreditCard | Loan | null = useMemo(() => {
     if (!kind || !Number.isFinite(id)) return null
@@ -38,10 +40,12 @@ export function LiabilityDetailPage() {
   }, [data.creditCards, data.loans, kind, id])
 
   const [contactForm, setContactForm] = useState({ phone: '', email: '', url: '' })
+  const [contactEditing, setContactEditing] = useState(false)
   const [contactOpen, setContactOpen] = useState(false)
   const [noteText, setNoteText] = useState('')
   const [editingNote, setEditingNote] = useState<LiabilityCommentary | null>(null)
   const [deleteNoteId, setDeleteNoteId] = useState<number | null>(null)
+  const [clearContactsConfirm, setClearContactsConfirm] = useState(false)
   const [extraPay, setExtraPay] = useState('200')
   const [lumpSum, setLumpSum] = useState('')
   const [applyConfirm, setApplyConfirm] = useState<'lump' | 'paid' | null>(null)
@@ -85,15 +89,22 @@ export function LiabilityDetailPage() {
 
   const patchItem = (patch: Partial<CreditCard & Loan>) => {
     setData((prev) => {
+      const apply = <T extends CreditCard | Loan>(row: T): T => {
+        const next = { ...row, ...patch }
+        if ('contactPhone' in patch && !patch.contactPhone) delete next.contactPhone
+        if ('contactEmail' in patch && !patch.contactEmail) delete next.contactEmail
+        if ('contactUrl' in patch && !patch.contactUrl) delete next.contactUrl
+        return next
+      }
       if (kind === 'card') {
         return {
           ...prev,
-          creditCards: prev.creditCards.map((c) => (c.id === id ? { ...c, ...patch } : c)),
+          creditCards: prev.creditCards.map((c) => (c.id === id ? apply(c) : c)),
         }
       }
       return {
         ...prev,
-        loans: prev.loans.map((l) => (l.id === id ? { ...l, ...patch } : l)),
+        loans: prev.loans.map((l) => (l.id === id ? apply(l) : l)),
       }
     })
   }
@@ -108,17 +119,57 @@ export function LiabilityDetailPage() {
       email: item.contactEmail ?? '',
       url: item.contactUrl ?? '',
     })
+    setContactEditing(true)
     setContactOpen(true)
   }
 
-  const saveContact = () => {
-    patchItem({
-      contactPhone: contactForm.phone.trim() || undefined,
-      contactEmail: contactForm.email.trim() || undefined,
-      contactUrl: contactForm.url.trim() || undefined,
+  const beginInlineContactEdit = () => {
+    setContactForm({
+      phone: item.contactPhone ?? '',
+      email: item.contactEmail ?? '',
+      url: item.contactUrl ?? '',
     })
-    setContactOpen(false)
+    setContactEditing(true)
   }
+
+  const cancelContactEdit = () => {
+    setContactEditing(false)
+    setContactOpen(false)
+    setContactForm({
+      phone: item.contactPhone ?? '',
+      email: item.contactEmail ?? '',
+      url: item.contactUrl ?? '',
+    })
+  }
+
+  const saveContact = () => {
+    const phone = contactForm.phone.trim()
+    const email = contactForm.email.trim()
+    const url = contactForm.url.trim()
+    patchItem({
+      contactPhone: phone || undefined,
+      contactEmail: email || undefined,
+      contactUrl: url || undefined,
+    })
+    setContactEditing(false)
+    setContactOpen(false)
+    success(phone || email || url ? 'Contacts saved' : 'Contacts cleared')
+  }
+
+  const clearContacts = () => {
+    patchItem({
+      contactPhone: undefined,
+      contactEmail: undefined,
+      contactUrl: undefined,
+    })
+    setContactForm({ phone: '', email: '', url: '' })
+    setContactEditing(false)
+    setContactOpen(false)
+    setClearContactsConfirm(false)
+    success('Contacts cleared')
+  }
+
+  const hasContacts = Boolean(item.contactPhone || item.contactEmail || item.contactUrl)
 
   const saveNote = () => {
     const text = noteText.trim()
@@ -192,8 +243,9 @@ export function LiabilityDetailPage() {
         description="Full debt workspace — commentary, contacts, RAG, and pay-down vs your portfolio."
         action={
           <div className="flex flex-wrap gap-2">
-            <button type="button" className="btn-secondary btn-sm" onClick={openContact}>
-              Contacts
+            <button type="button" className="btn-secondary btn-sm btn-icon-edit" onClick={openContact}>
+              <Pencil size={16} strokeWidth={1.75} className="icon-edit" aria-hidden />{' '}
+              {hasContacts ? 'Edit contacts' : 'Add contacts'}
             </button>
             <Link to="/optimizer" className="btn-ghost btn-sm">
               Debt tools
@@ -388,39 +440,127 @@ export function LiabilityDetailPage() {
             </div>
           ) : null}
 
-          <div className="mt-8 pt-6 border-t border-border space-y-3">
-            <p className="label-uppercase mb-3">Contacts</p>
-            {item.contactPhone ? (
-              <a
-                href={`tel:${item.contactPhone}`}
-                className="flex items-center gap-2 text-sm text-text-muted hover:text-accent"
+          <div className="mt-8 pt-6 border-t border-border space-y-3" data-testid="liability-contacts">
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <p className="label-uppercase mb-0">Contacts</p>
+              {!contactEditing ? (
+                <button
+                  type="button"
+                  className="btn-ghost btn-sm btn-icon-edit inline-flex items-center gap-1.5"
+                  data-testid="liability-contacts-edit"
+                  onClick={beginInlineContactEdit}
+                >
+                  <Pencil size={16} strokeWidth={1.75} className="icon-edit" aria-hidden />
+                  {hasContacts ? 'Edit' : 'Add'}
+                </button>
+              ) : null}
+            </div>
+
+            {contactEditing ? (
+              <form
+                className="space-y-4"
+                data-testid="liability-contacts-form"
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  saveContact()
+                }}
               >
-                <Phone size={14} strokeWidth={1.5} /> {item.contactPhone}
-              </a>
+                <Field label="Phone">
+                  <input
+                    type="tel"
+                    autoComplete="tel"
+                    data-testid="liability-contact-phone"
+                    value={contactForm.phone}
+                    onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })}
+                    placeholder="+44…"
+                  />
+                </Field>
+                <Field label="Email">
+                  <input
+                    type="email"
+                    autoComplete="email"
+                    data-testid="liability-contact-email"
+                    value={contactForm.email}
+                    onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
+                    placeholder="collections@lender.com"
+                  />
+                </Field>
+                <Field label="URL">
+                  <input
+                    type="url"
+                    data-testid="liability-contact-url"
+                    value={contactForm.url}
+                    onChange={(e) => setContactForm({ ...contactForm, url: e.target.value })}
+                    placeholder="https://"
+                  />
+                </Field>
+                <div className="flex flex-wrap gap-2">
+                  <button type="submit" className="btn-primary btn-sm" data-testid="liability-contacts-save">
+                    Save contacts
+                  </button>
+                  <button type="button" className="btn-ghost btn-sm" onClick={cancelContactEdit}>
+                    Cancel
+                  </button>
+                  {hasContacts ? (
+                    <button
+                      type="button"
+                      className="btn-ghost btn-sm text-red-500 inline-flex items-center gap-1"
+                      data-testid="liability-contacts-clear"
+                      onClick={() => setClearContactsConfirm(true)}
+                    >
+                      <Trash2 size={14} aria-hidden /> Clear all
+                    </button>
+                  ) : null}
+                </div>
+              </form>
             ) : (
-              <p className="text-sm text-text-subtle">No phone</p>
-            )}
-            {item.contactEmail ? (
-              <a
-                href={`mailto:${item.contactEmail}`}
-                className="flex items-center gap-2 text-sm text-text-muted hover:text-accent"
-              >
-                <Mail size={14} strokeWidth={1.5} /> {item.contactEmail}
-              </a>
-            ) : (
-              <p className="text-sm text-text-subtle">No email</p>
-            )}
-            {item.contactUrl ? (
-              <a
-                href={item.contactUrl.startsWith('http') ? item.contactUrl : `https://${item.contactUrl}`}
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center gap-2 text-sm text-text-muted hover:text-accent break-all"
-              >
-                <ExternalLink size={14} strokeWidth={1.5} /> {item.contactUrl}
-              </a>
-            ) : (
-              <p className="text-sm text-text-subtle">No URL</p>
+              <div className="space-y-3">
+                {item.contactPhone ? (
+                  <a
+                    href={`tel:${item.contactPhone}`}
+                    className="flex items-center gap-2 text-sm text-text-muted hover:text-accent min-h-11"
+                  >
+                    <Phone size={14} strokeWidth={1.5} /> {item.contactPhone}
+                  </a>
+                ) : (
+                  <p className="text-sm text-text-subtle">No phone</p>
+                )}
+                {item.contactEmail ? (
+                  <a
+                    href={`mailto:${item.contactEmail}`}
+                    className="flex items-center gap-2 text-sm text-text-muted hover:text-accent min-h-11"
+                  >
+                    <Mail size={14} strokeWidth={1.5} /> {item.contactEmail}
+                  </a>
+                ) : (
+                  <p className="text-sm text-text-subtle">No email</p>
+                )}
+                {item.contactUrl ? (
+                  <a
+                    href={
+                      item.contactUrl.startsWith('http')
+                        ? item.contactUrl
+                        : `https://${item.contactUrl}`
+                    }
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-2 text-sm text-text-muted hover:text-accent break-all min-h-11"
+                  >
+                    <ExternalLink size={14} strokeWidth={1.5} /> {item.contactUrl}
+                  </a>
+                ) : (
+                  <p className="text-sm text-text-subtle">No URL</p>
+                )}
+                {!hasContacts ? (
+                  <button
+                    type="button"
+                    className="btn-secondary btn-sm mt-1"
+                    onClick={beginInlineContactEdit}
+                  >
+                    Add phone, email, or URL
+                  </button>
+                ) : null}
+              </div>
             )}
           </div>
         </section>
@@ -560,7 +700,7 @@ export function LiabilityDetailPage() {
         open={contactOpen}
         size="full"
         title="Contact details"
-        onClose={() => setContactOpen(false)}
+        onClose={cancelContactEdit}
       >
         <form
           className="space-y-5"
@@ -572,6 +712,7 @@ export function LiabilityDetailPage() {
           <Field label="Telephone">
             <input
               type="tel"
+              autoComplete="tel"
               value={contactForm.phone}
               onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })}
               placeholder="+44…"
@@ -580,8 +721,10 @@ export function LiabilityDetailPage() {
           <Field label="Email">
             <input
               type="email"
+              autoComplete="email"
               value={contactForm.email}
               onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
+              placeholder="collections@lender.com"
             />
           </Field>
           <Field label="URL">
@@ -592,8 +735,17 @@ export function LiabilityDetailPage() {
               placeholder="https://"
             />
           </Field>
-          <div className="flex justify-end gap-3">
-            <button type="button" className="btn-ghost" onClick={() => setContactOpen(false)}>
+          <div className="flex flex-wrap justify-end gap-3">
+            {hasContacts ? (
+              <button
+                type="button"
+                className="btn-ghost text-red-500 mr-auto"
+                onClick={() => setClearContactsConfirm(true)}
+              >
+                Clear all
+              </button>
+            ) : null}
+            <button type="button" className="btn-ghost" onClick={cancelContactEdit}>
               Cancel
             </button>
             <button type="submit" className="btn-primary">
@@ -602,6 +754,15 @@ export function LiabilityDetailPage() {
           </div>
         </form>
       </Modal>
+
+      <ConfirmDialog
+        open={clearContactsConfirm}
+        title="Clear contacts"
+        body="Remove phone, email, and URL for this lender?"
+        confirmLabel="Clear"
+        onClose={() => setClearContactsConfirm(false)}
+        onConfirm={clearContacts}
+      />
 
       <ConfirmDialog
         open={deleteNoteId !== null}
