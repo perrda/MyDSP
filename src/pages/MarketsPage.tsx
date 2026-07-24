@@ -6,12 +6,15 @@ import {
   ChevronUp,
   FoldVertical,
   HelpCircle,
+  LayoutGrid,
   LayoutList,
+  Clock3,
   Moon,
   Pencil,
   Plus,
   RefreshCw,
   Rows3,
+  SlidersHorizontal,
   Sun,
   Trash2,
   UnfoldVertical,
@@ -236,12 +239,6 @@ function formatLastDisplay(q: MarketQuote | undefined): string {
   }
   // Crypto + equity quotes are stored in GBP — convert to the toolbar display CCY
   return formatGBPMarket(q.last)
-}
-
-function matchesMarketsSearch(t: MarketTicker, query: string): boolean {
-  if (!query) return true
-  const haystack = `${t.symbol} ${t.name}`.toLowerCase()
-  return haystack.includes(query)
 }
 
 function normPortfolioSymbol(symbol: string): string {
@@ -599,8 +596,8 @@ export function MarketsPage() {
   const [retagTicker, setRetagTicker] = useState<MarketTicker | null>(null)
   const [fxExplainerOpen, setFxExplainerOpen] = useState(false)
   const [tagFilter, setTagFilter] = useState<MarketTickerTag | 'All'>(() => getMarketsTagFilter())
-  const [searchText, setSearchText] = useState('')
   const [yieldSort, setYieldSort] = useState(() => getMarketsYieldSort())
+  const [toolbarPanel, setToolbarPanel] = useState<'assets' | 'timeframe' | 'format' | null>(null)
   const [online, setOnline] = useState(() => isOnline())
   const [relativeTick, setRelativeTick] = useState(0)
   const [activeJumpSection, setActiveJumpSection] = useState<SectionKey | null>(null)
@@ -747,45 +744,8 @@ export function MarketsPage() {
     return () => window.clearTimeout(retry)
   }, [focusSymbol, collapsed, tickers])
 
-  const searchQuery = searchText.trim().toLowerCase()
-
   const activeTagFilter = showMarketsTagYieldChips ? tagFilter : 'All'
   const activeYieldSort = showMarketsTagYieldChips ? yieldSort : false
-
-  /** Search → expand section and scroll/select the first match. */
-  useEffect(() => {
-    if (!searchQuery) return
-    const tagged =
-      activeTagFilter === 'All'
-        ? tickers
-        : tickers.filter((t) => t.tag === activeTagFilter)
-    const hit = tagged.find((t) => matchesMarketsSearch(t, searchQuery))
-    if (!hit) return
-    const section: SectionKey =
-      hit.kind === 'crypto'
-        ? 'crypto'
-        : hit.kind === 'equity'
-          ? 'equities'
-          : hit.kind === 'commodity'
-            ? 'commodities'
-            : hit.kind === 'index'
-              ? 'indices'
-              : hit.kind === 'fx'
-                ? 'fx'
-                : 'crosses'
-    setCollapsed((prev) => {
-      if (!prev[section]) return prev
-      const next = { ...prev, [section]: false }
-      setMarketsCollapsed(section, false)
-      return next
-    })
-    setFocusSymbol(hit.symbol)
-    setQuoteDetail((prev) => {
-      const q = loadMarketQuotesCache().get(hit.id)
-      if (prev?.ticker.id === hit.id) return { ticker: hit, quote: q ?? prev.quote }
-      return { ticker: hit, quote: q }
-    })
-  }, [searchQuery, activeTagFilter, tickers])
 
   const bySection = useMemo(
     () => {
@@ -793,20 +753,17 @@ export function MarketsPage() {
         activeTagFilter === 'All'
           ? tickers
           : tickers.filter((t) => t.tag === activeTagFilter)
-      const filtered = searchQuery
-        ? tagged.filter((t) => matchesMarketsSearch(t, searchQuery))
-        : tagged
-      const equities = filtered.filter((t) => t.kind === 'equity')
+      const equities = tagged.filter((t) => t.kind === 'equity')
       return {
-        crypto: filtered.filter((t) => t.kind === 'crypto'),
+        crypto: tagged.filter((t) => t.kind === 'crypto'),
         equities: activeYieldSort ? sortByYieldDesc(equities) : equities,
-        commodities: filtered.filter((t) => t.kind === 'commodity'),
-        indices: filtered.filter((t) => t.kind === 'index'),
-        fx: filtered.filter((t) => t.kind === 'fx'),
-        crosses: filtered.filter((t) => t.kind === 'cross'),
+        commodities: tagged.filter((t) => t.kind === 'commodity'),
+        indices: tagged.filter((t) => t.kind === 'index'),
+        fx: tagged.filter((t) => t.kind === 'fx'),
+        crosses: tagged.filter((t) => t.kind === 'cross'),
       }
     },
-    [tickers, activeTagFilter, searchQuery, activeYieldSort],
+    [tickers, activeTagFilter, activeYieldSort],
   )
 
   const fxTriangleHits = useMemo(() => {
@@ -943,14 +900,9 @@ export function MarketsPage() {
         setData((prev) => applyLastSyncedQuotesToHoldings(prev, { overwrite: true }).data)
         const at = new Date().toISOString()
         setMarketsLastRefresh(at)
-        const liveCount = [...merged.values()].filter((q) => q.last > 0 && !isStaleQuote(q)).length
         const shown = [...merged.values()].filter((q) => q.last > 0).length
         if (!kind && shown < allTickers.length) {
-          setError(
-            `Showing ${shown}/${allTickers.length} prices` +
-              (liveCount < shown ? ` (${shown - liveCount} cached)` : '') +
-              ' — retrying sources shortly.',
-          )
+          // Quiet partial retry — do not surface “Showing n/m prices” chrome
           if (!partialRetryArmed.current) {
             partialRetryArmed.current = true
             if (partialRetryTimer.current) window.clearTimeout(partialRetryTimer.current)
@@ -1069,18 +1021,16 @@ export function MarketsPage() {
   const densityTrust = useMemo(() => {
     let collapsedCount = 0
     let hiddenSparklines = 0
-    if (!searchQuery) {
-      for (const section of sectionOrder) {
-        if (!collapsed[section]) continue
-        collapsedCount += 1
-        for (const t of bySection[section]) {
-          const q = quotes.get(t.id)
-          if (q && q.sparkline.length > 1) hiddenSparklines += 1
-        }
+    for (const section of sectionOrder) {
+      if (!collapsed[section]) continue
+      collapsedCount += 1
+      for (const t of bySection[section]) {
+        const q = quotes.get(t.id)
+        if (q && q.sparkline.length > 1) hiddenSparklines += 1
       }
     }
     return { collapsedCount, hiddenSparklines }
-  }, [searchQuery, sectionOrder, collapsed, bySection, quotes])
+  }, [sectionOrder, collapsed, bySection, quotes])
 
   useEffect(() => {
     const onOnline = () => {
@@ -1430,7 +1380,7 @@ export function MarketsPage() {
             ? commodityHoldingsValue
             : new Map<string, number>()
     const totals = sectionTotals(items, quotes, holdings)
-    const isCollapsed = searchQuery ? false : collapsed[section]
+    const isCollapsed = collapsed[section]
     const isRateSection = section === 'fx' || section === 'crosses' || section === 'indices'
     const asOfIso = sectionAsOfIso(items, quotes, loadMarketsState().lastRefreshAt)
     const asOf = asOfIso
@@ -1551,20 +1501,17 @@ export function MarketsPage() {
                 <EmptyStateInline
                   illustration
                   message={
-                    searchQuery
-                      ? `No ${meta.emptyLabel} matches "${searchText.trim()}".`
-                      : activeTagFilter !== 'All'
-                        ? `No ${meta.emptyLabel} tagged ${activeTagFilter}.`
-                        : `No ${meta.emptyLabel} yet — add one or seed a preset.`
+                    activeTagFilter !== 'All'
+                      ? `No ${meta.emptyLabel} tagged ${activeTagFilter}.`
+                      : `No ${meta.emptyLabel} yet — add one or seed a preset.`
                   }
                   action={
-                    searchQuery || activeTagFilter !== 'All'
+                    activeTagFilter !== 'All'
                       ? undefined
                       : { label: meta.addLabel, onClick: () => openCreate(meta.kind) }
                   }
                 />
-                {!searchQuery &&
-                activeTagFilter === 'All' &&
+                {activeTagFilter === 'All' &&
                 (section === 'crypto' ||
                   section === 'equities' ||
                   section === 'commodities' ||
@@ -2209,41 +2156,42 @@ export function MarketsPage() {
         className="markets-sticky-toolbar sticky z-[9] -mx-1 mb-3 bg-bg/95 px-1 py-1.5 backdrop-blur supports-[backdrop-filter]:bg-bg/80"
       >
         <div className="markets-toolbar-stack">
-          <div className="markets-in-list-search surface border border-border-strong px-3 py-2">
-            <label className="sr-only" htmlFor="markets-search-input">
-              Search watchlist by symbol or name
-            </label>
-            <div className="flex flex-wrap items-center gap-2">
-              <input
-                id="markets-search-input"
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Escape') {
-                    e.preventDefault()
-                    setSearchText('')
-                  }
-                }}
-                placeholder=""
-                aria-label="Search watchlist by symbol or name"
-                className="min-w-[14rem] flex-1"
-              />
-              {searchText ? (
+          <div
+            className="markets-panel-toggles"
+            role="tablist"
+            aria-label="Markets filters"
+          >
+            {(
+              [
+                ['assets', 'Assets', LayoutGrid],
+                ['timeframe', 'Timeframe', Clock3],
+                ['format', 'Format', SlidersHorizontal],
+              ] as const
+            ).map(([id, label, Icon]) => {
+              const open = toolbarPanel === id
+              return (
                 <button
+                  key={id}
                   type="button"
-                  className="ui-seg markets-search-clear"
-                  data-testid="markets-search-clear"
-                  aria-label="Clear markets search"
-                  onClick={() => setSearchText('')}
+                  role="tab"
+                  className={`markets-panel-toggle ui-seg${open ? ' is-active' : ''}`}
+                  data-testid={`markets-panel-${id}`}
+                  aria-selected={open}
+                  aria-expanded={open}
+                  aria-controls={`markets-panel-body-${id}`}
+                  onClick={() => setToolbarPanel((prev) => (prev === id ? null : id))}
                 >
-                  Clear
+                  <Icon size={14} strokeWidth={1.75} aria-hidden />
+                  {label}
                 </button>
-              ) : null}
-            </div>
+              )
+            })}
           </div>
 
+          {toolbarPanel === 'assets' ? (
           <nav
-            className="markets-section-jump-chips ui-seg-group ui-seg-group--tight"
+            id="markets-panel-body-assets"
+            className="markets-section-jump-chips ui-seg-group ui-seg-group--tight markets-panel-body"
             role="tablist"
             aria-label="Jump to market section"
             onKeyDown={(e) => {
@@ -2327,9 +2275,12 @@ export function MarketsPage() {
               )
             })}
           </nav>
+          ) : null}
 
+          {toolbarPanel === 'timeframe' ? (
           <div
-            className="markets-timeframe-row ui-seg-group ui-seg-group--tight"
+            id="markets-panel-body-timeframe"
+            className="markets-timeframe-row ui-seg-group ui-seg-group--tight markets-panel-body"
             role="tablist"
             aria-label="Sparkline and percent change timeframe"
             onKeyDown={(e) => {
@@ -2376,9 +2327,12 @@ export function MarketsPage() {
               </button>
             ))}
           </div>
+          ) : null}
 
+          {toolbarPanel === 'format' ? (
           <div
-            className="markets-view-controls ui-seg-group ui-seg-group--tight"
+            id="markets-panel-body-format"
+            className="markets-view-controls ui-seg-group ui-seg-group--tight markets-panel-body"
             role="toolbar"
             aria-label="Markets view controls"
           >
@@ -2466,6 +2420,7 @@ export function MarketsPage() {
               </span>
             ) : null}
           </div>
+          ) : null}
         </div>
       </div>
 

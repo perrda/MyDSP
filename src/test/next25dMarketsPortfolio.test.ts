@@ -3,13 +3,12 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 describe('next25d markets / portfolio items 6-10', () => {
-  it('6: Markets has sticky in-list search by symbol/name', () => {
+  it('6: Markets sticky toolbar uses Assets / Timeframe / Format panels', () => {
     const markets = readFileSync(resolve(__dirname, '../pages/MarketsPage.tsx'), 'utf8')
-    expect(markets).toMatch(/markets-in-list-search/)
-    expect(markets).toMatch(/aria-label="Search watchlist by symbol or name"/)
-    expect(markets).toMatch(/matchesMarketsSearch/)
+    expect(markets).toMatch(/markets-panel-toggles/)
+    expect(markets).toMatch(/data-testid=\{`markets-panel-\$\{id\}`\}/)
     expect(markets).toMatch(/markets-sticky-toolbar/)
-    expect(markets).toMatch(/No \$\{meta\.emptyLabel\} matches/)
+    expect(markets).not.toMatch(/markets-in-list-search/)
   })
 
   it('7: watchlist dividend yield displays; Yield % chip gated behind markets tag/yield pref', () => {

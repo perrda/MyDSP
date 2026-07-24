@@ -1,5 +1,11 @@
 # MyDSP Changelog
 
+## [1.2.97] - 2026-07-24
+
+### Improved — Markets Assets / Timeframe / Format panels
+- **Removed** partial “Showing n/m prices — retrying…” chrome and the Markets search bar
+- **Disclosure toggles:** Assets · Timeframe · Format under the Prices header — chip rows stay hidden until selected (exclusive panels, cleaner use of space)
+
 ## [1.2.96] - 2026-07-24
 
 ### Improved — Markets toolbar layout + page headers

@@ -26,9 +26,9 @@ describe('next25d quality / ops (21–25)', () => {
     expect(src).toMatch(/loadBottomNavMiddleSlots/)
   })
 
-  it('23: Playwright smoke covers Markets search + smoke lock/nav', () => {
+  it('23: Playwright smoke covers Markets panels + smoke lock/nav', () => {
     const src = readFileSync(resolve(__dirname, '../../e2e/smoke.spec.ts'), 'utf8')
-    expect(src).toMatch(/Search watchlist/)
+    expect(src).toMatch(/markets-panel-assets/)
     expect(src).toMatch(/Bottom nav middle slots/)
     expect(src).toContain('Face ID lock')
     expect(src).toMatch(/Today → Markets → Settings/)
