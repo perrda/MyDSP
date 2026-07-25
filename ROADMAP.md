@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.103**
+**Current version: 1.2.104**
 
-## Completed (through v1.2.103)
+## Completed (through v1.2.104)
 
+- YouTube / News cross-device sync (v1.2.104): unlock-passphrase banner · Pull applies media during portfolio conflicts · tombstone recency so re-adds sync
 - Favourites excellence wave (v1.2.103): Today customize + trust · Analytics trust/actions · Markets search/master-detail/alerts · Liabilities due day/search/archive · Jobs upcoming/filters · Todos recurrence/archive · Equities/Crypto metadata + phone trades · News/YouTube breakpoints + undo
 - Job Tracker overhaul (v1.2.102): company-first cards/list/detail · dedicated List CRUD · clean salary · contact preferred method · compact landscape quick-scan
 - Markets remove Retag (v1.2.101): watchlist rows show Edit + Remove only · tags still via Edit form

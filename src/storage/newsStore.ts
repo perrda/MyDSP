@@ -122,6 +122,18 @@ function mergeTagTombstones(
   return [...byTag.entries()].map(([tag, deletedAt]) => ({ tag, deletedAt }))
 }
 
+/** Tombstone wins only when delete is strictly after createdAt (same-ms re-add keeps the tag). */
+export function newsTombstoneSuppressesTag(
+  deletedAt: string,
+  createdAt: string | undefined,
+): boolean {
+  const del = Date.parse(deletedAt) || 0
+  const created = Date.parse(createdAt || '') || 0
+  if (!del) return false
+  if (!created) return true
+  return del > created
+}
+
 export function addNewsTag(input: { tag: string; label?: string }): NewsTag {
   const tag = normalizeNewsTag(input.tag)
   if (!tag) throw new Error('Tag is required.')
@@ -237,22 +249,41 @@ export function importNewsFromBackup(raw: unknown): void {
   const localPrefsAt = Date.parse(local.prefsUpdatedAt || '') || 0
   const preferRemotePrefs = remotePrefsAt >= localPrefsAt && remotePrefsAt > 0
 
-  const deletedTags = mergeTagTombstones(local.deletedTags, parsed.deletedTags)
-  const tombstoned = new Set(deletedTags.map((d) => d.tag))
+  const mergedTombstones = mergeTagTombstones(local.deletedTags, parsed.deletedTags)
+  const tombstoneAt = new Map(mergedTombstones.map((d) => [d.tag, d.deletedAt]))
 
   // Union tags by normalized ticker (keep local row when both have it).
-  // Skip tombstoned tags so removals sync across web / tablet / mobile.
+  // Tombstones suppress a tag only when deletedAt >= createdAt (re-add wins).
   const byTag = new Map<string, NewsTag>()
-  for (const t of local.tags.map(normalizeTag)) {
-    if (tombstoned.has(t.tag)) continue
-    byTag.set(t.tag, t)
+  const consider = (t: NewsTag) => {
+    const delAt = tombstoneAt.get(t.tag)
+    if (delAt && newsTombstoneSuppressesTag(delAt, t.createdAt)) return
+    const prev = byTag.get(t.tag)
+    if (!prev) {
+      byTag.set(t.tag, t)
+      return
+    }
+    const prevMs = Date.parse(prev.createdAt) || 0
+    const nextMs = Date.parse(t.createdAt) || 0
+    if (nextMs > prevMs) byTag.set(t.tag, { ...t, sortOrder: prev.sortOrder })
   }
+  for (const t of local.tags.map(normalizeTag)) consider(t)
   let nextOrder = local.tags.reduce((m, t) => Math.max(m, t.sortOrder), -1) + 1
   for (const t of parsed.tags.map(normalizeTag)) {
-    if (tombstoned.has(t.tag)) continue
-    if (byTag.has(t.tag)) continue
+    if (byTag.has(t.tag)) {
+      consider(t)
+      continue
+    }
+    const delAt = tombstoneAt.get(t.tag)
+    if (delAt && newsTombstoneSuppressesTag(delAt, t.createdAt)) continue
     byTag.set(t.tag, { ...t, sortOrder: nextOrder++ })
   }
+
+  const deletedTags = mergedTombstones.filter((d) => {
+    const kept = byTag.get(d.tag)
+    if (kept && !newsTombstoneSuppressesTag(d.deletedAt, kept.createdAt)) return false
+    return true
+  })
 
   const remoteSeenAt = typeof parsed.seenAt === 'string' ? parsed.seenAt : undefined
   const localSeenAt = typeof local.seenAt === 'string' ? local.seenAt : undefined

@@ -43,14 +43,14 @@ describe('Media cross-device sync (v1.2.95)', () => {
 
   it('package + release notes tip', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.103')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.103')
+    expect(pkg.version).toBe('1.2.104')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.104')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.104',
       '1.2.103',
       '1.2.102',
       '1.2.101',
       '1.2.100',
-      '1.2.99',
     ])
   })
 
@@ -98,7 +98,7 @@ describe('Media cross-device sync (v1.2.95)', () => {
     const afterRemove = exportYoutubeForBackup()
     expect(afterRemove.deletedChannels?.some((d) => d.channelId === 'UC_shared')).toBe(true)
 
-    // Other device still has UC_shared — tombstone must win on import
+    // Re-add AFTER the tombstone timestamp — re-add must win (stale tombstone dropped)
     mem.clear()
     addYoutubeChannel({
       channelId: 'UC_shared',
@@ -106,7 +106,50 @@ describe('Media cross-device sync (v1.2.95)', () => {
       url: 'https://www.youtube.com/channel/UC_shared',
     })
     importYoutubeFromBackup(afterRemove)
-    expect(listYoutubeChannels().map((c) => c.channelId)).not.toContain('UC_shared')
+    expect(listYoutubeChannels().map((c) => c.channelId)).toContain('UC_shared')
+    expect(exportYoutubeForBackup().deletedChannels?.some((d) => d.channelId === 'UC_shared')).toBe(
+      false,
+    )
+
+    // Newer tombstone still deletes an older channel row
+    mem.clear()
+    addYoutubeChannel({
+      channelId: 'UC_old',
+      title: 'Old',
+      url: 'https://www.youtube.com/channel/UC_old',
+    })
+    const oldExport = exportYoutubeForBackup()
+    const oldRow = oldExport.channels.find((c) => c.channelId === 'UC_old')!
+    importYoutubeFromBackup({
+      ...oldExport,
+      deletedChannels: [{ channelId: 'UC_old', deletedAt: new Date(Date.now() + 60_000).toISOString() }],
+      channels: [{ ...oldRow, createdAt: new Date(Date.now() - 60_000).toISOString() }],
+    })
+    expect(listYoutubeChannels().map((c) => c.channelId)).not.toContain('UC_old')
+  })
+
+  it('empty web device pulls iPad YouTube channels via union import', () => {
+    addYoutubeChannel({
+      channelId: 'UC_a',
+      title: 'Simply Bitcoin',
+      url: 'https://www.youtube.com/@simplybitcoin',
+    })
+    addYoutubeChannel({
+      channelId: 'UC_b',
+      title: 'Altcoin Daily',
+      url: 'https://www.youtube.com/@AltcoinDaily',
+    })
+    const fromIpad = exportYoutubeForBackup()
+    expect(fromIpad.channels).toHaveLength(2)
+
+    mem.clear()
+    // Silent empty seed on web
+    expect(loadYoutubeState().channels).toEqual([])
+    importYoutubeFromBackup(fromIpad)
+    expect(listYoutubeChannels().map((c) => c.title).sort()).toEqual([
+      'Altcoin Daily',
+      'Simply Bitcoin',
+    ])
   })
 
   it('News tags union + deletion tombstones across devices', () => {
@@ -124,19 +167,30 @@ describe('Media cross-device sync (v1.2.95)', () => {
     const afterRemove = exportNewsForBackup()
     expect(afterRemove.deletedTags?.some((d) => d.tag === 'NIGHT')).toBe(true)
 
+    // Re-add after tombstone — keep tag
     mem.clear()
     addNewsTag({ tag: 'NIGHT', label: 'Resurrected' })
     importNewsFromBackup(afterRemove)
-    expect(listNewsTags().map((t) => t.tag)).not.toContain('NIGHT')
+    expect(listNewsTags().map((t) => t.tag)).toContain('NIGHT')
   })
 
   it('portfolio conflicts do not block workspace extras apply', () => {
     const sync = readFileSync(resolve(__dirname, '../services/sync/syncService.ts'), 'utf8')
     const auto = readFileSync(resolve(__dirname, '../services/sync/autoSyncService.ts'), 'utf8')
+    const settings = readFileSync(resolve(__dirname, '../pages/SettingsPage.tsx'), 'utf8')
     expect(sync).toMatch(/export async function applyWorkspaceExtrasFromPreview/)
     expect(sync).toMatch(/Portfolio conflicts must not block YouTube/)
     expect(auto).toMatch(/applyWorkspaceExtrasFromPreview\(preview\)/)
     expect(auto).toMatch(/Portfolio conflicts must not block YouTube/)
+    expect(settings).toMatch(/applyWorkspaceExtrasFromPreview\(preview\)/)
+    expect(settings).toMatch(/YouTube\/News\/Markets pulled/)
+  })
+
+  it('YouTube page surfaces unlock-sync banner when passphrase needed', () => {
+    const page = readFileSync(resolve(__dirname, '../pages/YouTubePage.tsx'), 'utf8')
+    expect(page).toMatch(/data-testid="youtube-unlock-sync-banner"/)
+    expect(page).toMatch(/needs-passphrase/)
+    expect(page).toMatch(/Unlock sync to pull favourite channels/)
   })
 
   it('Cursor rule + smoke docs lock media cross-device sync', () => {

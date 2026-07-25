@@ -1,5 +1,12 @@
 # MyDSP Changelog
 
+## [1.2.104] - 2026-07-25
+
+### Fixed — YouTube / News cross-device sync
+- **Unlock sync banner** on YouTube when cloud sync needs passphrase (explains why Mac/web can show 0 channels while iPad has favourites)
+- **Settings Pull & merge / Import:** always apply YouTube · News · Markets workspace extras even when portfolio conflicts need review
+- **Tombstone recency:** re-adding a deleted channel/tag after a tombstone keeps it and drops the stale delete; newer deletes still win
+
 ## [1.2.103] - 2026-07-25
 
 ### Improved — Favourites excellence wave (10 sections)
