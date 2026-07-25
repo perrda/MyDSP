@@ -29,6 +29,24 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.105',
+    date: '2026-07-25',
+    bullets: [
+      {
+        text: 'YouTube: Shorts filtered out — full-length videos only',
+        to: '/youtube',
+      },
+      {
+        text: 'Shorts stripped from feed, cache, sync, and upload alerts',
+        to: '/youtube',
+      },
+      {
+        text: 'Finance titles about “shorts” (short selling) still allowed',
+        to: '/youtube',
+      },
+    ],
+  },
+  {
     version: '1.2.104',
     date: '2026-07-25',
     bullets: [

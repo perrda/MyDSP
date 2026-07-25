@@ -82,6 +82,8 @@ export interface ParsedFeedItem {
   source?: string
   imageUrl?: string
   author?: string
+  /** Present on some YouTube Atom entries (`yt:duration`). */
+  durationSeconds?: number
 }
 
 function textContent(el: Element | null): string {
@@ -167,6 +169,12 @@ export function parseFeedXml(xml: string): ParsedFeedItem[] {
     const author = textContent(entry.querySelector('author > name')) || channelTitle
     const media = entry.querySelector('media\\:group media\\:thumbnail, media\\:thumbnail')
     const imageUrl = attr(media, 'url') || undefined
+    const durationEl =
+      entry.querySelector('media\\:group yt\\:duration, yt\\:duration') ||
+      entry.getElementsByTagNameNS('*', 'duration')[0] ||
+      null
+    const durationRaw = attr(durationEl, 'seconds') || textContent(durationEl)
+    const durationSeconds = durationRaw ? Number(durationRaw) : undefined
     const id = textContent(firstChild(entry, ['id'])) || link || `${title}-${i}`
     return {
       id,
@@ -177,6 +185,8 @@ export function parseFeedXml(xml: string): ParsedFeedItem[] {
       source: author || undefined,
       imageUrl,
       author,
+      durationSeconds:
+        durationSeconds != null && Number.isFinite(durationSeconds) ? durationSeconds : undefined,
     }
   })
 }
