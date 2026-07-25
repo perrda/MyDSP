@@ -76,6 +76,9 @@ export function loadNewsState(): NewsState {
         tagged: Boolean(existing.collapsed?.tagged),
       },
       tags: existing.tags.map(normalizeTag),
+      savedArticles: Array.isArray(existing.savedArticles)
+        ? [...new Set(existing.savedArticles.filter((x) => typeof x === 'string' && x.trim()))]
+        : [],
       seenAt: typeof existing.seenAt === 'string' ? existing.seenAt : undefined,
     })
     if (normalized.seenAt && !existing.seenAt) {
@@ -100,6 +103,9 @@ export function saveNewsState(state: NewsState, opts?: { touchPrefs?: boolean })
     ...state,
     version: 1,
     tags: state.tags.map(normalizeTag),
+    savedArticles: Array.isArray(state.savedArticles)
+      ? [...new Set(state.savedArticles.filter((x) => typeof x === 'string' && x.trim()))]
+      : [],
   })
 }
 
@@ -236,6 +242,28 @@ export function setNewsSeenAt(iso: string): void {
   }
 }
 
+export function getSavedNewsArticles(): string[] {
+  return loadNewsState().savedArticles ?? []
+}
+
+export function isNewsArticleSaved(key: string): boolean {
+  if (!key) return false
+  return getSavedNewsArticles().includes(key)
+}
+
+export function toggleSavedNewsArticle(key: string): boolean {
+  const trimmed = key.trim()
+  if (!trimmed) return false
+  const state = loadNewsState()
+  const saved = new Set(state.savedArticles ?? [])
+  const nextSaved = !saved.has(trimmed)
+  if (nextSaved) saved.add(trimmed)
+  else saved.delete(trimmed)
+  state.savedArticles = [...saved]
+  saveNewsState(state)
+  return nextSaved
+}
+
 export function exportNewsForBackup(): NewsState {
   return loadNewsState()
 }
@@ -293,6 +321,12 @@ export function importNewsFromBackup(raw: unknown): void {
     remoteSeenMs >= localSeenMs
       ? remoteSeenAt || localSeenAt
       : localSeenAt || remoteSeenAt
+  const savedArticles = [
+    ...new Set([
+      ...(local.savedArticles ?? []),
+      ...(Array.isArray(parsed.savedArticles) ? parsed.savedArticles : []),
+    ].filter((x) => typeof x === 'string' && x.trim())),
+  ]
 
   const collapsedSrc = preferRemotePrefs ? parsed.collapsed : local.collapsed ?? parsed.collapsed
   writeState(
@@ -300,6 +334,7 @@ export function importNewsFromBackup(raw: unknown): void {
       version: 1,
       tags: [...byTag.values()],
       deletedTags,
+      savedArticles,
       collapsed: {
         top: Boolean(collapsedSrc?.top),
         tagged: Boolean(collapsedSrc?.tagged),

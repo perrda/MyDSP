@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import {
   ArrowUpDown,
@@ -35,6 +35,7 @@ import {
   setYoutubeSeenAt,
   updateYoutubeChannel,
 } from '../storage/youtubeStore'
+import { loadPortfolio } from '../storage/portfolioStore'
 import { formatDateTime } from '../utils/format'
 import { notificationManager } from '../utils/notifications'
 
@@ -50,6 +51,30 @@ function formatRelative(iso: string): string {
 }
 
 const YT_PAGE = 6
+
+function extractYoutubeVideoId(link: string, id?: string): string | null {
+  const rawId = id?.match(/(?:video:|watch\?v=|\/videos\/)?([\w-]{11})/)?.[1]
+  if (rawId) return rawId
+  try {
+    const url = new URL(link)
+    const v = url.searchParams.get('v')
+    if (v && /^[\w-]{11}$/.test(v)) return v
+    const short = url.pathname.match(/\/(?:embed|shorts)\/([\w-]{11})/)
+    if (short) return short[1]
+    if (url.hostname.includes('youtu.be')) {
+      const pathId = url.pathname.replace(/^\//, '').slice(0, 11)
+      if (/^[\w-]{11}$/.test(pathId)) return pathId
+    }
+  } catch {
+    /* ignore */
+  }
+  return null
+}
+
+function textHasSymbol(text: string, symbol: string): boolean {
+  const escaped = symbol.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return new RegExp(`(^|[^A-Z0-9])${escaped}([^A-Z0-9]|$)`).test(text.toUpperCase())
+}
 
 export function YouTubePage() {
   const { showToast } = useToasts()
@@ -70,9 +95,11 @@ export function YouTubePage() {
   const [editing, setEditing] = useState<YoutubeChannel | null>(null)
   const [formUrl, setFormUrl] = useState('')
   const [formTitle, setFormTitle] = useState('')
+  const [formFolder, setFormFolder] = useState('')
   const [formError, setFormError] = useState<string | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [sorting, setSorting] = useState(false)
+  const [folderFilter, setFolderFilter] = useState('all')
   const [seenAt, setSeenAt] = useState(getYoutubeSeenAt)
   const [visibleCount, setVisibleCount] = useState(YT_PAGE)
   const [online, setOnline] = useState(() => isOnline())
@@ -190,8 +217,41 @@ export function YouTubePage() {
     }
   }, [])
 
+  const portfolioSymbols = useMemo(() => {
+    const portfolio = loadPortfolio()
+    return [...portfolio.equities.map((e) => e.symbol), ...portfolio.crypto.map((c) => c.symbol)]
+      .map((s) => s.trim().toUpperCase())
+      .filter(Boolean)
+  }, [])
+  const folders = useMemo(
+    () => [...new Set(channels.map((c) => c.folder?.trim()).filter((x): x is string => Boolean(x)))].sort(),
+    [channels],
+  )
+  const filteredChannels = useMemo(
+    () => (folderFilter === 'all' ? channels : channels.filter((c) => c.folder === folderFilter)),
+    [channels, folderFilter],
+  )
+  const channelById = useMemo(() => new Map(channels.map((c) => [c.channelId, c])), [channels])
   const cachedWithoutChannels = channels.length === 0 && videos.length > 0
-  const displayedVideos = cachedWithoutChannels ? [] : videos
+  const displayedVideos = useMemo(() => {
+    if (cachedWithoutChannels) return []
+    const allowedChannels =
+      folderFilter === 'all'
+        ? null
+        : new Set(channels.filter((c) => c.folder === folderFilter).map((c) => c.channelId))
+    return [...videos]
+      .filter((v) => !allowedChannels || allowedChannels.has(v.channelId))
+      .sort((a, b) => {
+        const score = (video: YoutubeVideo) => {
+          const channel = channelById.get(video.channelId)
+          const text = `${video.title} ${video.description ?? ''} ${video.channelTitle} ${channel?.folder ?? ''}`.toUpperCase()
+          return portfolioSymbols.reduce((sum, symbol) => sum + (textHasSymbol(text, symbol) ? 1 : 0), 0)
+        }
+        const boostedA = Date.parse(a.publishedAt) + score(a) * 15 * 60_000
+        const boostedB = Date.parse(b.publishedAt) + score(b) * 15 * 60_000
+        return boostedB - boostedA
+      })
+  }, [cachedWithoutChannels, videos, folderFilter, channels, channelById, portfolioSymbols])
   const unreadCount = displayedVideos.filter((v) => !seenAt || v.publishedAt > seenAt).length
   const cachedMode =
     channels.length > 0 &&
@@ -230,6 +290,7 @@ export function YouTubePage() {
     setEditing(null)
     setFormUrl('')
     setFormTitle('')
+    setFormFolder('')
     setFormError(null)
     setModalOpen(true)
   }
@@ -238,6 +299,7 @@ export function YouTubePage() {
     setEditing(c)
     setFormUrl(c.url)
     setFormTitle(c.title)
+    setFormFolder(c.folder ?? '')
     setFormError(null)
     setModalOpen(true)
   }
@@ -246,7 +308,7 @@ export function YouTubePage() {
     setFormError(null)
     try {
       if (editing) {
-        updateYoutubeChannel(editing.id, { title: formTitle, url: formUrl })
+        updateYoutubeChannel(editing.id, { title: formTitle, url: formUrl, folder: formFolder })
         setModalOpen(false)
         reloadList()
         return
@@ -258,6 +320,7 @@ export function YouTubePage() {
         title: formTitle.trim() || resolved.title,
         url: resolved.url,
         thumbnailUrl: resolved.thumbnailUrl,
+        folder: formFolder,
       })
       setModalOpen(false)
       reloadList()
@@ -268,6 +331,8 @@ export function YouTubePage() {
       setResolving(false)
     }
   }
+
+  const selectedVideoId = selectedVideo ? extractYoutubeVideoId(selectedVideo.link, selectedVideo.id) : null
 
   return (
     <div>
@@ -360,6 +425,32 @@ export function YouTubePage() {
         </div>
       ) : null}
 
+      <div
+        className="youtube-folder-filters mb-4 flex flex-wrap items-center gap-2"
+        data-testid="youtube-folders"
+      >
+        <span className="label-uppercase text-[11px] text-text-subtle">Folders</span>
+        <button
+          type="button"
+          className={`btn-sm ${folderFilter === 'all' ? 'btn-secondary' : 'btn-ghost'}`}
+          aria-pressed={folderFilter === 'all'}
+          onClick={() => setFolderFilter('all')}
+        >
+          All
+        </button>
+        {folders.map((folder) => (
+          <button
+            key={folder}
+            type="button"
+            className={`btn-sm ${folderFilter === folder ? 'btn-secondary' : 'btn-ghost'}`}
+            aria-pressed={folderFilter === folder}
+            onClick={() => setFolderFilter(folder)}
+          >
+            {folder}
+          </button>
+        ))}
+      </div>
+
       {/* Favourites */}
       <section className="border border-border bg-bg-elevated mb-6 overflow-hidden">
         <div className="px-4 sm:px-5 pt-4 pb-3 border-b border-border flex items-start justify-between gap-3">
@@ -389,9 +480,13 @@ export function YouTubePage() {
             description={`Paste a YouTube URL, @handle, or UC… id (up to ${MAX_YOUTUBE_CHANNELS}). Latest uploads land here and in the notification bell when released.`}
             action={{ label: 'Add channel', onClick: openCreate }}
           />
+        ) : filteredChannels.length === 0 ? (
+          <p className="px-4 sm:px-5 py-8 text-sm text-text-muted text-center">
+            No channels in {folderFilter}.
+          </p>
         ) : (
           <ReorderList
-            items={channels}
+            items={filteredChannels}
             getId={(c) => c.id}
             onReorder={(next) => {
               reorderYoutubeChannels(next.map((c) => c.id))
@@ -415,6 +510,9 @@ export function YouTubePage() {
                 )}
                 <div className="min-w-0 flex-1">
                   <p className="font-semibold text-text truncate">{c.title}</p>
+                  {c.folder ? (
+                    <p className="text-[11px] text-text-subtle truncate">Folder · {c.folder}</p>
+                  ) : null}
                   <a
                     href={c.url}
                     target="_blank"
@@ -460,6 +558,7 @@ export function YouTubePage() {
                 <p className="label-uppercase text-[11px] text-text-subtle tabular-nums">
                   {displayedVideos.length} from your favourites
                   {unreadCount > 0 ? ` · ${unreadCount} unread` : ''}
+                  <span data-testid="youtube-relevance"> · relevance ranked</span>
                 </p>
               </div>
               {unreadCount > 0 ? (
@@ -584,6 +683,16 @@ export function YouTubePage() {
                 className="w-full aspect-video object-cover rounded-md mb-3 bg-surface-hover"
               />
             ) : null}
+            {selectedVideoId ? (
+              <iframe
+                title={`Preview ${selectedVideo.title}`}
+                src={`https://www.youtube.com/embed/${selectedVideoId}`}
+                className="w-full aspect-video rounded-md mb-3 bg-surface-hover"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+                data-testid="youtube-embed"
+              />
+            ) : null}
             {selectedVideo.description ? (
               <p className="text-sm text-text-muted mb-3 leading-relaxed line-clamp-4">
                 {selectedVideo.description}
@@ -637,6 +746,15 @@ export function YouTubePage() {
               value={formTitle}
               onChange={(e) => setFormTitle(e.target.value)}
               placeholder="Channel name"
+              disabled={resolving}
+            />
+          </Field>
+          <Field label="Folder" hint="Optional grouping, e.g. Macro, Crypto, Equities">
+            <input
+              className="w-full"
+              value={formFolder}
+              onChange={(e) => setFormFolder(e.target.value)}
+              placeholder="Macro"
               disabled={resolving}
             />
           </Field>

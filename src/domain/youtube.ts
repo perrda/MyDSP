@@ -10,6 +10,7 @@ export interface YoutubeChannel {
   /** Original URL or @handle the user entered */
   url: string
   thumbnailUrl?: string
+  folder?: string
   createdAt: string
   sortOrder: number
 }

@@ -81,6 +81,13 @@ export interface ParsedTradeCsv {
   broker?: BrokerTradePreset
 }
 
+export interface ParsePortfolioTradeCsvOptions {
+  kind: TradeKind
+  /** Existing names keyed by uppercase symbol; used when imports create a holding. */
+  namesBySymbol?: Map<string, string>
+  dateOrder?: TradeCsvDateOrder
+}
+
 /**
  * Expected columns (header row, case-insensitive):
  * date,side|type,qty,price[,fees][,notes][,platform]
@@ -288,6 +295,112 @@ export function parseTradeCsv(text: string, opts: ParseTradeCsvOptions): ParsedT
     errors.push('No trade rows found')
   }
 
+  return { trades, errors, broker: detectBrokerPreset(header) }
+}
+
+/**
+ * Portfolio-level broker stub: date,type/side,symbol,qty,price[,fees][,notes][,platform].
+ * Unlike parseTradeCsv, this honours the CSV symbol column and can append multiple symbols.
+ */
+export function parsePortfolioTradeCsv(
+  text: string,
+  opts: ParsePortfolioTradeCsvOptions,
+): ParsedTradeCsv {
+  const dateOrder = opts.dateOrder ?? 'dmy'
+  const lines = text
+    .replace(/^\uFEFF/, '')
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l && !l.startsWith('#'))
+  const errors: string[] = []
+  if (lines.length === 0) return { trades: [], errors: ['Empty CSV — choose a file with trade rows'] }
+
+  const header = splitCsvLine(lines[0]).map((h) => h.toLowerCase().replace(/\s+/g, ''))
+  const rows = lines.slice(1)
+  const col = (names: string[]) => {
+    for (const n of names) {
+      const i = header.indexOf(n)
+      if (i >= 0) return i
+    }
+    return -1
+  }
+
+  const iDate = col(['date', 'tradedate', 'time', 'timestamp', 'datetime'])
+  const iSide = col(['type', 'side', 'action', 'buy/sell', 'buysell', 'transactiontype'])
+  const iSymbol = col(['symbol', 'ticker', 'asset', 'instrument'])
+  const iQty = col(['qty', 'quantity', 'shares', 'units', 'amount'])
+  const iPrice = col(['price', 'unitprice', 'fillprice', 'avgprice', 'tradeprice'])
+  const iFees = col(['fees', 'fee', 'commission', 'comm', 'comm/fee'])
+  const iNotes = col(['notes', 'note', 'memo', 'comment', 'description'])
+  const iPlatform = col(['platform', 'broker', 'exchange', 'venue', 'account'])
+
+  if (iDate < 0 || iSide < 0 || iSymbol < 0 || iQty < 0 || iPrice < 0) {
+    return {
+      trades: [],
+      errors: ['Need columns: date, type/side, symbol, qty, price'],
+      broker: detectBrokerPreset(header),
+    }
+  }
+
+  const trades: TradeInput[] = []
+  rows.forEach((line, idx) => {
+    const rowNum = idx + 2
+    const cells = splitCsvLine(line)
+    if (cells.every((c) => !c.trim())) return
+
+    const dateRaw = cells[iDate]?.trim() ?? ''
+    const sideRaw = (cells[iSide] ?? '').trim().toLowerCase()
+    const symbol = (cells[iSymbol] ?? '').trim().toUpperCase().replace(/^\$/, '')
+    const qty = Number(String(cells[iQty] ?? '').replace(/,/g, ''))
+    const price = Number(String(cells[iPrice] ?? '').replace(/[£$€,\s]/g, ''))
+    const fees =
+      iFees >= 0 ? Number(String(cells[iFees] ?? '0').replace(/[£$€,\s]/g, '')) || 0 : 0
+    let notes = iNotes >= 0 ? cells[iNotes]?.trim() : undefined
+    const platform = iPlatform >= 0 ? cells[iPlatform]?.trim() : undefined
+    if (platform && notes) notes = `${notes} · ${platform}`
+    else if (platform) notes = platform
+
+    const date = normalizeDate(dateRaw, dateOrder)
+    let side: TradeSide | null = null
+    if (sideRaw === 'buy' || sideRaw === 'b' || sideRaw.includes('buy')) side = 'buy'
+    else if (sideRaw === 'sell' || sideRaw === 's' || sideRaw.includes('sell')) side = 'sell'
+
+    if (!date) {
+      errors.push(`Row ${rowNum}: unrecognised date “${dateRaw}”`)
+      return
+    }
+    if (!side) {
+      errors.push(`Row ${rowNum}: type must be buy or sell (got “${sideRaw || 'blank'}”)`)
+      return
+    }
+    if (!symbol) {
+      errors.push(`Row ${rowNum}: missing symbol`)
+      return
+    }
+    if (!(qty > 0)) {
+      errors.push(`Row ${rowNum}: quantity must be greater than zero`)
+      return
+    }
+    if (!(price >= 0) || Number.isNaN(price)) {
+      errors.push(`Row ${rowNum}: invalid price`)
+      return
+    }
+
+    trades.push({
+      kind: opts.kind,
+      side,
+      symbol,
+      name: opts.namesBySymbol?.get(symbol),
+      date,
+      qty,
+      price,
+      fees,
+      notes: notes || undefined,
+      platform: platform || undefined,
+    })
+  })
+
+  if (trades.length === 0 && errors.length === 0) errors.push('No trade rows found')
   return { trades, errors, broker: detectBrokerPreset(header) }
 }
 

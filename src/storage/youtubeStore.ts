@@ -47,6 +47,7 @@ function writeState(state: YoutubeState, opts?: { silent?: boolean; fromSync?: b
 function normalizeChannel(c: YoutubeChannel, i: number): YoutubeChannel {
   return {
     ...c,
+    folder: typeof c.folder === 'string' && c.folder.trim() ? c.folder.trim() : undefined,
     sortOrder: typeof c.sortOrder === 'number' ? c.sortOrder : i,
   }
 }
@@ -132,6 +133,7 @@ export function addYoutubeChannel(input: {
   title: string
   url: string
   thumbnailUrl?: string
+  folder?: string
 }): YoutubeChannel {
   const channelId = input.channelId.trim()
   if (!channelId) throw new Error('Channel id is required.')
@@ -151,6 +153,7 @@ export function addYoutubeChannel(input: {
     title: input.title.trim() || channelId,
     url: input.url.trim() || `https://www.youtube.com/channel/${channelId}`,
     thumbnailUrl: input.thumbnailUrl,
+    folder: input.folder?.trim() || undefined,
     createdAt: new Date().toISOString(),
     sortOrder: maxOrder + 1,
   }
@@ -161,7 +164,7 @@ export function addYoutubeChannel(input: {
 
 export function updateYoutubeChannel(
   id: string,
-  patch: Partial<Pick<YoutubeChannel, 'title' | 'url' | 'thumbnailUrl'>>,
+  patch: Partial<Pick<YoutubeChannel, 'title' | 'url' | 'thumbnailUrl' | 'folder'>>,
 ): YoutubeChannel {
   const state = loadYoutubeState()
   const idx = state.channels.findIndex((c) => c.id === id)
@@ -173,6 +176,7 @@ export function updateYoutubeChannel(
     url: patch.url != null ? patch.url.trim() || current.url : current.url,
     thumbnailUrl:
       patch.thumbnailUrl !== undefined ? patch.thumbnailUrl : current.thumbnailUrl,
+    folder: patch.folder !== undefined ? patch.folder.trim() || undefined : current.folder,
   }
   state.channels[idx] = updated
   saveYoutubeState(state)
