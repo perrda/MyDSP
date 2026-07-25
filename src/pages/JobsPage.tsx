@@ -65,6 +65,29 @@ const KANBAN_COLUMNS: Array<{ id: string; status: JobStatus[]; title: string; co
   { id: 'closed', status: ['rejected', 'withdrawn', 'archived'], title: 'Rejected', color: 'border-red-500' },
 ]
 
+const JOB_FILTER_OPTIONS: Array<{ value: JobFilterBy; label: string }> = [
+  { value: 'active', label: 'Active' },
+  { value: 'all', label: 'All' },
+  { value: 'wishlist', label: 'Wishlist' },
+  { value: 'applied', label: 'Applied / Screening' },
+  { value: 'interviewing', label: 'Interviewing' },
+  { value: 'offers', label: 'Offers' },
+  { value: 'rejected', label: 'Rejected' },
+  { value: 'high-priority', label: 'High Priority' },
+  { value: 'remote', label: 'Remote Only' },
+  { value: 'no-response', label: 'No Response' },
+  { value: 'follow-up', label: 'Needs Follow-up' },
+]
+
+function dateOnlyMs(value: string): number {
+  const date = new Date(value.slice(0, 10))
+  return date.getTime()
+}
+
+function jobEventMs(date: string, time?: string): number {
+  return new Date(`${date.slice(0, 10)}T${time || '00:00'}`).getTime()
+}
+
 export function JobsPage() {
   const { data, setData, privacy } = usePortfolio()
   const { success, error: showError } = useToasts()
@@ -106,6 +129,9 @@ export function JobsPage() {
           a.companyName.toLowerCase().includes(query) ||
           a.jobTitle.toLowerCase().includes(query) ||
           a.location.toLowerCase().includes(query) ||
+          a.source.toLowerCase().includes(query) ||
+          (a.referralContact ?? '').toLowerCase().includes(query) ||
+          a.contacts.some((c) => c.name.toLowerCase().includes(query)) ||
           a.tags.some((t) => t.toLowerCase().includes(query)),
       )
     }
@@ -124,6 +150,49 @@ export function JobsPage() {
     () => applications.filter((a) => needsFollowUp(a)).length,
     [applications],
   )
+  const upcomingEvents = useMemo(() => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const rows: Array<{
+      key: string
+      appId: number
+      company: string
+      title: string
+      date: string
+      type: 'Interview' | 'Deadline'
+      sortAt: number
+    }> = []
+    for (const app of applications) {
+      if (['rejected', 'withdrawn', 'archived'].includes(app.status)) continue
+      for (const interview of app.interviews ?? []) {
+        if (interview.outcome && interview.outcome !== 'pending') continue
+        if (!interview.scheduledDate || dateOnlyMs(interview.scheduledDate) < today.getTime()) continue
+        rows.push({
+          key: `interview-${app.id}-${interview.id}`,
+          appId: app.id,
+          company: app.companyName,
+          title: `${interview.type.replace(/-/g, ' ')} interview`,
+          date: interview.scheduledTime
+            ? `${interview.scheduledDate} ${interview.scheduledTime}`
+            : interview.scheduledDate,
+          type: 'Interview',
+          sortAt: jobEventMs(interview.scheduledDate, interview.scheduledTime),
+        })
+      }
+      if (app.deadline && dateOnlyMs(app.deadline) >= today.getTime()) {
+        rows.push({
+          key: `deadline-${app.id}`,
+          appId: app.id,
+          company: app.companyName,
+          title: app.jobTitle,
+          date: app.deadline,
+          type: 'Deadline',
+          sortAt: jobEventMs(app.deadline),
+        })
+      }
+    }
+    return rows.sort((a, b) => a.sortAt - b.sortAt).slice(0, 3)
+  }, [applications])
 
   const kanbanData = useMemo(() => {
     return KANBAN_COLUMNS.map((col) => ({
@@ -637,7 +706,7 @@ export function JobsPage() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search companies, roles..."
+            placeholder="Search companies, roles, source, contacts..."
             className="flex-1 min-w-[200px] bg-transparent border border-border px-3 py-2 text-sm"
           />
           <select
@@ -649,13 +718,11 @@ export function JobsPage() {
             }}
             className="btn-ghost btn-sm"
           >
-            <option value="active">Active</option>
-            <option value="all">All</option>
-            <option value="wishlist">Wishlist</option>
-            <option value="interviewing">Interviewing</option>
-            <option value="offers">Offers</option>
-            <option value="high-priority">High Priority</option>
-            <option value="remote">Remote Only</option>
+            {JOB_FILTER_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
           </select>
           {viewMode === 'list' && (
             <select
@@ -676,6 +743,31 @@ export function JobsPage() {
           )}
         </div>
       </CollapsibleFilters>
+
+      {viewMode !== 'analytics' && upcomingEvents.length > 0 ? (
+        <section
+          className="surface p-3 sm:p-4 mb-4 rounded-xl md:rounded-none"
+          data-testid="jobs-upcoming-strip"
+          aria-label="Upcoming job interviews and deadlines"
+        >
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="label-uppercase mb-0 mr-1">Upcoming</p>
+            {upcomingEvents.map((event) => (
+              <Link
+                key={event.key}
+                to={`/jobs/${event.appId}`}
+                className="inline-flex min-w-0 max-w-full items-center gap-2 rounded border border-border bg-surface-hover px-2.5 py-1.5 text-xs hover:border-accent"
+              >
+                <span className={event.type === 'Interview' ? 'text-amber-500 font-semibold' : 'text-accent font-semibold'}>
+                  {event.type}
+                </span>
+                <span className="truncate">{event.company}</span>
+                <span className="text-text-subtle tabular-nums">{event.date}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       {selectedJobs.size > 0 && (
         <div className="flex flex-wrap gap-2 items-center p-3 mb-4 bg-accent/10 rounded-lg border border-accent/20">

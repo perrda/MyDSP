@@ -67,14 +67,14 @@ describe('next25r — sync / Markets / Today polish tip (1–25 → v1.2.87)', (
 
   it('25: package + release notes are 1.2.87', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.102')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.102')
+    expect(pkg.version).toBe('1.2.103')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.103')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.103',
       '1.2.102',
       '1.2.101',
       '1.2.100',
       '1.2.99',
-      '1.2.98',
     ])
   })
 
@@ -175,7 +175,9 @@ describe('next25r — sync / Markets / Today polish tip (1–25 → v1.2.87)', (
     expect(page).toMatch(/markets-quote-retry/)
     // Retry-all-stale removed — 60s poll + … Refresh cover freshness
     expect(page).not.toMatch(/markets-retry-all-stale/)
-    expect(page).not.toMatch(/markets-search-clear/)
+    // Lightweight watchlist search restored (favourites excellence wave)
+    expect(page).toMatch(/data-testid="markets-search"/)
+    expect(page).toMatch(/markets-search-clear/)
     expect(page).toMatch(/markets-panel-toggles/)
     expect(page).toMatch(/markets-density-trust/)
     expect(page).toMatch(/markets-quote-paper-block/)

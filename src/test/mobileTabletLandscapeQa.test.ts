@@ -6,14 +6,14 @@ import { RELEASE_NOTES, releaseNotesArchive } from '../domain/releaseNotes'
 describe('Mobile / tablet / landscape QA (v1.2.98)', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.102')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.102')
+    expect(pkg.version).toBe('1.2.103')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.103')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.103',
       '1.2.102',
       '1.2.101',
       '1.2.100',
       '1.2.99',
-      '1.2.98',
     ])
   })
 

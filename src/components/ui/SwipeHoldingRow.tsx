@@ -1,10 +1,11 @@
-/** Touch swipe actions for holding rows (Buy / Exclude). Desktop ignores swipe. */
+/** Touch swipe actions for holding rows (Buy/Sell / Exclude). Desktop ignores swipe. */
 
 import { useRef, useState, type ReactNode } from 'react'
 
 interface SwipeHoldingRowProps {
   children: ReactNode
   onBuy: () => void
+  onSell?: () => void
   onToggleNw: () => void
   included: boolean
   className?: string
@@ -15,6 +16,7 @@ const THRESHOLD = 72
 export function SwipeHoldingRow({
   children,
   onBuy,
+  onSell,
   onToggleNw,
   included,
   className = '',
@@ -32,7 +34,7 @@ export function SwipeHoldingRow({
     const x = e.touches[0]?.clientX ?? 0
     const delta = x - startX.current
     if (Math.abs(delta) < 8) return
-    setDx(Math.max(-110, Math.min(110, delta)))
+    setDx(Math.max(-110, Math.min(onSell ? 176 : 110, delta)))
   }
 
   const onTouchEnd = () => {
@@ -42,11 +44,15 @@ export function SwipeHoldingRow({
     setDx(0)
   }
 
-  const shift = open === 'left' ? -96 : open === 'right' ? 96 : dx
+  const buySellWidth = onSell ? 160 : 96
+  const shift = open === 'left' ? -96 : open === 'right' ? buySellWidth : dx
 
   return (
     <div className={`relative overflow-hidden ${className}`}>
-      <div className="absolute inset-y-0 left-0 flex w-24 items-stretch" aria-hidden={open !== 'right'}>
+      <div
+        className={`absolute inset-y-0 left-0 flex ${onSell ? 'w-40' : 'w-24'} items-stretch`}
+        aria-hidden={open !== 'right'}
+      >
         <button
           type="button"
           tabIndex={open === 'right' ? 0 : -1}
@@ -59,6 +65,20 @@ export function SwipeHoldingRow({
         >
           Buy
         </button>
+        {onSell ? (
+          <button
+            type="button"
+            tabIndex={open === 'right' ? 0 : -1}
+            disabled={open !== 'right'}
+            className="flex-1 bg-surface-hover text-text text-xs font-bold uppercase tracking-wide border-l border-border disabled:opacity-100"
+            onClick={() => {
+              onSell()
+              setOpen(null)
+            }}
+          >
+            Sell
+          </button>
+        ) : null}
       </div>
       <div className="absolute inset-y-0 right-0 flex w-24 items-stretch" aria-hidden={open !== 'left'}>
         <button

@@ -128,7 +128,7 @@ async function fireReminder(r) {
   await self.registration.showNotification('Todo reminder', {
     body: r.title,
     tag: r.key,
-    data: { url: '/todos', key: r.key },
+    data: { url: `/todos?focus=${r.id}`, key: r.key },
     renotify: true,
   })
   await markFired(r.key)

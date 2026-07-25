@@ -2,6 +2,7 @@ import type {
   TodoItem,
   TodoList,
   TodoPriority,
+  TodoRecurrence,
   TodoSortBy,
   TodoFilterBy,
   TodoStats,
@@ -22,6 +23,7 @@ export function createTodoItem(partial: Partial<TodoItem> & Pick<TodoItem, 'titl
     dueTime: partial.dueTime,
     reminderDate: partial.reminderDate,
     reminderTime: partial.reminderTime,
+    recurrence: partial.recurrence ?? 'none',
     tags: partial.tags ?? [],
     isFinanceRelated: partial.isFinanceRelated ?? false,
     estimatedMinutes: partial.estimatedMinutes,
@@ -140,9 +142,75 @@ export function filterTodoItems(items: TodoItem[], filterBy: TodoFilterBy): Todo
       return items.filter((i) => i.status === 'todo')
     case 'status-in-progress':
       return items.filter((i) => i.status === 'in-progress')
+    case 'archived':
+      return items.filter((i) => i.status === 'archived')
     default:
       return items
   }
+}
+
+function toLocalYmd(d: Date): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+function parseYmd(value: string | undefined, fallback: Date): Date {
+  if (value && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [y, m, d] = value.split('-').map(Number)
+    return new Date(y, m - 1, d)
+  }
+  return new Date(fallback.getFullYear(), fallback.getMonth(), fallback.getDate())
+}
+
+export function nextTodoDueDate(
+  dueDate: string | undefined,
+  recurrence: Exclude<TodoRecurrence, 'none'>,
+  now: Date = new Date(),
+): string {
+  const next = parseYmd(dueDate, now)
+  if (recurrence === 'daily') next.setDate(next.getDate() + 1)
+  else if (recurrence === 'weekly') next.setDate(next.getDate() + 7)
+  else next.setMonth(next.getMonth() + 1)
+  return toLocalYmd(next)
+}
+
+/**
+ * Complete one todo. Recurring todos keep a completed occurrence and spawn the
+ * next active occurrence with the same metadata and advanced due/reminder dates.
+ */
+export function completeTodoWithRecurrence(items: TodoItem[], itemId: number, nowIso = new Date().toISOString()): TodoItem[] {
+  const item = items.find((i) => i.id === itemId)
+  if (!item) return items
+  const now = new Date(nowIso)
+  const isCompleting = item.status !== 'done'
+  if (!isCompleting) {
+    return items.map((i) =>
+      i.id === itemId ? { ...i, status: 'todo', completedAt: undefined, updatedAt: nowIso } : i,
+    )
+  }
+
+  const completed = items.map((i) =>
+    i.id === itemId ? { ...i, status: 'done' as const, completedAt: nowIso, updatedAt: nowIso } : i,
+  )
+  if (!item.recurrence || item.recurrence === 'none') return completed
+
+  const dueDate = nextTodoDueDate(item.dueDate, item.recurrence, now)
+  const reminderDate = item.reminderDate
+    ? nextTodoDueDate(item.reminderDate, item.recurrence, now)
+    : undefined
+  const nextItem = createTodoItem({
+    ...item,
+    id: Date.now() + Math.floor(Math.random() * 1000),
+    status: 'todo',
+    completedAt: undefined,
+    dueDate,
+    reminderDate,
+    createdAt: nowIso,
+    updatedAt: nowIso,
+  })
+  return [...completed, nextItem]
 }
 
 /** Next contiguous sortOrder for a new item at the end of a list. */

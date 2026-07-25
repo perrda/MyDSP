@@ -34,7 +34,7 @@ import {
   dismissAlertForCalendarMonth,
   isAlertDismissed,
 } from '../domain/alertDismiss'
-import type { EquityHolding } from '../domain/types'
+import type { EquityAccountType, EquityHolding, RagStatus } from '../domain/types'
 import { addHoldingsMissingFromWatchlist, holdingsMissingFromWatchlist } from '../domain/addHoldingsToWatchlist'
 import { listMarketTickers, loadMarketQuotesCache } from '../storage/marketsStore'
 import { applySortOrder, sortBySortOrder } from '../utils/reorder'
@@ -56,7 +56,38 @@ function nextId(items: { id: number }[]): number {
   return items.reduce((m, i) => Math.max(m, i.id), 0) + 1
 }
 
-const emptyForm = { symbol: '', name: '', shares: '', avgCost: '', livePrice: '' }
+type EquityForm = {
+  symbol: string
+  name: string
+  shares: string
+  avgCost: string
+  livePrice: string
+  platform: string
+  contactUrl: string
+  includeInPortfolio: boolean
+  ragStatus: RagStatus | ''
+  accountType: EquityAccountType
+}
+
+const emptyForm: EquityForm = {
+  symbol: '',
+  name: '',
+  shares: '',
+  avgCost: '',
+  livePrice: '',
+  platform: '',
+  contactUrl: '',
+  includeInPortfolio: true,
+  ragStatus: '',
+  accountType: 'general',
+}
+
+function accountTypeLabel(accountType?: EquityAccountType): string {
+  if (accountType === 'isa') return 'ISA'
+  if (accountType === 'sipp') return 'SIPP'
+  if (accountType === 'other') return 'Other'
+  return 'General'
+}
 
 function todayIsoDate(): string {
   const now = new Date()
@@ -316,6 +347,11 @@ export function EquitiesPage() {
       shares: String(e.shares),
       avgCost: String(e.avgCost),
       livePrice: String(e.livePrice),
+      platform: e.platform ?? '',
+      contactUrl: e.contactUrl ?? '',
+      includeInPortfolio: e.includeInPortfolio !== false,
+      ragStatus: e.ragStatus ?? '',
+      accountType: e.accountType ?? 'general',
     })
     setOpen(true)
   }
@@ -328,12 +364,13 @@ export function EquitiesPage() {
       shares: parseNum(form.shares),
       avgCost: parseNum(form.avgCost),
       livePrice: parseNum(form.livePrice) || parseNum(form.avgCost),
-      includeInPortfolio: editing?.includeInPortfolio ?? true,
+      includeInPortfolio: form.includeInPortfolio,
       sortOrder: editing?.sortOrder,
-      ragStatus: editing?.ragStatus,
+      ragStatus: form.ragStatus || undefined,
       commentaries: editing?.commentaries,
-      platform: editing?.platform,
-      contactUrl: editing?.contactUrl,
+      platform: form.platform.trim() || undefined,
+      contactUrl: form.contactUrl.trim() || undefined,
+      accountType: form.accountType === 'general' ? undefined : form.accountType,
       yieldPct: editing?.yieldPct,
       corporateActionNote: editing?.corporateActionNote,
       corporateActionDate: editing?.corporateActionDate,
@@ -702,13 +739,19 @@ export function EquitiesPage() {
                   ) : null}
                 </Link>
                 {driftHit ? (
-                  <button
-                    type="button"
-                    className="btn-secondary btn-sm border-amber-500/40 text-amber-700 dark:text-amber-300 min-h-11 md:min-h-9"
-                    onClick={() => applyMarketsPriceForEquity(e, driftHit.marketPrice)}
-                  >
-                    Use Markets price
-                  </button>
+                  <div className="flex flex-col items-start gap-1">
+                    <button
+                      type="button"
+                      className="btn-secondary btn-sm border-amber-500/40 text-amber-700 dark:text-amber-300 min-h-11 md:min-h-9"
+                      title="Use the last-synced Markets quote for this holding"
+                      onClick={() => applyMarketsPriceForEquity(e, driftHit.marketPrice)}
+                    >
+                      Use Markets price
+                    </button>
+                    {fromOtherDeviceAge ? (
+                      <span className="text-[10px] text-text-subtle">Last synced {fromOtherDeviceAge}</span>
+                    ) : null}
+                  </div>
                 ) : null}
                 <div className={`text-sm tabular-nums min-w-[8.5rem] ${privacyClass(privacy)}`}>
                   <p className="font-semibold">{formatGBP(value)}</p>
@@ -839,6 +882,13 @@ export function EquitiesPage() {
                       <dt className="text-xs uppercase tracking-wider text-text-subtle">Portfolio weight</dt>
                       <dd className="tabular-nums">{weight == null ? 'Excluded' : `${weight.toFixed(1)}%`}</dd>
                     </div>
+                    <div>
+                      <dt className="text-xs uppercase tracking-wider text-text-subtle">Account</dt>
+                      <dd>
+                        {accountTypeLabel(selectedHolding.accountType)}
+                        {selectedHolding.platform ? ` · ${selectedHolding.platform}` : ''}
+                      </dd>
+                    </div>
                   </dl>
                   <div className="mt-5 flex flex-wrap gap-2">
                     <Link to={`/equities/${selectedHolding.id}`} className="btn-primary btn-sm">
@@ -920,6 +970,54 @@ export function EquitiesPage() {
             US equities (TSLA, MSTR, …) are quoted in USD and converted to GBP with the daily
             GBP/USD rate when you refresh prices. Enter costs and manual overrides in GBP.
           </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field label="Account type">
+              <select
+                value={form.accountType}
+                onChange={(e) => setForm({ ...form, accountType: e.target.value as EquityAccountType })}
+              >
+                <option value="general">General</option>
+                <option value="isa">ISA</option>
+                <option value="sipp">SIPP</option>
+                <option value="other">Other</option>
+              </select>
+            </Field>
+            <Field label="RAG">
+              <select
+                value={form.ragStatus}
+                onChange={(e) => setForm({ ...form, ragStatus: e.target.value as RagStatus | '' })}
+              >
+                <option value="">Unset</option>
+                <option value="red">Red</option>
+                <option value="amber">Amber</option>
+                <option value="green">Green</option>
+              </select>
+            </Field>
+            <Field label="Platform">
+              <input
+                type="text"
+                value={form.platform}
+                onChange={(e) => setForm({ ...form, platform: e.target.value })}
+                placeholder="HL, IBKR, Trading 212"
+              />
+            </Field>
+            <Field label="URL">
+              <input
+                type="url"
+                value={form.contactUrl}
+                onChange={(e) => setForm({ ...form, contactUrl: e.target.value })}
+                placeholder="https://"
+              />
+            </Field>
+          </div>
+          <label className="flex items-center gap-2 text-sm text-text-muted">
+            <input
+              type="checkbox"
+              checked={form.includeInPortfolio}
+              onChange={(e) => setForm({ ...form, includeInPortfolio: e.target.checked })}
+            />
+            Include in net worth
+          </label>
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" className="btn-ghost" onClick={() => setOpen(false)}>
               Cancel
@@ -991,6 +1089,9 @@ export function EquitiesPage() {
       />
 
       <div className="thumb-cta-bar" role="toolbar" aria-label="Primary equities actions">
+        <button type="button" className="btn-primary btn-sm" onClick={openCreate}>
+          Add equity
+        </button>
         <button
           type="button"
           className="btn-secondary btn-sm"

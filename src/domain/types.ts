@@ -24,6 +24,7 @@ export type SpendingCategory =
 export type PaymentMethod = 'credit' | 'debit' | 'cash' | 'transfer' | string
 
 export type RagStatus = 'red' | 'amber' | 'green'
+export type EquityAccountType = 'general' | 'isa' | 'sipp' | 'other'
 
 /** Timestamped progress notes (liabilities, holdings, goals). */
 export interface ProgressCommentary {
@@ -49,6 +50,7 @@ export interface CryptoHolding {
   commentaries?: ProgressCommentary[]
   platform?: string
   contactUrl?: string
+  chain?: string
 }
 
 export interface EquityHolding {
@@ -64,6 +66,7 @@ export interface EquityHolding {
   commentaries?: ProgressCommentary[]
   platform?: string
   contactUrl?: string
+  accountType?: EquityAccountType
   /** Optional dividend yield % — manual stub (also editable on Markets ticker) */
   yieldPct?: number
   /** Optional corporate-action stub note (split / dividend / rights) */
@@ -81,6 +84,8 @@ export interface CreditCard {
   apr: number
   minPay: number
   limit: number
+  /** Monthly payment due day (1–31) when known. */
+  paymentDueDay?: number
   includeInPortfolio?: boolean
   contactPhone?: string
   contactEmail?: string
@@ -101,6 +106,8 @@ export interface Loan {
   apr: number
   minPay: number
   original: number
+  /** Monthly payment due day (1–31) when known. */
+  paymentDueDay?: number
   includeInPortfolio?: boolean
   contactPhone?: string
   contactEmail?: string
@@ -116,6 +123,15 @@ export interface PaidOffDebt {
   name: string
   original: number
   paidDate: string
+  kind?: 'card' | 'loan'
+  apr?: number
+  notes?: string
+  contactPhone?: string
+  contactEmail?: string
+  contactUrl?: string
+  preferredContactMethod?: LiabilityContactMethod
+  preferredContactOther?: string
+  commentaries?: ProgressCommentary[]
 }
 
 export interface Goal {

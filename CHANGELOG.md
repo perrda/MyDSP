@@ -1,5 +1,17 @@
 # MyDSP Changelog
 
+## [1.2.103] - 2026-07-25
+
+### Improved — Favourites excellence wave (10 sections)
+- **Today / Overview:** shell title “Today”; jump chips match rendered sections; Customize layout (hide/show cards, persisted); trust strip; movers to 5
+- **Analytics / Predictive:** finite health math; market-value assets; privacy masking; honest projection copy; insight → action deep links; softer mobile grids
+- **Markets:** watchlist search restored; quote modal no longer covers desktop master–detail; clearer price alerts + clear/remove + row badge
+- **Liabilities:** payment due day; list search; numeric validation; richer paid-off archive; commentary thumb action
+- **Job Tracker:** full filter options; expanded search; upcoming interviews/deadlines strip; task ↔ linked To Do completion sync; shared Modal shells
+- **To Do’s:** daily/weekly/monthly recurrence; Archived filter + Restore; reminder deep-link focus; quick-add `!`/`p1` + `#tag`; tablet two-pane
+- **Equities / Crypto:** richer Add/Edit (platform, URL, include-in-NW, RAG, account type / chain); phone stacked trade cards; thumb Add; crypto swipe Sell; Markets price freshness label
+- **News / YouTube:** 768–899px open behaviour fixed; unread dedupe; Mark-all undo; Refresh copy; sticky News filters; YouTube URL repair + empty/cache clarity + description snippet
+
 ## [1.2.102] - 2026-07-25
 
 ### Improved — Job Tracker overhaul

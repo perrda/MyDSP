@@ -1,8 +1,18 @@
+import type { ReactElement } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
+import { ToastProvider } from '../components/ToastProvider'
 import { YouTubePage } from '../pages/YouTubePage'
 import { NewsPage } from '../pages/NewsPage'
+
+function renderWithProviders(ui: ReactElement) {
+  return render(
+    <MemoryRouter>
+      <ToastProvider>{ui}</ToastProvider>
+    </MemoryRouter>,
+  )
+}
 
 function mockLocalStorage() {
   const mem = new Map<string, string>()
@@ -39,11 +49,7 @@ describe('YouTube + News page render QA', () => {
   })
 
   it('YouTubePage renders empty state and opens Add channel modal', async () => {
-    render(
-      <MemoryRouter>
-        <YouTubePage />
-      </MemoryRouter>,
-    )
+    renderWithProviders(<YouTubePage />)
 
     expect(screen.getByRole('heading', { name: 'YouTube' })).toBeTruthy()
     expect(screen.getByText('Favourite channels')).toBeTruthy()
@@ -93,11 +99,7 @@ describe('YouTube + News page render QA', () => {
       }),
     )
 
-    render(
-      <MemoryRouter>
-        <YouTubePage />
-      </MemoryRouter>,
-    )
+    renderWithProviders(<YouTubePage />)
 
     fireEvent.click(screen.getAllByRole('button', { name: /Add channel/i })[0])
     fireEvent.change(screen.getByPlaceholderText(/youtube.com/i), {
@@ -111,11 +113,7 @@ describe('YouTube + News page render QA', () => {
   })
 
   it('NewsPage renders without crashing', async () => {
-    render(
-      <MemoryRouter>
-        <NewsPage />
-      </MemoryRouter>,
-    )
+    renderWithProviders(<NewsPage />)
     expect(screen.getByRole('heading', { name: 'News' })).toBeTruthy()
     expect(screen.getByText(/Top news/i)).toBeTruthy()
     expect(screen.getAllByText(/meta-tags/i).length).toBeGreaterThan(0)
@@ -140,11 +138,7 @@ describe('YouTube + News page render QA', () => {
       }),
     )
 
-    render(
-      <MemoryRouter>
-        <YouTubePage />
-      </MemoryRouter>,
-    )
+    renderWithProviders(<YouTubePage />)
 
     expect(screen.getByText('Altcoin Daily')).toBeTruthy()
     expect(screen.getByRole('button', { name: /Edit Altcoin Daily/i })).toBeTruthy()

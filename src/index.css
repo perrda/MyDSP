@@ -2380,6 +2380,44 @@ html.glass.light .holdings-sticky-totals {
   border-left: 3px solid var(--accent);
 }
 
+.today-trust-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
+}
+.today-trust-strip-primary {
+  min-width: 0;
+}
+.today-layout-panel {
+  max-height: min(72dvh, 28rem);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.today-layout-option {
+  min-height: 2.75rem;
+}
+.today-layout-option input[type="checkbox"] {
+  width: 1rem;
+  min-width: 1rem;
+  height: 1rem;
+  min-height: 1rem;
+  padding: 0;
+  accent-color: var(--accent);
+}
+
+@media (max-width: 639px) {
+  .today-layout-customize {
+    width: 100%;
+  }
+  .today-layout-panel {
+    margin-left: -0.25rem;
+    margin-right: -0.25rem;
+  }
+}
+
 @keyframes todo-focus-pulse {
   0%,
   100% {
@@ -2824,6 +2862,19 @@ html.success-haptic-flash::after {
 .news-master-detail {
   display: block;
 }
+.markets-master-detail-panel,
+.youtube-master-detail-panel,
+.news-master-detail-panel {
+  display: none;
+}
+.news-row-phone-link,
+.youtube-row-phone-link {
+  display: flex;
+}
+.news-row-detail-button,
+.youtube-row-detail-button {
+  display: none;
+}
 @media (min-width: 900px) {
   .markets-master-detail--open {
     display: grid;
@@ -2837,6 +2888,19 @@ html.success-haptic-flash::after {
     grid-template-columns: minmax(0, 1fr) minmax(16rem, 22rem);
     gap: 1rem;
     align-items: start;
+  }
+  .markets-master-detail-panel,
+  .youtube-master-detail-panel,
+  .news-master-detail-panel {
+    display: block;
+  }
+  .news-row-phone-link,
+  .youtube-row-phone-link {
+    display: none;
+  }
+  .news-row-detail-button,
+  .youtube-row-detail-button {
+    display: flex;
   }
   .markets-row--selected,
   .youtube-row--selected,
@@ -2918,6 +2982,18 @@ html.success-haptic-flash::after {
   letter-spacing: 0.01em;
   text-transform: none;
   font-weight: 500;
+}
+.markets-search-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+.markets-search-input {
+  min-height: 2.35rem;
+}
+.markets-search-clear {
+  flex-shrink: 0;
 }
 .holdings-from-other-device {
   letter-spacing: 0.01em;
@@ -3001,6 +3077,28 @@ html.success-haptic-flash::after {
   border: 1px solid var(--border);
 }
 
+.todos-tablet-two-pane {
+  display: block;
+}
+@media (min-width: 900px) and (orientation: landscape) {
+  .todos-tablet-two-pane {
+    display: grid;
+    grid-template-columns: minmax(13rem, 18rem) minmax(0, 1fr);
+    gap: 1rem;
+    align-items: start;
+  }
+  .todos-tablet-two-pane__lists {
+    position: sticky;
+    top: calc(var(--app-header-offset, 3.5rem) + 0.75rem);
+    max-height: calc(100dvh - var(--app-header-offset, 3.5rem) - 1.5rem);
+    overflow-y: auto;
+    padding-right: 0.25rem;
+  }
+  .todos-tablet-two-pane__detail {
+    min-width: 0;
+  }
+}
+
 
 /* next25r 15: Analytics tablet sticky KPI row */
 @media (min-width: 768px) and (max-width: 1023px) {
@@ -3045,6 +3143,7 @@ html.success-haptic-flash::after {
 
 /* next25u: phone sticky filter bars */
 @media (max-width: 767px) {
+  .news-sticky-filters,
   .markets-sticky-filters,
   .liabilities-sticky-rag,
   .journal-sticky-filter,

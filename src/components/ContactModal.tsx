@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { X, User, Briefcase, Mail, Phone, Link as LinkIcon, Calendar } from 'lucide-react'
+import { User, Briefcase, Mail, Phone, Link as LinkIcon, Calendar } from 'lucide-react'
 import type { JobContact, JobContactMethod } from '../domain/job-types'
+import { Modal } from './ui/Modal'
 
 interface ContactModalProps {
   contact?: JobContact
@@ -69,19 +70,12 @@ export function ContactModal({ contact, onSave, onClose }: ContactModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="surface rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 surface border-b border-border p-4 flex items-center justify-between rounded-t-xl md:rounded-t-none">
-          <h2 className="text-xl font-bold flex items-center gap-2">
-            <User size={20} />
-            {contact ? 'Edit Contact' : 'Add Contact'}
-          </h2>
-          <button type="button" onClick={onClose} className="btn-ghost btn-sm">
-            <X size={16} />
-          </button>
+    <Modal open title={contact ? 'Edit Contact' : 'Add Contact'} onClose={onClose}>
+        <div className="mb-4 flex items-center gap-2 text-text-muted">
+          <User size={20} />
+          <span className="text-sm">Recruiter, hiring manager, or referral contact</span>
         </div>
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-semibold mb-2 flex items-center gap-2">
@@ -236,7 +230,6 @@ export function ContactModal({ contact, onSave, onClose }: ContactModalProps) {
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   )
 }

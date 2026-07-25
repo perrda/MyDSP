@@ -25,7 +25,7 @@ export function loadPriceAlertThresholds(): PriceAlertThreshold[] {
     const raw = localStorage.getItem(THRESHOLDS_KEY)
     if (!raw) return DEFAULT_THRESHOLDS
     const parsed = JSON.parse(raw) as unknown
-    if (!Array.isArray(parsed) || parsed.length === 0) return DEFAULT_THRESHOLDS
+    if (!Array.isArray(parsed)) return DEFAULT_THRESHOLDS
     return parsed.filter(
       (t): t is PriceAlertThreshold =>
         !!t &&
@@ -46,7 +46,7 @@ export function savePriceAlertThresholds(
     (t) => t.key.trim() && Number.isFinite(t.changePct) && t.changePct > 0,
   )
   try {
-    localStorage.setItem(THRESHOLDS_KEY, JSON.stringify(cleaned.length ? cleaned : DEFAULT_THRESHOLDS))
+    localStorage.setItem(THRESHOLDS_KEY, JSON.stringify(cleaned))
     localStorage.setItem(`${THRESHOLDS_KEY}_at`, new Date().toISOString())
     window.dispatchEvent(new CustomEvent('mydsp-price-alerts'))
   } catch {

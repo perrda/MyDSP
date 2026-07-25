@@ -13,6 +13,7 @@ import { PageHeader } from '../components/ui/PageHeader'
 import { EmptyState, EmptyStateInline } from '../components/ui/EmptyState'
 import { ConfirmDialog, Field, Modal } from '../components/ui/Modal'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
+import { useToasts } from '../components/ToastProvider'
 import { MAX_YOUTUBE_CHANNELS, type YoutubeChannel, type YoutubeVideo } from '../domain/youtube'
 import { resolveYoutubeChannel } from '../services/youtubeFeeds'
 import { refreshYoutubeFeeds } from '../services/mediaRefresh'
@@ -45,6 +46,7 @@ function formatRelative(iso: string): string {
 const YT_PAGE = 6
 
 export function YouTubePage() {
+  const { showToast } = useToasts()
   const [channels, setChannels] = useState(() => listYoutubeChannels())
   const [videos, setVideos] = useState<YoutubeVideo[]>(() => loadYoutubeVideosCache().videos)
   const [selectedVideo, setSelectedVideo] = useState<YoutubeVideo | null>(null)
@@ -168,11 +170,20 @@ export function YouTubePage() {
     }
   }, [])
 
-  const unreadCount = videos.filter((v) => !seenAt || v.publishedAt > seenAt).length
+  const cachedWithoutChannels = channels.length === 0 && videos.length > 0
+  const displayedVideos = cachedWithoutChannels ? [] : videos
+  const unreadCount = displayedVideos.filter((v) => !seenAt || v.publishedAt > seenAt).length
   const cachedMode =
+    channels.length > 0 &&
     videos.length > 0 &&
     (!online || (error !== null && error.toLowerCase().includes('unavailable')))
+
+  useEffect(() => {
+    if (cachedWithoutChannels) setSelectedVideo(null)
+  }, [cachedWithoutChannels])
+
   const markYtRead = () => {
+    const previousSeenAt = seenAt
     const now = new Date().toISOString()
     setYoutubeSeenAt(now)
     setSeenAt(now)
@@ -181,6 +192,18 @@ export function YouTubePage() {
     } catch {
       /* ignore */
     }
+    showToast({
+      type: 'success',
+      title: 'YouTube marked read',
+      duration: 8000,
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          setYoutubeSeenAt(previousSeenAt)
+          setSeenAt(previousSeenAt)
+        },
+      },
+    })
   }
 
   const openCreate = () => {
@@ -286,6 +309,19 @@ export function YouTubePage() {
         </div>
       ) : null}
 
+      {cachedWithoutChannels ? (
+        <div
+          className="youtube-cached-without-channels-banner mb-4 px-3 py-2.5 text-sm border border-amber-500/45 bg-amber-500/10 text-amber-900 dark:text-amber-100 rounded-lg md:rounded-none"
+          role="status"
+          aria-live="polite"
+        >
+          <p className="font-semibold">Cached from last sync — add a channel</p>
+          <p className="text-xs mt-0.5 opacity-90">
+            {videos.length} cached video{videos.length === 1 ? '' : 's'} hidden until you add a favourite channel.
+          </p>
+        </div>
+      ) : null}
+
       {/* Favourites */}
       <section className="border border-border bg-bg-elevated mb-6 overflow-hidden">
         <div className="px-4 sm:px-5 pt-4 pb-3 border-b border-border flex items-start justify-between gap-3">
@@ -384,7 +420,7 @@ export function YouTubePage() {
                   Latest videos
                 </p>
                 <p className="label-uppercase text-[11px] text-text-subtle tabular-nums">
-                  {videos.length} from your favourites
+                  {displayedVideos.length} from your favourites
                   {unreadCount > 0 ? ` · ${unreadCount} unread` : ''}
                 </p>
               </div>
@@ -397,21 +433,23 @@ export function YouTubePage() {
                 </span>
               ) : null}
             </div>
-            {videos.length === 0 ? (
+            {displayedVideos.length === 0 ? (
               <EmptyStateInline
                 icon={<Video size={28} strokeWidth={1.25} className="text-red-500" />}
                 message={
                   refreshing
                     ? 'Loading videos…'
                     : channels.length === 0
-                      ? 'Add a channel to see new uploads here.'
+                      ? cachedWithoutChannels
+                        ? 'Cached videos are hidden until you add a channel.'
+                        : 'Add a channel to see new uploads here.'
                       : 'No videos yet — use the header refresh to pull latest uploads.'
                 }
               />
             ) : (
               <>
                 <ul className="divide-y divide-border">
-                  {videos.slice(0, visibleCount).map((v) => {
+                  {displayedVideos.slice(0, visibleCount).map((v) => {
                     const unread = !seenAt || v.publishedAt > seenAt
                     const selected = selectedVideo?.id === v.id
                     const rowBody = (
@@ -456,13 +494,13 @@ export function YouTubePage() {
                           href={v.link}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="px-4 sm:px-5 py-3.5 flex items-start gap-3 hover:bg-surface-hover/60 transition-colors md:hidden"
+                          className="youtube-row-phone-link px-4 sm:px-5 py-3.5 items-start gap-3 hover:bg-surface-hover/60 transition-colors"
                         >
                           {rowBody}
                         </a>
                         <button
                           type="button"
-                          className={`px-4 sm:px-5 py-3.5 items-start gap-3 hover:bg-surface-hover/60 transition-colors hidden md:flex w-full text-left${
+                          className={`youtube-row-detail-button px-4 sm:px-5 py-3.5 items-start gap-3 hover:bg-surface-hover/60 transition-colors w-full text-left${
                             selected ? ' youtube-row--selected' : ''
                           }`}
                           onClick={() => setSelectedVideo(v)}
@@ -473,14 +511,14 @@ export function YouTubePage() {
                     )
                   })}
                 </ul>
-                {visibleCount < videos.length ? (
+                {visibleCount < displayedVideos.length ? (
                   <div className="px-4 sm:px-5 py-3 border-t border-border">
                     <button
                       type="button"
                       className="btn-secondary btn-sm w-full min-h-11"
                       onClick={() => setVisibleCount((n) => n + YT_PAGE)}
                     >
-                      Load more ({videos.length - visibleCount} left)
+                      Load more ({displayedVideos.length - visibleCount} left)
                     </button>
                   </div>
                 ) : null}
@@ -490,7 +528,7 @@ export function YouTubePage() {
         </div>
         {selectedVideo ? (
           <aside
-            className="youtube-master-detail-panel surface p-4 border border-border hidden md:block sticky self-start"
+            className="youtube-master-detail-panel surface p-4 border border-border sticky self-start"
             aria-label={`Selected video: ${selectedVideo.title}`}
           >
             <p className="label-uppercase mb-1">Selected</p>
@@ -507,6 +545,11 @@ export function YouTubePage() {
                 alt=""
                 className="w-full aspect-video object-cover rounded-md mb-3 bg-surface-hover"
               />
+            ) : null}
+            {selectedVideo.description ? (
+              <p className="text-sm text-text-muted mb-3 leading-relaxed line-clamp-4">
+                {selectedVideo.description}
+              </p>
             ) : null}
             <div className="flex flex-wrap gap-2">
               <a
@@ -545,7 +588,7 @@ export function YouTubePage() {
               value={formUrl}
               onChange={(e) => setFormUrl(e.target.value)}
               placeholder="https://www.youtube.com/@… or UC…"
-              disabled={Boolean(editing) || resolving}
+              disabled={resolving}
               autoComplete="off"
               spellCheck={false}
             />

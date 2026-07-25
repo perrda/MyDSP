@@ -85,6 +85,8 @@ export interface JobApplication {
     dueDate?: string
     completed: boolean
     completedAt?: string
+    /** Optional linked To Do id for completion sync. */
+    linkedTodoId?: number
   }>
   
   // Metadata

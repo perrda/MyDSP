@@ -4,7 +4,7 @@ import { CreditCard as CreditCardIcon, Landmark } from 'lucide-react'
 import { PortfolioSeriesChart } from '../components/charts/PortfolioSeriesChart'
 import { EmptyState } from '../components/ui/EmptyState'
 import { PageHeader } from '../components/ui/PageHeader'
-import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
+import { ConfirmDialog, Field, Modal } from '../components/ui/Modal'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
 import { usePortfolio } from '../context/PortfolioContext'
 import { dailyInterestGbp, ragClass, ragLabel, type LiabilityKind } from '../domain/liabilityHelpers'
@@ -19,6 +19,24 @@ import { formatDate, formatGBP, formatPct, privacyClass } from '../utils/format'
 
 function nextId(items: { id: number }[]): number {
   return items.reduce((m, i) => Math.max(m, i.id), 0) + 1
+}
+
+function parseMoneyField(value: string): number | null {
+  const trimmed = value.trim()
+  if (!trimmed) return 0
+  const n = Number(trimmed.replace(/,/g, ''))
+  return Number.isFinite(n) && n >= 0 ? n : null
+}
+
+function parseDueDay(value: string): number | undefined | null {
+  const trimmed = value.trim()
+  if (!trimmed) return undefined
+  const n = Number(trimmed)
+  return Number.isInteger(n) && n >= 1 && n <= 31 ? n : null
+}
+
+function dueDayLabel(day: number | undefined): string | null {
+  return day ? `Due day ${day}` : null
 }
 
 type Kind = LiabilityKind
@@ -39,6 +57,7 @@ export function LiabilitiesPage() {
     minPay: '',
     limit: '',
     original: '',
+    paymentDueDay: '',
     ragStatus: '' as '' | RagStatus,
     contactPhone: '',
     contactEmail: '',
@@ -48,6 +67,7 @@ export function LiabilitiesPage() {
   })
   const [deleteTarget, setDeleteTarget] = useState<{ kind: Kind; id: number } | null>(null)
   const [ragFilter, setRagFilter] = useState<RagFilter>(() => loadLiabilitiesRagFilter())
+  const [searchQuery, setSearchQuery] = useState('')
 
   const openCreate = (k: Kind) => {
     setKind(k)
@@ -60,6 +80,7 @@ export function LiabilitiesPage() {
       minPay: '',
       limit: '',
       original: '',
+      paymentDueDay: '',
       ragStatus: '',
       contactPhone: '',
       contactEmail: '',
@@ -81,6 +102,7 @@ export function LiabilitiesPage() {
       minPay: String(c.minPay),
       limit: String(c.limit),
       original: '',
+      paymentDueDay: c.paymentDueDay ? String(c.paymentDueDay) : '',
       ragStatus: c.ragStatus ?? '',
       contactPhone: c.contactPhone ?? '',
       contactEmail: c.contactEmail ?? '',
@@ -102,6 +124,7 @@ export function LiabilitiesPage() {
       minPay: String(l.minPay),
       limit: '',
       original: String(l.original),
+      paymentDueDay: l.paymentDueDay ? String(l.paymentDueDay) : '',
       ragStatus: l.ragStatus ?? '',
       contactPhone: l.contactPhone ?? '',
       contactEmail: l.contactEmail ?? '',
@@ -112,7 +135,25 @@ export function LiabilitiesPage() {
     setOpen(true)
   }
 
+  const validation = useMemo(() => {
+    const balance = parseMoneyField(form.balance)
+    const apr = parseMoneyField(form.apr)
+    const minPay = parseMoneyField(form.minPay)
+    const limit = kind === 'card' ? parseMoneyField(form.limit) : 0
+    const original = kind === 'loan' ? parseMoneyField(form.original) : 0
+    const paymentDueDay = parseDueDay(form.paymentDueDay)
+    const errors: Record<string, string> = {}
+    if (balance == null) errors.balance = 'Enter a valid non-negative balance.'
+    if (apr == null) errors.apr = 'Enter a valid non-negative APR.'
+    if (minPay == null) errors.minPay = 'Enter a valid non-negative payment.'
+    if (kind === 'card' && limit == null) errors.limit = 'Enter a valid non-negative limit.'
+    if (kind === 'loan' && original == null) errors.original = 'Enter a valid non-negative original amount.'
+    if (paymentDueDay === null) errors.paymentDueDay = 'Use a day from 1 to 31.'
+    return { balance, apr, minPay, limit, original, paymentDueDay, errors }
+  }, [form, kind])
+
   const save = () => {
+    if (Object.keys(validation.errors).length > 0) return
     const rag = form.ragStatus || undefined
     const contactPhone = form.contactPhone.trim() || undefined
     const contactEmail = form.contactEmail.trim() || undefined
@@ -126,10 +167,11 @@ export function LiabilitiesPage() {
       const card: CreditCard = {
         id: editingCard?.id ?? nextId(data.creditCards),
         name: form.name.trim() || 'Card',
-        balance: parseNum(form.balance),
-        apr: parseNum(form.apr),
-        minPay: parseNum(form.minPay),
-        limit: parseNum(form.limit),
+        balance: validation.balance ?? 0,
+        apr: validation.apr ?? 0,
+        minPay: validation.minPay ?? 0,
+        limit: validation.limit ?? 0,
+        paymentDueDay: validation.paymentDueDay ?? undefined,
         includeInPortfolio: editingCard?.includeInPortfolio ?? true,
         contactPhone,
         contactEmail,
@@ -150,10 +192,11 @@ export function LiabilitiesPage() {
       const loan: Loan = {
         id: editingLoan?.id ?? nextId(data.loans),
         name: form.name.trim() || 'Loan',
-        balance: parseNum(form.balance),
-        apr: parseNum(form.apr),
-        minPay: parseNum(form.minPay),
-        original: parseNum(form.original) || parseNum(form.balance),
+        balance: validation.balance ?? 0,
+        apr: validation.apr ?? 0,
+        minPay: validation.minPay ?? 0,
+        original: validation.original || validation.balance || 0,
+        paymentDueDay: validation.paymentDueDay ?? undefined,
         includeInPortfolio: editingLoan?.includeInPortfolio ?? true,
         contactPhone,
         contactEmail,
@@ -198,27 +241,37 @@ export function LiabilitiesPage() {
     return status === ragFilter
   }
 
+  const matchesSearch = (name: string, contactUrl?: string, contactEmail?: string) => {
+    const query = searchQuery.trim().toLowerCase()
+    if (!query) return true
+    return (
+      name.toLowerCase().includes(query) ||
+      (contactUrl ?? '').toLowerCase().includes(query) ||
+      (contactEmail ?? '').toLowerCase().includes(query)
+    )
+  }
+
   const cards = useMemo(
     () =>
       sortBySortOrder(
-        data.creditCards.filter((c) => matchesRag(c.ragStatus)),
+        data.creditCards.filter((c) => matchesRag(c.ragStatus) && matchesSearch(c.name, c.contactUrl, c.contactEmail)),
         (a, b) => b.apr - a.apr,
       ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [data.creditCards, ragFilter],
+    [data.creditCards, ragFilter, searchQuery],
   )
 
   const loans = useMemo(
     () =>
       sortBySortOrder(
-        data.loans.filter((l) => matchesRag(l.ragStatus)),
+        data.loans.filter((l) => matchesRag(l.ragStatus) && matchesSearch(l.name, l.contactUrl, l.contactEmail)),
         (a, b) => b.apr - a.apr,
       ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [data.loans, ragFilter],
+    [data.loans, ragFilter, searchQuery],
   )
 
-  const canDrag = ragFilter === 'all'
+  const canDrag = ragFilter === 'all' && !searchQuery.trim()
 
   const reorderCards = (next: CreditCard[]) => {
     setData((prev) => ({ ...prev, creditCards: applySortOrder(next) }))
@@ -324,6 +377,17 @@ export function LiabilitiesPage() {
             {label}
           </button>
         ))}
+        <label className="flex-1 min-w-[14rem] sm:ml-auto">
+          <span className="sr-only">Search liabilities by name or lender</span>
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search name or lender…"
+            className="w-full px-3 py-2 bg-surface-hover border border-border rounded text-sm"
+            data-testid="liabilities-search"
+          />
+        </label>
       </div>
 
       <h3 className="eyebrow mb-2">Credit cards</h3>
@@ -343,7 +407,7 @@ export function LiabilitiesPage() {
             />
           </div>
         ) : (
-          <div className="surface p-8 text-text-subtle mb-10">No cards match this RAG filter.</div>
+          <div className="surface p-8 text-text-subtle mb-10">No cards match the current filters.</div>
         )
       ) : (
         <ReorderList
@@ -356,6 +420,7 @@ export function LiabilitiesPage() {
             const included = c.includeInPortfolio !== false
             const util = c.limit > 0 ? (c.balance / c.limit) * 100 : 0
             const notes = c.commentaries?.length ?? 0
+            const due = dueDayLabel(c.paymentDueDay)
             return (
               <div className={`surface surface-interactive p-5 sm:p-8 h-full ${included ? '' : 'opacity-50'}`}>
                 <div className="flex justify-between gap-3 mb-3">
@@ -396,6 +461,7 @@ export function LiabilitiesPage() {
                   <p className="text-sm text-text-subtle font-light mb-3">
                     APR {c.apr.toFixed(2)}% · Min {formatGBP(c.minPay)} · Util{' '}
                     {formatPct(util, 0).replace('+', '')}
+                    {due ? ` · ${due}` : ''}
                   </p>
                   <div className="progress-track mb-4">
                     <div className="progress-fill" style={{ width: `${Math.min(util, 100)}%` }} />
@@ -431,7 +497,7 @@ export function LiabilitiesPage() {
             />
           </div>
         ) : (
-          <div className="surface p-8 text-text-subtle mb-10">No loans match this RAG filter.</div>
+          <div className="surface p-8 text-text-subtle mb-10">No loans match the current filters.</div>
         )
       ) : (
         <ReorderList
@@ -444,6 +510,7 @@ export function LiabilitiesPage() {
             const included = l.includeInPortfolio !== false
             const paid = l.original > 0 ? ((l.original - l.balance) / l.original) * 100 : 0
             const notes = l.commentaries?.length ?? 0
+            const due = dueDayLabel(l.paymentDueDay)
             return (
               <div className={`surface surface-interactive p-5 sm:p-8 h-full ${included ? '' : 'opacity-50'}`}>
                 <div className="flex justify-between gap-3 mb-3">
@@ -484,6 +551,7 @@ export function LiabilitiesPage() {
                   <p className="text-sm text-text-subtle font-light mb-3">
                     APR {l.apr.toFixed(2)}% · Min {formatGBP(l.minPay)} · Original{' '}
                     {formatGBP(l.original)}
+                    {due ? ` · ${due}` : ''}
                   </p>
                   <div className="progress-track mb-4">
                     <div
@@ -513,7 +581,14 @@ export function LiabilitiesPage() {
               <div key={`${p.name}-${p.paidDate}`} className="px-6 py-4 flex justify-between gap-4">
                 <div>
                   <p className="font-medium">{p.name}</p>
-                  <p className="text-xs text-text-subtle mt-1">{formatDate(p.paidDate)}</p>
+                  <p className="text-xs text-text-subtle mt-1">
+                    {formatDate(p.paidDate)}
+                    {p.apr != null ? ` · APR ${p.apr.toFixed(2)}%` : ''}
+                    {(p.commentaries?.length ?? 0) > 0 ? ` · ${p.commentaries!.length} note${p.commentaries!.length === 1 ? '' : 's'}` : ''}
+                  </p>
+                  {p.notes ? (
+                    <p className="text-xs text-text-muted mt-1 line-clamp-2">{p.notes}</p>
+                  ) : null}
                 </div>
                 <p className={`font-semibold tabular-nums ${privacyClass(privacy)}`}>
                   {formatGBP(p.original)}
@@ -554,7 +629,7 @@ export function LiabilitiesPage() {
             />
           </Field>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label="Balance (GBP)">
+            <Field label="Balance (GBP)" error={validation.errors.balance}>
               <input
                 type="text"
                 inputMode="decimal"
@@ -563,7 +638,7 @@ export function LiabilitiesPage() {
                 onChange={(e) => setForm({ ...form, balance: e.target.value })}
               />
             </Field>
-            <Field label="APR %">
+            <Field label="APR %" error={validation.errors.apr}>
               <input
                 type="text"
                 inputMode="decimal"
@@ -571,7 +646,7 @@ export function LiabilitiesPage() {
                 onChange={(e) => setForm({ ...form, apr: e.target.value })}
               />
             </Field>
-            <Field label="Min payment (GBP)">
+            <Field label="Min payment (GBP)" error={validation.errors.minPay}>
               <input
                 type="text"
                 inputMode="decimal"
@@ -580,7 +655,7 @@ export function LiabilitiesPage() {
               />
             </Field>
             {kind === 'card' ? (
-              <Field label="Limit (GBP)">
+              <Field label="Limit (GBP)" error={validation.errors.limit}>
                 <input
                   type="text"
                   inputMode="decimal"
@@ -589,7 +664,7 @@ export function LiabilitiesPage() {
                 />
               </Field>
             ) : (
-              <Field label="Original amount (GBP)">
+              <Field label="Original amount (GBP)" error={validation.errors.original}>
                 <input
                   type="text"
                   inputMode="decimal"
@@ -599,6 +674,21 @@ export function LiabilitiesPage() {
               </Field>
             )}
           </div>
+          <Field
+            label="Payment due day"
+            hint="Optional monthly due day, 1–31."
+            error={validation.errors.paymentDueDay}
+          >
+            <input
+              type="number"
+              min="1"
+              max="31"
+              inputMode="numeric"
+              value={form.paymentDueDay}
+              onChange={(e) => setForm({ ...form, paymentDueDay: e.target.value })}
+              data-testid="liability-payment-due-day"
+            />
+          </Field>
           <Field label="RAG status">
             <select
               value={form.ragStatus}
@@ -703,7 +793,7 @@ export function LiabilitiesPage() {
             <button type="button" className="btn-ghost" onClick={() => setOpen(false)}>
               Cancel
             </button>
-            <button type="submit" className="btn-primary">
+            <button type="submit" className="btn-primary" disabled={Object.keys(validation.errors).length > 0}>
               Save
             </button>
           </div>

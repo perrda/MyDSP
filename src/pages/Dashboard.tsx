@@ -172,6 +172,48 @@ const QUICK_SECONDARY = [
 const ISA_ALLOWANCE_GBP = 20_000
 const ISA_REMAINING_KEY = 'mydsp_isa_remaining_gbp'
 const ISA_LOW_REMAINING_THRESHOLD_GBP = 2_000
+const TODAY_LAYOUT_STORAGE_KEY = 'mydsp.today.layout.v1'
+const TODAY_LAYOUT_CARD_OPTIONS = [
+  { id: 'next', label: 'Next' },
+  { id: 'bills', label: 'Bills' },
+  { id: 'goals', label: 'Goals' },
+  { id: 'tax', label: 'Tax' },
+  { id: 'media', label: 'Media' },
+  { id: 'markets', label: 'Markets' },
+  { id: 'budget', label: 'Budget' },
+  { id: 'gettingStarted', label: 'Getting started' },
+  { id: 'alerts', label: 'Alerts' },
+  { id: 'reminders', label: 'Reminders' },
+  { id: 'charts', label: 'Charts' },
+  { id: 'activity', label: 'Activity' },
+] as const
+type TodayCardId = (typeof TODAY_LAYOUT_CARD_OPTIONS)[number]['id']
+type TodayLayoutPrefs = { hiddenCards: TodayCardId[] }
+const TODAY_LAYOUT_CARD_IDS = new Set<TodayCardId>(
+  TODAY_LAYOUT_CARD_OPTIONS.map((option) => option.id),
+)
+
+function readTodayLayoutPrefs(): TodayLayoutPrefs {
+  try {
+    const raw = localStorage.getItem(TODAY_LAYOUT_STORAGE_KEY)
+    if (!raw) return { hiddenCards: [] }
+    const parsed = JSON.parse(raw) as Partial<TodayLayoutPrefs>
+    const hiddenCards = Array.isArray(parsed.hiddenCards)
+      ? parsed.hiddenCards.filter((id): id is TodayCardId => TODAY_LAYOUT_CARD_IDS.has(id as TodayCardId))
+      : []
+    return { hiddenCards }
+  } catch {
+    return { hiddenCards: [] }
+  }
+}
+
+function saveTodayLayoutPrefs(prefs: TodayLayoutPrefs) {
+  try {
+    localStorage.setItem(TODAY_LAYOUT_STORAGE_KEY, JSON.stringify(prefs))
+  } catch {
+    /* ignore */
+  }
+}
 
 function weekStartKey(now = new Date()): string {
   const d = new Date(now)
@@ -357,6 +399,27 @@ export function Dashboard() {
   } | null>(null)
   const youtubeMarkAllUndoTimer = useRef<number | null>(null)
   const [activeJumpSection, setActiveJumpSection] = useState<string | null>(null)
+  const [todayLayoutOpen, setTodayLayoutOpen] = useState(false)
+  const [todayHiddenCards, setTodayHiddenCards] = useState<Set<TodayCardId>>(
+    () => new Set(readTodayLayoutPrefs().hiddenCards),
+  )
+  const isTodayCardVisible = (id: TodayCardId) => !todayHiddenCards.has(id)
+  const toggleTodayCard = (id: TodayCardId) => {
+    setTodayHiddenCards((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      saveTodayLayoutPrefs({ hiddenCards: [...next] })
+      return next
+    })
+  }
+  const resetTodayLayout = () => {
+    saveTodayLayoutPrefs({ hiddenCards: [] })
+    setTodayHiddenCards(new Set())
+  }
 
   useEffect(() => subscribeAutoSync(setSyncStatus), [])
   useEffect(() => {
@@ -461,7 +524,7 @@ export function Dashboard() {
       })
       .filter((x): x is NonNullable<typeof x> => !!x)
       .sort((a, b) => Math.abs(b.changePct) - Math.abs(a.changePct))
-      .slice(0, 3)
+      .slice(0, 5)
   }, [syncStatus.lastAt, marketsCount])
 
   /** Cross-device quote lag — when last-good prints arrived via sync before this device refreshed. */
@@ -1149,6 +1212,20 @@ export function Dashboard() {
       : billsDueSoon
 
   const goalProjection = useMemo(() => nearestGoalProjection(data), [data])
+  const showNextCard = isTodayCardVisible('next')
+  const showBillsCard = isTodayCardVisible('bills') && showBillsStrip.length > 0
+  const showGoalsCard = isTodayCardVisible('goals') && Boolean(soonGoal || goalProjection)
+  const showTaxCard = isTodayCardVisible('tax')
+  const showMediaCard = isTodayCardVisible('media')
+  const showMarketsCard = isTodayCardVisible('markets')
+  const showBudgetCard = isTodayCardVisible('budget') && budgetPulse.length > 0
+  const showBudgetPulseCards = isTodayCardVisible('budget')
+  const showGettingStartedCard = isTodayCardVisible('gettingStarted')
+  const showAlertsCard = isTodayCardVisible('alerts') && alerts.length > 0
+  const showRemindersCard = isTodayCardVisible('reminders') && reminders.length > 0
+  const showChartsCard = isTodayCardVisible('charts')
+  const showActivityCard = isTodayCardVisible('activity')
+  const useTodayTwoPane = twoPane && showMarketsCard
 
   const syncLine = !syncEnabled
     ? 'Cloud sync off — enable in Settings'
@@ -1177,6 +1254,21 @@ export function Dashboard() {
             })()
           : 'Cloud sync ready'
 
+  const todayJumpChips: Array<[string, string, string]> = [
+    ...(showNextCard ? [['today-next-action', 'Next', 'today-section-jump-next'] as [string, string, string]] : []),
+    ...(showBillsCard ? [['today-bills', 'Bills', 'today-section-jump-bills'] as [string, string, string]] : []),
+    ...(showGoalsCard ? [['today-goals', 'Goals', 'today-section-jump-goals'] as [string, string, string]] : []),
+    ...(showTaxCard ? [['today-tax', 'Tax', 'today-section-jump-tax'] as [string, string, string]] : []),
+    ...(liabilities > 0 ? [['today-debt', 'Debt', 'today-section-jump-debt'] as [string, string, string]] : []),
+    ...(monthlyBudgetPulse && showBudgetPulseCards
+      ? [['today-budget-pulse', 'Budget', 'today-section-jump-budget'] as [string, string, string]]
+      : []),
+    ...(cashRunway ? [['today-cash-runway', 'Runway', 'today-section-jump-runway'] as [string, string, string]] : []),
+    ...(fireChip ? [['today-fire-chip', 'FIRE', 'today-section-jump-fire'] as [string, string, string]] : []),
+    ...(showMediaCard ? [['today-media', 'Media', 'today-section-jump-media'] as [string, string, string]] : []),
+    ...(showMarketsCard ? [['today-markets', 'Markets', 'today-section-jump-markets'] as [string, string, string]] : []),
+  ]
+
   return (
     <div className="pb-8 md:pb-0">
       <WeeklyDigestModal
@@ -1191,52 +1283,87 @@ export function Dashboard() {
         description="Net worth, tasks due now, sync health, and Markets — act first, explore below."
       />
 
-      <nav
-        className="today-section-jump-chips mb-3 flex flex-wrap gap-1.5"
-        aria-label="Jump to Today section"
-      >
-        {(
-          [
-            ['today-next-action', 'Next', 'today-section-jump-next'],
-            ['today-bills', 'Bills', 'today-section-jump-bills'],
-            ['today-goals', 'Goals', 'today-section-jump-goals'],
-            ['today-tax', 'Tax', 'today-section-jump-tax'],
-            ...(liabilities > 0
-              ? ([['today-debt', 'Debt', 'today-section-jump-debt']] as const)
-              : []),
-            ...(monthlyBudgetPulse
-              ? ([['today-budget-pulse', 'Budget', 'today-section-jump-budget']] as const)
-              : []),
-            ...(cashRunway
-              ? ([['today-cash-runway', 'Runway', 'today-section-jump-runway']] as const)
-              : []),
-            ...(fireChip
-              ? ([['today-fire-chip', 'FIRE', 'today-section-jump-fire']] as const)
-              : []),
-            ['today-media', 'Media', 'today-section-jump-media'],
-            ['today-markets', 'Markets', 'today-section-jump-markets'],
-          ] as const
-        ).map(([id, label, chipClass]) => {
-          const active = activeJumpSection === id
-          return (
-            <a
-              key={id}
-              href={`#${id}`}
-              className={`today-section-jump-chip ui-seg ${chipClass}${
-                active ? ' is-active today-section-jump-chip--active' : ''
-              }`}
-              aria-current={active ? 'true' : undefined}
-              onClick={(e) => {
-                e.preventDefault()
-                document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-                setActiveJumpSection(id)
-              }}
-            >
-              {label}
-            </a>
-          )
-        })}
-      </nav>
+      <div className="today-jump-toolbar mb-3 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+        <nav
+          className="today-section-jump-chips flex flex-wrap gap-1.5"
+          aria-label="Jump to Today section"
+        >
+          {todayJumpChips.map(([id, label, chipClass]) => {
+            const active = activeJumpSection === id
+            return (
+              <a
+                key={id}
+                href={`#${id}`}
+                className={`today-section-jump-chip ui-seg ${chipClass}${
+                  active ? ' is-active today-section-jump-chip--active' : ''
+                }`}
+                aria-current={active ? 'true' : undefined}
+                onClick={(e) => {
+                  e.preventDefault()
+                  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                  setActiveJumpSection(id)
+                }}
+              >
+                {label}
+              </a>
+            )
+          })}
+        </nav>
+        <button
+          type="button"
+          className="today-layout-customize ui-seg shrink-0 self-start"
+          aria-expanded={todayLayoutOpen}
+          aria-controls="today-layout-panel"
+          onClick={() => setTodayLayoutOpen((open) => !open)}
+        >
+          Customize{todayHiddenCards.size > 0 ? ` · ${todayHiddenCards.size} hidden` : ''}
+        </button>
+      </div>
+
+      {todayLayoutOpen ? (
+        <div
+          id="today-layout-panel"
+          className="today-layout-panel surface p-3 md:p-4 mb-3 rounded-xl md:rounded-none shadow-sm md:shadow-none"
+          role="dialog"
+          aria-label="Customize Today layout"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <div>
+              <p className="text-xs uppercase tracking-wider text-text-subtle font-semibold">
+                Today layout
+              </p>
+              <p className="text-xs text-text-muted">Choose which cards show on this device.</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" className="btn-ghost btn-sm" onClick={resetTodayLayout}>
+                Show all
+              </button>
+              <button
+                type="button"
+                className="btn-secondary btn-sm"
+                onClick={() => setTodayLayoutOpen(false)}
+              >
+                Done
+              </button>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+            {TODAY_LAYOUT_CARD_OPTIONS.map((option) => (
+              <label
+                key={option.id}
+                className="today-layout-option flex items-center gap-2 border border-border bg-surface-hover/50 px-3 py-2 text-sm"
+              >
+                <input
+                  type="checkbox"
+                  checked={!todayHiddenCards.has(option.id)}
+                  onChange={() => toggleTodayCard(option.id)}
+                />
+                <span>{option.label}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       {queueLen > 0 ? (
         <p className="today-offline-queue-chip mb-3 text-xs text-accent font-medium" role="status">
@@ -1281,8 +1408,8 @@ export function Dashboard() {
         </div>
       ) : null}
 
-      <div className={twoPane ? 'today-two-pane grid grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)] gap-4 mb-4 items-start' : ''}>
-        <div className={twoPane ? 'min-w-0' : ''}>
+      <div className={useTodayTwoPane ? 'today-two-pane grid grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)] gap-4 mb-4 items-start' : ''}>
+        <div className={useTodayTwoPane ? 'min-w-0' : ''}>
       <div className={`surface p-5 md:p-6 mb-4 rounded-xl md:rounded-none shadow-sm md:shadow-none ${privacyClass(privacy)}`}>
         <p className="text-xs uppercase tracking-wider text-text-subtle mb-1 font-semibold">Net worth</p>
         <p className="today-net-worth-value text-3xl md:text-4xl font-bold tabular-nums tracking-tight mb-1 break-words">
@@ -1333,20 +1460,20 @@ export function Dashboard() {
         <p className="text-sm text-text-muted font-light mb-4">
           Assets {formatGBP(assets)} · Debt {formatGBP(liabilities)}
         </p>
-        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-text-subtle">
-          <span>{syncLine}</span>
-          <Link to="/markets" className="hover:text-accent">
-            {marketsCount} Markets ticker{marketsCount === 1 ? '' : 's'} →
-          </Link>
-        </div>
-        {priceLagChip ||
-        !hasFinnhubKey(data) ||
-        finnhubQuotaLimited ||
-        quoteSlaChip ||
-        quotePartialChip ? (
+        <div className="today-trust-strip mt-3" role="status" aria-label="Today sync and price trust">
+          <div className="today-trust-strip-primary flex flex-wrap gap-x-4 gap-y-1 text-xs text-text-subtle">
+            <span>{syncLine}</span>
+            <Link to="/markets" className="hover:text-accent">
+              {marketsCount} Markets ticker{marketsCount === 1 ? '' : 's'} →
+            </Link>
+          </div>
+          {priceLagChip ||
+          !hasFinnhubKey(data) ||
+          finnhubQuotaLimited ||
+          quoteSlaChip ||
+          quotePartialChip ? (
           <div
-            className="today-prices-trust mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs"
-            role="status"
+            className="today-prices-trust flex flex-wrap gap-x-3 gap-y-1 text-xs"
             aria-label="Prices trust"
           >
             {priceLagChip ? (
@@ -1395,10 +1522,14 @@ export function Dashboard() {
               </Link>
             ) : null}
           </div>
-        ) : null}
-        {(monthlyBudgetPulse || weekToDateSpend.spent > 0 || cashRunway || fireChip || liabilities > 0) ? (
+          ) : null}
+        </div>
+        {((showBudgetPulseCards && (monthlyBudgetPulse || weekToDateSpend.spent > 0)) ||
+          cashRunway ||
+          fireChip ||
+          liabilities > 0) ? (
           <div className="today-pulse-chips mt-4 flex flex-wrap gap-2">
-            {monthlyBudgetPulse ? (
+            {monthlyBudgetPulse && showBudgetPulseCards ? (
               <Link
                 id="today-budget-pulse"
                 to="/budgets"
@@ -1417,7 +1548,7 @@ export function Dashboard() {
                 </span>
               </Link>
             ) : null}
-            {weekToDateSpend.spent > 0 ? (
+            {weekToDateSpend.spent > 0 && showBudgetPulseCards ? (
               <Link
                 to="/budgets"
                 data-testid="today-wtd-spend"
@@ -1491,6 +1622,7 @@ export function Dashboard() {
       </div>
 
       {/* Next-action stack — up to 3: todo / bill / top mover */}
+      {showNextCard ? (
       <TodayAccordionSection
         id="today-next-action"
         title="Next"
@@ -1855,8 +1987,9 @@ export function Dashboard() {
           </div>
         ) : null}
       </TodayAccordionSection>
+      ) : null}
 
-      {showBillsStrip.length > 0 ? (
+      {showBillsCard ? (
         <TodayAccordionSection
           id="today-bills"
           title="Bills · due in 7 days"
@@ -1910,7 +2043,7 @@ export function Dashboard() {
         </TodayAccordionSection>
       ) : null}
 
-      {soonGoal || goalProjection ? (
+      {showGoalsCard ? (
         <TodayAccordionSection
           id="today-goals"
           title="Goals"
@@ -1997,6 +2130,7 @@ export function Dashboard() {
         </TodayAccordionSection>
       ) : null}
 
+      {showTaxCard ? (
       <div
         id="today-tax"
         className="today-tax-strip surface p-3 md:p-4 mb-3 rounded-xl md:rounded-none shadow-sm md:shadow-none flex flex-wrap items-center justify-between gap-2"
@@ -2013,7 +2147,9 @@ export function Dashboard() {
           Open Tax
         </Link>
       </div>
+      ) : null}
 
+      {showMediaCard ? (
       <div
         id="today-media"
         className="surface p-4 md:p-5 mb-6 rounded-xl md:rounded-none shadow-sm md:shadow-none"
@@ -2250,9 +2386,10 @@ export function Dashboard() {
           </p>
         )}
       </div>
+      ) : null}
         </div>
 
-        {twoPane ? (
+        {useTodayTwoPane ? (
           <aside
             id="today-markets"
             className="today-markets-pane surface p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none sticky"
@@ -2266,7 +2403,7 @@ export function Dashboard() {
             </div>
             {priceLagChip || finnhubQuotaLimited || quoteSlaChip || quotePartialChip ? (
               <div
-                className="today-prices-trust mb-2 space-y-1.5"
+                className="today-trust-strip today-prices-trust mb-2 space-y-1.5"
                 role="status"
                 aria-label="Prices trust"
               >
@@ -2327,7 +2464,7 @@ export function Dashboard() {
               {marketsCount} ticker{marketsCount === 1 ? '' : 's'} watched · movers use quotes from the last 24h
             </p>
           </aside>
-        ) : (
+        ) : showMarketsCard ? (
           <section
             id="today-markets"
             className="today-markets-pane surface p-4 mb-6 rounded-xl shadow-sm"
@@ -2369,10 +2506,10 @@ export function Dashboard() {
               {marketsCount} ticker{marketsCount === 1 ? '' : 's'} watched · movers use quotes from the last 24h
             </p>
           </section>
-        )}
+        ) : null}
       </div>
 
-      <GettingStartedChecklist />
+      {showGettingStartedCard ? <GettingStartedChecklist /> : null}
 
       {/* Secondary stats — Assets / Debt / allocation (net worth lives in Today pulse above) */}
       <div className={`grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-px mb-6 ${privacyClass(privacy)}`}>
@@ -2394,7 +2531,7 @@ export function Dashboard() {
       </div>
 
       {/* Alerts - mobile optimized */}
-      {alerts.length > 0 && (
+      {showAlertsCard && (
         <div className="grid grid-cols-1 gap-3 md:gap-px mb-6">
           {alerts.slice(0, 3).map((a) => (
             <Link
@@ -2410,7 +2547,7 @@ export function Dashboard() {
       )}
 
       {/* Smart Reminders */}
-      {reminders.length > 0 && (
+      {showRemindersCard && (
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -2424,7 +2561,7 @@ export function Dashboard() {
         </div>
       )}
 
-      {budgetPulse.length > 0 && (
+      {showBudgetCard && (
         <div className="surface p-5 md:p-6 mb-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
           <div className="flex items-start justify-between gap-3 mb-5">
             <div>
@@ -2464,6 +2601,7 @@ export function Dashboard() {
       )}
 
       {/* Asset allocation and net worth chart */}
+      {showChartsCard ? (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-px mb-6">
         <div className="surface p-5 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
           <AllocationRing
@@ -2481,6 +2619,7 @@ export function Dashboard() {
           <NetWorthChart history={data.history} privacy={privacy} onSnapshot={onSnapshot} />
         </div>
       </div>
+      ) : null}
 
       {/* Score, Level, Debt cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-px mb-6">
@@ -2545,6 +2684,7 @@ export function Dashboard() {
       </div>
 
       {/* Recent Activity */}
+      {showActivityCard ? (
       <div className="surface p-5 md:p-8 rounded-xl md:rounded-none shadow-sm md:shadow-none">
         <div className="mb-4">
           <p className="text-xs uppercase tracking-wider text-text-subtle mb-1 font-semibold">Recent</p>
@@ -2585,6 +2725,7 @@ export function Dashboard() {
           </ul>
         )}
       </div>
+      ) : null}
 
       <div className="thumb-cta-bar" role="toolbar" aria-label="Primary today actions">
         <Link to="/markets" className="btn-secondary btn-sm inline-flex items-center">

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link, Outlet, useLocation } from 'react-router-dom'
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { usePortfolio } from '../../context/PortfolioContext'
 import { DISPLAY_CURRENCIES } from '../../services/fx'
 import { loadSyncConfig } from '../../services/sync/syncService'
@@ -52,7 +52,7 @@ function allowPullToRefresh(pathname: string): boolean {
 }
 
 const titles: Record<string, { eyebrow: string; title: string }> = {
-  '/': { eyebrow: 'Portfolio', title: 'Overview' },
+  '/': { eyebrow: 'Portfolio', title: 'Today' },
   '/markets': { eyebrow: 'Prices', title: 'Markets' },
   '/news': { eyebrow: 'Insights', title: 'News' },
   '/youtube': { eyebrow: 'Media', title: 'YouTube' },
@@ -100,6 +100,7 @@ export function AppShell() {
   }, [showBottomNav])
   useIdlePrefetch()
   const { pathname } = useLocation()
+  const navigate = useNavigate()
   useCssVarFromElementSize(headerRef, '--app-header-offset')
   usePublishThumbCtaHeight([pathname, showBottomNav])
   const {
@@ -170,10 +171,13 @@ export function AppShell() {
       if (msg.type === 'TODO_REMINDER_FIRED' && typeof msg.key === 'string') {
         markReminderFired(msg.key)
       }
+      if (msg.type === 'TODO_REMINDER_CLICK' && typeof msg.url === 'string') {
+        navigate(msg.url)
+      }
     }
     navigator.serviceWorker.addEventListener('message', onMessage)
     return () => navigator.serviceWorker.removeEventListener('message', onMessage)
-  }, [])
+  }, [navigate])
 
   // Background News + YouTube poll (same cadence spirit as prices) when app is open
   useEffect(() => {

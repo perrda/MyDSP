@@ -36,9 +36,15 @@ import {
 } from '../domain/jobDisplay'
 import { getDaysSinceApplied, STATUS_COLORS, STATUS_LABELS } from '../domain/jobs'
 import { createJobLinkedTodo } from '../domain/jobTodos'
-import { createTodoList } from '../domain/todos'
+import { completeTodoWithRecurrence, createTodoList } from '../domain/todos'
 import { downloadBlob, deleteDocumentBlob, getDocumentBlob } from '../storage/documentBlobStore'
 import { privacyClass } from '../utils/format'
+
+type JobTask = JobApplication['tasks'][number]
+
+function normalizeTaskText(value: string): string {
+  return value.trim().replace(/\s+/g, ' ').toLowerCase()
+}
 
 function preferredContactLabel(contact: JobContact): string | null {
   switch (contact.preferredContactMethod) {
@@ -71,7 +77,7 @@ export function JobDetailPage() {
   const [editingNote, setEditingNote] = useState<JobNote | undefined>()
   const [editingContact, setEditingContact] = useState<JobContact | undefined>()
   const [editingTask, setEditingTask] = useState<
-    { id: number; description: string; dueDate?: string; completed: boolean; completedAt?: string } | undefined
+    JobTask | undefined
   >()
   const [editingDocumentIndex, setEditingDocumentIndex] = useState<number | null>(null)
   const [confirmState, setConfirmState] = useState<{
@@ -199,13 +205,7 @@ export function JobDetailPage() {
     setShowTaskModal(true)
   }
 
-  const handleSaveTask = (task: {
-    id: number
-    description: string
-    dueDate?: string
-    completed: boolean
-    completedAt?: string
-  }) => {
+  const handleSaveTask = (task: JobTask) => {
     if (editingTask) {
       updateApplication({
         tasks: (application.tasks ?? []).map((t) => (t.id === task.id ? { ...t, ...task } : t)),
@@ -325,12 +325,47 @@ export function JobDetailPage() {
   }
 
   const handleToggleTask = (taskId: number) => {
-    updateApplication({
-      tasks: application.tasks.map((task) =>
-        task.id === taskId
-          ? { ...task, completed: !task.completed, completedAt: !task.completed ? new Date().toISOString() : undefined }
-          : task,
-      ),
+    const now = new Date().toISOString()
+    setData((prev) => {
+      const currentApp = (prev.jobApplications ?? []).find((app) => app.id === application.id)
+      const task = currentApp?.tasks.find((t) => t.id === taskId)
+      if (!currentApp || !task) return prev
+      const willComplete = !task.completed
+      const normalizedTask = normalizeTaskText(task.description)
+      const matchedTodo = (prev.todoItems ?? []).find((todo) => {
+        if (task.linkedTodoId && todo.id === task.linkedTodoId) return true
+        return todo.linkedJobId === currentApp.id && normalizeTaskText(todo.title) === normalizedTask
+      })
+      const linkedTodoId = task.linkedTodoId ?? matchedTodo?.id
+      const jobApplications = (prev.jobApplications ?? []).map((app) =>
+        app.id === currentApp.id
+          ? {
+              ...app,
+              tasks: app.tasks.map((t) =>
+                t.id === taskId
+                  ? {
+                      ...t,
+                      linkedTodoId,
+                      completed: willComplete,
+                      completedAt: willComplete ? now : undefined,
+                    }
+                  : t,
+              ),
+              updatedAt: now,
+            }
+          : app,
+      )
+      let todoItems = prev.todoItems ?? []
+      if (linkedTodoId) {
+        todoItems = willComplete
+          ? completeTodoWithRecurrence(todoItems, linkedTodoId, now)
+          : todoItems.map((todo) =>
+              todo.id === linkedTodoId
+                ? { ...todo, status: 'todo' as const, completedAt: undefined, updatedAt: now }
+                : todo,
+            )
+      }
+      return { ...prev, jobApplications, todoItems }
     })
   }
 
@@ -747,7 +782,9 @@ export function JobDetailPage() {
               </button>
             </div>
             {application.tasks.length === 0 ? (
-              <p className="text-xs text-text-muted">No tasks yet</p>
+              <p className="text-xs text-text-muted">
+                No tasks yet. To Do's is the system of record; prefer linked To Do's for reminders.
+              </p>
             ) : (
               <div className="space-y-2">
                 {application.tasks.map((task) => (
