@@ -12,7 +12,7 @@ import {
   calculateSavingsRateTrend,
   type SpendingTrend,
 } from '../domain/advancedAnalytics'
-import { formatGBP } from '../utils/format'
+import { formatGBP, privacyClass } from '../utils/format'
 import { formatChartYTick, formatChartPctTick } from '../domain/chartAxis'
 import {
   LineChart,
@@ -27,8 +27,15 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 
+function recommendationAction(rec: string): { to: string; label: string } | null {
+  if (/debt/i.test(rec)) return { to: '/liabilities', label: 'Review debt' }
+  if (/budget|exceeded/i.test(rec)) return { to: '/budgets', label: 'Open budgets' }
+  if (/savings|income/i.test(rec)) return { to: '/budgets', label: 'Plan cashflow' }
+  return null
+}
+
 export function PredictiveAnalyticsPage() {
-  const { data } = usePortfolio()
+  const { data, privacy } = usePortfolio()
 
   const spendingTrends = useMemo(() => 
     analyzeSpendingTrends(data.spending, 12),
@@ -48,8 +55,14 @@ export function PredictiveAnalyticsPage() {
   const budgetGoals = useMemo(() => data.budgetGoals, [data.budgetGoals])
 
   const totalAssets = useMemo(() => 
-    data.crypto.reduce((sum, c) => sum + c.qty * c.cost, 0) +
-    data.equities.reduce((sum, e) => sum + e.shares * e.avgCost, 0),
+    data.crypto.reduce(
+      (sum, c) => sum + (c.includeInPortfolio === false ? 0 : c.qty * c.price),
+      0,
+    ) +
+    data.equities.reduce(
+      (sum, e) => sum + (e.includeInPortfolio === false ? 0 : e.shares * e.livePrice),
+      0,
+    ),
     [data.crypto, data.equities]
   )
 
@@ -105,7 +118,7 @@ export function PredictiveAnalyticsPage() {
       <PageHeader
         eyebrow="Insights"
         title="Predictive Analytics"
-        description="AI-powered forecasting, anomaly detection, and financial health scoring"
+        description="Projection models, anomaly detection, and financial health scoring"
       />
 
       {/* Financial Health Score */}
@@ -175,16 +188,26 @@ export function PredictiveAnalyticsPage() {
 
         <div className="space-y-2">
           <p className="text-sm font-medium">Recommendations:</p>
-          {financialHealth.recommendations.map((rec, i) => (
-            <p key={i} className="text-sm text-text-muted">• {rec}</p>
-          ))}
+          {financialHealth.recommendations.map((rec, i) => {
+            const action = recommendationAction(rec)
+            return (
+              <p key={i} className="text-sm text-text-muted">
+                • {rec}
+                {action ? (
+                  <Link to={action.to} className="ml-2 text-accent hover:underline font-medium">
+                    {action.label}
+                  </Link>
+                ) : null}
+              </p>
+            )
+          })}
         </div>
       </div>
 
       {/* Net Worth Forecast */}
       {netWorthForecast.length > 0 && (
         <div className="surface p-6 mb-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
-          <h3 className="font-bold text-lg mb-4">Net Worth Forecast (12 Months)</h3>
+          <h3 className="font-bold text-lg mb-4">Net Worth Projection (12 Months)</h3>
           <ResponsiveContainer width="100%" height={300}>
             <AreaChart data={netWorthForecast}>
               <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
@@ -192,6 +215,7 @@ export function PredictiveAnalyticsPage() {
               <YAxis tick={{ fontSize: 12 }} tickFormatter={(val) => formatChartYTick(val)} width={56} />
               <Tooltip
                 formatter={(val: any) => formatGBP(Number(val))}
+                wrapperClassName={privacyClass(privacy)}
                 contentStyle={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
               />
               <Legend />
@@ -209,7 +233,7 @@ export function PredictiveAnalyticsPage() {
                 stroke="#3b82f6"
                 fill="#3b82f6"
                 fillOpacity={0.2}
-                name="Expected"
+                name="Model"
               />
               <Area
                 type="monotone"
@@ -227,7 +251,7 @@ export function PredictiveAnalyticsPage() {
       {/* Spending Trends */}
       {spendingTrends.length > 0 && (
         <div className="surface p-6 mb-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
-          <h3 className="font-bold text-lg mb-4">Category Spending Trends & Forecasts</h3>
+          <h3 className="font-bold text-lg mb-4">Category Spending Trends & Projections</h3>
           <div className="space-y-4">
             {spendingTrends.slice(0, 8).map((trend) => (
               <div key={trend.category} className="p-4 bg-surface-hover rounded-lg">
@@ -237,21 +261,21 @@ export function PredictiveAnalyticsPage() {
                     {getTrendIcon(trend.trend)}
                   </div>
                   <div className="text-right">
-                    <p className="font-bold">{formatGBP(trend.avgMonthly)}/mo</p>
+                    <p className={`font-bold ${privacyClass(privacy)}`}>{formatGBP(trend.avgMonthly)}/mo</p>
                     <p className={`text-xs ${trend.trend === 'increasing' ? 'text-red-500' : trend.trend === 'decreasing' ? 'text-green-500' : 'text-text-muted'}`}>
                       {trend.trendPercentage > 0 ? '+' : ''}{trend.trendPercentage}%
                     </p>
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-3 gap-2 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
                   <div>
-                    <p className="text-text-muted">3-month forecast</p>
-                    <p className="font-medium">{formatGBP(trend.forecast3Month)}</p>
+                    <p className="text-text-muted">3-month projection</p>
+                    <p className={`font-medium ${privacyClass(privacy)}`}>{formatGBP(trend.forecast3Month)}</p>
                   </div>
                   <div>
-                    <p className="text-text-muted">6-month forecast</p>
-                    <p className="font-medium">{formatGBP(trend.forecast6Month)}</p>
+                    <p className="text-text-muted">6-month projection</p>
+                    <p className={`font-medium ${privacyClass(privacy)}`}>{formatGBP(trend.forecast6Month)}</p>
                   </div>
                   <div>
                     <p className="text-text-muted">Volatility</p>
@@ -297,13 +321,16 @@ export function PredictiveAnalyticsPage() {
                     {anomaly.severity}
                   </span>
                 </div>
-                <div className="flex items-center gap-4 text-xs text-text-muted">
+                <div className="flex flex-wrap items-center gap-4 text-xs text-text-muted">
                   <span>{anomaly.date}</span>
-                  <span>Expected: {formatGBP(anomaly.expected)}</span>
-                  <span>Actual: {formatGBP(anomaly.actual)}</span>
+                  <span className={privacyClass(privacy)}>Model: {formatGBP(anomaly.expected)}</span>
+                  <span className={privacyClass(privacy)}>Actual: {formatGBP(anomaly.actual)}</span>
                   <span className={anomaly.deviation > 0 ? 'text-red-500' : 'text-green-500'}>
                     {anomaly.deviation > 0 ? '+' : ''}{anomaly.deviation}%
                   </span>
+                  <Link to="/budgets" className="text-accent hover:underline font-medium">
+                    Adjust budget
+                  </Link>
                 </div>
               </div>
             ))}

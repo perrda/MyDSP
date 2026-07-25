@@ -2380,6 +2380,44 @@ html.glass.light .holdings-sticky-totals {
   border-left: 3px solid var(--accent);
 }
 
+.today-trust-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
+}
+.today-trust-strip-primary {
+  min-width: 0;
+}
+.today-layout-panel {
+  max-height: min(72dvh, 28rem);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.today-layout-option {
+  min-height: 2.75rem;
+}
+.today-layout-option input[type="checkbox"] {
+  width: 1rem;
+  min-width: 1rem;
+  height: 1rem;
+  min-height: 1rem;
+  padding: 0;
+  accent-color: var(--accent);
+}
+
+@media (max-width: 639px) {
+  .today-layout-customize {
+    width: 100%;
+  }
+  .today-layout-panel {
+    margin-left: -0.25rem;
+    margin-right: -0.25rem;
+  }
+}
+
 @keyframes todo-focus-pulse {
   0%,
   100% {

@@ -79,6 +79,14 @@ function standardDeviation(values: number[]): number {
   return Math.sqrt(avgSquareDiff)
 }
 
+function finiteNumber(value: number, fallback = 0): number {
+  return Number.isFinite(value) ? value : fallback
+}
+
+function roundedFinite(value: number, fallback = 0): number {
+  return Math.round(finiteNumber(value, fallback))
+}
+
 // Analyze spending trends by category
 export function analyzeSpendingTrends(spending: SpendingEntry[], months: number = 12): SpendingTrend[] {
   const cutoffDate = new Date()
@@ -272,18 +280,27 @@ export function calculateFinancialHealth(data: {
   const recommendations: string[] = []
   
   // 1. Savings Rate (0-25 points)
-  const savingsRate = ((data.monthlyIncome - data.monthlyExpenses) / data.monthlyIncome) * 100
+  const savingsRate = data.monthlyIncome > 0
+    ? ((data.monthlyIncome - data.monthlyExpenses) / data.monthlyIncome) * 100
+    : data.monthlyExpenses > 0
+      ? -100
+      : 0
   const savingsScore = Math.min(25, Math.max(0, (savingsRate / 20) * 25))
   if (savingsRate < 10) recommendations.push('Increase savings rate to at least 10% of income')
   
   // 2. Debt Ratio (0-25 points)
-  const debtRatio = data.assets > 0 ? (data.liabilities / data.assets) * 100 : 0
+  const debtRatio = data.assets > 0 ? (data.liabilities / data.assets) * 100 : data.liabilities > 0 ? 100 : 0
   const debtScore = Math.min(25, Math.max(0, 25 - (debtRatio / 40) * 25))
   if (debtRatio > 30) recommendations.push('Reduce debt to below 30% of assets')
   
   // 3. Emergency Fund (0-20 points)
-  const emergencyMonths = data.emergencyFundMonths || 
-    (data.assets > 0 ? data.assets / (data.monthlyExpenses * 12) : 0)
+  const emergencyMonths = data.emergencyFundMonths != null
+    ? Math.max(0, finiteNumber(data.emergencyFundMonths))
+    : data.monthlyExpenses > 0 && data.assets > 0
+      ? data.assets / data.monthlyExpenses
+      : data.assets > 0
+        ? 6
+        : 0
   const emergencyScore = Math.min(20, (emergencyMonths / 6) * 20)
   if (emergencyMonths < 3) recommendations.push('Build emergency fund to cover 3-6 months expenses')
   
@@ -312,21 +329,24 @@ export function calculateFinancialHealth(data: {
   const budgetScore = totalCategories > 0 
     ? 15 * (1 - (budgetViolations / totalCategories))
     : 15
+  const budgetAdherenceValue = totalCategories > 0
+    ? ((totalCategories - budgetViolations) / totalCategories) * 100
+    : 100
   
   if (budgetViolations > 0) {
     recommendations.push(`${budgetViolations} budget(s) exceeded this month`)
   }
   
-  const overall = Math.round(savingsScore + debtScore + emergencyScore + diversificationScore + budgetScore)
+  const overall = roundedFinite(savingsScore + debtScore + emergencyScore + diversificationScore + budgetScore)
   
   return {
     overall,
     components: {
-      savingsRate: { score: Math.round(savingsScore), value: Math.round(savingsRate) },
-      debtRatio: { score: Math.round(debtScore), value: Math.round(debtRatio) },
-      emergencyFund: { score: Math.round(emergencyScore), months: Math.round(emergencyMonths * 10) / 10 },
-      diversification: { score: Math.round(diversificationScore), value: 50 },
-      budgetAdherence: { score: Math.round(budgetScore), value: Math.round(((totalCategories - budgetViolations) / totalCategories) * 100) },
+      savingsRate: { score: roundedFinite(savingsScore), value: roundedFinite(savingsRate) },
+      debtRatio: { score: roundedFinite(debtScore), value: roundedFinite(debtRatio) },
+      emergencyFund: { score: roundedFinite(emergencyScore), months: finiteNumber(Math.round(emergencyMonths * 10) / 10) },
+      diversification: { score: roundedFinite(diversificationScore), value: 50 },
+      budgetAdherence: { score: roundedFinite(budgetScore), value: roundedFinite(budgetAdherenceValue, 100) },
     },
     recommendations: recommendations.length > 0 ? recommendations : ['Great job! Keep up the good financial habits.'],
   }
