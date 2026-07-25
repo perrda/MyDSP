@@ -114,6 +114,18 @@ function mergeChannelTombstones(
   return [...byId.entries()].map(([channelId, deletedAt]) => ({ channelId, deletedAt }))
 }
 
+/** Tombstone wins only when delete is strictly after createdAt (same-ms re-add keeps the channel). */
+export function youtubeTombstoneSuppressesChannel(
+  deletedAt: string,
+  createdAt: string | undefined,
+): boolean {
+  const del = Date.parse(deletedAt) || 0
+  const created = Date.parse(createdAt || '') || 0
+  if (!del) return false
+  if (!created) return true
+  return del > created
+}
+
 export function addYoutubeChannel(input: {
   channelId: string
   title: string
@@ -227,25 +239,46 @@ export function importYoutubeFromBackup(raw: unknown): void {
   const remotePrefsAt = Date.parse(parsed.prefsUpdatedAt || '') || 0
   const localPrefsAt = Date.parse(local.prefsUpdatedAt || '') || 0
 
-  const deletedChannels = mergeChannelTombstones(local.deletedChannels, parsed.deletedChannels)
-  const tombstoned = new Set(deletedChannels.map((d) => d.channelId))
+  const mergedTombstones = mergeChannelTombstones(local.deletedChannels, parsed.deletedChannels)
+  const tombstoneAt = new Map(mergedTombstones.map((d) => [d.channelId, d.deletedAt]))
 
   // Union channels by channelId (keep local row when both have it).
-  // Skip tombstoned ids so removals sync across web / tablet / mobile.
+  // Tombstones suppress a channel only when deletedAt >= createdAt (re-add wins).
   const byId = new Map<string, YoutubeChannel>()
-  for (const c of local.channels.map(normalizeChannel)) {
-    if (tombstoned.has(c.channelId)) continue
-    byId.set(c.channelId, c)
+  const consider = (c: YoutubeChannel) => {
+    const delAt = tombstoneAt.get(c.channelId)
+    if (delAt && youtubeTombstoneSuppressesChannel(delAt, c.createdAt)) return
+    const prev = byId.get(c.channelId)
+    if (!prev) {
+      byId.set(c.channelId, c)
+      return
+    }
+    // Prefer the newer createdAt when both sides have the same channelId.
+    const prevMs = Date.parse(prev.createdAt) || 0
+    const nextMs = Date.parse(c.createdAt) || 0
+    if (nextMs > prevMs) byId.set(c.channelId, { ...c, sortOrder: prev.sortOrder })
   }
+  for (const c of local.channels.map(normalizeChannel)) consider(c)
   let nextOrder = local.channels.reduce((m, c) => Math.max(m, c.sortOrder), -1) + 1
   for (const c of parsed.channels.map(normalizeChannel)) {
-    if (tombstoned.has(c.channelId)) continue
-    if (byId.has(c.channelId)) continue
+    if (byId.has(c.channelId)) {
+      consider(c)
+      continue
+    }
+    const delAt = tombstoneAt.get(c.channelId)
+    if (delAt && youtubeTombstoneSuppressesChannel(delAt, c.createdAt)) continue
     byId.set(c.channelId, { ...c, sortOrder: nextOrder++ })
   }
   const channels = [...byId.values()]
     .sort((a, b) => a.sortOrder - b.sortOrder)
     .slice(0, MAX_YOUTUBE_CHANNELS)
+
+  // Drop tombstones superseded by a later re-add so they don't keep suppressing forever.
+  const deletedChannels = mergedTombstones.filter((d) => {
+    const kept = byId.get(d.channelId)
+    if (kept && !youtubeTombstoneSuppressesChannel(d.deletedAt, kept.createdAt)) return false
+    return true
+  })
 
   const remoteSeenAt = typeof parsed.seenAt === 'string' ? parsed.seenAt : undefined
   const localSeenAt = typeof local.seenAt === 'string' ? local.seenAt : undefined

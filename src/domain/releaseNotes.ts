@@ -29,6 +29,24 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.104',
+    date: '2026-07-25',
+    bullets: [
+      {
+        text: 'YouTube/News: unlock sync banner when passphrase needed',
+        to: '/youtube',
+      },
+      {
+        text: 'Pull applies media even with portfolio conflicts',
+        to: '/settings#sync',
+      },
+      {
+        text: 'Tombstones: re-added channels/tags sync again across devices',
+        to: '/youtube',
+      },
+    ],
+  },
+  {
     version: '1.2.103',
     date: '2026-07-25',
     bullets: [

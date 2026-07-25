@@ -97,6 +97,7 @@ import {
 import {
   allConflictsResolved,
   applyMergePreview,
+  applyWorkspaceExtrasFromPreview,
   downloadEncryptedBackup,
   formatRemoteBlobAge,
   formatSyncPayloadBytes,
@@ -1669,9 +1670,11 @@ export function SettingsPage() {
                     setPendingMerge(preview)
                     setConflicts(preview.conflicts)
                     setSyncCfg(loadSyncConfig())
+                    // Media / Favourites extras must apply even when portfolio conflicts need review.
+                    await applyWorkspaceExtrasFromPreview(preview)
                     if (preview.conflicts.length > 0) {
                       flash(
-                        `Review ${preview.conflicts.length} conflict(s) — pick Keep local/remote, then Apply merge.`,
+                        `YouTube/News/Markets pulled · review ${preview.conflicts.length} portfolio conflict(s) — pick Keep local/remote, then Apply merge.`,
                       )
                     } else {
                       const r = await applyMergePreview(preview, {})
@@ -1876,9 +1879,10 @@ export function SettingsPage() {
                     const preview = await previewImport(f, syncPass)
                     setPendingMerge(preview)
                     setConflicts(preview.conflicts)
+                    await applyWorkspaceExtrasFromPreview(preview)
                     if (preview.conflicts.length > 0) {
                       flash(
-                        `Review ${preview.conflicts.length} conflict(s) — pick Keep local/remote, then Apply merge.`,
+                        `YouTube/News/Markets imported · review ${preview.conflicts.length} portfolio conflict(s) — pick Keep local/remote, then Apply merge.`,
                       )
                     } else {
                       const r = await applyMergePreview(preview, {})
