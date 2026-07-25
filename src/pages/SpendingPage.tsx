@@ -271,7 +271,10 @@ export function SpendingPage() {
                 </button>
               )}
             </div>
-            <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+            <div
+              className="flex flex-wrap gap-2 w-full sm:w-auto page-primary-actions"
+              data-testid="page-primary-actions"
+            >
               {category !== 'All' && (
                 <Link
                   to={`/budgets?category=${encodeURIComponent(category)}&month=${ym}`}
@@ -283,7 +286,12 @@ export function SpendingPage() {
               <Link to={`/budgets?month=${ym}`} className="btn-ghost btn-sm">
                 Budgets
               </Link>
-              <button type="button" className="btn-primary btn-sm flex-1 sm:flex-none" onClick={openCreate}>
+              <button
+                type="button"
+                className="btn-primary btn-sm flex-1 sm:flex-none"
+                data-testid="page-primary-create"
+                onClick={openCreate}
+              >
                 Add expense
               </button>
             </div>
@@ -674,17 +682,6 @@ export function SpendingPage() {
         }}
       />
 
-      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary spending actions">
-        <button type="button" className="btn-primary btn-sm" onClick={openCreate}>
-          Add
-        </button>
-        {ym !== monthKey() ? (
-          <button type="button" className="btn-secondary btn-sm" onClick={() => setYm(monthKey())}>
-            Current month
-          </button>
-        ) : null}
-      </div>
-      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }

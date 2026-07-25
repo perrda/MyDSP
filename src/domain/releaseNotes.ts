@@ -29,6 +29,24 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.108',
+    date: '2026-07-25',
+    bullets: [
+      {
+        text: 'Mobile content-first: no bottom New/Add button bars',
+        to: '/todos',
+      },
+      {
+        text: 'Creates live in page header + ⋯ (To Do’s, Jobs, Markets…)',
+        to: '/todos',
+      },
+      {
+        text: 'Money ops chrome: Spending · Budgets · Recurring · Tax',
+        to: '/spending',
+      },
+    ],
+  },
+  {
     version: '1.2.106',
     date: '2026-07-25',
     bullets: [

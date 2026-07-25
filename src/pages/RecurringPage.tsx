@@ -152,7 +152,12 @@ export function RecurringPage() {
         title="Recurring"
         description="Subscriptions and bills. Mark paid to post a spending entry and advance the due date."
         action={
-          <button type="button" className="btn-primary btn-sm" onClick={openCreate}>
+          <button
+            type="button"
+            className="btn-primary btn-sm page-primary-actions"
+            data-testid="page-primary-actions"
+            onClick={openCreate}
+          >
             Add recurring
           </button>
         }
@@ -396,22 +401,6 @@ export function RecurringPage() {
         }}
       />
 
-      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary recurring actions">
-        <button type="button" className="btn-primary btn-sm" onClick={openCreate}>
-          Add recurring
-        </button>
-        {items.length > 0 ? (
-          <button
-            type="button"
-            className="btn-secondary btn-sm"
-            onClick={() => markPaid(items[0])}
-            title={`Mark ${items[0].name} paid`}
-          >
-            Mark paid
-          </button>
-        ) : null}
-      </div>
-      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }

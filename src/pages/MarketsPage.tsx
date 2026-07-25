@@ -22,6 +22,7 @@ import {
 import { Sparkline } from '../components/charts/Sparkline'
 import { useToasts } from '../components/ToastProvider'
 import { PageHeader } from '../components/ui/PageHeader'
+import { PagePrimaryActions } from '../components/ui/PagePrimaryActions'
 import { EmptyStateInline } from '../components/ui/EmptyState'
 import { MarketsHoldingsSkeleton } from '../components/ui/MarketsHoldingsSkeleton'
 import { ConfirmDialog, Field, Modal } from '../components/ui/Modal'
@@ -2168,31 +2169,29 @@ export function MarketsPage() {
         eyebrow="Prices"
         title="Markets"
         action={
-          <div className="hidden sm:flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              className="btn-primary btn-sm inline-flex items-center gap-1.5"
-              onClick={() => openCreate('equity')}
-            >
-              <Plus size={16} strokeWidth={2} /> Add equity
-            </button>
-            <button
-              type="button"
-              className="btn-secondary btn-sm inline-flex items-center gap-1.5"
-              onClick={() => openCreate('crypto')}
-            >
-              <Plus size={16} strokeWidth={2} /> Add crypto
-            </button>
-          </div>
+          <PagePrimaryActions
+            primaryLabel="Add equity"
+            onPrimary={() => openCreate('equity')}
+            menuLabel="Markets actions"
+            items={[
+              { id: 'crypto', label: 'Add crypto', onClick: () => openCreate('crypto') },
+              {
+                id: 'retry',
+                label: online ? 'Retry unavailable' : 'Retry when online',
+                onClick: () => void retryUnavailable(),
+              },
+            ]}
+          />
         }
       />
 
       {refreshBanner ? (
         <div
-          className="markets-refreshing-banner mb-3 px-3 py-2 text-xs font-semibold tracking-wide uppercase text-accent border border-accent/35 bg-accent/10 rounded-lg md:rounded-none inline-flex items-center gap-2"
+          className="markets-refreshing-banner markets-sync-prices mb-3 px-3 py-2 text-xs font-semibold tracking-wide uppercase text-accent border border-accent/35 bg-accent/10 rounded-lg md:rounded-none inline-flex items-center gap-2"
           role="status"
           aria-live="polite"
-          data-testid="markets-refreshing-banner"
+          data-testid="markets-sync-prices"
+          data-markets-refreshing="true"
         >
           <RefreshCw size={14} strokeWidth={2} className="animate-spin shrink-0" aria-hidden />
           Refreshing data
@@ -2213,6 +2212,61 @@ export function MarketsPage() {
           {statusHint}
         </p>
       ) : null}
+      {!online ||
+      tickers.some(
+        (t) =>
+          quoteAvailabilityLabel(quotes.get(t.id), { refreshing: false }) === 'Unavailable',
+      ) ? (
+        <div className="markets-retry-row mb-3 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            className="btn-secondary btn-sm inline-flex items-center gap-1.5 markets-retry-unavailable"
+            data-testid="markets-retry-unavailable"
+            disabled={refreshing}
+            aria-label={
+              online
+                ? 'Retry unavailable quotes'
+                : 'Retry when online — queue retry for unavailable quotes'
+            }
+            onClick={() => void retryUnavailable()}
+          >
+            {online ? 'Retry unavailable' : 'Retry when online'}
+          </button>
+        </div>
+      ) : null}
+      {(() => {
+        const eqMissing = holdingsMissingFromWatchlist(
+          data.equities.map((e) => ({ symbol: e.symbol, name: e.name })),
+          'equity',
+        )
+        const cryptoMissing = holdingsMissingFromWatchlist(
+          data.crypto.map((c) => ({ symbol: c.symbol, name: c.name })),
+          'crypto',
+        )
+        const total = eqMissing.length + cryptoMissing.length
+        if (total === 0) return null
+        return (
+          <div
+            className="markets-add-from-holding-status mb-3 flex flex-wrap items-center gap-2 text-xs text-text-muted"
+            role="status"
+          >
+            <span>
+              {total} holding symbol{total === 1 ? '' : 's'} missing from Markets.
+            </span>
+            <button
+              type="button"
+              className="btn-secondary btn-sm inline-flex items-center gap-1.5"
+              data-testid="markets-add-from-holding-status"
+              onClick={() => {
+                if (eqMissing.length > 0) addFromHoldings('equity')
+                if (cryptoMissing.length > 0) addFromHoldings('crypto')
+              }}
+            >
+              <Plus size={14} strokeWidth={2} /> Add from holding ({total})
+            </button>
+          </div>
+        )
+      })()}
       {finnhubMissing ? (
         <div
           className="markets-finnhub-missing-chip mb-3 px-3 py-2 text-xs border border-amber-500/45 bg-amber-500/10 text-amber-900 dark:text-amber-100 rounded-lg md:rounded-none"
@@ -3585,70 +3639,6 @@ export function MarketsPage() {
         </div>
       ) : null}
 
-      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary markets actions">
-        <button
-          type="button"
-          className="btn-primary btn-sm inline-flex items-center gap-1.5"
-          onClick={() => openCreate('equity')}
-        >
-          <Plus size={16} strokeWidth={2} /> Add equity
-        </button>
-        <button
-          type="button"
-          className="btn-secondary btn-sm inline-flex items-center gap-1.5"
-          onClick={() => openCreate('crypto')}
-        >
-          <Plus size={16} strokeWidth={2} /> Add crypto
-        </button>
-        {refreshBanner ? (
-          <span
-            className="markets-sync-prices btn-secondary btn-sm inline-flex items-center gap-1.5 opacity-90 pointer-events-none"
-            data-testid="markets-sync-prices"
-            role="status"
-            aria-live="polite"
-          >
-            <RefreshCw size={16} strokeWidth={2} className="animate-spin" aria-hidden />
-            Refreshing data
-          </span>
-        ) : null}
-        <button
-          type="button"
-          className="btn-secondary btn-sm inline-flex items-center gap-1.5"
-          disabled={refreshing}
-          aria-label={
-            online ? 'Retry unavailable quotes' : 'Retry when online — queue retry for unavailable quotes'
-          }
-          onClick={() => void retryUnavailable()}
-        >
-          {online ? 'Retry unavailable' : 'Retry when online'}
-        </button>
-        {(() => {
-          const eqMissing = holdingsMissingFromWatchlist(
-            data.equities.map((e) => ({ symbol: e.symbol, name: e.name })),
-            'equity',
-          )
-          const cryptoMissing = holdingsMissingFromWatchlist(
-            data.crypto.map((c) => ({ symbol: c.symbol, name: c.name })),
-            'crypto',
-          )
-          const total = eqMissing.length + cryptoMissing.length
-          if (total === 0) return null
-          return (
-            <button
-              type="button"
-              className="btn-secondary btn-sm inline-flex items-center gap-1.5 markets-add-from-holding-thumb"
-              data-testid="markets-add-from-holding-thumb"
-              onClick={() => {
-                if (eqMissing.length > 0) addFromHoldings('equity')
-                if (cryptoMissing.length > 0) addFromHoldings('crypto')
-              }}
-            >
-              <Plus size={16} strokeWidth={2} /> Add from holding ({total})
-            </button>
-          )
-        })()}
-      </div>
-      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }

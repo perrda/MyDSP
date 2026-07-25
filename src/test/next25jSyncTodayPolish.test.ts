@@ -49,14 +49,14 @@ describe('next25j — sync / Today polish tip (1–25 → v1.2.80)', () => {
 
   it('package + release notes are 1.2.80', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.106')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.106')
+    expect(pkg.version).toBe('1.2.108')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.108')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.108',
       '1.2.106',
       '1.2.105',
       '1.2.104',
       '1.2.103',
-      '1.2.102',
     ])
   })
 
@@ -168,9 +168,9 @@ describe('next25j — sync / Today polish tip (1–25 → v1.2.80)', () => {
     const yt = readFileSync(resolve(__dirname, '../pages/YouTubePage.tsx'), 'utf8')
     expect(yt).toMatch(/youtube-cached-mode-banner/)
     const tax = readFileSync(resolve(__dirname, '../pages/TaxPage.tsx'), 'utf8')
-    expect(tax).toMatch(/thumb-cta-bar/)
+    expect(tax).toMatch(/thumb-cta-bar|page-primary-actions|page-primary-create|PagePrimaryActions/)
     const recurring = readFileSync(resolve(__dirname, '../pages/RecurringPage.tsx'), 'utf8')
-    expect(recurring).toMatch(/thumb-cta-bar/)
+    expect(recurring).toMatch(/thumb-cta-bar|page-primary-actions|page-primary-create|PagePrimaryActions/)
     const shell = readFileSync(resolve(__dirname, '../components/layout/AppShell.tsx'), 'utf8')
     expect(shell).toMatch(/\/recurring/)
   })

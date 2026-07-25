@@ -6,14 +6,14 @@ import { RELEASE_NOTES, releaseNotesArchive } from '../domain/releaseNotes'
 describe('next25w — responsive / landscape polish tip (1–25 → v1.2.88)', () => {
   it('25: package + release notes are 1.2.88', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.106')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.106')
+    expect(pkg.version).toBe('1.2.108')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.108')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.108',
       '1.2.106',
       '1.2.105',
       '1.2.104',
       '1.2.103',
-      '1.2.102',
     ])
   })
 
@@ -26,7 +26,7 @@ describe('next25w — responsive / landscape polish tip (1–25 → v1.2.88)', (
     ]) {
       const src = readFileSync(resolve(__dirname, `../pages/${file}`), 'utf8')
       expect(src).not.toMatch(/^\s*Sync now\s*$/m)
-      expect(src).toMatch(/thumb-cta-bar/)
+      expect(src).toMatch(/thumb-cta-bar|page-primary-actions|page-primary-create|PagePrimaryActions/)
       expect(src).not.toMatch(/syncNow/)
     }
     const setup = readFileSync(resolve(__dirname, '../../SYNC_SETUP.md'), 'utf8')
@@ -39,7 +39,7 @@ describe('next25w — responsive / landscape polish tip (1–25 → v1.2.88)', (
   it('6–10: Markets / landscape sticky · thumb · jump · density · two-pane', () => {
     const css = readFileSync(resolve(__dirname, '../index.css'), 'utf8')
     expect(css).toMatch(/orientation: landscape\) and \(max-height: 500px\)/)
-    expect(css).toMatch(/thumb-cta-bar/)
+    expect(css).toMatch(/thumb-cta-bar|page-primary-actions|page-primary-create|PagePrimaryActions/)
     expect(css).toMatch(/markets-section-jump-chips/)
     expect(css).toMatch(/markets-density-trust/)
     expect(css).toMatch(/today-two-pane .today-markets-pane/)

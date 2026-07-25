@@ -67,14 +67,14 @@ describe('next25r — sync / Markets / Today polish tip (1–25 → v1.2.87)', (
 
   it('25: package + release notes are 1.2.87', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.106')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.106')
+    expect(pkg.version).toBe('1.2.108')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.108')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.108',
       '1.2.106',
       '1.2.105',
       '1.2.104',
       '1.2.103',
-      '1.2.102',
     ])
   })
 
@@ -189,7 +189,7 @@ describe('next25r — sync / Markets / Today polish tip (1–25 → v1.2.87)', (
   it('11–15: Analytics/Opening thumbs · Smoke PTR · no Trips/Analytics long-press sync', () => {
     for (const file of ['AnalyticsPage.tsx', 'OpeningBalanceWizardPage.tsx', 'ImportPage.tsx']) {
       const src = readFileSync(resolve(__dirname, `../pages/${file}`), 'utf8')
-      expect(src).toMatch(/thumb-cta-bar/)
+      expect(src).toMatch(/thumb-cta-bar|page-primary-actions|page-primary-create|PagePrimaryActions/)
     }
     const smoke = readFileSync(resolve(__dirname, '../pages/SmokePage.tsx'), 'utf8')
     expect(smoke).toMatch(/Analytics/)

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { Download } from 'lucide-react'
 import { PageHeader } from '../components/ui/PageHeader'
+import { PagePrimaryActions } from '../components/ui/PagePrimaryActions'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
 import { usePortfolio } from '../context/PortfolioContext'
 import { type Disposal } from '../domain/cgt'
@@ -217,40 +217,24 @@ export function TaxPage() {
               : `${pack.label} — no personal CGT computed; disposal journal kept for records.`
         }
         action={
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              className="btn-ghost btn-sm"
-              onClick={importFromJournal}
-            >
-              Import sells from journal
-            </button>
-            {pack.hasCgt ? (
-              <button
-                type="button"
-                className="btn-secondary btn-sm inline-flex items-center gap-1.5"
-                onClick={onExportCsv}
-              >
-                <Download size={14} strokeWidth={1.5} /> {pack.exportLabel}
-              </button>
-            ) : null}
-            {isUkTax ? (
-              <button type="button" className="btn-ghost btn-sm" onClick={onExportSa108}>
-                SA108 CSV
-              </button>
-            ) : null}
-            <button type="button" className="btn-ghost btn-sm" onClick={onExportTransactionLog}>
-              Transaction log
-            </button>
-            {pack.hasCgt ? (
-              <button type="button" className="btn-ghost btn-sm" onClick={onPrintReport}>
-                Print / PDF
-              </button>
-            ) : null}
-            <button type="button" className="btn-primary btn-sm" onClick={() => setOpen(true)}>
-              Add disposal
-            </button>
-          </div>
+          <PagePrimaryActions
+            primaryLabel="Add disposal"
+            onPrimary={() => setOpen(true)}
+            menuLabel="Tax actions"
+            items={[
+              { id: 'import', label: 'Import sells from journal', onClick: importFromJournal },
+              ...(pack.hasCgt
+                ? [{ id: 'export', label: pack.exportLabel, onClick: onExportCsv }]
+                : []),
+              ...(isUkTax
+                ? [{ id: 'sa108', label: 'SA108 CSV', onClick: onExportSa108 }]
+                : []),
+              { id: 'log', label: 'Transaction log', onClick: onExportTransactionLog },
+              ...(pack.hasCgt
+                ? [{ id: 'print', label: 'Print / PDF', onClick: onPrintReport }]
+                : []),
+            ]}
+          />
         }
       />
 
@@ -810,25 +794,6 @@ export function TaxPage() {
         }}
       />
 
-      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary tax actions">
-        <button type="button" className="btn-primary btn-sm" onClick={() => setOpen(true)}>
-          Add disposal
-        </button>
-        {pack.hasCgt ? (
-          <button
-            type="button"
-            className="btn-secondary btn-sm inline-flex items-center gap-1.5"
-            onClick={onExportCsv}
-          >
-            <Download size={16} strokeWidth={2} />
-            {pack.exportLabel}
-          </button>
-        ) : null}
-        <button type="button" className="btn-secondary btn-sm" onClick={importFromJournal}>
-          Import from journal
-        </button>
-      </div>
-      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }

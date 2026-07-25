@@ -6,14 +6,14 @@ import { RELEASE_NOTES, releaseNotesArchive } from '../domain/releaseNotes'
 describe('Mobile / tablet / landscape QA (v1.2.98)', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.106')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.106')
+    expect(pkg.version).toBe('1.2.108')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.108')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.108',
       '1.2.106',
       '1.2.105',
       '1.2.104',
       '1.2.103',
-      '1.2.102',
     ])
   })
 
@@ -36,17 +36,17 @@ describe('Mobile / tablet / landscape QA (v1.2.98)', () => {
     expect(css).toMatch(/Must stay visible — More \/ Notifications/)
   })
 
-  it('thumb CTAs remain in short landscape + Markets thumb is slim', () => {
+  it('content-first: Markets create in header; no fixed bottom create bar', () => {
     const css = readFileSync(resolve(__dirname, '../index.css'), 'utf8')
-    expect(css).toMatch(
-      /@media \(max-width: 639px\), \(orientation: landscape\) and \(max-height: 500px\)/,
-    )
+    expect(css).toMatch(/mobile-content-first-chrome/)
+    expect(css).toMatch(/\.thumb-cta-bar,\s*\n\.thumb-cta-bar-spacer/)
     const markets = readFileSync(resolve(__dirname, '../pages/MarketsPage.tsx'), 'utf8')
-    expect(markets).toMatch(/Primary markets actions/)
+    expect(markets).toMatch(/PagePrimaryActions/)
+    expect(markets).not.toMatch(/className="thumb-cta-bar"/)
     expect(markets).not.toMatch(/markets-density-thumb/)
     expect(markets).not.toMatch(/markets-add-commodity-thumb/)
     expect(markets).not.toMatch(/Refresh now/)
-    expect(markets).toMatch(/hidden sm:flex[\s\S]*Add equity/)
+    expect(markets).toMatch(/Add equity/)
   })
 
   it('Markets sticky filters sit under measured toolbar', () => {

@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { CreditCard as CreditCardIcon, Landmark } from 'lucide-react'
 import { PortfolioSeriesChart } from '../components/charts/PortfolioSeriesChart'
 import { EmptyState } from '../components/ui/EmptyState'
 import { PageHeader } from '../components/ui/PageHeader'
+import { PagePrimaryActions } from '../components/ui/PagePrimaryActions'
 import { ConfirmDialog, Field, Modal } from '../components/ui/Modal'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
 import { usePortfolio } from '../context/PortfolioContext'
@@ -43,6 +44,7 @@ type Kind = LiabilityKind
 type RagFilter = LiabilitiesRagFilter
 
 export function LiabilitiesPage() {
+  const navigate = useNavigate()
   const { data, breakdown, privacy, setData } = usePortfolio()
   const { liability } = breakdown
 
@@ -304,17 +306,19 @@ export function LiabilitiesPage() {
         title="Liabilities"
         description="Open any item for commentary and pay-down. Drag ⋮⋮ to pin critical debts to the top (saved with your portfolio)."
         action={
-          <div className="flex flex-wrap gap-2">
-            <Link to="/optimizer" className="btn-ghost btn-sm">
-              Debt tools
-            </Link>
-            <button type="button" className="btn-secondary btn-sm" onClick={() => openCreate('card')}>
-              Add card
-            </button>
-            <button type="button" className="btn-primary btn-sm" onClick={() => openCreate('loan')}>
-              Add loan
-            </button>
-          </div>
+          <PagePrimaryActions
+            primaryLabel="Add loan"
+            onPrimary={() => openCreate('loan')}
+            menuLabel="Liabilities actions"
+            items={[
+              { id: 'card', label: 'Add card', onClick: () => openCreate('card') },
+              {
+                id: 'optimizer',
+                label: 'Debt tools',
+                onClick: () => navigate('/optimizer'),
+              },
+            ]}
+          />
         }
       />
 
@@ -821,15 +825,6 @@ export function LiabilitiesPage() {
         }}
       />
 
-      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary liabilities actions">
-        <button type="button" className="btn-secondary btn-sm" onClick={() => openCreate('card')}>
-          Add card
-        </button>
-        <button type="button" className="btn-primary btn-sm" onClick={() => openCreate('loan')}>
-          Add loan
-        </button>
-      </div>
-      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }
