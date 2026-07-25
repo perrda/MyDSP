@@ -2189,10 +2189,11 @@ export function MarketsPage() {
 
       {refreshBanner ? (
         <div
-          className="markets-refreshing-banner mb-3 px-3 py-2 text-xs font-semibold tracking-wide uppercase text-accent border border-accent/35 bg-accent/10 rounded-lg md:rounded-none inline-flex items-center gap-2"
+          className="markets-refreshing-banner markets-sync-prices mb-3 px-3 py-2 text-xs font-semibold tracking-wide uppercase text-accent border border-accent/35 bg-accent/10 rounded-lg md:rounded-none inline-flex items-center gap-2"
           role="status"
           aria-live="polite"
-          data-testid="markets-refreshing-banner"
+          data-testid="markets-sync-prices"
+          data-markets-refreshing="true"
         >
           <RefreshCw size={14} strokeWidth={2} className="animate-spin shrink-0" aria-hidden />
           Refreshing data
@@ -2212,6 +2213,28 @@ export function MarketsPage() {
         >
           {statusHint}
         </p>
+      ) : null}
+      {!online ||
+      tickers.some(
+        (t) =>
+          quoteAvailabilityLabel(quotes.get(t.id), { refreshing: false }) === 'Unavailable',
+      ) ? (
+        <div className="markets-retry-row mb-3 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            className="btn-secondary btn-sm inline-flex items-center gap-1.5 markets-retry-unavailable"
+            data-testid="markets-retry-unavailable"
+            disabled={refreshing}
+            aria-label={
+              online
+                ? 'Retry unavailable quotes'
+                : 'Retry when online — queue retry for unavailable quotes'
+            }
+            onClick={() => void retryUnavailable()}
+          >
+            {online ? 'Retry unavailable' : 'Retry when online'}
+          </button>
+        </div>
       ) : null}
       {(() => {
         const eqMissing = holdingsMissingFromWatchlist(

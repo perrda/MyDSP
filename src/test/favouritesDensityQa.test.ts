@@ -27,8 +27,10 @@ describe('Favourites density / responsive QA', () => {
     )?.[0]
     expect(thumb).toContain('Add equity')
     expect(thumb).toContain('Add crypto')
-    expect(thumb).not.toMatch(/Retry unavailable|Refreshing data|markets-add-from-holding-thumb/)
+    expect(thumb).not.toMatch(/Retry unavailable|Refreshing data|markets-add-from-holding-thumb|markets-sync-prices/)
     expect(markets).toMatch(/data-testid="markets-add-from-holding-status"/)
+    expect(markets).toMatch(/data-testid="markets-sync-prices"/)
+    expect(markets).toMatch(/data-testid="markets-retry-unavailable"/)
     expect(markets).toMatch(/data-testid="markets-sticky-filters"/)
     expect(src).toMatch(
       /@media \(orientation: landscape\) and \(max-height: 500px\)[\s\S]*?\.markets-sticky-filters,[\s\S]*?\.todos-sticky-filters\s*\{[\s\S]*?position:\s*static/s,

@@ -64,14 +64,14 @@ describe('next25t — sync / Markets / Today polish tip (1–25 → v1.2.87)', (
 
   it('25: package + release notes are 1.2.87', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.106')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.106')
+    expect(pkg.version).toBe('1.2.107')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.107')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.107',
       '1.2.106',
       '1.2.105',
       '1.2.104',
       '1.2.103',
-      '1.2.102',
     ])
   })
 
@@ -173,7 +173,7 @@ describe('next25t — sync / Markets / Today polish tip (1–25 → v1.2.87)', (
     expect(page).toMatch(/markets-yield-sort/)
     expect(page).toMatch(/markets-quote-edit/)
     expect(page).toMatch(/markets-undo-remove/)
-    expect(page).toMatch(/markets-add-from-holding-thumb/)
+    expect(page).toMatch(/markets-add-from-holding-status/)
     expect(page).toMatch(/markets-quote-copy-price/)
     expect(page).toMatch(/markets-quote-share/)
   })

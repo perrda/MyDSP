@@ -6,14 +6,14 @@ import { RELEASE_NOTES, releaseNotesArchive } from '../domain/releaseNotes'
 describe('Markets Assets/Timeframe/Format panels (v1.2.97)', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.106')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.106')
+    expect(pkg.version).toBe('1.2.107')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.107')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.107',
       '1.2.106',
       '1.2.105',
       '1.2.104',
       '1.2.103',
-      '1.2.102',
     ])
   })
 
