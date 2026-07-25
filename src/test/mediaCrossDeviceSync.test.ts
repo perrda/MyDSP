@@ -43,14 +43,14 @@ describe('Media cross-device sync (v1.2.95)', () => {
 
   it('package + release notes tip', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.105')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.105')
+    expect(pkg.version).toBe('1.2.106')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.106')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.106',
       '1.2.105',
       '1.2.104',
       '1.2.103',
       '1.2.102',
-      '1.2.101',
     ])
   })
 

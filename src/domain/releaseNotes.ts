@@ -29,6 +29,24 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.106',
+    date: '2026-07-25',
+    bullets: [
+      {
+        text: 'Favourites phase 2: Daily plan, debt strategies, scenarios',
+        to: '/',
+      },
+      {
+        text: 'Markets screener · Jobs calendar · Todos Day view + subtasks',
+        to: '/markets',
+      },
+      {
+        text: 'YouTube Shorts filtered · embed preview · News save/read-later',
+        to: '/youtube',
+      },
+    ],
+  },
+  {
     version: '1.2.105',
     date: '2026-07-25',
     bullets: [
