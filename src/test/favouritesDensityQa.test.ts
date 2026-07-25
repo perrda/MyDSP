@@ -18,20 +18,19 @@ describe('Favourites density / responsive QA', () => {
     )
   })
 
-  it('slims Markets phone thumb actions and unsticks short landscape filters', () => {
+  it('Markets creates in header; status chrome keeps retry/add-from-holding', () => {
     const src = css()
     const markets = page('MarketsPage.tsx')
 
-    const thumb = markets.match(
-      /<div className="thumb-cta-bar" role="toolbar" aria-label="Primary markets actions">[\s\S]*?<\/div>\s*<div className="thumb-cta-bar-spacer"/,
-    )?.[0]
-    expect(thumb).toContain('Add equity')
-    expect(thumb).toContain('Add crypto')
-    expect(thumb).not.toMatch(/Retry unavailable|Refreshing data|markets-add-from-holding-thumb|markets-sync-prices/)
+    expect(markets).toMatch(/PagePrimaryActions/)
+    expect(markets).not.toMatch(/className="thumb-cta-bar"/)
+    expect(markets).toMatch(/Add equity/)
+    expect(markets).toMatch(/Add crypto/)
     expect(markets).toMatch(/data-testid="markets-add-from-holding-status"/)
     expect(markets).toMatch(/data-testid="markets-sync-prices"/)
     expect(markets).toMatch(/data-testid="markets-retry-unavailable"/)
     expect(markets).toMatch(/data-testid="markets-sticky-filters"/)
+    expect(src).toMatch(/mobile-content-first-chrome/)
     expect(src).toMatch(
       /@media \(orientation: landscape\) and \(max-height: 500px\)[\s\S]*?\.markets-sticky-filters,[\s\S]*?\.todos-sticky-filters\s*\{[\s\S]*?position:\s*static/s,
     )

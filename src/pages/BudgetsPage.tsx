@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { Download, TrendingDown, TrendingUp, AlertCircle, CheckCircle } from 'lucide-react'
+import { TrendingDown, TrendingUp, AlertCircle, CheckCircle } from 'lucide-react'
 import { BudgetSparkline } from '../components/charts/BudgetSparkline'
 import { PageHeader } from '../components/ui/PageHeader'
+import { PagePrimaryActions } from '../components/ui/PagePrimaryActions'
 import { Field, Modal, ConfirmDialog, parseNum } from '../components/ui/Modal'
 import { usePortfolio } from '../context/PortfolioContext'
 import { useToasts } from '../components/ToastProvider'
@@ -180,12 +181,12 @@ export function BudgetsPage() {
                 This month
               </button>
             )}
-            <button type="button" className="btn-ghost btn-sm" onClick={exportBudgetReport}>
-              <Download size={14} /> Export
-            </button>
-            <button type="button" className="btn-primary btn-sm" onClick={() => setOpen(true)}>
-              Set limit
-            </button>
+            <PagePrimaryActions
+              primaryLabel="Set limit"
+              onPrimary={() => setOpen(true)}
+              menuLabel="Budget actions"
+              items={[{ id: 'export', label: 'Export', onClick: exportBudgetReport }]}
+            />
           </div>
         }
       />
@@ -461,15 +462,6 @@ export function BudgetsPage() {
         }}
       />
 
-      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary budgets actions">
-        <button type="button" className="btn-primary btn-sm" onClick={() => setOpen(true)}>
-          Set limit
-        </button>
-        <button type="button" className="btn-secondary btn-sm" onClick={exportBudgetReport}>
-          Export
-        </button>
-      </div>
-      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }

@@ -71,14 +71,14 @@ describe('next25p — sync / Markets / Today polish tip (1–25 → v1.2.81)', (
 
   it('25: package + release notes are 1.2.81', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.107')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.107')
+    expect(pkg.version).toBe('1.2.108')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.108')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.108',
       '1.2.107',
       '1.2.106',
       '1.2.105',
       '1.2.104',
-      '1.2.103',
     ])
   })
 
@@ -204,7 +204,7 @@ describe('next25p — sync / Markets / Today polish tip (1–25 → v1.2.81)', (
 
   it('11–15: Settings/Today/Staking/Planning/Achievements thumbs · PTR · long-press', () => {
     const settings = readFileSync(resolve(__dirname, '../pages/SettingsPage.tsx'), 'utf8')
-    expect(settings).toMatch(/thumb-cta-bar/)
+    expect(settings).toMatch(/thumb-cta-bar|page-primary-actions|page-primary-create|PagePrimaryActions/)
     expect(settings).toMatch(/Sync now/) // Settings → Sync panel setup control
     expect(settings).toMatch(/Smoke checklist/)
     expect(settings).not.toMatch(/settings-sync-thumb/)
@@ -217,9 +217,9 @@ describe('next25p — sync / Markets / Today polish tip (1–25 → v1.2.81)', (
     const staking = readFileSync(resolve(__dirname, '../pages/StakingPage.tsx'), 'utf8')
     const planning = readFileSync(resolve(__dirname, '../pages/PlanningPage.tsx'), 'utf8')
     const achievements = readFileSync(resolve(__dirname, '../pages/AchievementsPage.tsx'), 'utf8')
-    expect(staking).toMatch(/thumb-cta-bar/)
-    expect(planning).toMatch(/thumb-cta-bar/)
-    expect(achievements).toMatch(/thumb-cta-bar/)
+    expect(staking).toMatch(/thumb-cta-bar|page-primary-actions|page-primary-create|PagePrimaryActions/)
+    expect(planning).toMatch(/thumb-cta-bar|page-primary-actions|page-primary-create|PagePrimaryActions/)
+    expect(achievements).toMatch(/thumb-cta-bar|page-primary-actions|page-primary-create|PagePrimaryActions/)
     const shell = readFileSync(resolve(__dirname, '../components/layout/AppShell.tsx'), 'utf8')
     expect(shell).toMatch(/pathname === '\/settings'/)
     expect(shell).toMatch(/pathname === '\/staking'/)

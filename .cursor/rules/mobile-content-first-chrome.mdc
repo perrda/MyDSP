@@ -1,0 +1,33 @@
+---
+description: Mobile content-first chrome — no fixed bottom create CTAs; screen real estate is for data
+alwaysApply: true
+---
+
+# Mobile content-first chrome (iOS finance-app standard)
+
+Owner preference (always apply): **phone and short-landscape viewports must use screen real estate for information, not stacked action buttons above the bottom nav.**
+
+## Never
+
+- Do **not** put **New / Add / Create** primary actions in a fixed bottom `.thumb-cta-bar` (e.g. New Task, New List, Add Application, Add expense, Set limit).
+- Do **not** park secondary actions there either (Export, Import, Columns, Mark paid, nav jump links like Today → Liabilities).
+- Do **not** reintroduce a “thumb CTA cluster” for create flows after this rule — even if older tip harnesses mentioned it.
+
+## Where create actions live instead
+
+1. **PageHeader trailing actions** — always visible on phone (not `hidden sm:flex`). Prefer a primary `+` / Add button + `OverflowMenu` (`⋯`) for secondary creates (New List, From Screenshot, Import, Export).
+2. **Inline quick-add** when it already exists (To Do’s quick-add bar).
+3. **Empty states** for first-run create only.
+4. **In-row / swipe actions** for Mark paid, Complete, etc.
+
+## Allowed bottom chrome
+
+- App **bottom nav** only (plus measured safe-area).
+- Non-interactive **status** banners inline in the page (e.g. “Refreshing data”), never as a second fixed button bar.
+- Markets **Retry unavailable** lives in page status chrome, not a fixed thumb bar.
+
+## QA (always)
+
+- Full `npx vitest run` + `npx tsc -b` before PR.
+- Manual check: phone portrait + short landscape — content scrolls under the header; no fixed create button bar above bottom nav on To Do’s, Jobs, Markets, Spending, Budgets, Recurring, Tax, Optimizer, Liabilities.
+- Tip harnesses that still mention `thumb-cta-bar` must be updated to assert `page-primary-actions` / content-first rule instead of requiring a bottom bar.

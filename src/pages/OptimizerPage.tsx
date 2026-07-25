@@ -36,6 +36,20 @@ export function OptimizerPage() {
         title="Debt optimizer"
         description="Avalanche, snowball, or hybrid payoff strategies with extra monthly payments."
       />
+      <p
+        className="text-xs text-text-muted mb-5 flex flex-wrap gap-x-3 gap-y-1"
+        data-testid="page-primary-actions"
+      >
+        <Link to="/" className="text-accent hover:underline min-h-11 inline-flex items-center">
+          Today
+        </Link>
+        <Link
+          to="/liabilities"
+          className="text-accent hover:underline min-h-11 inline-flex items-center"
+        >
+          Liabilities
+        </Link>
+      </p>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-px mb-8">
         {STRATEGIES.map((s) => (
@@ -125,15 +139,6 @@ export function OptimizerPage() {
         )}
       </div>
 
-      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary optimizer actions">
-        <Link to="/" className="btn-primary btn-sm">
-          Today
-        </Link>
-        <Link to="/liabilities" className="btn-secondary btn-sm">
-          Liabilities
-        </Link>
-      </div>
-      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }

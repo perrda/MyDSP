@@ -16,6 +16,7 @@ import {
   FolderInput,
 } from 'lucide-react'
 import { PageHeader } from '../components/ui/PageHeader'
+import { PagePrimaryActions } from '../components/ui/PagePrimaryActions'
 import { BackNav } from '../components/ui/BackNav'
 import { EmptyState } from '../components/ui/EmptyState'
 import { CollapsibleFilters } from '../components/ui/CollapsibleFilters'
@@ -753,29 +754,27 @@ export function TodosPage() {
             : `${stats.total} tasks · ${stats.highPriority} high · ${stats.overdue} overdue`
         }
         action={
-          <div className="hidden sm:flex flex-wrap gap-2 justify-end">
-            <button type="button" onClick={handleCreateItem} className="btn-primary btn-sm" disabled={lists.length === 0}>
-              <Plus size={16} /> New Task
-            </button>
-            <button type="button" onClick={openCreateList} className="btn-secondary btn-sm">
-              <Plus size={16} /> New List
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (lists.length === 0) {
-                  showError('Create a list first', 'You need a list before importing')
-                  openCreateList()
-                  return
-                }
-                setShowScreenshotImport(true)
-              }}
-              className="btn-secondary btn-sm"
-              disabled={lists.length === 0}
-            >
-              <ImagePlus size={16} /> From Screenshot
-            </button>
-          </div>
+          <PagePrimaryActions
+            primaryLabel="New Task"
+            onPrimary={handleCreateItem}
+            primaryDisabled={lists.length === 0}
+            menuLabel="To Do actions"
+            items={[
+              { id: 'list', label: 'New List', onClick: openCreateList },
+              {
+                id: 'ocr',
+                label: 'From Screenshot',
+                onClick: () => {
+                  if (lists.length === 0) {
+                    showError('Create a list first', 'You need a list before importing')
+                    openCreateList()
+                    return
+                  }
+                  setShowScreenshotImport(true)
+                },
+              },
+            ]}
+          />
         }
       />
 
@@ -1353,15 +1352,6 @@ export function TodosPage() {
         </>
       )}
 
-      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary To Do actions">
-        <button type="button" onClick={handleCreateItem} className="btn-primary btn-sm" disabled={lists.length === 0}>
-          <Plus size={16} /> New Task
-        </button>
-        <button type="button" onClick={openCreateList} className="btn-secondary btn-sm">
-          <Plus size={16} /> New List
-        </button>
-      </div>
-      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }

@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  Plus,
   Download,
   Upload,
   MapPin,
@@ -19,6 +18,7 @@ import {
   Banknote,
 } from 'lucide-react'
 import { PageHeader } from '../components/ui/PageHeader'
+import { PagePrimaryActions } from '../components/ui/PagePrimaryActions'
 import { EmptyState } from '../components/ui/EmptyState'
 import { CollapsibleFilters } from '../components/ui/CollapsibleFilters'
 import { ConfirmDialog, Modal } from '../components/ui/Modal'
@@ -532,14 +532,17 @@ export function JobsPage() {
         title="Job Applications"
         description={`${stats.total} applications · ${stats.interviewing} interviewing · ${stats.offers} offers`}
         action={
-          <div className="hidden sm:flex flex-wrap gap-2">
-            <button type="button" onClick={handleImportFile} className="btn-secondary btn-sm">
-              <Upload size={16} /> Import
-            </button>
-            <button type="button" onClick={handleCreateApplication} className="btn-primary btn-sm">
-              <Plus size={16} /> Add Application
-            </button>
-          </div>
+          <PagePrimaryActions
+            primaryLabel="Add Application"
+            onPrimary={handleCreateApplication}
+            menuLabel="Job Tracker actions"
+            items={[
+              { id: 'import', label: 'Import', onClick: handleImportFile },
+              ...(viewMode === 'kanban'
+                ? [{ id: 'columns', label: 'Columns', onClick: () => setColumnPickerOpen(true) }]
+                : []),
+            ]}
+          />
         }
       />
 
@@ -1034,21 +1037,6 @@ export function JobsPage() {
         </div>
       </Modal>
 
-      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary job actions">
-        <button type="button" onClick={handleCreateApplication} className="btn-primary btn-sm">
-          <Plus size={16} /> Add Application
-        </button>
-        {viewMode === 'kanban' ? (
-          <button type="button" onClick={() => setColumnPickerOpen(true)} className="btn-secondary btn-sm">
-            <Columns3 size={16} /> Columns
-          </button>
-        ) : (
-          <button type="button" onClick={handleImportFile} className="btn-secondary btn-sm">
-            <Upload size={16} /> Import
-          </button>
-        )}
-      </div>
-      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }

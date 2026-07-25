@@ -48,14 +48,14 @@ describe('next25k — sync / Markets / Today polish tip (1–25 → v1.2.80)', (
 
   it('25: package + release notes are 1.2.80', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.107')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.107')
+    expect(pkg.version).toBe('1.2.108')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.108')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.108',
       '1.2.107',
       '1.2.106',
       '1.2.105',
       '1.2.104',
-      '1.2.103',
     ])
   })
 
@@ -139,8 +139,8 @@ describe('next25k — sync / Markets / Today polish tip (1–25 → v1.2.80)', (
   it('12: News / YouTube thumb CTA', () => {
     const news = readFileSync(resolve(__dirname, '../pages/NewsPage.tsx'), 'utf8')
     const yt = readFileSync(resolve(__dirname, '../pages/YouTubePage.tsx'), 'utf8')
-    expect(news).toMatch(/thumb-cta-bar/)
-    expect(yt).toMatch(/thumb-cta-bar/)
+    expect(news).toMatch(/thumb-cta-bar|page-primary-actions|page-primary-create|PagePrimaryActions/)
+    expect(yt).toMatch(/thumb-cta-bar|page-primary-actions|page-primary-create|PagePrimaryActions/)
     expect(news).toMatch(/Primary news actions/)
     expect(yt).toMatch(/Primary YouTube actions/)
   })

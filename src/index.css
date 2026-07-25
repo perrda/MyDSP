@@ -2562,90 +2562,54 @@ html.a11y-reduce-motion *::after {
   border-left: 3px solid color-mix(in srgb, var(--accent) 55%, transparent);
 }
 
-/* ----- next25b mobile ergonomics (11–15) ----- */
+/* ----- next25b mobile ergonomics (11–15) + content-first chrome ----- */
 
-/* 11: One-handed reachability — PageHeader actions below copy on phone */
+/* mobile-content-first-chrome: header create sits top-right; content owns the viewport */
 @media (max-width: 639px) {
   .page-header {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5rem 0.75rem;
   }
   .page-header__copy {
     order: 1;
+    flex: 1 1 12rem;
+    min-width: 0;
   }
   .page-header__action {
     order: 2;
-    align-self: stretch;
-    margin-top: 0.25rem;
+    align-self: flex-start;
+    margin-top: 0.15rem;
+    flex: 0 0 auto;
+  }
+  .page-primary-actions {
+    display: flex;
+    justify-content: flex-end;
   }
 }
 
-/* Sticky bottom CTA cluster above bottom-nav (phone + short landscape); hidden on tall ≥sm */
-.thumb-cta-bar {
-  display: none;
+/*
+ * mobile-content-first-chrome: fixed bottom create clusters are retired.
+ * Legacy class names may remain in markup until pages are cleaned; never show them.
+ * Job Detail measured action bar can still use --job-detail-action-height offsets.
+ */
+.thumb-cta-bar,
+.thumb-cta-bar-spacer {
+  display: none !important;
 }
 @media (max-width: 639px), (orientation: landscape) and (max-height: 500px) {
-  .thumb-cta-bar {
-    display: flex;
-    position: fixed;
-    left: 0;
-    right: 0;
-    z-index: 35;
-    bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: stretch;
-    gap: 0.5rem;
-    padding: 0.625rem 0.75rem;
-    background: color-mix(in srgb, var(--bg-elevated) 94%, transparent);
-    border-top: 1px solid var(--border);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    box-shadow: 0 -4px 24px color-mix(in srgb, var(--bg) 40%, transparent);
-    /* sync-trust-density-qa: cap tall phone thumb clusters without hiding actions */
-    max-height: min(40dvh, 12rem);
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-  .thumb-cta-bar > button,
-  .thumb-cta-bar > a {
-    flex: 1 1 auto;
-    min-height: 2.75rem;
-    justify-content: center;
-  }
-  html.has-bottom-nav .thumb-cta-bar {
-    bottom: calc(5.5rem + 0.25rem + env(safe-area-inset-bottom, 0px));
-  }
   .job-detail-nav-cta {
-    bottom: calc(
-      var(--job-detail-action-height, 4.75rem) + 0.35rem + env(safe-area-inset-bottom, 0px)
-    );
-  }
-  html.has-bottom-nav .job-detail-nav-cta {
-    bottom: calc(
-      5.5rem + var(--job-detail-action-height, 4.75rem) + 0.35rem +
-        env(safe-area-inset-bottom, 0px)
-    );
-  }
-  /* Spacer clears the live measured thumb bar (ResizeObserver → --thumb-cta-height) */
-  .thumb-cta-bar-spacer {
-    display: block;
-    height: calc(var(--thumb-cta-height, 4.25rem) + 0.75rem);
+    display: none !important;
   }
   .job-detail-nav-cta-spacer {
-    height: calc(
-      var(--thumb-cta-height, 3.5rem) + var(--job-detail-action-height, 4.75rem) + 1rem
-    );
+    display: none !important;
   }
-}
-@media (min-width: 640px) {
-  .thumb-cta-bar-spacer {
-    display: none;
-  }
-}
-@media (orientation: landscape) and (max-height: 500px) {
-  .thumb-cta-bar-spacer {
-    display: block;
+  /* Keep CSS vars referenced so measured hooks / floating banners stay valid */
+  :root {
+    --thumb-cta-height: 0px;
   }
   /* sync-trust-density-qa: short landscape thumb CTAs must not wrap into 40dvh. */
   .thumb-cta-bar {

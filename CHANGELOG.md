@@ -1,5 +1,14 @@
 # MyDSP Changelog
 
+## [1.2.108] - 2026-07-25
+
+### Improved — Mobile content-first chrome + Money ops header creates
+- **No fixed bottom create bars** on phone / short landscape — To Do’s New Task / New List (and Jobs, Markets, Spending, Budgets, Recurring, Tax, Optimizer, Liabilities) no longer sit above the bottom nav
+- **PagePrimaryActions**: primary Add in the page header + `⋯` for secondary actions (New List, Import, Export, Add crypto, …)
+- **Markets** retry / Add-from-holding / Refreshing status stay in page status chrome, not a second button dock
+- **CSS policy** hides legacy `.thumb-cta-bar` globally; cursor rule `mobile-content-first-chrome.mdc` encodes the owner preference
+- **Money ops**: Spending / Budgets / Recurring / Tax / Optimizer creates and exports use header chrome so the ledger/list owns the viewport
+
 ## [1.2.107] - 2026-07-25
 
 ### Improved — Sync trust + Favourites density QA

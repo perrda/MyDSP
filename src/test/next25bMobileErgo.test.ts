@@ -41,10 +41,11 @@ describe('next25b mobile ergonomics (11–15)', () => {
     vi.restoreAllMocks()
   })
 
-  it('11: thumb-cta-bar + PageHeader phone order utilities exist', () => {
+  it('11: content-first PageHeader create chrome (no fixed bottom create bar)', () => {
     const css = readFileSync(resolve(__dirname, '../index.css'), 'utf8')
-    expect(css).toMatch(/\.thumb-cta-bar/)
+    expect(css).toMatch(/mobile-content-first-chrome/)
     expect(css).toMatch(/\.page-header__action/)
+    expect(css).toMatch(/\.thumb-cta-bar,\s*\n\.thumb-cta-bar-spacer/)
     expect(css).toMatch(/max-width:\s*639px/)
 
     const header = readFileSync(resolve(__dirname, '../components/ui/PageHeader.tsx'), 'utf8')
@@ -54,9 +55,12 @@ describe('next25b mobile ergonomics (11–15)', () => {
     const todos = readFileSync(resolve(__dirname, '../pages/TodosPage.tsx'), 'utf8')
     const jobs = readFileSync(resolve(__dirname, '../pages/JobsPage.tsx'), 'utf8')
     const markets = readFileSync(resolve(__dirname, '../pages/MarketsPage.tsx'), 'utf8')
-    expect(todos).toMatch(/thumb-cta-bar/)
-    expect(jobs).toMatch(/thumb-cta-bar/)
-    expect(markets).toMatch(/thumb-cta-bar/)
+    expect(todos).toMatch(/PagePrimaryActions/)
+    expect(jobs).toMatch(/PagePrimaryActions/)
+    expect(markets).toMatch(/PagePrimaryActions/)
+    expect(todos).not.toMatch(/className="thumb-cta-bar"/)
+    expect(jobs).not.toMatch(/className="thumb-cta-bar"/)
+    expect(markets).not.toMatch(/className="thumb-cta-bar"/)
   })
 
   it('12: Jobs column picker sheet jumps to kanban column', () => {
@@ -164,6 +168,6 @@ describe('next25b mobile ergonomics (11–15)', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8')) as {
       version: string
     }
-    expect(pkg.version).toBe('1.2.107')
+    expect(pkg.version).toBe('1.2.108')
   })
 })

@@ -22,6 +22,7 @@ import {
 import { Sparkline } from '../components/charts/Sparkline'
 import { useToasts } from '../components/ToastProvider'
 import { PageHeader } from '../components/ui/PageHeader'
+import { PagePrimaryActions } from '../components/ui/PagePrimaryActions'
 import { EmptyStateInline } from '../components/ui/EmptyState'
 import { MarketsHoldingsSkeleton } from '../components/ui/MarketsHoldingsSkeleton'
 import { ConfirmDialog, Field, Modal } from '../components/ui/Modal'
@@ -2168,22 +2169,19 @@ export function MarketsPage() {
         eyebrow="Prices"
         title="Markets"
         action={
-          <div className="hidden sm:flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              className="btn-primary btn-sm inline-flex items-center gap-1.5"
-              onClick={() => openCreate('equity')}
-            >
-              <Plus size={16} strokeWidth={2} /> Add equity
-            </button>
-            <button
-              type="button"
-              className="btn-secondary btn-sm inline-flex items-center gap-1.5"
-              onClick={() => openCreate('crypto')}
-            >
-              <Plus size={16} strokeWidth={2} /> Add crypto
-            </button>
-          </div>
+          <PagePrimaryActions
+            primaryLabel="Add equity"
+            onPrimary={() => openCreate('equity')}
+            menuLabel="Markets actions"
+            items={[
+              { id: 'crypto', label: 'Add crypto', onClick: () => openCreate('crypto') },
+              {
+                id: 'retry',
+                label: online ? 'Retry unavailable' : 'Retry when online',
+                onClick: () => void retryUnavailable(),
+              },
+            ]}
+          />
         }
       />
 
@@ -2252,7 +2250,9 @@ export function MarketsPage() {
             className="markets-add-from-holding-status mb-3 flex flex-wrap items-center gap-2 text-xs text-text-muted"
             role="status"
           >
-            <span>{total} holding symbol{total === 1 ? '' : 's'} missing from Markets.</span>
+            <span>
+              {total} holding symbol{total === 1 ? '' : 's'} missing from Markets.
+            </span>
             <button
               type="button"
               className="btn-secondary btn-sm inline-flex items-center gap-1.5"
@@ -3639,23 +3639,6 @@ export function MarketsPage() {
         </div>
       ) : null}
 
-      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary markets actions">
-        <button
-          type="button"
-          className="btn-primary btn-sm inline-flex items-center gap-1.5"
-          onClick={() => openCreate('equity')}
-        >
-          <Plus size={16} strokeWidth={2} /> Add equity
-        </button>
-        <button
-          type="button"
-          className="btn-secondary btn-sm inline-flex items-center gap-1.5"
-          onClick={() => openCreate('crypto')}
-        >
-          <Plus size={16} strokeWidth={2} /> Add crypto
-        </button>
-      </div>
-      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }
