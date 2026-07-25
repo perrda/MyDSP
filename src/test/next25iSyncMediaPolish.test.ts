@@ -38,14 +38,14 @@ describe('next25i — sync / media / polish tip (1–25 → v1.2.80)', () => {
 
   it('package + release notes are 1.2.80', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.102')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.102')
+    expect(pkg.version).toBe('1.2.103')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.103')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.103',
       '1.2.102',
       '1.2.101',
       '1.2.100',
       '1.2.99',
-      '1.2.98',
     ])
   })
 

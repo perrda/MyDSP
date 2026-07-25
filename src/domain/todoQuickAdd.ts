@@ -67,12 +67,13 @@ export function parseTodoQuickAdd(
   if (!raw) return { title: '', priority, tags }
 
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  const withMeta = (title: string, dueDate?: string): ParsedTodoQuickAdd => ({
-    title,
-    dueDate,
-    priority,
-    tags,
-  });
+  const withMeta = (title: string, dueDate?: string): ParsedTodoQuickAdd => {
+    const out: ParsedTodoQuickAdd = { title }
+    if (dueDate) out.dueDate = dueDate
+    if (priority) out.priority = priority
+    if (tags.length) out.tags = tags
+    return out
+  }
 
   // tomorrow
   {
