@@ -367,3 +367,62 @@ export function calculateSavingsRateTrend(history: HistoryPoint[], months: numbe
     }
   })
 }
+
+export interface ScenarioProjectionInput {
+  assets: number
+  liabilities: number
+  monthlyIncome: number
+  monthlyExpenses: number
+  incomeDeltaPct: number
+  marketReturnPct: number
+  inflationPct: number
+}
+
+export interface ScenarioProjection {
+  adjustedMonthlyIncome: number
+  adjustedMonthlyExpenses: number
+  monthlySurplus: number
+  projectedNetWorth12Months: number
+  runwayMonths: number | null
+}
+
+export function projectScenario(input: ScenarioProjectionInput): ScenarioProjection {
+  const adjustedMonthlyIncome = Math.max(0, input.monthlyIncome * (1 + input.incomeDeltaPct / 100))
+  const adjustedMonthlyExpenses = Math.max(0, input.monthlyExpenses * (1 + input.inflationPct / 100))
+  const monthlySurplus = adjustedMonthlyIncome - adjustedMonthlyExpenses
+  const projectedAssets =
+    Math.max(0, input.assets) * (1 + input.marketReturnPct / 100) + monthlySurplus * 12
+  const currentNetWorth = input.assets - input.liabilities
+  return {
+    adjustedMonthlyIncome,
+    adjustedMonthlyExpenses,
+    monthlySurplus,
+    projectedNetWorth12Months: Math.round(projectedAssets - input.liabilities),
+    runwayMonths:
+      adjustedMonthlyExpenses > 0
+        ? Math.max(0, currentNetWorth) / adjustedMonthlyExpenses
+        : null,
+  }
+}
+
+export function estimateFireYears(params: {
+  assets: number
+  monthlyIncome: number
+  monthlyExpenses: number
+  annualReturnPct?: number
+  fireMultiple?: number
+}): number | null {
+  const monthlySavings = params.monthlyIncome - params.monthlyExpenses
+  if (!(params.monthlyIncome > 0) || !(monthlySavings > 0) || !(params.monthlyExpenses > 0)) {
+    return null
+  }
+  const target = params.monthlyExpenses * 12 * (params.fireMultiple ?? 25)
+  if (params.assets >= target) return 0
+  const monthlyReturn = Math.max(0, params.annualReturnPct ?? 0) / 100 / 12
+  let balance = Math.max(0, params.assets)
+  for (let month = 1; month <= 1200; month++) {
+    balance = balance * (1 + monthlyReturn) + monthlySavings
+    if (balance >= target) return Math.round((month / 12) * 10) / 10
+  }
+  return null
+}

@@ -25,6 +25,7 @@ export type PaymentMethod = 'credit' | 'debit' | 'cash' | 'transfer' | string
 
 export type RagStatus = 'red' | 'amber' | 'green'
 export type EquityAccountType = 'general' | 'isa' | 'sipp' | 'other'
+export type SettlementStatus = 'none' | 'negotiating' | 'settled'
 
 /** Timestamped progress notes (liabilities, holdings, goals). */
 export interface ProgressCommentary {
@@ -36,6 +37,13 @@ export interface ProgressCommentary {
 
 /** @deprecated Prefer ProgressCommentary — kept for FCC-compatible naming. */
 export type LiabilityCommentary = ProgressCommentary
+
+export interface LiabilityPayment {
+  id: number
+  date: string
+  amount: number
+  note?: string
+}
 
 export interface CryptoHolding {
   id: number
@@ -51,6 +59,17 @@ export interface CryptoHolding {
   platform?: string
   contactUrl?: string
   chain?: string
+  transfers?: CryptoTransfer[]
+  stakingApy?: number
+}
+
+export interface CryptoTransfer {
+  id: number
+  date: string
+  direction: 'in' | 'out'
+  qty: number
+  venue?: string
+  note?: string
 }
 
 export interface EquityHolding {
@@ -67,8 +86,14 @@ export interface EquityHolding {
   platform?: string
   contactUrl?: string
   accountType?: EquityAccountType
+  /** Optional dividend yield % — import/stub-compatible alias. */
+  dividendYield?: number
   /** Optional dividend yield % — manual stub (also editable on Markets ticker) */
   yieldPct?: number
+  /** Optional next expected ex/payment date for the dividend schedule. */
+  nextDividendDate?: string
+  /** Optional next expected dividend amount per share/unit. */
+  nextDividendAmount?: number
   /** Optional corporate-action stub note (split / dividend / rights) */
   corporateActionNote?: string
   /** Optional effective date for the corporate-action note (YYYY-MM-DD) */
@@ -96,6 +121,10 @@ export interface CreditCard {
   preferredContactOther?: string
   ragStatus?: RagStatus
   commentaries?: ProgressCommentary[]
+  paymentHistory?: LiabilityPayment[]
+  settlementStatus?: SettlementStatus
+  settlementNote?: string
+  nextCallbackDate?: string
   sortOrder?: number
 }
 
@@ -116,6 +145,10 @@ export interface Loan {
   preferredContactOther?: string
   ragStatus?: RagStatus
   commentaries?: ProgressCommentary[]
+  paymentHistory?: LiabilityPayment[]
+  settlementStatus?: SettlementStatus
+  settlementNote?: string
+  nextCallbackDate?: string
   sortOrder?: number
 }
 
@@ -132,6 +165,10 @@ export interface PaidOffDebt {
   preferredContactMethod?: LiabilityContactMethod
   preferredContactOther?: string
   commentaries?: ProgressCommentary[]
+  paymentHistory?: LiabilityPayment[]
+  settlementStatus?: SettlementStatus
+  settlementNote?: string
+  nextCallbackDate?: string
 }
 
 export interface Goal {

@@ -100,7 +100,7 @@ export function AnalyticsPage() {
           <div>
             <h3 className="font-bold text-lg mb-1">Predictive Analytics</h3>
             <p className="text-sm text-text-muted">
-              AI-powered forecasting, anomaly detection, and financial health scoring
+              Model-based forecasting, anomaly detection, and financial health scoring
             </p>
           </div>
         </div>
