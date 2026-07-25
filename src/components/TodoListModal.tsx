@@ -40,6 +40,7 @@ export function TodoListModal({ list, onSave, onClose }: TodoListModalProps) {
     description: list?.description || '',
     color: list?.color || LIST_COLORS[0].value,
     icon: list?.icon || 'list',
+    shared: list?.shared || false,
   })
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -52,6 +53,7 @@ export function TodoListModal({ list, onSave, onClose }: TodoListModalProps) {
           ...formData,
           name: formData.name.trim(),
           description: formData.description.trim() || undefined,
+          shared: formData.shared,
           updatedAt: new Date().toISOString(),
         }
       : createTodoList({
@@ -59,6 +61,7 @@ export function TodoListModal({ list, onSave, onClose }: TodoListModalProps) {
           description: formData.description.trim() || undefined,
           color: formData.color,
           icon: formData.icon,
+          shared: formData.shared,
         })
 
     onSave(next)
@@ -99,6 +102,23 @@ export function TodoListModal({ list, onSave, onClose }: TodoListModalProps) {
                   placeholder="Optional notes about this list"
                 />
               </div>
+              <label
+                className="flex items-start gap-3 rounded border border-border bg-surface-hover p-3 text-sm"
+                data-testid="todos-list-share-hint"
+              >
+                <input
+                  type="checkbox"
+                  checked={formData.shared}
+                  onChange={(e) => setFormData({ ...formData, shared: e.target.checked })}
+                  className="mt-0.5"
+                />
+                <span>
+                  <span className="font-semibold">Household (local)</span>
+                  <span className="block text-xs text-text-subtle mt-0.5">
+                    Marks this list as shared for your household; it syncs through workspace cloud sync, not a multi-user backend.
+                  </span>
+                </span>
+              </label>
             </div>
           </section>
 

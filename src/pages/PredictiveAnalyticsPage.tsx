@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { TrendingUp, TrendingDown, Minus, AlertTriangle, Award } from 'lucide-react'
 import { PageHeader } from '../components/ui/PageHeader'
@@ -10,8 +10,11 @@ import {
   detectAnomalies,
   calculateFinancialHealth,
   calculateSavingsRateTrend,
+  estimateFireYears,
+  projectScenario,
   type SpendingTrend,
 } from '../domain/advancedAnalytics'
+import { compareDebtStrategies } from '../domain/debtStrategies'
 import { formatGBP, privacyClass } from '../utils/format'
 import { formatChartYTick, formatChartPctTick } from '../domain/chartAxis'
 import {
@@ -34,8 +37,20 @@ function recommendationAction(rec: string): { to: string; label: string } | null
   return null
 }
 
+function formatProjectionMonths(months: number | null): string {
+  if (months == null) return 'Not enough payment data'
+  if (months === 0) return 'Already debt-free'
+  if (months < 12) return `${months} months`
+  return `${months} months (${(months / 12).toFixed(1)} years)`
+}
+
 export function PredictiveAnalyticsPage() {
   const { data, privacy } = usePortfolio()
+  const [scenario, setScenario] = useState({
+    incomeDeltaPct: 0,
+    marketReturnPct: 5,
+    inflationPct: 3,
+  })
 
   const spendingTrends = useMemo(() => 
     analyzeSpendingTrends(data.spending, 12),
@@ -91,6 +106,44 @@ export function PredictiveAnalyticsPage() {
       budgetGoals,
     }),
     [totalAssets, totalLiabilities, data.monthlyIncome, monthlyExpenses, data.spending, budgetGoals]
+  )
+
+  const scenarioProjection = useMemo(
+    () =>
+      projectScenario({
+        assets: totalAssets,
+        liabilities: totalLiabilities,
+        monthlyIncome: data.monthlyIncome,
+        monthlyExpenses,
+        incomeDeltaPct: scenario.incomeDeltaPct,
+        marketReturnPct: scenario.marketReturnPct,
+        inflationPct: scenario.inflationPct,
+      }),
+    [data.monthlyIncome, monthlyExpenses, scenario, totalAssets, totalLiabilities],
+  )
+
+  const debtComparison = useMemo(
+    () => compareDebtStrategies(data.creditCards, data.loans),
+    [data.creditCards, data.loans],
+  )
+
+  const debtFreeMonths = useMemo(() => {
+    const estimates = [debtComparison.snowball.months, debtComparison.avalanche.months].filter(
+      (months): months is number => months != null,
+    )
+    if (totalLiabilities <= 0) return 0
+    return estimates.length ? Math.min(...estimates) : null
+  }, [debtComparison, totalLiabilities])
+
+  const fireYears = useMemo(
+    () =>
+      estimateFireYears({
+        assets: totalAssets,
+        monthlyIncome: data.monthlyIncome,
+        monthlyExpenses,
+        annualReturnPct: scenario.marketReturnPct,
+      }),
+    [data.monthlyIncome, monthlyExpenses, scenario.marketReturnPct, totalAssets],
   )
 
   const savingsRateTrend = useMemo(() => 
@@ -201,6 +254,127 @@ export function PredictiveAnalyticsPage() {
               </p>
             )
           })}
+        </div>
+      </div>
+
+      <div
+        className="surface p-6 mb-6 rounded-xl md:rounded-none shadow-sm md:shadow-none"
+        data-testid="analytics-scenarios"
+      >
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 mb-5">
+          <div>
+            <h3 className="font-bold text-lg mb-1">What-if scenarios</h3>
+            <p className="text-sm text-text-muted">
+              Simple sliders, not AI: adjust income, market return, and inflation assumptions.
+            </p>
+          </div>
+          <p className={`text-sm font-semibold tabular-nums ${privacyClass(privacy)}`}>
+            12-mo projected NW {formatGBP(scenarioProjection.projectedNetWorth12Months)}
+          </p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+          <label className="block">
+            <span className="text-xs uppercase tracking-wider text-text-subtle font-semibold">
+              Income delta
+            </span>
+            <input
+              type="range"
+              min="-50"
+              max="50"
+              step="1"
+              value={scenario.incomeDeltaPct}
+              onChange={(e) =>
+                setScenario({ ...scenario, incomeDeltaPct: Number(e.target.value) })
+              }
+            />
+            <span className="text-sm font-semibold tabular-nums">
+              {scenario.incomeDeltaPct > 0 ? '+' : ''}{scenario.incomeDeltaPct}%
+            </span>
+          </label>
+          <label className="block">
+            <span className="text-xs uppercase tracking-wider text-text-subtle font-semibold">
+              Market return
+            </span>
+            <input
+              type="range"
+              min="-20"
+              max="20"
+              step="0.5"
+              value={scenario.marketReturnPct}
+              onChange={(e) =>
+                setScenario({ ...scenario, marketReturnPct: Number(e.target.value) })
+              }
+            />
+            <span className="text-sm font-semibold tabular-nums">
+              {scenario.marketReturnPct > 0 ? '+' : ''}{scenario.marketReturnPct}%
+            </span>
+          </label>
+          <label className="block">
+            <span className="text-xs uppercase tracking-wider text-text-subtle font-semibold">
+              Inflation
+            </span>
+            <input
+              type="range"
+              min="0"
+              max="15"
+              step="0.5"
+              value={scenario.inflationPct}
+              onChange={(e) =>
+                setScenario({ ...scenario, inflationPct: Number(e.target.value) })
+              }
+            />
+            <span className="text-sm font-semibold tabular-nums">
+              {scenario.inflationPct}%
+            </span>
+          </label>
+        </div>
+        <div className={`grid grid-cols-1 sm:grid-cols-3 gap-px ${privacyClass(privacy)}`}>
+          <div className="surface-nested p-4">
+            <p className="label-uppercase mb-2">Scenario surplus</p>
+            <p className="text-lg font-bold tabular-nums">
+              {formatGBP(scenarioProjection.monthlySurplus)}/mo
+            </p>
+          </div>
+          <div className="surface-nested p-4">
+            <p className="label-uppercase mb-2">Runway</p>
+            <p className="text-lg font-bold tabular-nums">
+              {scenarioProjection.runwayMonths == null
+                ? 'No expenses'
+                : `${scenarioProjection.runwayMonths.toFixed(1)} mo`}
+            </p>
+          </div>
+          <div className="surface-nested p-4">
+            <p className="label-uppercase mb-2">Adjusted expenses</p>
+            <p className="text-lg font-bold tabular-nums">
+              {formatGBP(scenarioProjection.adjustedMonthlyExpenses)}/mo
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div
+        className="surface p-6 mb-6 rounded-xl md:rounded-none shadow-sm md:shadow-none"
+        data-testid="analytics-projections"
+      >
+        <h3 className="font-bold text-lg mb-4">Debt-free / FIRE-ish projections</h3>
+        <div className={`grid grid-cols-1 sm:grid-cols-2 gap-px ${privacyClass(privacy)}`}>
+          <div className="surface-nested p-5">
+            <p className="label-uppercase mb-2">Debt-free estimate</p>
+            <p className="text-xl font-bold tabular-nums">{formatProjectionMonths(debtFreeMonths)}</p>
+            <p className="text-xs text-text-muted mt-1">
+              Uses current minimum payments ({formatGBP(debtComparison.avalanche.monthlyPayment)}/mo)
+              and rolls paid-off minimums into remaining debts.
+            </p>
+          </div>
+          <div className="surface-nested p-5">
+            <p className="label-uppercase mb-2">FIRE-ish estimate</p>
+            <p className="text-xl font-bold tabular-nums">
+              {fireYears == null ? 'Needs positive savings rate' : `${fireYears.toFixed(1)} years`}
+            </p>
+            <p className="text-xs text-text-muted mt-1">
+              Uses 25x current annual spend and the market return slider.
+            </p>
+          </div>
         </div>
       </div>
 

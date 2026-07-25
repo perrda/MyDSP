@@ -306,6 +306,8 @@ export function CryptoPage() {
       platform: form.platform.trim() || undefined,
       contactUrl: form.contactUrl.trim() || undefined,
       chain: form.chain.trim() || undefined,
+      transfers: editing?.transfers,
+      stakingApy: editing?.stakingApy,
     }
     setData((prev) => ({
       ...prev,
@@ -429,6 +431,27 @@ export function CryptoPage() {
           </div>
         }
       />
+
+      <div
+        className="surface p-4 mb-4 flex flex-wrap items-center justify-between gap-3"
+        data-testid="crypto-exchange-stub"
+      >
+        <div>
+          <p className="text-sm font-semibold">Connect exchange (coming via CSV import)</p>
+          <p className="text-xs text-text-subtle">
+            No OAuth yet — use the holding trade-history CSV importer for exchange exports.
+          </p>
+        </div>
+        {selectedHolding ? (
+          <Link to={`/crypto/${selectedHolding.id}`} className="btn-secondary btn-sm">
+            Open CSV import
+          </Link>
+        ) : (
+          <button type="button" className="btn-secondary btn-sm" disabled>
+            Open CSV import
+          </button>
+        )}
+      </div>
 
       <div
         ref={holdingsSearchRef}

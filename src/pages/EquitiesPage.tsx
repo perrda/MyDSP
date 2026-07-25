@@ -12,7 +12,7 @@ import { TradeModal } from '../components/ui/TradeModal'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
 import { SwipeHoldingRow } from '../components/ui/SwipeHoldingRow'
 import { usePortfolio } from '../context/PortfolioContext'
-import { applyTrade } from '../domain/trades'
+import { applyTrade, applyTradesBatch } from '../domain/trades'
 import { equityNeedsUsdToGbp } from '../domain/equityCurrency'
 import { equityUnitPriceGbp } from '../domain/migrateEquityGbp'
 import { applyLastSyncedQuotesToHoldings } from '../domain/lastSyncedHoldings'
@@ -50,6 +50,7 @@ import {
   privacyClass,
 } from '../utils/format'
 import { convertFromGbp } from '../services/fx'
+import { parsePortfolioTradeCsv } from '../services/tradeCsvImport'
 import { useToasts } from '../components/ToastProvider'
 
 function nextId(items: { id: number }[]): number {
@@ -167,6 +168,7 @@ export function EquitiesPage() {
   const [searchText, setSearchText] = useState('')
   const [selectedHoldingId, setSelectedHoldingId] = useState<number | null>(null)
   const corpActionToastKeyRef = useRef('')
+  const brokerImportRef = useRef<HTMLInputElement | null>(null)
   const holdingsSearchRef = useRef<HTMLDivElement | null>(null)
   useCssVarFromElementSize(holdingsSearchRef, '--holdings-search-height')
 
@@ -252,6 +254,7 @@ export function EquitiesPage() {
       if (t.yieldPct != null && t.yieldPct > 0) map.set(t.symbol.toUpperCase(), t.yieldPct)
     }
     for (const e of holdings) {
+      if (e.dividendYield != null && e.dividendYield > 0) map.set(e.symbol.toUpperCase(), e.dividendYield)
       if (e.yieldPct != null && e.yieldPct > 0) map.set(e.symbol.toUpperCase(), e.yieldPct)
     }
     return map
@@ -270,6 +273,34 @@ export function EquitiesPage() {
       title: 'Filled from last synced',
       message: `${result.equities} equity price${result.equities === 1 ? '' : 's'}`,
       duration: 8000,
+      action: {
+        label: 'Undo',
+        onClick: () => setData(() => snapshot),
+      },
+    })
+  }
+
+  const importBrokerCsv = async (file: File) => {
+    const text = await file.text()
+    const namesBySymbol = new Map(holdings.map((h) => [h.symbol.toUpperCase(), h.name]))
+    const parsed = parsePortfolioTradeCsv(text, {
+      kind: 'equity',
+      namesBySymbol,
+      dateOrder: 'dmy',
+    })
+    if (parsed.trades.length === 0) {
+      showError('Import failed', parsed.errors[0] ?? 'No trades found in CSV.')
+      return
+    }
+    const snapshot = data
+    setData((prev) => applyTradesBatch(prev, parsed.trades))
+    showToast({
+      type: parsed.errors.length ? 'warning' : 'success',
+      title: 'Broker CSV imported',
+      message: `${parsed.trades.length} trade${parsed.trades.length === 1 ? '' : 's'} added${
+        parsed.errors.length ? ` · ${parsed.errors.length} row warning${parsed.errors.length === 1 ? '' : 's'}` : ''
+      }`,
+      duration: 9000,
       action: {
         label: 'Undo',
         onClick: () => setData(() => snapshot),
@@ -372,6 +403,9 @@ export function EquitiesPage() {
       contactUrl: form.contactUrl.trim() || undefined,
       accountType: form.accountType === 'general' ? undefined : form.accountType,
       yieldPct: editing?.yieldPct,
+      dividendYield: editing?.dividendYield,
+      nextDividendDate: editing?.nextDividendDate,
+      nextDividendAmount: editing?.nextDividendAmount,
       corporateActionNote: editing?.corporateActionNote,
       corporateActionDate: editing?.corporateActionDate,
     }
@@ -446,6 +480,26 @@ export function EquitiesPage() {
         }
         action={
           <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="btn-ghost btn-sm"
+              data-testid="equity-broker-import"
+              onClick={() => brokerImportRef.current?.click()}
+              title="Import date,type,symbol,qty,price broker CSV rows into the trade journal"
+            >
+              Import broker CSV
+            </button>
+            <input
+              ref={brokerImportRef}
+              type="file"
+              accept=".csv,text/csv"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (file) void importBrokerCsv(file)
+                e.target.value = ''
+              }}
+            />
             <button
               type="button"
               className="btn-ghost btn-sm"

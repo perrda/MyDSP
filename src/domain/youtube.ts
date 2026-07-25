@@ -10,6 +10,7 @@ export interface YoutubeChannel {
   /** Original URL or @handle the user entered */
   url: string
   thumbnailUrl?: string
+  folder?: string
   createdAt: string
   sortOrder: number
 }
@@ -23,6 +24,43 @@ export interface YoutubeVideo {
   publishedAt: string
   thumbnailUrl?: string
   description?: string
+  /** From Atom `yt:duration` when present — used to drop sub‑minute Shorts. */
+  durationSeconds?: number
+}
+
+/**
+ * Detect YouTube Shorts from feed metadata (no API key required).
+ * Shorts must never appear in favourites lists, unread counts, or upload alerts.
+ */
+export function isYoutubeShort(
+  video: Pick<YoutubeVideo, 'title' | 'link' | 'id' | 'description' | 'durationSeconds'>,
+): boolean {
+  const link = (video.link || '').toLowerCase()
+  const id = (video.id || '').toLowerCase()
+  const title = video.title || ''
+  const description = video.description || ''
+
+  if (link.includes('/shorts/') || id.includes('/shorts/')) return true
+  if (/[?&]feature=shorts\b/i.test(link) || /[?&]feature=shorts\b/i.test(id)) return true
+  // Creator hashtag only — do NOT match bare "shorts" (finance = short selling).
+  if (/#shorts?\b/i.test(title) || /#shorts?\b/i.test(description)) return true
+  // Classic Shorts are ≤60s; YouTube Atom sometimes exposes yt:duration.
+  if (
+    typeof video.durationSeconds === 'number' &&
+    Number.isFinite(video.durationSeconds) &&
+    video.durationSeconds > 0 &&
+    video.durationSeconds <= 60
+  ) {
+    return true
+  }
+  return false
+}
+
+/** Drop Shorts; preserve order. */
+export function filterOutYoutubeShorts<
+  T extends Pick<YoutubeVideo, 'title' | 'link' | 'id' | 'description' | 'durationSeconds'>,
+>(videos: T[]): T[] {
+  return videos.filter((v) => !isYoutubeShort(v))
 }
 
 export interface YoutubeState {

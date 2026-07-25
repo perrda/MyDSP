@@ -88,6 +88,11 @@ function jobEventMs(date: string, time?: string): number {
   return new Date(`${date.slice(0, 10)}T${time || '00:00'}`).getTime()
 }
 
+function jobEventDayLabel(value: string): string {
+  const date = new Date(`${value.slice(0, 10)}T00:00`)
+  return new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: '2-digit', month: 'short' }).format(date)
+}
+
 export function JobsPage() {
   const { data, setData, privacy } = usePortfolio()
   const { success, error: showError } = useToasts()
@@ -161,12 +166,16 @@ export function JobsPage() {
       date: string
       type: 'Interview' | 'Deadline'
       sortAt: number
+      dayLabel: string
     }> = []
+    const end = new Date(today)
+    end.setDate(end.getDate() + 14)
     for (const app of applications) {
       if (['rejected', 'withdrawn', 'archived'].includes(app.status)) continue
       for (const interview of app.interviews ?? []) {
         if (interview.outcome && interview.outcome !== 'pending') continue
-        if (!interview.scheduledDate || dateOnlyMs(interview.scheduledDate) < today.getTime()) continue
+        const interviewMs = dateOnlyMs(interview.scheduledDate)
+        if (!interview.scheduledDate || interviewMs < today.getTime() || interviewMs > end.getTime()) continue
         rows.push({
           key: `interview-${app.id}-${interview.id}`,
           appId: app.id,
@@ -177,9 +186,11 @@ export function JobsPage() {
             : interview.scheduledDate,
           type: 'Interview',
           sortAt: jobEventMs(interview.scheduledDate, interview.scheduledTime),
+          dayLabel: jobEventDayLabel(interview.scheduledDate),
         })
       }
-      if (app.deadline && dateOnlyMs(app.deadline) >= today.getTime()) {
+      const deadlineMs = app.deadline ? dateOnlyMs(app.deadline) : 0
+      if (app.deadline && deadlineMs >= today.getTime() && deadlineMs <= end.getTime()) {
         rows.push({
           key: `deadline-${app.id}`,
           appId: app.id,
@@ -188,11 +199,18 @@ export function JobsPage() {
           date: app.deadline,
           type: 'Deadline',
           sortAt: jobEventMs(app.deadline),
+          dayLabel: jobEventDayLabel(app.deadline),
         })
       }
     }
-    return rows.sort((a, b) => a.sortAt - b.sortAt).slice(0, 3)
+    return rows.sort((a, b) => a.sortAt - b.sortAt)
   }, [applications])
+
+  const offerCompareApplications = useMemo(() => {
+    const selected = applications.filter((app) => selectedJobs.has(app.id)).slice(0, 2)
+    if (selected.length >= 2) return selected
+    return applications.filter((app) => app.status === 'offer' || app.status === 'accepted').slice(0, 2)
+  }, [applications, selectedJobs])
 
   const kanbanData = useMemo(() => {
     return KANBAN_COLUMNS.map((col) => ({
@@ -747,21 +765,28 @@ export function JobsPage() {
       {viewMode !== 'analytics' && upcomingEvents.length > 0 ? (
         <section
           className="surface p-3 sm:p-4 mb-4 rounded-xl md:rounded-none"
-          data-testid="jobs-upcoming-strip"
-          aria-label="Upcoming job interviews and deadlines"
+          data-testid="jobs-calendar-strip"
+          aria-label="Job mini calendar for the next 14 days"
         >
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="label-uppercase mb-0 mr-1">Upcoming</p>
+          <div className="space-y-2" data-testid="jobs-upcoming-strip">
+            <div className="flex items-center justify-between gap-2">
+              <p className="label-uppercase mb-0">Next 14 days</p>
+              <span className="text-xs text-text-subtle">{upcomingEvents.length} event{upcomingEvents.length === 1 ? '' : 's'}</span>
+            </div>
             {upcomingEvents.map((event) => (
               <Link
                 key={event.key}
                 to={`/jobs/${event.appId}`}
-                className="inline-flex min-w-0 max-w-full items-center gap-2 rounded border border-border bg-surface-hover px-2.5 py-1.5 text-xs hover:border-accent"
+                className="grid grid-cols-[5rem_minmax(0,1fr)_auto] items-center gap-2 rounded border border-border bg-surface-hover px-2.5 py-1.5 text-xs hover:border-accent"
               >
-                <span className={event.type === 'Interview' ? 'text-amber-500 font-semibold' : 'text-accent font-semibold'}>
-                  {event.type}
+                <span className="text-text-subtle tabular-nums">{event.dayLabel}</span>
+                <span className="min-w-0">
+                  <span className={event.type === 'Interview' ? 'text-amber-500 font-semibold' : 'text-accent font-semibold'}>
+                    {event.type}
+                  </span>
+                  <span className="mx-1 text-text-subtle">·</span>
+                  <span className="truncate">{event.company}</span>
                 </span>
-                <span className="truncate">{event.company}</span>
                 <span className="text-text-subtle tabular-nums">{event.date}</span>
               </Link>
             ))}
@@ -806,6 +831,10 @@ export function JobsPage() {
           </button>
         </div>
       )}
+
+      {offerCompareApplications.length >= 2 ? (
+        <OfferComparePanel applications={offerCompareApplications} privacy={privacy} />
+      ) : null}
 
       {filteredApplications.length === 0 ? (
         <EmptyState
@@ -1005,6 +1034,50 @@ export function JobsPage() {
       </div>
       <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
+  )
+}
+
+function OfferComparePanel({
+  applications,
+  privacy,
+}: {
+  applications: JobApplication[]
+  privacy: boolean
+}) {
+  return (
+    <section
+      className="surface p-3 sm:p-4 mb-4 rounded-xl md:rounded-none"
+      data-testid="jobs-offer-compare"
+      aria-label="Compare job offers"
+    >
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <div>
+          <p className="label-uppercase mb-1">Offer compare</p>
+          <h3 className="font-bold">Side-by-side shortlist</h3>
+        </div>
+        <span className="text-xs text-text-subtle">Salary · location · remote</span>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {applications.slice(0, 2).map((app) => (
+          <div key={app.id} className="rounded border border-border bg-surface-hover p-3">
+            <Link to={`/jobs/${app.id}`} className="font-bold hover:text-accent">
+              {app.companyName}
+            </Link>
+            <p className="text-sm text-text-muted">{app.jobTitle}</p>
+            <dl className="mt-3 grid grid-cols-[5rem_minmax(0,1fr)] gap-x-3 gap-y-2 text-sm">
+              <dt className="text-text-subtle">Salary</dt>
+              <dd className={`font-semibold tabular-nums ${privacyClass(privacy)}`}>
+                {formatJobSalary(app) || 'Not set'}
+              </dd>
+              <dt className="text-text-subtle">Location</dt>
+              <dd>{app.location || 'Unknown'}</dd>
+              <dt className="text-text-subtle">Remote</dt>
+              <dd className="capitalize">{app.remote || 'onsite'}</dd>
+            </dl>
+          </div>
+        ))}
+      </div>
+    </section>
   )
 }
 

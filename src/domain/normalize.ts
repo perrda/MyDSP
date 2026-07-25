@@ -12,11 +12,13 @@ import type {
   HistoryPoint,
   JournalEntry,
   LiabilityContactMethod,
+  LiabilityPayment,
   Loan,
   MerchantRule,
   PaidOffDebt,
   PortfolioData,
   PortfolioSettings,
+  SettlementStatus,
   SpendingEntry,
   SplitSettings,
   StakingReward,
@@ -47,6 +49,8 @@ function asArray(v: unknown): unknown[] {
 function normalizeCrypto(raw: unknown): CryptoHolding[] {
   return asArray(raw).map((item, i) => {
     const r = (item ?? {}) as Record<string, unknown>
+    const stakingApy = optionalPositiveNum(r.stakingApy)
+    const transfers = normalizeCryptoTransfers(r.transfers)
     return {
       id: num(r.id, i + 1),
       symbol: str(r.symbol, '???').toUpperCase(),
@@ -61,18 +65,39 @@ function normalizeCrypto(raw: unknown): CryptoHolding[] {
       platform: optionalContact(r.platform ?? r.venue),
       contactUrl: optionalContact(r.contactUrl ?? r.url),
       chain: optionalContact(r.chain),
+      transfers: transfers.length ? transfers : undefined,
+      stakingApy,
     }
   })
+}
+
+function normalizeCryptoTransfers(raw: unknown): NonNullable<CryptoHolding['transfers']> {
+  return asArray(raw)
+    .map((item, i): NonNullable<CryptoHolding['transfers']>[number] | null => {
+      const r = (item ?? {}) as Record<string, unknown>
+      const direction = str(r.direction).toLowerCase()
+      const date = str(r.date).slice(0, 10)
+      const qty = num(r.qty ?? r.quantity)
+      if ((direction !== 'in' && direction !== 'out') || !date || !(qty > 0)) return null
+      return {
+        id: num(r.id, i + 1),
+        date,
+        direction,
+        qty,
+        venue: optionalContact(r.venue ?? r.platform ?? r.exchange),
+        note: optionalContact(r.note ?? r.notes),
+      } satisfies NonNullable<CryptoHolding['transfers']>[number]
+    })
+    .filter((t): t is NonNullable<CryptoHolding['transfers']>[number] => t != null)
 }
 
 function normalizeEquities(raw: unknown): EquityHolding[] {
   return asArray(raw).map((item, i) => {
     const r = (item ?? {}) as Record<string, unknown>
-    const yieldRaw = r.yieldPct
-    const yieldPct =
-      typeof yieldRaw === 'number' && Number.isFinite(yieldRaw) && yieldRaw > 0
-        ? yieldRaw
-        : undefined
+    const yieldPct = optionalPositiveNum(r.yieldPct ?? r.dividendYield)
+    const dividendYield = optionalPositiveNum(r.dividendYield ?? r.yieldPct)
+    const nextDividendAmount = optionalPositiveNum(r.nextDividendAmount)
+    const nextDividendDate = str(r.nextDividendDate).trim()
     const caNote = str(r.corporateActionNote).trim()
     const caDate = str(r.corporateActionDate).trim()
     return {
@@ -89,7 +114,10 @@ function normalizeEquities(raw: unknown): EquityHolding[] {
       platform: optionalContact(r.platform),
       contactUrl: optionalContact(r.contactUrl ?? r.url),
       accountType: normalizeEquityAccountType(r.accountType ?? r.account ?? r.wrapper),
+      dividendYield,
       yieldPct,
+      nextDividendDate: /^\d{4}-\d{2}-\d{2}$/.test(nextDividendDate) ? nextDividendDate : undefined,
+      nextDividendAmount,
       corporateActionNote: caNote || undefined,
       corporateActionDate: /^\d{4}-\d{2}-\d{2}$/.test(caDate) ? caDate : undefined,
     }
@@ -119,6 +147,12 @@ function normalizeRag(raw: unknown): import('./types').RagStatus | undefined {
   return undefined
 }
 
+function normalizeSettlementStatus(raw: unknown): SettlementStatus | undefined {
+  const s = str(raw).trim().toLowerCase()
+  if (s === 'none' || s === 'negotiating' || s === 'settled') return s
+  return undefined
+}
+
 function normalizeEquityAccountType(raw: unknown): import('./types').EquityAccountType | undefined {
   const s = str(raw).trim().toLowerCase()
   if (!s) return undefined
@@ -134,6 +168,11 @@ function optionalContact(v: unknown): string | undefined {
   return s || undefined
 }
 
+function optionalPositiveNum(v: unknown): number | undefined {
+  const n = num(v, NaN)
+  return Number.isFinite(n) && n > 0 ? n : undefined
+}
+
 function normalizePreferredContactMethod(v: unknown): LiabilityContactMethod | undefined {
   const s = str(v).trim().toLowerCase()
   if (s === 'phone' || s === 'email' || s === 'web' || s === 'other') return s
@@ -145,6 +184,25 @@ function normalizePaymentDueDay(v: unknown): number | undefined {
   const n = num(v, NaN)
   if (!Number.isInteger(n) || n < 1 || n > 31) return undefined
   return n
+}
+
+function normalizePaymentHistory(raw: unknown): LiabilityPayment[] | undefined {
+  const payments = asArray(raw)
+    .map((item, i): LiabilityPayment | null => {
+      const r = (item ?? {}) as Record<string, unknown>
+      const amount = num(r.amount, NaN)
+      const date = str(r.date).slice(0, 10)
+      if (!(amount > 0) || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null
+      const note = str(r.note).trim()
+      return {
+        id: num(r.id, i + 1),
+        date,
+        amount,
+        note: note || undefined,
+      }
+    })
+    .filter((payment): payment is LiabilityPayment => payment != null)
+  return payments.length ? payments : undefined
 }
 
 function normalizeCreditCards(raw: unknown): CreditCard[] {
@@ -171,6 +229,12 @@ function normalizeCreditCards(raw: unknown): CreditCard[] {
           : undefined,
       ragStatus: normalizeRag(r.ragStatus),
       commentaries: commentaries.length ? commentaries : undefined,
+      paymentHistory: normalizePaymentHistory(r.paymentHistory),
+      settlementStatus: normalizeSettlementStatus(r.settlementStatus),
+      settlementNote: optionalContact(r.settlementNote),
+      nextCallbackDate: /^\d{4}-\d{2}-\d{2}$/.test(str(r.nextCallbackDate))
+        ? str(r.nextCallbackDate)
+        : undefined,
       sortOrder: r.sortOrder !== undefined ? num(r.sortOrder, i) : undefined,
     }
   })
@@ -200,6 +264,12 @@ function normalizeLoans(raw: unknown): Loan[] {
           : undefined,
       ragStatus: normalizeRag(r.ragStatus),
       commentaries: commentaries.length ? commentaries : undefined,
+      paymentHistory: normalizePaymentHistory(r.paymentHistory),
+      settlementStatus: normalizeSettlementStatus(r.settlementStatus),
+      settlementNote: optionalContact(r.settlementNote),
+      nextCallbackDate: /^\d{4}-\d{2}-\d{2}$/.test(str(r.nextCallbackDate))
+        ? str(r.nextCallbackDate)
+        : undefined,
       sortOrder: r.sortOrder !== undefined ? num(r.sortOrder, i) : undefined,
     }
   })
@@ -228,6 +298,12 @@ function normalizePaidOff(raw: unknown): PaidOffDebt[] {
           ? optionalContact(r.preferredContactOther)
           : undefined,
       commentaries: commentaries.length ? commentaries : undefined,
+      paymentHistory: normalizePaymentHistory(r.paymentHistory),
+      settlementStatus: normalizeSettlementStatus(r.settlementStatus),
+      settlementNote: optionalContact(r.settlementNote),
+      nextCallbackDate: /^\d{4}-\d{2}-\d{2}$/.test(str(r.nextCallbackDate))
+        ? str(r.nextCallbackDate)
+        : undefined,
     }
   })
 }
@@ -670,6 +746,7 @@ function normalizeTodoLists(raw: unknown): import('./todo-types').TodoList[] {
       description: typeof x.description === 'string' ? x.description : undefined,
       color: typeof x.color === 'string' ? x.color : undefined,
       icon: typeof x.icon === 'string' ? x.icon : undefined,
+      shared: bool(x.shared ?? x.isSharedHint, false),
       sortOrder: typeof x.sortOrder === 'number' ? x.sortOrder : i,
       createdAt: str(x.createdAt, new Date().toISOString()),
       updatedAt: str(x.updatedAt, new Date().toISOString()),
@@ -691,6 +768,16 @@ function normalizeTodoItems(raw: unknown): import('./todo-types').TodoItem[] {
       const recurrence = recurrences.has(String(x.recurrence))
         ? (x.recurrence as 'none' | 'daily' | 'weekly' | 'monthly')
         : 'none'
+      const subtasks = Array.isArray(x.subtasks)
+        ? x.subtasks
+            .filter((s): s is Record<string, unknown> => !!s && typeof s === 'object')
+            .map((s, j) => ({
+              id: num(s.id, Date.now() + i * 100 + j),
+              title: str(s.title, '').trim(),
+              done: bool(s.done, false),
+            }))
+            .filter((s) => s.title)
+        : undefined
       return {
         id: num(x.id, Date.now() + i),
         listId: num(x.listId, 0),
@@ -715,6 +802,7 @@ function normalizeTodoItems(raw: unknown): import('./todo-types').TodoItem[] {
           const n = num(x.linkedJobId, NaN)
           return Number.isFinite(n) && n > 0 ? n : undefined
         })(),
+        subtasks,
       }
     })
 }

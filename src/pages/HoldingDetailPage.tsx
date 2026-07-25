@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useLocation, useParams } from 'react-router-dom'
+import { Link, useLocation, useParams } from 'react-router-dom'
 import { ExternalLink } from 'lucide-react'
 import { PortfolioSeriesChart } from '../components/charts/PortfolioSeriesChart'
 import { HoldingPriceChart } from '../components/charts/HoldingPriceChart'
@@ -7,7 +7,7 @@ import { Sparkline } from '../components/charts/Sparkline'
 import { OverflowMenu } from '../components/ui/OverflowMenu'
 import { PageHeader } from '../components/ui/PageHeader'
 import { BackNav } from '../components/ui/BackNav'
-import { ConfirmDialog, Field, Modal } from '../components/ui/Modal'
+import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
 import { TradeHistoryModal } from '../components/ui/TradeHistoryModal'
 import { TradeModal } from '../components/ui/TradeModal'
 import { usePortfolio } from '../context/PortfolioContext'
@@ -46,6 +46,33 @@ function accountTypeLabel(accountType?: EquityAccountType): string {
   if (accountType === 'sipp') return 'SIPP'
   if (accountType === 'other') return 'Other'
   return 'General'
+}
+
+function todayIsoDate(): string {
+  const now = new Date()
+  const local = new Date(now.getTime() - now.getTimezoneOffset() * 60_000)
+  return local.toISOString().slice(0, 10)
+}
+
+function nextId(items: { id: number }[]): number {
+  return items.reduce((m, i) => Math.max(m, i.id), 0) + 1
+}
+
+function estimateEquityTaxLots(trades: JournalEntry[]): Array<{ id: string; date: string; qty: number; cost: number }> {
+  const groups = new Map<string, { id: string; date: string; qty: number; cost: number }>()
+  for (const trade of trades) {
+    if (trade.type.toLowerCase() !== 'buy') continue
+    const key = `${trade.date}|${trade.price}`
+    const existing = groups.get(key)
+    const cost = trade.qty * trade.price + (trade.fees || 0)
+    if (existing) {
+      existing.qty += trade.qty
+      existing.cost += cost
+    } else {
+      groups.set(key, { id: key, date: trade.date, qty: trade.qty, cost })
+    }
+  }
+  return [...groups.values()].sort((a, b) => b.date.localeCompare(a.date))
 }
 
 async function shareHoldingSummaryLine(text: string): Promise<'shared' | 'copied' | 'cancelled' | 'unavailable'> {
@@ -113,6 +140,13 @@ export function HoldingDetailPage() {
   const [editingTrade, setEditingTrade] = useState<JournalEntry | null>(null)
   const [deleteTradeId, setDeleteTradeId] = useState<number | null>(null)
   const [shareHint, setShareHint] = useState<string | null>(null)
+  const [transferDraft, setTransferDraft] = useState({
+    date: todayIsoDate(),
+    direction: 'in' as 'in' | 'out',
+    qty: '',
+    venue: '',
+    note: '',
+  })
 
   const trades = useMemo(
     () => (item ? journalForSymbol(data, item.symbol).filter((j) => isTradeType(j.type)) : []),
@@ -130,6 +164,21 @@ export function HoldingDetailPage() {
     const quote = loadMarketQuotesCache().get(ticker.id)
     return quote && quote.last > 0 ? quote : null
   }, [kind, item])
+
+  const equityTaxLots = useMemo(
+    () => (kind === 'equity' ? estimateEquityTaxLots(trades) : []),
+    [kind, trades],
+  )
+
+  const cryptoTransfers = useMemo(
+    () =>
+      kind === 'crypto' && item
+        ? [...((item as CryptoHolding).transfers ?? [])].sort(
+            (a, b) => b.date.localeCompare(a.date) || b.id - a.id,
+          )
+        : [],
+    [kind, item],
+  )
 
   if (!kind || !item) {
     return (
@@ -165,7 +214,8 @@ export function HoldingDetailPage() {
 
   let yieldPct: number | undefined
   if (!isCrypto) {
-    if (equity?.yieldPct != null && equity.yieldPct > 0) yieldPct = equity.yieldPct
+    if (equity?.dividendYield != null && equity.dividendYield > 0) yieldPct = equity.dividendYield
+    else if (equity?.yieldPct != null && equity.yieldPct > 0) yieldPct = equity.yieldPct
     else {
       const t = listMarketTickers('equity').find(
         (x) => x.symbol.toUpperCase() === item.symbol.toUpperCase(),
@@ -217,6 +267,39 @@ export function HoldingDetailPage() {
         equities: prev.equities.map((e) => (e.id === id ? { ...e, ...p } : e)),
       }
     })
+  }
+
+  const saveTransfer = () => {
+    if (!crypto) return
+    const qtyTransfer = parseNum(transferDraft.qty)
+    const date = transferDraft.date.trim()
+    if (!date || !(qtyTransfer > 0)) return
+    const transfers = crypto.transfers ?? []
+    patch({
+      transfers: [
+        ...transfers,
+        {
+          id: nextId(transfers),
+          date: date.slice(0, 10),
+          direction: transferDraft.direction,
+          qty: qtyTransfer,
+          venue: transferDraft.venue.trim() || undefined,
+          note: transferDraft.note.trim() || undefined,
+        },
+      ],
+    })
+    setTransferDraft({
+      date: todayIsoDate(),
+      direction: 'in',
+      qty: '',
+      venue: '',
+      note: '',
+    })
+  }
+
+  const deleteTransfer = (transferId: number) => {
+    if (!crypto) return
+    patch({ transfers: (crypto.transfers ?? []).filter((t) => t.id !== transferId) })
   }
 
   const saveNote = () => {
@@ -453,6 +536,23 @@ export function HoldingDetailPage() {
         </div>
       )}
 
+      {isCrypto ? (
+        <div
+          className="surface p-5 sm:p-6 mb-6 flex flex-wrap items-center justify-between gap-3"
+          data-testid="crypto-exchange-stub"
+        >
+          <div>
+            <p className="text-sm font-semibold">Connect exchange (coming via CSV import)</p>
+            <p className="text-xs text-text-subtle">
+              No OAuth flow here. Import exchange CSV history to update the journal and cost basis.
+            </p>
+          </div>
+          <button type="button" className="btn-secondary btn-sm" onClick={() => setHistoryOpen(true)}>
+            Import exchange CSV
+          </button>
+        </div>
+      ) : null}
+
       <div className="mb-6">
         <HoldingPriceChart
           data={data}
@@ -643,6 +743,116 @@ export function HoldingDetailPage() {
         )}
       </div>
 
+      {!isCrypto ? (
+        <section className="surface p-5 sm:p-6 mb-6" data-testid="equity-tax-lots">
+          <p className="label-uppercase mb-2">Tax lots (from journal)</p>
+          {trades.length === 0 ? (
+            <p className="text-sm text-text-subtle">
+              Add or import buys to estimate light tax lots from the trade journal.
+            </p>
+          ) : equityTaxLots.length === 0 ? (
+            <p className="text-sm text-text-subtle">No buy lots found in the journal yet.</p>
+          ) : (
+            <ul className="space-y-2">
+              {equityTaxLots.map((lot) => (
+                <li key={lot.id} className="surface-nested p-3 flex flex-wrap justify-between gap-3 text-sm">
+                  <span className="text-text-muted tabular-nums">{formatDate(lot.date)}</span>
+                  <span className="tabular-nums">{formatQty(lot.qty)} shares</span>
+                  <span className={`font-semibold tabular-nums ${privacyClass(privacy)}`}>
+                    Cost {formatGBP(lot.cost)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      ) : (
+        <section className="surface p-5 sm:p-6 mb-6" data-testid="crypto-transfers">
+          <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
+            <div>
+              <p className="label-uppercase mb-1">Transfers ledger</p>
+              <h3 className="text-base font-bold tracking-tight">Deposits &amp; withdrawals</h3>
+              <p className="text-xs text-text-subtle mt-1">
+                Track movements between wallets/venues without changing cost basis.
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 mb-4">
+            <Field label="Date">
+              <input
+                type="date"
+                value={transferDraft.date}
+                onChange={(e) => setTransferDraft({ ...transferDraft, date: e.target.value })}
+              />
+            </Field>
+            <Field label="Direction">
+              <select
+                value={transferDraft.direction}
+                onChange={(e) =>
+                  setTransferDraft({ ...transferDraft, direction: e.target.value as 'in' | 'out' })
+                }
+              >
+                <option value="in">In</option>
+                <option value="out">Out</option>
+              </select>
+            </Field>
+            <Field label="Qty">
+              <input
+                type="text"
+                inputMode="decimal"
+                value={transferDraft.qty}
+                onChange={(e) => setTransferDraft({ ...transferDraft, qty: e.target.value })}
+                placeholder="0.00"
+              />
+            </Field>
+            <Field label="Venue">
+              <input
+                value={transferDraft.venue}
+                onChange={(e) => setTransferDraft({ ...transferDraft, venue: e.target.value })}
+                placeholder="Coinbase, Ledger"
+              />
+            </Field>
+            <div className="flex items-end">
+              <button
+                type="button"
+                className="btn-primary btn-sm w-full"
+                onClick={saveTransfer}
+                disabled={!transferDraft.date || !(parseNum(transferDraft.qty) > 0)}
+              >
+                Add transfer
+              </button>
+            </div>
+          </div>
+          <Field label="Note">
+            <input
+              value={transferDraft.note}
+              onChange={(e) => setTransferDraft({ ...transferDraft, note: e.target.value })}
+              placeholder="Optional memo"
+            />
+          </Field>
+          <div className="mt-4 space-y-2">
+            {cryptoTransfers.length === 0 ? (
+              <p className="text-sm text-text-subtle">No transfers logged yet.</p>
+            ) : (
+              cryptoTransfers.map((t) => (
+                <article key={t.id} className="surface-nested p-3 flex flex-wrap items-center gap-3 text-sm">
+                  <span className="text-text-muted tabular-nums">{formatDate(t.date)}</span>
+                  <span className="bg-accent/10 text-accent text-[10px] font-bold uppercase tracking-widest px-2 py-0.5">
+                    {t.direction}
+                  </span>
+                  <span className="font-semibold tabular-nums">{formatQty(t.qty)}</span>
+                  {t.venue ? <span className="text-text-muted">{t.venue}</span> : null}
+                  {t.note ? <span className="text-text-subtle flex-1 min-w-0">{t.note}</span> : null}
+                  <button type="button" className="btn-ghost btn-sm ml-auto" onClick={() => deleteTransfer(t.id)}>
+                    Delete
+                  </button>
+                </article>
+              ))
+            )}
+          </div>
+        </section>
+      )}
+
       <div className="mb-6">
         <PortfolioSeriesChart
           history={data.history}
@@ -654,6 +864,56 @@ export function HoldingDetailPage() {
           heightClass="h-52 sm:h-60"
         />
       </div>
+
+      {!isCrypto ? (
+        <section className="surface p-5 sm:p-8 mb-6" data-testid="equity-dividend-schedule">
+          <p className="eyebrow mb-3">Income</p>
+          <h3 className="text-lg font-bold tracking-tight mb-2">Dividend schedule</h3>
+          <p className="text-sm text-text-muted font-light mb-5">
+            Optional next dividend reminder — informational only, not booked to cash.
+          </p>
+          <dl className={`grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm ${privacyClass(privacy)}`}>
+            <div className="surface-nested p-3">
+              <dt className="text-[10px] uppercase tracking-wider text-text-subtle">Yield</dt>
+              <dd className="font-semibold tabular-nums">
+                {yieldPct != null ? `${yieldPct.toFixed(yieldPct >= 10 ? 1 : 2)}%` : 'Not set'}
+              </dd>
+            </div>
+            <div className="surface-nested p-3">
+              <dt className="text-[10px] uppercase tracking-wider text-text-subtle">Next date</dt>
+              <dd className="font-semibold tabular-nums">
+                {equity?.nextDividendDate ? formatDate(equity.nextDividendDate) : 'Not set'}
+              </dd>
+            </div>
+            <div className="surface-nested p-3">
+              <dt className="text-[10px] uppercase tracking-wider text-text-subtle">Next amount</dt>
+              <dd className="font-semibold tabular-nums">
+                {equity?.nextDividendAmount != null ? formatGBPPrecise(equity.nextDividendAmount) : 'Not set'}
+              </dd>
+            </div>
+          </dl>
+        </section>
+      ) : (
+        <section className="surface p-5 sm:p-8 mb-6" data-testid="crypto-staking">
+          <p className="eyebrow mb-3">Yield</p>
+          <h3 className="text-lg font-bold tracking-tight mb-2">Staking</h3>
+          <p className="text-sm text-text-muted font-light mb-4">
+            Track reward depth on the staking page; APY here is an optional holding-level note.
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <Link to="/staking" className="btn-secondary btn-sm">
+              Open staking
+            </Link>
+            {crypto?.stakingApy != null ? (
+              <span className="text-sm text-text-muted tabular-nums">
+                Staking APY {crypto.stakingApy.toFixed(crypto.stakingApy >= 10 ? 1 : 2)}%
+              </span>
+            ) : (
+              <span className="text-sm text-text-subtle">No holding APY set.</span>
+            )}
+          </div>
+        </section>
+      )}
 
       {!isCrypto ? (
         <section

@@ -1,5 +1,26 @@
 # MyDSP Changelog
 
+## [1.2.106] - 2026-07-25
+
+### Added — Favourites phase 2 follow-ups (all 10 sections) + YouTube Shorts filter
+- **Today:** Daily plan (todos/bills/interviews) · Career pulse widget · customize ids `dailyPlan` / `careerPulse`
+- **Liabilities:** Payment ledger · Snowball vs Avalanche compare · Settlement CRM (status/note/callback)
+- **Markets:** Screener filters (Owned/Alerts/Stale/type) · Related news from quote · % or target-price alerts
+- **Job Tracker:** 14-day calendar strip · Offer compare · Paste job-post ingest into form
+- **To Do’s:** Subtasks · Day (time-block) view · Shared-list hint (cloud sync)
+- **Equities:** Dividend schedule · Tax lots from journal · Broker CSV import
+- **Crypto:** Transfers ledger · Staking block · Exchange CSV-import stub
+- **Analytics:** Scenario sliders · Debt-free / FIRE-ish projections
+- **News:** Save/read-later · In-portfolio chip · Article thumbnails
+- **YouTube:** Shorts filtered out (URLs / `#shorts` / ≤60s) · In-app embed · Channel folders · Relevance ranking
+
+## [1.2.105] - 2026-07-25
+
+### Fixed — YouTube Shorts filtered out
+- **Full-length only:** YouTube Shorts are excluded from favourite channel feeds, local video cache, cross-device sync payload, unread counts, and upload alerts
+- Detection uses `/shorts/` URLs and `#shorts` / `#short` tags — finance titles about short selling are **not** filtered
+- Existing cached Shorts are purged on load so every device stays clean after refresh/sync
+
 ## [1.2.104] - 2026-07-25
 
 ### Fixed — YouTube / News cross-device sync

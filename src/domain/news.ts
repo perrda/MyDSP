@@ -31,6 +31,8 @@ export interface NewsState {
   tags: NewsTag[]
   collapsed: NewsCollapsed
   lastRefreshAt?: string
+  /** Saved/read-later article keys (link preferred, then id). */
+  savedArticles?: string[]
   /** ISO cutoff — articles newer than this count as unread (syncs via workspace extras). */
   seenAt?: string
   /** ISO time when tags / collapsed / seenAt last changed (LWW on sync). */
@@ -73,5 +75,6 @@ export function createEmptyNewsState(): NewsState {
       sortOrder: i,
     })),
     collapsed: { ...DEFAULT_NEWS_COLLAPSED },
+    savedArticles: [],
   }
 }

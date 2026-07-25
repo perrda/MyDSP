@@ -1,9 +1,11 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.104**
+**Current version: 1.2.106**
 
-## Completed (through v1.2.104)
+## Completed (through v1.2.106)
 
+- Favourites phase 2 follow-ups (v1.2.106): Daily plan + career pulse · liability ledger/strategies/settlement · Markets screener + alert modes · Jobs calendar/offer compare/ingest · Todos subtasks/Day view · Equities dividends/lots/CSV · Crypto transfers/staking stub · Analytics scenarios/projections · News save + images · YouTube Shorts filter + embed + folders + relevance
+- YouTube Shorts filter (v1.2.105): full-length videos only across feed/cache/sync/alerts · finance “shorts” titles kept
 - YouTube / News cross-device sync (v1.2.104): unlock-passphrase banner · Pull applies media during portfolio conflicts · tombstone recency so re-adds sync
 - Favourites excellence wave (v1.2.103): Today customize + trust · Analytics trust/actions · Markets search/master-detail/alerts · Liabilities due day/search/archive · Jobs upcoming/filters · Todos recurrence/archive · Equities/Crypto metadata + phone trades · News/YouTube breakpoints + undo
 - Job Tracker overhaul (v1.2.102): company-first cards/list/detail · dedicated List CRUD · clean salary · contact preferred method · compact landscape quick-scan

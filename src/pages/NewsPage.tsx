@@ -19,6 +19,7 @@ import { refreshNewsFeeds } from '../services/mediaRefresh'
 import { isOnline } from '../services/offlineQueue'
 import {
   addNewsTag,
+  getSavedNewsArticles,
   getNewsSeenAt,
   listNewsTags,
   loadNewsArticlesCache,
@@ -27,6 +28,7 @@ import {
   reorderNewsTags,
   setNewsCollapsed,
   setNewsSeenAt,
+  toggleSavedNewsArticle,
   updateNewsTag,
 } from '../storage/newsStore'
 import { loadNewsFilterTag, saveNewsFilterTag } from '../domain/newsFilterPrefs'
@@ -46,19 +48,36 @@ function formatRelative(iso: string): string {
 
 const NEWS_PAGE = 10
 
+function articleKey(article: Pick<NewsArticle, 'link' | 'id'>): string {
+  return article.link || article.id
+}
+
 function ArticleRow({
   article,
   unread,
   selected,
+  saved,
+  inPortfolio,
   onSelect,
+  onToggleSave,
 }: {
   article: NewsArticle
   unread?: boolean
   selected?: boolean
+  saved?: boolean
+  inPortfolio?: boolean
   onSelect?: (article: NewsArticle) => void
+  onToggleSave?: (article: NewsArticle) => void
 }) {
   const body = (
     <>
+      {article.imageUrl ? (
+        <img
+          src={article.imageUrl}
+          alt=""
+          className="w-20 h-14 object-cover rounded-md shrink-0 bg-surface-hover"
+        />
+      ) : null}
       <div className="min-w-0 flex-1">
         <p className="font-semibold text-text tracking-tight leading-snug">
           {unread ? (
@@ -76,33 +95,63 @@ function ArticleRow({
               <span className="text-accent font-semibold">{article.tag}</span>
             </>
           ) : null}
+          {inPortfolio ? (
+            <>
+              <span aria-hidden>·</span>
+              <span
+                className="text-[10px] uppercase tracking-wider font-bold text-accent"
+                data-testid="news-holding-impact"
+              >
+                In portfolio
+              </span>
+            </>
+          ) : null}
         </p>
         {article.summary ? (
           <p className="text-xs text-text-subtle mt-1.5 line-clamp-2">{article.summary}</p>
         ) : null}
       </div>
-      <ExternalLink size={14} className="text-text-subtle shrink-0 mt-1" aria-hidden />
     </>
   )
   const rowClass =
     'px-4 sm:px-5 py-3.5 flex items-start gap-3 hover:bg-surface-hover/60 transition-colors'
+  const renderSaveButton = () => (
+    <button
+      type="button"
+      className={`btn-ghost btn-sm shrink-0 ${saved ? 'text-accent' : ''}`}
+      data-testid="news-saved"
+      aria-pressed={saved}
+      onClick={() => onToggleSave?.(article)}
+    >
+      {saved ? 'Saved' : 'Save'}
+    </button>
+  )
   return (
     <>
-      <a
-        href={article.link}
-        target="_blank"
-        rel="noopener noreferrer"
-        className={`${rowClass} news-row-phone-link`}
+      <div className={`${rowClass} news-row-phone-link`}>
+        <a
+          href={article.link}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="min-w-0 flex-1 flex items-start gap-3"
+        >
+          {body}
+          <ExternalLink size={14} className="text-text-subtle shrink-0 mt-1" aria-hidden />
+        </a>
+        {renderSaveButton()}
+      </div>
+      <div
+        className={`${rowClass} news-row-detail-button w-full${selected ? ' news-row--selected' : ''}`}
       >
-        {body}
-      </a>
-      <button
-        type="button"
-        className={`${rowClass} news-row-detail-button w-full text-left${selected ? ' news-row--selected' : ''}`}
-        onClick={() => onSelect?.(article)}
-      >
-        {body}
-      </button>
+        <button
+          type="button"
+          className="min-w-0 flex-1 flex items-start gap-3 text-left"
+          onClick={() => onSelect?.(article)}
+        >
+          {body}
+        </button>
+        {renderSaveButton()}
+      </div>
     </>
   )
 }
@@ -129,6 +178,7 @@ export function NewsPage() {
   const [filterTag, setFilterTag] = useState<string | 'all'>(() => loadNewsFilterTag())
   const [sorting, setSorting] = useState(false)
   const [seenAt, setSeenAt] = useState(getNewsSeenAt)
+  const [savedArticleKeys, setSavedArticleKeys] = useState(() => getSavedNewsArticles())
   const [topVisible, setTopVisible] = useState(NEWS_PAGE)
   const [taggedVisible, setTaggedVisible] = useState(NEWS_PAGE)
   const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
@@ -158,6 +208,7 @@ export function NewsPage() {
     setTags(listNewsTags())
     setCollapsed(loadNewsState().collapsed)
     setSeenAt(getNewsSeenAt())
+    setSavedArticleKeys(getSavedNewsArticles())
   }, [])
 
   const refresh = useCallback(async () => {
@@ -242,15 +293,36 @@ export function NewsPage() {
     }
   }, [])
 
+  const portfolioSymbols = useMemo(() => {
+    const portfolio = loadPortfolio()
+    return new Set(
+      [...portfolio.equities.map((e) => e.symbol), ...portfolio.crypto.map((c) => c.symbol)]
+        .map((s) => s.trim().toUpperCase())
+        .filter(Boolean),
+    )
+  }, [])
+
+  const savedSet = useMemo(() => new Set(savedArticleKeys), [savedArticleKeys])
+
+  const allArticles = useMemo(() => {
+    const byKey = new Map<string, NewsArticle>()
+    for (const article of [...top, ...Object.values(byTag).flat()]) {
+      const key = articleKey(article)
+      if (key && !byKey.has(key)) byKey.set(key, article)
+    }
+    return [...byKey.values()].sort((a, b) => b.publishedAt.localeCompare(a.publishedAt))
+  }, [top, byTag])
+
   const taggedFlat = useMemo(() => {
     const rows: NewsArticle[] = []
     for (const t of tags) {
       for (const a of byTag[t.id] || []) rows.push(a)
     }
     rows.sort((a, b) => b.publishedAt.localeCompare(a.publishedAt))
+    if (filterTag === 'saved') return allArticles.filter((a) => savedSet.has(articleKey(a)))
     if (filterTag === 'all') return rows
     return rows.filter((a) => a.tag === filterTag)
-  }, [tags, byTag, filterTag])
+  }, [tags, byTag, filterTag, allArticles, savedSet])
 
   const unreadCount = useMemo(() => {
     const seen = new Set<string>()
@@ -284,6 +356,23 @@ export function NewsPage() {
   }
 
   const isUnread = (a: NewsArticle) => !seenAt || a.publishedAt > seenAt
+
+  const toggleSaved = (article: NewsArticle) => {
+    toggleSavedNewsArticle(articleKey(article))
+    setSavedArticleKeys(getSavedNewsArticles())
+  }
+
+  const articleInPortfolio = (article: NewsArticle): boolean => {
+    const tag = article.tag?.trim().toUpperCase()
+    if (tag && portfolioSymbols.has(tag)) return true
+    const haystack = `${article.title} ${article.summary ?? ''}`.toUpperCase()
+    for (const symbol of portfolioSymbols) {
+      if (new RegExp(`(^|[^A-Z0-9])${symbol.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^A-Z0-9]|$)`).test(haystack)) {
+        return true
+      }
+    }
+    return false
+  }
 
   const hasCachedArticles =
     top.length > 0 || Object.values(byTag).some((articles) => articles.length > 0)
@@ -463,7 +552,10 @@ export function NewsPage() {
                     article={a}
                     unread={isUnread(a)}
                     selected={selectedArticle?.id === a.id}
+                    saved={savedSet.has(articleKey(a))}
+                    inPortfolio={articleInPortfolio(a)}
                     onSelect={setSelectedArticle}
+                    onToggleSave={toggleSaved}
                   />
                 ))}
                 {topVisible < top.length ? (
@@ -516,6 +608,17 @@ export function NewsPage() {
               >
                 All
               </button>
+              <button
+                type="button"
+                className={`btn-sm ${filterTag === 'saved' ? 'btn-secondary' : 'btn-ghost'}`}
+                data-testid="news-saved"
+                onClick={() => {
+                  setFilterTag('saved')
+                  saveNewsFilterTag('saved')
+                }}
+              >
+                Saved
+              </button>
               {tags.map((t) => (
                 <button
                   key={t.id}
@@ -543,10 +646,13 @@ export function NewsPage() {
                       key={`${a.tag}-${a.id}`}
                       article={a}
                       unread={isUnread(a)}
+                      saved={savedSet.has(articleKey(a))}
+                      inPortfolio={articleInPortfolio(a)}
                       selected={
                         selectedArticle?.id === a.id && selectedArticle?.tag === a.tag
                       }
                       onSelect={setSelectedArticle}
+                      onToggleSave={toggleSaved}
                     />
                   ))}
                   {taggedVisible < taggedFlat.length ? (
@@ -657,7 +763,22 @@ export function NewsPage() {
                   <span className="text-accent font-semibold">{selectedArticle.tag}</span>
                 </>
               ) : null}
+              {articleInPortfolio(selectedArticle) ? (
+                <>
+                  <span aria-hidden> · </span>
+                  <span className="text-accent font-semibold" data-testid="news-holding-impact">
+                    In portfolio
+                  </span>
+                </>
+              ) : null}
             </p>
+            {selectedArticle.imageUrl ? (
+              <img
+                src={selectedArticle.imageUrl}
+                alt=""
+                className="w-20 h-14 object-cover rounded-md mb-3 bg-surface-hover"
+              />
+            ) : null}
             {selectedArticle.summary ? (
               <p className="text-sm text-text-muted mb-3 leading-relaxed">{selectedArticle.summary}</p>
             ) : null}
@@ -671,6 +792,15 @@ export function NewsPage() {
                 <ExternalLink size={14} />
                 Open article
               </a>
+              <button
+                type="button"
+                className={`btn-secondary btn-sm ${savedSet.has(articleKey(selectedArticle)) ? 'text-accent' : ''}`}
+                data-testid="news-saved"
+                aria-pressed={savedSet.has(articleKey(selectedArticle))}
+                onClick={() => toggleSaved(selectedArticle)}
+              >
+                {savedSet.has(articleKey(selectedArticle)) ? 'Saved' : 'Save'}
+              </button>
               <button
                 type="button"
                 className="btn-ghost btn-sm"

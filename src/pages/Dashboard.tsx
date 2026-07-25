@@ -175,6 +175,8 @@ const ISA_LOW_REMAINING_THRESHOLD_GBP = 2_000
 const TODAY_LAYOUT_STORAGE_KEY = 'mydsp.today.layout.v1'
 const TODAY_LAYOUT_CARD_OPTIONS = [
   { id: 'next', label: 'Next' },
+  { id: 'dailyPlan', label: 'Daily plan' },
+  { id: 'careerPulse', label: 'Career pulse' },
   { id: 'bills', label: 'Bills' },
   { id: 'goals', label: 'Goals' },
   { id: 'tax', label: 'Tax' },
@@ -215,6 +217,33 @@ function saveTodayLayoutPrefs(prefs: TodayLayoutPrefs) {
   }
 }
 
+type DailyPlanItem = {
+  id: string
+  label: string
+  when: string
+  sortKey: string
+  to: string
+  privateAmount?: boolean
+}
+
+function todayYmd(now = new Date()): string {
+  const y = now.getFullYear()
+  const m = String(now.getMonth() + 1).padStart(2, '0')
+  const d = String(now.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+function dailyPlanSortKey(date: string | undefined, time: string | undefined, fallbackTime: string): string {
+  const day = (date ?? '').slice(0, 10)
+  const t = time?.trim() || fallbackTime
+  return `${day}T${t.length === 5 ? `${t}:00` : t}`
+}
+
+function dailyPlanWhen(date: string | undefined, time?: string): string {
+  const day = date ? formatDate(date) : 'Today'
+  return time?.trim() ? `${time.trim()} · ${day}` : day
+}
+
 function weekStartKey(now = new Date()): string {
   const d = new Date(now)
   const day = d.getDay()
@@ -236,7 +265,12 @@ function loadIsaRemaining(): number | null {
   }
 }
 
-type TodayPanelId = 'today-next-action' | 'today-bills' | 'today-goals'
+type TodayPanelId =
+  | 'today-next-action'
+  | 'today-daily-plan'
+  | 'today-career-pulse'
+  | 'today-bills'
+  | 'today-goals'
 
 const TODAY_ACCORDION_QUERY = '(max-width: 639px), (orientation: portrait) and (max-width: 1023px)'
 
@@ -1204,6 +1238,60 @@ export function Dashboard() {
     () => dueWithinDays(data.recurringTransactions, 7).slice(0, 4),
     [data.recurringTransactions],
   )
+  const todayDailyPlan = useMemo<DailyPlanItem[]>(() => {
+    const today = todayYmd()
+    const rows: DailyPlanItem[] = []
+
+    for (const todo of data.todoItems ?? []) {
+      if (todo.status === 'done' || todo.status === 'archived') continue
+      if ((todo.dueDate ?? '').slice(0, 10) !== today) continue
+      rows.push({
+        id: `todo-${todo.id}`,
+        label: `To Do: ${todo.title}`,
+        when: dailyPlanWhen(todo.dueDate, todo.dueTime),
+        sortKey: dailyPlanSortKey(todo.dueDate, todo.dueTime, '12:00'),
+        to: `/todos?focus=${todo.id}`,
+      })
+    }
+
+    for (const bill of billsDueSoon) {
+      if ((bill.nextDue ?? '').slice(0, 10) !== today) continue
+      rows.push({
+        id: `bill-${bill.id}`,
+        label: `Bill: ${bill.name}`,
+        when: `${dailyPlanWhen(bill.nextDue)} · ${formatGBP(bill.amount)}`,
+        sortKey: dailyPlanSortKey(bill.nextDue, undefined, '17:00'),
+        to: '/recurring',
+        privateAmount: true,
+      })
+    }
+
+    for (const job of data.jobApplications ?? []) {
+      for (const interview of job.interviews ?? []) {
+        if (interview.completedAt || (interview.outcome && interview.outcome !== 'pending')) continue
+        if ((interview.scheduledDate ?? '').slice(0, 10) !== today) continue
+        rows.push({
+          id: `interview-${job.id}-${interview.id}`,
+          label: `Interview: ${job.companyName}`,
+          when: dailyPlanWhen(interview.scheduledDate, interview.scheduledTime),
+          sortKey: dailyPlanSortKey(interview.scheduledDate, interview.scheduledTime, '09:00'),
+          to: `/jobs/${job.id}`,
+        })
+      }
+
+      if (needsFollowUp(job)) {
+        rows.push({
+          id: `followup-${job.id}`,
+          label: `Follow up: ${job.companyName}`,
+          when: 'Today',
+          sortKey: `${today}T18:00:00`,
+          to: `/jobs/${job.id}`,
+        })
+      }
+    }
+
+    return rows.sort((a, b) => a.sortKey.localeCompare(b.sortKey)).slice(0, 8)
+  }, [billsDueSoon, data.jobApplications, data.todoItems])
   /** Hide longer bills strip when next bill already sits in the action stack. */
   const showBillsStrip = billsDueSoon.length > 1 && stackIncludesBill(nextActions)
     ? billsDueSoon.slice(1)
@@ -1211,8 +1299,22 @@ export function Dashboard() {
       ? []
       : billsDueSoon
 
+  const careerPulse = useMemo(() => {
+    const jobs = data.jobApplications ?? []
+    if (jobs.length === 0) return null
+    return {
+      applied: jobs.filter((job) =>
+        ['applied', 'screening', 'interviewing', 'offer', 'accepted'].includes(job.status),
+      ).length,
+      interviewing: jobs.filter((job) => job.status === 'interviewing').length,
+      offers: jobs.filter((job) => job.status === 'offer').length,
+    }
+  }, [data.jobApplications])
+
   const goalProjection = useMemo(() => nearestGoalProjection(data), [data])
   const showNextCard = isTodayCardVisible('next')
+  const showDailyPlanCard = isTodayCardVisible('dailyPlan') && todayDailyPlan.length > 0
+  const showCareerPulseCard = isTodayCardVisible('careerPulse') && Boolean(careerPulse)
   const showBillsCard = isTodayCardVisible('bills') && showBillsStrip.length > 0
   const showGoalsCard = isTodayCardVisible('goals') && Boolean(soonGoal || goalProjection)
   const showTaxCard = isTodayCardVisible('tax')
@@ -1256,6 +1358,8 @@ export function Dashboard() {
 
   const todayJumpChips: Array<[string, string, string]> = [
     ...(showNextCard ? [['today-next-action', 'Next', 'today-section-jump-next'] as [string, string, string]] : []),
+    ...(showDailyPlanCard ? [['today-daily-plan', 'Daily plan', 'today-section-jump-daily-plan'] as [string, string, string]] : []),
+    ...(showCareerPulseCard ? [['today-career-pulse', 'Career', 'today-section-jump-career'] as [string, string, string]] : []),
     ...(showBillsCard ? [['today-bills', 'Bills', 'today-section-jump-bills'] as [string, string, string]] : []),
     ...(showGoalsCard ? [['today-goals', 'Goals', 'today-section-jump-goals'] as [string, string, string]] : []),
     ...(showTaxCard ? [['today-tax', 'Tax', 'today-section-jump-tax'] as [string, string, string]] : []),
@@ -1620,6 +1724,94 @@ export function Dashboard() {
           </div>
         ) : null}
       </div>
+
+      {showDailyPlanCard ? (
+        <TodayAccordionSection
+          id="today-daily-plan"
+          title="Daily plan"
+          enabled={todayAccordionEnabled}
+          defaultOpen
+          className="mb-3"
+          action={
+            <Link to="/todos" className="text-xs text-accent font-semibold">
+              To Do's
+            </Link>
+          }
+        >
+          <div
+            className="surface p-3 md:p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none"
+            data-testid="today-daily-plan"
+          >
+            <ul className="divide-y divide-border/70">
+              {todayDailyPlan.map((item) => (
+                <li
+                  key={item.id}
+                  className="py-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold truncate">{item.label}</p>
+                    <p
+                      className={`text-xs text-text-muted tabular-nums ${
+                        item.privateAmount ? privacyClass(privacy) : ''
+                      }`}
+                    >
+                      {item.when}
+                    </p>
+                  </div>
+                  <Link to={item.to} className="btn-ghost btn-sm self-start sm:self-center">
+                    Open
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </TodayAccordionSection>
+      ) : null}
+
+      {showCareerPulseCard && careerPulse ? (
+        <TodayAccordionSection
+          id="today-career-pulse"
+          title="Career pulse"
+          enabled={todayAccordionEnabled}
+          defaultOpen={false}
+          className="mb-3"
+          action={
+            <Link to="/jobs" className="text-xs text-accent font-semibold">
+              Jobs
+            </Link>
+          }
+        >
+          <Link
+            to="/jobs"
+            className="surface p-3 md:p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none block hover:bg-surface-hover transition-colors"
+            data-testid="today-career-pulse"
+          >
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div>
+                <p className="text-lg font-bold tabular-nums">{careerPulse.applied}</p>
+                <p className="text-[10px] uppercase tracking-wider text-text-subtle font-semibold">
+                  Applied
+                </p>
+              </div>
+              <div>
+                <p className="text-lg font-bold tabular-nums text-accent">
+                  {careerPulse.interviewing}
+                </p>
+                <p className="text-[10px] uppercase tracking-wider text-text-subtle font-semibold">
+                  Interviewing
+                </p>
+              </div>
+              <div>
+                <p className="text-lg font-bold tabular-nums">{careerPulse.offers}</p>
+                <p className="text-[10px] uppercase tracking-wider text-text-subtle font-semibold">
+                  Offers
+                </p>
+              </div>
+            </div>
+            <p className="text-xs text-text-muted mt-3 text-center">Open job tracker →</p>
+          </Link>
+        </TodayAccordionSection>
+      ) : null}
 
       {/* Next-action stack — up to 3: todo / bill / top mover */}
       {showNextCard ? (

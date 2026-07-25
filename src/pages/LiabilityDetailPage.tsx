@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ChevronDown, ChevronUp, ExternalLink, Mail, Pencil, Phone, Trash2 } from 'lucide-react'
 import { PageHeader } from '../components/ui/PageHeader'
@@ -17,14 +17,16 @@ import {
   suggestRag,
   type LiabilityKind,
 } from '../domain/liabilityHelpers'
+import { compareDebtStrategies } from '../domain/debtStrategies'
 import type {
   CreditCard,
   LiabilityCommentary,
   LiabilityContactMethod,
   Loan,
   RagStatus,
+  SettlementStatus,
 } from '../domain/types'
-import { formatDateTime, formatGBP, formatPct, privacyClass } from '../utils/format'
+import { formatDate, formatDateTime, formatGBP, formatPct, privacyClass } from '../utils/format'
 
 const CONTACT_METHODS: { value: LiabilityContactMethod; label: string }[] = [
   { value: 'phone', label: 'Phone' },
@@ -32,6 +34,28 @@ const CONTACT_METHODS: { value: LiabilityContactMethod; label: string }[] = [
   { value: 'web', label: 'Web' },
   { value: 'other', label: 'Other' },
 ]
+
+const SETTLEMENT_STATUS_OPTIONS: { value: SettlementStatus; label: string }[] = [
+  { value: 'none', label: 'None' },
+  { value: 'negotiating', label: 'Negotiating' },
+  { value: 'settled', label: 'Settled' },
+]
+
+function todayYmd(): string {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+}
+
+function nextPaymentId(items: { id: number }[] | undefined): number {
+  return (items ?? []).reduce((m, i) => Math.max(m, i.id), 0) + 1
+}
+
+function formatMonthsEstimate(months: number | null): string {
+  if (months == null) return 'Does not clear'
+  if (months === 0) return 'Paid off'
+  if (months < 12) return `${months} mo`
+  return `${months} mo (${(months / 12).toFixed(1)} yr)`
+}
 
 function preferredMethodLabel(
   method: LiabilityContactMethod | undefined,
@@ -60,6 +84,10 @@ export function LiabilityDetailPage() {
     if (kind === 'card') return data.creditCards.find((c) => c.id === id) ?? null
     return data.loans.find((l) => l.id === id) ?? null
   }, [data.creditCards, data.loans, kind, id])
+  const paydownCompare = useMemo(
+    () => compareDebtStrategies(data.creditCards, data.loans),
+    [data.creditCards, data.loans],
+  )
 
   const [contactForm, setContactForm] = useState({
     phone: '',
@@ -79,6 +107,30 @@ export function LiabilityDetailPage() {
   const [extraPay, setExtraPay] = useState('200')
   const [lumpSum, setLumpSum] = useState('')
   const [applyConfirm, setApplyConfirm] = useState<'lump' | 'paid' | null>(null)
+  const [paymentForm, setPaymentForm] = useState({
+    date: todayYmd(),
+    amount: '',
+    note: '',
+    reduceBalance: true,
+  })
+  const [settlementForm, setSettlementForm] = useState<{
+    status: SettlementStatus
+    note: string
+    nextCallbackDate: string
+  }>({
+    status: 'none',
+    note: '',
+    nextCallbackDate: '',
+  })
+
+  useEffect(() => {
+    if (!item) return
+    setSettlementForm({
+      status: item.settlementStatus ?? 'none',
+      note: item.settlementNote ?? '',
+      nextCallbackDate: item.nextCallbackDate ?? '',
+    })
+  }, [item?.id, kind])
 
   if (!kind || !item) {
     return (
@@ -102,6 +154,9 @@ export function LiabilityDetailPage() {
   const dayInt = dailyInterestGbp(item.balance, item.apr)
   const moInt = monthlyInterestGbp(item.balance, item.apr)
   const latestNoteText = commentaries[0]?.text.trim()
+  const paymentHistory = [...(item.paymentHistory ?? [])].sort((a, b) =>
+    b.date.localeCompare(a.date) || b.id - a.id,
+  )
 
   const basePay = item.minPay
   const extra = parseNum(extraPay)
@@ -287,6 +342,10 @@ export function LiabilityDetailPage() {
         preferredContactMethod: item.preferredContactMethod,
         preferredContactOther: item.preferredContactOther,
         commentaries: item.commentaries,
+        paymentHistory: item.paymentHistory,
+        settlementStatus: item.settlementStatus,
+        settlementNote: item.settlementNote,
+        nextCallbackDate: item.nextCallbackDate,
       }
       if (kind === 'card') {
         return {
@@ -302,6 +361,41 @@ export function LiabilityDetailPage() {
       }
     })
     navigate('/liabilities')
+  }
+
+  const addPayment = () => {
+    const amount = parseNum(paymentForm.amount)
+    if (!(amount > 0) || !paymentForm.date) return
+    const note = paymentForm.note.trim()
+    const payment = {
+      id: nextPaymentId(item.paymentHistory),
+      date: paymentForm.date,
+      amount,
+      note: note || undefined,
+    }
+    const now = new Date().toISOString()
+    const commentText = note
+      ? `Payment logged: ${amount.toFixed(2)} GBP on ${paymentForm.date}. ${note}`
+      : `Payment logged: ${amount.toFixed(2)} GBP on ${paymentForm.date}.`
+    patchItem({
+      paymentHistory: [...(item.paymentHistory ?? []), payment],
+      balance: paymentForm.reduceBalance ? Math.max(0, item.balance - amount) : item.balance,
+      commentaries: [
+        ...(item.commentaries ?? []),
+        { id: nextCommentaryId(item.commentaries ?? []), text: commentText, createdAt: now, updatedAt: now },
+      ],
+    })
+    setPaymentForm({ date: todayYmd(), amount: '', note: '', reduceBalance: true })
+    success(paymentForm.reduceBalance ? 'Payment logged and balance reduced' : 'Payment logged')
+  }
+
+  const saveSettlement = () => {
+    patchItem({
+      settlementStatus: settlementForm.status,
+      settlementNote: settlementForm.note.trim() || undefined,
+      nextCallbackDate: settlementForm.nextCallbackDate || undefined,
+    })
+    success('Settlement details saved')
   }
 
   return (
@@ -486,6 +580,95 @@ export function LiabilityDetailPage() {
               No commentary yet — add your first call or progress update above.
             </p>
           )}
+        </div>
+      </section>
+
+      <section
+        className="surface p-5 sm:p-8 mb-6 sm:mb-8"
+        data-testid="liability-payment-ledger"
+      >
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-5">
+          <div>
+            <p className="eyebrow mb-3">Payment ledger</p>
+            <h3 className="text-lg font-bold tracking-tight mb-2">Payments</h3>
+            <p className="text-sm text-text-muted font-light">
+              Record payments and choose whether the entry should reduce this balance.
+            </p>
+          </div>
+          <p className={`text-sm tabular-nums font-semibold ${privacyClass(privacy)}`}>
+            {paymentHistory.length} payment{paymentHistory.length === 1 ? '' : 's'}
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-3 mb-5">
+          <Field label="Date">
+            <input
+              type="date"
+              value={paymentForm.date}
+              onChange={(e) => setPaymentForm({ ...paymentForm, date: e.target.value })}
+            />
+          </Field>
+          <Field label="Amount (GBP)">
+            <input
+              type="text"
+              inputMode="decimal"
+              value={paymentForm.amount}
+              onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
+              placeholder="e.g. 150"
+            />
+          </Field>
+          <div className="lg:col-span-2">
+            <Field label="Note">
+              <input
+                type="text"
+                value={paymentForm.note}
+                onChange={(e) => setPaymentForm({ ...paymentForm, note: e.target.value })}
+                placeholder="Optional reference or channel"
+              />
+            </Field>
+          </div>
+          <div className="flex flex-col gap-2 justify-end">
+            <label className="flex items-center gap-2 text-sm text-text-muted min-h-10">
+              <input
+                type="checkbox"
+                checked={paymentForm.reduceBalance}
+                onChange={(e) =>
+                  setPaymentForm({ ...paymentForm, reduceBalance: e.target.checked })
+                }
+              />
+              Reduce balance
+            </label>
+            <button
+              type="button"
+              className="btn-primary btn-sm"
+              disabled={parseNum(paymentForm.amount) <= 0 || !paymentForm.date}
+              onClick={addPayment}
+            >
+              Add payment
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-px">
+          {paymentHistory.map((payment) => (
+            <div
+              key={payment.id}
+              className="surface-nested p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2"
+            >
+              <div className="min-w-0">
+                <p className="text-sm font-semibold tabular-nums">{formatDate(payment.date)}</p>
+                {payment.note ? (
+                  <p className="text-xs text-text-muted line-clamp-2">{payment.note}</p>
+                ) : null}
+              </div>
+              <p className={`text-sm font-bold tabular-nums ${privacyClass(privacy)}`}>
+                {formatGBP(payment.amount)}
+              </p>
+            </div>
+          ))}
+          {paymentHistory.length === 0 ? (
+            <p className="text-sm text-text-subtle py-2">No payments logged yet.</p>
+          ) : null}
         </div>
       </section>
 
@@ -739,6 +922,57 @@ export function LiabilityDetailPage() {
               </div>
             )}
           </div>
+
+          <div
+            className="mt-8 pt-6 border-t border-border space-y-4"
+            data-testid="liability-settlement"
+          >
+            <div>
+              <p className="label-uppercase mb-1">Settlement CRM</p>
+              <p className="text-xs text-text-muted">
+                Track negotiation state and the next callback date for this lender.
+              </p>
+            </div>
+            <Field label="Status">
+              <select
+                value={settlementForm.status}
+                onChange={(e) =>
+                  setSettlementForm({
+                    ...settlementForm,
+                    status: e.target.value as SettlementStatus,
+                  })
+                }
+              >
+                {SETTLEMENT_STATUS_OPTIONS.map((status) => (
+                  <option key={status.value} value={status.value}>
+                    {status.label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Next callback">
+              <input
+                type="date"
+                value={settlementForm.nextCallbackDate}
+                onChange={(e) =>
+                  setSettlementForm({ ...settlementForm, nextCallbackDate: e.target.value })
+                }
+              />
+            </Field>
+            <Field label="Settlement note">
+              <textarea
+                className="min-h-[5rem]"
+                value={settlementForm.note}
+                onChange={(e) =>
+                  setSettlementForm({ ...settlementForm, note: e.target.value })
+                }
+                placeholder="e.g. Offered 45% full and final, awaiting written confirmation…"
+              />
+            </Field>
+            <button type="button" className="btn-primary btn-sm" onClick={saveSettlement}>
+              Save settlement
+            </button>
+          </div>
         </section>
 
         <section className="surface p-6 sm:p-8 lg:col-span-3">
@@ -777,6 +1011,54 @@ export function LiabilityDetailPage() {
                 Interest saved{' '}
                 {formatGBP(Math.max(0, scenarioMin.totalInterest - scenarioBoost.totalInterest))}
               </p>
+            </div>
+          </div>
+
+          <div
+            className={`surface-nested p-5 mb-6 ${privacyClass(privacy)}`}
+            data-testid="liability-paydown-compare"
+          >
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+              <div>
+                <p className="label-uppercase mb-2">All debts</p>
+                <h4 className="font-bold tracking-tight">Snowball vs avalanche</h4>
+                <p className="text-xs text-text-muted mt-1">
+                  Estimate uses current balances, APRs, and the total current minimum payment pool.
+                </p>
+              </div>
+              <span className="text-xs font-semibold text-accent">
+                {paydownCompare.winner === 'tie'
+                  ? 'Tie'
+                  : paydownCompare.winner === 'none'
+                    ? 'No clear winner'
+                    : `${paydownCompare.winner === 'snowball' ? 'Snowball' : 'Avalanche'} wins`}
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-px">
+              {([
+                ['snowball', paydownCompare.snowball, 'Lowest balance first'],
+                ['avalanche', paydownCompare.avalanche, 'Highest APR first'],
+              ] as const).map(([key, estimate, label]) => {
+                const wins = paydownCompare.winner === key
+                return (
+                  <div
+                    key={key}
+                    className={`p-4 border border-border/70 ${
+                      wins ? 'border-accent bg-accent/5' : 'bg-surface-hover/40'
+                    }`}
+                  >
+                    <p className="text-xs uppercase tracking-wider text-text-subtle font-semibold mb-1">
+                      {key}
+                    </p>
+                    <p className="text-lg font-bold tabular-nums">
+                      {formatMonthsEstimate(estimate.months)}
+                    </p>
+                    <p className="text-xs text-text-muted mt-1">
+                      {label} · Interest {formatGBP(estimate.totalInterest)}
+                    </p>
+                  </div>
+                )
+              })}
             </div>
           </div>
 

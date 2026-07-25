@@ -78,6 +78,8 @@ const STATUS_LABELS = {
   archived: 'Archived',
 }
 
+const TODO_DAY_SEGMENTS = ['Morning', 'Afternoon', 'Evening'] as const
+
 const FILTER_SUMMARY: Record<TodoFilterBy, string> = {
   all: 'All',
   'high-priority': 'High priority',
@@ -122,6 +124,23 @@ function formatTodoDue(dueDate: string, dueTime?: string): string {
   return dueTime ? `${dateLabel} · ${dueTime}` : dateLabel
 }
 
+function todayYmd(): string {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+}
+
+function todoDaySegment(item: TodoItem): (typeof TODO_DAY_SEGMENTS)[number] {
+  const hour = Number((item.dueTime || '').split(':')[0])
+  if (Number.isFinite(hour)) {
+    if (hour < 12) return 'Morning'
+    if (hour < 17) return 'Afternoon'
+    return 'Evening'
+  }
+  if (item.priority === 'high') return 'Morning'
+  if (item.priority === 'medium') return 'Afternoon'
+  return 'Evening'
+}
+
 export function TodosPage() {
   const { data, setData, privacy } = usePortfolio()
   const { success, error: showError } = useToasts()
@@ -136,6 +155,7 @@ export function TodosPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [quickAddText, setQuickAddText] = useState('')
   const [showCompleted, setShowCompleted] = useState(false)
+  const [viewMode, setViewMode] = useState<'list' | 'day'>('list')
   /** Quick priority chips — empty = no extra priority constraint */
   const [priorityChips, setPriorityChips] = useState<Set<'high' | 'medium' | 'low'>>(new Set())
   const [showTaskModal, setShowTaskModal] = useState(false)
@@ -316,6 +336,19 @@ export function TodosPage() {
     () => filteredItems.filter((i) => i.status === 'done' || i.status === 'archived'),
     [filteredItems],
   )
+  const dayGroups = useMemo(() => {
+    const today = todayYmd()
+    const groups = new Map<(typeof TODO_DAY_SEGMENTS)[number], TodoItem[]>(
+      TODO_DAY_SEGMENTS.map((segment) => [segment, []]),
+    )
+    filteredItems
+      .filter((item) => item.dueDate === today && item.status !== 'archived')
+      .sort((a, b) => (a.dueTime || '99:99').localeCompare(b.dueTime || '99:99'))
+      .forEach((item) => {
+        groups.get(todoDaySegment(item))!.push(item)
+      })
+    return groups
+  }, [filteredItems])
 
   const filterActiveCount = useMemo(() => {
     let n = 0
@@ -829,6 +862,20 @@ export function TodosPage() {
               <p className="text-xs text-text-subtle">Pick a list · Sort inside the menu to reorder</p>
             )}
             <div className="flex items-center gap-2">
+              <div className="ui-seg-group ui-seg-group--tight" role="tablist" aria-label="To Do view">
+                {(['list', 'day'] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    role="tab"
+                    aria-selected={viewMode === mode}
+                    className={`ui-seg ${viewMode === mode ? 'is-active' : ''}`}
+                    onClick={() => setViewMode(mode)}
+                  >
+                    {mode === 'list' ? 'List' : 'Day'}
+                  </button>
+                ))}
+              </div>
               <button
                 type="button"
                 className={`btn-sm ${selectMode ? 'btn-primary' : 'btn-ghost'} text-xs`}
@@ -869,6 +916,15 @@ export function TodosPage() {
           {currentList?.description && (
             <p className="text-sm text-text-muted mb-4">{currentList.description}</p>
           )}
+          {currentList?.shared ? (
+            <div
+              className="mb-4 rounded border border-accent/30 bg-accent/10 px-3 py-2 text-sm text-text-muted"
+              data-testid="todos-list-share-hint"
+              role="status"
+            >
+              <span className="font-semibold text-text">Household (local)</span> — this shared-list hint syncs through workspace cloud sync.
+            </div>
+          ) : null}
 
           {/* Filters collapsed by default — Import / Screenshot / Export stay on the header */}
           <CollapsibleFilters
@@ -1127,7 +1183,49 @@ export function TodosPage() {
             </div>
           )}
 
-          {filteredItems.length === 0 ? (
+          {viewMode === 'day' ? (
+            <section
+              className="space-y-3"
+              data-testid="todos-day-view"
+              aria-label="Today's To Do time blocks"
+            >
+              {TODO_DAY_SEGMENTS.map((segment) => {
+                const items = dayGroups.get(segment) ?? []
+                return (
+                  <div key={segment} className="surface p-3 sm:p-4 rounded-xl md:rounded-none">
+                    <div className="mb-3 flex items-center justify-between gap-2">
+                      <h3 className="font-bold">{segment}</h3>
+                      <span className="text-xs text-text-subtle">{items.length} task{items.length === 1 ? '' : 's'}</span>
+                    </div>
+                    {items.length === 0 ? (
+                      <p className="text-sm text-text-subtle">No tasks due in this block today.</p>
+                    ) : (
+                      <div className="space-y-3">
+                        {items.map((item) => (
+                          <TodoItemCard
+                            key={item.id}
+                            item={item}
+                            orderNumber={orderNumbers.get(item.id)}
+                            listName={lists.find((l) => l.id === item.listId)?.name}
+                            selected={selectedTodos.has(item.id)}
+                            selectMode={selectMode}
+                            focused={focusTodoId === item.id}
+                            justSynced={justSyncedTodos.has(item.id)}
+                            onToggleSelect={handleToggleSelect}
+                            onToggleComplete={handleToggleComplete}
+                            onEdit={handleEditItem}
+                            onDuplicate={handleDuplicateItem}
+                            onRestore={handleRestoreItem}
+                            onDelete={handleDeleteItem}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </section>
+          ) : filteredItems.length === 0 ? (
             <EmptyState
               illustration
               title={listItems.length === 0 ? 'No Tasks Yet' : 'No Tasks Found'}
@@ -1298,6 +1396,8 @@ function TodoItemCard({
 }) {
   const overdue = isOverdue(item)
   const dueLabel = item.dueDate ? formatTodoDue(item.dueDate, item.dueTime) : null
+  const subtaskCount = item.subtasks?.length ?? 0
+  const doneSubtasks = item.subtasks?.filter((s) => s.done).length ?? 0
 
   return (
     <article
@@ -1438,6 +1538,11 @@ function TodoItemCard({
           {item.recurrence && item.recurrence !== 'none' ? (
             <span className="text-[11px] sm:text-xs px-1.5 py-0.5 bg-surface-hover text-text-subtle rounded">
               Repeats {item.recurrence}
+            </span>
+          ) : null}
+          {subtaskCount > 0 ? (
+            <span className="text-[11px] sm:text-xs px-1.5 py-0.5 bg-surface-hover text-text-subtle rounded">
+              {doneSubtasks}/{subtaskCount} subtasks
             </span>
           ) : null}
           {item.linkedJobId != null ? (
