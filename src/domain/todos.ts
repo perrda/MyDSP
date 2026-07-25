@@ -33,6 +33,7 @@ export function createTodoItem(partial: Partial<TodoItem> & Pick<TodoItem, 'titl
     updatedAt: partial.updatedAt ?? now,
     sortOrder: partial.sortOrder,
     linkedJobId: partial.linkedJobId,
+    subtasks: partial.subtasks,
   }
 }
 
@@ -44,6 +45,7 @@ export function createTodoList(partial: Partial<TodoList> & Pick<TodoList, 'name
     description: partial.description,
     color: partial.color ?? '#F7931A',
     icon: partial.icon ?? 'list',
+    shared: partial.shared,
     sortOrder: partial.sortOrder,
     createdAt: partial.createdAt ?? now,
     updatedAt: partial.updatedAt ?? now,

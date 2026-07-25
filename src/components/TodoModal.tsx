@@ -1,6 +1,13 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
-import type { TodoItem, TodoList, TodoPriority, TodoRecurrence, TodoStatus } from '../domain/todo-types'
+import type {
+  TodoItem,
+  TodoList,
+  TodoPriority,
+  TodoRecurrence,
+  TodoStatus,
+  TodoSubtask,
+} from '../domain/todo-types'
 import { createTodoItem } from '../domain/todos'
 
 interface TodoModalProps {
@@ -28,6 +35,18 @@ export function TodoModal({ todo, listId, lists = [], onSave, onClose }: TodoMod
     estimatedMinutes: todo?.estimatedMinutes?.toString() || '',
     actualMinutes: todo?.actualMinutes?.toString() || '',
   })
+  const [subtasks, setSubtasks] = useState<TodoSubtask[]>(() => todo?.subtasks ?? [])
+  const [subtaskTitle, setSubtaskTitle] = useState('')
+
+  const addSubtask = () => {
+    const title = subtaskTitle.trim()
+    if (!title) return
+    setSubtasks((prev) => [
+      ...prev,
+      { id: Date.now() + Math.floor(Math.random() * 1000), title, done: false },
+    ])
+    setSubtaskTitle('')
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -60,6 +79,7 @@ export function TodoModal({ todo, listId, lists = [], onSave, onClose }: TodoMod
       estimatedMinutes: Number.isFinite(estimatedMinutes) ? estimatedMinutes : undefined,
       actualMinutes: Number.isFinite(actualMinutes) ? actualMinutes : undefined,
       completedAt,
+      subtasks: subtasks.length > 0 ? subtasks : undefined,
     }
 
     const todoItem = todo
@@ -204,6 +224,72 @@ export function TodoModal({ todo, listId, lists = [], onSave, onClose }: TodoMod
                   <option value="weekly">Weekly</option>
                   <option value="monthly">Monthly</option>
                 </select>
+              </div>
+            </div>
+          </section>
+
+          <section>
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <h3 className="font-bold">Subtasks</h3>
+              {subtasks.length > 0 ? (
+                <span className="text-xs text-text-subtle">
+                  {subtasks.filter((s) => s.done).length}/{subtasks.length} done
+                </span>
+              ) : null}
+            </div>
+            <div className="space-y-2">
+              {subtasks.map((subtask) => (
+                <div
+                  key={subtask.id}
+                  className="flex items-center gap-2 rounded border border-border bg-surface-hover px-3 py-2"
+                >
+                  <label className="flex min-w-0 flex-1 items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={subtask.done}
+                      onChange={() =>
+                        setSubtasks((prev) =>
+                          prev.map((s) =>
+                            s.id === subtask.id ? { ...s, done: !s.done } : s,
+                          ),
+                        )
+                      }
+                    />
+                    <span className={`truncate ${subtask.done ? 'line-through text-text-muted' : ''}`}>
+                      {subtask.title}
+                    </span>
+                  </label>
+                  <button
+                    type="button"
+                    className="btn-ghost btn-sm text-xs text-red-500"
+                    onClick={() => setSubtasks((prev) => prev.filter((s) => s.id !== subtask.id))}
+                  >
+                    Delete
+                  </button>
+                </div>
+              ))}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={subtaskTitle}
+                  onChange={(e) => setSubtaskTitle(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      addSubtask()
+                    }
+                  }}
+                  className="flex-1 px-3 py-2.5 bg-surface-hover border border-border rounded text-base min-h-11"
+                  placeholder="Add a subtask"
+                />
+                <button
+                  type="button"
+                  className="btn-secondary btn-sm min-h-11"
+                  onClick={addSubtask}
+                  disabled={!subtaskTitle.trim()}
+                >
+                  Add
+                </button>
               </div>
             </div>
           </section>

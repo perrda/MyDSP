@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import {
   ArrowUpDown,
   ChevronDown,
@@ -33,6 +33,7 @@ import { saveNewsFilterTag } from '../domain/newsFilterPrefs'
 import {
   loadPriceAlertThresholds,
   savePriceAlertThresholds,
+  type PriceAlertThreshold,
 } from '../domain/priceAlerts'
 import { applyLastSyncedQuotesToHoldings } from '../domain/lastSyncedHoldings'
 import { includedPortfolioHoldingValue } from '../domain/portfolioConcentration'
@@ -133,6 +134,13 @@ type FormState = {
   quantity: string
   avgCostGbp: string
   includeInNetWorth: boolean
+}
+
+type MarketsScreenerFilter = {
+  owned: 'all' | 'owned'
+  alerts: 'all' | 'set'
+  stale: 'all' | 'stale'
+  kind: 'all' | MarketAssetKind
 }
 
 const emptyForm: FormState = {
@@ -529,7 +537,6 @@ function useMediaQuery(query: string): boolean {
 
 export function MarketsPage() {
   const { data, privacy, setData } = usePortfolio()
-  const navigate = useNavigate()
   const { success: toastSuccess, error: toastError, showToast } = useToasts()
   const [searchParams, setSearchParams] = useSearchParams()
   const [undoRemove, setUndoRemove] = useState<MarketTicker | null>(null)
@@ -606,6 +613,8 @@ export function MarketsPage() {
   const [priceAlertEdit, setPriceAlertEdit] = useState<{
     key: string
     changePct: string
+    mode: NonNullable<PriceAlertThreshold['mode']>
+    targetPrice: string
     exists: boolean
   } | null>(null)
   const [fxExplainerOpen, setFxExplainerOpen] = useState(false)
@@ -613,6 +622,12 @@ export function MarketsPage() {
   const [yieldSort, setYieldSort] = useState(() => getMarketsYieldSort())
   const [toolbarPanel, setToolbarPanel] = useState<'assets' | 'timeframe' | 'format' | null>(null)
   const [marketSearch, setMarketSearch] = useState('')
+  const [marketScreener, setMarketScreener] = useState<MarketsScreenerFilter>({
+    owned: 'all',
+    alerts: 'all',
+    stale: 'all',
+    kind: 'all',
+  })
   const [priceAlerts, setPriceAlerts] = useState(() => loadPriceAlertThresholds())
   const [online, setOnline] = useState(() => isOnline())
   const [relativeTick, setRelativeTick] = useState(0)
@@ -773,16 +788,42 @@ export function MarketsPage() {
 
   const bySection = useMemo(
     () => {
+      const ownedKeys = new Set<string>()
+      for (const c of data.crypto) ownedKeys.add(`crypto:${normPortfolioSymbol(c.symbol)}`)
+      for (const e of data.equities) ownedKeys.add(`equity:${normPortfolioSymbol(e.symbol)}`)
+      const alertMatches = (ticker: MarketTicker) =>
+        priceAlerts.some(
+          (th) =>
+            th.key.toUpperCase() === ticker.symbol.toUpperCase() ||
+            th.key.replace('^', '').toUpperCase() ===
+              ticker.symbol.replace('^', '').toUpperCase() ||
+            th.key === ticker.id,
+        )
       const tagged =
         activeTagFilter === 'All'
           ? tickers
           : tickers.filter((t) => t.tag === activeTagFilter)
+      const screened = tagged.filter((t) => {
+        if (marketScreener.kind !== 'all' && t.kind !== marketScreener.kind) return false
+        if (
+          marketScreener.owned === 'owned' &&
+          !ownedKeys.has(`${t.kind}:${normPortfolioSymbol(t.symbol)}`)
+        ) {
+          return false
+        }
+        if (marketScreener.alerts === 'set' && !alertMatches(t)) return false
+        if (marketScreener.stale === 'stale') {
+          const q = quotes.get(t.id)
+          if (!q || !isStaleQuote(q)) return false
+        }
+        return true
+      })
       const filtered = marketSearchQuery
-        ? tagged.filter((t) => {
+        ? screened.filter((t) => {
             const haystack = [t.symbol, t.name, t.tag ?? ''].join(' ').toLowerCase()
             return haystack.includes(marketSearchQuery)
           })
-        : tagged
+        : screened
       const equities = filtered.filter((t) => t.kind === 'equity')
       return {
         crypto: filtered.filter((t) => t.kind === 'crypto'),
@@ -793,7 +834,17 @@ export function MarketsPage() {
         crosses: filtered.filter((t) => t.kind === 'cross'),
       }
     },
-    [tickers, activeTagFilter, activeYieldSort, marketSearchQuery],
+    [
+      tickers,
+      activeTagFilter,
+      activeYieldSort,
+      marketSearchQuery,
+      marketScreener,
+      data.crypto,
+      data.equities,
+      priceAlerts,
+      quotes,
+    ],
   )
 
   const fxTriangleHits = useMemo(() => {
@@ -1373,6 +1424,8 @@ export function MarketsPage() {
     setPriceAlertEdit({
       key: existing?.key ?? key,
       changePct: String(existing?.changePct ?? 3),
+      mode: existing?.mode === 'target' ? 'target' : 'percent',
+      targetPrice: existing?.targetPrice != null ? String(existing.targetPrice) : '',
       exists: Boolean(existing),
     })
   }, [])
@@ -1831,13 +1884,19 @@ export function MarketsPage() {
                             <button
                               type="button"
                               className="markets-price-alert-badge text-[10px] uppercase tracking-wider font-semibold px-1.5 py-0.5 border border-amber-500/40 text-amber-700 dark:text-amber-300 hover:bg-amber-500/10"
-                              title={`Price alert set at ±${rowAlert.changePct}%`}
+                              title={
+                                rowAlert.mode === 'target' && rowAlert.targetPrice != null
+                                  ? `Price alert target ${rowAlert.targetPrice}`
+                                  : `Price alert set at ±${rowAlert.changePct}%`
+                              }
                               onClick={(e) => {
                                 e.stopPropagation()
                                 openPriceAlertForSymbol(t.symbol)
                               }}
                             >
-                              Alert ±{rowAlert.changePct}%
+                              {rowAlert.mode === 'target' && rowAlert.targetPrice != null
+                                ? `Alert ${rowAlert.targetPrice}`
+                                : `Alert ±${rowAlert.changePct}%`}
                             </button>
                           ) : null}
                         </div>
@@ -2218,29 +2277,94 @@ export function MarketsPage() {
             })}
           </div>
 
-          <div className="markets-search-row">
-            <label className="sr-only" htmlFor="markets-search">
-              Search Markets watchlist
-            </label>
-            <input
-              id="markets-search"
-              data-testid="markets-search"
-              className="markets-search-input w-full text-sm"
-              type="search"
-              value={marketSearch}
-              onChange={(e) => setMarketSearch(e.target.value)}
-              placeholder="Search symbol, name, or tag"
-              autoComplete="off"
-            />
-            {marketSearchQuery ? (
-              <button
-                type="button"
-                className="btn-ghost btn-sm markets-search-clear"
-                onClick={() => setMarketSearch('')}
+          <div className="markets-screener space-y-2" data-testid="markets-screener">
+            <div className="markets-search-row">
+              <label className="sr-only" htmlFor="markets-search">
+                Search Markets watchlist
+              </label>
+              <input
+                id="markets-search"
+                data-testid="markets-search"
+                className="markets-search-input w-full text-sm"
+                type="search"
+                value={marketSearch}
+                onChange={(e) => setMarketSearch(e.target.value)}
+                placeholder="Search symbol, name, or tag"
+                autoComplete="off"
+              />
+              {marketSearchQuery ? (
+                <button
+                  type="button"
+                  className="btn-ghost btn-sm markets-search-clear"
+                  onClick={() => setMarketSearch('')}
+                >
+                  Clear
+                </button>
+              ) : null}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <select
+                className="btn-ghost btn-sm"
+                aria-label="Owned filter"
+                value={marketScreener.owned}
+                onChange={(e) =>
+                  setMarketScreener((prev) => ({
+                    ...prev,
+                    owned: e.target.value as MarketsScreenerFilter['owned'],
+                  }))
+                }
               >
-                Clear
-              </button>
-            ) : null}
+                <option value="all">All ownership</option>
+                <option value="owned">Owned</option>
+              </select>
+              <select
+                className="btn-ghost btn-sm"
+                aria-label="Price alert filter"
+                value={marketScreener.alerts}
+                onChange={(e) =>
+                  setMarketScreener((prev) => ({
+                    ...prev,
+                    alerts: e.target.value as MarketsScreenerFilter['alerts'],
+                  }))
+                }
+              >
+                <option value="all">All alerts</option>
+                <option value="set">Alerts set</option>
+              </select>
+              <select
+                className="btn-ghost btn-sm"
+                aria-label="Stale quote filter"
+                value={marketScreener.stale}
+                onChange={(e) =>
+                  setMarketScreener((prev) => ({
+                    ...prev,
+                    stale: e.target.value as MarketsScreenerFilter['stale'],
+                  }))
+                }
+              >
+                <option value="all">All freshness</option>
+                <option value="stale">Stale</option>
+              </select>
+              <select
+                className="btn-ghost btn-sm"
+                aria-label="Asset type filter"
+                value={marketScreener.kind}
+                onChange={(e) =>
+                  setMarketScreener((prev) => ({
+                    ...prev,
+                    kind: e.target.value as MarketsScreenerFilter['kind'],
+                  }))
+                }
+              >
+                <option value="all">All types</option>
+                <option value="equity">Equity</option>
+                <option value="crypto">Crypto</option>
+                <option value="commodity">Commodity</option>
+                <option value="index">Index</option>
+                <option value="fx">FX</option>
+                <option value="cross">Cross</option>
+              </select>
+            </div>
           </div>
 
           {toolbarPanel === 'assets' ? (
@@ -2612,6 +2736,37 @@ export function MarketsPage() {
             ) : (
               <p className="text-sm text-text-subtle mb-2">No live print</p>
             )}
+            {quoteDetail.quote && quoteDetail.quote.sparkline.length > 1 ? (
+              <div className="surface p-3 mb-3">
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                  <p className="label-uppercase mb-0">Sparkline</p>
+                  <div className="ui-seg-group ui-seg-group--tight" role="tablist" aria-label="Quote timeframe">
+                    {MARKET_TIMEFRAMES.map((tf) => (
+                      <button
+                        key={tf}
+                        type="button"
+                        role="tab"
+                        className={`ui-seg markets-timeframe${timeframe === tf ? ' is-active' : ''}`}
+                        aria-selected={timeframe === tf}
+                        onClick={() => {
+                          if (tf === timeframe) return
+                          setMarketsTimeframe(tf)
+                          setTimeframe(tf)
+                        }}
+                      >
+                        {tf}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <Sparkline
+                  data={quoteDetail.quote.sparkline}
+                  height={56}
+                  showGradient
+                  trend={sparklineTrendFromSeries(quoteDetail.quote.sparkline)}
+                />
+              </div>
+            ) : null}
             {quoteDetail.ticker.kind === 'commodity' &&
             quoteDetail.ticker.quantity != null &&
             quoteDetail.ticker.quantity > 0 &&
@@ -2633,6 +2788,14 @@ export function MarketsPage() {
               >
                 Edit
               </button>
+              <Link
+                to={`/news?tag=${encodeURIComponent(quoteDetail.ticker.symbol.trim())}`}
+                className="btn-secondary btn-sm"
+                data-testid="markets-quote-news"
+                onClick={() => saveNewsFilterTag(quoteDetail.ticker.symbol.trim())}
+              >
+                Related news
+              </Link>
               <button
                 type="button"
                 className="btn-ghost btn-sm"
@@ -2878,7 +3041,27 @@ export function MarketsPage() {
             </div>
             {quoteDetail.quote && quoteDetail.quote.sparkline.length > 1 ? (
               <div className="surface p-3">
-                <p className="label-uppercase mb-2">Sparkline</p>
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                  <p className="label-uppercase mb-0">Sparkline</p>
+                  <div className="ui-seg-group ui-seg-group--tight" role="tablist" aria-label="Quote timeframe">
+                    {MARKET_TIMEFRAMES.map((tf) => (
+                      <button
+                        key={tf}
+                        type="button"
+                        role="tab"
+                        className={`ui-seg markets-timeframe${timeframe === tf ? ' is-active' : ''}`}
+                        aria-selected={timeframe === tf}
+                        onClick={() => {
+                          if (tf === timeframe) return
+                          setMarketsTimeframe(tf)
+                          setTimeframe(tf)
+                        }}
+                      >
+                        {tf}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <Sparkline
                   data={quoteDetail.quote.sparkline}
                   height={56}
@@ -3083,20 +3266,19 @@ export function MarketsPage() {
               >
                 Share
               </button>
-              <button
-                type="button"
+              <Link
+                to={`/news?tag=${encodeURIComponent(quoteDetail.ticker.symbol.trim())}`}
                 className="btn-secondary btn-sm markets-quote-open-news"
-                data-testid="markets-quote-open-news"
+                data-testid="markets-quote-news"
                 aria-label={`Open News for ${quoteDetail.ticker.symbol}`}
                 onClick={() => {
                   const tag = quoteDetail.ticker.symbol.trim()
                   if (tag) saveNewsFilterTag(tag)
                   setQuoteDetail(null)
-                  navigate(tag ? `/news?tag=${encodeURIComponent(tag)}` : '/news')
                 }}
               >
-                Open News
-              </button>
+                Related news
+              </Link>
               <button
                 type="button"
                 className="btn-secondary btn-sm markets-quote-retry"
@@ -3141,23 +3323,61 @@ export function MarketsPage() {
         {priceAlertEdit ? (
           <div className="space-y-4">
             <p className="text-sm text-text-muted">
-              Bell notification when this ticker moves by at least your chosen percentage.
+              Bell notification when this ticker moves by a percentage or reaches a target price.
             </p>
-            <Field label="Move threshold (%)" hint="Example: 3 means alert at +3% or -3%.">
-              <input
-                type="number"
-                min={0.1}
-                step={0.1}
+            <Field label="Alert type">
+              <select
                 className="text-sm"
-                value={priceAlertEdit.changePct}
-                aria-label={`Alert threshold % for ${priceAlertEdit.key}`}
+                value={priceAlertEdit.mode}
+                aria-label={`Alert type for ${priceAlertEdit.key}`}
                 onChange={(e) =>
                   setPriceAlertEdit((prev) =>
-                    prev ? { ...prev, changePct: e.target.value } : prev,
+                    prev
+                      ? {
+                          ...prev,
+                          mode: e.target.value as NonNullable<PriceAlertThreshold['mode']>,
+                        }
+                      : prev,
                   )
                 }
-              />
+              >
+                <option value="percent">% move</option>
+                <option value="target">Target price</option>
+              </select>
             </Field>
+            {priceAlertEdit.mode === 'percent' ? (
+              <Field label="Move threshold (%)" hint="Example: 3 means alert at +3% or -3%.">
+                <input
+                  type="number"
+                  min={0.1}
+                  step={0.1}
+                  className="text-sm"
+                  value={priceAlertEdit.changePct}
+                  aria-label={`Alert threshold % for ${priceAlertEdit.key}`}
+                  onChange={(e) =>
+                    setPriceAlertEdit((prev) =>
+                      prev ? { ...prev, changePct: e.target.value } : prev,
+                    )
+                  }
+                />
+              </Field>
+            ) : (
+              <Field label="Target price" hint="Alert when the last print reaches or exceeds this value.">
+                <input
+                  type="number"
+                  min={0.00000001}
+                  step="any"
+                  className="text-sm"
+                  value={priceAlertEdit.targetPrice}
+                  aria-label={`Target price alert for ${priceAlertEdit.key}`}
+                  onChange={(e) =>
+                    setPriceAlertEdit((prev) =>
+                      prev ? { ...prev, targetPrice: e.target.value } : prev,
+                    )
+                  }
+                />
+              </Field>
+            )}
             <div className="flex flex-wrap justify-between gap-2">
               {priceAlertEdit.exists ? (
                 <button
@@ -3197,9 +3417,15 @@ export function MarketsPage() {
                   className="btn-primary btn-sm"
                   aria-label={`Save price alert for ${priceAlertEdit.key}`}
                   onClick={() => {
+                    const mode = priceAlertEdit.mode
                     const pct = Number(priceAlertEdit.changePct)
-                    if (!Number.isFinite(pct) || pct <= 0) {
+                    const targetPrice = Number(priceAlertEdit.targetPrice)
+                    if (mode === 'percent' && (!Number.isFinite(pct) || pct <= 0)) {
                       toastError('Invalid threshold', 'Enter a percentage greater than 0')
+                      return
+                    }
+                    if (mode === 'target' && (!Number.isFinite(targetPrice) || targetPrice <= 0)) {
+                      toastError('Invalid target', 'Enter a target price greater than 0')
                       return
                     }
                     const key = priceAlertEdit.key.trim()
@@ -3212,11 +3438,23 @@ export function MarketsPage() {
                     )
                     const next = [...existing]
                     const savedKey = idx >= 0 ? existing[idx]!.key : key
-                    if (idx >= 0) next[idx] = { key: savedKey, changePct: pct }
-                    else next.push({ key, changePct: pct })
+                    const saved: PriceAlertThreshold =
+                      mode === 'target'
+                        ? {
+                            key: savedKey,
+                            changePct: Number.isFinite(pct) && pct > 0 ? pct : 1,
+                            mode,
+                            targetPrice,
+                          }
+                        : { key: savedKey, changePct: pct, mode }
+                    if (idx >= 0) next[idx] = saved
+                    else next.push({ ...saved, key })
                     savePriceAlertThresholds(next)
                     setPriceAlertEdit(null)
-                    toastSuccess('Price alert saved', `${savedKey} ±${pct}%`)
+                    toastSuccess(
+                      'Price alert saved',
+                      mode === 'target' ? `${savedKey} target ${targetPrice}` : `${savedKey} ±${pct}%`,
+                    )
                   }}
                 >
                   Save alert

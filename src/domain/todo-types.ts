@@ -2,6 +2,12 @@ export type TodoPriority = 'high' | 'medium' | 'low'
 export type TodoStatus = 'todo' | 'in-progress' | 'done' | 'archived'
 export type TodoRecurrence = 'none' | 'daily' | 'weekly' | 'monthly'
 
+export interface TodoSubtask {
+  id: number
+  title: string
+  done: boolean
+}
+
 export interface TodoItem {
   id: number
   listId: number
@@ -24,6 +30,8 @@ export interface TodoItem {
   sortOrder?: number
   /** Optional link to a job application (Jobs ↔ Todos) */
   linkedJobId?: number
+  /** Optional checklist for breaking larger To Do's down locally. */
+  subtasks?: TodoSubtask[]
 }
 
 export interface TodoList {
@@ -32,6 +40,8 @@ export interface TodoList {
   description?: string
   color?: string
   icon?: string
+  /** Local-only shared-list hint; actual multi-user sync still uses workspace cloud sync. */
+  shared?: boolean
   sortOrder?: number
   createdAt: string
   updatedAt: string

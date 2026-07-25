@@ -670,6 +670,7 @@ function normalizeTodoLists(raw: unknown): import('./todo-types').TodoList[] {
       description: typeof x.description === 'string' ? x.description : undefined,
       color: typeof x.color === 'string' ? x.color : undefined,
       icon: typeof x.icon === 'string' ? x.icon : undefined,
+      shared: bool(x.shared ?? x.isSharedHint, false),
       sortOrder: typeof x.sortOrder === 'number' ? x.sortOrder : i,
       createdAt: str(x.createdAt, new Date().toISOString()),
       updatedAt: str(x.updatedAt, new Date().toISOString()),
@@ -691,6 +692,16 @@ function normalizeTodoItems(raw: unknown): import('./todo-types').TodoItem[] {
       const recurrence = recurrences.has(String(x.recurrence))
         ? (x.recurrence as 'none' | 'daily' | 'weekly' | 'monthly')
         : 'none'
+      const subtasks = Array.isArray(x.subtasks)
+        ? x.subtasks
+            .filter((s): s is Record<string, unknown> => !!s && typeof s === 'object')
+            .map((s, j) => ({
+              id: num(s.id, Date.now() + i * 100 + j),
+              title: str(s.title, '').trim(),
+              done: bool(s.done, false),
+            }))
+            .filter((s) => s.title)
+        : undefined
       return {
         id: num(x.id, Date.now() + i),
         listId: num(x.listId, 0),
@@ -715,6 +726,7 @@ function normalizeTodoItems(raw: unknown): import('./todo-types').TodoItem[] {
           const n = num(x.linkedJobId, NaN)
           return Number.isFinite(n) && n > 0 ? n : undefined
         })(),
+        subtasks,
       }
     })
 }

@@ -10,6 +10,42 @@ interface JobFormModalProps {
   onClose: () => void
 }
 
+function extractJobPostFields(text: string): Partial<{
+  companyName: string
+  jobTitle: string
+  jobUrl: string
+  location: string
+}> {
+  const clean = text.replace(/\r/g, '').trim()
+  if (!clean) return {}
+  const lines = clean
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+  const first = lines[0] || ''
+  const second = lines[1] || ''
+  const url = clean.match(/https?:\/\/[^\s)]+/i)?.[0]
+  const company =
+    clean.match(/(?:company|employer|organization|organisation)\s*[:-]\s*([^\n]+)/i)?.[1] ||
+    clean.match(/\bat\s+([A-Z][A-Za-z0-9&.,' -]{2,})(?:\n|$)/)?.[1] ||
+    (first && /(?:ltd|limited|inc|corp|group|bank|capital|systems|labs)$/i.test(first)
+      ? first
+      : undefined)
+  const title =
+    clean.match(/(?:job title|title|role|position)\s*[:-]\s*([^\n]+)/i)?.[1] ||
+    (first && first !== company ? first : second && second !== company ? second : undefined)
+  const location =
+    clean.match(/(?:location|office)\s*[:-]\s*([^\n]+)/i)?.[1] ||
+    clean.match(/\b(remote|hybrid|london|manchester|new york|san francisco|berlin|paris)\b[^\n]*/i)?.[0]
+
+  return {
+    companyName: company?.trim(),
+    jobTitle: title?.trim(),
+    jobUrl: url?.trim(),
+    location: location?.trim(),
+  }
+}
+
 export function JobFormModal({ application, onSave, onClose }: JobFormModalProps) {
   const [formData, setFormData] = useState({
     companyName: application?.companyName || '',
@@ -44,6 +80,19 @@ export function JobFormModal({ application, onSave, onClose }: JobFormModalProps
     cons: application?.cons || '',
     tags: application?.tags?.join(', ') || '',
   })
+  const [pasteText, setPasteText] = useState('')
+
+  const ingestJobPost = (text = pasteText) => {
+    const extracted = extractJobPostFields(text)
+    setFormData((prev) => ({
+      ...prev,
+      companyName: extracted.companyName || prev.companyName,
+      jobTitle: extracted.jobTitle || prev.jobTitle,
+      jobUrl: extracted.jobUrl || prev.jobUrl,
+      location: extracted.location || prev.location,
+      description: prev.description || text.trim(),
+    }))
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -111,6 +160,35 @@ export function JobFormModal({ application, onSave, onClose }: JobFormModalProps
       onClose={onClose}
     >
         <form onSubmit={handleSubmit} className="space-y-6">
+          <section
+            className="rounded-lg border border-border bg-surface-hover/60 p-3"
+            data-testid="job-paste-ingest"
+          >
+            <label className="block text-xs text-text-subtle mb-1">Paste job post text</label>
+            <textarea
+              value={pasteText}
+              onChange={(e) => {
+                setPasteText(e.target.value)
+                ingestJobPost(e.target.value)
+              }}
+              className="w-full px-3 py-2 bg-surface border border-border rounded text-sm"
+              rows={3}
+              placeholder="Paste a job advert to prefill company, title, URL, and location"
+            />
+            <div className="mt-2 flex items-center justify-between gap-2">
+              <p className="text-xs text-text-subtle">
+                Uses simple local regex heuristics; review fields before saving.
+              </p>
+              <button
+                type="button"
+                className="btn-secondary btn-sm"
+                onClick={() => ingestJobPost()}
+                disabled={!pasteText.trim()}
+              >
+                Extract
+              </button>
+            </div>
+          </section>
           {/* Basic Info */}
           <section>
             <h3 className="font-bold mb-3">Basic Information</h3>
