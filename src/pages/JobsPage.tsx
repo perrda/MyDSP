@@ -705,15 +705,31 @@ export function JobsPage() {
             <button type="button" onClick={handleImportFile} className="btn-ghost btn-sm">
               <Upload size={14} /> Import
             </button>
-            <button type="button" onClick={handleExportCsv} className="btn-ghost btn-sm">
+            <button
+              type="button"
+              onClick={handleExportCsv}
+              className="btn-ghost btn-sm hidden sm:inline-flex"
+            >
               <Download size={14} /> CSV
             </button>
-            <button type="button" onClick={handleExportJson} className="btn-ghost btn-sm">
+            <button
+              type="button"
+              onClick={handleExportJson}
+              className="btn-ghost btn-sm hidden sm:inline-flex"
+            >
               <Download size={14} /> JSON
             </button>
           </>
         }
       >
+        <div className="jobs-filter-export-row flex flex-wrap gap-2 sm:hidden">
+          <button type="button" onClick={handleExportCsv} className="btn-ghost btn-sm">
+            <Download size={14} /> CSV
+          </button>
+          <button type="button" onClick={handleExportJson} className="btn-ghost btn-sm">
+            <Download size={14} /> JSON
+          </button>
+        </div>
         <div className="flex flex-wrap gap-3 items-center">
           {pipelineFocus ? (
             <button type="button" className="btn-secondary btn-sm" onClick={() => setPipelineFocus(null)}>
@@ -777,17 +793,17 @@ export function JobsPage() {
               <Link
                 key={event.key}
                 to={`/jobs/${event.appId}`}
-                className="grid grid-cols-[5rem_minmax(0,1fr)_auto] items-center gap-2 rounded border border-border bg-surface-hover px-2.5 py-1.5 text-xs hover:border-accent"
+                className="jobs-calendar-row grid grid-cols-[5rem_minmax(0,1fr)_auto] items-center gap-2 rounded border border-border bg-surface-hover px-2.5 py-1.5 text-xs hover:border-accent"
               >
-                <span className="text-text-subtle tabular-nums">{event.dayLabel}</span>
-                <span className="min-w-0">
+                <span className="jobs-calendar-day text-text-subtle tabular-nums">{event.dayLabel}</span>
+                <span className="jobs-calendar-company min-w-0">
                   <span className={event.type === 'Interview' ? 'text-amber-500 font-semibold' : 'text-accent font-semibold'}>
                     {event.type}
                   </span>
                   <span className="mx-1 text-text-subtle">·</span>
                   <span className="truncate">{event.company}</span>
                 </span>
-                <span className="text-text-subtle tabular-nums">{event.date}</span>
+                <span className="jobs-calendar-date text-text-subtle tabular-nums">{event.date}</span>
               </Link>
             ))}
           </div>

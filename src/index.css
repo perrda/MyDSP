@@ -2602,7 +2602,7 @@ html.a11y-reduce-motion *::after {
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     box-shadow: 0 -4px 24px color-mix(in srgb, var(--bg) 40%, transparent);
-    /* Cap height so a runaway wrap never covers the whole viewport */
+    /* sync-trust-density-qa: cap tall phone thumb clusters without hiding actions */
     max-height: min(40dvh, 12rem);
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
@@ -2646,6 +2646,24 @@ html.a11y-reduce-motion *::after {
 @media (orientation: landscape) and (max-height: 500px) {
   .thumb-cta-bar-spacer {
     display: block;
+  }
+  /* sync-trust-density-qa: short landscape thumb CTAs must not wrap into 40dvh. */
+  .thumb-cta-bar {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    max-height: 3.5rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+  .thumb-cta-bar::-webkit-scrollbar {
+    display: none;
+  }
+  .thumb-cta-bar > button,
+  .thumb-cta-bar > a,
+  .thumb-cta-bar > span {
+    flex: 0 0 auto;
+    white-space: nowrap;
   }
 }
 
@@ -3004,6 +3022,118 @@ html.success-haptic-flash::after {
 .today-prices-trust {
   max-width: 100%;
 }
+/* sync-trust-density-qa: Today section jumps scroll horizontally on all phones. */
+@media (max-width: 639px) {
+  .today-section-jump-chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .today-section-jump-chips::-webkit-scrollbar {
+    display: none;
+  }
+  .today-section-jump-chip {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+  .today-daily-plan-row:nth-child(n + 6) {
+    display: none;
+  }
+  .today-daily-plan-see-all {
+    display: inline-flex;
+  }
+}
+@media (min-width: 640px) {
+  .today-daily-plan-see-all {
+    display: none;
+  }
+}
+
+/* sync-trust-density-qa: dense short landscape filters trade stickiness for usable height. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .markets-sticky-filters,
+  .todos-sticky-filters {
+    position: static;
+    top: auto;
+  }
+  .todos-day-view {
+    gap: 0.5rem;
+  }
+  .todos-day-view__segment {
+    padding: 0.625rem;
+  }
+  .todos-day-view__items {
+    gap: 0.5rem;
+  }
+}
+@media (min-width: 900px) and (orientation: landscape) {
+  .todos-day-view {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+}
+
+/* sync-trust-density-qa: Jobs mini-calendar stacks under phone width. */
+@media (max-width: 639px) {
+  .jobs-calendar-row {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.2rem;
+    align-items: start;
+  }
+  .jobs-calendar-day,
+  .jobs-calendar-company,
+  .jobs-calendar-date {
+    min-width: 0;
+  }
+  .jobs-calendar-company {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.15rem;
+  }
+  .jobs-calendar-date {
+    grid-column: 1 / -1;
+  }
+}
+
+/* sync-trust-density-qa: YouTube filters/status/detail fit phone and short landscape. */
+@media (max-width: 639px) {
+  .youtube-folder-filters {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .youtube-folder-filters::-webkit-scrollbar {
+    display: none;
+  }
+  .youtube-folder-filters > * {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+  .youtube-status-absolute-date {
+    display: none;
+  }
+}
+.youtube-master-detail-panel {
+  max-height: calc(100dvh - var(--app-header-offset, 3.5rem) - 1rem);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  .youtube-detail-thumbnail--with-embed {
+    display: none;
+  }
+  .youtube-unlock-sync-banner {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+  .youtube-unlock-sync-banner .btn-secondary {
+    min-height: 2.25rem;
+    margin-top: 0.35rem;
+  }
+}
 .jobs-kanban-jump-chips {
   position: sticky;
   top: var(--app-header-offset, 3.5rem);
@@ -3166,6 +3296,15 @@ html.success-haptic-flash::after {
     top: calc(
       var(--app-header-offset, 3.5rem) + var(--markets-toolbar-height, 7.5rem) + 0.15rem
     );
+  }
+}
+
+/* sync-trust-density-qa: final short-landscape override wins after sticky declarations. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .markets-sticky-filters,
+  .todos-sticky-filters {
+    position: static;
+    top: auto;
   }
 }
 
