@@ -194,6 +194,7 @@ type TodayLayoutPrefs = { hiddenCards: TodayCardId[] }
 const TODAY_LAYOUT_CARD_IDS = new Set<TodayCardId>(
   TODAY_LAYOUT_CARD_OPTIONS.map((option) => option.id),
 )
+const DAILY_PLAN_PHONE_VISIBLE_ROWS = 5
 
 function readTodayLayoutPrefs(): TodayLayoutPrefs {
   try {
@@ -661,6 +662,7 @@ export function Dashboard() {
 
   const syncCfg = loadSyncConfig()
   const syncEnabled = Boolean(syncCfg.enabled && syncCfg.remoteUrl.trim())
+  const needsSyncUnlock = syncEnabled && syncStatus.state === 'needs-passphrase'
 
   const [backupDismissTick, setBackupDismissTick] = useState(0)
   const showBackupNudge = useMemo(() => {
@@ -1290,8 +1292,10 @@ export function Dashboard() {
       }
     }
 
-    return rows.sort((a, b) => a.sortKey.localeCompare(b.sortKey)).slice(0, 8)
+    return rows.sort((a, b) => a.sortKey.localeCompare(b.sortKey))
   }, [billsDueSoon, data.jobApplications, data.todoItems])
+  const todayDailyPlanHasPhoneOverflow =
+    todayDailyPlan.length > DAILY_PLAN_PHONE_VISIBLE_ROWS
   /** Hide longer bills strip when next bill already sits in the action stack. */
   const showBillsStrip = billsDueSoon.length > 1 && stackIncludesBill(nextActions)
     ? billsDueSoon.slice(1)
@@ -1331,6 +1335,8 @@ export function Dashboard() {
 
   const syncLine = !syncEnabled
     ? 'Cloud sync off — enable in Settings'
+    : syncStatus.state === 'needs-passphrase'
+      ? 'Cloud sync locked — unlock in Settings'
     : syncStatus.state === 'pulling' || syncStatus.state === 'pushing'
       ? syncStatus.state === 'pulling'
         ? 'Syncing from other devices…'
@@ -1744,26 +1750,36 @@ export function Dashboard() {
           >
             <ul className="divide-y divide-border/70">
               {todayDailyPlan.map((item) => (
-                <li
-                  key={item.id}
-                  className="py-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2"
-                >
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold truncate">{item.label}</p>
-                    <p
-                      className={`text-xs text-text-muted tabular-nums ${
-                        item.privateAmount ? privacyClass(privacy) : ''
-                      }`}
-                    >
-                      {item.when}
-                    </p>
-                  </div>
-                  <Link to={item.to} className="btn-ghost btn-sm self-start sm:self-center">
-                    Open
+                <li key={item.id} className="today-daily-plan-row">
+                  <Link
+                    to={item.to}
+                    className="py-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 hover:bg-surface-hover/50 -mx-2 px-2 transition-colors"
+                  >
+                    <span className="min-w-0">
+                      <span className="block text-sm font-semibold truncate">{item.label}</span>
+                      <span
+                        className={`block text-xs text-text-muted tabular-nums ${
+                          item.privateAmount ? privacyClass(privacy) : ''
+                        }`}
+                      >
+                        {item.when}
+                      </span>
+                    </span>
+                    <span className="btn-ghost btn-sm hidden sm:inline-flex self-start sm:self-center">
+                      Open
+                    </span>
                   </Link>
                 </li>
               ))}
             </ul>
+            {todayDailyPlanHasPhoneOverflow ? (
+              <Link
+                to="/todos"
+                className="today-daily-plan-see-all mt-2 text-xs font-semibold text-accent hover:underline"
+              >
+                See all {todayDailyPlan.length} items
+              </Link>
+            ) : null}
           </div>
         </TodayAccordionSection>
       ) : null}
@@ -2355,6 +2371,15 @@ export function Dashboard() {
               Alert · {todayPriceAlerts[0].title}
             </Link>
           </p>
+        ) : null}
+        {needsSyncUnlock ? (
+          <Link
+            to="/settings#sync"
+            className="today-unlock-sync-nudge mb-3 inline-flex items-center gap-1.5 border border-amber-500/45 bg-amber-500/10 px-2.5 py-1.5 text-xs font-medium text-amber-800 hover:underline dark:text-amber-200"
+            data-testid="today-unlock-sync-nudge"
+          >
+            Unlock sync to pull media and favourites →
+          </Link>
         ) : null}
         <div className="flex flex-wrap items-center gap-3">
           <Link
