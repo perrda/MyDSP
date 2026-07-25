@@ -112,6 +112,10 @@ import {
   type MergePreview,
 } from '../services/sync/syncService'
 import {
+  summarizeWorkspaceExtras,
+  workspaceExtrasFlagsFromPreview,
+} from '../services/sync/syncHighlights'
+import {
   clearBiometricCred,
   getBiometricLabel,
   hashPin,
@@ -534,6 +538,50 @@ export function SettingsPage() {
     setMessage(msg)
     if (isSyncTradeBackupSuccess(msg)) triggerSuccessFlash()
     window.setTimeout(() => setMessage(null), 5000)
+  }
+
+  const currentSyncPassphrase = () => syncPass || getSessionSyncPassphrase() || ''
+
+  const pullWorkspaceMediaFromCloud = async () => {
+    const passphrase = currentSyncPassphrase()
+    if (!syncCfg.remoteUrl.trim()) {
+      flash('Set Remote URL before pulling media from cloud.')
+      return
+    }
+    if (!passphrase) {
+      flash('Enter your sync passphrase first, then pull media from cloud.')
+      return
+    }
+    if (passphrase.length < 8) {
+      flash('Use a passphrase of at least 8 characters.')
+      return
+    }
+    try {
+      setSessionSyncPassphrase(passphrase, {
+        remember: Boolean(syncCfg.rememberPassphrase),
+      })
+      const preview = await previewPull(syncCfg.remoteUrl, passphrase)
+      setPendingMerge(preview)
+      setConflicts(preview.conflicts)
+      setConflictChoices({})
+      await applyWorkspaceExtrasFromPreview(preview)
+      const extrasSummary = summarizeWorkspaceExtras(
+        workspaceExtrasFlagsFromPreview(preview.workspaceExtras),
+      )
+      const next = loadSyncConfig()
+      setSyncCfg(next)
+      const prefix =
+        autoSyncStatus.state === 'needs-passphrase'
+          ? 'Unlocked sync and pulled media from cloud'
+          : 'Pulled media from cloud'
+      const conflictNote =
+        preview.conflicts.length > 0
+          ? ` · review ${preview.conflicts.length} portfolio conflict(s) before merging portfolios`
+          : ''
+      flash(`${prefix}${extrasSummary ? ` · ${extrasSummary}` : ''}${conflictNote}.`)
+    } catch (e) {
+      flash(e instanceof Error ? e.message : 'Media pull failed')
+    }
   }
 
   const persistSecurity = (next: SecurityState) => {
@@ -1160,6 +1208,21 @@ export function SettingsPage() {
               </div>
             )
           })()}
+          {autoSyncStatus.state === 'needs-passphrase' ? (
+            <div
+              className="sync-unlock-onboarding mb-4 max-w-2xl border border-amber-500/45 bg-amber-500/10 px-4 py-3 text-sm text-amber-900 dark:text-amber-100"
+              role="status"
+              aria-live="polite"
+              data-testid="sync-unlock-onboarding"
+            >
+              <p className="font-semibold text-text mb-1">Cloud sync is locked on this device</p>
+              <p className="text-xs opacity-90 leading-relaxed">
+                Markets live prices still work. Enter the same sync passphrase you used on your other
+                device, turn on Remember passphrase for this browser, then pull media from cloud so
+                YouTube, News, Markets, and favourites arrive here.
+              </p>
+            </div>
+          ) : null}
           <div className="flex flex-col gap-3 mb-6 max-w-2xl">
             <label className="flex items-start gap-3 cursor-pointer">
               <input
@@ -1462,6 +1525,14 @@ export function SettingsPage() {
                     ? ` · auto ${new Date(autoSyncStatus.lastAt).toLocaleString('en-GB')}`
                     : ''}
                 </li>
+                <li data-testid="sync-last-media-at">
+                  Last media / favourites sync:{' '}
+                  <span className="text-text font-medium">
+                    {syncCfg.lastWorkspaceExtrasSyncAt
+                      ? new Date(syncCfg.lastWorkspaceExtrasSyncAt).toLocaleString('en-GB')
+                      : 'Never'}
+                  </span>
+                </li>
                 <li>
                   Remote blob:{' '}
                   <span className="text-text font-medium">
@@ -1658,23 +1729,39 @@ export function SettingsPage() {
             </button>
             <button
               type="button"
+              className="btn-primary"
+              data-testid="sync-pull-media"
+              onClick={() => {
+                void pullWorkspaceMediaFromCloud()
+              }}
+            >
+              {autoSyncStatus.state === 'needs-passphrase'
+                ? 'Unlock & pull media from cloud'
+                : 'Pull media from cloud'}
+            </button>
+            <button
+              type="button"
               className="btn-secondary"
               onClick={() => {
                 void (async () => {
-                  if (!syncPass || !syncCfg.remoteUrl) {
+                  const passphrase = currentSyncPassphrase()
+                  if (!passphrase || !syncCfg.remoteUrl) {
                     flash('Need remote URL and passphrase.')
                     return
                   }
                   try {
-                    const preview = await previewPull(syncCfg.remoteUrl, syncPass)
+                    const preview = await previewPull(syncCfg.remoteUrl, passphrase)
                     setPendingMerge(preview)
                     setConflicts(preview.conflicts)
                     setSyncCfg(loadSyncConfig())
                     // Media / Favourites extras must apply even when portfolio conflicts need review.
                     await applyWorkspaceExtrasFromPreview(preview)
+                    const extrasSummary = summarizeWorkspaceExtras(
+                      workspaceExtrasFlagsFromPreview(preview.workspaceExtras),
+                    )
                     if (preview.conflicts.length > 0) {
                       flash(
-                        `YouTube/News/Markets pulled · review ${preview.conflicts.length} portfolio conflict(s) — pick Keep local/remote, then Apply merge.`,
+                        `YouTube/News/Markets pulled${extrasSummary ? ` · ${extrasSummary}` : ''} · review ${preview.conflicts.length} portfolio conflict(s) — pick Keep local/remote, then Apply merge.`,
                       )
                     } else {
                       const r = await applyMergePreview(preview, {})
@@ -1691,6 +1778,7 @@ export function SettingsPage() {
                         lastRemoteExportedAt: stats.lastRemoteExportedAt,
                         lastRemoteBlobBytes: stats.lastRemoteBlobBytes,
                         lastPullBytes: stats.lastPullBytes,
+                        lastWorkspaceExtrasSyncAt: stats.lastWorkspaceExtrasSyncAt,
                       }
                       setSyncCfg(next)
                       saveSyncConfig(next)
@@ -1702,7 +1790,11 @@ export function SettingsPage() {
                         r.removedDupes > 0 || preview.remoteHadDuplicateNames
                           ? ' · cleaned duplicate names'
                           : ''
-                      flash(`Pulled & merged ${r.merged} portfolios${blobNote}${cleaned}.`)
+                      flash(
+                        `Pulled & merged ${r.merged} portfolios${blobNote}${cleaned}${
+                          extrasSummary ? ` · ${extrasSummary}` : ''
+                        }.`,
+                      )
                       if (r.removedDupes > 0 || preview.remoteHadDuplicateNames) {
                         void syncNow().catch(() => {
                           /* local already cleaned */
@@ -1822,6 +1914,7 @@ export function SettingsPage() {
                       lastRemoteExportedAt: stats.lastRemoteExportedAt,
                       lastRemoteBlobBytes: stats.lastRemoteBlobBytes,
                       lastPullBytes: stats.lastPullBytes,
+                      lastWorkspaceExtrasSyncAt: stats.lastWorkspaceExtrasSyncAt,
                     }
                     setSyncCfg(next)
                     saveSyncConfig(next)
@@ -1890,11 +1983,13 @@ export function SettingsPage() {
                       setPendingMerge(null)
                       setConflictChoices({})
                       setConflicts([])
+                      const stats = loadSyncConfig()
                       const next = {
                         ...syncCfg,
                         lastMergeCount: r.merged,
                         lastSyncAt: new Date().toISOString(),
                         lastSyncError: undefined,
+                        lastWorkspaceExtrasSyncAt: stats.lastWorkspaceExtrasSyncAt,
                       }
                       setSyncCfg(next)
                       saveSyncConfig(next)

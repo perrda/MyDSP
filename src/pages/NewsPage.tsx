@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import {
   ArrowUpDown,
   ChevronDown,
@@ -17,6 +17,12 @@ import { useToasts } from '../components/ToastProvider'
 import type { NewsArticle, NewsTag } from '../domain/news'
 import { refreshNewsFeeds } from '../services/mediaRefresh'
 import { isOnline } from '../services/offlineQueue'
+import {
+  getAutoSyncStatus,
+  subscribeAutoSync,
+  type AutoSyncStatus,
+} from '../services/sync/autoSyncService'
+import { loadSyncConfig } from '../services/sync/syncService'
 import {
   addNewsTag,
   getSavedNewsArticles,
@@ -158,6 +164,12 @@ function ArticleRow({
 
 export function NewsPage() {
   const { showToast } = useToasts()
+  const [syncStatus, setSyncStatus] = useState<AutoSyncStatus>(() => getAutoSyncStatus())
+  const [syncConfigured, setSyncConfigured] = useState(() => {
+    const cfg = loadSyncConfig()
+    return Boolean(cfg.enabled && cfg.remoteUrl.trim())
+  })
+  const needsSyncUnlock = syncConfigured && syncStatus.state === 'needs-passphrase'
   const [cachedArticles] = useState(loadNewsArticlesCache)
   const [tags, setTags] = useState(() => listNewsTags())
   const [collapsed, setCollapsed] = useState(() => loadNewsState().collapsed)
@@ -193,6 +205,14 @@ export function NewsPage() {
   useEffect(() => {
     const id = window.setInterval(() => setRelativeTick((n) => n + 1), 30_000)
     return () => window.clearInterval(id)
+  }, [])
+
+  useEffect(() => {
+    return subscribeAutoSync((s) => {
+      setSyncStatus(s)
+      const cfg = loadSyncConfig()
+      setSyncConfigured(Boolean(cfg.enabled && cfg.remoteUrl.trim()))
+    })
   }, [])
 
   const applyCacheToState = useCallback(() => {
@@ -500,6 +520,24 @@ export function NewsPage() {
           </button>
         ) : null}
       </p>
+
+      {needsSyncUnlock ? (
+        <div
+          className="news-unlock-sync-banner mb-4 px-3 py-2.5 text-sm border border-amber-500/45 bg-amber-500/10 text-amber-900 dark:text-amber-100 rounded-lg md:rounded-none"
+          role="status"
+          aria-live="polite"
+          data-testid="news-unlock-sync-banner"
+        >
+          <p className="font-semibold">Unlock sync to pull saved tickers and headlines</p>
+          <p className="text-xs mt-0.5 opacity-90">
+            Cloud sync is waiting for your passphrase. News tags and last-good headlines from your
+            iPad / other devices stay encrypted until you unlock sync in Settings.
+          </p>
+          <Link to="/settings#sync" className="btn-secondary btn-sm mt-2 inline-flex min-h-11">
+            Unlock in Settings → Sync
+          </Link>
+        </div>
+      ) : null}
 
       {cachedMode ? (
         <div

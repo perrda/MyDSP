@@ -661,6 +661,7 @@ export function Dashboard() {
 
   const syncCfg = loadSyncConfig()
   const syncEnabled = Boolean(syncCfg.enabled && syncCfg.remoteUrl.trim())
+  const needsSyncUnlock = syncEnabled && syncStatus.state === 'needs-passphrase'
 
   const [backupDismissTick, setBackupDismissTick] = useState(0)
   const showBackupNudge = useMemo(() => {
@@ -1331,6 +1332,8 @@ export function Dashboard() {
 
   const syncLine = !syncEnabled
     ? 'Cloud sync off — enable in Settings'
+    : syncStatus.state === 'needs-passphrase'
+      ? 'Cloud sync locked — unlock in Settings'
     : syncStatus.state === 'pulling' || syncStatus.state === 'pushing'
       ? syncStatus.state === 'pulling'
         ? 'Syncing from other devices…'
@@ -2355,6 +2358,15 @@ export function Dashboard() {
               Alert · {todayPriceAlerts[0].title}
             </Link>
           </p>
+        ) : null}
+        {needsSyncUnlock ? (
+          <Link
+            to="/settings#sync"
+            className="today-unlock-sync-nudge mb-3 inline-flex items-center gap-1.5 border border-amber-500/45 bg-amber-500/10 px-2.5 py-1.5 text-xs font-medium text-amber-800 hover:underline dark:text-amber-200"
+            data-testid="today-unlock-sync-nudge"
+          >
+            Unlock sync to pull media and favourites →
+          </Link>
         ) : null}
         <div className="flex flex-wrap items-center gap-3">
           <Link
