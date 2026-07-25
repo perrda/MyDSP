@@ -2961,7 +2961,7 @@ html.success-haptic-flash::after {
 @media (min-width: 900px) and (orientation: landscape) {
   .jobs-list-kanban-split {
     display: grid;
-    grid-template-columns: minmax(15rem, 20rem) minmax(0, 1fr);
+    grid-template-columns: minmax(12rem, 16rem) minmax(0, 1fr);
     gap: 1rem;
     align-items: start;
   }
@@ -2976,6 +2976,29 @@ html.success-haptic-flash::after {
   .jobs-list-kanban-split__kanban {
     min-width: 0;
   }
+}
+
+/* Dedicated List view — company / stage / location / applied / actions */
+.jobs-list-view__head,
+.jobs-list-row__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2.2fr) minmax(7.5rem, 0.9fr) minmax(0, 1fr) minmax(5.5rem, 0.8fr) auto;
+  gap: 0.75rem;
+  align-items: start;
+}
+@media (max-width: 767px) {
+  .jobs-list-row__grid {
+    grid-template-columns: minmax(0, 1fr) minmax(6.5rem, auto);
+  }
+  .jobs-list-row__grid > :nth-child(n + 3) {
+    grid-column: 1 / -1;
+  }
+  .jobs-list-row__grid > :last-child {
+    justify-content: flex-start;
+  }
+}
+.jobs-quick-scan-row {
+  border: 1px solid var(--border);
 }
 
 
