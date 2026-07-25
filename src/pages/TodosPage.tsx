@@ -1184,22 +1184,25 @@ export function TodosPage() {
 
           {viewMode === 'day' ? (
             <section
-              className="space-y-3"
+              className="todos-day-view space-y-2 sm:space-y-3"
               data-testid="todos-day-view"
               aria-label="Today's To Do time blocks"
             >
               {TODO_DAY_SEGMENTS.map((segment) => {
                 const items = dayGroups.get(segment) ?? []
                 return (
-                  <div key={segment} className="surface p-3 sm:p-4 rounded-xl md:rounded-none">
-                    <div className="mb-3 flex items-center justify-between gap-2">
+                  <div
+                    key={segment}
+                    className="todos-day-view__segment surface p-2.5 sm:p-4 rounded-xl md:rounded-none"
+                  >
+                    <div className="mb-2 sm:mb-3 flex items-center justify-between gap-2">
                       <h3 className="font-bold">{segment}</h3>
                       <span className="text-xs text-text-subtle">{items.length} task{items.length === 1 ? '' : 's'}</span>
                     </div>
                     {items.length === 0 ? (
                       <p className="text-sm text-text-subtle">No tasks due in this block today.</p>
                     ) : (
-                      <div className="space-y-3">
+                      <div className="todos-day-view__items space-y-2 sm:space-y-3">
                         {items.map((item) => (
                           <TodoItemCard
                             key={item.id}

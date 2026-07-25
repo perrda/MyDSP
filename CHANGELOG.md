@@ -9,6 +9,15 @@
 - **CSS policy** hides legacy `.thumb-cta-bar` globally; cursor rule `mobile-content-first-chrome.mdc` encodes the owner preference
 - **Money ops**: Spending / Budgets / Recurring / Tax / Optimizer creates and exports use header chrome so the ledger/list owns the viewport
 
+## [1.2.107] - 2026-07-25
+
+### Improved — Sync trust + Favourites density QA
+- **Sync unlock onboarding** when passphrase is needed (Settings → Sync) with clear “Markets still work / enter passphrase” copy
+- **Pull media from cloud** one-tap CTA after unlock — applies YouTube / News / Markets workspace extras
+- **Last media / favourites sync** timestamp in Sync health
+- **News + Today** unlock nudges when sync is locked (alongside existing YouTube banner)
+- **Density QA:** short-landscape single-row thumb CTAs · Markets slim Add-only thumb · Today jump chips scroll on phone · daily plan tappable rows (cap 5) · Todos/Jobs sticky filters unstick in short landscape · Jobs calendar phone stacking · YouTube folder scroll + compact status/detail
+
 ## [1.2.106] - 2026-07-25
 
 ### Added — Favourites phase 2 follow-ups (all 10 sections) + YouTube Shorts filter

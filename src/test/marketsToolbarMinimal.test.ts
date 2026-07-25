@@ -10,10 +10,10 @@ describe('Markets minimal toolbar · seg buttons (v1.2.94)', () => {
     expect(RELEASE_NOTES[0]?.version).toBe('1.2.108')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
       '1.2.108',
+      '1.2.107',
       '1.2.106',
       '1.2.105',
       '1.2.104',
-      '1.2.103',
     ])
   })
 

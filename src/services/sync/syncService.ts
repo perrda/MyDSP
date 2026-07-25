@@ -61,6 +61,8 @@ export interface SyncConfig {
   lastSyncError?: string
   /** Portfolios merged on the last successful pull */
   lastMergeCount?: number
+  /** Last successful media / favourites extras apply from encrypted workspace archive */
+  lastWorkspaceExtrasSyncAt?: string
   /** Last applied remote envelope exportedAt (skip re-pull of same blob) */
   lastRemoteExportedAt?: string
   /** Approx encrypted remote envelope size from meta/header/push body. */
@@ -349,6 +351,10 @@ export function loadSyncConfig(): SyncConfig {
       lastSyncError: parsed.lastSyncError,
       lastMergeCount:
         typeof parsed.lastMergeCount === 'number' ? parsed.lastMergeCount : undefined,
+      lastWorkspaceExtrasSyncAt:
+        typeof parsed.lastWorkspaceExtrasSyncAt === 'string'
+          ? parsed.lastWorkspaceExtrasSyncAt
+          : undefined,
       lastRemoteExportedAt:
         typeof parsed.lastRemoteExportedAt === 'string' ? parsed.lastRemoteExportedAt : undefined,
       lastRemoteBlobBytes: optionalFiniteNumber(parsed.lastRemoteBlobBytes),
@@ -863,6 +869,15 @@ export async function previewImport(file: File, passphrase: string): Promise<Mer
 export async function applyWorkspaceExtrasFromPreview(
   preview: MergePreview,
 ): Promise<void> {
+  const shouldStampMediaSync = Boolean(
+    preview.workspaceExtras?.markets != null ||
+      preview.workspaceExtras?.marketQuotes != null ||
+      preview.workspaceExtras?.news != null ||
+      preview.workspaceExtras?.newsArticles != null ||
+      preview.workspaceExtras?.youtube != null ||
+      preview.workspaceExtras?.youtubeVideos != null ||
+      preview.workspaceExtras?.navLayout != null,
+  )
   if (preview.workspaceExtras?.navLayout != null) {
     importNavLayoutFromBackup(preview.workspaceExtras.navLayout)
   }
@@ -1029,6 +1044,9 @@ export async function applyWorkspaceExtrasFromPreview(
       '../../domain/notificationSettingsPref'
     )
     importNotificationSettingsFromBackup(preview.workspaceExtras.notificationSettings)
+  }
+  if (shouldStampMediaSync) {
+    rememberSyncPayloadStats({ lastWorkspaceExtrasSyncAt: new Date().toISOString() })
   }
 }
 

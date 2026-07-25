@@ -354,7 +354,7 @@ export function YouTubePage() {
         }
       />
 
-      <p
+      <div
         className="youtube-sticky-status youtube-status-strip text-xs text-text-subtle mb-4 flex flex-wrap items-center gap-2 min-h-9"
         data-testid="youtube-sticky-status"
       >
@@ -363,7 +363,19 @@ export function YouTubePage() {
           {refreshing
             ? ' · Updating…'
             : lastAt
-              ? ` · Updated ${formatRelative(lastAt)}${relativeTick >= 0 ? '' : ''} · ${formatDateTime(lastAt)}`
+              ? (
+                  <>
+                    {' · Updated '}
+                    <span className="youtube-status-relative">
+                      {formatRelative(lastAt)}
+                      {relativeTick >= 0 ? '' : ''}
+                    </span>
+                    <span className="youtube-status-absolute-date">
+                      {' · '}
+                      {formatDateTime(lastAt)}
+                    </span>
+                  </>
+                )
               : ''}
           {error && !cachedMode ? ` · ${error}` : ''}
         </span>
@@ -377,7 +389,7 @@ export function YouTubePage() {
             Mark all read
           </button>
         ) : null}
-      </p>
+      </div>
 
       {cachedMode ? (
         <div
@@ -680,7 +692,9 @@ export function YouTubePage() {
               <img
                 src={selectedVideo.thumbnailUrl}
                 alt=""
-                className="w-full aspect-video object-cover rounded-md mb-3 bg-surface-hover"
+                className={`youtube-detail-thumbnail w-full aspect-video object-cover rounded-md mb-3 bg-surface-hover${
+                  selectedVideoId ? ' youtube-detail-thumbnail--with-embed' : ''
+                }`}
               />
             ) : null}
             {selectedVideoId ? (

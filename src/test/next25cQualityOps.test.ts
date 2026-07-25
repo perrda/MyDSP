@@ -56,10 +56,10 @@ describe('next25c quality / ops (21–25)', () => {
     expect(releaseNotesArchive(5)).toHaveLength(5)
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
       '1.2.108',
+      '1.2.107',
       '1.2.106',
       '1.2.105',
       '1.2.104',
-      '1.2.103',
     ])
 
 

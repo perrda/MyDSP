@@ -5,6 +5,7 @@
 ## Completed (through v1.2.108)
 
 - Mobile content-first chrome + Money ops header creates (v1.2.108): retire fixed bottom New/Add bars · PagePrimaryActions (header + ⋯) · Markets status chrome · Spending/Budgets/Recurring/Tax/Optimizer/Liabilities/Todos/Jobs
+- Sync trust + Favourites density QA (v1.2.107): unlock onboarding · pull media CTA · last media sync timestamp · News/Today unlock nudges · short-landscape slim thumbs · phone scroll chips · calendar/day-view density
 - Favourites phase 2 follow-ups (v1.2.106): Daily plan + career pulse · liability ledger/strategies/settlement · Markets screener + alert modes · Jobs calendar/offer compare/ingest · Todos subtasks/Day view · Equities dividends/lots/CSV · Crypto transfers/staking stub · Analytics scenarios/projections · News save + images · YouTube Shorts filter + embed + folders + relevance
 - YouTube Shorts filter (v1.2.105): full-length videos only across feed/cache/sync/alerts · finance “shorts” titles kept
 - YouTube / News cross-device sync (v1.2.104): unlock-passphrase banner · Pull applies media during portfolio conflicts · tombstone recency so re-adds sync

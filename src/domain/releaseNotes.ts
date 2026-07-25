@@ -47,6 +47,24 @@ export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
     ],
   },
   {
+    version: '1.2.107',
+    date: '2026-07-25',
+    bullets: [
+      {
+        text: 'Sync trust: unlock onboarding + pull media from cloud',
+        to: '/settings#sync',
+      },
+      {
+        text: 'Last media / favourites sync timestamp in Settings',
+        to: '/settings#sync',
+      },
+      {
+        text: 'Favourites density QA — slim thumbs, scroll chips, landscape',
+        to: '/',
+      },
+    ],
+  },
+  {
     version: '1.2.106',
     date: '2026-07-25',
     bullets: [
