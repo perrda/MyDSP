@@ -28,6 +28,7 @@ import {
 import type {
   CryptoHolding,
   EquityHolding,
+  EquityAccountType,
   JournalEntry,
   ProgressCommentary,
   RagStatus,
@@ -38,6 +39,13 @@ import { formatDate, formatDateTime, formatGBP, formatGBPPrecise, formatPct, for
 
 function normPortfolioSymbol(symbol: string): string {
   return symbol.trim().toUpperCase().replace(/^\^/, '')
+}
+
+function accountTypeLabel(accountType?: EquityAccountType): string {
+  if (accountType === 'isa') return 'ISA'
+  if (accountType === 'sipp') return 'SIPP'
+  if (accountType === 'other') return 'Other'
+  return 'General'
 }
 
 async function shareHoldingSummaryLine(text: string): Promise<'shared' | 'copied' | 'cancelled' | 'unavailable'> {
@@ -86,7 +94,19 @@ export function HoldingDetailPage() {
   const [corpActionDateDraft, setCorpActionDateDraft] = useState('')
   const [corpNoteOpen, setCorpNoteOpen] = useState(false)
   const [metaOpen, setMetaOpen] = useState(false)
-  const [meta, setMeta] = useState({ platform: '', contactUrl: '' })
+  const [meta, setMeta] = useState<{
+    platform: string
+    contactUrl: string
+    chain: string
+    accountType: EquityAccountType
+    includeInPortfolio: boolean
+  }>({
+    platform: '',
+    contactUrl: '',
+    chain: '',
+    accountType: 'general',
+    includeInPortfolio: true,
+  })
   const [tradeOpen, setTradeOpen] = useState(false)
   const [tradeSide, setTradeSide] = useState<'buy' | 'sell'>('buy')
   const [historyOpen, setHistoryOpen] = useState(false)
@@ -280,7 +300,13 @@ export function HoldingDetailPage() {
                 id: 'meta',
                 label: 'Platform / URL',
                 onClick: () => {
-                  setMeta({ platform: item.platform ?? '', contactUrl: item.contactUrl ?? '' })
+                  setMeta({
+                    platform: item.platform ?? '',
+                    contactUrl: item.contactUrl ?? '',
+                    chain: isCrypto ? crypto?.chain ?? '' : '',
+                    accountType: equity?.accountType ?? 'general',
+                    includeInPortfolio: item.includeInPortfolio !== false,
+                  })
                   setMetaOpen(true)
                 },
               },
@@ -358,6 +384,9 @@ export function HoldingDetailPage() {
           <p className="mt-2 text-sm text-text-muted tabular-nums">
             Dividend yield {yieldPct.toFixed(yieldPct >= 10 ? 1 : 2)}%
           </p>
+        ) : null}
+        {isCrypto && crypto?.chain ? (
+          <p className="mt-2 text-sm text-text-muted">Chain {crypto.chain}</p>
         ) : null}
         {!isCrypto && equity?.corporateActionNote ? (
           <p className="mt-2 text-sm text-amber-700 dark:text-amber-300">
@@ -499,7 +528,8 @@ export function HoldingDetailPage() {
             buys and sells with specific dates.
           </p>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm min-w-[640px]">
               <thead>
                 <tr className="border-b border-border text-left text-[10px] uppercase tracking-widest text-text-subtle">
@@ -555,6 +585,61 @@ export function HoldingDetailPage() {
               </tbody>
             </table>
           </div>
+          <div className="md:hidden space-y-3">
+            {trades.map((t) => (
+              <article key={t.id} className="surface-nested border border-border p-4">
+                <div className="mb-3 flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs tabular-nums text-text-muted">{formatDate(t.date)}</p>
+                    <span className="mt-1 inline-block bg-accent/10 text-accent text-[10px] font-bold uppercase tracking-widest px-2 py-0.5">
+                      {t.type}
+                    </span>
+                  </div>
+                  <p className={`text-sm font-semibold tabular-nums ${privacyClass(privacy)}`}>
+                    {formatGBP(t.total)}
+                  </p>
+                </div>
+                <dl className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <dt className="text-[10px] uppercase tracking-wider text-text-subtle">Qty</dt>
+                    <dd className="tabular-nums">{formatQty(t.qty)}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-[10px] uppercase tracking-wider text-text-subtle">Price</dt>
+                    <dd className={`tabular-nums ${privacyClass(privacy)}`}>{formatGBPPrecise(t.price)}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-[10px] uppercase tracking-wider text-text-subtle">Fees</dt>
+                    <dd className={`tabular-nums ${privacyClass(privacy)}`}>{formatGBPPrecise(t.fees)}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-[10px] uppercase tracking-wider text-text-subtle">Total</dt>
+                    <dd className={`font-semibold tabular-nums ${privacyClass(privacy)}`}>{formatGBP(t.total)}</dd>
+                  </div>
+                </dl>
+                <div className="mt-4 flex flex-wrap justify-end gap-2">
+                  <button
+                    type="button"
+                    className="btn-ghost btn-sm"
+                    onClick={() => {
+                      setEditingTrade(t)
+                      setTradeOpen(true)
+                    }}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-ghost btn-sm"
+                    onClick={() => setDeleteTradeId(t.id)}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+          </>
         )}
       </div>
 
@@ -736,7 +821,9 @@ export function HoldingDetailPage() {
 
       <section className="surface p-5 sm:p-8 mb-6">
         <p className="label-uppercase mb-3">Links</p>
+        {!isCrypto && <p className="text-sm mb-2">Account: {accountTypeLabel(equity?.accountType)}</p>}
         {item.platform && <p className="text-sm mb-2">Platform: {item.platform}</p>}
+        {isCrypto && crypto?.chain ? <p className="text-sm mb-2">Chain: {crypto.chain}</p> : null}
         {item.contactUrl ? (
           <a
             href={item.contactUrl.startsWith('http') ? item.contactUrl : `https://${item.contactUrl}`}
@@ -760,18 +847,43 @@ export function HoldingDetailPage() {
         </button>
       </section>
 
-      <Modal open={metaOpen} size="full" title="Platform / URL" onClose={() => setMetaOpen(false)}>
+      <Modal open={metaOpen} size="full" title="Holding metadata" onClose={() => setMetaOpen(false)}>
         <form
           className="space-y-5"
           onSubmit={(e) => {
             e.preventDefault()
-            patch({
+            const next: Partial<CryptoHolding & EquityHolding> = {
               platform: meta.platform.trim() || undefined,
               contactUrl: meta.contactUrl.trim() || undefined,
-            })
+              includeInPortfolio: meta.includeInPortfolio,
+            }
+            if (isCrypto) next.chain = meta.chain.trim() || undefined
+            else next.accountType = meta.accountType === 'general' ? undefined : meta.accountType
+            patch(next)
             setMetaOpen(false)
           }}
         >
+          {!isCrypto ? (
+            <Field label="Account type">
+              <select
+                value={meta.accountType}
+                onChange={(e) => setMeta({ ...meta, accountType: e.target.value as EquityAccountType })}
+              >
+                <option value="general">General</option>
+                <option value="isa">ISA</option>
+                <option value="sipp">SIPP</option>
+                <option value="other">Other</option>
+              </select>
+            </Field>
+          ) : (
+            <Field label="Chain">
+              <input
+                value={meta.chain}
+                onChange={(e) => setMeta({ ...meta, chain: e.target.value })}
+                placeholder="Bitcoin, Ethereum, Solana"
+              />
+            </Field>
+          )}
           <Field label="Platform">
             <input
               value={meta.platform}
@@ -787,6 +899,14 @@ export function HoldingDetailPage() {
               placeholder="https://"
             />
           </Field>
+          <label className="flex items-center gap-2 text-sm text-text-muted">
+            <input
+              type="checkbox"
+              checked={meta.includeInPortfolio}
+              onChange={(e) => setMeta({ ...meta, includeInPortfolio: e.target.checked })}
+            />
+            Include in net worth
+          </label>
           <div className="flex justify-end gap-3">
             <button type="button" className="btn-ghost" onClick={() => setMetaOpen(false)}>
               Cancel

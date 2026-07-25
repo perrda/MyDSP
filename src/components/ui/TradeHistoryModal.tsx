@@ -299,7 +299,7 @@ export function TradeHistoryModal({
           </ul>
         )}
 
-        <div className="overflow-x-auto -mx-1">
+        <div className="hidden md:block overflow-x-auto -mx-1">
           <table className="w-full text-sm min-w-[640px]" aria-label={`${symbol} trade draft rows`}>
             <caption className="sr-only">
               Draft buy and sell rows for {symbol}. Edit cells, then save to update the journal.
@@ -416,6 +416,93 @@ export function TradeHistoryModal({
               ))}
             </tbody>
           </table>
+        </div>
+        <div className="md:hidden space-y-3" aria-label={`${symbol} trade draft rows`}>
+          {rows.map((r, index) => (
+            <div key={r.id} className="surface-nested border border-border p-4">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <p className="label-uppercase">Row {index + 1}</p>
+                <button
+                  type="button"
+                  className="btn-ghost btn-sm min-h-11 min-w-11"
+                  onClick={() => setRows((prev) => prev.filter((x) => x.id !== r.id))}
+                  disabled={rows.length <= 1}
+                  aria-label={`Remove row ${index + 1}`}
+                >
+                  <span aria-hidden>✕</span>
+                </button>
+              </div>
+              <div className="grid grid-cols-1 gap-3">
+                <Field label="Side">
+                  <select
+                    value={r.side}
+                    onChange={(e) => updateRow(r.id, { side: e.target.value as TradeSide })}
+                    aria-label={`Side for row ${index + 1}`}
+                  >
+                    <option value="buy">Buy</option>
+                    <option value="sell">Sell</option>
+                  </select>
+                </Field>
+                <Field label="Date">
+                  <input
+                    type="date"
+                    value={r.date}
+                    onChange={(e) => updateRow(r.id, { date: e.target.value })}
+                    aria-label={`Date for row ${index + 1}`}
+                  />
+                </Field>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Qty">
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={r.qty}
+                      onChange={(e) => updateRow(r.id, { qty: e.target.value })}
+                      aria-label={`Quantity for row ${index + 1}`}
+                    />
+                  </Field>
+                  <Field label="Fees">
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={r.fees}
+                      onChange={(e) => updateRow(r.id, { fees: e.target.value })}
+                      aria-label={`Fees for row ${index + 1}`}
+                    />
+                  </Field>
+                </div>
+                <Field label="Price">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      className="min-w-0 flex-1"
+                      value={r.price}
+                      onChange={(e) => updateRow(r.id, { price: e.target.value })}
+                      aria-label={`Price for row ${index + 1}`}
+                    />
+                    <button
+                      type="button"
+                      className="btn-ghost btn-sm shrink-0 min-h-11 min-w-11"
+                      title="Fill from market history"
+                      aria-label={`Fill price from market history for ${r.date || 'selected date'}`}
+                      onClick={() => void fillPrice(r)}
+                    >
+                      Px
+                    </button>
+                  </div>
+                </Field>
+                <Field label="Notes">
+                  <input
+                    type="text"
+                    value={r.notes}
+                    onChange={(e) => updateRow(r.id, { notes: e.target.value })}
+                    aria-label={`Notes for row ${index + 1}`}
+                  />
+                </Field>
+              </div>
+            </div>
+          ))}
         </div>
 
         <Field label="Tip">

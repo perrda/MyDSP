@@ -58,8 +58,9 @@ function normalizeCrypto(raw: unknown): CryptoHolding[] {
       sortOrder: r.sortOrder !== undefined ? num(r.sortOrder, i) : undefined,
       ragStatus: normalizeRag(r.ragStatus),
       commentaries: (() => { const c = normalizeCommentaries(r.commentaries); return c.length ? c : undefined })(),
-      platform: optionalContact(r.platform),
-      contactUrl: optionalContact(r.contactUrl),
+      platform: optionalContact(r.platform ?? r.venue),
+      contactUrl: optionalContact(r.contactUrl ?? r.url),
+      chain: optionalContact(r.chain),
     }
   })
 }
@@ -86,7 +87,8 @@ function normalizeEquities(raw: unknown): EquityHolding[] {
       ragStatus: normalizeRag(r.ragStatus),
       commentaries: (() => { const c = normalizeCommentaries(r.commentaries); return c.length ? c : undefined })(),
       platform: optionalContact(r.platform),
-      contactUrl: optionalContact(r.contactUrl),
+      contactUrl: optionalContact(r.contactUrl ?? r.url),
+      accountType: normalizeEquityAccountType(r.accountType ?? r.account ?? r.wrapper),
       yieldPct,
       corporateActionNote: caNote || undefined,
       corporateActionDate: /^\d{4}-\d{2}-\d{2}$/.test(caDate) ? caDate : undefined,
@@ -114,6 +116,16 @@ function normalizeCommentaries(raw: unknown): import('./types').LiabilityComment
 function normalizeRag(raw: unknown): import('./types').RagStatus | undefined {
   const s = str(raw).toLowerCase()
   if (s === 'red' || s === 'amber' || s === 'green') return s
+  return undefined
+}
+
+function normalizeEquityAccountType(raw: unknown): import('./types').EquityAccountType | undefined {
+  const s = str(raw).trim().toLowerCase()
+  if (!s) return undefined
+  if (s === 'isa' || s.includes('isa')) return 'isa'
+  if (s === 'sipp' || s.includes('sipp')) return 'sipp'
+  if (s === 'general' || s === 'gia' || s.includes('general investment')) return 'general'
+  if (s === 'other') return 'other'
   return undefined
 }
 

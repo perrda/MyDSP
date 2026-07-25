@@ -32,7 +32,7 @@ import {
   dismissAlertForCalendarMonth,
   isAlertDismissed,
 } from '../domain/alertDismiss'
-import type { CryptoHolding } from '../domain/types'
+import type { CryptoHolding, RagStatus } from '../domain/types'
 import { addHoldingsMissingFromWatchlist, holdingsMissingFromWatchlist } from '../domain/addHoldingsToWatchlist'
 import { listMarketTickers, loadMarketQuotesCache } from '../storage/marketsStore'
 import { applySortOrder, sortBySortOrder } from '../utils/reorder'
@@ -98,12 +98,30 @@ function taxDisposalHrefForCrypto(
   return `/tax?${params.toString()}`
 }
 
-const emptyForm = {
+type CryptoForm = {
+  symbol: string
+  name: string
+  qty: string
+  price: string
+  cost: string
+  platform: string
+  contactUrl: string
+  chain: string
+  includeInPortfolio: boolean
+  ragStatus: RagStatus | ''
+}
+
+const emptyForm: CryptoForm = {
   symbol: '',
   name: '',
   qty: '',
   price: '',
   cost: '',
+  platform: '',
+  contactUrl: '',
+  chain: '',
+  includeInPortfolio: true,
+  ragStatus: '',
 }
 
 export function CryptoPage() {
@@ -264,6 +282,11 @@ export function CryptoPage() {
       qty: String(c.qty),
       price: String(c.price),
       cost: String(c.cost),
+      platform: c.platform ?? '',
+      contactUrl: c.contactUrl ?? '',
+      chain: c.chain ?? '',
+      includeInPortfolio: c.includeInPortfolio !== false,
+      ragStatus: c.ragStatus ?? '',
     })
     setOpen(true)
   }
@@ -276,12 +299,13 @@ export function CryptoPage() {
       qty: parseNum(form.qty),
       price: parseNum(form.price),
       cost: parseNum(form.cost),
-      includeInPortfolio: editing?.includeInPortfolio ?? true,
+      includeInPortfolio: form.includeInPortfolio,
       sortOrder: editing?.sortOrder,
-      ragStatus: editing?.ragStatus,
+      ragStatus: form.ragStatus || undefined,
       commentaries: editing?.commentaries,
-      platform: editing?.platform,
-      contactUrl: editing?.contactUrl,
+      platform: form.platform.trim() || undefined,
+      contactUrl: form.contactUrl.trim() || undefined,
+      chain: form.chain.trim() || undefined,
     }
     setData((prev) => ({
       ...prev,
@@ -587,6 +611,10 @@ export function CryptoPage() {
                   setTradeFor(c)
                   setTradeSide('buy')
                 }}
+                onSell={() => {
+                  setTradeFor(c)
+                  setTradeSide('sell')
+                }}
                 onToggleNw={() => toggle(c.id)}
                 included={included}
               >
@@ -604,6 +632,11 @@ export function CryptoPage() {
                 <Link to={`/crypto/${c.id}`} className="min-w-0 flex-1 hover:text-accent transition-colors">
                   <p className="font-semibold text-base">{c.symbol}</p>
                   <p className="text-xs text-text-subtle truncate mt-0.5">{c.name}</p>
+                  {c.chain || c.platform ? (
+                    <p className="text-[11px] text-text-subtle truncate mt-0.5">
+                      {[c.chain, c.platform].filter(Boolean).join(' · ')}
+                    </p>
+                  ) : null}
                   {drifting ? (
                     <p className="text-[11px] text-amber-700 dark:text-amber-300 mt-0.5">
                       Price drift vs Markets
@@ -611,13 +644,19 @@ export function CryptoPage() {
                   ) : null}
                 </Link>
                 {driftHit ? (
-                  <button
-                    type="button"
-                    className="btn-secondary btn-sm border-amber-500/40 text-amber-700 dark:text-amber-300 min-h-11 md:min-h-9"
-                    onClick={() => applyMarketsPriceForCrypto(c, driftHit.marketPrice)}
-                  >
-                    Use Markets price
-                  </button>
+                  <div className="flex flex-col items-start gap-1">
+                    <button
+                      type="button"
+                      className="btn-secondary btn-sm border-amber-500/40 text-amber-700 dark:text-amber-300 min-h-11 md:min-h-9"
+                      title="Use the last-synced Markets quote for this holding"
+                      onClick={() => applyMarketsPriceForCrypto(c, driftHit.marketPrice)}
+                    >
+                      Use Markets price
+                    </button>
+                    {fromOtherDeviceAge ? (
+                      <span className="text-[10px] text-text-subtle">Last synced {fromOtherDeviceAge}</span>
+                    ) : null}
+                  </div>
                 ) : null}
                 <div className={`text-sm tabular-nums ${privacyClass(privacy)}`}>
                   <p className="font-semibold">{formatGBP(value)}</p>
@@ -741,6 +780,12 @@ export function CryptoPage() {
                       <dt className="text-xs uppercase tracking-wider text-text-subtle">Portfolio weight</dt>
                       <dd className="tabular-nums">{weight == null ? 'Excluded' : `${weight.toFixed(1)}%`}</dd>
                     </div>
+                    {selectedHolding.chain || selectedHolding.platform ? (
+                      <div>
+                        <dt className="text-xs uppercase tracking-wider text-text-subtle">Venue / chain</dt>
+                        <dd>{[selectedHolding.platform, selectedHolding.chain].filter(Boolean).join(' · ')}</dd>
+                      </div>
+                    ) : null}
                   </dl>
                   <div className="mt-5 flex flex-wrap gap-2">
                     <Link to={`/crypto/${selectedHolding.id}`} className="btn-primary btn-sm">
@@ -818,6 +863,51 @@ export function CryptoPage() {
               />
             </Field>
           </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field label="Platform / venue">
+              <input
+                type="text"
+                value={form.platform}
+                onChange={(e) => setForm({ ...form, platform: e.target.value })}
+                placeholder="Coinbase, Kraken, Ledger"
+              />
+            </Field>
+            <Field label="Chain">
+              <input
+                type="text"
+                value={form.chain}
+                onChange={(e) => setForm({ ...form, chain: e.target.value })}
+                placeholder="Bitcoin, Ethereum, Solana"
+              />
+            </Field>
+            <Field label="URL">
+              <input
+                type="url"
+                value={form.contactUrl}
+                onChange={(e) => setForm({ ...form, contactUrl: e.target.value })}
+                placeholder="https://"
+              />
+            </Field>
+            <Field label="RAG">
+              <select
+                value={form.ragStatus}
+                onChange={(e) => setForm({ ...form, ragStatus: e.target.value as RagStatus | '' })}
+              >
+                <option value="">Unset</option>
+                <option value="red">Red</option>
+                <option value="amber">Amber</option>
+                <option value="green">Green</option>
+              </select>
+            </Field>
+          </div>
+          <label className="flex items-center gap-2 text-sm text-text-muted">
+            <input
+              type="checkbox"
+              checked={form.includeInPortfolio}
+              onChange={(e) => setForm({ ...form, includeInPortfolio: e.target.checked })}
+            />
+            Include in net worth
+          </label>
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" className="btn-ghost" onClick={() => setOpen(false)}>
               Cancel
@@ -886,6 +976,9 @@ export function CryptoPage() {
       />
 
       <div className="thumb-cta-bar" role="toolbar" aria-label="Primary crypto actions">
+        <button type="button" className="btn-primary btn-sm" onClick={openCreate}>
+          Add crypto
+        </button>
         <button
           type="button"
           className="btn-secondary btn-sm"
