@@ -1,5 +1,6 @@
 export type TodoPriority = 'high' | 'medium' | 'low'
 export type TodoStatus = 'todo' | 'in-progress' | 'done' | 'archived'
+export type TodoRecurrence = 'none' | 'daily' | 'weekly' | 'monthly'
 
 export interface TodoItem {
   id: number
@@ -12,6 +13,7 @@ export interface TodoItem {
   dueTime?: string
   reminderDate?: string
   reminderTime?: string
+  recurrence?: TodoRecurrence
   tags: string[]
   isFinanceRelated: boolean
   estimatedMinutes?: number
@@ -69,4 +71,5 @@ export type TodoFilterBy =
   | 'no-due-date'
   | 'status-todo'
   | 'status-in-progress'
+  | 'archived'
 

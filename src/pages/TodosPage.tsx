@@ -35,6 +35,7 @@ import { syncHighlightClass, useSyncHighlights } from '../hooks/useSyncHighlight
 import type { TodoFilterBy, TodoItem, TodoList, TodoSortBy } from '../domain/todo-types'
 import {
   calculateTodoStats,
+  completeTodoWithRecurrence,
   createTodoItem,
   exportTodosToCsv,
   filterTodoItems,
@@ -84,6 +85,7 @@ const FILTER_SUMMARY: Record<TodoFilterBy, string> = {
   'low-priority': 'Low priority',
   'status-todo': 'To Do',
   'status-in-progress': 'In Progress',
+  archived: 'Archived',
   overdue: 'Overdue',
   today: 'Due today',
   'this-week': 'This week',
@@ -299,7 +301,7 @@ export function TodosPage() {
       )
     }
 
-    if (!showCompleted) {
+    if (!showCompleted && filterBy !== 'archived') {
       items = items.filter((i) => i.status !== 'done' && i.status !== 'archived')
     }
 
@@ -428,6 +430,8 @@ export function TodosPage() {
       title: parsed.title,
       listId,
       dueDate: parsed.dueDate,
+      priority: parsed.priority,
+      tags: parsed.tags,
     })
     setData((prev) => {
       const withOrder = {
@@ -507,10 +511,9 @@ export function TodosPage() {
     const now = new Date().toISOString()
     setData((prev) => ({
       ...prev,
-      todoItems: (prev.todoItems ?? []).map((i) =>
-        selectedTodos.has(i.id)
-          ? { ...i, status: 'done' as const, completedAt: now, updatedAt: now }
-          : i,
+      todoItems: [...selectedTodos].reduce(
+        (items, id) => completeTodoWithRecurrence(items, id, now),
+        prev.todoItems ?? [],
       ),
     }))
     success('Tasks completed', `${selectedTodos.size} tasks`)
@@ -544,20 +547,21 @@ export function TodosPage() {
 
   const handleToggleComplete = (item: TodoItem) => {
     const now = new Date().toISOString()
-    const done = item.status !== 'done'
+    setData((prev) => ({
+      ...prev,
+      todoItems: completeTodoWithRecurrence(prev.todoItems ?? [], item.id, now),
+    }))
+  }
+
+  const handleRestoreItem = (id: number) => {
+    const now = new Date().toISOString()
     setData((prev) => ({
       ...prev,
       todoItems: (prev.todoItems ?? []).map((i) =>
-        i.id === item.id
-          ? {
-              ...i,
-              status: done ? ('done' as const) : ('todo' as const),
-              completedAt: done ? now : undefined,
-              updatedAt: now,
-            }
-          : i,
+        i.id === id ? { ...i, status: 'todo' as const, updatedAt: now } : i,
       ),
     }))
+    success('Task restored')
   }
 
   const handleSnooze = (item: TodoItem) => {
@@ -844,19 +848,23 @@ export function TodosPage() {
             </div>
           </div>
 
-          <TodoListPicker
-            lists={lists}
-            selectedListId={selectedListId}
-            counts={listCounts}
-            totalCount={allItems.length}
-            onSelect={(id) => {
-              setSelectedListId(id)
-              window.scrollTo(0, 0)
-            }}
-            onReorder={handleReorderLists}
-            onEdit={openEditList}
-            onDelete={handleDeleteList}
-          />
+          <div className="todos-tablet-two-pane">
+            <div className="todos-tablet-two-pane__lists">
+              <TodoListPicker
+                lists={lists}
+                selectedListId={selectedListId}
+                counts={listCounts}
+                totalCount={allItems.length}
+                onSelect={(id) => {
+                  setSelectedListId(id)
+                  window.scrollTo(0, 0)
+                }}
+                onReorder={handleReorderLists}
+                onEdit={openEditList}
+                onDelete={handleDeleteList}
+              />
+            </div>
+            <div className="todos-tablet-two-pane__detail">
 
           {currentList?.description && (
             <p className="text-sm text-text-muted mb-4">{currentList.description}</p>
@@ -932,6 +940,7 @@ export function TodosPage() {
                   <option value="low-priority">Low Priority</option>
                   <option value="status-todo">Status: To Do</option>
                   <option value="status-in-progress">Status: In Progress</option>
+                  <option value="archived">Archived</option>
                   <option value="overdue">Overdue</option>
                   <option value="today">Due Today</option>
                   <option value="this-week">This Week</option>
@@ -1163,6 +1172,7 @@ export function TodosPage() {
                         onToggleComplete={handleToggleComplete}
                         onEdit={handleEditItem}
                         onDuplicate={handleDuplicateItem}
+                        onRestore={handleRestoreItem}
                         onDelete={handleDeleteItem}
                       />
                     </SwipeTodoRow>
@@ -1188,6 +1198,7 @@ export function TodosPage() {
                         onToggleComplete={handleToggleComplete}
                         onEdit={handleEditItem}
                         onDuplicate={handleDuplicateItem}
+                        onRestore={handleRestoreItem}
                         onDelete={handleDeleteItem}
                       />
                     </SwipeTodoRow>
@@ -1195,7 +1206,7 @@ export function TodosPage() {
                 </div>
               )}
 
-              {showCompleted && completedItems.length > 0 ? (
+              {(showCompleted || filterBy === 'archived') && completedItems.length > 0 ? (
                 <div className="mt-4 todos-completed-section">
                   <button
                     type="button"
@@ -1204,7 +1215,7 @@ export function TodosPage() {
                     onClick={() => setCompletedOpen((v) => !v)}
                   >
                     <span className="text-sm font-semibold">
-                      Completed ({completedItems.length})
+                      {filterBy === 'archived' ? 'Archived' : 'Completed'} ({completedItems.length})
                     </span>
                     <span className="text-xs text-text-subtle ml-auto">
                       {completedOpen ? 'Hide' : 'Show'}
@@ -1226,6 +1237,7 @@ export function TodosPage() {
                           onToggleComplete={handleToggleComplete}
                           onEdit={handleEditItem}
                           onDuplicate={handleDuplicateItem}
+                          onRestore={handleRestoreItem}
                           onDelete={handleDeleteItem}
                         />
                       ))}
@@ -1235,6 +1247,8 @@ export function TodosPage() {
               ) : null}
             </>
           )}
+            </div>
+          </div>
         </>
       )}
 
@@ -1264,6 +1278,7 @@ function TodoItemCard({
   onToggleComplete,
   onEdit,
   onDuplicate,
+  onRestore,
   onDelete,
 }: {
   item: TodoItem
@@ -1278,6 +1293,7 @@ function TodoItemCard({
   onToggleComplete: (item: TodoItem) => void
   onEdit: (item: TodoItem) => void
   onDuplicate: (item: TodoItem) => void
+  onRestore: (id: number) => void
   onDelete: (id: number) => void
 }) {
   const overdue = isOverdue(item)
@@ -1354,6 +1370,17 @@ function TodoItemCard({
             >
               <Copy size={14} />
             </button>
+            {item.status === 'archived' ? (
+              <button
+                type="button"
+                onClick={() => onRestore(item.id)}
+                className="btn-ghost btn-sm p-2 min-h-9 min-w-9 text-accent"
+                title="Restore"
+                aria-label="Restore task"
+              >
+                <Archive size={14} />
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={() => onDelete(item.id)}
@@ -1406,6 +1433,11 @@ function TodoItemCard({
           {item.isFinanceRelated ? (
             <span className="text-[11px] sm:text-xs px-1.5 py-0.5 bg-accent/10 text-accent rounded">
               Finance
+            </span>
+          ) : null}
+          {item.recurrence && item.recurrence !== 'none' ? (
+            <span className="text-[11px] sm:text-xs px-1.5 py-0.5 bg-surface-hover text-text-subtle rounded">
+              Repeats {item.recurrence}
             </span>
           ) : null}
           {item.linkedJobId != null ? (
@@ -1461,6 +1493,17 @@ function TodoItemCard({
           >
             <Copy size={15} />
           </button>
+          {item.status === 'archived' ? (
+            <button
+              type="button"
+              onClick={() => onRestore(item.id)}
+              className="btn-ghost btn-sm p-2 min-h-10 min-w-10 text-accent"
+              title="Restore"
+              aria-label="Restore task"
+            >
+              <Archive size={15} />
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={() => onDelete(item.id)}

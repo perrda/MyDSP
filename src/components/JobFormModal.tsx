@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { X } from 'lucide-react'
 import type { JobApplication, JobStatus, SalaryPeriod } from '../domain/job-types'
 import { coerceJobTitleAndUrl } from '../domain/jobDisplay'
 import { createJobApplication } from '../domain/jobs'
+import { Modal } from './ui/Modal'
 
 interface JobFormModalProps {
   application?: JobApplication
@@ -104,16 +104,13 @@ export function JobFormModal({ application, onSave, onClose }: JobFormModalProps
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="surface rounded-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto my-8">
-        <div className="sticky top-0 surface border-b border-border p-4 flex items-center justify-between">
-          <h2 className="text-xl font-bold">{application ? 'Edit Application' : 'New Application'}</h2>
-          <button type="button" onClick={onClose} className="btn-ghost btn-sm">
-            <X size={16} />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+    <Modal
+      open
+      size="full"
+      title={application ? 'Edit Application' : 'New Application'}
+      onClose={onClose}
+    >
+        <form onSubmit={handleSubmit} className="space-y-6">
           {/* Basic Info */}
           <section>
             <h3 className="font-bold mb-3">Basic Information</h3>
@@ -455,7 +452,6 @@ export function JobFormModal({ application, onSave, onClose }: JobFormModalProps
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   )
 }

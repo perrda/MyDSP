@@ -1254,6 +1254,21 @@ export function Dashboard() {
             })()
           : 'Cloud sync ready'
 
+  const todayJumpChips: Array<[string, string, string]> = [
+    ...(showNextCard ? [['today-next-action', 'Next', 'today-section-jump-next'] as [string, string, string]] : []),
+    ...(showBillsCard ? [['today-bills', 'Bills', 'today-section-jump-bills'] as [string, string, string]] : []),
+    ...(showGoalsCard ? [['today-goals', 'Goals', 'today-section-jump-goals'] as [string, string, string]] : []),
+    ...(showTaxCard ? [['today-tax', 'Tax', 'today-section-jump-tax'] as [string, string, string]] : []),
+    ...(liabilities > 0 ? [['today-debt', 'Debt', 'today-section-jump-debt'] as [string, string, string]] : []),
+    ...(monthlyBudgetPulse && showBudgetPulseCards
+      ? [['today-budget-pulse', 'Budget', 'today-section-jump-budget'] as [string, string, string]]
+      : []),
+    ...(cashRunway ? [['today-cash-runway', 'Runway', 'today-section-jump-runway'] as [string, string, string]] : []),
+    ...(fireChip ? [['today-fire-chip', 'FIRE', 'today-section-jump-fire'] as [string, string, string]] : []),
+    ...(showMediaCard ? [['today-media', 'Media', 'today-section-jump-media'] as [string, string, string]] : []),
+    ...(showMarketsCard ? [['today-markets', 'Markets', 'today-section-jump-markets'] as [string, string, string]] : []),
+  ]
+
   return (
     <div className="pb-8 md:pb-0">
       <WeeklyDigestModal
@@ -1273,40 +1288,7 @@ export function Dashboard() {
           className="today-section-jump-chips flex flex-wrap gap-1.5"
           aria-label="Jump to Today section"
         >
-          {(
-            [
-              ...(showNextCard
-                ? ([['today-next-action', 'Next', 'today-section-jump-next']] as const)
-                : []),
-              ...(showBillsCard
-                ? ([['today-bills', 'Bills', 'today-section-jump-bills']] as const)
-                : []),
-              ...(showGoalsCard
-                ? ([['today-goals', 'Goals', 'today-section-jump-goals']] as const)
-                : []),
-              ...(showTaxCard
-                ? ([['today-tax', 'Tax', 'today-section-jump-tax']] as const)
-                : []),
-              ...(liabilities > 0
-                ? ([['today-debt', 'Debt', 'today-section-jump-debt']] as const)
-                : []),
-              ...(monthlyBudgetPulse && showBudgetPulseCards
-                ? ([['today-budget-pulse', 'Budget', 'today-section-jump-budget']] as const)
-                : []),
-              ...(cashRunway
-                ? ([['today-cash-runway', 'Runway', 'today-section-jump-runway']] as const)
-                : []),
-              ...(fireChip
-                ? ([['today-fire-chip', 'FIRE', 'today-section-jump-fire']] as const)
-                : []),
-              ...(showMediaCard
-                ? ([['today-media', 'Media', 'today-section-jump-media']] as const)
-                : []),
-              ...(showMarketsCard
-                ? ([['today-markets', 'Markets', 'today-section-jump-markets']] as const)
-                : []),
-            ] as const
-          ).map(([id, label, chipClass]) => {
+          {todayJumpChips.map(([id, label, chipClass]) => {
             const active = activeJumpSection === id
             return (
               <a

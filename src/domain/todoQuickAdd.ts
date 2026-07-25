@@ -6,6 +6,8 @@
 export type ParsedTodoQuickAdd = {
   title: string
   dueDate?: string
+  priority?: 'high' | 'medium' | 'low'
+  tags?: string[]
 }
 
 const WEEKDAYS: Record<string, number> = {
@@ -52,10 +54,25 @@ export function parseTodoQuickAdd(
   input: string,
   now: Date = new Date(),
 ): ParsedTodoQuickAdd {
-  const raw = input.trim().replace(/\s+/g, ' ')
+  let raw = input.trim().replace(/\s+/g, ' ')
   if (!raw) return { title: '' }
+  const tags = Array.from(raw.matchAll(/(^|\s)#([A-Za-z0-9_-]+)/g), (m) => m[2]!)
+  raw = raw.replace(/(^|\s)#[A-Za-z0-9_-]+/g, ' ').replace(/\s+/g, ' ').trim()
+
+  let priority: ParsedTodoQuickAdd['priority']
+  if (/(^|\s)(!|p1)(\s|$)/i.test(raw)) priority = 'high'
+  else if (/(^|\s)p2(\s|$)/i.test(raw)) priority = 'medium'
+  else if (/(^|\s)p3(\s|$)/i.test(raw)) priority = 'low'
+  raw = raw.replace(/(^|\s)(!|p1|p2|p3)(\s|$)/gi, ' ').replace(/\s+/g, ' ').trim()
+  if (!raw) return { title: '', priority, tags }
 
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const withMeta = (title: string, dueDate?: string): ParsedTodoQuickAdd => ({
+    title,
+    dueDate,
+    priority,
+    tags,
+  });
 
   // tomorrow
   {
@@ -65,7 +82,7 @@ export function parseTodoQuickAdd(
       if (title) {
         const d = new Date(today)
         d.setDate(d.getDate() + 1)
-        return { title, dueDate: toLocalYmd(d) }
+        return withMeta(title, toLocalYmd(d))
       }
     }
   }
@@ -75,7 +92,7 @@ export function parseTodoQuickAdd(
     const m = raw.match(/^(.*?)\s+today$/i) || raw.match(/^today\s+(.+)$/i)
     if (m) {
       const title = (m[1] ?? '').trim()
-      if (title) return { title, dueDate: toLocalYmd(today) }
+      if (title) return withMeta(title, toLocalYmd(today))
     }
   }
 
@@ -88,7 +105,7 @@ export function parseTodoQuickAdd(
       if (title) {
         const d = new Date(today)
         d.setDate(d.getDate() + 7)
-        return { title, dueDate: toLocalYmd(d) }
+        return withMeta(title, toLocalYmd(d))
       }
     }
   }
@@ -103,7 +120,7 @@ export function parseTodoQuickAdd(
       const key = end[2]!.toLowerCase()
       const dow = WEEKDAYS[key]
       if (title && dow !== undefined) {
-        return { title, dueDate: toLocalYmd(nextWeekday(today, dow)) }
+        return withMeta(title, toLocalYmd(nextWeekday(today, dow)))
       }
     }
     const start = raw.match(
@@ -114,10 +131,10 @@ export function parseTodoQuickAdd(
       const title = start[2]!.trim()
       const dow = WEEKDAYS[key]
       if (title && dow !== undefined) {
-        return { title, dueDate: toLocalYmd(nextWeekday(today, dow)) }
+        return withMeta(title, toLocalYmd(nextWeekday(today, dow)))
       }
     }
   }
 
-  return { title: raw }
+  return withMeta(raw)
 }

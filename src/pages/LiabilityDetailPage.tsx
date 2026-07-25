@@ -101,6 +101,7 @@ export function LiabilityDetailPage() {
   const rag = item.ragStatus
   const dayInt = dailyInterestGbp(item.balance, item.apr)
   const moInt = monthlyInterestGbp(item.balance, item.apr)
+  const latestNoteText = commentaries[0]?.text.trim()
 
   const basePay = item.minPay
   const extra = parseNum(extraPay)
@@ -277,6 +278,15 @@ export function LiabilityDetailPage() {
         name: item.name,
         original: kind === 'loan' ? (loan?.original ?? item.balance) : item.balance,
         paidDate: now,
+        kind,
+        apr: item.apr,
+        notes: latestNoteText,
+        contactPhone: item.contactPhone,
+        contactEmail: item.contactEmail,
+        contactUrl: item.contactUrl,
+        preferredContactMethod: item.preferredContactMethod,
+        preferredContactOther: item.preferredContactOther,
+        commentaries: item.commentaries,
       }
       if (kind === 'card') {
         return {
@@ -488,6 +498,12 @@ export function LiabilityDetailPage() {
               <dt className="text-text-subtle">Min payment</dt>
               <dd className={`tabular-nums font-semibold ${privacyClass(privacy)}`}>
                 {formatGBP(item.minPay)}
+              </dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-text-subtle">Payment due day</dt>
+              <dd className="tabular-nums font-semibold">
+                {item.paymentDueDay ? `Day ${item.paymentDueDay}` : 'Not set'}
               </dd>
             </div>
             <div className="flex justify-between gap-4">
@@ -995,6 +1011,9 @@ export function LiabilityDetailPage() {
       />
 
       <div className="thumb-cta-bar" role="toolbar" aria-label="Primary liability detail actions">
+        <a href="#commentary" className="btn-primary btn-sm">
+          Add commentary
+        </a>
         <Link to="/" className="btn-primary btn-sm">
           Today
         </Link>

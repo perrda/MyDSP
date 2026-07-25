@@ -84,6 +84,8 @@ export interface CreditCard {
   apr: number
   minPay: number
   limit: number
+  /** Monthly payment due day (1–31) when known. */
+  paymentDueDay?: number
   includeInPortfolio?: boolean
   contactPhone?: string
   contactEmail?: string
@@ -104,6 +106,8 @@ export interface Loan {
   apr: number
   minPay: number
   original: number
+  /** Monthly payment due day (1–31) when known. */
+  paymentDueDay?: number
   includeInPortfolio?: boolean
   contactPhone?: string
   contactEmail?: string
@@ -119,6 +123,15 @@ export interface PaidOffDebt {
   name: string
   original: number
   paidDate: string
+  kind?: 'card' | 'loan'
+  apr?: number
+  notes?: string
+  contactPhone?: string
+  contactEmail?: string
+  contactUrl?: string
+  preferredContactMethod?: LiabilityContactMethod
+  preferredContactOther?: string
+  commentaries?: ProgressCommentary[]
 }
 
 export interface Goal {

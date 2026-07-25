@@ -159,7 +159,7 @@ export function checkTodoReminders(
       priority: item.priority === 'high' ? 'high' : 'medium',
       title: 'To Do reminder',
       message: item.title,
-      actionUrl: '/todos',
+      actionUrl: `/todos?focus=${item.id}`,
       actionLabel: "Open To Do's",
       category: 'todos',
       dismissible: true,

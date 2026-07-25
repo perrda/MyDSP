@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
-import type { TodoItem, TodoList, TodoPriority, TodoStatus } from '../domain/todo-types'
+import type { TodoItem, TodoList, TodoPriority, TodoRecurrence, TodoStatus } from '../domain/todo-types'
 import { createTodoItem } from '../domain/todos'
 
 interface TodoModalProps {
@@ -22,6 +22,7 @@ export function TodoModal({ todo, listId, lists = [], onSave, onClose }: TodoMod
     dueTime: todo?.dueTime || '',
     reminderDate: todo?.reminderDate || '',
     reminderTime: todo?.reminderTime || '',
+    recurrence: (todo?.recurrence || 'none') as TodoRecurrence,
     tags: todo?.tags?.join(', ') || '',
     isFinanceRelated: todo?.isFinanceRelated || false,
     estimatedMinutes: todo?.estimatedMinutes?.toString() || '',
@@ -53,6 +54,7 @@ export function TodoModal({ todo, listId, lists = [], onSave, onClose }: TodoMod
       dueTime: formData.dueTime || undefined,
       reminderDate: formData.reminderDate || undefined,
       reminderTime: formData.reminderTime || undefined,
+      recurrence: formData.recurrence,
       tags,
       isFinanceRelated: formData.isFinanceRelated,
       estimatedMinutes: Number.isFinite(estimatedMinutes) ? estimatedMinutes : undefined,
@@ -188,6 +190,20 @@ export function TodoModal({ todo, listId, lists = [], onSave, onClose }: TodoMod
                   onChange={(e) => setFormData({ ...formData, reminderTime: e.target.value })}
                   className="w-full px-3 py-2.5 bg-surface-hover border border-border rounded text-base min-h-11"
                 />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-xs text-text-subtle mb-1">Recurrence</label>
+                <select
+                  value={formData.recurrence}
+                  onChange={(e) => setFormData({ ...formData, recurrence: e.target.value as TodoRecurrence })}
+                  className="w-full px-3 py-2.5 bg-surface-hover border border-border rounded text-base min-h-11"
+                  data-testid="todo-recurrence-select"
+                >
+                  <option value="none">None</option>
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                </select>
               </div>
             </div>
           </section>

@@ -140,6 +140,13 @@ function normalizePreferredContactMethod(v: unknown): LiabilityContactMethod | u
   return undefined
 }
 
+function normalizePaymentDueDay(v: unknown): number | undefined {
+  if (v === undefined || v === null || v === '') return undefined
+  const n = num(v, NaN)
+  if (!Number.isInteger(n) || n < 1 || n > 31) return undefined
+  return n
+}
+
 function normalizeCreditCards(raw: unknown): CreditCard[] {
   return asArray(raw).map((item, i) => {
     const r = (item ?? {}) as Record<string, unknown>
@@ -152,6 +159,7 @@ function normalizeCreditCards(raw: unknown): CreditCard[] {
       apr: num(r.apr),
       minPay: num(r.minPay),
       limit: num(r.limit),
+      paymentDueDay: normalizePaymentDueDay(r.paymentDueDay),
       includeInPortfolio: bool(r.includeInPortfolio, true),
       contactPhone: optionalContact(r.contactPhone),
       contactEmail: optionalContact(r.contactEmail),
@@ -180,6 +188,7 @@ function normalizeLoans(raw: unknown): Loan[] {
       apr: num(r.apr),
       minPay: num(r.minPay),
       original: num(r.original ?? r.balance),
+      paymentDueDay: normalizePaymentDueDay(r.paymentDueDay),
       includeInPortfolio: bool(r.includeInPortfolio, true),
       contactPhone: optionalContact(r.contactPhone),
       contactEmail: optionalContact(r.contactEmail),
@@ -199,10 +208,26 @@ function normalizeLoans(raw: unknown): Loan[] {
 function normalizePaidOff(raw: unknown): PaidOffDebt[] {
   return asArray(raw).map((item) => {
     const r = (item ?? {}) as Record<string, unknown>
+    const preferredContactMethod = normalizePreferredContactMethod(r.preferredContactMethod)
+    const commentaries = normalizeCommentaries(r.commentaries)
+    const notes = str(r.notes).trim()
+    const kind = str(r.kind)
     return {
       name: str(r.name, 'Paid off'),
       original: num(r.original),
       paidDate: str(r.paidDate),
+      kind: kind === 'card' || kind === 'loan' ? kind : undefined,
+      apr: r.apr !== undefined ? num(r.apr) : undefined,
+      notes: notes || undefined,
+      contactPhone: optionalContact(r.contactPhone),
+      contactEmail: optionalContact(r.contactEmail),
+      contactUrl: optionalContact(r.contactUrl),
+      preferredContactMethod,
+      preferredContactOther:
+        preferredContactMethod === 'other'
+          ? optionalContact(r.preferredContactOther)
+          : undefined,
+      commentaries: commentaries.length ? commentaries : undefined,
     }
   })
 }
@@ -655,6 +680,7 @@ function normalizeTodoItems(raw: unknown): import('./todo-types').TodoItem[] {
   if (!Array.isArray(raw)) return []
   const priorities = new Set(['high', 'medium', 'low'])
   const statuses = new Set(['todo', 'in-progress', 'done', 'archived'])
+  const recurrences = new Set(['none', 'daily', 'weekly', 'monthly'])
   return raw
     .filter((x): x is Record<string, unknown> => !!x && typeof x === 'object')
     .map((x, i) => {
@@ -662,6 +688,9 @@ function normalizeTodoItems(raw: unknown): import('./todo-types').TodoItem[] {
       const status = statuses.has(String(x.status))
         ? (x.status as 'todo' | 'in-progress' | 'done' | 'archived')
         : 'todo'
+      const recurrence = recurrences.has(String(x.recurrence))
+        ? (x.recurrence as 'none' | 'daily' | 'weekly' | 'monthly')
+        : 'none'
       return {
         id: num(x.id, Date.now() + i),
         listId: num(x.listId, 0),
@@ -673,6 +702,7 @@ function normalizeTodoItems(raw: unknown): import('./todo-types').TodoItem[] {
         dueTime: typeof x.dueTime === 'string' ? x.dueTime : undefined,
         reminderDate: typeof x.reminderDate === 'string' ? x.reminderDate : undefined,
         reminderTime: typeof x.reminderTime === 'string' ? x.reminderTime : undefined,
+        recurrence,
         tags: Array.isArray(x.tags) ? x.tags.map(String) : [],
         isFinanceRelated: bool(x.isFinanceRelated, false),
         estimatedMinutes: typeof x.estimatedMinutes === 'number' ? x.estimatedMinutes : undefined,
@@ -735,7 +765,21 @@ function normalizeJobApplications(raw: unknown): import('./job-types').JobApplic
         interviews: Array.isArray(x.interviews) ? (x.interviews as import('./job-types').JobApplication['interviews']) : [],
         notes: Array.isArray(x.notes) ? (x.notes as import('./job-types').JobApplication['notes']) : [],
         contacts: Array.isArray(x.contacts) ? (x.contacts as import('./job-types').JobApplication['contacts']) : [],
-        tasks: Array.isArray(x.tasks) ? (x.tasks as import('./job-types').JobApplication['tasks']) : [],
+        tasks: Array.isArray(x.tasks)
+          ? x.tasks
+              .filter((task): task is Record<string, unknown> => !!task && typeof task === 'object')
+              .map((task, taskIndex) => ({
+                id: num(task.id, taskIndex + 1),
+                description: str(task.description, 'Task'),
+                dueDate: typeof task.dueDate === 'string' ? task.dueDate : undefined,
+                completed: bool(task.completed, false),
+                completedAt: typeof task.completedAt === 'string' ? task.completedAt : undefined,
+                linkedTodoId: (() => {
+                  const n = num(task.linkedTodoId, NaN)
+                  return Number.isFinite(n) && n > 0 ? n : undefined
+                })(),
+              }))
+          : [],
         rating: num(x.rating, 0),
         pros: typeof x.pros === 'string' ? x.pros : undefined,
         cons: typeof x.cons === 'string' ? x.cons : undefined,
