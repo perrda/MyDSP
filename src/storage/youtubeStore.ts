@@ -2,6 +2,7 @@
 
 import {
   createEmptyYoutubeState,
+  filterOutYoutubeShorts,
   MAX_YOUTUBE_CHANNELS,
   newYoutubeChannelId,
   type YoutubeChannel,
@@ -320,8 +321,24 @@ export function loadYoutubeVideosCache(): YoutubeVideosCache {
     const raw = localStorage.getItem(VIDEOS_KEY)
     if (!raw) return { videos: [] }
     const parsed = JSON.parse(raw) as YoutubeVideosCache
+    const rawVideos = Array.isArray(parsed.videos) ? parsed.videos : []
+    const videos = filterOutYoutubeShorts(rawVideos)
+    // Purge Shorts from local cache so they cannot reappear via sync/UI.
+    if (videos.length !== rawVideos.length) {
+      try {
+        localStorage.setItem(
+          VIDEOS_KEY,
+          JSON.stringify({
+            videos: videos.slice(0, 60),
+            fetchedAt: typeof parsed.fetchedAt === 'string' ? parsed.fetchedAt : undefined,
+          }),
+        )
+      } catch {
+        /* quota */
+      }
+    }
     return {
-      videos: Array.isArray(parsed.videos) ? parsed.videos : [],
+      videos,
       fetchedAt: typeof parsed.fetchedAt === 'string' ? parsed.fetchedAt : undefined,
     }
   } catch {
@@ -337,7 +354,7 @@ export function saveYoutubeVideosCache(
     localStorage.setItem(
       VIDEOS_KEY,
       JSON.stringify({
-        videos: (cache.videos || []).slice(0, 60),
+        videos: filterOutYoutubeShorts(cache.videos || []).slice(0, 60),
         fetchedAt: cache.fetchedAt,
       }),
     )
@@ -370,7 +387,7 @@ export function importYoutubeVideosFromBackup(raw: unknown): void {
         ? remote.videos
         : []
   saveYoutubeVideosCache({
-    videos: videos.slice(0, 60),
+    videos: filterOutYoutubeShorts(videos).slice(0, 60),
     fetchedAt: preferRemote
       ? remote.fetchedAt || local.fetchedAt
       : local.fetchedAt || remote.fetchedAt,

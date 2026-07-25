@@ -274,7 +274,7 @@ export function YouTubePage() {
       <PageHeader
         eyebrow="Media"
         title="YouTube"
-        description={`Favourite finance channels (up to ${MAX_YOUTUBE_CHANNELS}). New uploads refresh with prices and appear in the bell — no API key required.`}
+        description={`Favourite finance channels (up to ${MAX_YOUTUBE_CHANNELS}). Full-length uploads only — YouTube Shorts are filtered out. New videos refresh with prices and appear in the bell — no API key required.`}
         action={
           <button
             type="button"

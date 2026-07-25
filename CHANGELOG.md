@@ -1,5 +1,12 @@
 # MyDSP Changelog
 
+## [1.2.105] - 2026-07-25
+
+### Fixed — YouTube Shorts filtered out
+- **Full-length only:** YouTube Shorts are excluded from favourite channel feeds, local video cache, cross-device sync payload, unread counts, and upload alerts
+- Detection uses `/shorts/` URLs and `#shorts` / `#short` tags — finance titles about short selling are **not** filtered
+- Existing cached Shorts are purged on load so every device stays clean after refresh/sync
+
 ## [1.2.104] - 2026-07-25
 
 ### Fixed — YouTube / News cross-device sync

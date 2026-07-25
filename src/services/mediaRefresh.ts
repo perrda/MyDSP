@@ -115,7 +115,8 @@ export async function refreshYoutubeFeeds(): Promise<MediaRefreshResult> {
       }
 
       const cached = loadYoutubeVideosCache()
-      const vids = await fetchFavouriteVideos(channels, 5, 40)
+      // Over-fetch per channel; Shorts are stripped in fetchFavouriteVideos / cache save.
+      const vids = await fetchFavouriteVideos(channels, 6, 40)
       const keptCache = vids.length === 0 && cached.videos.length > 0
       const next = vids.length > 0 ? vids : cached.videos
 

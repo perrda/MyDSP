@@ -1,6 +1,11 @@
 /** YouTube channel resolve + Atom video feeds (no API key). */
 
-import { parseYoutubeInput, type YoutubeChannel, type YoutubeVideo } from '../domain/youtube'
+import {
+  filterOutYoutubeShorts,
+  parseYoutubeInput,
+  type YoutubeChannel,
+  type YoutubeVideo,
+} from '../domain/youtube'
 import { fetchFeedXml, fetchRemoteText, parseFeedXml } from './rss'
 
 function videosFeedUrl(channelId: string): string {
@@ -142,15 +147,17 @@ export async function resolveYoutubeChannel(raw: string): Promise<{
   return { channelId, title, url, thumbnailUrl }
 }
 
-/** Latest videos for one channel (Atom feed). */
+/** Latest full-length videos for one channel (Atom feed). Shorts excluded. */
 export async function fetchChannelVideos(
   channel: YoutubeChannel,
   limit = 8,
 ): Promise<YoutubeVideo[]> {
   const xml = await fetchFeedXml(videosFeedUrl(channel.channelId))
   if (!xml) return []
-  const items = parseFeedXml(xml).slice(0, limit)
-  return items.map((item) => {
+  // Over-fetch so Shorts removed below still leave enough full-length items.
+  const fetchN = Math.min(25, Math.max(limit * 3, limit + 6))
+  const items = parseFeedXml(xml).slice(0, fetchN)
+  const mapped = items.map((item) => {
     const videoIdMatch = item.link.match(/[?&]v=([\w-]+)/) || item.id.match(/video:([\w-]+)/)
     const videoId = videoIdMatch?.[1]
     const thumbnailUrl =
@@ -169,11 +176,13 @@ export async function fetchChannelVideos(
       publishedAt: item.publishedAt,
       thumbnailUrl,
       description: item.summary,
+      durationSeconds: item.durationSeconds,
     }
   })
+  return filterOutYoutubeShorts(mapped).slice(0, limit)
 }
 
-/** Aggregate latest videos across favourite channels, newest first. */
+/** Aggregate latest full-length videos across favourite channels, newest first. */
 export async function fetchFavouriteVideos(
   channels: YoutubeChannel[],
   perChannel = 5,
@@ -197,7 +206,7 @@ export async function fetchFavouriteVideos(
   await Promise.all(
     Array.from({ length: Math.min(concurrency, channels.length || 1) }, () => worker()),
   )
-  return all
+  return filterOutYoutubeShorts(all)
     .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt))
     .slice(0, maxTotal)
 }
