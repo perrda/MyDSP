@@ -133,7 +133,16 @@ export function AppShell() {
           : pathname.startsWith('/equities/')
             ? { eyebrow: 'Holdings', title: 'Equity detail' }
             : pathname.startsWith('/jobs/')
-              ? { eyebrow: 'Career', title: 'Job Application' }
+              ? (() => {
+                  const jobId = Number(pathname.split('/')[2])
+                  const job = Number.isFinite(jobId)
+                    ? data.jobApplications?.find((j) => j.id === jobId)
+                    : undefined
+                  return {
+                    eyebrow: 'Career',
+                    title: job?.companyName?.trim() || 'Job Application',
+                  }
+                })()
               : { eyebrow: 'MyDSP', title: 'App' })
     )
   })()

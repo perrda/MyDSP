@@ -125,6 +125,8 @@ export interface JobNote {
   updatedAt: string
 }
 
+export type JobContactMethod = 'phone' | 'email' | 'linkedin' | 'other'
+
 export interface JobContact {
   id: number
   name: string
@@ -132,6 +134,10 @@ export interface JobContact {
   email?: string
   phone?: string
   linkedIn?: string
+  /** Preferred way to reach this contact */
+  preferredContactMethod?: JobContactMethod
+  /** Free-text when preferredContactMethod is `other` */
+  preferredContactOther?: string
   notes?: string
   lastContact?: string
 }

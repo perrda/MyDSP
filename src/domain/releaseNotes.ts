@@ -29,6 +29,24 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.102',
+    date: '2026-07-25',
+    bullets: [
+      {
+        text: 'Job Tracker: company name first — URL muted underneath',
+        to: '/jobs',
+      },
+      {
+        text: 'Dedicated List view with stage + full CRUD per application',
+        to: '/jobs',
+      },
+      {
+        text: 'Job detail always shows company; cleaner salary; contact prefs',
+        to: '/jobs',
+      },
+    ],
+  },
+  {
     version: '1.2.101',
     date: '2026-07-24',
     bullets: [

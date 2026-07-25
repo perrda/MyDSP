@@ -1,5 +1,14 @@
 # MyDSP Changelog
 
+## [1.2.102] - 2026-07-25
+
+### Improved — Job Tracker overhaul
+- **Company-first hierarchy:** company name is the primary title on Kanban cards, List rows, and Job Detail; role is secondary; posting URL host sits muted underneath (pasted URLs in Job Title are coerced into the URL field)
+- **List view:** dedicated table with Company / Stage / Location / Applied / Actions — full Open · Edit · Copy · Delete CRUD without leaving the list
+- **Job Detail:** always-visible company hero (no longer hidden behind shell-only title); shell sticky title shows company name; salary line uses a single clean format (no `$` + `£` + `GBP` stacking)
+- **Contacts:** Phone / Email / URL plus Preferred method of contact (Phone · Email · LinkedIn · Other)
+- **Landscape Kanban:** compact company quick-scan rail instead of duplicated full cards
+
 ## [1.2.101] - 2026-07-24
 
 ### Improved — Markets row actions

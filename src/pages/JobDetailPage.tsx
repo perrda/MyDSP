@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
+  Banknote,
+  Building2,
   Calendar,
-  DollarSign,
   Edit2,
   ExternalLink,
   Globe,
@@ -27,11 +28,32 @@ import { usePortfolio } from '../context/PortfolioContext'
 import { useToasts } from '../components/ToastProvider'
 import { useCssVarFromElementSize } from '../hooks/useCssVarFromElementSize'
 import type { JobApplication, JobContact, JobInterview, JobNote, JobStatus } from '../domain/job-types'
+import {
+  coerceJobTitleAndUrl,
+  ensureHttpUrl,
+  formatJobSalary,
+  jobPostingHost,
+} from '../domain/jobDisplay'
 import { getDaysSinceApplied, STATUS_COLORS, STATUS_LABELS } from '../domain/jobs'
 import { createJobLinkedTodo } from '../domain/jobTodos'
 import { createTodoList } from '../domain/todos'
 import { downloadBlob, deleteDocumentBlob, getDocumentBlob } from '../storage/documentBlobStore'
-import { formatNativeCurrency, privacyClass } from '../utils/format'
+import { privacyClass } from '../utils/format'
+
+function preferredContactLabel(contact: JobContact): string | null {
+  switch (contact.preferredContactMethod) {
+    case 'phone':
+      return 'Phone'
+    case 'email':
+      return 'Email'
+    case 'linkedin':
+      return 'LinkedIn / URL'
+    case 'other':
+      return contact.preferredContactOther?.trim() || 'Other'
+    default:
+      return null
+  }
+}
 
 export function JobDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -348,6 +370,13 @@ export function JobDetailPage() {
   }
 
   const daysSince = getDaysSinceApplied(application)
+  const { jobTitle: displayTitle, jobUrl: displayUrl } = coerceJobTitleAndUrl({
+    companyName: application.companyName,
+    jobTitle: application.jobTitle,
+    jobUrl: application.jobUrl,
+  })
+  const postingHost = jobPostingHost(displayUrl)
+  const salaryLine = formatJobSalary(application)
   const allEvents = [
     ...application.interviews.map((i) => ({
       type: 'interview' as const,
@@ -433,28 +462,67 @@ export function JobDetailPage() {
         <BackNav to="/jobs" label="Back to applications" />
       </div>
 
-      <PageHeader
-        eyebrow="Career"
-        title={application.jobTitle}
-        description={application.companyName}
-        action={
-          <div className="hidden sm:flex gap-2">
-            <button type="button" onClick={() => setShowJobForm(true)} className="btn-ghost btn-sm btn-icon-edit">
-              <Edit2 size={16} strokeWidth={1.75} className="icon-edit" aria-hidden /> Edit Details
-            </button>
-            <button type="button" onClick={() => handleCreateLinkedTodo()} className="btn-secondary btn-sm">
-              <Plus size={14} /> Add Todo
-            </button>
-            <button type="button" onClick={() => setEditMode(!editMode)} className="btn-ghost btn-sm btn-icon-edit">
-              {editMode ? <X size={14} /> : <Edit2 size={16} strokeWidth={1.75} className="icon-edit" aria-hidden />}{' '}
-              {editMode ? 'Done' : 'Quick Edit'}
-            </button>
-            <button type="button" onClick={handleDeleteApplication} className="btn-ghost btn-sm text-red-500">
-              <Trash2 size={14} /> Delete
-            </button>
+      {/* Company-first hero — always visible (PageHeader hides title on sm+) */}
+      <div className="page-header flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4 mb-6 md:mb-8">
+        <div className="min-w-0 flex-1" data-testid="job-detail-hero">
+          <p className="eyebrow app-page-eyebrow mb-2 md:mb-3">Career</p>
+          <div className="flex items-start gap-3 min-w-0">
+            <div className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent">
+              <Building2 size={20} strokeWidth={1.75} aria-hidden />
+            </div>
+            <div className="min-w-0">
+              <h1
+                className="app-page-title font-bold tracking-tight leading-tight text-2xl sm:text-3xl"
+                data-testid="job-detail-company"
+              >
+                {application.companyName}
+              </h1>
+              <p className="text-base sm:text-lg text-text-muted mt-1 truncate" data-testid="job-detail-title">
+                {displayTitle}
+              </p>
+              {displayUrl && postingHost ? (
+                <a
+                  href={ensureHttpUrl(displayUrl)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-sm text-text-subtle hover:text-accent mt-1.5 truncate max-w-full"
+                  data-testid="job-detail-url"
+                >
+                  <ExternalLink size={13} aria-hidden />
+                  <span className="truncate">{postingHost}</span>
+                </a>
+              ) : null}
+              <div className="flex flex-wrap items-center gap-2 mt-3">
+                <span
+                  className={`text-xs px-2.5 py-1 rounded font-semibold uppercase ${STATUS_COLORS[application.status]}`}
+                >
+                  {STATUS_LABELS[application.status]}
+                </span>
+                {application.priority === 'high' ? (
+                  <span className="text-xs px-2.5 py-1 rounded font-semibold uppercase bg-red-500/10 text-red-500">
+                    High priority
+                  </span>
+                ) : null}
+              </div>
+            </div>
           </div>
-        }
-      />
+        </div>
+        <div className="hidden sm:flex gap-2 shrink-0 self-start">
+          <button type="button" onClick={() => setShowJobForm(true)} className="btn-ghost btn-sm btn-icon-edit">
+            <Edit2 size={16} strokeWidth={1.75} className="icon-edit" aria-hidden /> Edit Details
+          </button>
+          <button type="button" onClick={() => handleCreateLinkedTodo()} className="btn-secondary btn-sm">
+            <Plus size={14} /> Add Todo
+          </button>
+          <button type="button" onClick={() => setEditMode(!editMode)} className="btn-ghost btn-sm btn-icon-edit">
+            {editMode ? <X size={14} /> : <Edit2 size={16} strokeWidth={1.75} className="icon-edit" aria-hidden />}{' '}
+            {editMode ? 'Done' : 'Quick Edit'}
+          </button>
+          <button type="button" onClick={handleDeleteApplication} className="btn-ghost btn-sm text-red-500">
+            <Trash2 size={14} /> Delete
+          </button>
+        </div>
+      </div>
 
       {/* Sticky Save / action bar — above bottom nav, safe-area aware */}
       <div
@@ -552,23 +620,19 @@ export function JobDetailPage() {
                   </p>
                 </div>
               </div>
-              {(application.salaryMin || application.salaryMax) && (
+              {salaryLine ? (
                 <div className="flex items-start gap-3">
-                  <DollarSign size={16} className="text-text-subtle mt-0.5 flex-shrink-0" />
+                  <Banknote size={16} className="text-text-subtle mt-0.5 flex-shrink-0" aria-hidden />
                   <div className="flex-1">
-                    <p className="text-sm">
-                      {application.salaryMin != null &&
-                        formatNativeCurrency(application.salaryMin, application.salaryCurrency || 'GBP')}
-                      {application.salaryMin != null && application.salaryMax != null && ' - '}
-                      {application.salaryMax != null &&
-                        formatNativeCurrency(application.salaryMax, application.salaryCurrency || 'GBP')}
-                      {' '}
-                      {application.salaryCurrency}/{application.salaryPeriod}
+                    <p className="text-sm tabular-nums" data-testid="job-detail-salary">
+                      {salaryLine}
                     </p>
-                    {application.equity && <p className="text-xs text-text-muted mt-1">Equity: {application.equity}</p>}
+                    {application.equity ? (
+                      <p className="text-xs text-text-muted mt-1">Equity: {application.equity}</p>
+                    ) : null}
                   </div>
                 </div>
-              )}
+              ) : null}
               {application.source && (
                 <div className="flex items-start gap-3">
                   <Globe size={16} className="text-text-subtle mt-0.5 flex-shrink-0" />
@@ -576,21 +640,36 @@ export function JobDetailPage() {
                 </div>
               )}
               <div className="flex flex-wrap gap-2 pt-2">
-                {application.jobUrl && (
-                  <a href={application.jobUrl} target="_blank" rel="noopener noreferrer" className="btn-ghost btn-sm text-xs">
+                {displayUrl ? (
+                  <a
+                    href={ensureHttpUrl(displayUrl)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-ghost btn-sm text-xs"
+                  >
                     <ExternalLink size={12} /> Job Posting
                   </a>
-                )}
-                {application.companyWebsite && (
-                  <a href={application.companyWebsite} target="_blank" rel="noopener noreferrer" className="btn-ghost btn-sm text-xs">
+                ) : null}
+                {application.companyWebsite ? (
+                  <a
+                    href={ensureHttpUrl(application.companyWebsite)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-ghost btn-sm text-xs"
+                  >
                     <Globe size={12} /> Company Site
                   </a>
-                )}
-                {application.linkedInUrl && (
-                  <a href={application.linkedInUrl} target="_blank" rel="noopener noreferrer" className="btn-ghost btn-sm text-xs">
+                ) : null}
+                {application.linkedInUrl ? (
+                  <a
+                    href={ensureHttpUrl(application.linkedInUrl)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-ghost btn-sm text-xs"
+                  >
                     <ExternalLink size={12} /> LinkedIn
                   </a>
-                )}
+                ) : null}
               </div>
             </div>
           </div>
@@ -765,34 +844,49 @@ export function JobDetailPage() {
               </button>
             </div>
             {application.contacts.length === 0 ? (
-              <p className="text-xs text-text-muted">No contacts yet</p>
+              <p className="text-xs text-text-muted">No contacts yet — add phone, email, or URL</p>
             ) : (
-              <div className="space-y-2">
-                {application.contacts.map((contact) => (
-                  <div key={contact.id} className="p-2 bg-surface-hover rounded text-xs group">
-                    <div className="flex items-start justify-between gap-2">
-                      <button
-                        type="button"
-                        className="text-left flex-1"
-                        onClick={() => {
-                          setEditingContact(contact)
-                          setShowContactModal(true)
-                        }}
-                      >
-                        <p className="font-semibold">{contact.name}</p>
-                        <p className="text-text-muted">{contact.role}</p>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteContact(contact.id)}
-                        className="opacity-0 group-hover:opacity-100 text-red-500 p-0.5"
-                        aria-label="Delete contact"
-                      >
-                        <Trash2 size={12} />
-                      </button>
+              <div className="space-y-2" data-testid="job-detail-contacts">
+                {application.contacts.map((contact) => {
+                  const preferred = preferredContactLabel(contact)
+                  return (
+                    <div key={contact.id} className="p-2 bg-surface-hover rounded text-xs group">
+                      <div className="flex items-start justify-between gap-2">
+                        <button
+                          type="button"
+                          className="text-left flex-1 min-w-0"
+                          onClick={() => {
+                            setEditingContact(contact)
+                            setShowContactModal(true)
+                          }}
+                        >
+                          <p className="font-semibold truncate">{contact.name}</p>
+                          <p className="text-text-muted truncate">{contact.role}</p>
+                          {preferred ? (
+                            <p className="text-accent mt-0.5">Prefers {preferred}</p>
+                          ) : null}
+                          {contact.phone ? (
+                            <p className="text-text-subtle mt-0.5 truncate">{contact.phone}</p>
+                          ) : null}
+                          {contact.email ? (
+                            <p className="text-text-subtle truncate">{contact.email}</p>
+                          ) : null}
+                          {contact.linkedIn ? (
+                            <p className="text-text-subtle truncate">{contact.linkedIn}</p>
+                          ) : null}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteContact(contact.id)}
+                          className="opacity-0 group-hover:opacity-100 text-red-500 p-0.5"
+                          aria-label="Delete contact"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </div>

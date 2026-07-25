@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
 import type { JobApplication, JobStatus, SalaryPeriod } from '../domain/job-types'
+import { coerceJobTitleAndUrl } from '../domain/jobDisplay'
 import { createJobApplication } from '../domain/jobs'
 
 interface JobFormModalProps {
@@ -52,12 +53,17 @@ export function JobFormModal({ application, onSave, onClose }: JobFormModalProps
     const salaryMin = formData.salaryMin.trim() ? Number(formData.salaryMin) : undefined
     const salaryMax = formData.salaryMax.trim() ? Number(formData.salaryMax) : undefined
     const tags = formData.tags.split(',').map((t) => t.trim()).filter(Boolean)
-    const cleaned = {
+    const coerced = coerceJobTitleAndUrl({
       companyName: formData.companyName.trim(),
       jobTitle: formData.jobTitle.trim(),
+      jobUrl: emptyToUndef(formData.jobUrl),
+    })
+    const cleaned = {
+      companyName: formData.companyName.trim(),
+      jobTitle: coerced.jobTitle,
       status: formData.status,
       priority: formData.priority as JobApplication['priority'],
-      jobUrl: emptyToUndef(formData.jobUrl),
+      jobUrl: coerced.jobUrl,
       companyWebsite: emptyToUndef(formData.companyWebsite),
       linkedInUrl: emptyToUndef(formData.linkedInUrl),
       applicationPortalUrl: emptyToUndef(formData.applicationPortalUrl),

@@ -4,7 +4,6 @@ import {
   Plus,
   Download,
   Upload,
-  DollarSign,
   MapPin,
   Calendar,
   Star,
@@ -17,6 +16,7 @@ import {
   Archive,
   GripVertical,
   Columns3,
+  Banknote,
 } from 'lucide-react'
 import { PageHeader } from '../components/ui/PageHeader'
 import { EmptyState } from '../components/ui/EmptyState'
@@ -47,8 +47,14 @@ import {
   STATUS_LABELS,
 } from '../domain/jobs'
 import { calculateJobPipelineCounts } from '../domain/jobPipeline'
+import {
+  coerceJobTitleAndUrl,
+  ensureHttpUrl,
+  formatJobSalary,
+  jobPostingHost,
+} from '../domain/jobDisplay'
 import { applySortOrder, sortBySortOrder } from '../utils/reorder'
-import { formatNativeCurrency, privacyClass } from '../utils/format'
+import { privacyClass } from '../utils/format'
 
 const KANBAN_COLUMNS: Array<{ id: string; status: JobStatus[]; title: string; color: string }> = [
   { id: 'wishlist', status: ['wishlist', 'researching'], title: 'Wishlist', color: 'border-border-strong' },
@@ -719,24 +725,27 @@ export function JobsPage() {
         <JobAnalytics applications={filteredApplications} privacy={privacy} />
       ) : viewMode === 'kanban' ? (
         <div className="jobs-list-kanban-split">
-          <aside className="jobs-list-kanban-split__list" aria-label="Applications list">
+          <aside className="jobs-list-kanban-split__list" aria-label="Quick scan by company">
             <div className="surface p-3 mb-3">
-              <p className="label-uppercase mb-1">List</p>
-              <p className="text-xs text-text-muted">Select a card or scan status while Kanban stays open.</p>
+              <p className="label-uppercase mb-1">Quick scan</p>
+              <p className="text-xs text-text-muted">
+                Company jump list — open List for the full table with stages.
+              </p>
             </div>
-            <div className="space-y-3">
-              {filteredApplications.slice(0, 12).map((app) => (
-                <JobCard
+            <div className="space-y-1.5" data-testid="jobs-kanban-quick-scan">
+              {filteredApplications.slice(0, 20).map((app) => (
+                <Link
                   key={`split-list-${app.id}`}
-                  application={app}
-                  onStatusChange={handleStatusChange}
-                  onEdit={handleEditApplication}
-                  onDelete={handleDeleteApplication}
-                  onDuplicate={handleDuplicateApplication}
-                  selected={selectedJobs.has(app.id)}
-                  onToggleSelect={toggleJobSelect}
-                  privacy={privacy}
-                />
+                  to={`/jobs/${app.id}`}
+                  className="jobs-quick-scan-row surface flex items-center gap-2 px-3 py-2 rounded-lg md:rounded-none hover:border-accent transition-colors"
+                >
+                  <span className="font-semibold text-sm truncate flex-1 min-w-0">{app.companyName}</span>
+                  <span
+                    className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase shrink-0 ${STATUS_COLORS[app.status]}`}
+                  >
+                    {STATUS_LABELS[app.status]}
+                  </span>
+                </Link>
               ))}
             </div>
           </aside>
@@ -773,50 +782,58 @@ export function JobsPage() {
                     Drop applications here
                   </p>
                 ) : (
-                <ReorderList
-                  items={column.applications}
-                  getId={(app) => String(app.id)}
-                  onReorder={(next) => handleReorderInColumn(column.status, next)}
-                  className="space-y-3 min-h-[80px]"
-                >
-                  {(app) => (
-                    <JobCard
-                      application={app}
-                      onStatusChange={handleStatusChange}
-                      onEdit={handleEditApplication}
-                      onDelete={handleDeleteApplication}
-                      onDuplicate={handleDuplicateApplication}
-                      selected={selectedJobs.has(app.id)}
-                      onToggleSelect={toggleJobSelect}
-                      privacy={privacy}
-                      draggable
-                      showReorderHandle
-                      onKanbanColumnDrop={handleKanbanDrop}
-                      onKanbanDragOverColumn={setDragOverColumn}
-                    />
-                  )}
-                </ReorderList>
+                  <ReorderList
+                    items={column.applications}
+                    getId={(app) => String(app.id)}
+                    onReorder={(next) => handleReorderInColumn(column.status, next)}
+                    className="space-y-3 min-h-[80px]"
+                  >
+                    {(app) => (
+                      <JobCard
+                        application={app}
+                        onStatusChange={handleStatusChange}
+                        onEdit={handleEditApplication}
+                        onDelete={handleDeleteApplication}
+                        onDuplicate={handleDuplicateApplication}
+                        selected={selectedJobs.has(app.id)}
+                        onToggleSelect={toggleJobSelect}
+                        privacy={privacy}
+                        draggable
+                        showReorderHandle
+                        onKanbanColumnDrop={handleKanbanDrop}
+                        onKanbanDragOverColumn={setDragOverColumn}
+                      />
+                    )}
+                  </ReorderList>
                 )}
               </div>
             ))}
           </div>
         </div>
       ) : (
-        <div className="space-y-3">
-          {filteredApplications.map((app) => (
-            <JobCard
-              key={app.id}
-              application={app}
-              onStatusChange={handleStatusChange}
-              onEdit={handleEditApplication}
-              onDelete={handleDeleteApplication}
-              onDuplicate={handleDuplicateApplication}
-              selected={selectedJobs.has(app.id)}
-              onToggleSelect={toggleJobSelect}
-              privacy={privacy}
-              expanded
-            />
-          ))}
+        <div className="jobs-list-view" data-testid="jobs-list-view">
+          <div className="jobs-list-view__head hidden md:grid mb-2 px-3 text-[10px] uppercase tracking-widest text-text-subtle font-bold">
+            <span>Company / role</span>
+            <span>Stage</span>
+            <span>Location</span>
+            <span>Applied</span>
+            <span className="text-right">Actions</span>
+          </div>
+          <div className="space-y-2">
+            {filteredApplications.map((app) => (
+              <JobsListRow
+                key={app.id}
+                application={app}
+                onStatusChange={handleStatusChange}
+                onEdit={handleEditApplication}
+                onDelete={handleDeleteApplication}
+                onDuplicate={handleDuplicateApplication}
+                selected={selectedJobs.has(app.id)}
+                onToggleSelect={toggleJobSelect}
+                privacy={privacy}
+              />
+            ))}
+          </div>
         </div>
       )}
 
@@ -931,6 +948,12 @@ function JobCard({
   const daysSince = getDaysSinceApplied(application)
   const nextInterview = getNextInterview(application)
   const deadlineApproaching = isDeadlineApproaching(application)
+  const { jobTitle: displayTitle, jobUrl: displayUrl } = coerceJobTitleAndUrl({
+    companyName: application.companyName,
+    jobTitle: application.jobTitle,
+    jobUrl: application.jobUrl,
+  })
+  const urlHost = jobPostingHost(displayUrl)
 
   const onStatusGripPointerDown = (e: ReactPointerEvent<HTMLButtonElement>) => {
     if (!draggable || !onKanbanColumnDrop || e.button !== 0) return
@@ -1007,22 +1030,47 @@ function JobCard({
               checked={!!selected}
               onChange={() => onToggleSelect(application.id)}
               className="mt-1"
-              aria-label={`Select ${application.jobTitle}`}
+              aria-label={`Select ${application.companyName}`}
               onClick={(e) => e.stopPropagation()}
             />
           )}
           <div className="flex-1 min-w-0">
-            <Link to={`/jobs/${application.id}`} className="font-bold text-base hover:text-accent transition-colors block truncate">
-              {application.jobTitle}
+            <Link
+              to={`/jobs/${application.id}`}
+              className="font-bold text-base sm:text-[1.05rem] tracking-tight hover:text-accent transition-colors block truncate"
+              data-testid="job-card-company"
+            >
+              {application.companyName}
             </Link>
-            <p className="text-sm text-text-muted truncate">{application.companyName}</p>
+            <p className="text-sm text-text-muted truncate mt-0.5" data-testid="job-card-title">
+              {displayTitle}
+            </p>
+            {displayUrl && urlHost ? (
+              <a
+                href={ensureHttpUrl(displayUrl)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs text-text-subtle hover:text-accent mt-1 truncate max-w-full"
+                onClick={(e) => e.stopPropagation()}
+                data-testid="job-card-url"
+              >
+                <ExternalLink size={11} strokeWidth={1.75} aria-hidden />
+                <span className="truncate">{urlHost}</span>
+              </a>
+            ) : null}
           </div>
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          {[...Array(5)].map((_, i) => (
-            <Star key={i} size={12} className={i < application.rating ? 'fill-accent text-accent' : 'text-text-subtle'} />
-          ))}
-        </div>
+        {application.rating > 0 ? (
+          <div className="flex items-center gap-0.5 flex-shrink-0" aria-label={`Rating ${application.rating} of 5`}>
+            {[...Array(5)].map((_, i) => (
+              <Star
+                key={i}
+                size={12}
+                className={i < application.rating ? 'fill-accent text-accent' : 'text-text-subtle'}
+              />
+            ))}
+          </div>
+        ) : null}
       </div>
 
       <div className="flex flex-wrap gap-2 mb-3">
@@ -1030,6 +1078,7 @@ function JobCard({
           value={application.status}
           onChange={(e) => onStatusChange(application.id, e.target.value as JobStatus)}
           className={`text-xs px-2 py-1 rounded font-semibold uppercase ${STATUS_COLORS[application.status]}`}
+          aria-label={`Status for ${application.companyName}`}
         >
           {Object.entries(STATUS_LABELS).map(([value, label]) => (
             <option key={value} value={value}>
@@ -1038,7 +1087,9 @@ function JobCard({
           ))}
         </select>
         {application.priority === 'high' && (
-          <span className="text-xs px-2 py-1 bg-red-500/10 text-red-500 rounded font-semibold uppercase">High Priority</span>
+          <span className="text-xs px-2 py-1 bg-red-500/10 text-red-500 rounded font-semibold uppercase">
+            High Priority
+          </span>
         )}
         {deadlineApproaching && (
           <span className="text-xs px-2 py-1 bg-amber-500/10 text-amber-500 rounded font-semibold uppercase flex items-center gap-1">
@@ -1048,28 +1099,31 @@ function JobCard({
       </div>
 
       <div className="space-y-1.5 text-xs text-text-muted mb-3">
-        <div className="flex items-center gap-2">
-          <MapPin size={12} className="flex-shrink-0" />
-          <span>{application.location} · {application.remote}</span>
-        </div>
-        {(application.salaryMin || application.salaryMax) && (
-          <div className={`flex items-center gap-2 ${privacyClass(privacy)}`}>
-            <DollarSign size={12} className="flex-shrink-0" />
+        {application.location && application.location !== 'Unknown' ? (
+          <div className="flex items-center gap-2">
+            <MapPin size={12} className="flex-shrink-0" />
             <span>
-              {application.salaryMin != null &&
-                formatNativeCurrency(application.salaryMin, application.salaryCurrency || 'GBP')}
-              {application.salaryMin != null && application.salaryMax != null && ' - '}
-              {application.salaryMax != null &&
-                formatNativeCurrency(application.salaryMax, application.salaryCurrency || 'GBP')}
-              {' '}
-              {application.salaryCurrency}/{application.salaryPeriod}
+              {application.location}
+              {application.remote ? ` · ${application.remote}` : ''}
             </span>
           </div>
-        )}
+        ) : null}
+        {(() => {
+          const salary = formatJobSalary(application)
+          return salary ? (
+            <div className={`flex items-center gap-2 ${privacyClass(privacy)}`}>
+              <Banknote size={12} className="flex-shrink-0" aria-hidden />
+              <span>{salary}</span>
+            </div>
+          ) : null
+        })()}
         {application.appliedDate && (
           <div className="flex items-center gap-2">
             <Calendar size={12} className="flex-shrink-0" />
-            <span>Applied {application.appliedDate}{daysSince !== null && ` (${daysSince}d ago)`}</span>
+            <span>
+              Applied {application.appliedDate}
+              {daysSince !== null && ` (${daysSince}d ago)`}
+            </span>
           </div>
         )}
         {nextInterview && (
@@ -1082,11 +1136,6 @@ function JobCard({
 
       {expanded && (
         <div className="flex flex-wrap gap-2 mb-3">
-          {application.jobUrl && (
-            <a href={application.jobUrl} target="_blank" rel="noopener noreferrer" className="btn-ghost btn-sm text-xs">
-              <ExternalLink size={12} /> Job Posting
-            </a>
-          )}
           {application.interviews.length > 0 && (
             <span className="text-xs px-2 py-1 bg-surface-hover rounded flex items-center gap-1">
               <Users size={12} /> {application.interviews.length} interviews
@@ -1099,7 +1148,8 @@ function JobCard({
           )}
           {application.tasks.length > 0 && (
             <span className="text-xs px-2 py-1 bg-surface-hover rounded flex items-center gap-1">
-              <CheckCircle size={12} /> {application.tasks.filter((t) => t.completed).length}/{application.tasks.length} tasks
+              <CheckCircle size={12} />{' '}
+              {application.tasks.filter((t) => t.completed).length}/{application.tasks.length} tasks
             </span>
           )}
         </div>
@@ -1107,7 +1157,7 @@ function JobCard({
 
       <div className="flex gap-2 pt-2 border-t border-border">
         <Link to={`/jobs/${application.id}`} className="btn-primary btn-sm text-xs flex-1">
-          View Details
+          Open
         </Link>
         <button type="button" onClick={() => onEdit(application)} className="btn-ghost btn-sm text-xs">
           Edit
@@ -1115,10 +1165,149 @@ function JobCard({
         <button type="button" onClick={() => onDuplicate(application)} className="btn-ghost btn-sm text-xs">
           Duplicate
         </button>
-        <button type="button" onClick={() => onDelete(application.id)} className="btn-ghost btn-sm text-xs text-red-500">
+        <button
+          type="button"
+          onClick={() => onDelete(application.id)}
+          className="btn-ghost btn-sm text-xs text-red-500"
+        >
           Delete
         </button>
       </div>
     </div>
+  )
+}
+
+/** Dedicated List view row — company-first, stage clear, full CRUD actions. */
+function JobsListRow({
+  application,
+  onStatusChange,
+  onEdit,
+  onDelete,
+  onDuplicate,
+  selected,
+  onToggleSelect,
+  privacy,
+}: {
+  application: JobApplication
+  onStatusChange: (id: number, status: JobStatus) => void
+  onEdit: (app: JobApplication) => void
+  onDelete: (id: number) => void
+  onDuplicate: (app: JobApplication) => void
+  selected?: boolean
+  onToggleSelect?: (id: number) => void
+  privacy: boolean
+}) {
+  const daysSince = getDaysSinceApplied(application)
+  const salary = formatJobSalary(application)
+  const { jobTitle: displayTitle, jobUrl: displayUrl } = coerceJobTitleAndUrl({
+    companyName: application.companyName,
+    jobTitle: application.jobTitle,
+    jobUrl: application.jobUrl,
+  })
+  const host = jobPostingHost(displayUrl)
+  const locationLabel =
+    application.location && application.location !== 'Unknown'
+      ? `${application.location}${application.remote ? ` · ${application.remote}` : ''}`
+      : application.remote || '—'
+
+  return (
+    <article
+      className="jobs-list-row surface p-3 sm:p-4 rounded-xl md:rounded-none"
+      data-testid="jobs-list-row"
+    >
+      <div className="jobs-list-row__grid items-start gap-3">
+        <div className="flex items-start gap-2 min-w-0">
+          {onToggleSelect ? (
+            <input
+              type="checkbox"
+              checked={!!selected}
+              onChange={() => onToggleSelect(application.id)}
+              className="mt-1.5"
+              aria-label={`Select ${application.companyName}`}
+            />
+          ) : null}
+          <div className="min-w-0">
+            <Link
+              to={`/jobs/${application.id}`}
+              className="font-bold text-base tracking-tight hover:text-accent block truncate"
+            >
+              {application.companyName}
+            </Link>
+            <p className="text-sm text-text-muted truncate">{displayTitle}</p>
+            {displayUrl && host ? (
+              <a
+                href={ensureHttpUrl(displayUrl)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs text-text-subtle hover:text-accent mt-0.5 truncate max-w-full"
+              >
+                <ExternalLink size={11} aria-hidden />
+                <span className="truncate">{host}</span>
+              </a>
+            ) : null}
+            {salary ? (
+              <p className={`text-xs text-text-muted mt-1 tabular-nums md:hidden ${privacyClass(privacy)}`}>
+                {salary}
+              </p>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="min-w-0">
+          <label className="sr-only">Stage</label>
+          <select
+            value={application.status}
+            onChange={(e) => onStatusChange(application.id, e.target.value as JobStatus)}
+            className={`w-full text-xs px-2 py-2 rounded font-semibold uppercase ${STATUS_COLORS[application.status]}`}
+          >
+            {Object.entries(STATUS_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+          {application.priority === 'high' ? (
+            <p className="text-[10px] uppercase tracking-wider text-red-500 font-bold mt-1">High priority</p>
+          ) : null}
+        </div>
+
+        <p className="text-sm text-text-muted truncate hidden md:block">{locationLabel}</p>
+
+        <div className="text-sm text-text-muted hidden md:block">
+          {application.appliedDate ? (
+            <>
+              <p className="tabular-nums">{application.appliedDate}</p>
+              {daysSince != null ? (
+                <p className="text-xs text-text-subtle">{daysSince}d ago</p>
+              ) : null}
+            </>
+          ) : (
+            <p className="text-text-subtle">Not applied</p>
+          )}
+          {salary ? (
+            <p className={`text-xs mt-1 tabular-nums ${privacyClass(privacy)}`}>{salary}</p>
+          ) : null}
+        </div>
+
+        <div className="flex flex-wrap justify-end gap-1.5">
+          <Link to={`/jobs/${application.id}`} className="btn-primary btn-sm text-xs">
+            Open
+          </Link>
+          <button type="button" onClick={() => onEdit(application)} className="btn-ghost btn-sm text-xs">
+            Edit
+          </button>
+          <button type="button" onClick={() => onDuplicate(application)} className="btn-ghost btn-sm text-xs">
+            Copy
+          </button>
+          <button
+            type="button"
+            onClick={() => onDelete(application.id)}
+            className="btn-ghost btn-sm text-xs text-red-500"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    </article>
   )
 }
