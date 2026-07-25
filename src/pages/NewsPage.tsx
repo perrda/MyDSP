@@ -13,6 +13,7 @@ import {
 import { PageHeader } from '../components/ui/PageHeader'
 import { ConfirmDialog, Field, Modal } from '../components/ui/Modal'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
+import { useToasts } from '../components/ToastProvider'
 import type { NewsArticle, NewsTag } from '../domain/news'
 import { refreshNewsFeeds } from '../services/mediaRefresh'
 import { isOnline } from '../services/offlineQueue'
@@ -91,13 +92,13 @@ function ArticleRow({
         href={article.link}
         target="_blank"
         rel="noopener noreferrer"
-        className={`${rowClass} md:hidden`}
+        className={`${rowClass} news-row-phone-link`}
       >
         {body}
       </a>
       <button
         type="button"
-        className={`${rowClass} hidden md:flex w-full text-left${selected ? ' news-row--selected' : ''}`}
+        className={`${rowClass} news-row-detail-button w-full text-left${selected ? ' news-row--selected' : ''}`}
         onClick={() => onSelect?.(article)}
       >
         {body}
@@ -107,6 +108,7 @@ function ArticleRow({
 }
 
 export function NewsPage() {
+  const { showToast } = useToasts()
   const [cachedArticles] = useState(loadNewsArticlesCache)
   const [tags, setTags] = useState(() => listNewsTags())
   const [collapsed, setCollapsed] = useState(() => loadNewsState().collapsed)
@@ -251,17 +253,34 @@ export function NewsPage() {
   }, [tags, byTag, filterTag])
 
   const unreadCount = useMemo(() => {
-    if (!seenAt) return top.length + taggedFlat.length
-    const cutoff = seenAt
-    const topN = top.filter((a) => a.publishedAt > cutoff).length
-    const tagN = taggedFlat.filter((a) => a.publishedAt > cutoff).length
-    return topN + tagN
+    const seen = new Set<string>()
+    let count = 0
+    for (const a of [...top, ...taggedFlat]) {
+      const key = a.link || a.id
+      if (!key || seen.has(key)) continue
+      seen.add(key)
+      if (!seenAt || a.publishedAt > seenAt) count++
+    }
+    return count
   }, [top, taggedFlat, seenAt])
 
   const markNewsRead = () => {
+    const previousSeenAt = seenAt
     const now = new Date().toISOString()
     setNewsSeenAt(now)
     setSeenAt(now)
+    showToast({
+      type: 'success',
+      title: 'News marked read',
+      duration: 8000,
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          setNewsSeenAt(previousSeenAt)
+          setSeenAt(previousSeenAt)
+        },
+      },
+    })
   }
 
   const isUnread = (a: NewsArticle) => !seenAt || a.publishedAt > seenAt
@@ -308,12 +327,55 @@ export function NewsPage() {
     setCollapsed((c) => ({ ...c, [section]: next }))
   }
 
+  const addTagsFromOwned = () => {
+    const portfolio = loadPortfolio()
+    const existing = new Set(listNewsTags().map((t) => t.tag.toUpperCase()))
+    let added = 0
+    let firstAdded: string | null = null
+    for (const e of portfolio.equities) {
+      const sym = e.symbol.trim().toUpperCase()
+      if (!sym || existing.has(sym)) continue
+      try {
+        addNewsTag({ tag: sym, label: e.name })
+        existing.add(sym)
+        if (!firstAdded) firstAdded = sym
+        added++
+      } catch {
+        /* ignore */
+      }
+    }
+    for (const c of portfolio.crypto) {
+      const sym = c.symbol.trim().toUpperCase()
+      if (!sym || existing.has(sym)) continue
+      try {
+        addNewsTag({ tag: sym, label: c.name })
+        existing.add(sym)
+        if (!firstAdded) firstAdded = sym
+        added++
+      } catch {
+        /* ignore */
+      }
+    }
+    setTags(listNewsTags())
+    if (firstAdded) {
+      setFilterTag(firstAdded)
+      saveNewsFilterTag(firstAdded)
+    }
+    setStatusMsg(
+      added > 0
+        ? `Added ${added} meta-tag${added === 1 ? '' : 's'} from Owned holdings`
+        : 'All Owned symbols already have News meta-tags',
+    )
+    window.setTimeout(() => setStatusMsg(null), 4000)
+    if (added > 0) void refresh()
+  }
+
   return (
     <div>
       <PageHeader
         eyebrow="Insights"
         title="News"
-        description="Yahoo Finance RSS via the quote Worker (same path as prices). Top 10 + By ticker — refreshes with the header Sync."
+        description="Yahoo Finance RSS via the quote Worker (same path as prices). Top 10 + By ticker — refreshes with the header Refresh."
         action={
           <button
             type="button"
@@ -507,9 +569,16 @@ export function NewsPage() {
                 {sorting ? 'Meta-tags · drag ⋮⋮ to reorder' : 'Meta-tags'}
               </p>
               {tags.length === 0 ? (
-                <p className="text-sm text-text-muted mb-3">
-                  No tags yet. Add tickers like TSLA, BTC, or ADA to filter headlines.
-                </p>
+                <div className="text-sm text-text-muted mb-3 space-y-2">
+                  <p>No tags yet. Add tickers like TSLA, BTC, or ADA to filter headlines.</p>
+                  <button
+                    type="button"
+                    className="btn-secondary btn-sm news-empty-from-owned inline-flex items-center gap-1.5"
+                    onClick={addTagsFromOwned}
+                  >
+                    From Owned
+                  </button>
+                </div>
               ) : (
                 <ReorderList
                   items={tags}
@@ -560,48 +629,7 @@ export function NewsPage() {
                 <button
                   type="button"
                   className="btn-secondary btn-sm news-from-owned inline-flex items-center gap-1.5"
-                  onClick={() => {
-                    const portfolio = loadPortfolio()
-                    const existing = new Set(listNewsTags().map((t) => t.tag.toUpperCase()))
-                    let added = 0
-                    let firstAdded: string | null = null
-                    for (const e of portfolio.equities) {
-                      const sym = e.symbol.trim().toUpperCase()
-                      if (!sym || existing.has(sym)) continue
-                      try {
-                        addNewsTag({ tag: sym, label: e.name })
-                        existing.add(sym)
-                        if (!firstAdded) firstAdded = sym
-                        added++
-                      } catch {
-                        /* ignore */
-                      }
-                    }
-                    for (const c of portfolio.crypto) {
-                      const sym = c.symbol.trim().toUpperCase()
-                      if (!sym || existing.has(sym)) continue
-                      try {
-                        addNewsTag({ tag: sym, label: c.name })
-                        existing.add(sym)
-                        if (!firstAdded) firstAdded = sym
-                        added++
-                      } catch {
-                        /* ignore */
-                      }
-                    }
-                    setTags(listNewsTags())
-                    if (firstAdded) {
-                      setFilterTag(firstAdded)
-                      saveNewsFilterTag(firstAdded)
-                    }
-                    setStatusMsg(
-                      added > 0
-                        ? `Added ${added} meta-tag${added === 1 ? '' : 's'} from Owned holdings`
-                        : 'All Owned symbols already have News meta-tags',
-                    )
-                    window.setTimeout(() => setStatusMsg(null), 4000)
-                    if (added > 0) void refresh()
-                  }}
+                  onClick={addTagsFromOwned}
                 >
                   From Owned
                 </button>
@@ -613,7 +641,7 @@ export function NewsPage() {
         </div>
         {selectedArticle ? (
           <aside
-            className="news-master-detail-panel surface p-4 border border-border hidden md:block sticky self-start"
+            className="news-master-detail-panel surface p-4 border border-border sticky self-start"
             aria-label={`Selected article: ${selectedArticle.title}`}
           >
             <p className="label-uppercase mb-1">Selected</p>

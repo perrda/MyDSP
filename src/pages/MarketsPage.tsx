@@ -508,6 +508,25 @@ function quoteAvailabilityLabel(
   return null
 }
 
+function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useState(() =>
+    typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+      ? window.matchMedia(query).matches
+      : false,
+  )
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return undefined
+    const media = window.matchMedia(query)
+    const onChange = () => setMatches(media.matches)
+    onChange()
+    media.addEventListener('change', onChange)
+    return () => media.removeEventListener('change', onChange)
+  }, [query])
+
+  return matches
+}
+
 export function MarketsPage() {
   const { data, privacy, setData } = usePortfolio()
   const navigate = useNavigate()
@@ -587,14 +606,18 @@ export function MarketsPage() {
   const [priceAlertEdit, setPriceAlertEdit] = useState<{
     key: string
     changePct: string
+    exists: boolean
   } | null>(null)
   const [fxExplainerOpen, setFxExplainerOpen] = useState(false)
   const [tagFilter, setTagFilter] = useState<MarketTickerTag | 'All'>(() => getMarketsTagFilter())
   const [yieldSort, setYieldSort] = useState(() => getMarketsYieldSort())
   const [toolbarPanel, setToolbarPanel] = useState<'assets' | 'timeframe' | 'format' | null>(null)
+  const [marketSearch, setMarketSearch] = useState('')
+  const [priceAlerts, setPriceAlerts] = useState(() => loadPriceAlertThresholds())
   const [online, setOnline] = useState(() => isOnline())
   const [relativeTick, setRelativeTick] = useState(0)
   const [activeJumpSection, setActiveJumpSection] = useState<SectionKey | null>(null)
+  const masterDetailActive = useMediaQuery('(min-width: 900px)')
 
   useEffect(() => {
     const id = window.setInterval(() => setRelativeTick((n) => n + 1), 30_000)
@@ -629,6 +652,12 @@ export function MarketsPage() {
     return subscribeShowMarketsTagYieldChips(() => {
       setShowMarketsTagYieldChips(loadShowMarketsTagYieldChips())
     })
+  }, [])
+
+  useEffect(() => {
+    const onAlerts = () => setPriceAlerts(loadPriceAlertThresholds())
+    window.addEventListener('mydsp-price-alerts', onAlerts)
+    return () => window.removeEventListener('mydsp-price-alerts', onAlerts)
   }, [])
 
   /** High-priority Finnhub API key reminder — once per browser session when no key. */
@@ -740,6 +769,7 @@ export function MarketsPage() {
 
   const activeTagFilter = showMarketsTagYieldChips ? tagFilter : 'All'
   const activeYieldSort = showMarketsTagYieldChips ? yieldSort : false
+  const marketSearchQuery = marketSearch.trim().toLowerCase()
 
   const bySection = useMemo(
     () => {
@@ -747,17 +777,23 @@ export function MarketsPage() {
         activeTagFilter === 'All'
           ? tickers
           : tickers.filter((t) => t.tag === activeTagFilter)
-      const equities = tagged.filter((t) => t.kind === 'equity')
+      const filtered = marketSearchQuery
+        ? tagged.filter((t) => {
+            const haystack = [t.symbol, t.name, t.tag ?? ''].join(' ').toLowerCase()
+            return haystack.includes(marketSearchQuery)
+          })
+        : tagged
+      const equities = filtered.filter((t) => t.kind === 'equity')
       return {
-        crypto: tagged.filter((t) => t.kind === 'crypto'),
+        crypto: filtered.filter((t) => t.kind === 'crypto'),
         equities: activeYieldSort ? sortByYieldDesc(equities) : equities,
-        commodities: tagged.filter((t) => t.kind === 'commodity'),
-        indices: tagged.filter((t) => t.kind === 'index'),
-        fx: tagged.filter((t) => t.kind === 'fx'),
-        crosses: tagged.filter((t) => t.kind === 'cross'),
+        commodities: filtered.filter((t) => t.kind === 'commodity'),
+        indices: filtered.filter((t) => t.kind === 'index'),
+        fx: filtered.filter((t) => t.kind === 'fx'),
+        crosses: filtered.filter((t) => t.kind === 'cross'),
       }
     },
-    [tickers, activeTagFilter, activeYieldSort],
+    [tickers, activeTagFilter, activeYieldSort, marketSearchQuery],
   )
 
   const fxTriangleHits = useMemo(() => {
@@ -1337,6 +1373,7 @@ export function MarketsPage() {
     setPriceAlertEdit({
       key: existing?.key ?? key,
       changePct: String(existing?.changePct ?? 3),
+      exists: Boolean(existing),
     })
   }, [])
 
@@ -1473,12 +1510,14 @@ export function MarketsPage() {
                 <EmptyStateInline
                   illustration
                   message={
-                    activeTagFilter !== 'All'
+                    marketSearchQuery
+                      ? `No ${meta.emptyLabel} matching "${marketSearch.trim()}".`
+                      : activeTagFilter !== 'All'
                       ? `No ${meta.emptyLabel} tagged ${activeTagFilter}.`
                       : `No ${meta.emptyLabel} yet — add one or seed a preset.`
                   }
                   action={
-                    activeTagFilter !== 'All'
+                    marketSearchQuery || activeTagFilter !== 'All'
                       ? undefined
                       : { label: meta.addLabel, onClick: () => openCreate(meta.kind) }
                   }
@@ -1679,6 +1718,13 @@ export function MarketsPage() {
                     t.kind === 'crypto' || t.kind === 'equity'
                       ? ownedHoldingWeightByKey.get(`${t.kind}:${normPortfolioSymbol(t.symbol)}`)
                       : undefined
+                  const rowAlert = priceAlerts.find(
+                    (th) =>
+                      th.key.toUpperCase() === t.symbol.toUpperCase() ||
+                      th.key.replace('^', '').toUpperCase() ===
+                        t.symbol.replace('^', '').toUpperCase() ||
+                      th.key === t.id,
+                  )
                   return (
                     <div
                       id={`market-${t.symbol.replace(/[^a-zA-Z0-9]/g, '_')}`}
@@ -1780,6 +1826,19 @@ export function MarketsPage() {
                             >
                               Owned
                             </Link>
+                          ) : null}
+                          {rowAlert ? (
+                            <button
+                              type="button"
+                              className="markets-price-alert-badge text-[10px] uppercase tracking-wider font-semibold px-1.5 py-0.5 border border-amber-500/40 text-amber-700 dark:text-amber-300 hover:bg-amber-500/10"
+                              title={`Price alert set at ±${rowAlert.changePct}%`}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                openPriceAlertForSymbol(t.symbol)
+                              }}
+                            >
+                              Alert ±{rowAlert.changePct}%
+                            </button>
                           ) : null}
                         </div>
                         {!compact ? (
@@ -2159,6 +2218,31 @@ export function MarketsPage() {
             })}
           </div>
 
+          <div className="markets-search-row">
+            <label className="sr-only" htmlFor="markets-search">
+              Search Markets watchlist
+            </label>
+            <input
+              id="markets-search"
+              data-testid="markets-search"
+              className="markets-search-input w-full text-sm"
+              type="search"
+              value={marketSearch}
+              onChange={(e) => setMarketSearch(e.target.value)}
+              placeholder="Search symbol, name, or tag"
+              autoComplete="off"
+            />
+            {marketSearchQuery ? (
+              <button
+                type="button"
+                className="btn-ghost btn-sm markets-search-clear"
+                onClick={() => setMarketSearch('')}
+              >
+                Clear
+              </button>
+            ) : null}
+          </div>
+
           {toolbarPanel === 'assets' ? (
           <nav
             id="markets-panel-body-assets"
@@ -2515,7 +2599,7 @@ export function MarketsPage() {
         </div>
         {quoteDetail ? (
           <aside
-            className="markets-master-detail-panel markets-detail-sticky surface p-4 border border-border hidden md:block sticky self-start"
+            className="markets-master-detail-panel markets-detail-sticky surface p-4 border border-border sticky self-start"
             aria-label={`Selected ${quoteDetail.ticker.symbol} detail`}
           >
             <p className="label-uppercase mb-1">Selected</p>
@@ -2771,7 +2855,7 @@ export function MarketsPage() {
       </Modal>
 
       <Modal
-        open={Boolean(quoteDetail)}
+        open={Boolean(quoteDetail) && !masterDetailActive}
         title={quoteDetail ? `${quoteDetail.ticker.symbol} · 24h` : 'Quote'}
         onClose={() => setQuoteDetail(null)}
       >
@@ -3057,9 +3141,9 @@ export function MarketsPage() {
         {priceAlertEdit ? (
           <div className="space-y-4">
             <p className="text-sm text-text-muted">
-              Alert when absolute move reaches this threshold (bell notifications).
+              Bell notification when this ticker moves by at least your chosen percentage.
             </p>
-            <Field label="Threshold % move" hint="e.g. 3 for ±3%">
+            <Field label="Move threshold (%)" hint="Example: 3 means alert at +3% or -3%.">
               <input
                 type="number"
                 min={0.1}
@@ -3074,42 +3158,70 @@ export function MarketsPage() {
                 }
               />
             </Field>
-            <div className="flex flex-wrap justify-end gap-2">
-              <button
-                type="button"
-                className="btn-ghost btn-sm"
-                onClick={() => setPriceAlertEdit(null)}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="btn-primary btn-sm"
-                aria-label={`Save price alert for ${priceAlertEdit.key}`}
-                onClick={() => {
-                  const pct = Number(priceAlertEdit.changePct)
-                  if (!Number.isFinite(pct) || pct <= 0) {
-                    toastError('Invalid threshold', 'Enter a percentage greater than 0')
-                    return
-                  }
-                  const key = priceAlertEdit.key.trim()
-                  const existing = loadPriceAlertThresholds()
-                  const idx = existing.findIndex(
-                    (th) =>
-                      th.key.toUpperCase() === key.toUpperCase() ||
-                      th.key.replace('^', '').toUpperCase() ===
-                        key.replace('^', '').toUpperCase(),
-                  )
-                  const next = [...existing]
-                  if (idx >= 0) next[idx] = { key: existing[idx]!.key, changePct: pct }
-                  else next.push({ key, changePct: pct })
-                  savePriceAlertThresholds(next)
-                  setPriceAlertEdit(null)
-                  toastSuccess('Price alert saved', `${key} ±${pct}%`)
-                }}
-              >
-                Save alert
-              </button>
+            <div className="flex flex-wrap justify-between gap-2">
+              {priceAlertEdit.exists ? (
+                <button
+                  type="button"
+                  className="btn-ghost btn-sm text-red-500"
+                  aria-label={`Remove price alert for ${priceAlertEdit.key}`}
+                  onClick={() => {
+                    const key = priceAlertEdit.key.trim()
+                    const next = loadPriceAlertThresholds().filter(
+                      (th) =>
+                        !(
+                          th.key.toUpperCase() === key.toUpperCase() ||
+                          th.key.replace('^', '').toUpperCase() ===
+                            key.replace('^', '').toUpperCase()
+                        ),
+                    )
+                    savePriceAlertThresholds(next)
+                    setPriceAlertEdit(null)
+                    toastSuccess('Price alert removed', key)
+                  }}
+                >
+                  Remove alert
+                </button>
+              ) : (
+                <span aria-hidden />
+              )}
+              <div className="flex flex-wrap justify-end gap-2">
+                <button
+                  type="button"
+                  className="btn-ghost btn-sm"
+                  onClick={() => setPriceAlertEdit(null)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn-primary btn-sm"
+                  aria-label={`Save price alert for ${priceAlertEdit.key}`}
+                  onClick={() => {
+                    const pct = Number(priceAlertEdit.changePct)
+                    if (!Number.isFinite(pct) || pct <= 0) {
+                      toastError('Invalid threshold', 'Enter a percentage greater than 0')
+                      return
+                    }
+                    const key = priceAlertEdit.key.trim()
+                    const existing = loadPriceAlertThresholds()
+                    const idx = existing.findIndex(
+                      (th) =>
+                        th.key.toUpperCase() === key.toUpperCase() ||
+                        th.key.replace('^', '').toUpperCase() ===
+                          key.replace('^', '').toUpperCase(),
+                    )
+                    const next = [...existing]
+                    const savedKey = idx >= 0 ? existing[idx]!.key : key
+                    if (idx >= 0) next[idx] = { key: savedKey, changePct: pct }
+                    else next.push({ key, changePct: pct })
+                    savePriceAlertThresholds(next)
+                    setPriceAlertEdit(null)
+                    toastSuccess('Price alert saved', `${savedKey} ±${pct}%`)
+                  }}
+                >
+                  Save alert
+                </button>
+              </div>
             </div>
           </div>
         ) : null}
