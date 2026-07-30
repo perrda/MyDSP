@@ -220,13 +220,17 @@ export function TodosPage() {
     setFilterBy('all')
     setSearchQuery('')
     setPriorityChips(new Set())
+    const visibleInDay =
+      item.status !== 'archived' &&
+      Boolean(item.dueDate && (item.dueDate.slice(0, 10) === todayYmd() || isOverdue(item)))
+    if (viewMode === 'day' && !visibleInDay) setViewMode('list')
     if (item.status === 'done' || item.status === 'archived') {
       setShowCompleted(true)
       setCompletedOpen(true)
     }
     setFocusTodoId(id)
     setSearchParams({}, { replace: true })
-  }, [searchParams, allItems, setSearchParams])
+  }, [searchParams, allItems, setSearchParams, viewMode])
 
   useEffect(() => {
     if (focusTodoId == null) return
@@ -350,6 +354,17 @@ export function TodosPage() {
       })
     return groups
   }, [filteredItems])
+  const dayOverdueItems = useMemo(
+    () =>
+      filteredItems
+        .filter((item) => isOverdue(item))
+        .sort(
+          (a, b) =>
+            (a.dueDate || '').localeCompare(b.dueDate || '') ||
+            (a.dueTime || '99:99').localeCompare(b.dueTime || '99:99'),
+        ),
+    [filteredItems],
+  )
 
   const filterActiveCount = useMemo(() => {
     let n = 0
@@ -585,6 +600,21 @@ export function TodosPage() {
       ...prev,
       todoItems: completeTodoWithRecurrence(prev.todoItems ?? [], item.id, now),
     }))
+  }
+
+  const handleFocus = (item: TodoItem) => {
+    if (item.status === 'done' || item.status === 'archived') return
+    const now = new Date().toISOString()
+    setData((prev) => ({
+      ...prev,
+      todoItems: (prev.todoItems ?? []).map((candidate) =>
+        candidate.id === item.id
+          ? { ...candidate, status: 'in-progress' as const, updatedAt: now }
+          : candidate,
+      ),
+    }))
+    setFocusTodoId(item.id)
+    success('Focus started', item.title)
   }
 
   const handleRestoreItem = (id: number) => {
@@ -1188,6 +1218,42 @@ export function TodosPage() {
               data-testid="todos-day-view"
               aria-label="Today's To Do time blocks"
             >
+              {dayOverdueItems.length > 0 ? (
+                <div
+                  className="todos-day-view__overdue [grid-column:1/-1] surface border-l-2 border-l-red-500 p-2.5 sm:p-4 rounded-xl md:rounded-none"
+                  data-testid="todos-day-overdue"
+                >
+                  <div className="mb-2 sm:mb-3 flex items-center justify-between gap-2">
+                    <h3 className="font-bold text-red-500">Overdue</h3>
+                    <span className="text-xs text-text-subtle">
+                      {dayOverdueItems.length} task{dayOverdueItems.length === 1 ? '' : 's'}
+                    </span>
+                  </div>
+                  <div className="todos-day-view__items space-y-2 sm:space-y-3">
+                    {dayOverdueItems.map((item) => (
+                      <TodoItemCard
+                        key={item.id}
+                        item={item}
+                        orderNumber={orderNumbers.get(item.id)}
+                        listName={lists.find((list) => list.id === item.listId)?.name}
+                        selected={selectedTodos.has(item.id)}
+                        selectMode={selectMode}
+                        focused={focusTodoId === item.id}
+                        justSynced={justSyncedTodos.has(item.id)}
+                        dayActions
+                        onToggleSelect={handleToggleSelect}
+                        onToggleComplete={handleToggleComplete}
+                        onStartFocus={handleFocus}
+                        onSnooze={handleSnooze}
+                        onEdit={handleEditItem}
+                        onDuplicate={handleDuplicateItem}
+                        onRestore={handleRestoreItem}
+                        onDelete={handleDeleteItem}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ) : null}
               {TODO_DAY_SEGMENTS.map((segment) => {
                 const items = dayGroups.get(segment) ?? []
                 return (
@@ -1213,8 +1279,11 @@ export function TodosPage() {
                             selectMode={selectMode}
                             focused={focusTodoId === item.id}
                             justSynced={justSyncedTodos.has(item.id)}
+                            dayActions
                             onToggleSelect={handleToggleSelect}
                             onToggleComplete={handleToggleComplete}
+                            onStartFocus={handleFocus}
+                            onSnooze={handleSnooze}
                             onEdit={handleEditItem}
                             onDuplicate={handleDuplicateItem}
                             onRestore={handleRestoreItem}
@@ -1365,8 +1434,11 @@ function TodoItemCard({
   focused = false,
   justSynced = false,
   showReorderHandle = false,
+  dayActions = false,
   onToggleSelect,
   onToggleComplete,
+  onStartFocus,
+  onSnooze,
   onEdit,
   onDuplicate,
   onRestore,
@@ -1380,8 +1452,11 @@ function TodoItemCard({
   focused?: boolean
   justSynced?: boolean
   showReorderHandle?: boolean
+  dayActions?: boolean
   onToggleSelect: (id: number) => void
   onToggleComplete: (item: TodoItem) => void
+  onStartFocus?: (item: TodoItem) => void
+  onSnooze?: (item: TodoItem) => void
   onEdit: (item: TodoItem) => void
   onDuplicate: (item: TodoItem) => void
   onRestore: (id: number) => void
@@ -1557,6 +1632,39 @@ function TodoItemCard({
           ) : null}
         </div>
       </div>
+
+      {dayActions && item.status !== 'done' && item.status !== 'archived' ? (
+        <div
+          className="todos-day-row-actions mt-3 flex flex-wrap items-center gap-2 border-t border-border/70 pt-3"
+          data-testid={`todo-day-actions-${item.id}`}
+        >
+          <button
+            type="button"
+            className={`btn-sm ${
+              item.status === 'in-progress' ? 'btn-secondary border-accent text-accent' : 'btn-primary'
+            }`}
+            aria-pressed={item.status === 'in-progress'}
+            disabled={item.status === 'in-progress'}
+            onClick={() => onStartFocus?.(item)}
+          >
+            {item.status === 'in-progress' ? 'Focused' : 'Focus'}
+          </button>
+          <button
+            type="button"
+            className="btn-secondary btn-sm"
+            onClick={() => onSnooze?.(item)}
+          >
+            Snooze
+          </button>
+          <button
+            type="button"
+            className="btn-ghost btn-sm"
+            onClick={() => onToggleComplete(item)}
+          >
+            Complete
+          </button>
+        </div>
+      ) : null}
 
       <div className="sm:hidden mt-3 flex items-center justify-between gap-2 border-t border-border/70 pt-2.5">
         {selectMode ? (
