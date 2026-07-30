@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { MessageSquareText } from 'lucide-react'
 import { PageHeader } from '../components/ui/PageHeader'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
+import { OverflowMenu } from '../components/ui/OverflowMenu'
 import { ProgressCommentaryPanel } from '../components/ProgressCommentaryPanel'
 import { usePortfolio } from '../context/PortfolioContext'
 import { markRecurringPaid } from '../domain/recurringActions'
@@ -275,7 +275,7 @@ export function RecurringPage() {
               key={r.id}
               id={`recurring-row-${r.id}`}
               data-testid={`recurring-row-${r.id}`}
-              className={`surface p-6 sm:p-8 flex flex-col ${
+              className={`surface p-4 sm:p-6 flex flex-col ${
                 focused ? 'todo-focus-ring ring-2 ring-accent bg-accent/10' : ''
               }`}
             >
@@ -300,30 +300,30 @@ export function RecurringPage() {
                   : ''}
               </p>
 
-              <div className="mt-auto flex flex-wrap gap-2">
-                <button type="button" className="btn-primary btn-sm" onClick={() => markPaid(r)}>
-                  Mark paid
-                </button>
-                <button
-                  type="button"
-                  className="btn-secondary btn-sm inline-flex items-center gap-1.5"
-                  onClick={() => setCommentsFor(r)}
-                  aria-label={`Commentary for ${r.name}`}
-                >
-                  <MessageSquareText size={14} strokeWidth={1.75} aria-hidden />
-                  {noteCount > 0 ? `Notes (${noteCount})` : 'Add note'}
-                </button>
-                <button type="button" className="btn-ghost btn-sm" onClick={() => openEdit(r)}>
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  className="btn-ghost btn-sm"
-                  onClick={() => setDeleteId(r.id)}
-                >
-                  Delete
-                </button>
-              </div>
+              <OverflowMenu
+                compact
+                className="mt-auto"
+                label={`Actions for ${r.name}`}
+                leading={
+                  <button type="button" className="btn-primary btn-sm" onClick={() => markPaid(r)}>
+                    Mark paid
+                  </button>
+                }
+                items={[
+                  {
+                    id: 'notes',
+                    label: noteCount > 0 ? `Notes (${noteCount})` : 'Add note',
+                    onClick: () => setCommentsFor(r),
+                  },
+                  { id: 'edit', label: 'Edit', onClick: () => openEdit(r) },
+                  {
+                    id: 'delete',
+                    label: 'Delete',
+                    destructive: true,
+                    onClick: () => setDeleteId(r.id),
+                  },
+                ]}
+              />
             </div>
           )
         })}

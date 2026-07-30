@@ -5,6 +5,7 @@ import { BudgetSparkline } from '../components/charts/BudgetSparkline'
 import { PageHeader } from '../components/ui/PageHeader'
 import { PagePrimaryActions } from '../components/ui/PagePrimaryActions'
 import { Field, Modal, ConfirmDialog, parseNum } from '../components/ui/Modal'
+import { OverflowMenu } from '../components/ui/OverflowMenu'
 import { usePortfolio } from '../context/PortfolioContext'
 import { useToasts } from '../components/ToastProvider'
 import { formatMonthLabel, monthKey, parseMonthParam, shiftMonth, daysElapsedInMonth, daysInMonth } from '../domain/monthUtils'
@@ -278,7 +279,7 @@ export function BudgetsPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-px">
         {rows.map((r) => (
-          <div key={r.category} className="surface p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
+          <div key={r.category} className="surface p-4 sm:p-5 rounded-xl md:rounded-none shadow-sm md:shadow-none">
             <div className="flex justify-between gap-4 mb-2">
               <h3 className="font-bold tracking-tight uppercase text-sm tracking-widest">
                 {r.category}
@@ -362,33 +363,39 @@ export function BudgetsPage() {
               />
             </div>
             
-            <div className="flex flex-wrap gap-2 mt-4">
-              <Link
-                to={`/spending?category=${encodeURIComponent(r.category)}&month=${ym}`}
-                className="btn-secondary btn-sm text-xs"
-              >
-                View transactions
-              </Link>
-              <button
-                type="button"
-                className="btn-ghost btn-sm text-xs"
-                onClick={() => {
-                  setForm({ category: r.category, limit: String(r.limit), rollover: false })
-                  setOpen(true)
-                }}
-              >
-                Edit limit
-              </button>
-              {r.limit > 0 && (
-                <button
-                  type="button"
-                  className="btn-ghost btn-sm text-xs text-red-500"
-                  onClick={() => setRemoveCategory(r.category)}
+            <OverflowMenu
+              compact
+              className="mt-4"
+              label={`Actions for ${r.category} budget`}
+              leading={
+                <Link
+                  to={`/spending?category=${encodeURIComponent(r.category)}&month=${ym}`}
+                  className="btn-secondary btn-sm text-xs"
                 >
-                  Remove
-                </button>
-              )}
-            </div>
+                  View transactions
+                </Link>
+              }
+              items={[
+                {
+                  id: 'edit-limit',
+                  label: 'Edit limit',
+                  onClick: () => {
+                    setForm({ category: r.category, limit: String(r.limit), rollover: false })
+                    setOpen(true)
+                  },
+                },
+                ...(r.limit > 0
+                  ? [
+                      {
+                        id: 'remove',
+                        label: 'Remove',
+                        destructive: true,
+                        onClick: () => setRemoveCategory(r.category),
+                      },
+                    ]
+                  : []),
+              ]}
+            />
           </div>
         ))}
         {rows.length === 0 && (

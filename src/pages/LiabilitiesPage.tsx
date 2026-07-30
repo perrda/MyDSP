@@ -6,6 +6,7 @@ import { EmptyState } from '../components/ui/EmptyState'
 import { PageHeader } from '../components/ui/PageHeader'
 import { PagePrimaryActions } from '../components/ui/PagePrimaryActions'
 import { ConfirmDialog, Field, Modal } from '../components/ui/Modal'
+import { OverflowMenu } from '../components/ui/OverflowMenu'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
 import { usePortfolio } from '../context/PortfolioContext'
 import { dailyInterestGbp, ragClass, ragLabel, type LiabilityKind } from '../domain/liabilityHelpers'
@@ -426,7 +427,7 @@ export function LiabilitiesPage() {
             const notes = c.commentaries?.length ?? 0
             const due = dueDayLabel(c.paymentDueDay)
             return (
-              <div className={`surface surface-interactive p-5 sm:p-8 h-full ${included ? '' : 'opacity-50'}`}>
+              <div className={`surface surface-interactive p-4 sm:p-6 h-full ${included ? '' : 'opacity-50'}`}>
                 <div className="flex justify-between gap-3 mb-3">
                   <div className="flex gap-2 min-w-0 flex-1">
                     {canDrag && <ReorderHandle label={`Reorder ${c.name}`} />}
@@ -442,21 +443,33 @@ export function LiabilitiesPage() {
                       </div>
                     </Link>
                   </div>
-                  <div className="flex flex-col sm:flex-row gap-1 sm:gap-2 shrink-0">
-                    <Link to={`/liabilities/card/${c.id}`} className="btn-primary btn-sm text-center">
-                      Open
-                    </Link>
-                    <button type="button" className="btn-ghost btn-sm" onClick={() => openEditCard(c)}>
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-ghost btn-sm"
-                      onClick={() => setDeleteTarget({ kind: 'card', id: c.id })}
-                    >
-                      Delete
-                    </button>
-                  </div>
+                  <OverflowMenu
+                    compact
+                    className="shrink-0"
+                    label={`Actions for ${c.name}`}
+                    leading={
+                      <Link
+                        to={`/liabilities/card/${c.id}`}
+                        className="btn-primary btn-sm text-center"
+                      >
+                        Open
+                      </Link>
+                    }
+                    items={[
+                      { id: 'edit', label: 'Edit', onClick: () => openEditCard(c) },
+                      {
+                        id: 'nw',
+                        label: included ? 'Exclude from NW' : 'Include in NW',
+                        onClick: () => toggleCard(c.id),
+                      },
+                      {
+                        id: 'delete',
+                        label: 'Delete',
+                        destructive: true,
+                        onClick: () => setDeleteTarget({ kind: 'card', id: c.id }),
+                      },
+                    ]}
+                  />
                 </div>
                 <Link to={`/liabilities/card/${c.id}`} className="block">
                   <p className={`text-2xl font-bold tabular-nums mb-3 ${privacyClass(privacy)}`}>
@@ -471,13 +484,6 @@ export function LiabilitiesPage() {
                     <div className="progress-fill" style={{ width: `${Math.min(util, 100)}%` }} />
                   </div>
                 </Link>
-                <button
-                  type="button"
-                  onClick={() => toggleCard(c.id)}
-                  className="text-[11px] font-bold uppercase tracking-widest text-accent"
-                >
-                  {included ? 'Included in NW' : 'Excluded from NW'}
-                </button>
               </div>
             )
           }}
@@ -516,7 +522,7 @@ export function LiabilitiesPage() {
             const notes = l.commentaries?.length ?? 0
             const due = dueDayLabel(l.paymentDueDay)
             return (
-              <div className={`surface surface-interactive p-5 sm:p-8 h-full ${included ? '' : 'opacity-50'}`}>
+              <div className={`surface surface-interactive p-4 sm:p-6 h-full ${included ? '' : 'opacity-50'}`}>
                 <div className="flex justify-between gap-3 mb-3">
                   <div className="flex gap-2 min-w-0 flex-1">
                     {canDrag && <ReorderHandle label={`Reorder ${l.name}`} />}
@@ -532,21 +538,33 @@ export function LiabilitiesPage() {
                       </div>
                     </Link>
                   </div>
-                  <div className="flex flex-col sm:flex-row gap-1 sm:gap-2 shrink-0">
-                    <Link to={`/liabilities/loan/${l.id}`} className="btn-primary btn-sm text-center">
-                      Open
-                    </Link>
-                    <button type="button" className="btn-ghost btn-sm" onClick={() => openEditLoan(l)}>
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-ghost btn-sm"
-                      onClick={() => setDeleteTarget({ kind: 'loan', id: l.id })}
-                    >
-                      Delete
-                    </button>
-                  </div>
+                  <OverflowMenu
+                    compact
+                    className="shrink-0"
+                    label={`Actions for ${l.name}`}
+                    leading={
+                      <Link
+                        to={`/liabilities/loan/${l.id}`}
+                        className="btn-primary btn-sm text-center"
+                      >
+                        Open
+                      </Link>
+                    }
+                    items={[
+                      { id: 'edit', label: 'Edit', onClick: () => openEditLoan(l) },
+                      {
+                        id: 'nw',
+                        label: included ? 'Exclude from NW' : 'Include in NW',
+                        onClick: () => toggleLoan(l.id),
+                      },
+                      {
+                        id: 'delete',
+                        label: 'Delete',
+                        destructive: true,
+                        onClick: () => setDeleteTarget({ kind: 'loan', id: l.id }),
+                      },
+                    ]}
+                  />
                 </div>
                 <Link to={`/liabilities/loan/${l.id}`} className="block">
                   <p className={`text-2xl font-bold tabular-nums mb-3 ${privacyClass(privacy)}`}>
@@ -564,13 +582,6 @@ export function LiabilitiesPage() {
                     />
                   </div>
                 </Link>
-                <button
-                  type="button"
-                  onClick={() => toggleLoan(l.id)}
-                  className="text-[11px] font-bold uppercase tracking-widest text-accent"
-                >
-                  {included ? 'Included in NW' : 'Excluded from NW'}
-                </button>
               </div>
             )
           }}
@@ -582,7 +593,7 @@ export function LiabilitiesPage() {
           <h3 className="eyebrow mb-4">Paid off</h3>
           <div className="surface divide-y divide-border">
             {data.paidOff.map((p) => (
-              <div key={`${p.name}-${p.paidDate}`} className="px-6 py-4 flex justify-between gap-4">
+              <div key={`${p.name}-${p.paidDate}`} className="px-5 py-3 flex justify-between gap-4">
                 <div>
                   <p className="font-medium">{p.name}</p>
                   <p className="text-xs text-text-subtle mt-1">
