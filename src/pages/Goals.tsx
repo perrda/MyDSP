@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
-import { ArrowUpDown, Target } from 'lucide-react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Target } from 'lucide-react'
 import { EmptyState } from '../components/ui/EmptyState'
+import { OverflowMenu } from '../components/ui/OverflowMenu'
 import { PageHeader } from '../components/ui/PageHeader'
+import { PagePrimaryActions } from '../components/ui/PagePrimaryActions'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
 import { usePortfolio } from '../context/PortfolioContext'
@@ -31,6 +33,7 @@ const empty = {
 
 export function GoalsPage() {
   const { data, setData, goalCurrent, goalProgress, privacy } = usePortfolio()
+  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<Goal | null>(null)
@@ -131,27 +134,22 @@ export function GoalsPage() {
             : 'Track net-worth, debt, and investment targets with RAG status.'
         }
         action={
-          <div className="flex flex-wrap gap-2">
-            <Link to="/liabilities" className="btn-ghost btn-sm">
-              Debt pay-down
-            </Link>
-            <Link to="/fire" className="btn-ghost btn-sm">
-              FIRE
-            </Link>
-            <button
-              type="button"
-              className={`btn-secondary btn-sm inline-flex items-center gap-2 ${sorting ? 'border-accent text-accent' : ''}`}
-              aria-pressed={sorting}
-              disabled={goals.length === 0}
-              onClick={() => setSorting((v) => !v)}
-            >
-              <ArrowUpDown size={14} strokeWidth={1.75} />
-              {sorting ? 'Done' : 'Sort'}
-            </button>
-            <button type="button" className="btn-primary btn-sm" onClick={openCreate}>
-              Add goal
-            </button>
-          </div>
+          <PagePrimaryActions
+            primaryLabel="Add goal"
+            onPrimary={openCreate}
+            menuLabel="Goal actions"
+            items={[
+              { id: 'debt', label: 'Debt pay-down', onClick: () => navigate('/liabilities') },
+              { id: 'fire', label: 'FIRE', onClick: () => navigate('/fire') },
+              {
+                id: 'sort',
+                label: sorting ? 'Done sorting' : 'Sort goals',
+                onClick: () => setSorting((v) => !v),
+                active: sorting,
+                disabled: goals.length === 0,
+              },
+            ]}
+          />
         }
       />
 
@@ -176,7 +174,7 @@ export function GoalsPage() {
             const projection =
               monthlySurplus != null ? projectGoalDate(g, current, monthlySurplus) : null
             return (
-              <div className="surface p-5 sm:p-8 goals-density-card">
+              <div className="surface p-4 sm:p-5 goals-density-card">
                 <div className="flex gap-3 mb-4">
                   {sorting ? <ReorderHandle label={`Reorder ${g.name}`} /> : null}
                   <div className="min-w-0 flex-1">
@@ -207,7 +205,7 @@ export function GoalsPage() {
                   <span className="text-text-muted">Current {formatGBP(current)}</span>
                   <span className="text-text-subtle">Target {formatGBP(g.target)}</span>
                 </div>
-                <div className="flex flex-wrap gap-1">
+                <div className="flex flex-wrap items-center gap-1">
                   {(['red', 'amber', 'green'] as RagStatus[]).map((s) => (
                     <button
                       key={s}
@@ -227,23 +225,33 @@ export function GoalsPage() {
                       {s === 'red' ? 'R' : s === 'amber' ? 'A' : 'G'}
                     </button>
                   ))}
-                  <button
-                    type="button"
-                    className="btn-secondary btn-sm ml-auto"
-                    onClick={() => {
-                      setNoteGoalId(g.id)
-                      setNoteText('')
-                      setEditingNote(null)
-                    }}
-                  >
-                    Commentary
-                  </button>
-                  <button type="button" className="btn-ghost btn-sm" onClick={() => openEdit(g)}>
-                    Edit
-                  </button>
-                  <button type="button" className="btn-ghost btn-sm" onClick={() => setDeleteId(g.id)}>
-                    Delete
-                  </button>
+                  <OverflowMenu
+                    compact
+                    className="ml-auto"
+                    label={`Actions for ${g.name}`}
+                    leading={
+                      <button
+                        type="button"
+                        className="btn-secondary btn-sm"
+                        onClick={() => {
+                          setNoteGoalId(g.id)
+                          setNoteText('')
+                          setEditingNote(null)
+                        }}
+                      >
+                        Commentary
+                      </button>
+                    }
+                    items={[
+                      { id: 'edit', label: 'Edit', onClick: () => openEdit(g) },
+                      {
+                        id: 'delete',
+                        label: 'Delete',
+                        destructive: true,
+                        onClick: () => setDeleteId(g.id),
+                      },
+                    ]}
+                  />
                 </div>
               </div>
             )
@@ -361,21 +369,23 @@ export function GoalsPage() {
                   <article key={c.id} className="surface-nested p-4">
                     <div className="flex justify-between gap-2 mb-2">
                       <p className="text-[11px] text-text-subtle">{formatDateTime(c.createdAt)}</p>
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          className="btn-ghost btn-sm"
-                          onClick={() => {
-                            setEditingNote(c)
-                            setNoteText(c.text)
-                          }}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          className="btn-ghost btn-sm"
-                          onClick={() =>
+                      <OverflowMenu
+                        compact
+                        label="Commentary actions"
+                        items={[
+                          {
+                            id: 'edit',
+                            label: 'Edit',
+                            onClick: () => {
+                              setEditingNote(c)
+                              setNoteText(c.text)
+                            },
+                          },
+                          {
+                            id: 'delete',
+                            label: 'Delete',
+                            destructive: true,
+                            onClick: () =>
                             setData((prev) => ({
                               ...prev,
                               goals: prev.goals.map((g) =>
@@ -386,12 +396,10 @@ export function GoalsPage() {
                                     }
                                   : g,
                               ),
-                            }))
-                          }
-                        >
-                          Delete
-                        </button>
-                      </div>
+                            })),
+                          },
+                        ]}
+                      />
                     </div>
                     <p className="text-sm whitespace-pre-wrap">{c.text}</p>
                   </article>
@@ -412,12 +420,6 @@ export function GoalsPage() {
         }}
       />
 
-      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary goals actions">
-        <button type="button" className="btn-primary btn-sm" onClick={openCreate}>
-          Add goal
-        </button>
-      </div>
-      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }
