@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { PageHeader } from '../components/ui/PageHeader'
+import { EmptyState } from '../components/ui/EmptyState'
 import { usePortfolio } from '../context/PortfolioContext'
-import { simulateDebt, type DebtStrategy } from '../domain/debt'
+import { getDebts, simulateDebt, sortDebts, type DebtStrategy } from '../domain/debt'
 import { formatGBP, privacyClass } from '../utils/format'
 
 const STRATEGIES: { id: DebtStrategy; name: string; desc: string }[] = [
@@ -28,6 +29,40 @@ export function OptimizerPage() {
 
   const monthsSaved = Math.max(0, minOnly.months - result.months)
   const interestSaved = Math.max(0, minOnly.totalInt - result.totalInt)
+
+  const hasDebts = useMemo(
+    () => getDebts(data.creditCards, data.loans).length > 0,
+    [data.creditCards, data.loans],
+  )
+
+  const topLiability = useMemo(() => {
+    const debts = getDebts(data.creditCards, data.loans)
+    if (debts.length === 0) return null
+    const top = sortDebts(strategy, debts)[0]
+    return {
+      kind: top.type === 'cc' ? ('card' as const) : ('loan' as const),
+      id: top.id,
+      name: top.name,
+    }
+  }, [data.creditCards, data.loans, strategy])
+
+  if (!hasDebts) {
+    return (
+      <div>
+        <PageHeader
+          eyebrow="Planning"
+          title="Debt optimizer"
+          description="Avalanche, snowball, or hybrid payoff strategies with extra monthly payments."
+        />
+        <EmptyState
+          illustration
+          title="No active debts"
+          description="Add credit cards or loans on Liabilities to model payoff strategies and interest savings."
+          action={{ label: 'Open Liabilities', to: '/liabilities' }}
+        />
+      </div>
+    )
+  }
 
   return (
     <div>
@@ -105,6 +140,22 @@ export function OptimizerPage() {
           <p className="text-2xl font-bold text-accent">{formatGBP(interestSaved)}</p>
         </div>
       </div>
+
+      {result.schedule.length > 0 ? (
+        <div className="surface p-5 sm:p-6 mb-6 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-text-muted">
+            Next up in your {strategy} order
+            {topLiability ? `: ${topLiability.name}` : ''}.
+          </p>
+          <Link
+            to={topLiability ? `/liabilities/${topLiability.kind}/${topLiability.id}` : '/liabilities'}
+            className="btn-secondary btn-sm"
+            data-testid="optimizer-open-top-liability"
+          >
+            Open top liability
+          </Link>
+        </div>
+      ) : null}
 
       <div className="surface overflow-x-auto">
         <table className="w-full text-left min-w-[640px]">

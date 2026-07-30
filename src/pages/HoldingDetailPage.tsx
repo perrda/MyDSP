@@ -745,7 +745,15 @@ export function HoldingDetailPage() {
 
       {!isCrypto ? (
         <section className="surface p-5 sm:p-6 mb-6" data-testid="equity-tax-lots">
-          <p className="label-uppercase mb-2">Tax lots (from journal)</p>
+          <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
+            <p className="label-uppercase mb-0">Tax lots (from journal)</p>
+            <Link
+              to={`/tax?symbol=${encodeURIComponent(item.symbol)}&assetType=equity`}
+              className="btn-secondary btn-sm"
+            >
+              Open Tax
+            </Link>
+          </div>
           {trades.length === 0 ? (
             <p className="text-sm text-text-subtle">
               Add or import buys to estimate light tax lots from the trade journal.
@@ -867,11 +875,35 @@ export function HoldingDetailPage() {
 
       {!isCrypto ? (
         <section className="surface p-5 sm:p-8 mb-6" data-testid="equity-dividend-schedule">
-          <p className="eyebrow mb-3">Income</p>
-          <h3 className="text-lg font-bold tracking-tight mb-2">Dividend schedule</h3>
-          <p className="text-sm text-text-muted font-light mb-5">
-            Optional next dividend reminder — informational only, not booked to cash.
-          </p>
+          <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
+            <div>
+              <p className="eyebrow mb-3">Income</p>
+              <h3 className="text-lg font-bold tracking-tight mb-2">Dividend schedule</h3>
+              <p className="text-sm text-text-muted font-light">
+                Optional next dividend reminder — informational only, not booked to cash.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Link
+                to={`/tax?symbol=${encodeURIComponent(item.symbol)}&assetType=equity`}
+                className="btn-secondary btn-sm"
+              >
+                Open Tax
+              </Link>
+              {yieldPct != null ||
+              equity?.nextDividendDate ||
+              equity?.nextDividendAmount != null ? (
+                <Link
+                  to={`/spending?month=${encodeURIComponent(
+                    (equity?.nextDividendDate ?? new Date().toISOString().slice(0, 10)).slice(0, 7),
+                  )}&description=${encodeURIComponent(`${item.symbol} dividend`)}&open=1`}
+                  className="btn-ghost btn-sm"
+                >
+                  Book as income
+                </Link>
+              ) : null}
+            </div>
+          </div>
           <dl className={`grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm ${privacyClass(privacy)}`}>
             <div className="surface-nested p-3">
               <dt className="text-[10px] uppercase tracking-wider text-text-subtle">Yield</dt>
@@ -895,11 +927,21 @@ export function HoldingDetailPage() {
         </section>
       ) : (
         <section className="surface p-5 sm:p-8 mb-6" data-testid="crypto-staking">
-          <p className="eyebrow mb-3">Yield</p>
-          <h3 className="text-lg font-bold tracking-tight mb-2">Staking</h3>
-          <p className="text-sm text-text-muted font-light mb-4">
-            Track reward depth on the staking page; APY here is an optional holding-level note.
-          </p>
+          <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
+            <div>
+              <p className="eyebrow mb-3">Yield</p>
+              <h3 className="text-lg font-bold tracking-tight mb-2">Staking</h3>
+              <p className="text-sm text-text-muted font-light">
+                Track reward depth on the staking page; APY here is an optional holding-level note.
+              </p>
+            </div>
+            <Link
+              to={`/tax?symbol=${encodeURIComponent(item.symbol)}&assetType=crypto`}
+              className="btn-secondary btn-sm"
+            >
+              Open Tax
+            </Link>
+          </div>
           <div className="flex flex-wrap items-center gap-3">
             <Link to="/staking" className="btn-secondary btn-sm">
               Open staking

@@ -2,7 +2,34 @@
 
 import { loadMarketQuotesCache } from '../storage/marketsStore'
 import { listMarketTickers } from '../storage/marketsStore'
+import type { PortfolioData } from './types'
 import type { Notification } from '../utils/notifications'
+
+function normAlertSymbol(symbol: string): string {
+  return symbol.trim().toUpperCase().replace(/^\^/, '')
+}
+
+/** Prefer holding detail when symbol matches portfolio equity/crypto. */
+export function priceAlertActionForSymbol(
+  tickerSymbol: string,
+  portfolio?: Pick<PortfolioData, 'equities' | 'crypto'>,
+): { actionUrl: string; actionLabel: string } {
+  const key = normAlertSymbol(tickerSymbol)
+  if (portfolio) {
+    const equity = portfolio.equities.find((h) => normAlertSymbol(h.symbol) === key)
+    if (equity) {
+      return { actionUrl: `/equities/${equity.id}`, actionLabel: 'Open holding' }
+    }
+    const crypto = portfolio.crypto.find((h) => normAlertSymbol(h.symbol) === key)
+    if (crypto) {
+      return { actionUrl: `/crypto/${crypto.id}`, actionLabel: 'Open holding' }
+    }
+  }
+  return {
+    actionUrl: `/markets?symbol=${encodeURIComponent(tickerSymbol)}`,
+    actionLabel: 'Markets',
+  }
+}
 
 const THRESHOLDS_KEY = 'mydsp_price_alert_thresholds_v1'
 
@@ -119,9 +146,9 @@ export function resetPriceAlertThresholds(): PriceAlertThreshold[] {
   return DEFAULT_THRESHOLDS
 }
 
-export function buildPriceAlertNotifications(): Array<
-  Omit<Notification, 'id' | 'timestamp' | 'read'> & { id: string }
-> {
+export function buildPriceAlertNotifications(
+  portfolio?: Pick<PortfolioData, 'equities' | 'crypto'>,
+): Array<Omit<Notification, 'id' | 'timestamp' | 'read'> & { id: string }> {
   const quotes = loadMarketQuotesCache()
   const tickers = listMarketTickers()
   const thresholds = loadPriceAlertThresholds()
@@ -153,6 +180,7 @@ export function buildPriceAlertNotifications(): Array<
       mode === 'target' && th.targetPrice != null
         ? `target ${th.targetPrice.toLocaleString(undefined, { maximumFractionDigits: q.decimals })}`
         : `threshold ±${th.changePct}%`
+    const { actionUrl, actionLabel } = priceAlertActionForSymbol(ticker.symbol, portfolio)
     out.push({
       id: `price-${ticker.id}-${mode}-${Math.round((mode === 'target' ? q.last : q.changePct) * 10)}`,
       type: bigMove ? 'warning' : 'info',
@@ -163,8 +191,8 @@ export function buildPriceAlertNotifications(): Array<
           ? `${ticker.symbol} reached target`
           : `${ticker.symbol} ${dir} ${q.changePct >= 0 ? '+' : ''}${q.changePct.toFixed(2)}%`,
       message: `Last print ${q.last.toLocaleString(undefined, { maximumFractionDigits: q.decimals })} ${q.unit} · ${targetText}`,
-      actionUrl: `/markets?symbol=${encodeURIComponent(ticker.symbol)}`,
-      actionLabel: 'Markets',
+      actionUrl,
+      actionLabel,
       dismissible: true,
       category: 'price-alerts',
       metadata: {
