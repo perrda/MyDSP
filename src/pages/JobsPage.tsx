@@ -97,7 +97,7 @@ function jobEventDayLabel(value: string): string {
 export function JobsPage() {
   const { data, setData, privacy } = usePortfolio()
   const { success, error: showError } = useToasts()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [viewMode, setViewMode] = useState<'kanban' | 'list' | 'analytics'>(
     () => loadJobsView().viewMode,
   )
@@ -127,7 +127,9 @@ export function JobsPage() {
   const applications = useMemo(() => data.jobApplications ?? [], [data.jobApplications])
 
   useEffect(() => {
-    const compareId = Number(searchParams.get('compare'))
+    const compareParam = searchParams.get('compare')
+    if (!compareParam) return
+    const compareId = Number(compareParam)
     if (!Number.isInteger(compareId) || !applications.some((app) => app.id === compareId)) return
     setSelectedJobs((prev) => {
       if (prev.has(compareId)) return prev
@@ -135,7 +137,10 @@ export function JobsPage() {
       next.add(compareId)
       return next
     })
-  }, [applications, searchParams])
+    const next = new URLSearchParams(searchParams)
+    next.delete('compare')
+    setSearchParams(next, { replace: true })
+  }, [applications, searchParams, setSearchParams])
 
   const filteredApplications = useMemo(() => {
     let apps = filterJobApplications(applications, filterBy)
