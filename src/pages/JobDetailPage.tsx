@@ -569,6 +569,11 @@ export function JobDetailPage() {
                 onClick: () => setEditMode(!editMode),
               },
               {
+                id: 'compare-salary',
+                label: 'Compare salary',
+                onClick: () => navigate(`/jobs?compare=${application.id}`),
+              },
+              {
                 id: 'delete',
                 label: 'Delete',
                 destructive: true,

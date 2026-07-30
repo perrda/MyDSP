@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type PointerEvent as ReactPointerEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import {
   Download,
   Upload,
@@ -97,6 +97,7 @@ function jobEventDayLabel(value: string): string {
 export function JobsPage() {
   const { data, setData, privacy } = usePortfolio()
   const { success, error: showError } = useToasts()
+  const [searchParams] = useSearchParams()
   const [viewMode, setViewMode] = useState<'kanban' | 'list' | 'analytics'>(
     () => loadJobsView().viewMode,
   )
@@ -124,6 +125,17 @@ export function JobsPage() {
   } | null>(null)
 
   const applications = useMemo(() => data.jobApplications ?? [], [data.jobApplications])
+
+  useEffect(() => {
+    const compareId = Number(searchParams.get('compare'))
+    if (!Number.isInteger(compareId) || !applications.some((app) => app.id === compareId)) return
+    setSelectedJobs((prev) => {
+      if (prev.has(compareId)) return prev
+      const next = new Set(prev)
+      next.add(compareId)
+      return next
+    })
+  }, [applications, searchParams])
 
   const filteredApplications = useMemo(() => {
     let apps = filterJobApplications(applications, filterBy)
@@ -208,9 +220,13 @@ export function JobsPage() {
   }, [applications])
 
   const offerCompareApplications = useMemo(() => {
-    const selected = applications.filter((app) => selectedJobs.has(app.id)).slice(0, 2)
+    const selected = applications.filter((app) => selectedJobs.has(app.id)).slice(0, 3)
     if (selected.length >= 2) return selected
-    return applications.filter((app) => app.status === 'offer' || app.status === 'accepted').slice(0, 2)
+    const ids = new Set(selected.map((app) => app.id))
+    const offers = applications.filter(
+      (app) => !ids.has(app.id) && (app.status === 'offer' || app.status === 'accepted'),
+    )
+    return [...selected, ...offers].slice(0, 3)
   }, [applications, selectedJobs])
 
   const kanbanData = useMemo(() => {
@@ -1077,8 +1093,8 @@ function OfferComparePanel({
         </div>
         <span className="text-xs text-text-subtle">Salary · location · remote</span>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {applications.slice(0, 2).map((app) => (
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+        {applications.slice(0, 3).map((app) => (
           <div key={app.id} className="rounded border border-border bg-surface-hover p-3">
             <Link to={`/jobs/${app.id}`} className="font-bold hover:text-accent">
               {app.companyName}
