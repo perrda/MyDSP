@@ -38,9 +38,10 @@ describe('next10 priorities wave (retained in v1.2.110 tip)', () => {
 
   it('3: Dashboard Today bill + pulse deep-links', () => {
     const dash = readPage('Dashboard.tsx')
-    expect(dash).toMatch(/to: `\/recurring\?focus=\$\{bill\.id\}`/)
-    expect(dash).toMatch(/to=\{`\/recurring\?focus=\$\{card\.bill\.id\}`\}/)
-    expect(dash).toMatch(/to=\{`\/recurring\?focus=\$\{r\.id\}`\}/)
+    expect(dash).toMatch(/import \{ recurringFocusUrl \} from '\.\.\/domain\/deepLinks'/)
+    expect(dash).toMatch(/to: recurringFocusUrl\(bill\.id\)/)
+    expect(dash).toMatch(/to=\{recurringFocusUrl\(card\.bill\.id\)\}/)
+    expect(dash).toMatch(/to=\{recurringFocusUrl\(r\.id\)\}/)
     expect(dash).toMatch(/data-testid="today-money-pulse"/)
     expect(dash).toMatch(/to="\/history"/)
     expect(dash).toMatch(/data-testid="today-career-pulse"/)
