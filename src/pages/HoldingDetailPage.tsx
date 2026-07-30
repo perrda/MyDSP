@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link, useLocation, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { ExternalLink } from 'lucide-react'
 import { PortfolioSeriesChart } from '../components/charts/PortfolioSeriesChart'
 import { HoldingPriceChart } from '../components/charts/HoldingPriceChart'
@@ -10,10 +10,12 @@ import { BackNav } from '../components/ui/BackNav'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
 import { TradeHistoryModal } from '../components/ui/TradeHistoryModal'
 import { TradeModal } from '../components/ui/TradeModal'
+import { useToasts } from '../components/ToastProvider'
 import { usePortfolio } from '../context/PortfolioContext'
 import { ragClass, ragLabel, nextCommentaryId } from '../domain/liabilityHelpers'
 import { ragFromPct } from '../domain/alerts'
 import { seedHoldingSeries } from '../domain/holdingHistory'
+import { buildTaxDisposalHref } from '../domain/taxDisposalLink'
 import {
   applyOpeningBalance,
   applyTrade,
@@ -107,6 +109,8 @@ export function HoldingDetailPage() {
           : null
   const id = Number(idParam)
   const { data, privacy, setData } = usePortfolio()
+  const { showToast } = useToasts()
+  const navigate = useNavigate()
 
   const item: CryptoHolding | EquityHolding | null = useMemo(() => {
     if (!kind || !Number.isFinite(id)) return null
@@ -1289,6 +1293,29 @@ export function HoldingDetailPage() {
               }),
             )
           }
+          const taxHref =
+            vals.side === 'sell'
+              ? buildTaxDisposalHref({
+                  assetType: kindHint,
+                  symbol: item.symbol,
+                  date: vals.date,
+                  qty: vals.qty,
+                  proceeds: vals.qty * vals.price - vals.fees,
+                  cost: vals.qty * (unitCost ?? 0),
+                })
+              : null
+          showToast({
+            type: 'success',
+            title: 'Trade saved',
+            message: item.symbol,
+            duration: taxHref ? 9000 : undefined,
+            action: taxHref
+              ? {
+                  label: 'Tax disposal',
+                  onClick: () => navigate(taxHref),
+                }
+              : undefined,
+          })
           setEditingTrade(null)
         }}
       />
