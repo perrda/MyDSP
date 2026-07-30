@@ -160,7 +160,7 @@ export function StakingPage() {
       <PageHeader
         eyebrow="Crypto"
         title="Staking rewards"
-        description="Track ADA (or other) epoch rewards and estimated APY. Drag ⋮⋮ to reorder rewards."
+        description="A separate manual rewards ledger for ADA (or other assets) and estimated APY."
         action={
           <PagePrimaryActions
             primaryLabel="Add reward"
@@ -169,6 +169,17 @@ export function StakingPage() {
           />
         }
       />
+
+      <div
+        className="surface border-l-2 border-l-accent px-5 py-4 mb-6"
+        data-testid="staking-manual-ledger-note"
+      >
+        <p className="text-sm font-semibold">Manual ledger — no automatic accounting</p>
+        <p className="text-xs text-text-subtle mt-1">
+          Rewards and APY entered here do not change crypto holding quantity or cost basis, add
+          trade-journal rows, or book P&amp;L. Record any holding or tax changes separately.
+        </p>
+      </div>
 
       {csvMsg && (
         <div className="surface border-l-2 border-l-accent px-5 py-4 mb-6" role="status">

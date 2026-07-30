@@ -850,7 +850,8 @@ export function HoldingDetailPage() {
               <p className="label-uppercase mb-1">Transfers ledger</p>
               <h3 className="text-base font-bold tracking-tight">Deposits &amp; withdrawals</h3>
               <p className="text-xs text-text-subtle mt-1">
-                Track movements between wallets/venues without changing cost basis.
+                Manual movement notes only. Adding or deleting a transfer does not change holding
+                quantity, cost basis, the trade journal, or P&amp;L.
               </p>
             </div>
           </div>
@@ -1002,7 +1003,8 @@ export function HoldingDetailPage() {
               <p className="eyebrow mb-3">Yield</p>
               <h3 className="text-lg font-bold tracking-tight mb-2">Staking</h3>
               <p className="text-sm text-text-muted font-light">
-                Track reward depth on the staking page; APY here is an optional holding-level note.
+                APY is an optional note. Rewards use a separate manual ledger and do not update
+                this holding quantity, cost basis, journal, or P&amp;L.
               </p>
             </div>
             <Link
