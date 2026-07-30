@@ -750,19 +750,27 @@ export function EquitiesPage() {
                 included={included}
               >
               <div
-                className={`surface p-4 md:p-5 flex flex-wrap md:flex-nowrap items-center gap-3 rounded-xl md:rounded-none shadow-sm md:shadow-none ${
-                  included ? '' : 'opacity-50'
-                } ${drifting ? 'ring-1 ring-inset ring-amber-500/50 bg-amber-500/5' : ''} ${
-                  selectedHolding?.id === e.id ? 'holdings-master-row-selected' : ''
-                }`}
+                className={`holdings-list-row surface p-4 md:p-5 rounded-xl md:rounded-none shadow-sm md:shadow-none ${
+                  sorting ? 'holdings-list-row--sorting' : ''
+                } ${included ? '' : 'opacity-50'} ${
+                  drifting ? 'ring-1 ring-inset ring-amber-500/50 bg-amber-500/5' : ''
+                } ${selectedHolding?.id === e.id ? 'holdings-master-row-selected' : ''}`}
                 tabIndex={0}
                 aria-label={`${e.symbol}${selectedHolding?.id === e.id ? ' (selected)' : ''}`}
                 onClick={() => setSelectedHoldingId(e.id)}
               >
-                {sorting ? <ReorderHandle label={`Reorder ${e.symbol}`} /> : null}
-                <Link to={`/equities/${e.id}`} className="min-w-0 flex-1 hover:text-accent transition-colors">
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <p className="font-semibold text-base">{e.symbol}</p>
+                {sorting ? (
+                  <div className="holdings-list-row__handle">
+                    <ReorderHandle label={`Reorder ${e.symbol}`} />
+                  </div>
+                ) : null}
+                <Link
+                  to={`/equities/${e.id}`}
+                  className="holdings-list-row__identity hover:text-accent transition-colors"
+                  onClick={(ev) => ev.stopPropagation()}
+                >
+                  <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+                    <p className="holdings-list-row__symbol font-semibold text-base">{e.symbol}</p>
                     {e.corporateActionNote ? (
                       <span
                         className="text-[10px] uppercase tracking-wider font-semibold px-1.5 py-0.5 border border-amber-500/45 text-amber-700 dark:text-amber-300"
@@ -797,22 +805,9 @@ export function EquitiesPage() {
                     </p>
                   ) : null}
                 </Link>
-                {driftHit ? (
-                  <div className="flex flex-col items-start gap-1">
-                    <button
-                      type="button"
-                      className="btn-secondary btn-sm border-amber-500/40 text-amber-700 dark:text-amber-300 min-h-11 md:min-h-9"
-                      title="Use the last-synced Markets quote for this holding"
-                      onClick={() => applyMarketsPriceForEquity(e, driftHit.marketPrice)}
-                    >
-                      Use Markets price
-                    </button>
-                    {fromOtherDeviceAge ? (
-                      <span className="text-[10px] text-text-subtle">Last synced {fromOtherDeviceAge}</span>
-                    ) : null}
-                  </div>
-                ) : null}
-                <div className={`text-sm tabular-nums min-w-[8.5rem] ${privacyClass(privacy)}`}>
+                <div
+                  className={`holdings-list-row__metrics text-sm tabular-nums ${privacyClass(privacy)}`}
+                >
                   <p className="font-semibold">{formatGBP(value)}</p>
                   <p className="text-xs text-text-muted">
                     {formatQty(e.shares)} × {formatGBPPrecise(priceGbp)}
@@ -831,55 +826,67 @@ export function EquitiesPage() {
                   )}
                 </div>
                 <p
-                  className={`text-sm tabular-nums w-20 text-right font-semibold ${
+                  className={`holdings-list-row__change text-sm tabular-nums font-semibold ${
                     pnl >= 0 ? 'text-accent' : 'text-text-muted'
                   }`}
                 >
                   {formatPct(cost > 0 ? (pnl / cost) * 100 : 0)}
                 </p>
-                <OverflowMenu
-                  label={`More actions for ${e.symbol}`}
-                  className="ml-auto md:ml-0"
-                  leading={
-                    <>
-                      <button
-                        type="button"
-                        className="btn-primary btn-sm min-h-11 md:min-h-9"
-                        onClick={() => {
+                <div className="holdings-list-row__actions">
+                  <OverflowMenu
+                    compact
+                    label={`More actions for ${e.symbol}`}
+                    items={[
+                      {
+                        id: 'buy',
+                        label: 'Buy',
+                        onClick: () => {
                           setTradeFor(e)
                           setTradeSide('buy')
-                        }}
-                      >
-                        Buy
-                      </button>
-                      <button
-                        type="button"
-                        className="btn-secondary btn-sm min-h-11 md:min-h-9"
-                        onClick={() => {
+                        },
+                      },
+                      {
+                        id: 'sell',
+                        label: 'Sell',
+                        onClick: () => {
                           setTradeFor(e)
                           setTradeSide('sell')
-                        }}
-                      >
-                        Sell
-                      </button>
-                    </>
-                  }
-                  items={[
-                    {
-                      id: 'nw',
-                      label: included ? 'In net worth' : 'Excluded from NW',
-                      active: included,
-                      onClick: () => toggle(e.id),
-                    },
-                    { id: 'edit', label: 'Edit', onClick: () => openEdit(e) },
-                    {
-                      id: 'delete',
-                      label: 'Delete',
-                      destructive: true,
-                      onClick: () => setDeleteId(e.id),
-                    },
-                  ]}
-                />
+                        },
+                      },
+                      {
+                        id: 'nw',
+                        label: included ? 'In net worth' : 'Excluded from NW',
+                        active: included,
+                        onClick: () => toggle(e.id),
+                      },
+                      { id: 'edit', label: 'Edit', onClick: () => openEdit(e) },
+                      {
+                        id: 'delete',
+                        label: 'Delete',
+                        destructive: true,
+                        onClick: () => setDeleteId(e.id),
+                      },
+                    ]}
+                  />
+                </div>
+                {driftHit ? (
+                  <div className="holdings-list-row__alert flex flex-col items-start gap-1">
+                    <button
+                      type="button"
+                      className="btn-secondary btn-sm border-amber-500/40 text-amber-700 dark:text-amber-300 min-h-11 md:min-h-9"
+                      title="Use the last-synced Markets quote for this holding"
+                      onClick={(ev) => {
+                        ev.stopPropagation()
+                        applyMarketsPriceForEquity(e, driftHit.marketPrice)
+                      }}
+                    >
+                      Use Markets price
+                    </button>
+                    {fromOtherDeviceAge ? (
+                      <span className="text-[10px] text-text-subtle">Last synced {fromOtherDeviceAge}</span>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
               </SwipeHoldingRow>
             )

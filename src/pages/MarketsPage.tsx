@@ -2019,6 +2019,7 @@ export function MarketsPage() {
                       <div className="shrink-0">
                         {compact ? (
                           <OverflowMenu
+                            compact
                             label={`Actions for ${t.symbol}`}
                             items={[
                               {
@@ -2058,6 +2059,7 @@ export function MarketsPage() {
                           >
                             {t.kind === 'commodity' ? (
                               <OverflowMenu
+                                compact
                                 label={`More actions for ${t.symbol}`}
                                 items={[
                                   {

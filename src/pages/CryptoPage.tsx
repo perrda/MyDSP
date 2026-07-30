@@ -647,18 +647,26 @@ export function CryptoPage() {
                 included={included}
               >
               <div
-                className={`surface p-4 md:p-5 flex flex-wrap md:flex-nowrap items-center gap-3 rounded-xl md:rounded-none shadow-sm md:shadow-none ${
-                  included ? '' : 'opacity-50'
-                } ${drifting ? 'ring-1 ring-inset ring-amber-500/50 bg-amber-500/5' : ''} ${
-                  selectedHolding?.id === c.id ? 'holdings-master-row-selected' : ''
-                }`}
+                className={`holdings-list-row surface p-4 md:p-5 rounded-xl md:rounded-none shadow-sm md:shadow-none ${
+                  sorting ? 'holdings-list-row--sorting' : ''
+                } ${included ? '' : 'opacity-50'} ${
+                  drifting ? 'ring-1 ring-inset ring-amber-500/50 bg-amber-500/5' : ''
+                } ${selectedHolding?.id === c.id ? 'holdings-master-row-selected' : ''}`}
                 tabIndex={0}
                 aria-label={`${c.symbol}${selectedHolding?.id === c.id ? ' (selected)' : ''}`}
                 onClick={() => setSelectedHoldingId(c.id)}
               >
-                {sorting ? <ReorderHandle label={`Reorder ${c.symbol}`} /> : null}
-                <Link to={`/crypto/${c.id}`} className="min-w-0 flex-1 hover:text-accent transition-colors">
-                  <p className="font-semibold text-base">{c.symbol}</p>
+                {sorting ? (
+                  <div className="holdings-list-row__handle">
+                    <ReorderHandle label={`Reorder ${c.symbol}`} />
+                  </div>
+                ) : null}
+                <Link
+                  to={`/crypto/${c.id}`}
+                  className="holdings-list-row__identity hover:text-accent transition-colors"
+                  onClick={(ev) => ev.stopPropagation()}
+                >
+                  <p className="holdings-list-row__symbol font-semibold text-base">{c.symbol}</p>
                   <p className="text-xs text-text-subtle truncate mt-0.5">{c.name}</p>
                   {c.chain || c.platform ? (
                     <p className="text-[11px] text-text-subtle truncate mt-0.5">
@@ -671,22 +679,7 @@ export function CryptoPage() {
                     </p>
                   ) : null}
                 </Link>
-                {driftHit ? (
-                  <div className="flex flex-col items-start gap-1">
-                    <button
-                      type="button"
-                      className="btn-secondary btn-sm border-amber-500/40 text-amber-700 dark:text-amber-300 min-h-11 md:min-h-9"
-                      title="Use the last-synced Markets quote for this holding"
-                      onClick={() => applyMarketsPriceForCrypto(c, driftHit.marketPrice)}
-                    >
-                      Use Markets price
-                    </button>
-                    {fromOtherDeviceAge ? (
-                      <span className="text-[10px] text-text-subtle">Last synced {fromOtherDeviceAge}</span>
-                    ) : null}
-                  </div>
-                ) : null}
-                <div className={`text-sm tabular-nums ${privacyClass(privacy)}`}>
+                <div className={`holdings-list-row__metrics text-sm tabular-nums ${privacyClass(privacy)}`}>
                   <p className="font-semibold">{formatGBP(value)}</p>
                   <p className="text-xs text-text-subtle">
                     {formatQty(c.qty)} · {formatGBPPrecise(c.price)}
@@ -700,55 +693,67 @@ export function CryptoPage() {
                   </p>
                 </div>
                 <p
-                  className={`text-sm tabular-nums w-20 text-right font-semibold ${
+                  className={`holdings-list-row__change text-sm tabular-nums font-semibold ${
                     pnl >= 0 ? 'text-accent' : 'text-text-muted'
                   }`}
                 >
                   {formatPct(c.cost > 0 ? (pnl / c.cost) * 100 : 0)}
                 </p>
-                <OverflowMenu
-                  label={`More actions for ${c.symbol}`}
-                  className="ml-auto md:ml-0"
-                  leading={
-                    <>
-                      <button
-                        type="button"
-                        className="btn-primary btn-sm min-h-11 md:min-h-9"
-                        onClick={() => {
+                <div className="holdings-list-row__actions">
+                  <OverflowMenu
+                    compact
+                    label={`More actions for ${c.symbol}`}
+                    items={[
+                      {
+                        id: 'buy',
+                        label: 'Buy',
+                        onClick: () => {
                           setTradeFor(c)
                           setTradeSide('buy')
-                        }}
-                      >
-                        Buy
-                      </button>
-                      <button
-                        type="button"
-                        className="btn-secondary btn-sm min-h-11 md:min-h-9"
-                        onClick={() => {
+                        },
+                      },
+                      {
+                        id: 'sell',
+                        label: 'Sell',
+                        onClick: () => {
                           setTradeFor(c)
                           setTradeSide('sell')
-                        }}
-                      >
-                        Sell
-                      </button>
-                    </>
-                  }
-                  items={[
-                    {
-                      id: 'nw',
-                      label: included ? 'In net worth' : 'Excluded from NW',
-                      active: included,
-                      onClick: () => toggle(c.id),
-                    },
-                    { id: 'edit', label: 'Edit', onClick: () => openEdit(c) },
-                    {
-                      id: 'delete',
-                      label: 'Delete',
-                      destructive: true,
-                      onClick: () => setDeleteId(c.id),
-                    },
-                  ]}
-                />
+                        },
+                      },
+                      {
+                        id: 'nw',
+                        label: included ? 'In net worth' : 'Excluded from NW',
+                        active: included,
+                        onClick: () => toggle(c.id),
+                      },
+                      { id: 'edit', label: 'Edit', onClick: () => openEdit(c) },
+                      {
+                        id: 'delete',
+                        label: 'Delete',
+                        destructive: true,
+                        onClick: () => setDeleteId(c.id),
+                      },
+                    ]}
+                  />
+                </div>
+                {driftHit ? (
+                  <div className="holdings-list-row__alert flex flex-col items-start gap-1">
+                    <button
+                      type="button"
+                      className="btn-secondary btn-sm border-amber-500/40 text-amber-700 dark:text-amber-300 min-h-11 md:min-h-9"
+                      title="Use the last-synced Markets quote for this holding"
+                      onClick={(ev) => {
+                        ev.stopPropagation()
+                        applyMarketsPriceForCrypto(c, driftHit.marketPrice)
+                      }}
+                    >
+                      Use Markets price
+                    </button>
+                    {fromOtherDeviceAge ? (
+                      <span className="text-[10px] text-text-subtle">Last synced {fromOtherDeviceAge}</span>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
               </SwipeHoldingRow>
             )

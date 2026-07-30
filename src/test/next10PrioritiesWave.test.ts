@@ -106,4 +106,37 @@ describe('next10 priorities wave (v1.2.109)', () => {
     expect(markets).toMatch(/All ownership/)
     expect(markets).toMatch(/markets-panel-toggle--filtered/)
   })
+
+  it('11: Holdings list rows never nowrap-crush identity over Cost/P&L', () => {
+    const css = readFileSync(resolve(__dirname, '../index.css'), 'utf8')
+    expect(css).toMatch(/\.holdings-list-row\s*\{/)
+    expect(css).toMatch(/holdings-list-row__identity/)
+    expect(css).toMatch(/holdings-list-row__metrics/)
+
+    const menu = readFileSync(
+      resolve(__dirname, '../components/ui/OverflowMenu.tsx'),
+      'utf8',
+    )
+    expect(menu).toMatch(/compact\?: boolean/)
+    expect(menu).toMatch(/data-overflow-compact/)
+
+    for (const name of ['EquitiesPage.tsx', 'CryptoPage.tsx'] as const) {
+      const page = readPage(name)
+      expect(page).toMatch(/holdings-list-row/)
+      expect(page).toMatch(/compact\b/)
+      expect(page).not.toMatch(/md:flex-nowrap/)
+      expect(page).not.toMatch(/leading=\{/)
+    }
+
+    const markets = readPage('MarketsPage.tsx')
+    expect(markets).toMatch(/<OverflowMenu[\s\S]*?compact/)
+
+    const rule = readFileSync(
+      resolve(__dirname, '../../.cursor/rules/no-text-overlap.mdc'),
+      'utf8',
+    )
+    expect(rule).toMatch(/alwaysApply:\s*true/)
+    expect(rule).toMatch(/OverflowMenu/)
+    expect(rule).toMatch(/holdings-list-row/)
+  })
 })
