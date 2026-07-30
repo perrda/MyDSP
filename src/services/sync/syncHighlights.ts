@@ -363,6 +363,7 @@ export function announceWhatArrived(opts: {
 }): string | null {
   const entitySummary = opts.highlights ? summarizeSyncHighlights(opts.highlights) : null
   const summary = [entitySummary, opts.extrasSummary].filter(Boolean).join(' · ') || null
+  const openHref = firstSyncHighlightHref(opts.highlights)
   try {
     if (typeof window !== 'undefined') {
       window.dispatchEvent(
@@ -372,6 +373,7 @@ export function announceWhatArrived(opts: {
             highlights: opts.highlights ?? {},
             extrasSummary: opts.extrasSummary ?? null,
             summary,
+            openHref,
           },
         }),
       )

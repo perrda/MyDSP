@@ -8,7 +8,10 @@ import {
   type SyncConflict,
 } from '../services/sync/conflicts'
 import { allConflictsResolved } from '../services/sync/syncService'
-import { firstSyncHighlightHref } from '../services/sync/syncHighlights'
+import {
+  announceWhatArrived,
+  firstSyncHighlightHref,
+} from '../services/sync/syncHighlights'
 
 const conflict = (portfolioId: string): SyncConflict => ({
   portfolioId,
@@ -69,5 +72,20 @@ describe('next-10 wave 4 sync conflict UX', () => {
     expect(settings).toMatch(/label: 'Undo'/)
     expect(settings).toMatch(/label: 'Open first'/)
     expect(firstSyncHighlightHref({ todoItems: [42] })).toBe('/todos?focus=42')
+  })
+
+  it('announces the first-arrival destination to event consumers', () => {
+    let openHref: string | null | undefined
+    window.addEventListener(
+      'mydsp-sync-applied',
+      ((event: CustomEvent<{ openHref?: string | null }>) => {
+        openHref = event.detail.openHref
+      }) as EventListener,
+      { once: true },
+    )
+
+    announceWhatArrived({ highlights: { jobApplications: [55] }, merged: 1 })
+
+    expect(openHref).toBe('/jobs/55')
   })
 })
