@@ -169,6 +169,10 @@ export function JobsPage() {
 
   const stats = useMemo(() => calculateJobStats(applications), [applications])
   const pipeline = useMemo(() => calculateJobPipelineCounts(applications), [applications])
+  const funnelPipeline = useMemo(
+    () => pipeline.filter((stage) => ['applied', 'interview', 'offer'].includes(stage.id)),
+    [pipeline],
+  )
   const followUpCount = useMemo(
     () => applications.filter((a) => needsFollowUp(a)).length,
     [applications],
@@ -589,35 +593,42 @@ export function JobsPage() {
             </p>
           </div>
         </div>
-        <div className="flex flex-wrap gap-x-3 gap-y-2 sm:gap-x-4">
-          {pipeline.map((stage) => (
-            <button
-              key={stage.id}
-              type="button"
-              className={`jobs-pipeline-mini__stage min-w-[3.25rem] text-left rounded-lg md:rounded-none px-1 py-1 -mx-1 transition-colors ${
-                pipelineFocus === stage.id ? 'bg-accent/10 text-accent' : 'hover:bg-surface-hover'
-              }`}
-              onClick={() => jumpToPipelineStage(stage.id)}
-              aria-pressed={pipelineFocus === stage.id}
-              title={`Open Kanban filtered to ${stage.label}`}
-            >
-              <p className="text-[10px] sm:text-[11px] uppercase tracking-wider text-text-subtle font-semibold">
-                {stage.label}
-              </p>
-              <p
-                className={`text-lg sm:text-xl font-bold tabular-nums leading-tight ${
-                  stage.id === 'interview'
-                    ? 'text-amber-500'
-                    : stage.id === 'offer'
-                      ? 'text-green-500'
-                      : stage.id === 'closed'
-                        ? 'text-red-500/80'
-                        : ''
+        <div
+          className="jobs-pipeline-mini__funnel grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1 sm:gap-3"
+          aria-label="Applied to interview to offer funnel"
+        >
+          {funnelPipeline.map((stage, index) => (
+            <div key={stage.id} className="contents">
+              {index > 0 ? (
+                <span className="text-text-subtle text-lg" aria-hidden>
+                  →
+                </span>
+              ) : null}
+              <button
+                type="button"
+                className={`jobs-pipeline-mini__stage min-w-0 text-left rounded-lg md:rounded-none px-2 py-1.5 transition-colors ${
+                  pipelineFocus === stage.id ? 'bg-accent/10 text-accent' : 'hover:bg-surface-hover'
                 }`}
+                onClick={() => jumpToPipelineStage(stage.id)}
+                aria-pressed={pipelineFocus === stage.id}
+                title={`Open Kanban filtered to ${stage.label}`}
               >
-                {stage.count}
-              </p>
-            </button>
+                <p className="text-[10px] sm:text-[11px] uppercase tracking-wider text-text-subtle font-semibold truncate">
+                  {stage.label}
+                </p>
+                <p
+                  className={`text-lg sm:text-xl font-bold tabular-nums leading-tight ${
+                    stage.id === 'interview'
+                      ? 'text-amber-500'
+                      : stage.id === 'offer'
+                        ? 'text-green-500'
+                        : ''
+                  }`}
+                >
+                  {stage.count}
+                </p>
+              </button>
+            </div>
           ))}
         </div>
       </div>

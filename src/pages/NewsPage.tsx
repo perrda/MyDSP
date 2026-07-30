@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { PageHeader } from '../components/ui/PageHeader'
 import { PagePrimaryActions } from '../components/ui/PagePrimaryActions'
+import { CollapsibleFilters } from '../components/ui/CollapsibleFilters'
 import { ConfirmDialog, Field, Modal } from '../components/ui/Modal'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
 import { useToasts } from '../components/ToastProvider'
@@ -56,6 +57,22 @@ const NEWS_PAGE = 10
 
 function articleKey(article: Pick<NewsArticle, 'link' | 'id'>): string {
   return article.link || article.id
+}
+
+function articleMatchesPortfolio(article: NewsArticle, portfolioSymbols: Set<string>): boolean {
+  const tag = article.tag?.trim().toUpperCase()
+  if (tag && portfolioSymbols.has(tag)) return true
+  const haystack = `${article.title} ${article.summary ?? ''}`.toUpperCase()
+  for (const symbol of portfolioSymbols) {
+    if (
+      new RegExp(
+        `(^|[^A-Z0-9])${symbol.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^A-Z0-9]|$)`,
+      ).test(haystack)
+    ) {
+      return true
+    }
+  }
+  return false
 }
 
 function ArticleRow({
@@ -164,6 +181,7 @@ function ArticleRow({
 
 export function NewsPage() {
   const { showToast } = useToasts()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [syncStatus, setSyncStatus] = useState<AutoSyncStatus>(() => getAutoSyncStatus())
   const [syncConfigured, setSyncConfigured] = useState(() => {
     const cfg = loadSyncConfig()
@@ -188,6 +206,7 @@ export function NewsPage() {
   const [formError, setFormError] = useState<string | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [filterTag, setFilterTag] = useState<string | 'all'>(() => loadNewsFilterTag())
+  const [ownedOnly, setOwnedOnly] = useState(() => searchParams.get('owned') === '1')
   const [sorting, setSorting] = useState(false)
   const [seenAt, setSeenAt] = useState(getNewsSeenAt)
   const [savedArticleKeys, setSavedArticleKeys] = useState(() => getSavedNewsArticles())
@@ -281,7 +300,6 @@ export function NewsPage() {
     return () => window.removeEventListener('mydsp-news-refresh', onRefresh)
   }, [refresh])
 
-  const [searchParams, setSearchParams] = useSearchParams()
   useEffect(() => {
     if (searchParams.get('refresh') !== '1') return
     void refresh()
@@ -323,6 +341,10 @@ export function NewsPage() {
   }, [])
 
   const savedSet = useMemo(() => new Set(savedArticleKeys), [savedArticleKeys])
+  const articleInPortfolio = useCallback(
+    (article: NewsArticle) => articleMatchesPortfolio(article, portfolioSymbols),
+    [portfolioSymbols],
+  )
 
   const allArticles = useMemo(() => {
     const byKey = new Map<string, NewsArticle>()
@@ -333,28 +355,37 @@ export function NewsPage() {
     return [...byKey.values()].sort((a, b) => b.publishedAt.localeCompare(a.publishedAt))
   }, [top, byTag])
 
+  const filteredTop = useMemo(
+    () => (ownedOnly ? top.filter(articleInPortfolio) : top),
+    [articleInPortfolio, ownedOnly, top],
+  )
+
   const taggedFlat = useMemo(() => {
     const rows: NewsArticle[] = []
     for (const t of tags) {
       for (const a of byTag[t.id] || []) rows.push(a)
     }
     rows.sort((a, b) => b.publishedAt.localeCompare(a.publishedAt))
-    if (filterTag === 'saved') return allArticles.filter((a) => savedSet.has(articleKey(a)))
-    if (filterTag === 'all') return rows
-    return rows.filter((a) => a.tag === filterTag)
-  }, [tags, byTag, filterTag, allArticles, savedSet])
+    const filtered =
+      filterTag === 'saved'
+        ? allArticles.filter((a) => savedSet.has(articleKey(a)))
+        : filterTag === 'all'
+          ? rows
+          : rows.filter((a) => a.tag === filterTag)
+    return ownedOnly ? filtered.filter(articleInPortfolio) : filtered
+  }, [tags, byTag, filterTag, allArticles, savedSet, ownedOnly, articleInPortfolio])
 
   const unreadCount = useMemo(() => {
     const seen = new Set<string>()
     let count = 0
-    for (const a of [...top, ...taggedFlat]) {
+    for (const a of [...filteredTop, ...taggedFlat]) {
       const key = a.link || a.id
       if (!key || seen.has(key)) continue
       seen.add(key)
       if (!seenAt || a.publishedAt > seenAt) count++
     }
     return count
-  }, [top, taggedFlat, seenAt])
+  }, [filteredTop, taggedFlat, seenAt])
 
   const markNewsRead = () => {
     const previousSeenAt = seenAt
@@ -380,18 +411,6 @@ export function NewsPage() {
   const toggleSaved = (article: NewsArticle) => {
     toggleSavedNewsArticle(articleKey(article))
     setSavedArticleKeys(getSavedNewsArticles())
-  }
-
-  const articleInPortfolio = (article: NewsArticle): boolean => {
-    const tag = article.tag?.trim().toUpperCase()
-    if (tag && portfolioSymbols.has(tag)) return true
-    const haystack = `${article.title} ${article.summary ?? ''}`.toUpperCase()
-    for (const symbol of portfolioSymbols) {
-      if (new RegExp(`(^|[^A-Z0-9])${symbol.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^A-Z0-9]|$)`).test(haystack)) {
-        return true
-      }
-    }
-    return false
   }
 
   const hasCachedArticles =
@@ -479,6 +498,14 @@ export function NewsPage() {
     if (added > 0) void refresh()
   }
 
+  const setOwnedFilter = (nextOwnedOnly: boolean) => {
+    setOwnedOnly(nextOwnedOnly)
+    const next = new URLSearchParams(searchParams)
+    if (nextOwnedOnly) next.set('owned', '1')
+    else next.delete('owned')
+    setSearchParams(next, { replace: true })
+  }
+
   return (
     <div>
       <PageHeader
@@ -561,6 +588,35 @@ export function NewsPage() {
         </div>
       ) : null}
 
+      <CollapsibleFilters
+        id="news-filters"
+        className="news-sticky-filters"
+        title="Filters"
+        summary={[
+          ownedOnly ? 'From owned holdings' : null,
+          filterTag !== 'all' ? filterTag : null,
+        ].filter(Boolean).join(' · ') || 'All headlines'}
+        activeCount={(ownedOnly ? 1 : 0) + (filterTag !== 'all' ? 1 : 0)}
+      >
+        <label className="flex items-start gap-3 min-h-11 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={ownedOnly}
+            onChange={(event) => setOwnedFilter(event.target.checked)}
+            className="mt-1"
+          />
+          <span>
+            <span className="block text-sm font-semibold">From owned holdings (and related)</span>
+            <span className="block text-xs text-text-subtle mt-0.5">
+              Show ticker-tagged stories and headlines mentioning symbols in your portfolio.
+            </span>
+          </span>
+        </label>
+        <button type="button" className="btn-secondary btn-sm" onClick={addTagsFromOwned}>
+          Add tags from owned holdings
+        </button>
+      </CollapsibleFilters>
+
       <div
         className={`news-master-detail${selectedArticle ? ' news-master-detail--open' : ''}`}
       >
@@ -571,7 +627,7 @@ export function NewsPage() {
           <div className="min-w-0">
             <p className="text-xl sm:text-2xl font-bold tracking-tight text-text mb-1">Top news</p>
             <p className="label-uppercase text-[11px] text-text-subtle tabular-nums">
-              {top.length} headline{top.length === 1 ? '' : 's'} today
+              {filteredTop.length} headline{filteredTop.length === 1 ? '' : 's'} today
             </p>
           </div>
           <button
@@ -585,13 +641,13 @@ export function NewsPage() {
         </div>
         {!collapsed.top && (
           <div className="divide-y divide-border">
-            {top.length === 0 ? (
+            {filteredTop.length === 0 ? (
               <p className="px-4 sm:px-5 py-8 text-sm text-text-muted text-center">
                 No top headlines yet.
               </p>
             ) : (
               <>
-                {top.slice(0, topVisible).map((a) => (
+                {filteredTop.slice(0, topVisible).map((a) => (
                   <ArticleRow
                     key={a.id}
                     article={a}
@@ -603,14 +659,14 @@ export function NewsPage() {
                     onToggleSave={toggleSaved}
                   />
                 ))}
-                {topVisible < top.length ? (
+                {topVisible < filteredTop.length ? (
                   <div className="px-4 sm:px-5 py-3">
                     <button
                       type="button"
                       className="btn-secondary btn-sm w-full min-h-11"
                       onClick={() => setTopVisible((n) => n + NEWS_PAGE)}
                     >
-                      Load more ({top.length - topVisible} left)
+                      Load more ({filteredTop.length - topVisible} left)
                     </button>
                   </div>
                 ) : null}
@@ -642,7 +698,7 @@ export function NewsPage() {
 
         {!collapsed.tagged && (
           <>
-            <div className="news-sticky-filters px-4 sm:px-5 py-3 flex flex-wrap gap-2 border-b border-border">
+            <div className="news-tag-filters px-4 sm:px-5 py-3 flex flex-wrap gap-2 border-b border-border">
               <button
                 type="button"
                 className={`btn-sm ${filterTag === 'all' ? 'btn-secondary' : 'btn-ghost'}`}

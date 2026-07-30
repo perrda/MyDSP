@@ -10,6 +10,32 @@ export function spendingHighlightUrl(id: number | string, opts?: { category?: st
   return `/spending?${params.toString()}`
 }
 
+export function spendingCategoryUrl(category: string, month: string): string {
+  const params = new URLSearchParams()
+  params.set('category', category.trim().toLowerCase())
+  params.set('month', month)
+  return `/spending?${params.toString()}`
+}
+
+export function budgetCategoryUrl(category: string, month: string): string {
+  const params = new URLSearchParams()
+  params.set('category', category.trim().toLowerCase())
+  params.set('month', month)
+  return `/budgets?${params.toString()}`
+}
+
+export function planningMonteCarloUrl(netWorth: number, monthlySavings: number): string {
+  const params = new URLSearchParams()
+  params.set('tab', 'montecarlo')
+  params.set('nw', String(Math.max(0, netWorth)))
+  params.set('savings', String(Math.max(0, monthlySavings)))
+  return `/planning?${params.toString()}`
+}
+
+export function youtubeVideoUrl(videoId: string): string {
+  return `/youtube?video=${encodeURIComponent(videoId)}`
+}
+
 export function recurringFocusUrl(id: number | string): string {
   return `/recurring?focus=${encodeURIComponent(String(id))}`
 }

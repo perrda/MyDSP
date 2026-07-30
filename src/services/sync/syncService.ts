@@ -1067,7 +1067,7 @@ export async function applyMergePreview(
       const k = conflictKey(c)
       if (resolutions[k]) scoped[k] = resolutions[k]
     }
-    const next = mergeWithResolutions(plan.local, plan.remote, scoped)
+    const next = mergeWithResolutions(plan.local, plan.remote, scoped, plan.portfolioId)
     savePortfolioImmediate(next, plan.portfolioId)
     merged++
   }

@@ -74,6 +74,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         title?: string
         message?: string
         duration?: number
+        action?: Toast['action']
+        actions?: Toast['actions']
+        className?: string
       }>).detail
       if (!detail?.title) return
       showToast({
@@ -81,6 +84,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         title: detail.title,
         message: detail.message,
         duration: detail.duration,
+        action: detail.action,
+        actions: detail.actions,
+        className: detail.className,
       })
     }
     window.addEventListener('mydsp-toast', onAppToast)

@@ -105,6 +105,7 @@ export function YouTubePage() {
   const [online, setOnline] = useState(() => isOnline())
   const [relativeTick, setRelativeTick] = useState(0)
   const inFlight = useRef(false)
+  const handledDeepLink = useRef('')
 
   useEffect(() => {
     const id = window.setInterval(() => setRelativeTick((n) => n + 1), 30_000)
@@ -262,6 +263,35 @@ export function YouTubePage() {
     if (cachedWithoutChannels) setSelectedVideo(null)
   }, [cachedWithoutChannels])
 
+  useEffect(() => {
+    const requestedVideo = searchParams.get('video')?.trim() ?? ''
+    const unreadRequested = searchParams.get('unread') === '1'
+    const deepLinkKey = requestedVideo ? `video:${requestedVideo}` : unreadRequested ? 'unread' : ''
+    if (!deepLinkKey || handledDeepLink.current === deepLinkKey) return
+
+    const target = requestedVideo
+      ? displayedVideos.find(
+          (video) =>
+            video.id === requestedVideo ||
+            extractYoutubeVideoId(video.link, video.id) === requestedVideo,
+        )
+      : displayedVideos.find((video) => !seenAt || video.publishedAt > seenAt)
+    if (!target) return
+
+    handledDeepLink.current = deepLinkKey
+    const index = displayedVideos.findIndex((video) => video.id === target.id)
+    setVisibleCount((count) => Math.max(count, index + 1))
+    setSelectedVideo(target)
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const row = [...document.querySelectorAll<HTMLElement>('[data-youtube-video-id]')].find(
+          (element) => element.dataset.youtubeVideoId === target.id,
+        )
+        row?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      })
+    })
+  }, [displayedVideos, searchParams, seenAt])
+
   const markYtRead = () => {
     const previousSeenAt = seenAt
     const now = new Date().toISOString()
@@ -388,9 +418,13 @@ export function YouTubePage() {
           {error && !cachedMode ? ` · ${error}` : ''}
         </span>
         {unreadCount > 0 ? (
-          <span className="youtube-unread-chip inline-flex items-center gap-1 text-[11px] font-bold tabular-nums px-2 py-0.5 bg-accent/15 text-accent border border-accent/30 rounded-full">
+          <Link
+            to="/youtube?unread=1"
+            className="youtube-unread-chip inline-flex items-center gap-1 text-[11px] font-bold tabular-nums px-2 py-0.5 bg-accent/15 text-accent border border-accent/30 rounded-full hover:underline"
+            title="Jump to the first unread video"
+          >
             {unreadCount} new
-          </span>
+          </Link>
         ) : null}
         {unreadCount > 0 ? (
           <button type="button" className="btn-ghost btn-sm text-xs min-h-9" onClick={markYtRead}>
@@ -646,7 +680,7 @@ export function YouTubePage() {
                       </>
                     )
                     return (
-                      <li key={v.id}>
+                      <li key={v.id} data-youtube-video-id={v.id}>
                         <a
                           href={v.link}
                           target="_blank"

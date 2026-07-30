@@ -33,6 +33,8 @@ export interface NewsState {
   lastRefreshAt?: string
   /** Saved/read-later article keys (link preferred, then id). */
   savedArticles?: string[]
+  /** Per-headline LWW state; `saved: false` is a sync tombstone for an explicit unsave. */
+  savedArticleChanges?: Record<string, { saved: boolean; updatedAt: string }>
   /** ISO cutoff — articles newer than this count as unread (syncs via workspace extras). */
   seenAt?: string
   /** ISO time when tags / collapsed / seenAt last changed (LWW on sync). */

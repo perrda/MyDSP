@@ -14,7 +14,9 @@ import { useToasts } from '../components/ToastProvider'
 import { usePortfolio } from '../context/PortfolioContext'
 import { ragClass, ragLabel, nextCommentaryId } from '../domain/liabilityHelpers'
 import { ragFromPct } from '../domain/alerts'
+import { spendingHighlightUrl } from '../domain/deepLinks'
 import { seedHoldingSeries } from '../domain/holdingHistory'
+import { appendSpendingEntry } from '../domain/recurringActions'
 import { buildTaxDisposalHref } from '../domain/taxDisposalLink'
 import {
   applyOpeningBalance,
@@ -150,6 +152,11 @@ export function HoldingDetailPage() {
     qty: '',
     venue: '',
     note: '',
+  })
+  const [dividendOpen, setDividendOpen] = useState(false)
+  const [dividendForm, setDividendForm] = useState({
+    date: todayIsoDate(),
+    amount: '',
   })
 
   useEffect(() => {
@@ -316,6 +323,45 @@ export function HoldingDetailPage() {
   const deleteTransfer = (transferId: number) => {
     if (!crypto) return
     patch({ transfers: (crypto.transfers ?? []).filter((t) => t.id !== transferId) })
+  }
+
+  const openDividend = () => {
+    if (!equity) return
+    const suggested =
+      equity.nextDividendAmount != null &&
+      equity.nextDividendAmount > 0 &&
+      equity.shares > 0
+        ? equity.shares * equity.nextDividendAmount
+        : 0
+    setDividendForm({
+      date: equity.nextDividendDate?.slice(0, 10) || todayIsoDate(),
+      amount: suggested > 0 ? String(Number(suggested.toFixed(2))) : '',
+    })
+    setDividendOpen(true)
+  }
+
+  const logDividend = () => {
+    if (!equity) return
+    const amount = parseNum(dividendForm.amount)
+    if (!(amount > 0) || !dividendForm.date) return
+    const appended = appendSpendingEntry(data, {
+      date: dividendForm.date.slice(0, 10),
+      description: `${item.symbol} dividend`,
+      amount,
+      category: 'income',
+      method: 'credit',
+    })
+    setData(appended.data)
+    setDividendOpen(false)
+    showToast({
+      type: 'success',
+      title: 'Dividend logged',
+      message: 'Added to the cash ledger as income; budget spend is unchanged.',
+      action: {
+        label: 'View in Spending',
+        onClick: () => navigate(spendingHighlightUrl(appended.spendId, { category: 'income' })),
+      },
+    })
   }
 
   const saveNote = () => {
@@ -804,7 +850,8 @@ export function HoldingDetailPage() {
               <p className="label-uppercase mb-1">Transfers ledger</p>
               <h3 className="text-base font-bold tracking-tight">Deposits &amp; withdrawals</h3>
               <p className="text-xs text-text-subtle mt-1">
-                Track movements between wallets/venues without changing cost basis.
+                Manual movement notes only. Adding or deleting a transfer does not change holding
+                quantity, cost basis, the trade journal, or P&amp;L.
               </p>
             </div>
           </div>
@@ -903,7 +950,8 @@ export function HoldingDetailPage() {
               <p className="eyebrow mb-3">Income</p>
               <h3 className="text-lg font-bold tracking-tight mb-2">Dividend schedule</h3>
               <p className="text-sm text-text-muted font-light">
-                Optional next dividend reminder — informational only, not booked to cash.
+                Log received cash separately from the holding. This cash-ledger entry does not
+                calculate Section 104 cost or taxable dividend income.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -913,18 +961,9 @@ export function HoldingDetailPage() {
               >
                 Open Tax
               </Link>
-              {yieldPct != null ||
-              equity?.nextDividendDate ||
-              equity?.nextDividendAmount != null ? (
-                <Link
-                  to={`/spending?month=${encodeURIComponent(
-                    (equity?.nextDividendDate ?? new Date().toISOString().slice(0, 10)).slice(0, 7),
-                  )}&description=${encodeURIComponent(`${item.symbol} dividend`)}&open=1`}
-                  className="btn-ghost btn-sm"
-                >
-                  Book as income
-                </Link>
-              ) : null}
+              <button type="button" className="btn-primary btn-sm" onClick={openDividend}>
+                Log dividend
+              </button>
             </div>
           </div>
           <dl className={`grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm ${privacyClass(privacy)}`}>
@@ -941,12 +980,21 @@ export function HoldingDetailPage() {
               </dd>
             </div>
             <div className="surface-nested p-3">
-              <dt className="text-[10px] uppercase tracking-wider text-text-subtle">Next amount</dt>
+              <dt className="text-[10px] uppercase tracking-wider text-text-subtle">
+                Next amount / share
+              </dt>
               <dd className="font-semibold tabular-nums">
                 {equity?.nextDividendAmount != null ? formatGBPPrecise(equity.nextDividendAmount) : 'Not set'}
               </dd>
             </div>
           </dl>
+          {equity?.nextDividendAmount != null && equity.nextDividendAmount > 0 ? (
+            <p className={`mt-3 text-xs text-text-subtle ${privacyClass(privacy)}`}>
+              Suggested cash amount: {formatGBP(equity.shares * equity.nextDividendAmount)} (
+              {formatQty(equity.shares)} shares × amount per share). Check the actual statement
+              before saving.
+            </p>
+          ) : null}
         </section>
       ) : (
         <section className="surface p-5 sm:p-8 mb-6" data-testid="crypto-staking">
@@ -955,7 +1003,8 @@ export function HoldingDetailPage() {
               <p className="eyebrow mb-3">Yield</p>
               <h3 className="text-lg font-bold tracking-tight mb-2">Staking</h3>
               <p className="text-sm text-text-muted font-light">
-                Track reward depth on the staking page; APY here is an optional holding-level note.
+                APY is an optional note. Rewards use a separate manual ledger and do not update
+                this holding quantity, cost basis, journal, or P&amp;L.
               </p>
             </div>
             <Link
@@ -1171,6 +1220,67 @@ export function HoldingDetailPage() {
           {item.includeInPortfolio === false ? 'Excluded from NW' : 'Included in NW'}
         </button>
       </section>
+
+      <Modal
+        open={dividendOpen}
+        title={`Log ${item.symbol} dividend`}
+        onClose={() => setDividendOpen(false)}
+      >
+        <form
+          className="space-y-5"
+          onSubmit={(event) => {
+            event.preventDefault()
+            logDividend()
+          }}
+        >
+          <p className="text-sm text-text-muted">
+            This adds income to the cash ledger only. It does not update shares, the Section 104
+            pool, P&amp;L, or your tax-income calculation.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field label="Received date">
+              <input
+                type="date"
+                required
+                value={dividendForm.date}
+                onChange={(event) =>
+                  setDividendForm((current) => ({ ...current, date: event.target.value }))
+                }
+              />
+            </Field>
+            <Field
+              label="Cash received (GBP)"
+              hint={
+                equity?.nextDividendAmount != null && equity.nextDividendAmount > 0
+                  ? 'Suggested from shares × next amount per share; confirm against your statement.'
+                  : 'Enter the amount shown on your cash statement.'
+              }
+            >
+              <input
+                type="text"
+                inputMode="decimal"
+                required
+                value={dividendForm.amount}
+                onChange={(event) =>
+                  setDividendForm((current) => ({ ...current, amount: event.target.value }))
+                }
+              />
+            </Field>
+          </div>
+          <div className="flex justify-end gap-3">
+            <button type="button" className="btn-ghost" onClick={() => setDividendOpen(false)}>
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="btn-primary"
+              disabled={!dividendForm.date || !(parseNum(dividendForm.amount) > 0)}
+            >
+              Log dividend
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       <Modal open={metaOpen} size="full" title="Holding metadata" onClose={() => setMetaOpen(false)}>
         <form

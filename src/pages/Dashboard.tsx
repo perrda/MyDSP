@@ -13,10 +13,17 @@ import { useToasts } from '../components/ToastProvider'
 import { usePortfolio } from '../context/PortfolioContext'
 import { evaluateAchievements } from '../domain/achievements'
 import { buildAlerts } from '../domain/alerts'
-import { worstBudgetOffenders } from '../domain/budgetChart'
+import { isBudgetSpend, worstBudgetOffenders } from '../domain/budgetChart'
+import {
+  budgetCategoryUrl,
+  planningMonteCarloUrl,
+  recurringFocusUrl,
+  spendingCategoryUrl,
+} from '../domain/deepLinks'
 import { getTaxPack } from '../domain/taxPacks'
 import { calcFire } from '../domain/fire'
 import { appendManualSnapshot } from '../domain/history'
+import { monthKey } from '../domain/monthUtils'
 import { nearestGoalProjection, formatGoalProjectionLine } from '../domain/goalProjectedDate'
 import { formatMoneyPulseLine, moneyPulseDelta } from '../domain/moneyPulse'
 import { buildNextActionStack, stackIncludesBill } from '../domain/nextActionStack'
@@ -699,12 +706,12 @@ export function Dashboard() {
       .filter((v) => v > 0)
       .reduce((sum, v) => sum + v, 0)
     if (!(totalBudget > 0)) return null
-    const now = new Date()
-    const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+    const ym = monthKey()
     const spent = (data.spending ?? [])
-      .filter((s) => (s.date ?? '').startsWith(ym))
+      .filter((s) => isBudgetSpend(s) && (s.date ?? '').startsWith(ym))
       .reduce((sum, s) => sum + Math.abs(s.amount), 0)
     return {
+      month: ym,
       spent,
       totalBudget,
       ratio: totalBudget > 0 ? spent / totalBudget : 0,
@@ -714,7 +721,7 @@ export function Dashboard() {
   const weekToDateSpend = useMemo(() => {
     const start = weekStartKey()
     const spent = (data.spending ?? [])
-      .filter((s) => (s.date ?? '').slice(0, 10) >= start)
+      .filter((s) => isBudgetSpend(s) && (s.date ?? '').slice(0, 10) >= start)
       .reduce((sum, s) => sum + Math.abs(s.amount), 0)
     return { spent, start }
   }, [data.spending])
@@ -1271,7 +1278,7 @@ export function Dashboard() {
         label: `Bill: ${bill.name}`,
         when: `${dailyPlanWhen(bill.nextDue)} · ${formatGBP(bill.amount)}`,
         sortKey: dailyPlanSortKey(bill.nextDue, undefined, '17:00'),
-        to: `/recurring?focus=${bill.id}`,
+        to: recurringFocusUrl(bill.id),
         privateAmount: true,
       })
     }
@@ -1663,7 +1670,11 @@ export function Dashboard() {
             {monthlyBudgetPulse && showBudgetPulseCards ? (
               <Link
                 id="today-budget-pulse"
-                to="/budgets"
+                to={
+                  budgetPulse[0]
+                    ? spendingCategoryUrl(budgetPulse[0].category, monthlyBudgetPulse.month)
+                    : `/budgets?month=${monthlyBudgetPulse.month}`
+                }
                 data-testid="today-budget-pulse"
                 className={`today-budget-pulse border border-border bg-surface-hover/60 px-3 py-2 text-xs hover:border-accent ${privacyClass(privacy)}`}
                 title="This month spent versus all budget goal limits"
@@ -1681,7 +1692,7 @@ export function Dashboard() {
             ) : null}
             {weekToDateSpend.spent > 0 && showBudgetPulseCards ? (
               <Link
-                to="/budgets"
+                to={`/budgets?month=${monthKey()}`}
                 data-testid="today-wtd-spend"
                 className={`today-week-to-date-spend border border-border bg-surface-hover/60 px-3 py-2 text-xs hover:border-accent ${privacyClass(privacy)}`}
                 title={`Spend since ${weekToDateSpend.start}`}
@@ -1732,7 +1743,7 @@ export function Dashboard() {
             {fireChip ? (
               <Link
                 id="today-fire-chip"
-                to="/fire"
+                to={planningMonteCarloUrl(netWorth, data.fireInputs.savings || 0)}
                 data-testid="today-fire-chip"
                 className={`today-fire-chip border border-border bg-surface-hover/60 px-3 py-2 text-xs hover:border-accent ${privacyClass(privacy)}`}
                 title="Regular FIRE from saved FIRE inputs"
@@ -2037,7 +2048,7 @@ export function Dashboard() {
                   key={`bill-${card.bill.id}`}
                   className="today-next-action-card today-bill-next-action surface p-4 md:p-5 rounded-xl md:rounded-none shadow-sm md:shadow-none"
                 >
-                  <Link to={`/recurring?focus=${card.bill.id}`} className="block group">
+                  <Link to={recurringFocusUrl(card.bill.id)} className="block group">
                     <p className="text-[11px] uppercase tracking-wider text-text-subtle mb-1">
                       Bill due
                     </p>
@@ -2069,7 +2080,7 @@ export function Dashboard() {
                       Skip
                     </button>
                     <Link
-                      to={`/recurring?focus=${card.bill.id}`}
+                      to={recurringFocusUrl(card.bill.id)}
                       className="btn-ghost btn-sm inline-flex items-center today-bill-open-recurring"
                     >
                       Open recurring
@@ -2084,7 +2095,10 @@ export function Dashboard() {
                   key={`budget-${card.category}`}
                   className="today-next-action-card budget-next-action surface p-4 md:p-5 rounded-xl md:rounded-none shadow-sm md:shadow-none"
                 >
-                  <Link to="/budgets" className="block group">
+                  <Link
+                    to={spendingCategoryUrl(card.category, monthKey())}
+                    className="block group"
+                  >
                     <p className="text-[11px] uppercase tracking-wider text-text-subtle mb-1">
                       {card.label}
                     </p>
@@ -2097,13 +2111,13 @@ export function Dashboard() {
                   </Link>
                   <div className="today-budget-next-actions flex flex-wrap gap-2 mt-3">
                     <Link
-                      to="/budgets"
+                      to={budgetCategoryUrl(card.category, monthKey())}
                       className="btn-primary btn-sm inline-flex items-center"
                     >
                       Open budgets
                     </Link>
                     <Link
-                      to={`/spending?category=${encodeURIComponent(card.category)}`}
+                      to={spendingCategoryUrl(card.category, monthKey())}
                       className="btn-ghost btn-sm inline-flex items-center"
                     >
                       Spending
@@ -2265,7 +2279,7 @@ export function Dashboard() {
                         className="rounded-lg md:rounded-none"
                       >
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm py-1.5">
-                          <Link to={`/recurring?focus=${r.id}`} className="min-w-0 group">
+                          <Link to={recurringFocusUrl(r.id)} className="min-w-0 group">
                             <span className="block truncate font-medium group-hover:text-accent">
                               {r.name}
                             </span>
@@ -2534,7 +2548,7 @@ export function Dashboard() {
           ) : null}
           <div className="inline-flex flex-wrap items-center gap-1.5">
             <Link
-              to="/youtube"
+              to={youtubeUnread > 0 ? '/youtube?unread=1' : '/youtube'}
               className="text-sm font-semibold text-accent hover:underline inline-flex items-center gap-1.5"
             >
               YouTube →

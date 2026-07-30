@@ -29,6 +29,7 @@ import { getSessionSyncPassphrase, hydrateSessionSyncPassphrase } from './sessio
 import {
   announceWhatArrived,
   collectSyncHighlights,
+  firstSyncHighlightHref,
   setSyncHighlights,
   summarizeWorkspaceExtras,
   workspaceExtrasFlagsFromPreview,
@@ -135,6 +136,7 @@ function emitAppToast(detail: {
   title: string
   message?: string
   duration?: number
+  action?: { label: string; onClick: () => void }
 }): void {
   try {
     window.dispatchEvent(new CustomEvent('mydsp-toast', { detail }))
@@ -248,6 +250,26 @@ export function getPendingAutoSyncConflicts(): MergePreview | null {
 export function clearPendingAutoSyncConflicts(): void {
   pendingConflictPreview = null
   if (status.state === 'conflict') emit({ state: 'idle', lastAt: status.lastAt })
+}
+
+/** Restore an undone preview so its row choices can be changed and applied again. */
+export function restorePendingAutoSyncConflicts(preview: MergePreview): void {
+  pendingConflictPreview = preview
+  emit({
+    state: 'conflict',
+    message: `${preview.conflicts.length} conflict(s) — open Settings → Sync`,
+    pendingConflicts: preview.conflicts.length,
+    lastAt: status.lastAt,
+  })
+  try {
+    window.dispatchEvent(
+      new CustomEvent('mydsp-sync-conflicts', {
+        detail: { preview, count: preview.conflicts.length, restored: true },
+      }),
+    )
+  } catch {
+    /* ignore */
+  }
 }
 
 export function beginApplyingRemote(): void {
@@ -461,11 +483,20 @@ async function doPull(cfg: SyncConfig, pass: string, reason: CycleReason): Promi
         merged: result.merged,
       })
       if (summary) {
+        const openHref = firstSyncHighlightHref(highlights)
         emitAppToast({
           type: 'success',
           title: 'What arrived',
           message: summary,
           duration: 6000,
+          ...(openHref
+            ? {
+                action: {
+                  label: 'Open first',
+                  onClick: () => window.location.assign(openHref),
+                },
+              }
+            : {}),
         })
       }
     }

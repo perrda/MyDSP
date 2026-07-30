@@ -449,6 +449,17 @@ export function CryptoPage() {
       </div>
 
       <div
+        className="surface border-l-2 border-l-accent px-4 py-3 mb-4"
+        data-testid="crypto-manual-ledgers-note"
+      >
+        <p className="text-sm font-semibold">Transfers and staking stay separate</p>
+        <p className="text-xs text-text-subtle mt-1">
+          Transfer records are manual notes and never change quantity, cost basis, the trade
+          journal, or P&amp;L. Staking APY and rewards are also manual and do not book P&amp;L.
+        </p>
+      </div>
+
+      <div
         ref={holdingsSearchRef}
         className="holdings-in-list-search holdings-sticky-search sticky z-[9] -mx-1 mb-4 bg-bg/95 px-1 py-2 backdrop-blur supports-[backdrop-filter]:bg-bg/80"
       >

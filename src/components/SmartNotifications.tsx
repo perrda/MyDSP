@@ -6,6 +6,7 @@ import { usePortfolio } from '../context/PortfolioContext'
 import { buildAlerts } from '../domain/alerts'
 import { buildPriceAlertNotifications } from '../domain/priceAlerts'
 import { buildYoutubeUploadNotifications } from '../domain/youtubeUploadAlerts'
+import { needsFollowUp } from '../domain/jobs'
 import { calculateReminders } from './SmartReminders'
 import { newsUnreadFromCache } from '../storage/newsStore'
 import type { PortfolioData } from '../domain/types'
@@ -38,9 +39,10 @@ function severityToType(severity: string): Notification['type'] {
 type SyncedNotification = Omit<Notification, 'timestamp' | 'read' | 'category'> & { id: string }
 
 export function buildReminderCenterNotifications(data: PortfolioData): SyncedNotification[] {
-  return calculateReminders(data)
+  const scheduled = calculateReminders(data)
     .filter((reminder) => reminder.type === 'todo' || reminder.type === 'job')
-    .map((reminder) => ({
+    .filter((reminder) => !reminder.id.startsWith('job-follow-up-'))
+    .map((reminder): SyncedNotification => ({
       id: reminder.id,
       type: 'reminder',
       priority: reminder.priority,
@@ -51,6 +53,20 @@ export function buildReminderCenterNotifications(data: PortfolioData): SyncedNot
       dismissible: true,
       metadata: { reminderType: reminder.type },
     }))
+  const jobFollowUps = (data.jobApplications ?? [])
+    .filter((job) => needsFollowUp(job))
+    .map((job): SyncedNotification => ({
+      id: `job-follow-up-${job.id}`,
+      type: 'reminder',
+      priority: job.priority === 'high' ? 'medium' : 'low',
+      title: 'Job follow-up due',
+      message: `${job.companyName} · ${job.jobTitle}`,
+      actionUrl: `/jobs/${job.id}`,
+      actionLabel: 'Follow up',
+      dismissible: true,
+      metadata: { reminderType: 'job', jobId: job.id },
+    }))
+  return [...scheduled, ...jobFollowUps]
 }
 
 export function buildNewsUnreadNotifications(unreadCount: number): SyncedNotification[] {

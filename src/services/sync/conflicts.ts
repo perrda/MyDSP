@@ -134,8 +134,11 @@ export function detectConflicts(
   return out
 }
 
-export function conflictKey(c: Pick<SyncConflict, 'collection' | 'id'>): string {
-  return `${c.collection}:${c.id}`
+/** Stable resolution key. Portfolio scope prevents same-id rows colliding across portfolios. */
+export function conflictKey(
+  c: Pick<SyncConflict, 'portfolioId' | 'collection' | 'id'>,
+): string {
+  return `${c.portfolioId}:${c.collection}:${c.id}`
 }
 
 const COLLECTION_LABEL: Record<ConflictCollection, string> = {
@@ -186,6 +189,7 @@ export function mergeWithResolutions(
   local: PortfolioData,
   remote: PortfolioData,
   resolutions: Record<string, ConflictChoice> = {},
+  portfolioId?: string,
 ): PortfolioData {
   const base = mergePortfolio(local, remote)
 
@@ -198,7 +202,9 @@ export function mergeWithResolutions(
     const localMap = new Map(localArr.map((x) => [x.id, x]))
     const remoteMap = new Map(remoteArr.map((x) => [x.id, x]))
     return merged.map((row) => {
-      const key = `${collection}:${row.id}`
+      const key = portfolioId
+        ? conflictKey({ portfolioId, collection, id: row.id })
+        : `${collection}:${row.id}`
       const choice = resolutions[key]
       if (!choice) {
         if (localMap.has(row.id) && remoteMap.has(row.id)) {

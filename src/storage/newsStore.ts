@@ -65,9 +65,68 @@ function migrateLegacySeenAt(state: NewsState): NewsState {
   return state
 }
 
+function normalizeSavedArticleState(state: NewsState): {
+  savedArticles: string[]
+  savedArticleChanges: NonNullable<NewsState['savedArticleChanges']>
+} {
+  const changes: NonNullable<NewsState['savedArticleChanges']> = {}
+  for (const [key, change] of Object.entries(state.savedArticleChanges ?? {})) {
+    const trimmed = key.trim()
+    if (
+      !trimmed ||
+      !change ||
+      typeof change.saved !== 'boolean' ||
+      typeof change.updatedAt !== 'string'
+    ) {
+      continue
+    }
+    changes[trimmed] = { saved: change.saved, updatedAt: change.updatedAt }
+  }
+  const legacySavedAt =
+    typeof state.prefsUpdatedAt === 'string' ? state.prefsUpdatedAt : new Date(0).toISOString()
+  for (const key of state.savedArticles ?? []) {
+    const trimmed = typeof key === 'string' ? key.trim() : ''
+    if (trimmed && !changes[trimmed]) {
+      changes[trimmed] = { saved: true, updatedAt: legacySavedAt }
+    }
+  }
+  return {
+    savedArticles: Object.entries(changes)
+      .filter(([, change]) => change.saved)
+      .map(([key]) => key),
+    savedArticleChanges: changes,
+  }
+}
+
+function mergeSavedArticleChanges(
+  local: NewsState,
+  remote: NewsState,
+): NonNullable<NewsState['savedArticleChanges']> {
+  const localSaved = normalizeSavedArticleState(local).savedArticleChanges
+  const remoteSaved = normalizeSavedArticleState(remote).savedArticleChanges
+  const merged: NonNullable<NewsState['savedArticleChanges']> = { ...localSaved }
+  for (const [key, incoming] of Object.entries(remoteSaved)) {
+    const current = merged[key]
+    if (!current) {
+      merged[key] = incoming
+      continue
+    }
+    const remoteHasExplicitChange = Boolean(remote.savedArticleChanges?.[key])
+    // A legacy savedArticles union must never override a modern explicit unsave tombstone.
+    if (!current.saved && incoming.saved && !remoteHasExplicitChange) continue
+    const incomingAt = Date.parse(incoming.updatedAt) || 0
+    const currentAt = Date.parse(current.updatedAt) || 0
+    if (incomingAt > currentAt || (incomingAt === currentAt && !incoming.saved)) {
+      merged[key] = incoming
+    }
+  }
+  return merged
+}
+
 export function loadNewsState(): NewsState {
   const existing = readRaw()
   if (existing) {
+    const saved = normalizeSavedArticleState(existing)
     const normalized: NewsState = migrateLegacySeenAt({
       ...existing,
       version: 1,
@@ -76,9 +135,8 @@ export function loadNewsState(): NewsState {
         tagged: Boolean(existing.collapsed?.tagged),
       },
       tags: existing.tags.map(normalizeTag),
-      savedArticles: Array.isArray(existing.savedArticles)
-        ? [...new Set(existing.savedArticles.filter((x) => typeof x === 'string' && x.trim()))]
-        : [],
+      savedArticles: saved.savedArticles,
+      savedArticleChanges: saved.savedArticleChanges,
       seenAt: typeof existing.seenAt === 'string' ? existing.seenAt : undefined,
     })
     if (normalized.seenAt && !existing.seenAt) {
@@ -99,13 +157,13 @@ function touchNewsPrefs(state: NewsState): void {
 
 export function saveNewsState(state: NewsState, opts?: { touchPrefs?: boolean }): void {
   if (opts?.touchPrefs !== false) touchNewsPrefs(state)
+  const saved = normalizeSavedArticleState(state)
   writeState({
     ...state,
     version: 1,
     tags: state.tags.map(normalizeTag),
-    savedArticles: Array.isArray(state.savedArticles)
-      ? [...new Set(state.savedArticles.filter((x) => typeof x === 'string' && x.trim()))]
-      : [],
+    savedArticles: saved.savedArticles,
+    savedArticleChanges: saved.savedArticleChanges,
   })
 }
 
@@ -260,6 +318,10 @@ export function toggleSavedNewsArticle(key: string): boolean {
   if (nextSaved) saved.add(trimmed)
   else saved.delete(trimmed)
   state.savedArticles = [...saved]
+  state.savedArticleChanges = {
+    ...(state.savedArticleChanges ?? {}),
+    [trimmed]: { saved: nextSaved, updatedAt: new Date().toISOString() },
+  }
   saveNewsState(state)
   return nextSaved
 }
@@ -321,12 +383,10 @@ export function importNewsFromBackup(raw: unknown): void {
     remoteSeenMs >= localSeenMs
       ? remoteSeenAt || localSeenAt
       : localSeenAt || remoteSeenAt
-  const savedArticles = [
-    ...new Set([
-      ...(local.savedArticles ?? []),
-      ...(Array.isArray(parsed.savedArticles) ? parsed.savedArticles : []),
-    ].filter((x) => typeof x === 'string' && x.trim())),
-  ]
+  const savedArticleChanges = mergeSavedArticleChanges(local, parsed)
+  const savedArticles = Object.entries(savedArticleChanges)
+    .filter(([, change]) => change.saved)
+    .map(([key]) => key)
 
   const collapsedSrc = preferRemotePrefs ? parsed.collapsed : local.collapsed ?? parsed.collapsed
   writeState(
@@ -335,6 +395,7 @@ export function importNewsFromBackup(raw: unknown): void {
       tags: [...byTag.values()],
       deletedTags,
       savedArticles,
+      savedArticleChanges,
       collapsed: {
         top: Boolean(collapsedSrc?.top),
         tagged: Boolean(collapsedSrc?.tagged),

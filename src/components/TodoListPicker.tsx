@@ -69,9 +69,9 @@ export function TodoListPicker({
   }
 
   return (
-    <div ref={wrapRef} className="todo-list-picker mb-5">
-      <div className="flex flex-wrap items-end gap-2">
-        <div className="flex-1 min-w-[12rem] max-w-md">
+    <div ref={wrapRef} className="todo-list-picker mb-5 w-full min-w-0">
+      <div className="flex min-w-0 flex-wrap items-end gap-2">
+        <div className="todo-list-picker-control min-w-0 flex-1 basis-[12rem] max-w-md">
           <label htmlFor={triggerId} className="block text-[11px] uppercase tracking-wider text-text-subtle mb-1.5 font-semibold">
             List
           </label>

@@ -42,14 +42,14 @@ describe('next25m — News / YouTube polish tip (1–25 → v1.2.80)', () => {
 
   it('25: package + release notes are 1.2.80', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.112')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.112')
+    expect(pkg.version).toBe('1.2.113')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.113')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.113',
       '1.2.112',
       '1.2.111',
       '1.2.110',
       '1.2.109',
-      '1.2.108',
     ])
   })
 
@@ -119,7 +119,7 @@ describe('next25m — News / YouTube polish tip (1–25 → v1.2.80)', () => {
     )
     const notes = buildYoutubeUploadNotifications()
     expect(notes.some((n) => n.id === 'yt-v1')).toBe(true)
-    expect(notes.every((n) => n.actionUrl === '/youtube')).toBe(true)
+    expect(notes.every((n) => n.actionUrl?.startsWith('/youtube?video='))).toBe(true)
     expect(notes.find((n) => n.id === 'yt-v1')?.title).toMatch(/Macro Desk/)
   })
 
