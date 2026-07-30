@@ -188,9 +188,11 @@ describe('next25q — sync / Markets / Today polish tip (1–25 → v1.2.87)', (
     expect(page).not.toMatch(/Tag \+ Yield chips are hidden/)
   })
 
-  it('11–15: FIRE/Optimizer/API thumbs · PTR · no long-press Sync', () => {
+  it('11–15: FIRE content-first + remaining page actions · PTR · no long-press Sync', () => {
+    const fire = readFileSync(resolve(__dirname, '../pages/FirePage.tsx'), 'utf8')
+    expect(fire).not.toMatch(/className="thumb-cta-bar"/)
+    expect(fire).not.toMatch(/thumb-cta-bar-spacer/)
     for (const file of [
-      'FirePage.tsx',
       'OptimizerPage.tsx',
       'ApiAutomationPage.tsx',
       'SmartInsightsPage.tsx',

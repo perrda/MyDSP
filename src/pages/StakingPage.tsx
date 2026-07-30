@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { PageHeader, StatCard } from '../components/ui/PageHeader'
+import { PagePrimaryActions } from '../components/ui/PagePrimaryActions'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
 import { usePortfolio } from '../context/PortfolioContext'
@@ -161,9 +162,11 @@ export function StakingPage() {
         title="Staking rewards"
         description="Track ADA (or other) epoch rewards and estimated APY. Drag ⋮⋮ to reorder rewards."
         action={
-          <button type="button" className="btn-primary btn-sm" onClick={openCreate}>
-            Add reward
-          </button>
+          <PagePrimaryActions
+            primaryLabel="Add reward"
+            onPrimary={openCreate}
+            menuLabel="Staking actions"
+          />
         }
       />
 
@@ -376,13 +379,6 @@ export function StakingPage() {
           }))
         }}
       />
-
-      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary staking actions">
-        <button type="button" className="btn-primary btn-sm" onClick={openCreate}>
-          Add reward
-        </button>
-      </div>
-      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }

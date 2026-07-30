@@ -17,12 +17,15 @@ describe('next25w — responsive / landscape polish tip (1–25 → v1.2.88)', (
     ])
   })
 
-  it('1–5: Review / Analytics / Optimizer / Planning keep thumb bars (Sync now removed)', () => {
+  it('1–5: Planning is content-first; other surfaces keep their page actions', () => {
+    const planning = readFileSync(resolve(__dirname, '../pages/PlanningPage.tsx'), 'utf8')
+    expect(planning).not.toMatch(/className="thumb-cta-bar"/)
+    expect(planning).not.toMatch(/thumb-cta-bar-spacer/)
+    expect(planning).not.toMatch(/syncNow/)
     for (const file of [
       'MonthlyReviewPage.tsx',
       'AnalyticsPage.tsx',
       'OptimizerPage.tsx',
-      'PlanningPage.tsx',
     ]) {
       const src = readFileSync(resolve(__dirname, `../pages/${file}`), 'utf8')
       expect(src).not.toMatch(/^\s*Sync now\s*$/m)

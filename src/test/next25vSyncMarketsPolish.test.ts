@@ -186,19 +186,24 @@ describe('next25v — sync / Markets / Today polish tip (1–25 → v1.2.87)', (
     expect(page).toMatch(/markets-undo-fx/)
   })
 
-  it('11–15: Equities/Crypto/Spending/Family/Docs/Compare/Rules Sync · bottom-nav Rules/FIRE', () => {
+  it('11–15: Documents content-first + other page actions · bottom-nav Rules/FIRE', () => {
     const slots = readFileSync(resolve(__dirname, '../storage/bottomNavSlots.ts'), 'utf8')
     expect(slots).toMatch(/\/rules/)
     expect(slots).toMatch(/\/fire/)
+    const documents = readFileSync(resolve(__dirname, '../pages/DocumentsPage.tsx'), 'utf8')
+    expect(documents).toMatch(/PagePrimaryActions/)
+    expect(documents).not.toMatch(/className="thumb-cta-bar"/)
+    expect(documents).not.toMatch(/thumb-cta-bar-spacer/)
+    const fire = readFileSync(resolve(__dirname, '../pages/FirePage.tsx'), 'utf8')
+    expect(fire).not.toMatch(/className="thumb-cta-bar"/)
+    expect(fire).not.toMatch(/thumb-cta-bar-spacer/)
     for (const file of [
       'EquitiesPage.tsx',
       'CryptoPage.tsx',
       'SpendingPage.tsx',
       'FamilyPage.tsx',
-      'DocumentsPage.tsx',
       'ComparePage.tsx',
       'RulesPage.tsx',
-      'FirePage.tsx',
     ]) {
       const src = readFileSync(resolve(__dirname, `../pages/${file}`), 'utf8')
       expect(src).not.toMatch(/^\s*Sync now\s*$/m)

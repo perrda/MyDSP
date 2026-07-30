@@ -4303,16 +4303,6 @@ export function SettingsPage() {
         </div>
       </div>
 
-      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary settings actions">
-        <Link to="/smoke" className="btn-secondary btn-sm settings-smoke-thumb">
-          Smoke checklist
-        </Link>
-        <a href="#sync" className="btn-ghost btn-sm">
-          Sync section
-        </a>
-      </div>
-      <div className="thumb-cta-bar-spacer" aria-hidden />
-
       <ConfirmDialog
         open={confirmState !== null}
         title={confirmState?.title ?? ''}
