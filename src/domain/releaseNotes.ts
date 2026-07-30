@@ -48,6 +48,10 @@ export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
         text: 'Markets Filters panel — ownership/alerts under Format+',
         to: '/markets',
       },
+      {
+        text: 'Equities/Crypto rows: no ticker/Cost overlap',
+        to: '/equities',
+      },
     ],
   },
   {
