@@ -3,6 +3,11 @@ import { AlertCircle, CheckCircle, Info, X, XCircle } from 'lucide-react'
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info'
 
+export interface ToastAction {
+  label: string
+  onClick: () => void
+}
+
 export interface Toast {
   id: string
   type: ToastType
@@ -11,10 +16,9 @@ export interface Toast {
   duration?: number
   /** Optional class for stable test / harness targeting */
   className?: string
-  action?: {
-    label: string
-    onClick: () => void
-  }
+  /** Legacy single action; use actions when a toast needs more than one destination. */
+  action?: ToastAction
+  actions?: ToastAction[]
 }
 
 interface ToastItemProps {
@@ -46,6 +50,7 @@ const ICON_COLORS = {
 export function ToastItem({ toast, onDismiss }: ToastItemProps) {
   const [isExiting, setIsExiting] = useState(false)
   const Icon = ICONS[toast.type]
+  const actions = [...(toast.action ? [toast.action] : []), ...(toast.actions ?? [])]
 
   useEffect(() => {
     const duration = toast.duration ?? 5000
@@ -83,18 +88,23 @@ export function ToastItem({ toast, onDismiss }: ToastItemProps) {
           {toast.message && (
             <p className="text-xs text-text-muted leading-relaxed">{toast.message}</p>
           )}
-          {toast.action && (
-            <button
-              type="button"
-              className="text-xs text-accent hover:text-accent-bright font-semibold mt-2 uppercase tracking-wide"
-              onClick={() => {
-                toast.action?.onClick()
-                handleDismiss()
-              }}
-            >
-              {toast.action.label}
-            </button>
-          )}
+          {actions.length > 0 ? (
+            <div className="mt-2 flex flex-wrap gap-x-3 gap-y-2">
+              {actions.map((action, index) => (
+                <button
+                  key={`${action.label}-${index}`}
+                  type="button"
+                  className="text-xs text-accent hover:text-accent-bright font-semibold uppercase tracking-wide"
+                  onClick={() => {
+                    action.onClick()
+                    handleDismiss()
+                  }}
+                >
+                  {action.label}
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
         <button
           type="button"

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { ExternalLink } from 'lucide-react'
 import { PortfolioSeriesChart } from '../components/charts/PortfolioSeriesChart'
@@ -98,7 +98,7 @@ async function shareHoldingSummaryLine(text: string): Promise<'shared' | 'copied
 
 export function HoldingDetailPage() {
   const { kind: kindParam, id: idParam } = useParams()
-  const { pathname } = useLocation()
+  const { pathname, search } = useLocation()
   const kind =
     kindParam === 'crypto' || kindParam === 'equity'
       ? kindParam
@@ -151,6 +151,18 @@ export function HoldingDetailPage() {
     venue: '',
     note: '',
   })
+
+  useEffect(() => {
+    const params = new URLSearchParams(search)
+    if (params.get('history') !== '1') return
+    setHistoryOpen(true)
+    params.delete('history')
+    const nextSearch = params.toString()
+    navigate(
+      { pathname, search: nextSearch ? `?${nextSearch}` : '' },
+      { replace: true },
+    )
+  }, [navigate, pathname, search])
 
   const trades = useMemo(
     () => (item ? journalForSymbol(data, item.symbol).filter((j) => isTradeType(j.type)) : []),
@@ -752,7 +764,12 @@ export function HoldingDetailPage() {
       {!isCrypto ? (
         <section className="surface p-5 sm:p-6 mb-6" data-testid="equity-tax-lots">
           <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
-            <p className="label-uppercase mb-0">Tax lots (from journal)</p>
+            <div>
+              <p className="label-uppercase mb-1">Journal buy batches</p>
+              <p className="text-xs text-text-subtle max-w-xl">
+                Illustrative buy groupings only — not authoritative UK §104 tax lots.
+              </p>
+            </div>
             <Link
               to={`/tax?symbol=${encodeURIComponent(item.symbol)}&assetType=equity`}
               className="btn-secondary btn-sm"
@@ -762,10 +779,10 @@ export function HoldingDetailPage() {
           </div>
           {trades.length === 0 ? (
             <p className="text-sm text-text-subtle">
-              Add or import buys to estimate light tax lots from the trade journal.
+              Add or import buys to see illustrative journal buy batches.
             </p>
           ) : equityTaxLots.length === 0 ? (
-            <p className="text-sm text-text-subtle">No buy lots found in the journal yet.</p>
+            <p className="text-sm text-text-subtle">No buy batches found in the journal yet.</p>
           ) : (
             <ul className="space-y-2">
               {equityTaxLots.map((lot) => (
@@ -1308,13 +1325,23 @@ export function HoldingDetailPage() {
             type: 'success',
             title: 'Trade saved',
             message: item.symbol,
-            duration: taxHref ? 9000 : undefined,
+            duration: 9000,
             action: taxHref
               ? {
                   label: 'Tax disposal',
                   onClick: () => navigate(taxHref),
                 }
               : undefined,
+            actions: [
+              {
+                label: 'Trade history',
+                onClick: () => setHistoryOpen(true),
+              },
+              {
+                label: 'Markets',
+                onClick: () => navigate(`/markets?symbol=${encodeURIComponent(item.symbol)}`),
+              },
+            ],
           })
           setEditingTrade(null)
         }}
