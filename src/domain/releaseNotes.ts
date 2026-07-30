@@ -29,6 +29,24 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.110',
+    date: '2026-07-30',
+    bullets: [
+      {
+        text: 'Equities/Crypto rows: no ticker/Cost overlap',
+        to: '/equities',
+      },
+      {
+        text: 'Compact ⋯ menus in dense holdings/Markets lists',
+        to: '/markets',
+      },
+      {
+        text: 'Always-apply no-text-overlap layout rule',
+        to: '/equities',
+      },
+    ],
+  },
+  {
     version: '1.2.109',
     date: '2026-07-30',
     bullets: [
@@ -47,10 +65,6 @@ export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
       {
         text: 'Markets Filters panel — ownership/alerts under Format+',
         to: '/markets',
-      },
-      {
-        text: 'Equities/Crypto rows: no ticker/Cost overlap',
-        to: '/equities',
       },
     ],
   },

@@ -6,7 +6,7 @@
 
 `OverflowMenu` expands all items inline on `md+`, while Equities/Crypto rows used `md:flex-nowrap` with Buy/Sell leading buttons + NW/Edit/Delete. In master-detail the list column is narrow → columns crush → symbol paints over Cost/P&L.
 
-## Fix (v1.2.109)
+## Fix (v1.2.110)
 
 - `.holdings-list-row` CSS grid with clipped cells (`src/index.css`)
 - Equities + Crypto rows use that grid; actions via `OverflowMenu compact` (Buy/Sell/NW/Edit/Delete in ⋯)

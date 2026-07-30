@@ -1,5 +1,14 @@
 # MyDSP Changelog
 
+## [1.2.110] - 2026-07-30
+
+### Fixed — Holdings list text overlap
+- **Equities / Crypto rows:** CSS grid `.holdings-list-row` with clipped identity/metrics cells — ticker never paints over Cost/P&L in master-detail
+- **`OverflowMenu compact`:** dense list rows keep Buy/Sell/NW/Edit/Delete behind ⋯ at every breakpoint (no md+ inline crush)
+- **Markets lists:** compact overflow menus in watchlist rows
+- Always-apply cursor rule `no-text-overlap.mdc` + tip harness
+- Full tip harness + `tsc` QA
+
 ## [1.2.109] - 2026-07-30
 
 ### Improved — Next 10 priorities wave (cross-format)
@@ -14,7 +23,6 @@
 - **Today action loops:** career pulse stats → Jobs; bill rows use `?focus=`
 - **Content-first:** remove bottom create docks on Equities · Crypto · News · YouTube · History · Dashboard · Compare · HoldingDetail · Enhanced Import (web/tablet/phone)
 - **Markets Filters panel:** Ownership · Alerts · Freshness · Types tucked under a **Filters** disclosure next to Format (no stacked permanent rows); active filters accent the button
-- **No text overlap:** Equities/Crypto holdings rows use a clipped CSS grid + `OverflowMenu compact` (⋯ only) so ticker never paints over Cost/P&L in master-detail; Markets list menus compact too; always-apply cursor rule `no-text-overlap.mdc`
 - Full tip harness + `tsc` QA
 
 ## [1.2.108] - 2026-07-25
