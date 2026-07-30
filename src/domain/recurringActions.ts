@@ -1,5 +1,17 @@
 import type { PortfolioData, RecurringTransaction, SpendingCategory, SpendingEntry } from './types'
 
+export interface RecurringPaidUndo {
+  id: number
+  nextDue: string
+  lastPaidAt?: string
+  spendId: number
+}
+
+export interface RecurringSkipUndo {
+  id: number
+  nextDue: string
+}
+
 /** Append a spending row (same shape as markRecurringPaid). Returns updated data + new id. */
 export function appendSpendingEntry(
   data: PortfolioData,
@@ -67,41 +79,89 @@ function clampDay(year: number, month0: number, day: number): string {
 }
 
 export function skipRecurringOccurrence(data: PortfolioData, id: number): PortfolioData {
+  return skipRecurringOccurrenceWithUndo(data, id).data
+}
+
+export function skipRecurringOccurrenceWithUndo(
+  data: PortfolioData,
+  id: number,
+): { data: PortfolioData; undo: RecurringSkipUndo | null } {
+  const recurring = data.recurringTransactions.find((r) => r.id === id)
+  if (!recurring) return { data, undo: null }
   return {
-    ...data,
-    recurringTransactions: data.recurringTransactions.map((r) =>
-      r.id === id ? { ...r, nextDue: advanceRecurringDue(r.nextDue, r.frequency) } : r,
-    ),
+    undo: { id, nextDue: recurring.nextDue },
+    data: {
+      ...data,
+      recurringTransactions: data.recurringTransactions.map((r) =>
+        r.id === id ? { ...r, nextDue: advanceRecurringDue(r.nextDue, r.frequency) } : r,
+      ),
+    },
   }
 }
 
 export function markRecurringPaid(data: PortfolioData, id: number): PortfolioData {
+  return markRecurringPaidWithUndo(data, id).data
+}
+
+export function markRecurringPaidWithUndo(
+  data: PortfolioData,
+  id: number,
+): { data: PortfolioData; undo: RecurringPaidUndo | null } {
   const r = data.recurringTransactions.find((x) => x.id === id)
-  if (!r) return data
+  if (!r) return { data, undo: null }
   const now = new Date().toISOString()
   const spendId = data.spending.reduce((m, s) => Math.max(m, s.id), 0) + 1
   return {
+    undo: {
+      id,
+      nextDue: r.nextDue,
+      lastPaidAt: r.lastPaidAt,
+      spendId,
+    },
+    data: {
+      ...data,
+      spending: [
+        ...data.spending,
+        {
+          id: spendId,
+          date: r.nextDue,
+          description: r.name,
+          amount: Math.abs(r.amount),
+          category: r.category,
+          method: 'debit',
+          createdAt: now,
+        },
+      ],
+      recurringTransactions: data.recurringTransactions.map((x) =>
+        x.id === id
+          ? {
+              ...x,
+              nextDue: advanceRecurringDue(x.nextDue, x.frequency),
+              lastPaidAt: now,
+            }
+          : x,
+      ),
+    },
+  }
+}
+
+export function undoRecurringPaid(data: PortfolioData, undo: RecurringPaidUndo): PortfolioData {
+  return {
     ...data,
-    spending: [
-      ...data.spending,
-      {
-        id: spendId,
-        date: r.nextDue,
-        description: r.name,
-        amount: Math.abs(r.amount),
-        category: r.category,
-        method: 'debit',
-        createdAt: now,
-      },
-    ],
-    recurringTransactions: data.recurringTransactions.map((x) =>
-      x.id === id
-        ? {
-            ...x,
-            nextDue: advanceRecurringDue(x.nextDue, x.frequency),
-            lastPaidAt: now,
-          }
-        : x,
+    spending: data.spending.filter((entry) => entry.id !== undo.spendId),
+    recurringTransactions: data.recurringTransactions.map((r) =>
+      r.id === undo.id
+        ? { ...r, nextDue: undo.nextDue, lastPaidAt: undo.lastPaidAt }
+        : r,
+    ),
+  }
+}
+
+export function undoRecurringSkip(data: PortfolioData, undo: RecurringSkipUndo): PortfolioData {
+  return {
+    ...data,
+    recurringTransactions: data.recurringTransactions.map((r) =>
+      r.id === undo.id ? { ...r, nextDue: undo.nextDue } : r,
     ),
   }
 }

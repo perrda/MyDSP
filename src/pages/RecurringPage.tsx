@@ -1,11 +1,18 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { PageHeader } from '../components/ui/PageHeader'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
 import { OverflowMenu } from '../components/ui/OverflowMenu'
 import { ProgressCommentaryPanel } from '../components/ProgressCommentaryPanel'
+import { useToasts } from '../components/ToastProvider'
 import { usePortfolio } from '../context/PortfolioContext'
-import { markRecurringPaid } from '../domain/recurringActions'
+import { recurringFocusUrl } from '../domain/deepLinks'
+import {
+  markRecurringPaidWithUndo,
+  skipRecurringOccurrenceWithUndo,
+  undoRecurringPaid,
+  undoRecurringSkip,
+} from '../domain/recurringActions'
 import {
   monthlyRecurringTotal,
   RECURRING_SORT_OPTIONS,
@@ -50,6 +57,8 @@ const empty = {
 
 export function RecurringPage() {
   const { data, setData, privacy } = usePortfolio()
+  const { showToast } = useToasts()
+  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<RecurringTransaction | null>(null)
@@ -163,7 +172,39 @@ export function RecurringPage() {
   }
 
   const markPaid = (r: RecurringTransaction) => {
-    setData((prev) => markRecurringPaid(prev, r.id))
+    const result = markRecurringPaidWithUndo(data, r.id)
+    if (!result.undo) return
+    setData(result.data)
+    const undo = result.undo
+    showToast({
+      type: 'success',
+      title: `${r.name} marked paid`,
+      message: 'Posted to Spending; budget totals now include this payment.',
+      duration: 5_000,
+      className: 'recurring-mark-paid-undo',
+      actions: [
+        { label: 'Undo', onClick: () => setData((prev) => undoRecurringPaid(prev, undo)) },
+        { label: 'View recurring', onClick: () => navigate(recurringFocusUrl(r.id)) },
+      ],
+    })
+  }
+
+  const skip = (r: RecurringTransaction) => {
+    const result = skipRecurringOccurrenceWithUndo(data, r.id)
+    if (!result.undo) return
+    setData(result.data)
+    const undo = result.undo
+    showToast({
+      type: 'success',
+      title: `${r.name} skipped`,
+      message: 'The next due date moved forward; no Spending entry was added.',
+      duration: 5_000,
+      className: 'recurring-skip-undo',
+      actions: [
+        { label: 'Undo', onClick: () => setData((prev) => undoRecurringSkip(prev, undo)) },
+        { label: 'View recurring', onClick: () => navigate(recurringFocusUrl(r.id)) },
+      ],
+    })
   }
 
   const patchCommentaries = (id: number, next: ProgressCommentary[] | undefined) => {
@@ -305,9 +346,14 @@ export function RecurringPage() {
                 className="mt-auto"
                 label={`Actions for ${r.name}`}
                 leading={
-                  <button type="button" className="btn-primary btn-sm" onClick={() => markPaid(r)}>
-                    Mark paid
-                  </button>
+                  <>
+                    <button type="button" className="btn-primary btn-sm" onClick={() => markPaid(r)}>
+                      Mark paid
+                    </button>
+                    <button type="button" className="btn-secondary btn-sm" onClick={() => skip(r)}>
+                      Skip
+                    </button>
+                  </>
                 }
                 items={[
                   {

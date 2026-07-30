@@ -14,6 +14,7 @@ import { usePortfolio } from '../context/PortfolioContext'
 import { evaluateAchievements } from '../domain/achievements'
 import { buildAlerts } from '../domain/alerts'
 import { worstBudgetOffenders } from '../domain/budgetChart'
+import { recurringFocusUrl } from '../domain/deepLinks'
 import { getTaxPack } from '../domain/taxPacks'
 import { calcFire } from '../domain/fire'
 import { appendManualSnapshot } from '../domain/history'
@@ -1271,7 +1272,7 @@ export function Dashboard() {
         label: `Bill: ${bill.name}`,
         when: `${dailyPlanWhen(bill.nextDue)} · ${formatGBP(bill.amount)}`,
         sortKey: dailyPlanSortKey(bill.nextDue, undefined, '17:00'),
-        to: `/recurring?focus=${bill.id}`,
+        to: recurringFocusUrl(bill.id),
         privateAmount: true,
       })
     }
@@ -2037,7 +2038,7 @@ export function Dashboard() {
                   key={`bill-${card.bill.id}`}
                   className="today-next-action-card today-bill-next-action surface p-4 md:p-5 rounded-xl md:rounded-none shadow-sm md:shadow-none"
                 >
-                  <Link to={`/recurring?focus=${card.bill.id}`} className="block group">
+                  <Link to={recurringFocusUrl(card.bill.id)} className="block group">
                     <p className="text-[11px] uppercase tracking-wider text-text-subtle mb-1">
                       Bill due
                     </p>
@@ -2069,7 +2070,7 @@ export function Dashboard() {
                       Skip
                     </button>
                     <Link
-                      to={`/recurring?focus=${card.bill.id}`}
+                      to={recurringFocusUrl(card.bill.id)}
                       className="btn-ghost btn-sm inline-flex items-center today-bill-open-recurring"
                     >
                       Open recurring
@@ -2265,7 +2266,7 @@ export function Dashboard() {
                         className="rounded-lg md:rounded-none"
                       >
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm py-1.5">
-                          <Link to={`/recurring?focus=${r.id}`} className="min-w-0 group">
+                          <Link to={recurringFocusUrl(r.id)} className="min-w-0 group">
                             <span className="block truncate font-medium group-hover:text-accent">
                               {r.name}
                             </span>
