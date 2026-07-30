@@ -690,29 +690,6 @@ export function ComparePage() {
         </div>
       </Modal>
 
-      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary compare actions">
-        <button
-          type="button"
-          className="btn-secondary btn-sm"
-          disabled={filling || selected.length === 0}
-          onClick={fillFromLastSynced}
-          title={
-            cacheAgeLabel
-              ? `Apply last-synced Markets quotes (${cacheAgeLabel})`
-              : 'Apply last-synced Markets quotes to holdings in selected portfolios'
-          }
-        >
-          {filling
-            ? 'Filling…'
-            : cacheAgeLabel
-              ? `Fill synced (${cacheAgeLabel})`
-              : 'Fill from synced'}
-        </button>
-        <button type="button" className="btn-secondary btn-sm" onClick={() => setInviteOpen(true)}>
-          Add portfolio
-        </button>
-      </div>
-      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }

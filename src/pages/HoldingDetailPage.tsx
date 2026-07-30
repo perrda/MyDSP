@@ -1334,31 +1334,6 @@ export function HoldingDetailPage() {
         }}
       />
 
-      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary holding actions">
-        <button
-          type="button"
-          className="btn-primary btn-sm"
-          onClick={() => {
-            setEditingTrade(null)
-            setTradeSide('buy')
-            setTradeOpen(true)
-          }}
-        >
-          Buy
-        </button>
-        <button
-          type="button"
-          className="btn-secondary btn-sm"
-          onClick={() => {
-            setEditingTrade(null)
-            setTradeSide('sell')
-            setTradeOpen(true)
-          }}
-        >
-          Sell
-        </button>
-      </div>
-      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }

@@ -10,6 +10,7 @@ import {
   Video,
 } from 'lucide-react'
 import { PageHeader } from '../components/ui/PageHeader'
+import { PagePrimaryActions } from '../components/ui/PagePrimaryActions'
 import { EmptyState, EmptyStateInline } from '../components/ui/EmptyState'
 import { ConfirmDialog, Field, Modal } from '../components/ui/Modal'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
@@ -341,16 +342,29 @@ export function YouTubePage() {
         title="YouTube"
         description={`Favourite finance channels (up to ${MAX_YOUTUBE_CHANNELS}). Full-length uploads only — YouTube Shorts are filtered out. New videos refresh with prices and appear in the bell — no API key required.`}
         action={
-          <button
-            type="button"
-            className={`ui-seg${sorting ? ' is-active' : ''}`}
-            aria-pressed={sorting}
-            onClick={() => setSorting((v) => !v)}
-            disabled={channels.length === 0}
-          >
-            <ArrowUpDown size={13} strokeWidth={1.75} aria-hidden />
-            {sorting ? 'Done' : 'Sort'}
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <PagePrimaryActions
+              primaryLabel="Add channel"
+              onPrimary={openCreate}
+              primaryDisabled={channels.length >= MAX_YOUTUBE_CHANNELS}
+              menuLabel="YouTube actions"
+              items={
+                unreadCount > 0
+                  ? [{ id: 'mark-read', label: 'Mark all read', onClick: markYtRead }]
+                  : []
+              }
+            />
+            <button
+              type="button"
+              className={`ui-seg${sorting ? ' is-active' : ''}`}
+              aria-pressed={sorting}
+              onClick={() => setSorting((v) => !v)}
+              disabled={channels.length === 0}
+            >
+              <ArrowUpDown size={13} strokeWidth={1.75} aria-hidden />
+              {sorting ? 'Done' : 'Sort'}
+            </button>
+          </div>
         }
       />
 
@@ -815,23 +829,6 @@ export function YouTubePage() {
         onClose={() => setDeleteId(null)}
       />
 
-      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary YouTube actions">
-        <button
-          type="button"
-          className="btn-primary btn-sm inline-flex items-center gap-1.5"
-          onClick={openCreate}
-          disabled={channels.length >= MAX_YOUTUBE_CHANNELS}
-        >
-          <Plus size={16} strokeWidth={2} />
-          Add channel
-        </button>
-        {unreadCount > 0 ? (
-          <button type="button" className="btn-ghost btn-sm" onClick={markYtRead}>
-            Mark all read
-          </button>
-        ) : null}
-      </div>
-      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }

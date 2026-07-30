@@ -11,6 +11,7 @@ import {
   Trash2,
 } from 'lucide-react'
 import { PageHeader } from '../components/ui/PageHeader'
+import { PagePrimaryActions } from '../components/ui/PagePrimaryActions'
 import { ConfirmDialog, Field, Modal } from '../components/ui/Modal'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
 import { useToasts } from '../components/ToastProvider'
@@ -486,16 +487,28 @@ export function NewsPage() {
         title="News"
         description="Yahoo Finance RSS via the quote Worker (same path as prices). Top 10 + By ticker — refreshes with the header Refresh."
         action={
-          <button
-            type="button"
-            className={`ui-seg${sorting ? ' is-active' : ''}`}
-            aria-pressed={sorting}
-            onClick={() => setSorting((v) => !v)}
-            disabled={tags.length === 0}
-          >
-            <ArrowUpDown size={13} strokeWidth={1.75} aria-hidden />
-            {sorting ? 'Done' : 'Sort'}
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <PagePrimaryActions
+              primaryLabel="Add tag"
+              onPrimary={openCreate}
+              menuLabel="News actions"
+              items={
+                unreadCount > 0
+                  ? [{ id: 'mark-read', label: 'Mark all read', onClick: markNewsRead }]
+                  : []
+              }
+            />
+            <button
+              type="button"
+              className={`ui-seg${sorting ? ' is-active' : ''}`}
+              aria-pressed={sorting}
+              onClick={() => setSorting((v) => !v)}
+              disabled={tags.length === 0}
+            >
+              <ArrowUpDown size={13} strokeWidth={1.75} aria-hidden />
+              {sorting ? 'Done' : 'Sort'}
+            </button>
+          </div>
         }
       />
 
@@ -906,22 +919,6 @@ export function NewsPage() {
         onClose={() => setDeleteId(null)}
       />
 
-      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary news actions">
-        <button
-          type="button"
-          className="btn-primary btn-sm inline-flex items-center gap-1.5"
-          onClick={openCreate}
-        >
-          <Plus size={16} strokeWidth={2} />
-          Add tag
-        </button>
-        {unreadCount > 0 ? (
-          <button type="button" className="btn-ghost btn-sm" onClick={markNewsRead}>
-            Mark all read
-          </button>
-        ) : null}
-      </div>
-      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }

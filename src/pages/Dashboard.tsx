@@ -2959,15 +2959,6 @@ export function Dashboard() {
       </div>
       ) : null}
 
-      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary today actions">
-        <Link to="/markets" className="btn-secondary btn-sm inline-flex items-center">
-          Markets
-        </Link>
-        <Link to="/todos" className="btn-ghost btn-sm inline-flex items-center">
-          To Do&apos;s
-        </Link>
-      </div>
-      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }

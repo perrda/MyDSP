@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { AlertCircle, CheckCircle, Upload, X } from 'lucide-react'
 import { PageHeader } from '../components/ui/PageHeader'
+import { PagePrimaryActions } from '../components/ui/PagePrimaryActions'
 import { usePortfolio } from '../context/PortfolioContext'
 import { useToasts } from '../components/ToastProvider'
 import type { ParsedBankRow } from '../services/csvImport'
@@ -26,6 +27,7 @@ const STEPS: ImportStep[] = ['upload', 'preview', 'mapping', 'confirm']
 export function EnhancedImportPage() {
   const { setData, data } = usePortfolio()
   const { success, error: showError, warning } = useToasts()
+  const navigate = useNavigate()
 
   const [step, setStep] = useState<ImportStep>('upload')
   const [file, setFile] = useState<File | null>(null)
@@ -210,6 +212,14 @@ export function EnhancedImportPage() {
         eyebrow="Import"
         title="Enhanced CSV Import"
         description="Smart bank detection, column mapping, duplicate hints, and honest income handling"
+        action={
+          <PagePrimaryActions
+            primaryLabel="Upload CSV"
+            onPrimary={() => document.getElementById('enhanced-import-file')?.click()}
+            menuLabel="Import actions"
+            items={[{ id: 'rules', label: 'Merchant rules', onClick: () => navigate('/rules') }]}
+          />
+        }
       />
 
       <nav className="flex items-center gap-2 mb-6 overflow-x-auto pb-2" aria-label="Import steps">
@@ -414,6 +424,17 @@ export function EnhancedImportPage() {
             </p>
           ) : null}
 
+          {stats.income > 0 && !importIncome ? (
+            <div
+              className="border border-amber-500/45 bg-amber-500/10 text-amber-900 dark:text-amber-100 px-4 py-3 text-sm rounded-lg md:rounded-none"
+              role="status"
+              data-testid="import-honesty-banner"
+            >
+              Expenses-only by default — {stats.income} income row{stats.income === 1 ? '' : 's'} will
+              be skipped unless you enable Import income rows.
+            </div>
+          ) : null}
+
           <div className="grid grid-cols-2 md:grid-cols-4 gap-px">
             <div className="surface p-4">
               <p className="label-uppercase mb-1">Selected</p>
@@ -559,19 +580,6 @@ export function EnhancedImportPage() {
           e.target.value = ''
         }}
       />
-      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary import actions">
-        <button
-          type="button"
-          className="btn-primary btn-sm"
-          onClick={() => document.getElementById('enhanced-import-file')?.click()}
-        >
-          Upload CSV
-        </button>
-        <Link to="/rules" className="btn-secondary btn-sm">
-          Merchant rules
-        </Link>
-      </div>
-      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }

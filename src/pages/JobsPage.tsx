@@ -47,6 +47,7 @@ import {
   STATUS_LABELS,
 } from '../domain/jobs'
 import { calculateJobPipelineCounts } from '../domain/jobPipeline'
+import { downloadJobEventIcs, pickNextCalendarEvent } from '../domain/jobCalendar'
 import {
   coerceJobTitleAndUrl,
   ensureHttpUrl,
@@ -790,7 +791,22 @@ export function JobsPage() {
           <div className="space-y-2" data-testid="jobs-upcoming-strip">
             <div className="flex items-center justify-between gap-2">
               <p className="label-uppercase mb-0">Next 14 days</p>
-              <span className="text-xs text-text-subtle">{upcomingEvents.length} event{upcomingEvents.length === 1 ? '' : 's'}</span>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  className="btn-ghost btn-sm text-xs"
+                  data-testid="jobs-calendar-ics"
+                  onClick={() => {
+                    const next = pickNextCalendarEvent(upcomingEvents)
+                    if (next) downloadJobEventIcs(next)
+                  }}
+                >
+                  Add to calendar
+                </button>
+                <span className="text-xs text-text-subtle">
+                  {upcomingEvents.length} event{upcomingEvents.length === 1 ? '' : 's'}
+                </span>
+              </div>
             </div>
             {upcomingEvents.map((event) => (
               <Link

@@ -1142,28 +1142,6 @@ export function EquitiesPage() {
         }}
       />
 
-      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary equities actions">
-        <button type="button" className="btn-primary btn-sm" onClick={openCreate}>
-          Add equity
-        </button>
-        <button
-          type="button"
-          className="btn-secondary btn-sm"
-          disabled={holdings.length === 0}
-          onClick={fillFromLastSynced}
-        >
-          Fill last synced
-        </button>
-        <button
-          type="button"
-          className="btn-secondary btn-sm"
-          disabled={driftHits.length === 0}
-          onClick={fillFromLastSynced}
-        >
-          Use Markets prices
-        </button>
-      </div>
-      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }
