@@ -37,12 +37,12 @@ export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
         to: '/equities',
       },
       {
-        text: 'Compact ⋯ menus in dense holdings/Markets lists',
-        to: '/markets',
+        text: 'Resize-safe headers — no crushed HOLDINGS copy',
+        to: '/equities',
       },
       {
-        text: 'Always-apply no-text-overlap layout rule',
-        to: '/equities',
+        text: 'Compact ⋯ page actions across web/tablet/phone',
+        to: '/markets',
       },
     ],
   },

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import {
-  ArrowUpDown,
   ExternalLink,
   Pencil,
   Plus,
@@ -342,29 +341,24 @@ export function YouTubePage() {
         title="YouTube"
         description={`Favourite finance channels (up to ${MAX_YOUTUBE_CHANNELS}). Full-length uploads only — YouTube Shorts are filtered out. New videos refresh with prices and appear in the bell — no API key required.`}
         action={
-          <div className="flex flex-wrap items-center gap-2">
-            <PagePrimaryActions
-              primaryLabel="Add channel"
-              onPrimary={openCreate}
-              primaryDisabled={channels.length >= MAX_YOUTUBE_CHANNELS}
-              menuLabel="YouTube actions"
-              items={
-                unreadCount > 0
-                  ? [{ id: 'mark-read', label: 'Mark all read', onClick: markYtRead }]
-                  : []
-              }
-            />
-            <button
-              type="button"
-              className={`ui-seg${sorting ? ' is-active' : ''}`}
-              aria-pressed={sorting}
-              onClick={() => setSorting((v) => !v)}
-              disabled={channels.length === 0}
-            >
-              <ArrowUpDown size={13} strokeWidth={1.75} aria-hidden />
-              {sorting ? 'Done' : 'Sort'}
-            </button>
-          </div>
+          <PagePrimaryActions
+            primaryLabel="Add channel"
+            onPrimary={openCreate}
+            primaryDisabled={channels.length >= MAX_YOUTUBE_CHANNELS}
+            menuLabel="YouTube actions"
+            items={[
+              ...(unreadCount > 0
+                ? [{ id: 'mark-read', label: 'Mark all read', onClick: markYtRead }]
+                : []),
+              {
+                id: 'sort',
+                label: sorting ? 'Done sorting' : 'Sort channels',
+                active: sorting,
+                disabled: channels.length === 0,
+                onClick: () => setSorting((v) => !v),
+              },
+            ]}
+          />
         }
       />
 

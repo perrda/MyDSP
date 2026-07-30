@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import {
-  ArrowUpDown,
   ChevronDown,
   ChevronUp,
   ExternalLink,
@@ -487,28 +486,23 @@ export function NewsPage() {
         title="News"
         description="Yahoo Finance RSS via the quote Worker (same path as prices). Top 10 + By ticker — refreshes with the header Refresh."
         action={
-          <div className="flex flex-wrap items-center gap-2">
-            <PagePrimaryActions
-              primaryLabel="Add tag"
-              onPrimary={openCreate}
-              menuLabel="News actions"
-              items={
-                unreadCount > 0
-                  ? [{ id: 'mark-read', label: 'Mark all read', onClick: markNewsRead }]
-                  : []
-              }
-            />
-            <button
-              type="button"
-              className={`ui-seg${sorting ? ' is-active' : ''}`}
-              aria-pressed={sorting}
-              onClick={() => setSorting((v) => !v)}
-              disabled={tags.length === 0}
-            >
-              <ArrowUpDown size={13} strokeWidth={1.75} aria-hidden />
-              {sorting ? 'Done' : 'Sort'}
-            </button>
-          </div>
+          <PagePrimaryActions
+            primaryLabel="Add tag"
+            onPrimary={openCreate}
+            menuLabel="News actions"
+            items={[
+              ...(unreadCount > 0
+                ? [{ id: 'mark-read', label: 'Mark all read', onClick: markNewsRead }]
+                : []),
+              {
+                id: 'sort',
+                label: sorting ? 'Done sorting' : 'Sort tags',
+                active: sorting,
+                disabled: tags.length === 0,
+                onClick: () => setSorting((v) => !v),
+              },
+            ]}
+          />
         }
       />
 

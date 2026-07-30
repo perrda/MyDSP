@@ -20,7 +20,7 @@ List rows and master-detail panes must never paint identity text over metrics (o
    - Pass **`compact`** to `OverflowMenu` so actions stay behind ⋯ at every breakpoint.
    - Do **not** put Buy/Sell/Edit/Delete as always-visible leading buttons inside cramped list rows; keep them in the compact menu (swipe actions may still expose Buy/Sell/NW on phone).
 
-2. **Page headers / wide toolbars** may keep non-compact `OverflowMenu` (inline on md+).
+2. **Page headers** — prefer `PagePrimaryActions` with compact ⋯. Do **not** park multi-button clusters beside titles; see `resize-safe-layouts.mdc`.
 
 3. **Any new list row**: if removing a border/shadow still leaves colliding text, the layout is wrong — fix columns before shipping.
 

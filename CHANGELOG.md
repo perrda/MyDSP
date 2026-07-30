@@ -2,11 +2,13 @@
 
 ## [1.2.110] - 2026-07-30
 
-### Fixed — Holdings list text overlap
+### Fixed — Holdings list text overlap + resize-safe chrome
 - **Equities / Crypto rows:** CSS grid `.holdings-list-row` with clipped identity/metrics cells — ticker never paints over Cost/P&L in master-detail
 - **`OverflowMenu compact`:** dense list rows keep Buy/Sell/NW/Edit/Delete behind ⋯ at every breakpoint (no md+ inline crush)
 - **Markets lists:** compact overflow menus in watchlist rows
-- Always-apply cursor rule `no-text-overlap.mdc` + tip harness
+- **Resize-safe page headers:** `.page-header` stacks by default (side-by-side only ≥1024px with copy min-width) — no crushed HOLDINGS/description beside Import/Sort/Add clusters when the browser is resized
+- **PagePrimaryActions** default compact ⋯ on Equities · Crypto · Compare · History · News · YouTube; Job detail hero uses the same header grid
+- Always-apply cursor rules `no-text-overlap.mdc` + `resize-safe-layouts.mdc` + tip harness
 - Full tip harness + `tsc` QA
 
 ## [1.2.109] - 2026-07-30

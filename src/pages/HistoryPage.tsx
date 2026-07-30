@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { PortfolioSeriesChart } from '../components/charts/PortfolioSeriesChart'
 import { PageHeader } from '../components/ui/PageHeader'
+import { PagePrimaryActions } from '../components/ui/PagePrimaryActions'
 import { ConfirmDialog } from '../components/ui/Modal'
 import { usePortfolio } from '../context/PortfolioContext'
 import { appendManualSnapshot, normalizeHistoryDate } from '../domain/history'
@@ -50,19 +51,12 @@ export function HistoryPage() {
         title="Net worth history"
         description="Daily snapshots — edit by taking a new snapshot for today, or delete rows."
         action={
-          <div className="flex flex-wrap gap-2" data-testid="page-primary-actions">
-            <button
-              type="button"
-              className="btn-primary btn-sm"
-              data-testid="page-primary-create"
-              onClick={() => setData((prev) => appendManualSnapshot(prev))}
-            >
-              Snapshot now
-            </button>
-            <button type="button" className="btn-secondary btn-sm" onClick={exportCsv}>
-              Export CSV
-            </button>
-          </div>
+          <PagePrimaryActions
+            primaryLabel="Snapshot now"
+            onPrimary={() => setData((prev) => appendManualSnapshot(prev))}
+            menuLabel="History actions"
+            items={[{ id: 'export', label: 'Export CSV', onClick: exportCsv }]}
+          />
         }
       />
 

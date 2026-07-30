@@ -140,4 +140,46 @@ describe('next10 priorities wave (retained in v1.2.110 tip)', () => {
     expect(rule).toMatch(/OverflowMenu/)
     expect(rule).toMatch(/holdings-list-row/)
   })
+
+  it('12: Page headers are resize-safe (stack + compact PagePrimaryActions)', () => {
+    const css = readFileSync(resolve(__dirname, '../index.css'), 'utf8')
+    expect(css).toMatch(/\.page-header\s*\{/)
+    expect(css).toMatch(/page-header__copy/)
+    expect(css).toMatch(/page-header__action/)
+    expect(css).toMatch(/min-width:\s*min\(100%,\s*16rem\)/)
+
+    const header = readFileSync(
+      resolve(__dirname, '../components/ui/PageHeader.tsx'),
+      'utf8',
+    )
+    expect(header).toMatch(/page-header__copy/)
+    expect(header).not.toMatch(/sm:flex-row/)
+
+    const primary = readFileSync(
+      resolve(__dirname, '../components/ui/PagePrimaryActions.tsx'),
+      'utf8',
+    )
+    expect(primary).toMatch(/compact\s*=\s*true/)
+
+    for (const name of [
+      'EquitiesPage.tsx',
+      'CryptoPage.tsx',
+      'ComparePage.tsx',
+      'HistoryPage.tsx',
+      'NewsPage.tsx',
+      'YouTubePage.tsx',
+    ] as const) {
+      const page = readPage(name)
+      expect(page).toMatch(/PagePrimaryActions/)
+      expect(page).not.toMatch(/md:flex-nowrap/)
+    }
+
+    const resizeRule = readFileSync(
+      resolve(__dirname, '../../.cursor/rules/resize-safe-layouts.mdc'),
+      'utf8',
+    )
+    expect(resizeRule).toMatch(/alwaysApply:\s*true/)
+    expect(resizeRule).toMatch(/PagePrimaryActions/)
+    expect(resizeRule).toMatch(/page-header/)
+  })
 })

@@ -41,13 +41,15 @@ describe('Markets minimal toolbar · seg buttons (v1.2.94)', () => {
     expect(css).toMatch(/\.ui-seg-group\b/)
   })
 
-  it('News / YouTube Sort and Today / Jobs jumps share ui-seg', () => {
+  it('News / YouTube Sort live in compact PagePrimaryActions; Today / Jobs jumps use ui-seg', () => {
     const news = readFileSync(resolve(__dirname, '../pages/NewsPage.tsx'), 'utf8')
     const yt = readFileSync(resolve(__dirname, '../pages/YouTubePage.tsx'), 'utf8')
     const dash = readFileSync(resolve(__dirname, '../pages/Dashboard.tsx'), 'utf8')
     const jobs = readFileSync(resolve(__dirname, '../pages/JobsPage.tsx'), 'utf8')
-    expect(news).toMatch(/className=\{`ui-seg\$\{sorting/)
-    expect(yt).toMatch(/className=\{`ui-seg\$\{sorting/)
+    expect(news).toMatch(/PagePrimaryActions/)
+    expect(news).toMatch(/Sort tags/)
+    expect(yt).toMatch(/PagePrimaryActions/)
+    expect(yt).toMatch(/Sort channels/)
     expect(dash).toMatch(/today-section-jump-chip ui-seg/)
     expect(jobs).toMatch(/jobs-kanban-jump-chips ui-seg-group/)
     expect(jobs).toMatch(/jobs-follow-up-chip ui-seg/)

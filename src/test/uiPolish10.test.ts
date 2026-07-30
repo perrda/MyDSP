@@ -16,8 +16,12 @@ describe('UI polish Top 10 chrome', () => {
 
   it('keeps PageHeader titles phone-only to avoid double titles with the shell', () => {
     const src = readFileSync(resolve(__dirname, '../components/ui/PageHeader.tsx'), 'utf8')
+    const css = readFileSync(resolve(__dirname, '../index.css'), 'utf8')
     expect(src).toMatch(/sm:hidden/)
-    expect(src).toMatch(/sm:flex-row/)
+    expect(src).toMatch(/page-header__copy/)
+    expect(src).not.toMatch(/sm:flex-row/)
+    expect(css).toMatch(/\.page-header\s*\{/)
+    expect(css).toMatch(/min-width:\s*min\(100%,\s*16rem\)/)
     expect(titleCaseHeader('compare portfolios')).toBe('Compare Portfolios')
   })
 

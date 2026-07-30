@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowUpDown } from 'lucide-react'
 import { AllocationRing } from '../components/charts/AllocationRing'
 import { PortfolioSeriesChart } from '../components/charts/PortfolioSeriesChart'
 import { EmptyState } from '../components/ui/EmptyState'
 import { MarketsHoldingsSkeleton } from '../components/ui/MarketsHoldingsSkeleton'
 import { OverflowMenu } from '../components/ui/OverflowMenu'
 import { PageHeader } from '../components/ui/PageHeader'
+import { PagePrimaryActions } from '../components/ui/PagePrimaryActions'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
 import { TradeModal } from '../components/ui/TradeModal'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
@@ -476,84 +476,70 @@ export function EquitiesPage() {
         description={
           sorting
             ? 'Drag ⋮⋮ to reorder — order is saved with this portfolio.'
-            : 'Tap Sort to rearrange. Use Buy/Sell for dated trades.'
+            : 'Open ⋯ for Sort / Weight % / import. Use Buy/Sell for dated trades.'
         }
         action={
-          <div className="flex flex-wrap gap-2" data-testid="page-primary-actions">
-            <button
-              type="button"
-              className="btn-ghost btn-sm"
-              data-testid="equity-broker-import"
-              onClick={() => brokerImportRef.current?.click()}
-              title="Import date,type,symbol,qty,price broker CSV rows into the trade journal"
-            >
-              Import broker CSV
-            </button>
+          <>
             <input
               ref={brokerImportRef}
               type="file"
               accept=".csv,text/csv"
               className="hidden"
+              data-testid="equity-broker-import"
               onChange={(e) => {
                 const file = e.target.files?.[0]
                 if (file) void importBrokerCsv(file)
                 e.target.value = ''
               }}
             />
-            <button
-              type="button"
-              className="btn-ghost btn-sm"
-              disabled={holdings.length === 0}
-              onClick={fillFromLastSynced}
-              title="Apply last-synced Markets quotes to holdings"
-            >
-              Fill last synced
-            </button>
-            {missingOnMarkets.length > 0 ? (
-              <button
-                type="button"
-                className="btn-ghost btn-sm"
-                onClick={addMissingToMarkets}
-                title="Add portfolio symbols missing from Markets watchlist"
-              >
-                Add from holding ({missingOnMarkets.length})
-              </button>
-            ) : null}
-            <button
-              type="button"
-              className={`btn-secondary btn-sm inline-flex items-center gap-2 ${sorting ? 'border-accent text-accent' : ''}`}
-              aria-pressed={sorting}
-              disabled={holdings.length === 0}
-              onClick={() => {
-                setWeightSort(false)
-                setSorting((v) => !v)
-              }}
-            >
-              <ArrowUpDown size={14} strokeWidth={1.75} />
-              {sorting ? 'Done' : 'Sort'}
-            </button>
-            <button
-              type="button"
-              className={`btn-secondary btn-sm ${weightSort ? 'border-accent text-accent' : ''}`}
-              aria-pressed={weightSort}
-              disabled={holdings.length === 0}
-              onClick={() => {
-                setSorting(false)
-                setWeightSort((v) => !v)
-              }}
-              title="Sort holdings by portfolio weight percent"
-            >
-              Weight %
-            </button>
-            <button
-              type="button"
-              className="btn-primary btn-sm"
-              data-testid="page-primary-create"
-              onClick={openCreate}
-            >
-              Add equity
-            </button>
-          </div>
+            <PagePrimaryActions
+              primaryLabel="Add equity"
+              onPrimary={openCreate}
+              menuLabel="Equity holdings actions"
+              items={[
+                {
+                  id: 'import',
+                  label: 'Import broker CSV',
+                  onClick: () => brokerImportRef.current?.click(),
+                },
+                {
+                  id: 'fill',
+                  label: 'Fill last synced',
+                  disabled: holdings.length === 0,
+                  onClick: fillFromLastSynced,
+                },
+                ...(missingOnMarkets.length > 0
+                  ? [
+                      {
+                        id: 'add-markets',
+                        label: `Add from holding (${missingOnMarkets.length})`,
+                        onClick: addMissingToMarkets,
+                      },
+                    ]
+                  : []),
+                {
+                  id: 'sort',
+                  label: sorting ? 'Done sorting' : 'Sort',
+                  active: sorting,
+                  disabled: holdings.length === 0,
+                  onClick: () => {
+                    setWeightSort(false)
+                    setSorting((v) => !v)
+                  },
+                },
+                {
+                  id: 'weight',
+                  label: 'Weight %',
+                  active: weightSort,
+                  disabled: holdings.length === 0,
+                  onClick: () => {
+                    setSorting(false)
+                    setWeightSort((v) => !v)
+                  },
+                },
+              ]}
+            />
+          </>
         }
       />
 
@@ -572,7 +558,7 @@ export function EquitiesPage() {
               onChange={(e) => setSearchText(e.target.value)}
               placeholder="Search equity holdings by symbol or name"
               aria-label="Search equity holdings by symbol or name"
-              className="min-w-[14rem] flex-1"
+              className="min-w-0 w-full flex-1"
             />
             {searchText ? (
               <button type="button" className="btn-ghost btn-sm" onClick={() => setSearchText('')}>

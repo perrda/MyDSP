@@ -7,6 +7,7 @@ export type OverflowMenuItem = {
   onClick: () => void
   destructive?: boolean
   active?: boolean
+  disabled?: boolean
 }
 
 interface OverflowMenuProps {
@@ -78,7 +79,8 @@ export function OverflowMenu({
             key={item.id}
             type="button"
             role="menuitem"
-            className={`w-full text-left px-4 py-3 text-base min-h-12 transition-colors hover:bg-surface-hover sm:py-2.5 sm:text-sm sm:min-h-11 ${
+            disabled={item.disabled}
+            className={`w-full text-left px-4 py-3 text-base min-h-12 transition-colors hover:bg-surface-hover sm:py-2.5 sm:text-sm sm:min-h-11 disabled:opacity-45 disabled:pointer-events-none ${
               item.destructive
                 ? 'text-red-500'
                 : item.active
@@ -113,14 +115,15 @@ export function OverflowMenu({
             <button
               key={item.id}
               type="button"
+              disabled={item.disabled}
               className={
                 item.destructive
-                  ? 'btn-ghost btn-sm min-h-9 text-red-500'
+                  ? 'btn-ghost btn-sm min-h-9 text-red-500 disabled:opacity-45'
                   : item.active
-                    ? 'text-[11px] font-bold uppercase tracking-widest px-2 py-1 border min-h-9 border-accent text-accent'
+                    ? 'text-[11px] font-bold uppercase tracking-widest px-2 py-1 border min-h-9 border-accent text-accent disabled:opacity-45'
                     : item.id === 'nw'
-                      ? 'text-[11px] font-bold uppercase tracking-widest px-2 py-1 border min-h-9 border-border-strong text-text-subtle'
-                      : 'btn-ghost btn-sm min-h-9'
+                      ? 'text-[11px] font-bold uppercase tracking-widest px-2 py-1 border min-h-9 border-border-strong text-text-subtle disabled:opacity-45'
+                      : 'btn-ghost btn-sm min-h-9 disabled:opacity-45'
               }
               onClick={item.onClick}
             >
