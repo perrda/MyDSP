@@ -358,7 +358,8 @@ export function collectSyncHighlights(
 export function announceWhatArrived(opts: {
   highlights?: SyncHighlightMap
   extrasSummary?: string | null
-  merged?: boolean
+  /** Portfolios merged count (number) or boolean flag from callers. */
+  merged?: number | boolean
 }): string | null {
   const entitySummary = opts.highlights ? summarizeSyncHighlights(opts.highlights) : null
   const summary = [entitySummary, opts.extrasSummary].filter(Boolean).join(' · ') || null
@@ -367,7 +368,7 @@ export function announceWhatArrived(opts: {
       window.dispatchEvent(
         new CustomEvent('mydsp-sync-applied', {
           detail: {
-            merged: opts.merged ?? false,
+            merged: opts.merged ?? 0,
             highlights: opts.highlights ?? {},
             extrasSummary: opts.extrasSummary ?? null,
             summary,
