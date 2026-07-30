@@ -29,9 +29,11 @@ Encode these preferences so future agents do **not** reintroduce clutter or over
 
 ## Markets chrome
 
-- Prefer disclosure panels (Assets / Timeframe / Format) over permanent chip rows.
-- Default timeframe **24H**; quiet poll ~**60s**; no noisy “Showing n/m prices” status; no useless Markets search.
-- Section add buttons cover commodity / FX / index — thumb stays Add equity + Add crypto (+ conditional holding / retry).
+- Prefer disclosure panels (**Assets / Timeframe / Format / Filters**) over permanent chip/select rows (see `disclosure-toolbar-panels.mdc`).
+- Ownership · Alerts · Freshness · Types live under **Filters**, not stacked under search.
+- Default timeframe **24H**; quiet poll ~**60s**; no noisy “Showing n/m prices” status.
+- Search may stay visible; secondary filters must not.
+- Section add buttons cover commodity / FX / index — creates live in PageHeader (content-first).
 
 ## Tablet (≥sm)
 

@@ -44,6 +44,10 @@ export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
         text: 'Content-first Equities/News/YouTube · Jobs calendar ICS',
         to: '/jobs',
       },
+      {
+        text: 'Markets Filters panel — ownership/alerts under Format+',
+        to: '/markets',
+      },
     ],
   },
   {

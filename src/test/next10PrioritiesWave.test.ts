@@ -97,4 +97,13 @@ describe('next10 priorities wave (v1.2.109)', () => {
       expect(readPage(name)).not.toMatch(/className="thumb-cta-bar"/)
     }
   })
+
+  it('10: Markets Ownership/Alerts/Types live under Filters disclosure', () => {
+    const markets = readPage('MarketsPage.tsx')
+    expect(markets).toMatch(/\['filters', 'Filters'/)
+    expect(markets).toMatch(/toolbarPanel === 'filters'/)
+    expect(markets).toMatch(/data-testid="markets-panel-body-filters"/)
+    expect(markets).toMatch(/All ownership/)
+    expect(markets).toMatch(/markets-panel-toggle--filtered/)
+  })
 })

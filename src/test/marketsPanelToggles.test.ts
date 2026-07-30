@@ -27,11 +27,27 @@ describe('Markets Assets/Timeframe/Format panels (v1.2.97)', () => {
     expect(page).toMatch(/\['assets', 'Assets'/)
     expect(page).toMatch(/\['timeframe', 'Timeframe'/)
     expect(page).toMatch(/\['format', 'Format'/)
+    expect(page).toMatch(/\['filters', 'Filters'/)
     expect(page).toMatch(/toolbarPanel === 'assets'/)
     expect(page).toMatch(/toolbarPanel === 'timeframe'/)
     expect(page).toMatch(/toolbarPanel === 'format'/)
+    expect(page).toMatch(/toolbarPanel === 'filters'/)
+    expect(page).toMatch(/data-testid="markets-panel-body-filters"/)
+    expect(page).toMatch(/All ownership/)
+    // Screener selects only render inside the Filters panel — not permanently under search
+    const screenerBlock = page.match(
+      /data-testid="markets-screener"[\s\S]*?<\/div>\s*\{toolbarPanel === 'assets'/,
+    )?.[0]
+    expect(screenerBlock).toBeTruthy()
+    expect(screenerBlock).not.toMatch(/All ownership/)
     const css = readFileSync(resolve(__dirname, '../index.css'), 'utf8')
     expect(css).toMatch(/\.markets-panel-toggles/)
-    expect(css).toMatch(/grid-template-columns:\s*repeat\(3/)
+    expect(css).toMatch(/grid-template-columns:\s*repeat\(4/)
+    const rule = readFileSync(
+      resolve(__dirname, '../../.cursor/rules/disclosure-toolbar-panels.mdc'),
+      'utf8',
+    )
+    expect(rule).toMatch(/alwaysApply:\s*true/)
+    expect(rule).toMatch(/Filters/)
   })
 })
