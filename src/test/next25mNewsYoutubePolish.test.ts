@@ -119,7 +119,7 @@ describe('next25m — News / YouTube polish tip (1–25 → v1.2.80)', () => {
     )
     const notes = buildYoutubeUploadNotifications()
     expect(notes.some((n) => n.id === 'yt-v1')).toBe(true)
-    expect(notes.every((n) => n.actionUrl === '/youtube')).toBe(true)
+    expect(notes.every((n) => n.actionUrl?.startsWith('/youtube?video='))).toBe(true)
     expect(notes.find((n) => n.id === 'yt-v1')?.title).toMatch(/Macro Desk/)
   })
 

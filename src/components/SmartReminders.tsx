@@ -4,6 +4,7 @@ import { AlertCircle, Bell, Calendar, Target, TrendingDown } from 'lucide-react'
 import { usePortfolio } from '../context/PortfolioContext'
 import { useToasts } from '../components/ToastProvider'
 import { monthKey } from '../domain/monthUtils'
+import { needsFollowUp } from '../domain/jobs'
 import { formatGBP } from '../utils/format'
 
 export interface Reminder {
@@ -218,20 +219,16 @@ export function calculateReminders(data: any): Reminder[] {
       }
     })
 
-    // No response for 14+ days
-    if (job.appliedDate && job.status === 'applied') {
-      const appliedDate = new Date(job.appliedDate)
-      const daysSince = Math.floor((now.getTime() - appliedDate.getTime()) / (1000 * 60 * 60 * 24))
-      if (daysSince >= 14) {
-        reminders.push({
-          id: `job-no-response-${job.id}`,
-          type: 'job',
-          priority: 'low',
-          title: 'No response',
-          message: `${job.companyName} - ${daysSince} days since application`,
-          action: { label: 'Follow up', path: `/jobs/${job.id}` },
-        })
-      }
+    // Keep stale logic aligned with the Jobs page (no-response and overdue interviews).
+    if (needsFollowUp(job)) {
+      reminders.push({
+        id: `job-follow-up-${job.id}`,
+        type: 'job',
+        priority: job.priority === 'high' ? 'medium' : 'low',
+        title: 'Job follow-up due',
+        message: `${job.companyName} · ${job.jobTitle}`,
+        action: { label: 'Follow up', path: `/jobs/${job.id}` },
+      })
     }
   })
 

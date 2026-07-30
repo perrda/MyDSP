@@ -54,6 +54,6 @@ describe('next25e Today / money / tax items 16-20', () => {
     expect(dashboard).toMatch(/calcFire/)
     expect(dashboard).toMatch(/data\.fireInputs/)
     expect(dashboard).toMatch(/today-fire-chip/)
-    expect(dashboard).toMatch(/to="\/fire"/)
+    expect(dashboard).toMatch(/planningMonteCarloUrl\(netWorth,\s*data\.fireInputs\.savings/)
   })
 })

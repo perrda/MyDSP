@@ -2,6 +2,7 @@
 
 import type { Notification } from '../utils/notifications'
 import { getYoutubeSeenAt, loadYoutubeVideosCache } from '../storage/youtubeStore'
+import { youtubeVideoUrl } from './deepLinks'
 
 /** Newest unread uploads from favourite channels (for bell + desktop banners). */
 export function buildYoutubeUploadNotifications(
@@ -24,7 +25,7 @@ export function buildYoutubeUploadNotifications(
       priority: (fresh ? 'high' : 'medium') as Notification['priority'],
       title: `New video · ${v.channelTitle}`,
       message: v.title,
-      actionUrl: '/youtube',
+      actionUrl: youtubeVideoUrl(v.id),
       actionLabel: 'YouTube',
       dismissible: true,
       metadata: {

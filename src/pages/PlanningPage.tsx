@@ -1,4 +1,5 @@
 import { useMemo, useState, useTransition } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   Area,
   AreaChart,
@@ -21,18 +22,35 @@ import {
 import { formatGBP, formatPct, privacyClass } from '../utils/format'
 import { formatChartYTick } from '../domain/chartAxis'
 
+function nonNegativeParam(raw: string | null): number | null {
+  if (raw == null || raw.trim() === '') return null
+  const value = Number(raw)
+  return Number.isFinite(value) && value >= 0 ? value : null
+}
+
 export function PlanningPage() {
   const { data, setData, breakdown, privacy } = usePortfolio()
-  const [tab, setTab] = useState<'rebalance' | 'montecarlo'>('rebalance')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const urlNetWorth = nonNegativeParam(searchParams.get('nw'))
+  const urlSavings = nonNegativeParam(searchParams.get('savings'))
+  const hasTodaySeed = urlNetWorth !== null || urlSavings !== null
+  const initialNetWorth = urlNetWorth ?? breakdown.netWorth
+  const initialSavings = urlSavings ?? data.fireInputs.savings ?? 0
+  const [tab, setTab] = useState<'rebalance' | 'montecarlo'>(
+    () => (searchParams.get('tab') === 'montecarlo' ? 'montecarlo' : 'rebalance'),
+  )
   const [pending, startTransition] = useTransition()
+  const [mcCurrentValue, setMcCurrentValue] = useState(initialNetWorth)
+  const [mcMonthlyContribution, setMcMonthlyContribution] = useState(initialSavings)
+  const [fromToday, setFromToday] = useState(hasTodaySeed)
   const [mcYears, setMcYears] = useState('10')
   const [mcSims, setMcSims] = useState('5000')
   const [mcMean, setMcMean] = useState(String(data.fireInputs.returnRate || 7))
   const [mcVol, setMcVol] = useState('18')
   const [mcResult, setMcResult] = useState(() =>
     runMonteCarlo({
-      currentValue: breakdown.netWorth,
-      monthlyContribution: data.fireInputs.savings || 0,
+      currentValue: initialNetWorth,
+      monthlyContribution: initialSavings,
       years: 10,
       simulations: 2000,
       meanReturn: (data.fireInputs.returnRate || 7) / 100,
@@ -62,8 +80,8 @@ export function PlanningPage() {
     startTransition(() => {
       setMcResult(
         runMonteCarlo({
-          currentValue: breakdown.netWorth,
-          monthlyContribution: data.fireInputs.savings || 0,
+          currentValue: mcCurrentValue,
+          monthlyContribution: mcMonthlyContribution,
           years: parseNum(mcYears) || 10,
           simulations: parseNum(mcSims) || 5000,
           meanReturn: (parseNum(mcMean) || 7) / 100,
@@ -79,6 +97,28 @@ export function PlanningPage() {
       { key: 'crypto', label: 'Crypto', current: alloc.cryptoPct, target: targets.crypto },
       { key: 'cash', label: 'Cash / stables', current: alloc.cashPct, target: targets.cash },
     ]
+
+  const resetMonteCarloToLive = () => {
+    const liveSavings = data.fireInputs.savings || 0
+    setMcCurrentValue(breakdown.netWorth)
+    setMcMonthlyContribution(liveSavings)
+    setFromToday(false)
+    setMcResult(
+      runMonteCarlo({
+        currentValue: breakdown.netWorth,
+        monthlyContribution: liveSavings,
+        years: parseNum(mcYears) || 10,
+        simulations: parseNum(mcSims) || 5000,
+        meanReturn: (parseNum(mcMean) || 7) / 100,
+        stdDev: (parseNum(mcVol) || 18) / 100,
+      }),
+    )
+    const next = new URLSearchParams(searchParams)
+    next.set('tab', 'montecarlo')
+    next.delete('nw')
+    next.delete('savings')
+    setSearchParams(next, { replace: true })
+  }
 
   return (
     <div>
@@ -229,12 +269,41 @@ export function PlanningPage() {
       {tab === 'montecarlo' && (
         <>
           <div className="surface p-6 sm:p-8 mb-px">
-            <p className="eyebrow mb-4">Assumptions</p>
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+              <p className="eyebrow mb-0">Assumptions</p>
+              {fromToday ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-accent bg-accent/10 px-2 py-1">
+                    From Today
+                  </span>
+                  <button type="button" className="btn-ghost btn-sm" onClick={resetMonteCarloToLive}>
+                    Reset to live values
+                  </button>
+                </div>
+              ) : null}
+            </div>
             <p className="text-sm text-text-muted mb-6 font-light">
-              Starting NW {formatGBP(breakdown.netWorth)} · Monthly contribution from FIRE savings (
-              {formatGBP(data.fireInputs.savings)})
+              Starting NW {formatGBP(mcCurrentValue)} · Monthly contribution{' '}
+              {formatGBP(mcMonthlyContribution)}. URL values are a temporary scenario and are never
+              saved to your portfolio.
             </p>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+              <Field label="Starting net worth (GBP)">
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={String(mcCurrentValue)}
+                  onChange={(e) => setMcCurrentValue(Math.max(0, parseNum(e.target.value)))}
+                />
+              </Field>
+              <Field label="Monthly contribution (GBP)">
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={String(mcMonthlyContribution)}
+                  onChange={(e) => setMcMonthlyContribution(Math.max(0, parseNum(e.target.value)))}
+                />
+              </Field>
               <Field label="Years">
                 <input type="text" inputMode="numeric" value={mcYears} onChange={(e) => setMcYears(e.target.value)} />
               </Field>
@@ -266,8 +335,8 @@ export function PlanningPage() {
                     startTransition(() => {
                       setMcResult(
                         runMonteCarlo({
-                          currentValue: breakdown.netWorth,
-                          monthlyContribution: data.fireInputs.savings || 0,
+                          currentValue: mcCurrentValue,
+                          monthlyContribution: mcMonthlyContribution,
                           years: parseNum(mcYears) || 10,
                           simulations: parseNum(mcSims) || 5000,
                           meanReturn: mean / 100,

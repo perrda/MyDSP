@@ -9,7 +9,9 @@ import { OverflowMenu } from '../components/ui/OverflowMenu'
 import { usePortfolio } from '../context/PortfolioContext'
 import { useToasts } from '../components/ToastProvider'
 import { isBudgetSpend } from '../domain/budgetChart'
+import { makeRuleHref, spendingCategoryUrl } from '../domain/deepLinks'
 import { formatMonthLabel, monthKey, parseMonthParam, shiftMonth, daysElapsedInMonth, daysInMonth } from '../domain/monthUtils'
+import type { SpendingEntry } from '../domain/types'
 import { formatGBP, formatGBPPrecise, pct, privacyClass } from '../utils/format'
 
 export function BudgetsPage() {
@@ -52,6 +54,34 @@ export function BudgetsPage() {
     return map
   }, [data.spending, ym])
 
+  const topMerchantsByCategory = useMemo(() => {
+    const categories = new Map<
+      string,
+      Map<string, { transaction: SpendingEntry; spent: number; count: number }>
+    >()
+    for (const transaction of data.spending) {
+      if (!isBudgetSpend(transaction)) continue
+      if (!transaction.date.startsWith(ym)) continue
+      const category = transaction.category.toLowerCase()
+      const merchant = transaction.description.trim() || 'Unknown merchant'
+      const key = merchant.toLowerCase()
+      const merchants = categories.get(category) ?? new Map()
+      const existing = merchants.get(key)
+      merchants.set(key, {
+        transaction: existing?.transaction ?? transaction,
+        spent: (existing?.spent ?? 0) + Math.abs(transaction.amount),
+        count: (existing?.count ?? 0) + 1,
+      })
+      categories.set(category, merchants)
+    }
+    return new Map(
+      [...categories].map(([category, merchants]) => [
+        category,
+        [...merchants.values()].sort((a, b) => b.spent - a.spent).slice(0, 3),
+      ]),
+    )
+  }, [data.spending, ym])
+
   const rows = useMemo(() => {
     const cats = new Set([
       ...Object.keys(data.budgetGoals).map((c) => c.toLowerCase()),
@@ -71,9 +101,21 @@ export function BudgetsPage() {
         const dailyAvg = spent / daysElapsed
         const projectedTotal = dailyAvg * dim
         const onTrack = limit > 0 && projectedTotal <= limit
-        return { category, limit, spent, progress, over, near, remaining, dailyAvg, projectedTotal, onTrack }
+        return {
+          category,
+          limit,
+          spent,
+          progress,
+          over,
+          near,
+          remaining,
+          dailyAvg,
+          projectedTotal,
+          onTrack,
+          topMerchants: topMerchantsByCategory.get(category) ?? [],
+        }
       })
-  }, [data.budgetGoals, spentByCategory, ym])
+  }, [data.budgetGoals, spentByCategory, topMerchantsByCategory, ym])
 
   const alerts = rows.filter((r) => r.over || r.near)
   
@@ -247,7 +289,7 @@ export function BudgetsPage() {
           {alerts.map((a) => (
             <Link
               key={a.category}
-              to={`/spending?category=${encodeURIComponent(a.category)}&month=${ym}`}
+              to={spendingCategoryUrl(a.category, ym)}
               className={`surface surface-interactive px-5 py-4 border-l-4 block rounded-xl md:rounded-none shadow-sm md:shadow-none ${
                 a.over ? 'border-l-red-500' : 'border-l-amber-500'
               }`}
@@ -364,6 +406,44 @@ export function BudgetsPage() {
                 privacy={privacy}
               />
             </div>
+
+            {r.over && r.topMerchants.length > 0 ? (
+              <div className="mt-4 border-t border-border pt-3" data-testid="budget-top-merchants">
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <p className="text-[10px] uppercase tracking-widest text-text-subtle font-bold">
+                    Top merchants · {formatMonthLabel(ym)}
+                  </p>
+                  <Link
+                    to={spendingCategoryUrl(r.category, ym)}
+                    className="text-xs font-semibold text-accent hover:underline"
+                  >
+                    Drill down
+                  </Link>
+                </div>
+                <ul className="space-y-2">
+                  {r.topMerchants.map((merchant) => (
+                    <li
+                      key={merchant.transaction.description.toLowerCase()}
+                      className="flex items-center justify-between gap-3 text-sm"
+                    >
+                      <div className="min-w-0">
+                        <p className="font-medium truncate">{merchant.transaction.description}</p>
+                        <p className={`text-xs text-text-subtle tabular-nums ${privacyClass(privacy)}`}>
+                          {formatGBPPrecise(merchant.spent)}
+                          {merchant.count > 1 ? ` · ${merchant.count} transactions` : ''}
+                        </p>
+                      </div>
+                      <Link
+                        to={makeRuleHref(merchant.transaction)}
+                        className="btn-ghost btn-sm text-xs shrink-0"
+                      >
+                        Make rule
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
             
             <OverflowMenu
               compact
@@ -371,7 +451,7 @@ export function BudgetsPage() {
               label={`Actions for ${r.category} budget`}
               leading={
                 <Link
-                  to={`/spending?category=${encodeURIComponent(r.category)}&month=${ym}`}
+                  to={spendingCategoryUrl(r.category, ym)}
                   className="btn-secondary btn-sm text-xs"
                 >
                   View transactions
