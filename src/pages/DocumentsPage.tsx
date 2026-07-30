@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
 import { Download, Upload } from 'lucide-react'
+import { useSearchParams } from 'react-router-dom'
 import { OverflowMenu } from '../components/ui/OverflowMenu'
 import { PageHeader } from '../components/ui/PageHeader'
 import { PagePrimaryActions } from '../components/ui/PagePrimaryActions'
@@ -42,6 +43,7 @@ const empty = { name: '', note: '', linkedKind: '' as DocumentNote['linkedKind']
 
 export function DocumentsPage() {
   const { data, setData } = usePortfolio()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<DocumentNote | null>(null)
   const [form, setForm] = useState(empty)
@@ -50,11 +52,33 @@ export function DocumentsPage() {
   const [busy, setBusy] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const documents = useMemo(() => sortBySortOrder(data.documents), [data.documents])
+  const queryLinkedKind = useMemo(() => {
+    const value = searchParams.get('linkedKind')
+    return LINKED_KINDS.some((kind) => kind.value !== '' && kind.value === value)
+      ? (value as DocumentNote['linkedKind'])
+      : undefined
+  }, [searchParams])
+  const queryLinkedId = useMemo(() => {
+    const value = searchParams.get('linkedId')?.trim() ?? ''
+    return /^\d+$/.test(value) ? Number(value) : undefined
+  }, [searchParams])
+  const documents = useMemo(() => {
+    const sorted = sortBySortOrder(data.documents)
+    if (!queryLinkedKind) return sorted
+    return sorted.filter(
+      (document) =>
+        document.linkedKind === queryLinkedKind &&
+        (queryLinkedId == null || document.linkedId === queryLinkedId),
+    )
+  }, [data.documents, queryLinkedId, queryLinkedKind])
 
   const openCreate = () => {
     setEditing(null)
-    setForm(empty)
+    setForm({
+      ...empty,
+      linkedKind: queryLinkedKind ?? '',
+      linkedId: queryLinkedId != null ? String(queryLinkedId) : '',
+    })
     setPendingFile(null)
     setOpen(true)
   }
@@ -143,6 +167,32 @@ export function DocumentsPage() {
           />
         }
       />
+
+      {queryLinkedKind ? (
+        <div
+          className="mb-4 flex flex-wrap items-center justify-between gap-3 border border-accent/30 bg-accent/5 px-4 py-3 text-sm"
+          role="status"
+          data-testid="documents-link-filter"
+        >
+          <span>
+            Showing documents linked to {queryLinkedKind}
+            {queryLinkedId != null ? ` #${queryLinkedId}` : ''}. New documents will use this link.
+          </span>
+          <button
+            type="button"
+            className="btn-ghost btn-sm"
+            aria-label="Clear linked document filter"
+            onClick={() => {
+              const next = new URLSearchParams(searchParams)
+              next.delete('linkedKind')
+              next.delete('linkedId')
+              setSearchParams(next, { replace: true })
+            }}
+          >
+            Clear filter
+          </button>
+        </div>
+      ) : null}
 
       {documents.length === 0 ? (
         <div className="surface p-12 text-center text-text-subtle">

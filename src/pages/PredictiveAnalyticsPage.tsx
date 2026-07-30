@@ -1,8 +1,10 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { TrendingUp, TrendingDown, Minus, AlertTriangle, Award } from 'lucide-react'
 import { PageHeader } from '../components/ui/PageHeader'
 import { BackNav } from '../components/ui/BackNav'
+import { ConfirmDialog } from '../components/ui/Modal'
+import { useToasts } from '../components/ToastProvider'
 import { usePortfolio } from '../context/PortfolioContext'
 import {
   analyzeSpendingTrends,
@@ -17,6 +19,11 @@ import {
 import { compareDebtStrategies } from '../domain/debtStrategies'
 import { formatGBP, privacyClass } from '../utils/format'
 import { formatChartYTick, formatChartPctTick } from '../domain/chartAxis'
+import {
+  deleteAnalyticsScenario,
+  loadAnalyticsScenarios,
+  saveAnalyticsScenario,
+} from '../storage/analyticsScenariosStore'
 import {
   LineChart,
   Line,
@@ -45,12 +52,52 @@ function formatProjectionMonths(months: number | null): string {
 }
 
 export function PredictiveAnalyticsPage() {
-  const { data, privacy } = usePortfolio()
+  const { data, privacy, activeId } = usePortfolio()
+  const { success, warning } = useToasts()
   const [scenario, setScenario] = useState({
     incomeDeltaPct: 0,
     marketReturnPct: 5,
     inflationPct: 3,
   })
+  const [savedScenarios, setSavedScenarios] = useState(() => loadAnalyticsScenarios(activeId))
+  const [scenarioName, setScenarioName] = useState('')
+  const [selectedScenarioId, setSelectedScenarioId] = useState('')
+  const [deleteScenarioId, setDeleteScenarioId] = useState<string | null>(null)
+
+  useEffect(() => {
+    setSavedScenarios(loadAnalyticsScenarios(activeId))
+    setSelectedScenarioId('')
+    setScenarioName('')
+  }, [activeId])
+
+  const saveNamedScenario = () => {
+    if (!scenarioName.trim()) {
+      warning('Name required', 'Enter a name before saving this scenario.')
+      return
+    }
+    const saved = saveAnalyticsScenario(
+      activeId,
+      scenarioName,
+      scenario,
+      selectedScenarioId || undefined,
+    )
+    setSavedScenarios(loadAnalyticsScenarios(activeId))
+    setSelectedScenarioId(saved.id)
+    setScenarioName(saved.name)
+    success('Scenario saved', saved.name)
+  }
+
+  const loadNamedScenario = () => {
+    const saved = savedScenarios.find((item) => item.id === selectedScenarioId)
+    if (!saved) return
+    setScenario({
+      incomeDeltaPct: saved.incomeDeltaPct,
+      marketReturnPct: saved.marketReturnPct,
+      inflationPct: saved.inflationPct,
+    })
+    setScenarioName(saved.name)
+    success('Scenario loaded', saved.name)
+  }
 
   const spendingTrends = useMemo(() => 
     analyzeSpendingTrends(data.spending, 12),
@@ -328,6 +375,82 @@ export function PredictiveAnalyticsPage() {
             </span>
           </label>
         </div>
+        <div className="border border-border bg-surface-hover/40 p-4 mb-5">
+          <p className="label-uppercase mb-3">Named scenarios</p>
+          <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] gap-3 items-end">
+            <label className="block">
+              <span className="text-xs text-text-subtle block mb-1">Scenario name</span>
+              <input
+                type="text"
+                value={scenarioName}
+                onChange={(event) => setScenarioName(event.target.value)}
+                placeholder="e.g. Career break"
+              />
+            </label>
+            <label className="block">
+              <span className="text-xs text-text-subtle block mb-1">Saved scenario</span>
+              <select
+                value={selectedScenarioId}
+                onChange={(event) => {
+                  const id = event.target.value
+                  setSelectedScenarioId(id)
+                  const saved = savedScenarios.find((item) => item.id === id)
+                  if (saved) setScenarioName(saved.name)
+                }}
+              >
+                <option value="">Choose a scenario</option>
+                {savedScenarios.map((saved) => (
+                  <option key={saved.id} value={saved.id}>
+                    {saved.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button
+              type="button"
+              className="btn-primary"
+              aria-label="Save named analytics scenario"
+              onClick={saveNamedScenario}
+            >
+              Save
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-2 mt-3">
+            <button
+              type="button"
+              className="btn-secondary btn-sm"
+              aria-label="Load selected analytics scenario"
+              disabled={!selectedScenarioId}
+              onClick={loadNamedScenario}
+            >
+              Load
+            </button>
+            <button
+              type="button"
+              className="btn-ghost btn-sm"
+              aria-label="Start a new analytics scenario"
+              onClick={() => {
+                setSelectedScenarioId('')
+                setScenarioName('')
+              }}
+            >
+              Save as new
+            </button>
+            <button
+              type="button"
+              className="btn-ghost btn-sm text-red-500"
+              aria-label="Delete selected analytics scenario"
+              disabled={!selectedScenarioId}
+              onClick={() => setDeleteScenarioId(selectedScenarioId || null)}
+            >
+              Delete
+            </button>
+          </div>
+          <p className="text-xs text-text-subtle mt-3">
+            Saved locally for the active portfolio. Loading changes assumptions only; it does not
+            change portfolio data.
+          </p>
+        </div>
         <div className={`grid grid-cols-1 sm:grid-cols-3 gap-px ${privacyClass(privacy)}`}>
           <div className="surface-nested p-4">
             <p className="label-uppercase mb-2">Scenario surplus</p>
@@ -547,6 +670,25 @@ export function PredictiveAnalyticsPage() {
         </Link>
       </div>
       <div className="thumb-cta-bar-spacer" aria-hidden />
+      <ConfirmDialog
+        open={deleteScenarioId !== null}
+        title="Delete scenario"
+        body="Delete this saved what-if scenario?"
+        confirmLabel="Delete scenario"
+        onClose={() => setDeleteScenarioId(null)}
+        onConfirm={() => {
+          if (!deleteScenarioId) return
+          const deleted = savedScenarios.find((item) => item.id === deleteScenarioId)
+          deleteAnalyticsScenario(activeId, deleteScenarioId)
+          setSavedScenarios(loadAnalyticsScenarios(activeId))
+          if (selectedScenarioId === deleteScenarioId) {
+            setSelectedScenarioId('')
+            setScenarioName('')
+          }
+          setDeleteScenarioId(null)
+          success('Scenario deleted', deleted?.name)
+        }}
+      />
     </div>
   )
 }

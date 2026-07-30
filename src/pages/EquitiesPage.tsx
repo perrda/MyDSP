@@ -71,6 +71,13 @@ type EquityForm = {
   accountType: EquityAccountType
 }
 
+interface BrokerImportReport {
+  fileName: string
+  broker: string
+  importedCount: number
+  skipReasons: string[]
+}
+
 const emptyForm: EquityForm = {
   symbol: '',
   name: '',
@@ -167,6 +174,7 @@ export function EquitiesPage() {
   const [sorting, setSorting] = useState(false)
   const [weightSort, setWeightSort] = useState(false)
   const [searchText, setSearchText] = useState('')
+  const [brokerImportReport, setBrokerImportReport] = useState<BrokerImportReport | null>(null)
   const [selectedHoldingId, setSelectedHoldingId] = useState<number | null>(null)
   const corpActionToastKeyRef = useRef('')
   const brokerImportRef = useRef<HTMLInputElement | null>(null)
@@ -290,6 +298,13 @@ export function EquitiesPage() {
       kind: 'equity',
       namesBySymbol,
     })
+    const report: BrokerImportReport = {
+      fileName: file.name,
+      broker: parsed.broker?.label ?? 'Broker CSV',
+      importedCount: parsed.trades.length,
+      skipReasons: parsed.errors,
+    }
+    setBrokerImportReport(report)
     if (parsed.trades.length === 0) {
       showError('Import failed', parsed.errors[0] ?? 'No trades found in CSV.')
       return
@@ -305,7 +320,14 @@ export function EquitiesPage() {
       duration: 9000,
       action: {
         label: 'Undo',
-        onClick: () => setData(() => snapshot),
+        onClick: () => {
+          setData(() => snapshot)
+          setBrokerImportReport({
+            ...report,
+            importedCount: 0,
+            skipReasons: ['Import was undone; no imported trades remain.'],
+          })
+        },
       },
     })
   }
@@ -544,6 +566,40 @@ export function EquitiesPage() {
           </>
         }
       />
+
+      {brokerImportReport ? (
+        <div
+          className={`mb-4 border px-4 py-3 text-sm rounded-lg md:rounded-none ${
+            brokerImportReport.skipReasons.length > 0
+              ? 'border-amber-500/45 bg-amber-500/10 text-amber-900 dark:text-amber-100'
+              : 'border-accent/30 bg-accent/5'
+          }`}
+          role="status"
+          data-testid="import-honesty-banner"
+        >
+          <p className="font-semibold">
+            Broker import report — {brokerImportReport.importedCount} trade
+            {brokerImportReport.importedCount === 1 ? '' : 's'} imported
+          </p>
+          <p className="text-xs mt-1 opacity-80">
+            {brokerImportReport.broker} · {brokerImportReport.fileName}
+          </p>
+          {brokerImportReport.skipReasons.length > 0 ? (
+            <>
+              <p className="text-xs font-semibold mt-3">
+                Skipped / not imported ({brokerImportReport.skipReasons.length})
+              </p>
+              <ul className="mt-1 space-y-1 text-xs list-disc pl-5">
+                {brokerImportReport.skipReasons.map((reason, index) => (
+                  <li key={`${reason}-${index}`}>{reason}</li>
+                ))}
+              </ul>
+            </>
+          ) : (
+            <p className="text-xs mt-2">No rows were skipped.</p>
+          )}
+        </div>
+      ) : null}
 
       {dueCorporateActions.length > 0 ? (
         <section

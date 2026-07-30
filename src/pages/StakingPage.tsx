@@ -1,9 +1,13 @@
 import { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { PageHeader, StatCard } from '../components/ui/PageHeader'
 import { PagePrimaryActions } from '../components/ui/PagePrimaryActions'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
+import { useToasts } from '../components/ToastProvider'
 import { usePortfolio } from '../context/PortfolioContext'
+import { spendingHighlightUrl } from '../domain/deepLinks'
+import { appendSpendingEntry } from '../domain/recurringActions'
 import { calcStakingSummary, currentEpoch, epochApy } from '../domain/staking'
 import type { StakingReward } from '../domain/types'
 import { applySortOrder, sortBySortOrder } from '../utils/reorder'
@@ -24,9 +28,12 @@ function rewardKey(r: StakingReward): string {
 
 export function StakingPage() {
   const { data, setData, privacy } = usePortfolio()
+  const { showToast } = useToasts()
+  const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const [editingKey, setEditingKey] = useState<string | null>(null)
   const [form, setForm] = useState(emptyReward)
+  const [alsoLogCashIncome, setAlsoLogCashIncome] = useState(false)
   const [deleteKey, setDeleteKey] = useState<string | null>(null)
   const [csvMsg, setCsvMsg] = useState<string | null>(null)
 
@@ -95,6 +102,7 @@ export function StakingPage() {
 
   const openCreate = () => {
     setEditingKey(null)
+    setAlsoLogCashIncome(false)
     setForm({
       ...emptyReward,
       epoch: String(currentEpoch()),
@@ -109,6 +117,7 @@ export function StakingPage() {
 
   const openEdit = (r: StakingReward) => {
     setEditingKey(rewardKey(r))
+    setAlsoLogCashIncome(false)
     setForm({
       epoch: String(r.epoch),
       amount: String(r.amount),
@@ -136,23 +145,49 @@ export function StakingPage() {
       addedAt: existing?.addedAt ?? new Date().toISOString(),
       sortOrder: existing?.sortOrder,
     }
-    setData((prev) => {
-      const rewards = [...prev.staking.rewards]
-      if (editingKey !== null) {
-        const idx = rewards.findIndex((r) => rewardKey(r) === editingKey)
-        if (idx >= 0) rewards[idx] = reward
-      } else {
-        rewards.push(reward)
-      }
-      return {
-        ...prev,
-        staking: {
-          ...prev.staking,
-          rewards: editingKey !== null ? rewards : applySortOrder(rewards),
-        },
-      }
-    })
+    const rewards = [...data.staking.rewards]
+    if (editingKey !== null) {
+      const idx = rewards.findIndex((r) => rewardKey(r) === editingKey)
+      if (idx >= 0) rewards[idx] = reward
+    } else {
+      rewards.push(reward)
+    }
+    let nextData = {
+      ...data,
+      staking: {
+        ...data.staking,
+        rewards: editingKey !== null ? rewards : applySortOrder(rewards),
+      },
+    }
+    let cashSpendId: number | null = null
+    if (editingKey === null && alsoLogCashIncome) {
+      const priceAtTime = parseNum(form.priceAtTime)
+      if (!(reward.amount > 0) || !(priceAtTime > 0)) return
+      const asset = data.staking.pool.ticker?.trim() || 'ADA'
+      const appended = appendSpendingEntry(nextData, {
+        date: reward.date.slice(0, 10),
+        description: `${asset} staking reward`,
+        amount: reward.amount * priceAtTime,
+        category: 'income',
+        method: 'credit',
+      })
+      nextData = appended.data
+      cashSpendId = appended.spendId
+    }
+    setData(nextData)
     setOpen(false)
+    if (cashSpendId != null) {
+      const spendId = cashSpendId
+      showToast({
+        type: 'success',
+        title: 'Reward and cash income logged',
+        message: 'Added to the cash ledger only; this does not perform a tax calculation.',
+        action: {
+          label: 'View in Spending',
+          onClick: () => navigate(spendingHighlightUrl(spendId, { category: 'income' })),
+        },
+      })
+    }
   }
 
   return (
@@ -352,10 +387,28 @@ export function StakingPage() {
             <input
               type="text"
               inputMode="decimal"
+              required={editingKey === null && alsoLogCashIncome}
               value={form.priceAtTime}
               onChange={(e) => setForm({ ...form, priceAtTime: e.target.value })}
             />
           </Field>
+          {editingKey === null ? (
+            <label className="flex items-start gap-3 surface-nested p-4 cursor-pointer">
+              <input
+                type="checkbox"
+                className="mt-1"
+                checked={alsoLogCashIncome}
+                onChange={(e) => setAlsoLogCashIncome(e.target.checked)}
+              />
+              <span>
+                <span className="text-sm font-medium">Also log cash income</span>
+                <span className="block text-xs text-text-muted font-light mt-0.5">
+                  Adds amount × price at time to Spending as income. Cash ledger only — this does
+                  not calculate taxable income or update tax records.
+                </span>
+              </span>
+            </label>
+          ) : null}
           <Field label="Notes">
             <input
               type="text"

@@ -981,11 +981,24 @@ export function JobDetailPage() {
 
           {/* Documents */}
           <div className="surface p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none">
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
               <h3 className="font-bold text-sm">Documents ({application.customDocuments.length})</h3>
-              <button type="button" onClick={handleAddDocument} className="btn-ghost btn-sm">
-                <Plus size={12} />
-              </button>
+              <div className="flex items-center gap-1">
+                <Link
+                  to={`/documents?linkedKind=job&linkedId=${encodeURIComponent(application.id)}`}
+                  className="btn-ghost btn-sm"
+                >
+                  Open document vault
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleAddDocument}
+                  className="btn-ghost btn-sm"
+                  aria-label="Add job document"
+                >
+                  <Plus size={12} />
+                </button>
+              </div>
             </div>
             {application.customDocuments.length === 0 ? (
               <p className="text-xs text-text-muted">No documents yet</p>
