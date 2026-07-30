@@ -29,14 +29,14 @@ describe('YouTube Shorts filter (v1.2.105)', () => {
 
   it('package + release notes tip', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.108')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.108')
+    expect(pkg.version).toBe('1.2.109')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.109')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.109',
       '1.2.108',
       '1.2.107',
       '1.2.106',
       '1.2.105',
-      '1.2.104',
     ])
   })
 

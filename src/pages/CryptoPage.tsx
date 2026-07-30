@@ -379,7 +379,7 @@ export function CryptoPage() {
             : 'Tap Sort to rearrange. Totals respect include/exclude.'
         }
         action={
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2" data-testid="page-primary-actions">
             <button
               type="button"
               className="btn-ghost btn-sm"
@@ -425,7 +425,12 @@ export function CryptoPage() {
             >
               Weight %
             </button>
-            <button type="button" className="btn-primary btn-sm" onClick={openCreate}>
+            <button
+              type="button"
+              className="btn-primary btn-sm"
+              data-testid="page-primary-create"
+              onClick={openCreate}
+            >
               Add crypto
             </button>
           </div>

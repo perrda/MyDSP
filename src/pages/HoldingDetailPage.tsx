@@ -340,6 +340,7 @@ export function HoldingDetailPage() {
         title={`${item.symbol} · ${item.name}`}
         description="P&L, dated buys/sells, price history, and commentary."
         action={
+          <div data-testid="page-primary-actions">
           <OverflowMenu
             label={`More actions for ${item.symbol}`}
             leading={
@@ -395,6 +396,7 @@ export function HoldingDetailPage() {
               },
             ]}
           />
+          </div>
         }
       />
 

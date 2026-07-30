@@ -50,10 +50,11 @@ export function HistoryPage() {
         title="Net worth history"
         description="Daily snapshots — edit by taking a new snapshot for today, or delete rows."
         action={
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2" data-testid="page-primary-actions">
             <button
               type="button"
               className="btn-primary btn-sm"
+              data-testid="page-primary-create"
               onClick={() => setData((prev) => appendManualSnapshot(prev))}
             >
               Snapshot now

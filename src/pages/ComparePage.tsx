@@ -360,10 +360,11 @@ export function ComparePage() {
         title="Compare portfolios"
         description="Side-by-side net worth and allocation across David and family workspaces. Week Δ uses a local previous-week snapshot."
         action={
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2" data-testid="page-primary-actions">
             <button
               type="button"
               className="btn-ghost btn-sm compare-invite-btn"
+              data-testid="page-primary-create"
               onClick={() => setInviteOpen(true)}
               title="How to add a second portfolio for family compare"
             >

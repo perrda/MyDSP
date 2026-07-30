@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.108**
+**Current version: 1.2.109**
 
-## Completed (through v1.2.108)
+## Completed (through v1.2.109)
 
+- Next 10 priorities wave (v1.2.109): Spending/Recurring deep-links · Today loops · liability→Spending · alerts→holdings · Compare Week Δ honesty · Optimizer CTAs · Jobs ICS · import honesty · content-first Equities/Crypto/News/YouTube/History/Dashboard/Compare/HoldingDetail/Import
 - Mobile content-first chrome + Money ops header creates (v1.2.108): retire fixed bottom New/Add bars · PagePrimaryActions (header + ⋯) · Markets status chrome · Spending/Budgets/Recurring/Tax/Optimizer/Liabilities/Todos/Jobs
 - Sync trust + Favourites density QA (v1.2.107): unlock onboarding · pull media CTA · last media sync timestamp · News/Today unlock nudges · short-landscape slim thumbs · phone scroll chips · calendar/day-view density
 - Favourites phase 2 follow-ups (v1.2.106): Daily plan + career pulse · liability ledger/strategies/settlement · Markets screener + alert modes · Jobs calendar/offer compare/ingest · Todos subtasks/Day view · Equities dividends/lots/CSV · Crypto transfers/staking stub · Analytics scenarios/projections · News save + images · YouTube Shorts filter + embed + folders + relevance

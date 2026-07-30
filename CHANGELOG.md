@@ -1,5 +1,20 @@
 # MyDSP Changelog
 
+## [1.2.109] - 2026-07-30
+
+### Improved — Next 10 priorities wave (cross-format)
+- **Money ops deep-links:** Spending `?highlight=` scroll/pulse · Recurring `?focus=` · Today bills → focused recurring · money pulse → History
+- **Tax / Optimizer:** HoldingDetail Open Tax + Book as income · Optimizer empty state + Open top liability
+- **Holdings truth:** price alerts open matched equity/crypto holding when possible
+- **Notifications / sync:** spending highlight URLs now land on the row
+- **Compare trust:** Week Δ honesty note (first-visit-of-week baseline, not live WoW)
+- **Liabilities cashflow:** Add payment optional “Also post to Spending” (default on) + toast deep-link
+- **Career:** Jobs calendar strip **Add to calendar** ICS for next interview/event
+- **Import honesty:** expenses-only banner when income rows would be skipped
+- **Today action loops:** career pulse stats → Jobs; bill rows use `?focus=`
+- **Content-first:** remove bottom create docks on Equities · Crypto · News · YouTube · History · Dashboard · Compare · HoldingDetail · Enhanced Import (web/tablet/phone)
+- Full tip harness + `tsc` QA
+
 ## [1.2.108] - 2026-07-25
 
 ### Improved — Mobile content-first chrome + Money ops header creates

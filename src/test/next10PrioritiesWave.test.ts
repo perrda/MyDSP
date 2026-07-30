@@ -1,11 +1,25 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { RELEASE_NOTES, releaseNotesArchive } from '../domain/releaseNotes'
 
 const readPage = (name: string) =>
   readFileSync(resolve(__dirname, `../pages/${name}`), 'utf8')
 
-describe('next10 priorities wave', () => {
+describe('next10 priorities wave (v1.2.109)', () => {
+  it('0: package + release notes tip', () => {
+    const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
+    expect(pkg.version).toBe('1.2.109')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.109')
+    expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.109',
+      '1.2.108',
+      '1.2.107',
+      '1.2.106',
+      '1.2.105',
+    ])
+  })
+
   it('1: Spending ?highlight= deep-link scroll + row ids', () => {
     const page = readPage('SpendingPage.tsx')
     expect(page).toMatch(/searchParams\.get\('highlight'\)/)

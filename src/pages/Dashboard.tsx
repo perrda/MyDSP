@@ -1394,6 +1394,13 @@ export function Dashboard() {
         eyebrow="MyDSP"
         title="Today"
         description="Net worth, tasks due now, sync health, and Markets — act first, explore below."
+        action={
+          <div className="page-primary-actions" data-testid="page-primary-actions">
+            <Link to="/markets" className="btn-secondary btn-sm">
+              Markets
+            </Link>
+          </div>
+        }
       />
 
       <div className="today-jump-toolbar mb-3 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
