@@ -1,4 +1,9 @@
 import { describe, expect, it, beforeEach } from 'vitest'
+import {
+  buildNewsUnreadNotifications,
+  buildReminderCenterNotifications,
+} from '../components/SmartNotifications'
+import type { PortfolioData } from '../domain/types'
 import { notificationManager } from '../utils/notifications'
 
 describe('notificationManager.syncCategory', () => {
@@ -92,5 +97,69 @@ describe('notificationManager.syncCategory', () => {
       },
     ])
     expect(notificationManager.getAll()).toHaveLength(0)
+  })
+})
+
+describe('Notification Center action URLs', () => {
+  it('deep-links todo and Jobs reminders to their records', () => {
+    const yesterday = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .slice(0, 10)
+    const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+    const data = {
+      spending: [],
+      budgetGoals: {},
+      goals: [],
+      liabilities: [],
+      todoItems: [
+        {
+          id: 7,
+          listId: 1,
+          title: 'Send documents',
+          status: 'todo',
+          priority: 'high',
+          dueDate: yesterday,
+        },
+      ],
+      jobApplications: [
+        {
+          id: 42,
+          companyName: 'Acme',
+          jobTitle: 'Engineer',
+          status: 'interviewing',
+          priority: 'high',
+          interviews: [
+            {
+              id: 9,
+              type: 'technical',
+              scheduledDate: tomorrow,
+              interviewers: [],
+              createdAt: new Date().toISOString(),
+            },
+          ],
+        },
+      ],
+    } as unknown as PortfolioData
+
+    const notifications = buildReminderCenterNotifications(data)
+    expect(notifications.find((n) => n.metadata?.reminderType === 'todo')?.actionUrl).toBe(
+      '/todos?focus=7',
+    )
+    expect(notifications.find((n) => n.metadata?.reminderType === 'job')?.actionUrl).toBe(
+      '/jobs/42',
+    )
+    expect(notifications.every((n) => Boolean(n.actionUrl))).toBe(true)
+  })
+
+  it('builds one actionable aggregate for unread News', () => {
+    expect(buildNewsUnreadNotifications(0)).toEqual([])
+    expect(buildNewsUnreadNotifications(3)).toEqual([
+      expect.objectContaining({
+        id: 'news-unread-3',
+        message: '3 new headlines ready to review',
+        actionUrl: '/news',
+        actionLabel: 'Open News',
+      }),
+    ])
   })
 })

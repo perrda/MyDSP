@@ -6,7 +6,7 @@ import { useToasts } from '../components/ToastProvider'
 import { monthKey } from '../domain/monthUtils'
 import { formatGBP } from '../utils/format'
 
-interface Reminder {
+export interface Reminder {
   id: string
   type: 'budget' | 'goal' | 'todo' | 'job' | 'debt'
   priority: 'high' | 'medium' | 'low'
@@ -46,7 +46,7 @@ export function useSmartReminders() {
   return { reminders: calculateReminders(data) }
 }
 
-function calculateReminders(data: any): Reminder[] {
+export function calculateReminders(data: any): Reminder[] {
   const reminders: Reminder[] = []
   const now = new Date()
   const ym = monthKey()
@@ -156,7 +156,7 @@ function calculateReminders(data: any): Reminder[] {
         priority: 'high',
         title: 'Task overdue',
         message: `"${todo.title}" was due ${Math.abs(daysUntilDue!)} days ago`,
-        action: { label: "View To Do's", path: '/todos' },
+        action: { label: "View To Do's", path: `/todos?focus=${todo.id}` },
       })
       return
     }
@@ -168,27 +168,28 @@ function calculateReminders(data: any): Reminder[] {
       priority: todo.priority === 'high' ? 'high' : 'medium',
       title: 'Task reminder',
       message: `"${todo.title}"${dueDate && daysUntilDue === 0 ? ' is due today' : reminderDate === today ? ' reminder is due' : ' has a reminder'}`,
-      action: { label: "View To Do's", path: '/todos' },
+      action: { label: "View To Do's", path: `/todos?focus=${todo.id}` },
     })
   })
 
   // Job application deadlines
   ;(data.jobApplications || []).forEach((job: any) => {
-    if (!job.deadline) return
     if (['rejected', 'withdrawn', 'archived', 'accepted'].includes(job.status)) return
 
-    const deadline = new Date(job.deadline)
-    const daysUntil = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+    if (job.deadline) {
+      const deadline = new Date(job.deadline)
+      const daysUntil = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
 
-    if (daysUntil <= 2 && daysUntil >= 0) {
-      reminders.push({
-        id: `job-deadline-${job.id}`,
-        type: 'job',
-        priority: job.priority === 'high' ? 'high' : 'medium',
-        title: 'Job application deadline',
-        message: `${job.companyName} - ${job.jobTitle} deadline ${daysUntil === 0 ? 'today' : `in ${daysUntil} days`}`,
-        action: { label: 'View Jobs', path: '/jobs' },
-      })
+      if (daysUntil <= 2 && daysUntil >= 0) {
+        reminders.push({
+          id: `job-deadline-${job.id}`,
+          type: 'job',
+          priority: job.priority === 'high' ? 'high' : 'medium',
+          title: 'Job application deadline',
+          message: `${job.companyName} - ${job.jobTitle} deadline ${daysUntil === 0 ? 'today' : `in ${daysUntil} days`}`,
+          action: { label: 'View Jobs', path: `/jobs/${job.id}` },
+        })
+      }
     }
 
     // Interview reminders
