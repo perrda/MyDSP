@@ -6,14 +6,14 @@ import { RELEASE_NOTES, releaseNotesArchive } from '../domain/releaseNotes'
 describe('Mobile / tablet / landscape QA (v1.2.98)', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.108')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.108')
+    expect(pkg.version).toBe('1.2.109')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.109')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.109',
       '1.2.108',
       '1.2.107',
       '1.2.106',
       '1.2.105',
-      '1.2.104',
     ])
   })
 
@@ -56,11 +56,13 @@ describe('Mobile / tablet / landscape QA (v1.2.98)', () => {
     )
   })
 
-  it('News/YouTube thumbs have no Refresh CTA', () => {
+  it('News/YouTube header creates have no Refresh CTA', () => {
     const news = readFileSync(resolve(__dirname, '../pages/NewsPage.tsx'), 'utf8')
     const yt = readFileSync(resolve(__dirname, '../pages/YouTubePage.tsx'), 'utf8')
-    expect(news).toMatch(/Primary news actions/)
-    expect(yt).toMatch(/Primary YouTube actions/)
+    expect(news).toMatch(/PagePrimaryActions/)
+    expect(yt).toMatch(/PagePrimaryActions/)
+    expect(news).not.toMatch(/className="thumb-cta-bar"/)
+    expect(yt).not.toMatch(/className="thumb-cta-bar"/)
     expect(news).not.toMatch(/Refreshing…/)
     expect(yt).not.toMatch(/Refreshing…/)
     expect(news).toMatch(/Add tag/)

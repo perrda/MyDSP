@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { syncHighlightClass, useSyncHighlights } from '../hooks/useSyncHighlights'
 import { Wallet } from 'lucide-react'
 import { MiniBarChart } from '../components/charts/Sparkline'
 import { SpendingSeriesChart } from '../components/charts/SpendingSeriesChart'
@@ -70,6 +71,8 @@ export function SpendingPage() {
   const saved = useMemo(() => loadSpendingFilters(), [])
   const categoryFromUrl = searchParams.get('category')
   const monthFromUrl = searchParams.get('month')
+  const openFromUrl = searchParams.get('open')
+  const descriptionFromUrl = searchParams.get('description')
   const [query, setQuery] = useState(saved.query)
   const [category, setCategory] = useState(
     categoryFromUrl ? categoryFromUrl.toLowerCase() : saved.category,
@@ -80,6 +83,8 @@ export function SpendingPage() {
   const [editing, setEditing] = useState<SpendingEntry | null>(null)
   const [form, setForm] = useState(emptyForm)
   const [deleteId, setDeleteId] = useState<number | null>(null)
+  const [focusHighlightId, setFocusHighlightId] = useState<number | null>(null)
+  const justSyncedSpending = useSyncHighlights('spending')
 
   useEffect(() => {
     if (categoryFromUrl) setCategory(categoryFromUrl.toLowerCase())
@@ -90,8 +95,47 @@ export function SpendingPage() {
   }, [monthFromUrl])
 
   useEffect(() => {
+    if (openFromUrl !== '1') return
+    const date =
+      searchParams.get('date')?.slice(0, 10) ?? new Date().toISOString().slice(0, 10)
+    setEditing(null)
+    setForm({
+      ...emptyForm,
+      date,
+      description: descriptionFromUrl ?? '',
+      amount: searchParams.get('amount') ?? '',
+      category: searchParams.get('category') ?? emptyForm.category,
+      method: 'debit',
+    })
+    setOpen(true)
+    const next = new URLSearchParams(searchParams)
+    next.delete('open')
+    next.delete('description')
+    next.delete('amount')
+    next.delete('date')
+    setSearchParams(next, { replace: true })
+  }, [openFromUrl, descriptionFromUrl, searchParams, setSearchParams])
+
+  useEffect(() => {
     saveSpendingFilters({ query, category })
   }, [query, category])
+
+  // Deep-link: /spending?highlight=<id> reveals row, scrolls into view
+  useEffect(() => {
+    const raw = searchParams.get('highlight')
+    if (!raw) return
+    const id = Number(raw)
+    if (!Number.isFinite(id)) return
+    const tx = data.spending.find((t) => t.id === id)
+    if (!tx) return
+    const txMonth = (tx.date ?? '').slice(0, 7)
+    if (txMonth && txMonth !== ym) setYm(txMonth)
+    if (category !== 'All' && tx.category.toLowerCase() !== category.toLowerCase()) {
+      setCategory('All')
+    }
+    if (query.trim()) setQuery('')
+    setFocusHighlightId(id)
+  }, [searchParams, data.spending, ym, category, query])
 
   useEffect(() => {
     const params: Record<string, string> = { month: ym }
@@ -121,6 +165,29 @@ export function SpendingPage() {
         return matchMonth && matchCat && matchQ
       })
   }, [data.spending, query, category, ym])
+
+  useEffect(() => {
+    if (focusHighlightId == null) return
+    const tryScroll = () => {
+      const nodes = document.querySelectorAll(`[data-testid="spending-row-${focusHighlightId}"]`)
+      const el =
+        [...nodes].find((node) => (node as HTMLElement).offsetParent !== null) ??
+        nodes[0] ??
+        null
+      if (!el) return false
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      return true
+    }
+    if (tryScroll()) {
+      const clear = window.setTimeout(() => setFocusHighlightId(null), 2500)
+      return () => window.clearTimeout(clear)
+    }
+    const retry = window.setTimeout(() => {
+      tryScroll()
+      window.setTimeout(() => setFocusHighlightId(null), 2500)
+    }, 100)
+    return () => window.clearTimeout(retry)
+  }, [focusHighlightId, filtered])
 
   const weekDeltaLine = useMemo(() => {
     const { thisWeek, lastWeek } = weekSpendDelta(data.spending)
@@ -425,8 +492,18 @@ export function SpendingPage() {
 
       {/* Mobile card list — no horizontal scroll */}
       <div className="sm:hidden space-y-2 mb-4">
-        {filtered.map((tx) => (
-          <div key={tx.id} className="surface p-4 rounded-xl">
+        {filtered.map((tx) => {
+          const focused = focusHighlightId === tx.id
+          const justSynced = justSyncedSpending.has(tx.id)
+          return (
+          <div
+            key={tx.id}
+            id={`spending-row-${tx.id}`}
+            data-testid={`spending-row-${tx.id}`}
+            className={`surface p-4 rounded-xl ${
+              focused ? 'todo-focus-ring ring-2 ring-accent bg-accent/10' : ''
+            } ${syncHighlightClass(justSynced)}`}
+          >
             <div className="flex items-start justify-between gap-3 mb-2">
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-text leading-snug break-words">{tx.description}</p>
@@ -464,7 +541,8 @@ export function SpendingPage() {
               </div>
             </div>
           </div>
-        ))}
+          )
+        })}
         {filtered.length === 0 && (
           data.spending.length === 0 ? (
             <EmptyState
@@ -494,8 +572,18 @@ export function SpendingPage() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((tx) => (
-              <tr key={tx.id} className="border-b border-border last:border-0 hover:bg-surface-hover/50">
+            {filtered.map((tx) => {
+              const focused = focusHighlightId === tx.id
+              const justSynced = justSyncedSpending.has(tx.id)
+              return (
+              <tr
+                key={tx.id}
+                id={`spending-row-${tx.id}`}
+                data-testid={`spending-row-${tx.id}`}
+                className={`border-b border-border last:border-0 hover:bg-surface-hover/50 ${
+                  focused ? 'todo-focus-ring ring-2 ring-accent bg-accent/10' : ''
+                } ${syncHighlightClass(justSynced)}`}
+              >
                 <td className="px-5 sm:px-6 py-4 text-sm text-text-muted whitespace-nowrap">
                   {formatDate(tx.date)}
                 </td>
@@ -527,7 +615,8 @@ export function SpendingPage() {
                   </button>
                 </td>
               </tr>
-            ))}
+              )
+            })}
             {filtered.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-6 py-12 text-center text-text-subtle font-light">

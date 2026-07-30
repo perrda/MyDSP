@@ -1,4 +1,37 @@
-import type { PortfolioData, RecurringTransaction } from './types'
+import type { PortfolioData, RecurringTransaction, SpendingCategory, SpendingEntry } from './types'
+
+/** Append a spending row (same shape as markRecurringPaid). Returns updated data + new id. */
+export function appendSpendingEntry(
+  data: PortfolioData,
+  entry: {
+    date: string
+    description: string
+    amount: number
+    category: SpendingCategory
+    method?: SpendingEntry['method']
+  },
+): { data: PortfolioData; spendId: number } {
+  const now = new Date().toISOString()
+  const spendId = data.spending.reduce((m, s) => Math.max(m, s.id), 0) + 1
+  return {
+    spendId,
+    data: {
+      ...data,
+      spending: [
+        ...data.spending,
+        {
+          id: spendId,
+          date: entry.date,
+          description: entry.description,
+          amount: Math.abs(entry.amount),
+          category: entry.category,
+          method: entry.method ?? 'debit',
+          createdAt: now,
+        },
+      ],
+    },
+  }
+}
 
 /** Calendar-safe date-only advance (avoids UTC/local and month-end rollover bugs). */
 export function advanceRecurringDue(

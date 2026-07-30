@@ -29,6 +29,28 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.109',
+    date: '2026-07-30',
+    bullets: [
+      {
+        text: 'Spending/Recurring deep-links · Today money pulse → History',
+        to: '/',
+      },
+      {
+        text: 'Liability payment → Spending · price alerts open holdings',
+        to: '/liabilities',
+      },
+      {
+        text: 'Content-first Equities/News/YouTube · Jobs calendar ICS',
+        to: '/jobs',
+      },
+      {
+        text: 'Markets Filters panel — ownership/alerts under Format+',
+        to: '/markets',
+      },
+    ],
+  },
+  {
     version: '1.2.108',
     date: '2026-07-25',
     bullets: [

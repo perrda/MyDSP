@@ -48,14 +48,14 @@ describe('next25k — sync / Markets / Today polish tip (1–25 → v1.2.80)', (
 
   it('25: package + release notes are 1.2.80', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.108')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.108')
+    expect(pkg.version).toBe('1.2.109')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.109')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.109',
       '1.2.108',
       '1.2.107',
       '1.2.106',
       '1.2.105',
-      '1.2.104',
     ])
   })
 
@@ -136,13 +136,13 @@ describe('next25k — sync / Markets / Today polish tip (1–25 → v1.2.80)', (
     expect(shell).toMatch(/\/spending/)
   })
 
-  it('12: News / YouTube thumb CTA', () => {
+  it('12: News / YouTube header create chrome', () => {
     const news = readFileSync(resolve(__dirname, '../pages/NewsPage.tsx'), 'utf8')
     const yt = readFileSync(resolve(__dirname, '../pages/YouTubePage.tsx'), 'utf8')
     expect(news).toMatch(/thumb-cta-bar|page-primary-actions|page-primary-create|PagePrimaryActions/)
     expect(yt).toMatch(/thumb-cta-bar|page-primary-actions|page-primary-create|PagePrimaryActions/)
-    expect(news).toMatch(/Primary news actions/)
-    expect(yt).toMatch(/Primary YouTube actions/)
+    expect(news).toMatch(/PagePrimaryActions/)
+    expect(yt).toMatch(/PagePrimaryActions/)
   })
 
   it('13: Bottom-nav long-press Today opens digest; other slots open Favourites (no syncNow)', () => {

@@ -479,7 +479,7 @@ export function EquitiesPage() {
             : 'Tap Sort to rearrange. Use Buy/Sell for dated trades.'
         }
         action={
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2" data-testid="page-primary-actions">
             <button
               type="button"
               className="btn-ghost btn-sm"
@@ -545,7 +545,12 @@ export function EquitiesPage() {
             >
               Weight %
             </button>
-            <button type="button" className="btn-primary btn-sm" onClick={openCreate}>
+            <button
+              type="button"
+              className="btn-primary btn-sm"
+              data-testid="page-primary-create"
+              onClick={openCreate}
+            >
               Add equity
             </button>
           </div>
@@ -1142,28 +1147,6 @@ export function EquitiesPage() {
         }}
       />
 
-      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary equities actions">
-        <button type="button" className="btn-primary btn-sm" onClick={openCreate}>
-          Add equity
-        </button>
-        <button
-          type="button"
-          className="btn-secondary btn-sm"
-          disabled={holdings.length === 0}
-          onClick={fillFromLastSynced}
-        >
-          Fill last synced
-        </button>
-        <button
-          type="button"
-          className="btn-secondary btn-sm"
-          disabled={driftHits.length === 0}
-          onClick={fillFromLastSynced}
-        >
-          Use Markets prices
-        </button>
-      </div>
-      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }

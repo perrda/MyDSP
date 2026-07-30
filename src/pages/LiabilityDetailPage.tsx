@@ -18,6 +18,7 @@ import {
   type LiabilityKind,
 } from '../domain/liabilityHelpers'
 import { compareDebtStrategies } from '../domain/debtStrategies'
+import { appendSpendingEntry } from '../domain/recurringActions'
 import type {
   CreditCard,
   LiabilityCommentary,
@@ -77,7 +78,7 @@ export function LiabilityDetailPage() {
   const id = Number(idParam)
   const navigate = useNavigate()
   const { data, breakdown, privacy, setData } = usePortfolio()
-  const { success } = useToasts()
+  const { success, showToast } = useToasts()
 
   const item: CreditCard | Loan | null = useMemo(() => {
     if (!kind || !Number.isFinite(id)) return null
@@ -112,6 +113,7 @@ export function LiabilityDetailPage() {
     amount: '',
     note: '',
     reduceBalance: true,
+    postToSpending: true,
   })
   const [settlementForm, setSettlementForm] = useState<{
     status: SettlementStatus
@@ -377,16 +379,81 @@ export function LiabilityDetailPage() {
     const commentText = note
       ? `Payment logged: ${amount.toFixed(2)} GBP on ${paymentForm.date}. ${note}`
       : `Payment logged: ${amount.toFixed(2)} GBP on ${paymentForm.date}.`
-    patchItem({
-      paymentHistory: [...(item.paymentHistory ?? []), payment],
-      balance: paymentForm.reduceBalance ? Math.max(0, item.balance - amount) : item.balance,
-      commentaries: [
-        ...(item.commentaries ?? []),
-        { id: nextCommentaryId(item.commentaries ?? []), text: commentText, createdAt: now, updatedAt: now },
-      ],
+    const postToSpending = paymentForm.postToSpending
+    const reduceBalance = paymentForm.reduceBalance
+    let newSpendId: number | null = null
+
+    setData((prev) => {
+      const current =
+        kind === 'card'
+          ? prev.creditCards.find((c) => c.id === id)
+          : prev.loans.find((l) => l.id === id)
+      if (!current) return prev
+
+      const liabilityPatch = {
+        paymentHistory: [...(current.paymentHistory ?? []), payment],
+        balance: reduceBalance ? Math.max(0, current.balance - amount) : current.balance,
+        commentaries: [
+          ...(current.commentaries ?? []),
+          {
+            id: nextCommentaryId(current.commentaries ?? []),
+            text: commentText,
+            createdAt: now,
+            updatedAt: now,
+          },
+        ],
+      }
+
+      let next: typeof prev =
+        kind === 'card'
+          ? {
+              ...prev,
+              creditCards: prev.creditCards.map((c) =>
+                c.id === id ? { ...c, ...liabilityPatch } : c,
+              ),
+            }
+          : {
+              ...prev,
+              loans: prev.loans.map((l) => (l.id === id ? { ...l, ...liabilityPatch } : l)),
+            }
+
+      if (postToSpending) {
+        const appended = appendSpendingEntry(next, {
+          date: paymentForm.date,
+          description: current.name,
+          amount,
+          category: 'bills',
+          method: 'debit',
+        })
+        newSpendId = appended.spendId
+        next = appended.data
+      }
+
+      return next
     })
-    setPaymentForm({ date: todayYmd(), amount: '', note: '', reduceBalance: true })
-    success(paymentForm.reduceBalance ? 'Payment logged and balance reduced' : 'Payment logged')
+
+    setPaymentForm({
+      date: todayYmd(),
+      amount: '',
+      note: '',
+      reduceBalance: true,
+      postToSpending: true,
+    })
+
+    const title = reduceBalance ? 'Payment logged and balance reduced' : 'Payment logged'
+    if (newSpendId != null) {
+      showToast({
+        type: 'success',
+        title,
+        message: 'Also posted to Spending',
+        action: {
+          label: 'View in Spending',
+          onClick: () => navigate(`/spending?highlight=${newSpendId}`),
+        },
+      })
+    } else {
+      success(title)
+    }
   }
 
   const saveSettlement = () => {
@@ -637,6 +704,16 @@ export function LiabilityDetailPage() {
                 }
               />
               Reduce balance
+            </label>
+            <label className="flex items-center gap-2 text-sm text-text-muted min-h-10">
+              <input
+                type="checkbox"
+                checked={paymentForm.postToSpending}
+                onChange={(e) =>
+                  setPaymentForm({ ...paymentForm, postToSpending: e.target.checked })
+                }
+              />
+              Also post to Spending
             </label>
             <button
               type="button"

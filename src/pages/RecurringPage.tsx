@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { MessageSquareText } from 'lucide-react'
 import { PageHeader } from '../components/ui/PageHeader'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
@@ -49,6 +50,7 @@ const empty = {
 
 export function RecurringPage() {
   const { data, setData, privacy } = usePortfolio()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<RecurringTransaction | null>(null)
   const [form, setForm] = useState(empty)
@@ -56,6 +58,7 @@ export function RecurringPage() {
   const [deleteId, setDeleteId] = useState<number | null>(null)
   const [sort, setSort] = useState<RecurringSort>(() => loadRecurringSort())
   const [commentsFor, setCommentsFor] = useState<RecurringTransaction | null>(null)
+  const [focusRecurringId, setFocusRecurringId] = useState<number | null>(null)
 
   const items = useMemo(
     () => sortRecurringTransactions(data.recurringTransactions ?? [], sort),
@@ -71,6 +74,43 @@ export function RecurringPage() {
     () => (data.recurringTransactions ?? []).filter((r) => r.frequency === 'monthly').length,
     [data.recurringTransactions],
   )
+
+  // Deep-link: /recurring?focus=<id> scrolls matching item into view
+  useEffect(() => {
+    const raw = searchParams.get('focus')
+    if (!raw) return
+    const id = Number(raw)
+    if (!Number.isFinite(id)) {
+      setSearchParams({}, { replace: true })
+      return
+    }
+    const item = (data.recurringTransactions ?? []).find((r) => r.id === id)
+    if (!item) {
+      setSearchParams({}, { replace: true })
+      return
+    }
+    setFocusRecurringId(id)
+    setSearchParams({}, { replace: true })
+  }, [searchParams, data.recurringTransactions, setSearchParams])
+
+  useEffect(() => {
+    if (focusRecurringId == null) return
+    const tryScroll = () => {
+      const el = document.getElementById(`recurring-row-${focusRecurringId}`)
+      if (!el) return false
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      return true
+    }
+    if (tryScroll()) {
+      const clear = window.setTimeout(() => setFocusRecurringId(null), 2500)
+      return () => window.clearTimeout(clear)
+    }
+    const retry = window.setTimeout(() => {
+      tryScroll()
+      window.setTimeout(() => setFocusRecurringId(null), 2500)
+    }, 100)
+    return () => window.clearTimeout(retry)
+  }, [focusRecurringId, items])
 
   const openCreate = () => {
     setEditing(null)
@@ -229,8 +269,16 @@ export function RecurringPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-px">
         {items.map((r) => {
           const noteCount = r.commentaries?.length ?? 0
+          const focused = focusRecurringId === r.id
           return (
-            <div key={r.id} className="surface p-6 sm:p-8 flex flex-col">
+            <div
+              key={r.id}
+              id={`recurring-row-${r.id}`}
+              data-testid={`recurring-row-${r.id}`}
+              className={`surface p-6 sm:p-8 flex flex-col ${
+                focused ? 'todo-focus-ring ring-2 ring-accent bg-accent/10' : ''
+              }`}
+            >
               <div className="flex justify-between gap-4 mb-3">
                 <h3 className="font-bold tracking-tight text-lg leading-snug">{r.name}</h3>
                 <span className="bg-accent/10 text-accent text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 self-start shrink-0">

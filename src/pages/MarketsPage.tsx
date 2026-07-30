@@ -4,6 +4,7 @@ import {
   ArrowUpDown,
   ChevronDown,
   ChevronUp,
+  Filter,
   FoldVertical,
   HelpCircle,
   LayoutGrid,
@@ -621,7 +622,9 @@ export function MarketsPage() {
   const [fxExplainerOpen, setFxExplainerOpen] = useState(false)
   const [tagFilter, setTagFilter] = useState<MarketTickerTag | 'All'>(() => getMarketsTagFilter())
   const [yieldSort, setYieldSort] = useState(() => getMarketsYieldSort())
-  const [toolbarPanel, setToolbarPanel] = useState<'assets' | 'timeframe' | 'format' | null>(null)
+  const [toolbarPanel, setToolbarPanel] = useState<
+    'assets' | 'timeframe' | 'format' | 'filters' | null
+  >(null)
   const [marketSearch, setMarketSearch] = useState('')
   const [marketScreener, setMarketScreener] = useState<MarketsScreenerFilter>({
     owned: 'all',
@@ -2302,22 +2305,31 @@ export function MarketsPage() {
           <div
             className="markets-panel-toggles"
             role="tablist"
-            aria-label="Markets filters"
+            aria-label="Markets toolbar panels"
           >
             {(
               [
                 ['assets', 'Assets', LayoutGrid],
                 ['timeframe', 'Timeframe', Clock3],
                 ['format', 'Format', SlidersHorizontal],
+                ['filters', 'Filters', Filter],
               ] as const
             ).map(([id, label, Icon]) => {
               const open = toolbarPanel === id
+              const filtersActive =
+                id === 'filters' &&
+                (marketScreener.owned !== 'all' ||
+                  marketScreener.alerts !== 'all' ||
+                  marketScreener.stale !== 'all' ||
+                  marketScreener.kind !== 'all')
               return (
                 <button
                   key={id}
                   type="button"
                   role="tab"
-                  className={`markets-panel-toggle ui-seg${open ? ' is-active' : ''}`}
+                  className={`markets-panel-toggle ui-seg${open ? ' is-active' : ''}${
+                    filtersActive ? ' markets-panel-toggle--filtered' : ''
+                  }`}
                   data-testid={`markets-panel-${id}`}
                   aria-selected={open}
                   aria-expanded={open}
@@ -2331,7 +2343,7 @@ export function MarketsPage() {
             })}
           </div>
 
-          <div className="markets-screener space-y-2" data-testid="markets-screener">
+          <div className="markets-screener" data-testid="markets-screener">
             <div className="markets-search-row">
               <label className="sr-only" htmlFor="markets-search">
                 Search Markets watchlist
@@ -2355,69 +2367,6 @@ export function MarketsPage() {
                   Clear
                 </button>
               ) : null}
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <select
-                className="btn-ghost btn-sm"
-                aria-label="Owned filter"
-                value={marketScreener.owned}
-                onChange={(e) =>
-                  setMarketScreener((prev) => ({
-                    ...prev,
-                    owned: e.target.value as MarketsScreenerFilter['owned'],
-                  }))
-                }
-              >
-                <option value="all">All ownership</option>
-                <option value="owned">Owned</option>
-              </select>
-              <select
-                className="btn-ghost btn-sm"
-                aria-label="Price alert filter"
-                value={marketScreener.alerts}
-                onChange={(e) =>
-                  setMarketScreener((prev) => ({
-                    ...prev,
-                    alerts: e.target.value as MarketsScreenerFilter['alerts'],
-                  }))
-                }
-              >
-                <option value="all">All alerts</option>
-                <option value="set">Alerts set</option>
-              </select>
-              <select
-                className="btn-ghost btn-sm"
-                aria-label="Stale quote filter"
-                value={marketScreener.stale}
-                onChange={(e) =>
-                  setMarketScreener((prev) => ({
-                    ...prev,
-                    stale: e.target.value as MarketsScreenerFilter['stale'],
-                  }))
-                }
-              >
-                <option value="all">All freshness</option>
-                <option value="stale">Stale</option>
-              </select>
-              <select
-                className="btn-ghost btn-sm"
-                aria-label="Asset type filter"
-                value={marketScreener.kind}
-                onChange={(e) =>
-                  setMarketScreener((prev) => ({
-                    ...prev,
-                    kind: e.target.value as MarketsScreenerFilter['kind'],
-                  }))
-                }
-              >
-                <option value="all">All types</option>
-                <option value="equity">Equity</option>
-                <option value="crypto">Crypto</option>
-                <option value="commodity">Commodity</option>
-                <option value="index">Index</option>
-                <option value="fx">FX</option>
-                <option value="cross">Cross</option>
-              </select>
             </div>
           </div>
 
@@ -2654,6 +2603,98 @@ export function MarketsPage() {
               </span>
             ) : null}
           </div>
+          ) : null}
+
+          {toolbarPanel === 'filters' ? (
+            <div
+              id="markets-panel-body-filters"
+              className="markets-screener-filters markets-panel-body flex flex-wrap gap-2"
+              data-testid="markets-panel-body-filters"
+              role="group"
+              aria-label="Watchlist filters"
+            >
+              <select
+                className="btn-ghost btn-sm"
+                aria-label="Owned filter"
+                value={marketScreener.owned}
+                onChange={(e) =>
+                  setMarketScreener((prev) => ({
+                    ...prev,
+                    owned: e.target.value as MarketsScreenerFilter['owned'],
+                  }))
+                }
+              >
+                <option value="all">All ownership</option>
+                <option value="owned">Owned</option>
+              </select>
+              <select
+                className="btn-ghost btn-sm"
+                aria-label="Price alert filter"
+                value={marketScreener.alerts}
+                onChange={(e) =>
+                  setMarketScreener((prev) => ({
+                    ...prev,
+                    alerts: e.target.value as MarketsScreenerFilter['alerts'],
+                  }))
+                }
+              >
+                <option value="all">All alerts</option>
+                <option value="set">Alerts set</option>
+              </select>
+              <select
+                className="btn-ghost btn-sm"
+                aria-label="Stale quote filter"
+                value={marketScreener.stale}
+                onChange={(e) =>
+                  setMarketScreener((prev) => ({
+                    ...prev,
+                    stale: e.target.value as MarketsScreenerFilter['stale'],
+                  }))
+                }
+              >
+                <option value="all">All freshness</option>
+                <option value="stale">Stale</option>
+              </select>
+              <select
+                className="btn-ghost btn-sm"
+                aria-label="Asset type filter"
+                value={marketScreener.kind}
+                onChange={(e) =>
+                  setMarketScreener((prev) => ({
+                    ...prev,
+                    kind: e.target.value as MarketsScreenerFilter['kind'],
+                  }))
+                }
+              >
+                <option value="all">All types</option>
+                <option value="equity">Equity</option>
+                <option value="crypto">Crypto</option>
+                <option value="commodity">Commodity</option>
+                <option value="index">Index</option>
+                <option value="fx">FX</option>
+                <option value="cross">Cross</option>
+              </select>
+              {marketScreener.owned !== 'all' ||
+              marketScreener.alerts !== 'all' ||
+              marketScreener.stale !== 'all' ||
+              marketScreener.kind !== 'all' ? (
+                <button
+                  type="button"
+                  className="btn-ghost btn-sm"
+                  data-testid="markets-filters-clear"
+                  onClick={() =>
+                    setMarketScreener({
+                      owned: 'all',
+                      alerts: 'all',
+                      stale: 'all',
+                      kind: 'all',
+                    })
+                  }
+                >
+                  Clear filters
+                </button>
+              ) : null}
+            </div>
           ) : null}
         </div>
       </div>

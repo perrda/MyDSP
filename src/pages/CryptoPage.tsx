@@ -379,7 +379,7 @@ export function CryptoPage() {
             : 'Tap Sort to rearrange. Totals respect include/exclude.'
         }
         action={
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2" data-testid="page-primary-actions">
             <button
               type="button"
               className="btn-ghost btn-sm"
@@ -425,7 +425,12 @@ export function CryptoPage() {
             >
               Weight %
             </button>
-            <button type="button" className="btn-primary btn-sm" onClick={openCreate}>
+            <button
+              type="button"
+              className="btn-primary btn-sm"
+              data-testid="page-primary-create"
+              onClick={openCreate}
+            >
               Add crypto
             </button>
           </div>
@@ -998,28 +1003,6 @@ export function CryptoPage() {
         }}
       />
 
-      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary crypto actions">
-        <button type="button" className="btn-primary btn-sm" onClick={openCreate}>
-          Add crypto
-        </button>
-        <button
-          type="button"
-          className="btn-secondary btn-sm"
-          disabled={holdings.length === 0}
-          onClick={fillFromLastSynced}
-        >
-          Fill last synced
-        </button>
-        <button
-          type="button"
-          className="btn-secondary btn-sm"
-          disabled={driftHits.length === 0}
-          onClick={fillFromLastSynced}
-        >
-          Use Markets prices
-        </button>
-      </div>
-      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }

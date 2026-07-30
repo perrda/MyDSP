@@ -1,0 +1,26 @@
+---
+description: Keep secondary filters under disclosure toolbar buttons — never permanent stacked rows
+alwaysApply: true
+---
+
+# Disclosure toolbar panels (anti-clutter)
+
+Owner preference: **secondary filters and view options must not permanently consume vertical space** on phone, tablet, or web.
+
+## Pattern (Markets is the reference)
+
+- Primary toolbar uses exclusive disclosure toggles: **Assets · Timeframe · Format · Filters** (and the same idea elsewhere).
+- Opening one panel closes the others.
+- Permanent chrome may keep a **single search field** when search is the primary find action.
+- Do **not** leave Ownership / Alerts / Freshness / Types (or similar) as always-visible stacked full-width rows under the toolbar.
+- Active filters may mark the Filters button (accent border / `--filtered` class) so the user knows something is applied without opening the panel.
+
+## Apply elsewhere
+
+- Prefer the same disclosure style for dense filter clusters on News, YouTube, Spending, Jobs, Todos, etc.
+- If a control is only needed sometimes, it belongs in a panel / `⋯` menu / CollapsibleFilters — not a permanent block of selects above the list.
+
+## Never
+
+- Do not reintroduce permanent “All ownership / All alerts / All freshness / All types” rows on Markets.
+- Do not add new permanent chip/select strips for secondary filters without an explicit product request that overrides this rule.

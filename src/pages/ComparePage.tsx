@@ -360,10 +360,11 @@ export function ComparePage() {
         title="Compare portfolios"
         description="Side-by-side net worth and allocation across David and family workspaces. Week Δ uses a local previous-week snapshot."
         action={
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2" data-testid="page-primary-actions">
             <button
               type="button"
               className="btn-ghost btn-sm compare-invite-btn"
+              data-testid="page-primary-create"
               onClick={() => setInviteOpen(true)}
               title="How to add a second portfolio for family compare"
             >
@@ -447,6 +448,13 @@ export function ComparePage() {
           {quoteSlaChip}
         </p>
       ) : null}
+
+      <p
+        className="compare-week-delta-note text-xs text-text-muted font-light mb-3"
+        data-testid="compare-week-delta-note"
+      >
+        Week Δ uses the net worth captured on your first Compare visit this week — not live week-over-week.
+      </p>
 
       <div className="table-wrap surface overflow-x-auto mb-8">
         <table className="w-full text-sm min-w-[40rem]" aria-label="Portfolio comparison">
@@ -683,29 +691,6 @@ export function ComparePage() {
         </div>
       </Modal>
 
-      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary compare actions">
-        <button
-          type="button"
-          className="btn-secondary btn-sm"
-          disabled={filling || selected.length === 0}
-          onClick={fillFromLastSynced}
-          title={
-            cacheAgeLabel
-              ? `Apply last-synced Markets quotes (${cacheAgeLabel})`
-              : 'Apply last-synced Markets quotes to holdings in selected portfolios'
-          }
-        >
-          {filling
-            ? 'Filling…'
-            : cacheAgeLabel
-              ? `Fill synced (${cacheAgeLabel})`
-              : 'Fill from synced'}
-        </button>
-        <button type="button" className="btn-secondary btn-sm" onClick={() => setInviteOpen(true)}>
-          Add portfolio
-        </button>
-      </div>
-      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }

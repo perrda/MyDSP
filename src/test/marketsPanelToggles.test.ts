@@ -6,14 +6,14 @@ import { RELEASE_NOTES, releaseNotesArchive } from '../domain/releaseNotes'
 describe('Markets Assets/Timeframe/Format panels (v1.2.97)', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.108')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.108')
+    expect(pkg.version).toBe('1.2.109')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.109')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.109',
       '1.2.108',
       '1.2.107',
       '1.2.106',
       '1.2.105',
-      '1.2.104',
     ])
   })
 
@@ -27,11 +27,27 @@ describe('Markets Assets/Timeframe/Format panels (v1.2.97)', () => {
     expect(page).toMatch(/\['assets', 'Assets'/)
     expect(page).toMatch(/\['timeframe', 'Timeframe'/)
     expect(page).toMatch(/\['format', 'Format'/)
+    expect(page).toMatch(/\['filters', 'Filters'/)
     expect(page).toMatch(/toolbarPanel === 'assets'/)
     expect(page).toMatch(/toolbarPanel === 'timeframe'/)
     expect(page).toMatch(/toolbarPanel === 'format'/)
+    expect(page).toMatch(/toolbarPanel === 'filters'/)
+    expect(page).toMatch(/data-testid="markets-panel-body-filters"/)
+    expect(page).toMatch(/All ownership/)
+    // Screener selects only render inside the Filters panel — not permanently under search
+    const screenerBlock = page.match(
+      /data-testid="markets-screener"[\s\S]*?<\/div>\s*\{toolbarPanel === 'assets'/,
+    )?.[0]
+    expect(screenerBlock).toBeTruthy()
+    expect(screenerBlock).not.toMatch(/All ownership/)
     const css = readFileSync(resolve(__dirname, '../index.css'), 'utf8')
     expect(css).toMatch(/\.markets-panel-toggles/)
-    expect(css).toMatch(/grid-template-columns:\s*repeat\(3/)
+    expect(css).toMatch(/grid-template-columns:\s*repeat\(4/)
+    const rule = readFileSync(
+      resolve(__dirname, '../../.cursor/rules/disclosure-toolbar-panels.mdc'),
+      'utf8',
+    )
+    expect(rule).toMatch(/alwaysApply:\s*true/)
+    expect(rule).toMatch(/Filters/)
   })
 })

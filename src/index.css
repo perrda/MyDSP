@@ -1124,15 +1124,29 @@ svg.lucide-square-pen {
 }
 .markets-panel-toggles {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.4rem;
+  /* disclosure-panels: Assets · Timeframe · Format · Filters */
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.35rem;
   width: 100%;
 }
 .markets-panel-toggle {
   width: 100%;
   min-height: 2.35rem;
   justify-content: center;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
+  font-size: 0.68rem;
+}
+.markets-panel-toggle--filtered:not(.is-active) {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+  color: var(--accent);
+}
+.markets-screener-filters {
+  padding: 0.15rem 0 0.25rem;
+}
+@media (max-width: 379px) {
+  .markets-panel-toggles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 .markets-panel-body {
   animation: markets-panel-in 160ms ease-out;

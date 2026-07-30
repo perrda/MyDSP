@@ -63,7 +63,7 @@ export function useSmartNotifications() {
           dismissible: true,
         })),
       )
-      const priceAlerts = buildPriceAlertNotifications()
+      const priceAlerts = buildPriceAlertNotifications(data)
       notificationManager.syncCategory('price-alerts', priceAlerts)
       const ytUploads = buildYoutubeUploadNotifications()
       notificationManager.syncCategory('youtube-uploads', ytUploads)
