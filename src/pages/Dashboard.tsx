@@ -658,7 +658,10 @@ export function Dashboard() {
   const focusTodoCard = nextActions.find((c) => c.kind === 'todo')
   const focusTodoItem = focusTodoCard?.kind === 'todo' ? focusTodoCard.todo : null
 
-  const todayPriceAlerts = useMemo(() => buildPriceAlertNotifications().slice(0, 2), [syncStatus.lastAt, marketsCount])
+  const todayPriceAlerts = useMemo(
+    () => buildPriceAlertNotifications(data).slice(0, 2),
+    [data, syncStatus.lastAt, marketsCount],
+  )
 
   const syncCfg = loadSyncConfig()
   const syncEnabled = Boolean(syncCfg.enabled && syncCfg.remoteUrl.trim())
@@ -1263,7 +1266,7 @@ export function Dashboard() {
         label: `Bill: ${bill.name}`,
         when: `${dailyPlanWhen(bill.nextDue)} · ${formatGBP(bill.amount)}`,
         sortKey: dailyPlanSortKey(bill.nextDue, undefined, '17:00'),
-        to: '/recurring',
+        to: `/recurring?focus=${bill.id}`,
         privateAmount: true,
       })
     }
@@ -1526,12 +1529,13 @@ export function Dashboard() {
           {formatGBP(netWorth)}
         </p>
         {moneyPulse ? (
-          <p
+          <Link
+            to="/history"
             data-testid="today-money-pulse"
-            className="today-money-pulse text-sm text-text-muted font-light mb-2 tabular-nums"
+            className="today-money-pulse text-sm text-text-muted font-light mb-2 tabular-nums block hover:text-accent transition-colors"
           >
             {moneyPulse}
-          </p>
+          </Link>
         ) : null}
         {nwSpark.length >= 2 ? (
           <div className="today-nw-sparkline mb-3">
@@ -1797,35 +1801,46 @@ export function Dashboard() {
             </Link>
           }
         >
-          <Link
-            to="/jobs"
-            className="surface p-3 md:p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none block hover:bg-surface-hover transition-colors"
+          <div
+            className="surface p-3 md:p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none"
             data-testid="today-career-pulse"
           >
             <div className="grid grid-cols-3 gap-2 text-center">
-              <div>
+              <Link
+                to="/jobs"
+                className="rounded-lg p-2 hover:bg-surface-hover transition-colors"
+                title="Open job tracker"
+              >
                 <p className="text-lg font-bold tabular-nums">{careerPulse.applied}</p>
                 <p className="text-[10px] uppercase tracking-wider text-text-subtle font-semibold">
                   Applied
                 </p>
-              </div>
-              <div>
+              </Link>
+              <Link
+                to="/jobs"
+                className="rounded-lg p-2 hover:bg-surface-hover transition-colors"
+                title="Open job tracker"
+              >
                 <p className="text-lg font-bold tabular-nums text-accent">
                   {careerPulse.interviewing}
                 </p>
                 <p className="text-[10px] uppercase tracking-wider text-text-subtle font-semibold">
                   Interviewing
                 </p>
-              </div>
-              <div>
+              </Link>
+              <Link
+                to="/jobs"
+                className="rounded-lg p-2 hover:bg-surface-hover transition-colors"
+                title="Open job tracker"
+              >
                 <p className="text-lg font-bold tabular-nums">{careerPulse.offers}</p>
                 <p className="text-[10px] uppercase tracking-wider text-text-subtle font-semibold">
                   Offers
                 </p>
-              </div>
+              </Link>
             </div>
             <p className="text-xs text-text-muted mt-3 text-center">Open job tracker →</p>
-          </Link>
+          </div>
         </TodayAccordionSection>
       ) : null}
 
@@ -1999,7 +2014,7 @@ export function Dashboard() {
                   key={`bill-${card.bill.id}`}
                   className="today-next-action-card today-bill-next-action surface p-4 md:p-5 rounded-xl md:rounded-none shadow-sm md:shadow-none"
                 >
-                  <Link to="/recurring" className="block group">
+                  <Link to={`/recurring?focus=${card.bill.id}`} className="block group">
                     <p className="text-[11px] uppercase tracking-wider text-text-subtle mb-1">
                       Bill due
                     </p>
@@ -2031,7 +2046,7 @@ export function Dashboard() {
                       Skip
                     </button>
                     <Link
-                      to="/recurring"
+                      to={`/recurring?focus=${card.bill.id}`}
                       className="btn-ghost btn-sm inline-flex items-center today-bill-open-recurring"
                     >
                       Open recurring
@@ -2222,7 +2237,7 @@ export function Dashboard() {
                     className="rounded-lg md:rounded-none"
                   >
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm py-1.5">
-                      <Link to="/recurring" className="min-w-0 group">
+                      <Link to={`/recurring?focus=${r.id}`} className="min-w-0 group">
                         <span className="block truncate font-medium group-hover:text-accent">{r.name}</span>
                         <span className={`text-xs text-text-muted tabular-nums ${privacyClass(privacy)}`}>
                           {formatDate(r.nextDue)} · {formatGBP(r.amount)}
