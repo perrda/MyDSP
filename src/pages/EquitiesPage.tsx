@@ -286,7 +286,6 @@ export function EquitiesPage() {
     const parsed = parsePortfolioTradeCsv(text, {
       kind: 'equity',
       namesBySymbol,
-      dateOrder: 'dmy',
     })
     if (parsed.trades.length === 0) {
       showError('Import failed', parsed.errors[0] ?? 'No trades found in CSV.')
