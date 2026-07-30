@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { ChevronDown, ChevronUp, ExternalLink, Mail, Pencil, Phone, Trash2 } from 'lucide-react'
 import { PageHeader } from '../components/ui/PageHeader'
 import { BackNav } from '../components/ui/BackNav'
@@ -18,6 +18,7 @@ import {
   type LiabilityKind,
 } from '../domain/liabilityHelpers'
 import { compareDebtStrategies } from '../domain/debtStrategies'
+import { spendingHighlightUrl } from '../domain/deepLinks'
 import { appendSpendingEntry } from '../domain/recurringActions'
 import type {
   CreditCard,
@@ -77,6 +78,7 @@ export function LiabilityDetailPage() {
   const kind = asKind(kindParam)
   const id = Number(idParam)
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { data, breakdown, privacy, setData } = usePortfolio()
   const { success, showToast } = useToasts()
 
@@ -115,6 +117,8 @@ export function LiabilityDetailPage() {
     reduceBalance: true,
     postToSpending: true,
   })
+  const paymentLedgerRef = useRef<HTMLElement | null>(null)
+  const paymentAmountRef = useRef<HTMLInputElement | null>(null)
   const [settlementForm, setSettlementForm] = useState<{
     status: SettlementStatus
     note: string
@@ -133,6 +137,24 @@ export function LiabilityDetailPage() {
       nextCallbackDate: item.nextCallbackDate ?? '',
     })
   }, [item?.id, kind])
+
+  useEffect(() => {
+    if (!item || searchParams.get('payment') !== '1') return
+    const requestedAmount = Number(searchParams.get('amount'))
+    if (Number.isFinite(requestedAmount) && requestedAmount > 0) {
+      setPaymentForm((prev) => ({ ...prev, amount: String(requestedAmount) }))
+    }
+    const frame = window.requestAnimationFrame(() => {
+      paymentLedgerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      paymentAmountRef.current?.focus()
+      paymentAmountRef.current?.select()
+    })
+    const next = new URLSearchParams(searchParams)
+    next.delete('payment')
+    next.delete('amount')
+    setSearchParams(next, { replace: true })
+    return () => window.cancelAnimationFrame(frame)
+  }, [item, searchParams, setSearchParams])
 
   if (!kind || !item) {
     return (
@@ -381,6 +403,7 @@ export function LiabilityDetailPage() {
       : `Payment logged: ${amount.toFixed(2)} GBP on ${paymentForm.date}.`
     const postToSpending = paymentForm.postToSpending
     const reduceBalance = paymentForm.reduceBalance
+    const returnToOptimizer = searchParams.get('returnTo') === 'optimizer'
     let newSpendId: number | null = null
 
     setData((prev) => {
@@ -441,14 +464,28 @@ export function LiabilityDetailPage() {
     })
 
     const title = reduceBalance ? 'Payment logged and balance reduced' : 'Payment logged'
-    if (newSpendId != null) {
+    if (returnToOptimizer) {
+      const next = new URLSearchParams(searchParams)
+      next.delete('returnTo')
+      setSearchParams(next, { replace: true })
+      showToast({
+        type: 'success',
+        title,
+        message: newSpendId != null ? 'Also posted to Spending' : 'Continue your pay-down plan',
+        action: {
+          label: 'Back to Optimizer',
+          onClick: () => navigate('/optimizer'),
+        },
+      })
+    } else if (newSpendId != null) {
+      const spendingUrl = spendingHighlightUrl(newSpendId)
       showToast({
         type: 'success',
         title,
         message: 'Also posted to Spending',
         action: {
           label: 'View in Spending',
-          onClick: () => navigate(`/spending?highlight=${newSpendId}`),
+          onClick: () => navigate(spendingUrl),
         },
       })
     } else {
@@ -651,6 +688,7 @@ export function LiabilityDetailPage() {
       </section>
 
       <section
+        ref={paymentLedgerRef}
         className="surface p-5 sm:p-8 mb-6 sm:mb-8"
         data-testid="liability-payment-ledger"
       >
@@ -677,6 +715,7 @@ export function LiabilityDetailPage() {
           </Field>
           <Field label="Amount (GBP)">
             <input
+              ref={paymentAmountRef}
               type="text"
               inputMode="decimal"
               value={paymentForm.amount}
