@@ -4,6 +4,8 @@ import type { PortfolioData, RagStatus } from './types'
 import { calcBreakdown } from './calc'
 import { monthKey } from './monthUtils'
 import { calcAllocation, calcRebalanceActions } from './rebalance'
+import { dueWithinDays } from './recurringDueStrip'
+import { recurringFocusUrl, spendingHighlightUrl } from './deepLinks'
 
 export interface AppAlert {
   id: string
@@ -11,6 +13,25 @@ export interface AppAlert {
   title: string
   detail: string
   to: string
+}
+
+function largestSpendingIdForCategory(
+  data: PortfolioData,
+  category: string,
+  ym: string,
+): number | null {
+  let bestId: number | null = null
+  let bestAbs = 0
+  for (const s of data.spending) {
+    if (!s.date.startsWith(ym)) continue
+    if (s.category.toLowerCase() !== category.toLowerCase()) continue
+    const abs = Math.abs(s.amount)
+    if (abs >= bestAbs) {
+      bestAbs = abs
+      bestId = s.id
+    }
+  }
+  return bestId
 }
 
 export function buildAlerts(data: PortfolioData): AppAlert[] {
@@ -68,13 +89,17 @@ export function buildAlerts(data: PortfolioData): AppAlert[] {
   for (const [category, limit] of Object.entries(data.budgetGoals)) {
     if (limit <= 0) continue
     const used = spent.get(category.toLowerCase()) ?? 0
+    const highlightId = largestSpendingIdForCategory(data, category, ym)
+    const spendingTo = highlightId
+      ? spendingHighlightUrl(highlightId, { category: category.toLowerCase(), month: ym })
+      : `/spending?category=${encodeURIComponent(category.toLowerCase())}&month=${ym}`
     if (used > limit) {
       alerts.push({
         id: `budget-${category}`,
         severity: 'red',
         title: `Budget overrun: ${category}`,
         detail: `Spent ${used.toFixed(0)} vs limit ${limit.toFixed(0)} this month.`,
-        to: `/spending?category=${encodeURIComponent(category.toLowerCase())}&month=${ym}`,
+        to: spendingTo,
       })
     } else if (used / limit >= 0.8) {
       alerts.push({
@@ -82,9 +107,19 @@ export function buildAlerts(data: PortfolioData): AppAlert[] {
         severity: 'amber',
         title: `Budget nearly full: ${category}`,
         detail: 'Approaching the monthly cap.',
-        to: `/spending?category=${encodeURIComponent(category.toLowerCase())}&month=${ym}`,
+        to: spendingTo,
       })
     }
+  }
+
+  for (const bill of dueWithinDays(data.recurringTransactions, 7).slice(0, 3)) {
+    alerts.push({
+      id: `bill-due-${bill.id}`,
+      severity: 'amber',
+      title: `Bill due: ${bill.name}`,
+      detail: `Next due ${bill.nextDue.slice(0, 10)}.`,
+      to: recurringFocusUrl(bill.id),
+    })
   }
 
   const alloc = calcAllocation(breakdown.equity.value, data.crypto)

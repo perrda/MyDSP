@@ -13,6 +13,84 @@ export interface BrokerTradePreset {
   dateOrder: TradeCsvDateOrder
 }
 
+function normalizeHeaderToken(value: string): string {
+  return value.trim().toLowerCase().replace(/\s+/g, '')
+}
+
+/** Normalised aliases shared by holding-level and portfolio-level broker imports. */
+export const TRADE_CSV_COLUMN_ALIASES = {
+  date: [
+    'date',
+    'tradedate',
+    'day',
+    'tradedateutc',
+    'time',
+    'timestamp',
+    'datetime',
+    'settledate',
+    'executiontime',
+    'date/time',
+    'datetimeutc',
+  ],
+  side: [
+    'side',
+    'type',
+    'action',
+    'buyorsell',
+    'buy/sell',
+    'buysell',
+    'transactiontype',
+    'ordertype',
+    'b/s',
+  ],
+  symbol: ['symbol', 'ticker', 'asset', 'instrument', 'security', 'contract', 'product', 'productid'],
+  qty: [
+    'qty',
+    'quantity',
+    'shares',
+    'amount',
+    'units',
+    'no.ofshares',
+    'nofshares',
+    'quantitytransacted',
+    'filledqty',
+    'sharesfilled',
+    'fillquantity',
+  ],
+  price: [
+    'price',
+    'unitprice',
+    'px',
+    'fillprice',
+    'avgprice',
+    't.price',
+    'tprice',
+    'tradeprice',
+    'price/share',
+    'priceshare',
+    'priceattransaction',
+    'spotpriceattransaction',
+    'avg.fillprice',
+    'executedprice',
+    'tradeprice/share',
+  ],
+  fee: [
+    'fees',
+    'fee',
+    'commission',
+    'comm',
+    'comm/fee',
+    'commfee',
+    'totalfees',
+    'feesand/orcommission',
+    'ibcommission',
+    'transactionfees',
+  ],
+} as const
+
+const NOTES_COLUMN_ALIASES = ['notes', 'note', 'memo', 'comment', 'description'] as const
+const PLATFORM_COLUMN_ALIASES = ['platform', 'broker', 'exchange', 'venue', 'account'] as const
+
 const BROKER_PRESETS: BrokerTradePreset[] = [
   { id: 'ibkr', label: 'Interactive Brokers', dateOrder: 'mdy' },
   { id: 'trading212', label: 'Trading 212', dateOrder: 'dmy' },
@@ -26,10 +104,11 @@ export function listBrokerTradePresets(): BrokerTradePreset[] {
 
 /** Detect broker export from normalised header tokens. */
 export function detectBrokerPreset(headers: string[]): BrokerTradePreset {
-  const h = headers.map((x) => x.toLowerCase().replace(/\s+/g, ''))
-  const has = (...names: string[]) => names.every((n) => h.includes(n.replace(/\s+/g, '')))
-  const any = (...names: string[]) => names.some((n) => h.some((x) => x.includes(n.replace(/\s+/g, ''))))
-  const exact = (...names: string[]) => names.some((n) => h.includes(n.replace(/\s+/g, '')))
+  const h = headers.map(normalizeHeaderToken)
+  const has = (...names: string[]) => names.every((n) => h.includes(normalizeHeaderToken(n)))
+  const any = (...names: string[]) =>
+    names.some((n) => h.some((x) => x.includes(normalizeHeaderToken(n))))
+  const exact = (...names: string[]) => names.some((n) => h.includes(normalizeHeaderToken(n)))
 
   // Coinbase before IBKR: "Spot Price…" contains the substring "tprice"
   if (
@@ -94,7 +173,6 @@ export interface ParsePortfolioTradeCsvOptions {
  * Extra columns (symbol, ticker, …) are ignored.
  */
 export function parseTradeCsv(text: string, opts: ParseTradeCsvOptions): ParsedTradeCsv {
-  const dateOrder = opts.dateOrder ?? 'dmy'
   const lines = text
     .replace(/^\uFEFF/, '')
     .split(/\r?\n/)
@@ -103,7 +181,9 @@ export function parseTradeCsv(text: string, opts: ParseTradeCsvOptions): ParsedT
   const errors: string[] = []
   if (lines.length === 0) return { trades: [], errors: ['Empty CSV — paste or choose a file with trade rows'] }
 
-  const header = splitCsvLine(lines[0]).map((h) => h.toLowerCase().replace(/\s+/g, ''))
+  const header = splitCsvLine(lines[0]).map(normalizeHeaderToken)
+  const broker = detectBrokerPreset(header)
+  const dateOrder = opts.dateOrder ?? broker.dateOrder
   const hasHeader = header.some(
     (h) =>
       h.includes('date') ||
@@ -115,7 +195,7 @@ export function parseTradeCsv(text: string, opts: ParseTradeCsvOptions): ParsedT
       h.includes('transaction'),
   )
   const rows = hasHeader ? lines.slice(1) : lines
-  const col = (names: string[]) => {
+  const col = (names: readonly string[]) => {
     for (const n of names) {
       const i = header.indexOf(n)
       if (i >= 0) return i
@@ -123,91 +203,19 @@ export function parseTradeCsv(text: string, opts: ParseTradeCsvOptions): ParsedT
     return -1
   }
 
-  const iDate = hasHeader
-    ? col([
-        'date',
-        'tradedate',
-        'day',
-        'tradedateutc',
-        'time',
-        'timestamp',
-        'datetime',
-        'settledate',
-        'executiontime',
-        'date/time',
-        'datetimeutc',
-      ])
-    : 0
-  const iSide = hasHeader
-    ? col([
-        'side',
-        'type',
-        'action',
-        'buyorsell',
-        'buy/sell',
-        'buysell',
-        'transactiontype',
-        'ordertype',
-        'b/s',
-      ])
-    : 1
-  const iQty = hasHeader
-    ? col([
-        'qty',
-        'quantity',
-        'shares',
-        'amount',
-        'units',
-        'no.ofshares',
-        'nofshares',
-        'no.of shares',
-        'quantitytransacted',
-        'filledqty',
-        'sharesfilled',
-        'fillquantity',
-      ])
-    : 2
-  const iPrice = hasHeader
-    ? col([
-        'price',
-        'unitprice',
-        'px',
-        'fillprice',
-        'avgprice',
-        't.price',
-        'tprice',
-        'tradeprice',
-        'price/share',
-        'priceshare',
-        'priceattransaction',
-        'spotpriceattransaction',
-        'avg.fillprice',
-        'executedprice',
-        'tradeprice/share',
-      ])
-    : 3
-  const iFees = hasHeader
-    ? col([
-        'fees',
-        'fee',
-        'commission',
-        'comm',
-        'comm/fee',
-        'commfee',
-        'totalfees',
-        'feesand/orcommission',
-        'ibcommission',
-        'transactionfees',
-      ])
-    : 4
-  const iNotes = hasHeader ? col(['notes', 'note', 'memo', 'comment', 'description']) : 5
-  const iPlatform = hasHeader ? col(['platform', 'broker', 'exchange', 'venue', 'account']) : 6
+  const iDate = hasHeader ? col(TRADE_CSV_COLUMN_ALIASES.date) : 0
+  const iSide = hasHeader ? col(TRADE_CSV_COLUMN_ALIASES.side) : 1
+  const iQty = hasHeader ? col(TRADE_CSV_COLUMN_ALIASES.qty) : 2
+  const iPrice = hasHeader ? col(TRADE_CSV_COLUMN_ALIASES.price) : 3
+  const iFees = hasHeader ? col(TRADE_CSV_COLUMN_ALIASES.fee) : 4
+  const iNotes = hasHeader ? col(NOTES_COLUMN_ALIASES) : 5
+  const iPlatform = hasHeader ? col(PLATFORM_COLUMN_ALIASES) : 6
 
   if (iDate < 0 || iSide < 0 || iQty < 0 || iPrice < 0) {
     return {
       trades: [],
       errors: ['Need columns: date, side/type, qty, price'],
-      broker: detectBrokerPreset(header),
+      broker,
     }
   }
 
@@ -219,46 +227,21 @@ export function parseTradeCsv(text: string, opts: ParseTradeCsvOptions): ParsedT
 
     const dateRaw = cells[iDate]?.trim() ?? ''
     const sideRaw = (cells[iSide] ?? '').trim().toLowerCase()
-    const qty = Number(String(cells[iQty] ?? '').replace(/,/g, ''))
-    const price = Number(String(cells[iPrice] ?? '').replace(/[£$€,\s]/g, ''))
-    const fees =
-      iFees >= 0 ? Number(String(cells[iFees] ?? '0').replace(/[£$€,\s]/g, '')) || 0 : 0
+    const qty = Math.abs(parseCsvNumber(cells[iQty]))
+    const price = parseCsvNumber(cells[iPrice])
+    const fees = iFees >= 0 ? Math.abs(parseCsvNumber(cells[iFees]) || 0) : 0
     let notes = iNotes >= 0 ? cells[iNotes]?.trim() : undefined
     const platform = iPlatform >= 0 ? cells[iPlatform]?.trim() : undefined
     if (platform && notes) notes = `${notes} · ${platform}`
     else if (platform) notes = platform
 
     const date = normalizeDate(dateRaw, dateOrder)
-    // Coinbase / exchange transfers are not buy/sell for cost basis
-    if (
-      sideRaw.includes('send') ||
-      sideRaw.includes('receive') ||
-      sideRaw.includes('transfer') ||
-      sideRaw.includes('convert') ||
-      sideRaw.includes('deposit') ||
-      sideRaw.includes('withdrawal')
-    ) {
+    // Coinbase / exchange transfers are not buy/sell for cost basis.
+    if (isTransferSide(sideRaw)) {
       errors.push(`Row ${rowNum}: skipped non-trade type “${sideRaw}”`)
       return
     }
-    let side: TradeSide | null = null
-    if (
-      sideRaw === 'buy' ||
-      sideRaw === 'b' ||
-      sideRaw === 'purchase' ||
-      sideRaw === 'bought' ||
-      sideRaw.includes('buy')
-    ) {
-      side = 'buy'
-    } else if (
-      sideRaw === 'sell' ||
-      sideRaw === 's' ||
-      sideRaw === 'sale' ||
-      sideRaw === 'sold' ||
-      sideRaw.includes('sell')
-    ) {
-      side = 'sell'
-    }
+    const side = parseTradeSide(sideRaw)
 
     if (!date) {
       errors.push(`Row ${rowNum}: unrecognised date “${dateRaw}”`)
@@ -295,7 +278,7 @@ export function parseTradeCsv(text: string, opts: ParseTradeCsvOptions): ParsedT
     errors.push('No trade rows found')
   }
 
-  return { trades, errors, broker: detectBrokerPreset(header) }
+  return { trades, errors, broker }
 }
 
 /**
@@ -306,7 +289,6 @@ export function parsePortfolioTradeCsv(
   text: string,
   opts: ParsePortfolioTradeCsvOptions,
 ): ParsedTradeCsv {
-  const dateOrder = opts.dateOrder ?? 'dmy'
   const lines = text
     .replace(/^\uFEFF/, '')
     .split(/\r?\n/)
@@ -315,9 +297,11 @@ export function parsePortfolioTradeCsv(
   const errors: string[] = []
   if (lines.length === 0) return { trades: [], errors: ['Empty CSV — choose a file with trade rows'] }
 
-  const header = splitCsvLine(lines[0]).map((h) => h.toLowerCase().replace(/\s+/g, ''))
+  const header = splitCsvLine(lines[0]).map(normalizeHeaderToken)
+  const broker = detectBrokerPreset(header)
+  const dateOrder = opts.dateOrder ?? broker.dateOrder
   const rows = lines.slice(1)
-  const col = (names: string[]) => {
+  const col = (names: readonly string[]) => {
     for (const n of names) {
       const i = header.indexOf(n)
       if (i >= 0) return i
@@ -325,20 +309,20 @@ export function parsePortfolioTradeCsv(
     return -1
   }
 
-  const iDate = col(['date', 'tradedate', 'time', 'timestamp', 'datetime'])
-  const iSide = col(['type', 'side', 'action', 'buy/sell', 'buysell', 'transactiontype'])
-  const iSymbol = col(['symbol', 'ticker', 'asset', 'instrument'])
-  const iQty = col(['qty', 'quantity', 'shares', 'units', 'amount'])
-  const iPrice = col(['price', 'unitprice', 'fillprice', 'avgprice', 'tradeprice'])
-  const iFees = col(['fees', 'fee', 'commission', 'comm', 'comm/fee'])
-  const iNotes = col(['notes', 'note', 'memo', 'comment', 'description'])
-  const iPlatform = col(['platform', 'broker', 'exchange', 'venue', 'account'])
+  const iDate = col(TRADE_CSV_COLUMN_ALIASES.date)
+  const iSide = col(TRADE_CSV_COLUMN_ALIASES.side)
+  const iSymbol = col(TRADE_CSV_COLUMN_ALIASES.symbol)
+  const iQty = col(TRADE_CSV_COLUMN_ALIASES.qty)
+  const iPrice = col(TRADE_CSV_COLUMN_ALIASES.price)
+  const iFees = col(TRADE_CSV_COLUMN_ALIASES.fee)
+  const iNotes = col(NOTES_COLUMN_ALIASES)
+  const iPlatform = col(PLATFORM_COLUMN_ALIASES)
 
   if (iDate < 0 || iSide < 0 || iSymbol < 0 || iQty < 0 || iPrice < 0) {
     return {
       trades: [],
       errors: ['Need columns: date, type/side, symbol, qty, price'],
-      broker: detectBrokerPreset(header),
+      broker,
     }
   }
 
@@ -351,19 +335,20 @@ export function parsePortfolioTradeCsv(
     const dateRaw = cells[iDate]?.trim() ?? ''
     const sideRaw = (cells[iSide] ?? '').trim().toLowerCase()
     const symbol = (cells[iSymbol] ?? '').trim().toUpperCase().replace(/^\$/, '')
-    const qty = Number(String(cells[iQty] ?? '').replace(/,/g, ''))
-    const price = Number(String(cells[iPrice] ?? '').replace(/[£$€,\s]/g, ''))
-    const fees =
-      iFees >= 0 ? Number(String(cells[iFees] ?? '0').replace(/[£$€,\s]/g, '')) || 0 : 0
+    const qty = Math.abs(parseCsvNumber(cells[iQty]))
+    const price = parseCsvNumber(cells[iPrice])
+    const fees = iFees >= 0 ? Math.abs(parseCsvNumber(cells[iFees]) || 0) : 0
     let notes = iNotes >= 0 ? cells[iNotes]?.trim() : undefined
     const platform = iPlatform >= 0 ? cells[iPlatform]?.trim() : undefined
     if (platform && notes) notes = `${notes} · ${platform}`
     else if (platform) notes = platform
 
     const date = normalizeDate(dateRaw, dateOrder)
-    let side: TradeSide | null = null
-    if (sideRaw === 'buy' || sideRaw === 'b' || sideRaw.includes('buy')) side = 'buy'
-    else if (sideRaw === 'sell' || sideRaw === 's' || sideRaw.includes('sell')) side = 'sell'
+    if (isTransferSide(sideRaw)) {
+      errors.push(`Row ${rowNum}: skipped non-trade type “${sideRaw}”`)
+      return
+    }
+    const side = parseTradeSide(sideRaw)
 
     if (!date) {
       errors.push(`Row ${rowNum}: unrecognised date “${dateRaw}”`)
@@ -401,7 +386,42 @@ export function parsePortfolioTradeCsv(
   })
 
   if (trades.length === 0 && errors.length === 0) errors.push('No trade rows found')
-  return { trades, errors, broker: detectBrokerPreset(header) }
+  return { trades, errors, broker }
+}
+
+function parseCsvNumber(value: string | undefined): number {
+  const raw = String(value ?? '').trim()
+  const isParenthesizedNegative = /^\(.*\)$/.test(raw)
+  const parsed = Number(raw.replace(/[()£$€,\s]/g, ''))
+  return isParenthesizedNegative ? -Math.abs(parsed) : parsed
+}
+
+function isTransferSide(side: string): boolean {
+  return ['send', 'receive', 'transfer', 'convert', 'deposit', 'withdraw'].some((type) =>
+    side.includes(type),
+  )
+}
+
+function parseTradeSide(side: string): TradeSide | null {
+  if (
+    side === 'buy' ||
+    side === 'b' ||
+    side === 'purchase' ||
+    side === 'bought' ||
+    side.includes('buy')
+  ) {
+    return 'buy'
+  }
+  if (
+    side === 'sell' ||
+    side === 's' ||
+    side === 'sale' ||
+    side === 'sold' ||
+    side.includes('sell')
+  ) {
+    return 'sell'
+  }
+  return null
 }
 
 function splitCsvLine(line: string): string[] {

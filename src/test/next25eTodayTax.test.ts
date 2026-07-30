@@ -34,12 +34,15 @@ describe('next25e Today / money / tax items 16-20', () => {
   it('19: Sell trades surface a Tax disposal toast CTA and Tax consumes query prefill', () => {
     const equities = readFileSync(resolve(__dirname, '../pages/EquitiesPage.tsx'), 'utf8')
     const crypto = readFileSync(resolve(__dirname, '../pages/CryptoPage.tsx'), 'utf8')
+    const holdingDetail = readFileSync(resolve(__dirname, '../pages/HoldingDetailPage.tsx'), 'utf8')
     const tax = readFileSync(resolve(__dirname, '../pages/TaxPage.tsx'), 'utf8')
 
     expect(equities).toMatch(/taxDisposalHrefForEquity/)
     expect(equities).toMatch(/label: 'Tax disposal'/)
     expect(crypto).toMatch(/taxDisposalHrefForCrypto/)
-    expect(crypto).toMatch(/assetType', 'crypto'/)
+    expect(crypto).toMatch(/assetType: 'crypto'/)
+    expect(holdingDetail).toMatch(/buildTaxDisposalHref/)
+    expect(holdingDetail).toMatch(/label: 'Tax disposal'/)
     expect(tax).toMatch(/useSearchParams/)
     expect(tax).toMatch(/searchParams\.get\('symbol'\)/)
     expect(tax).toMatch(/setOpen\(true\)/)

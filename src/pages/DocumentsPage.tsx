@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { Download, Upload } from 'lucide-react'
 import { PageHeader } from '../components/ui/PageHeader'
+import { PagePrimaryActions } from '../components/ui/PagePrimaryActions'
 import { ConfirmDialog, Field, Modal } from '../components/ui/Modal'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
 import { usePortfolio } from '../context/PortfolioContext'
@@ -134,9 +135,11 @@ export function DocumentsPage() {
         title="Documents"
         description="Lightweight file vault — upload statements and references, link to accounts, and reorder to taste."
         action={
-          <button type="button" className="btn-primary btn-sm" onClick={openCreate}>
-            Add document
-          </button>
+          <PagePrimaryActions
+            primaryLabel="Add document"
+            onPrimary={openCreate}
+            menuLabel="Document actions"
+          />
         }
       />
 
@@ -296,13 +299,6 @@ export function DocumentsPage() {
           void onDelete(deleteId)
         }}
       />
-
-      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary documents actions">
-        <button type="button" className="btn-primary btn-sm" onClick={openCreate}>
-          Add document
-        </button>
-      </div>
-      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }

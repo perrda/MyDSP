@@ -1,5 +1,20 @@
 # MyDSP Changelog
 
+## [1.2.111] - 2026-07-30
+
+### Improved — Next 10 wave 2 (cross-format)
+- **Holdings workspace:** master-detail panel sticky top clears measured search + totals bars
+- **Money ops density:** Spending · Recurring · Budgets · Liabilities row actions use compact ⋯ menus
+- **Tax depth:** shared `taxDisposalLink` · HoldingDetail sell → Tax CTA · IE/TH remittance guidance (informational)
+- **Notification deep-links:** budget alerts highlight largest spend row · due bills → `/recurring?focus=` · `deepLinks` helpers
+- **Today:** Next accordion shows a single highest-priority action (`max: 1`)
+- **Markets Filters LWW:** screener prefs persist via `getMarketsScreener` / `setMarketsScreener`
+- **Broker CSV:** shared column aliases + broker date-order for portfolio import (IBKR / T212 / Coinbase)
+- **Compare trust:** Week Δ note cites previous-week snapshot capture time (not “first visit”)
+- **Content-first:** remove legacy thumb bars on Settings · Planning · FIRE · Staking · Achievements · Documents
+- **Sync trust:** Unlock CTA inside locked onboarding card · `announceWhatArrived` for manual media pull
+- Full tip harness + `tsc` QA
+
 ## [1.2.110] - 2026-07-30
 
 ### Fixed — Holdings list text overlap + resize-safe chrome

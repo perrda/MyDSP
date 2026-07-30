@@ -67,14 +67,14 @@ describe('next25q — sync / Markets / Today polish tip (1–25 → v1.2.87)', (
 
   it('25: package + release notes are 1.2.83', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.110')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.110')
+    expect(pkg.version).toBe('1.2.111')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.111')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.111',
       '1.2.110',
       '1.2.109',
       '1.2.108',
       '1.2.107',
-      '1.2.106',
     ])
   })
 
@@ -188,9 +188,11 @@ describe('next25q — sync / Markets / Today polish tip (1–25 → v1.2.87)', (
     expect(page).not.toMatch(/Tag \+ Yield chips are hidden/)
   })
 
-  it('11–15: FIRE/Optimizer/API thumbs · PTR · no long-press Sync', () => {
+  it('11–15: FIRE content-first + remaining page actions · PTR · no long-press Sync', () => {
+    const fire = readFileSync(resolve(__dirname, '../pages/FirePage.tsx'), 'utf8')
+    expect(fire).not.toMatch(/className="thumb-cta-bar"/)
+    expect(fire).not.toMatch(/thumb-cta-bar-spacer/)
     for (const file of [
-      'FirePage.tsx',
       'OptimizerPage.tsx',
       'ApiAutomationPage.tsx',
       'SmartInsightsPage.tsx',

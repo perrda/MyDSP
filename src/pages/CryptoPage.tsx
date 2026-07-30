@@ -13,6 +13,7 @@ import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
 import { SwipeHoldingRow } from '../components/ui/SwipeHoldingRow'
 import { usePortfolio } from '../context/PortfolioContext'
 import { applyTrade } from '../domain/trades'
+import { buildTaxDisposalHref } from '../domain/taxDisposalLink'
 import { applyLastSyncedQuotesToHoldings } from '../domain/lastSyncedHoldings'
 import { appendHoldingPrices } from '../domain/holdingHistory'
 import {
@@ -87,15 +88,15 @@ function taxDisposalHrefForCrypto(
   holding: CryptoHolding,
   vals: { date: string; qty: number; price: number; fees: number },
 ): string {
-  const params = new URLSearchParams()
   const unitCost = holding.qty > 0 ? holding.cost / holding.qty : 0
-  params.set('assetType', 'crypto')
-  params.set('symbol', holding.symbol)
-  params.set('date', vals.date)
-  params.set('qty', String(vals.qty))
-  params.set('proceeds', String(Math.max(0, vals.qty * vals.price - vals.fees)))
-  params.set('cost', String(Math.max(0, vals.qty * unitCost)))
-  return `/tax?${params.toString()}`
+  return buildTaxDisposalHref({
+    assetType: 'crypto',
+    symbol: holding.symbol,
+    date: vals.date,
+    qty: vals.qty,
+    proceeds: vals.qty * vals.price - vals.fees,
+    cost: vals.qty * unitCost,
+  })
 }
 
 type CryptoForm = {
@@ -140,7 +141,9 @@ export function CryptoPage() {
   const [searchText, setSearchText] = useState('')
   const [selectedHoldingId, setSelectedHoldingId] = useState<number | null>(null)
   const holdingsSearchRef = useRef<HTMLDivElement | null>(null)
+  const holdingsTotalsRef = useRef<HTMLDivElement | null>(null)
   useCssVarFromElementSize(holdingsSearchRef, '--holdings-search-height')
+  useCssVarFromElementSize(holdingsTotalsRef, '--holdings-totals-height')
 
   const holdings = useMemo(() => sortBySortOrder(data.crypto), [data.crypto])
   const includedPortfolioValue = useMemo(() => includedPortfolioHoldingValue(data), [data])
@@ -477,6 +480,7 @@ export function CryptoPage() {
       </div>
 
       <div
+        ref={holdingsTotalsRef}
         className={`holdings-included-value-bar holdings-sticky-totals sticky z-[8] -mx-1 mb-4 border border-border bg-bg-elevated px-3 py-2 text-xs text-text-muted shadow-sm ${privacyClass(privacy)}`}
         role="status"
       >

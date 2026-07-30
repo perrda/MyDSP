@@ -69,4 +69,10 @@ describe('tax jurisdiction packs', () => {
     expect(summary.cgtDue).toBe(0)
     expect(summary.taxableGain).toBe(0)
   })
+
+  it('provides informational remittance guidance for Ireland and Thailand', () => {
+    expect(getTaxPack('IE').remittanceBasisGuidance).toMatch(/remittance basis/i)
+    expect(getTaxPack('TH').remittanceBasisGuidance).toMatch(/remitted to Thailand/i)
+    expect(getTaxPack('GB').remittanceBasisGuidance).toBeUndefined()
+  })
 })

@@ -27,9 +27,9 @@ import { getLocalDeviceHint } from './deviceNickname'
 import { conflictKey, type ConflictChoice } from './conflicts'
 import { getSessionSyncPassphrase, hydrateSessionSyncPassphrase } from './sessionPassphrase'
 import {
+  announceWhatArrived,
   collectSyncHighlights,
   setSyncHighlights,
-  summarizeSyncHighlights,
   summarizeWorkspaceExtras,
   workspaceExtrasFlagsFromPreview,
 } from './syncHighlights'
@@ -452,25 +452,14 @@ async function doPull(cfg: SyncConfig, pass: string, reason: CycleReason): Promi
       /* ignore */
     }
     {
-      const entitySummary = hasHighlights ? summarizeSyncHighlights(highlights) : null
       const extrasSummary = summarizeWorkspaceExtras(
         workspaceExtrasFlagsFromPreview(preview.workspaceExtras),
       )
-      const summary = [entitySummary, extrasSummary].filter(Boolean).join(' · ') || null
-      try {
-        window.dispatchEvent(
-          new CustomEvent('mydsp-sync-applied', {
-            detail: {
-              merged: result.merged,
-              highlights,
-              extrasSummary,
-              summary,
-            },
-          }),
-        )
-      } catch {
-        /* ignore */
-      }
+      const summary = announceWhatArrived({
+        highlights,
+        extrasSummary,
+        merged: result.merged,
+      })
       if (summary) {
         emitAppToast({
           type: 'success',

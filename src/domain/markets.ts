@@ -10,6 +10,20 @@ import {
 
 export type MarketAssetKind = 'crypto' | 'equity' | 'commodity' | 'fx' | 'cross' | 'index'
 
+export type MarketsScreenerFilter = {
+  owned: 'all' | 'owned'
+  alerts: 'all' | 'set'
+  stale: 'all' | 'stale'
+  kind: 'all' | MarketAssetKind
+}
+
+export const DEFAULT_MARKETS_SCREENER: MarketsScreenerFilter = {
+  owned: 'all',
+  alerts: 'all',
+  stale: 'all',
+  kind: 'all',
+}
+
 /** Optional watchlist folder / tag for filter chips on Markets. */
 export type MarketTickerTag = 'Core' | 'Speculative' | 'Income' | 'Other'
 
@@ -75,7 +89,7 @@ export interface MarketsState {
   /** Top→bottom order of Markets section cards (synced via watchlist backup). */
   sectionOrder?: MarketsSectionKey[]
   lastRefreshAt?: string
-  /** ISO time when density / timeframe / sectionOrder last changed (LWW on sync). */
+  /** ISO time when synced display/filter preferences last changed (LWW on sync). */
   prefsUpdatedAt?: string
   /** Row density — compact hides names and tightens padding. */
   density?: 'comfortable' | 'compact'
@@ -85,6 +99,8 @@ export interface MarketsState {
   tagFilter?: MarketTickerTag | 'All'
   /** When true, equities section sorts by yield descending. */
   yieldSort?: boolean
+  /** Persisted Markets Filters screener (LWW via prefsUpdatedAt). */
+  screener?: MarketsScreenerFilter
   /** Tombstones for removed tickers (kind:SYMBOL) so union merge does not resurrect them. */
   deletedTickers?: Array<{ key: string; deletedAt: string }>
 }

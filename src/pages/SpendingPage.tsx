@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { syncHighlightClass, useSyncHighlights } from '../hooks/useSyncHighlights'
 import { Wallet } from 'lucide-react'
 import { MiniBarChart } from '../components/charts/Sparkline'
@@ -8,6 +8,7 @@ import { EmptyState } from '../components/ui/EmptyState'
 import { PageHeader } from '../components/ui/PageHeader'
 import { CollapsibleFilters } from '../components/ui/CollapsibleFilters'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
+import { OverflowMenu } from '../components/ui/OverflowMenu'
 import { usePortfolio } from '../context/PortfolioContext'
 import { formatMonthLabel, monthKey, parseMonthParam, shiftMonth } from '../domain/monthUtils'
 import { categorySparklinesForMonth } from '../domain/spendingCategorySparkline'
@@ -66,6 +67,7 @@ const emptyForm = {
 }
 
 export function SpendingPage() {
+  const navigate = useNavigate()
   const { data, privacy, setData } = usePortfolio()
   const [searchParams, setSearchParams] = useSearchParams()
   const saved = useMemo(() => loadSpendingFilters(), [])
@@ -517,28 +519,24 @@ export function SpendingPage() {
               <span className="bg-accent/10 text-accent text-xs font-bold uppercase tracking-wider px-2 py-1 rounded">
                 {tx.category}
               </span>
-              <div className="flex gap-1">
-                <Link
-                  to={makeRuleHref(tx)}
-                  className="btn-ghost btn-sm min-h-11 inline-flex items-center"
-                >
-                  Make rule
-                </Link>
-                <button
-                  type="button"
-                  className="btn-ghost btn-sm min-h-11"
-                  onClick={() => openEdit(tx)}
-                >
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  className="btn-ghost btn-sm min-h-11 text-red-500"
-                  onClick={() => setDeleteId(tx.id)}
-                >
-                  Delete
-                </button>
-              </div>
+              <OverflowMenu
+                compact
+                label={`Actions for ${tx.description}`}
+                items={[
+                  {
+                    id: 'make-rule',
+                    label: 'Make rule',
+                    onClick: () => navigate(makeRuleHref(tx)),
+                  },
+                  { id: 'edit', label: 'Edit', onClick: () => openEdit(tx) },
+                  {
+                    id: 'delete',
+                    label: 'Delete',
+                    destructive: true,
+                    onClick: () => setDeleteId(tx.id),
+                  },
+                ]}
+              />
             </div>
           </div>
           )
@@ -565,7 +563,7 @@ export function SpendingPage() {
           <thead>
             <tr className="border-b border-border">
               {['Date', 'Description', 'Category', 'Method', 'Amount', ''].map((h) => (
-                <th key={h || 'actions'} className="px-5 sm:px-6 py-4 label-uppercase">
+                <th key={h || 'actions'} className="px-4 sm:px-5 py-3 label-uppercase">
                   {h}
                 </th>
               ))}
@@ -584,35 +582,40 @@ export function SpendingPage() {
                   focused ? 'todo-focus-ring ring-2 ring-accent bg-accent/10' : ''
                 } ${syncHighlightClass(justSynced)}`}
               >
-                <td className="px-5 sm:px-6 py-4 text-sm text-text-muted whitespace-nowrap">
+                <td className="px-4 sm:px-5 py-3 text-sm text-text-muted whitespace-nowrap">
                   {formatDate(tx.date)}
                 </td>
-                <td className="px-5 sm:px-6 py-4 text-sm font-medium">{tx.description}</td>
-                <td className="px-5 sm:px-6 py-4">
+                <td className="px-4 sm:px-5 py-3 text-sm font-medium">{tx.description}</td>
+                <td className="px-4 sm:px-5 py-3">
                   <span className="bg-accent/10 text-accent text-xs font-bold uppercase tracking-widest px-2 py-0.5">
                     {tx.category}
                   </span>
                 </td>
-                <td className="px-5 sm:px-6 py-4 text-sm text-text-subtle">{tx.method}</td>
+                <td className="px-4 sm:px-5 py-3 text-sm text-text-subtle">{tx.method}</td>
                 <td
-                  className={`px-5 sm:px-6 py-4 text-sm font-semibold tabular-nums text-right ${privacyClass(privacy)}`}
+                  className={`px-4 sm:px-5 py-3 text-sm font-semibold tabular-nums text-right ${privacyClass(privacy)}`}
                 >
                   {formatGBPPrecise(-Math.abs(tx.amount))}
                 </td>
-                <td className="px-5 sm:px-6 py-4 whitespace-nowrap">
-                  <Link to={makeRuleHref(tx)} className="btn-ghost btn-sm">
-                    Make rule
-                  </Link>
-                  <button type="button" className="btn-ghost btn-sm" onClick={() => openEdit(tx)}>
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    className="btn-ghost btn-sm"
-                    onClick={() => setDeleteId(tx.id)}
-                  >
-                    Delete
-                  </button>
+                <td className="px-4 sm:px-5 py-3 whitespace-nowrap">
+                  <OverflowMenu
+                    compact
+                    label={`Actions for ${tx.description}`}
+                    items={[
+                      {
+                        id: 'make-rule',
+                        label: 'Make rule',
+                        onClick: () => navigate(makeRuleHref(tx)),
+                      },
+                      { id: 'edit', label: 'Edit', onClick: () => openEdit(tx) },
+                      {
+                        id: 'delete',
+                        label: 'Delete',
+                        destructive: true,
+                        onClick: () => setDeleteId(tx.id),
+                      },
+                    ]}
+                  />
                 </td>
               </tr>
               )

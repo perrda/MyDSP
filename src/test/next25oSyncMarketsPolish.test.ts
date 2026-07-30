@@ -47,14 +47,14 @@ describe('next25o — sync / Markets / Today polish tip (1–25 → v1.2.80)', (
 
   it('25: package + release notes are 1.2.80', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.110')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.110')
+    expect(pkg.version).toBe('1.2.111')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.111')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.111',
       '1.2.110',
       '1.2.109',
       '1.2.108',
       '1.2.107',
-      '1.2.106',
     ])
   })
 
@@ -126,7 +126,8 @@ describe('next25o — sync / Markets / Today polish tip (1–25 → v1.2.80)', (
     const rules = readFileSync(resolve(__dirname, '../pages/RulesPage.tsx'), 'utf8')
     const holding = readFileSync(resolve(__dirname, '../pages/HoldingDetailPage.tsx'), 'utf8')
     expect(family).toMatch(/thumb-cta-bar|page-primary-actions|page-primary-create|PagePrimaryActions/)
-    expect(docs).toMatch(/thumb-cta-bar|page-primary-actions|page-primary-create|PagePrimaryActions/)
+    expect(docs).toMatch(/PagePrimaryActions/)
+    expect(docs).not.toMatch(/className="thumb-cta-bar"|thumb-cta-bar-spacer/)
     expect(journal).toMatch(/thumb-cta-bar|page-primary-actions|page-primary-create|PagePrimaryActions/)
     expect(rules).toMatch(/thumb-cta-bar|page-primary-actions|page-primary-create|PagePrimaryActions/)
     expect(holding).toMatch(/thumb-cta-bar|page-primary-actions|page-primary-create|PagePrimaryActions/)

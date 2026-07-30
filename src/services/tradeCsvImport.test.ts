@@ -2,7 +2,12 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { detectBrokerPreset, normalizeTradeCsvDate, parseTradeCsv } from '../services/tradeCsvImport'
+import {
+  detectBrokerPreset,
+  normalizeTradeCsvDate,
+  parsePortfolioTradeCsv,
+  parseTradeCsv,
+} from '../services/tradeCsvImport'
 
 const fixturesDir = join(dirname(fileURLToPath(import.meta.url)), '../../public/data/templates')
 
@@ -101,5 +106,53 @@ describe('tradeCsvImport', () => {
     expect(r.trades).toHaveLength(3)
     expect(r.trades.every((t) => t.side === 'buy' || t.side === 'sell')).toBe(true)
     expect(r.errors.some((e) => e.toLowerCase().includes('send'))).toBe(true)
+  })
+
+  it('portfolio-imports IBKR T. Price with automatic M/D/Y detection', () => {
+    const r = parsePortfolioTradeCsv(loadFixture('broker-ibkr-TSLA.csv'), { kind: 'equity' })
+    expect(r.broker?.id).toBe('ibkr')
+    expect(r.errors).toEqual([])
+    expect(r.trades).toHaveLength(3)
+    expect(r.trades.map((t) => t.symbol)).toEqual(['TSLA', 'TSLA', 'TSLA'])
+    expect(r.trades.map((t) => t.date)).toEqual(['2024-03-15', '2024-06-02', '2024-11-12'])
+    expect(r.trades[0]).toMatchObject({ price: 180.5, fees: 1 })
+  })
+
+  it('portfolio-imports Trading 212 share aliases with automatic D/M/Y detection', () => {
+    const r = parsePortfolioTradeCsv(loadFixture('broker-trading212-TSLA.csv'), {
+      kind: 'equity',
+    })
+    expect(r.broker?.id).toBe('trading212')
+    expect(r.errors).toEqual([])
+    expect(r.trades).toHaveLength(3)
+    expect(r.trades.map((t) => t.date)).toEqual(['2024-03-15', '2024-06-02', '2024-11-12'])
+    expect(r.trades[1]).toMatchObject({ symbol: 'TSLA', qty: 5, price: 210 })
+  })
+
+  it('portfolio-imports IBKR Flex Trade Price and IBCommission aliases', () => {
+    const r = parsePortfolioTradeCsv(loadFixture('broker-ibkr-flex-TSLA.csv'), {
+      kind: 'equity',
+    })
+    expect(r.broker?.id).toBe('ibkr')
+    expect(r.errors).toEqual([])
+    expect(r.trades).toHaveLength(2)
+    expect(r.trades[1]).toMatchObject({
+      side: 'sell',
+      symbol: 'TSLA',
+      date: '2024-06-02',
+      price: 340.25,
+      fees: 1,
+    })
+  })
+
+  it('portfolio parser honours an explicit date order and skips transfers', () => {
+    const csv = `Trade Date,Buy/Sell,Symbol,Quantity,T. Price,IBCommission
+11/12/2024,SELL,TSLA,-3,340.25,-1
+11/13/2024,TRANSFER,TSLA,1,340.25,0
+`
+    const r = parsePortfolioTradeCsv(csv, { kind: 'equity', dateOrder: 'dmy' })
+    expect(r.trades).toHaveLength(1)
+    expect(r.trades[0]).toMatchObject({ date: '2024-12-11', qty: 3, fees: 1 })
+    expect(r.errors).toEqual(['Row 3: skipped non-trade type “transfer”'])
   })
 })

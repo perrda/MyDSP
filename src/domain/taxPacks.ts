@@ -23,6 +23,8 @@ export interface TaxJurisdictionPack {
   /** False for jurisdictions with no personal CGT (e.g. SG, TH). */
   hasCgt: boolean
   disclaimer: string
+  /** Informational residency/remittance note; does not alter calculations. */
+  remittanceBasisGuidance?: string
   /** Short label for CSV / PDF export chrome (avoids implying UK SA108 outside GB). */
   exportLabel: string
 }
@@ -70,6 +72,8 @@ const PACKS: Record<string, TaxJurisdictionPack> = {
     hasCgt: true,
     disclaimer:
       'Simplified Irish CGT at 33% with a flat annual exemption reference. Share identification / remittance nuances are not modelled. Calendar tax year. Not formal tax advice.',
+    remittanceBasisGuidance:
+      'Irish-resident non-domiciled individuals may be taxed on some foreign gains on a remittance basis. This depends on domicile, residence, the asset and whether proceeds are brought into Ireland; MyDSP does not model it.',
     exportLabel: 'IE CGT estimate export',
   },
   AU: {
@@ -118,6 +122,8 @@ const PACKS: Record<string, TaxJurisdictionPack> = {
     hasCgt: false,
     disclaimer:
       'Thailand personal capital gains treatment depends on residency and asset class (including remittance-basis considerations for foreign assets). MyDSP does not compute Thai CGT — journal only.',
+    remittanceBasisGuidance:
+      'Thai treatment of foreign-source income and gains can depend on tax residence, when income arose and when it was remitted to Thailand. MyDSP does not assess remittance-basis liability; seek current local advice.',
     exportLabel: 'TH disposal journal',
   },
   XX: {

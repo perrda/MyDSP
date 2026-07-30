@@ -276,6 +276,7 @@ export function TaxPage() {
               ). Export buttons above produce worksheets and journals for this pack — not a filed return.
             </p>
             <p>{pack.disclaimer}</p>
+            {pack.remittanceBasisGuidance ? <p>{pack.remittanceBasisGuidance}</p> : null}
             {isUkTax ? (
               <p>
                 UK CGT / SA108 CSV and the transaction log are working papers for Self Assessment or your
@@ -316,6 +317,11 @@ export function TaxPage() {
             </>
           ) : null}
         </p>
+        {pack.remittanceBasisGuidance ? (
+          <p className="text-sm text-text-muted font-light mt-2">
+            {pack.remittanceBasisGuidance}
+          </p>
+        ) : null}
       </div>
 
       {pack.code === 'US' ? (
