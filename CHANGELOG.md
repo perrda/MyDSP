@@ -1,5 +1,20 @@
 # MyDSP Changelog
 
+## [1.2.113] - 2026-07-30
+
+### Improved — Next 10 wave 4 (cross-format)
+- **Recurring→Budgets:** Mark paid / Skip with Undo on Recurring · budget pulse stays live
+- **Dividend ledger:** HoldingDetail Log dividend → Spending income (cash ledger, not tax calc)
+- **Crypto honesty:** transfers/staking don’t invent P&L; manual qty vs trade journal clarified
+- **Todos Day view:** overdue cluster · Focus / Snooze / Complete on Day rows
+- **Jobs funnel:** Applied → Interview → Offer mini-card · follow-up nudges in Notification Center
+- **Budgets drill-down:** top merchants + Make rule · pulse links with category+month
+- **FIRE→Planning:** Today chip seeds Monte Carlo with NW/savings (`From Today` + reset)
+- **News Owned sticky:** Filters disclosure · saved-headline sync tombstones
+- **YouTube unread:** `?unread=1` / `?video=` deep-links · folder chips
+- **Sync conflicts:** per-row Keep local/remote · 10s Undo · Open first highlight
+- Full tip harness + `tsc -b` QA
+
 ## [1.2.112] - 2026-07-30
 
 ### Improved — Next 10 wave 3 (cross-format)
