@@ -13,7 +13,7 @@ import { useToasts } from '../components/ToastProvider'
 import { usePortfolio } from '../context/PortfolioContext'
 import { evaluateAchievements } from '../domain/achievements'
 import { buildAlerts } from '../domain/alerts'
-import { worstBudgetOffenders } from '../domain/budgetChart'
+import { isBudgetSpend, worstBudgetOffenders } from '../domain/budgetChart'
 import { recurringFocusUrl } from '../domain/deepLinks'
 import { getTaxPack } from '../domain/taxPacks'
 import { calcFire } from '../domain/fire'
@@ -703,7 +703,7 @@ export function Dashboard() {
     const now = new Date()
     const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
     const spent = (data.spending ?? [])
-      .filter((s) => (s.date ?? '').startsWith(ym))
+      .filter((s) => isBudgetSpend(s) && (s.date ?? '').startsWith(ym))
       .reduce((sum, s) => sum + Math.abs(s.amount), 0)
     return {
       spent,
@@ -715,7 +715,7 @@ export function Dashboard() {
   const weekToDateSpend = useMemo(() => {
     const start = weekStartKey()
     const spent = (data.spending ?? [])
-      .filter((s) => (s.date ?? '').slice(0, 10) >= start)
+      .filter((s) => isBudgetSpend(s) && (s.date ?? '').slice(0, 10) >= start)
       .reduce((sum, s) => sum + Math.abs(s.amount), 0)
     return { spent, start }
   }, [data.spending])

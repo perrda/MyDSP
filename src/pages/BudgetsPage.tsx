@@ -8,6 +8,7 @@ import { Field, Modal, ConfirmDialog, parseNum } from '../components/ui/Modal'
 import { OverflowMenu } from '../components/ui/OverflowMenu'
 import { usePortfolio } from '../context/PortfolioContext'
 import { useToasts } from '../components/ToastProvider'
+import { isBudgetSpend } from '../domain/budgetChart'
 import { formatMonthLabel, monthKey, parseMonthParam, shiftMonth, daysElapsedInMonth, daysInMonth } from '../domain/monthUtils'
 import { formatGBP, formatGBPPrecise, pct, privacyClass } from '../utils/format'
 
@@ -43,6 +44,7 @@ export function BudgetsPage() {
   const spentByCategory = useMemo(() => {
     const map = new Map<string, number>()
     for (const s of data.spending) {
+      if (!isBudgetSpend(s)) continue
       if (!s.date.startsWith(ym)) continue
       const cat = s.category.toLowerCase()
       map.set(cat, (map.get(cat) ?? 0) + Math.abs(s.amount))

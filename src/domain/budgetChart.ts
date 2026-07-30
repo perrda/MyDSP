@@ -8,6 +8,11 @@ export interface MonthSpendPoint {
   limit: number
 }
 
+/** Income rows share the cash ledger but are not budget consumption. */
+export function isBudgetSpend(entry: SpendingEntry): boolean {
+  return String(entry.category).trim().toLowerCase() !== 'income'
+}
+
 export function monthKeysLastN(n: number, now = new Date()): string[] {
   const out: string[] = []
   const d = new Date(now.getFullYear(), now.getMonth(), 1)
@@ -29,6 +34,7 @@ export function categoryMonthlySeries(
   const keys = monthKeysLastN(months, now)
   const spent = new Map<string, number>()
   for (const s of spending) {
+    if (!isBudgetSpend(s)) continue
     const m = s.date.slice(0, 7)
     if (!keys.includes(m)) continue
     if (String(s.category).toLowerCase() !== cat) continue
@@ -49,6 +55,7 @@ export function worstBudgetOffenders(
   const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
   const spent = new Map<string, number>()
   for (const s of spending) {
+    if (!isBudgetSpend(s)) continue
     if (!s.date.startsWith(ym)) continue
     const cat = String(s.category).toLowerCase()
     spent.set(cat, (spent.get(cat) ?? 0) + Math.abs(s.amount))
