@@ -19,6 +19,7 @@ import {
   getTaxPack,
   listPackYears,
   matchDisposalsSimple,
+  taxMatchingMethodLabel,
 } from '../domain/taxPacks'
 import { taxYearProgress } from '../domain/taxYearProgress'
 import { ISA_ALLOWANCE_GBP, isaUsedFromHoldings } from '../domain/isaHoldings'
@@ -33,9 +34,12 @@ function nextId(items: { id: number }[]): number {
 export function TaxPage() {
   const { data, setData, privacy } = usePortfolio()
   const [searchParams, setSearchParams] = useSearchParams()
+  const residencySet = Boolean(data.settings.taxResidency?.trim())
   const residency = data.settings.taxResidency || 'GB'
   const pack = useMemo(() => getTaxPack(residency), [residency])
   const isUkTax = pack.code === 'GB' && pack.matching === 'uk-section104'
+  const matchingMethodLabel = taxMatchingMethodLabel(pack)
+  const symbolFilter = (searchParams.get('symbol') ?? '').trim().toUpperCase()
   const years = listPackYears(pack)
   const [taxYear, setTaxYear] = useState(() => {
     const current = getCurrentPackYear(pack)
@@ -64,6 +68,7 @@ export function TaxPage() {
   }, [pack])
 
   useEffect(() => {
+    if (searchParams.get('open') !== '1') return
     const symbol = searchParams.get('symbol')
     if (!symbol) return
     const assetType = searchParams.get('assetType') === 'equity' ? 'equity' : 'crypto'
@@ -76,7 +81,11 @@ export function TaxPage() {
       cost: searchParams.get('cost') ?? '',
     })
     setOpen(true)
-    setSearchParams({}, { replace: true })
+    const next = new URLSearchParams(searchParams)
+    for (const key of ['open', 'assetType', 'date', 'qty', 'proceeds', 'cost']) {
+      next.delete(key)
+    }
+    setSearchParams(next, { replace: true })
   }, [searchParams, setSearchParams])
 
   useEffect(() => {
@@ -122,6 +131,24 @@ export function TaxPage() {
   const summary = useMemo(
     () => calcTaxSummaryForPack(matchedRows, taxYear, pack),
     [matchedRows, taxYear, pack],
+  )
+  const filteredMatchedRows = useMemo(
+    () =>
+      symbolFilter
+        ? matchedRows.filter(
+            (row) => row.disposal.symbol.trim().toUpperCase() === symbolFilter,
+          )
+        : matchedRows,
+    [matchedRows, symbolFilter],
+  )
+  const filteredDisposals = useMemo(
+    () =>
+      symbolFilter
+        ? summary.disposals.filter(
+            (disposal) => disposal.symbol.trim().toUpperCase() === symbolFilter,
+          )
+        : summary.disposals,
+    [summary.disposals, symbolFilter],
   )
 
   const yearProgress = useMemo(
@@ -204,6 +231,28 @@ export function TaxPage() {
     setOpen(false)
   }
 
+  if (!residencySet) {
+    return (
+      <div>
+        <PageHeader
+          eyebrow="Tax"
+          title="Capital gains"
+          description="Choose your tax residency before using jurisdiction-specific estimates."
+        />
+        <div className="surface p-8 sm:p-10 text-center">
+          <p className="text-lg font-semibold mb-2">Set your tax residency</p>
+          <p className="text-sm text-text-muted font-light max-w-lg mx-auto mb-6">
+            MyDSP will show the matching method, tax year, and honest limitations for the
+            jurisdiction you select.
+          </p>
+          <Link to="/settings#display" className="btn-primary btn-sm">
+            Open Settings → Display
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div>
       <PageHeader
@@ -250,6 +299,8 @@ export function TaxPage() {
             {pack.hasCgt
               ? ` · ${pack.yearKind === 'calendar' ? 'calendar year' : 'UK tax year'}`
               : ' · no CGT computed'}
+            {' · '}
+            {matchingMethodLabel}
           </span>
         </span>
         <Link to="/settings#display" className="text-accent hover:underline min-h-11 inline-flex items-center">
@@ -379,6 +430,29 @@ export function TaxPage() {
           ))}
         </select>
       </div>
+
+      {symbolFilter ? (
+        <div
+          className="surface px-5 py-3 mb-px flex flex-wrap items-center justify-between gap-3"
+          role="status"
+        >
+          <p className="text-sm text-text-muted">
+            Disposal rows filtered to <strong className="text-text">{symbolFilter}</strong>.
+            Year totals still include every disposal.
+          </p>
+          <button
+            type="button"
+            className="btn-ghost btn-sm"
+            onClick={() => {
+              const next = new URLSearchParams(searchParams)
+              next.delete('symbol')
+              setSearchParams(next, { replace: true })
+            }}
+          >
+            Clear filter
+          </button>
+        </div>
+      ) : null}
 
       <div
         className="tax-year-progress surface p-5 sm:p-6 mb-6 flex flex-wrap items-center gap-5"
@@ -592,7 +666,7 @@ export function TaxPage() {
               </tr>
             </thead>
             <tbody>
-              {matchedRows.map((m) => (
+              {filteredMatchedRows.map((m) => (
                 <tr key={`m-${m.disposal.id}`} className="border-b border-border last:border-0">
                   <td className="px-5 py-3 text-sm table-sticky-col">{formatDate(m.disposal.date)}</td>
                   <td className="px-5 py-3 font-semibold">{m.disposal.symbol}</td>
@@ -610,6 +684,13 @@ export function TaxPage() {
                   </td>
                 </tr>
               ))}
+              {filteredMatchedRows.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-5 py-10 text-center text-text-subtle">
+                    No matched disposals for {symbolFilter} in {taxYear}.
+                  </td>
+                </tr>
+              ) : null}
             </tbody>
           </table>
         </div>
@@ -668,7 +749,7 @@ export function TaxPage() {
             </tr>
           </thead>
           <tbody>
-            {summary.disposals.map((d) => {
+            {filteredDisposals.map((d) => {
               const matched = matchedRows.find((m) => m.disposal.id === d.id)
               const g = matched?.gain ?? d.proceeds - d.cost
               const cost = matched?.allowableCost ?? d.cost
@@ -699,10 +780,12 @@ export function TaxPage() {
                 </tr>
               )
             })}
-            {summary.disposals.length === 0 && (
+            {filteredDisposals.length === 0 && (
               <tr>
                 <td colSpan={8} className="px-5 py-12 text-center text-text-subtle">
-                  No disposals in {taxYear}.
+                  {symbolFilter
+                    ? `No disposals for ${symbolFilter} in ${taxYear}.`
+                    : `No disposals in ${taxYear}.`}
                 </td>
               </tr>
             )}

@@ -149,6 +149,12 @@ export function listTaxPackCodes(): string[] {
   return Object.keys(PACKS)
 }
 
+export function taxMatchingMethodLabel(pack: TaxJurisdictionPack): string {
+  if (pack.matching === 'uk-section104') return 'UK §104 pooling'
+  if (pack.matching === 'fifo-simple') return 'Simplified FIFO/manual cost'
+  return 'Record-only disposal journal'
+}
+
 /** Current year key for the pack (UK Apr–Apr or calendar YYYY). */
 export function getCurrentPackYear(pack: TaxJurisdictionPack, now = new Date()): string {
   if (pack.yearKind === 'uk-apr') return getCurrentTaxYear(now)

@@ -14,6 +14,7 @@ export function buildTaxDisposalHref(input: TaxDisposalLinkInput): string {
   const params = new URLSearchParams()
   params.set('assetType', input.assetType)
   params.set('symbol', input.symbol)
+  params.set('open', '1')
   params.set('date', input.date)
   params.set('qty', String(input.qty))
   params.set('proceeds', String(Math.max(0, input.proceeds)))
