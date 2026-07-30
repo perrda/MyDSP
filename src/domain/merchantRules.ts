@@ -1,6 +1,13 @@
 /** User merchant → category rules + fallback heuristics. */
 
-import type { MerchantRule, SpendingCategory } from './types'
+import type { MerchantRule, SpendingCategory, SpendingEntry } from './types'
+
+export interface MerchantRuleSuggestion {
+  pattern: string
+  category: SpendingCategory
+  count: number
+  latestDate: string
+}
 
 export function matchMerchantRule(
   description: string,
@@ -26,6 +33,70 @@ export function matchMerchantRule(
     }
   }
   return null
+}
+
+/**
+ * Rank transaction descriptions that are not covered by a user rule.
+ * Case and repeated whitespace are ignored; the most common existing category
+ * is used to prefill the rule editor.
+ */
+export function suggestMerchantRules(
+  spending: SpendingEntry[],
+  rules: MerchantRule[],
+): MerchantRuleSuggestion[] {
+  const groups = new Map<
+    string,
+    {
+      patterns: Map<string, number>
+      categories: Map<SpendingCategory, number>
+      count: number
+      latestDate: string
+    }
+  >()
+
+  for (const transaction of spending) {
+    const pattern = transaction.description.trim().replace(/\s+/g, ' ')
+    if (!pattern || matchMerchantRule(pattern, rules)) continue
+    const key = pattern.toLocaleLowerCase()
+    const group = groups.get(key) ?? {
+      patterns: new Map<string, number>(),
+      categories: new Map<SpendingCategory, number>(),
+      count: 0,
+      latestDate: '',
+    }
+    group.patterns.set(pattern, (group.patterns.get(pattern) ?? 0) + 1)
+    group.categories.set(
+      transaction.category,
+      (group.categories.get(transaction.category) ?? 0) + 1,
+    )
+    group.count++
+    if (transaction.date > group.latestDate) group.latestDate = transaction.date
+    groups.set(key, group)
+  }
+
+  return [...groups.values()]
+    .map((group) => {
+      const pattern =
+        [...group.patterns.entries()].sort(
+          ([, aCount], [, bCount]) => bCount - aCount,
+        )[0]?.[0] ?? 'merchant'
+      const category =
+        [...group.categories.entries()].sort(
+          ([, aCount], [, bCount]) => bCount - aCount,
+        )[0]?.[0] ?? 'other'
+      return {
+        pattern,
+        category,
+        count: group.count,
+        latestDate: group.latestDate,
+      }
+    })
+    .sort(
+      (a, b) =>
+        b.count - a.count ||
+        b.latestDate.localeCompare(a.latestDate) ||
+        a.pattern.localeCompare(b.pattern),
+    )
 }
 
 export function guessCategory(desc: string): string {

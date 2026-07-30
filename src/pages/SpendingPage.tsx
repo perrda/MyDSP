@@ -11,6 +11,7 @@ import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
 import { OverflowMenu } from '../components/ui/OverflowMenu'
 import { usePortfolio } from '../context/PortfolioContext'
 import { makeRuleHref } from '../domain/deepLinks'
+import { suggestMerchantRules } from '../domain/merchantRules'
 import { formatMonthLabel, monthKey, parseMonthParam, shiftMonth } from '../domain/monthUtils'
 import { categorySparklinesForMonth } from '../domain/spendingCategorySparkline'
 import { formatWeekDeltaLine, weekSpendDelta } from '../domain/spendingWeekDelta'
@@ -193,6 +194,10 @@ export function SpendingPage() {
   const categorySparks = useMemo(
     () => categorySparklinesForMonth(data.spending, ym, 5),
     [data.spending, ym],
+  )
+  const suggestedRules = useMemo(
+    () => suggestMerchantRules(data.spending, data.merchantRules).slice(0, 5),
+    [data.spending, data.merchantRules],
   )
 
   const addCustomCategory = () => {
@@ -421,6 +426,51 @@ export function SpendingPage() {
             ))}
           </ul>
         </div>
+      ) : null}
+
+      {suggestedRules.length > 0 ? (
+        <section
+          className="spending-suggested-rules surface p-3 md:p-4 mb-4"
+          aria-labelledby="spending-suggested-rules-title"
+        >
+          <div className="flex items-center justify-between gap-3 mb-2">
+            <div>
+              <p
+                id="spending-suggested-rules-title"
+                className="text-xs uppercase tracking-wider text-text-subtle font-semibold"
+              >
+                Suggested rules
+              </p>
+              <p className="text-xs text-text-muted">
+                Frequent merchants not matched by an existing rule.
+              </p>
+            </div>
+            <Link to="/rules" className="text-xs font-semibold text-accent shrink-0">
+              All rules
+            </Link>
+          </div>
+          <ul className="flex gap-2 overflow-x-auto pb-1" aria-label="Suggested merchant rules">
+            {suggestedRules.map((suggestion) => (
+              <li key={suggestion.pattern.toLocaleLowerCase()} className="shrink-0">
+                <Link
+                  to={makeRuleHref({
+                    description: suggestion.pattern,
+                    category: suggestion.category,
+                  })}
+                  className="block min-w-40 max-w-64 border border-border bg-surface-hover/50 px-3 py-2 hover:border-accent"
+                >
+                  <span className="block text-sm font-semibold truncate">
+                    {suggestion.pattern}
+                  </span>
+                  <span className="block text-xs text-text-muted capitalize">
+                    {suggestion.count} transaction{suggestion.count === 1 ? '' : 's'} ·{' '}
+                    {suggestion.category}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
       ) : null}
 
       <div className="spending-merchant-search-bar">

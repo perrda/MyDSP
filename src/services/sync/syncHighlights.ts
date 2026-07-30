@@ -129,6 +129,7 @@ export type WorkspaceExtrasFlags = {
   todosQuickFilter?: boolean
   jobsFilter?: boolean
   bottomNavSlots?: boolean
+  todayLayout?: boolean
   navLayout?: boolean
   launchPath?: boolean
   uiPanels?: boolean
@@ -173,6 +174,7 @@ const EXTRAS_LABELS: Array<[keyof WorkspaceExtrasFlags, string]> = [
   ['todosQuickFilter', 'Todos quick filter'],
   ['jobsFilter', 'Jobs filter'],
   ['bottomNavSlots', 'Bottom nav slots'],
+  ['todayLayout', 'Today layout'],
   ['navLayout', 'Favourites layout'],
   ['launchPath', 'Launch path'],
   ['uiPanels', 'UI panels'],
@@ -229,6 +231,7 @@ export function workspaceExtrasFlagsFromPreview(extras: {
   todosQuickFilter?: unknown
   jobsFilter?: unknown
   bottomNavSlots?: unknown
+  todayLayout?: unknown
   navLayout?: unknown
   launchPath?: unknown
   uiPanels?: unknown
@@ -273,6 +276,7 @@ export function workspaceExtrasFlagsFromPreview(extras: {
     todosQuickFilter: extras.todosQuickFilter != null,
     jobsFilter: extras.jobsFilter != null,
     bottomNavSlots: extras.bottomNavSlots != null,
+    todayLayout: extras.todayLayout != null,
     navLayout: extras.navLayout != null,
     launchPath: extras.launchPath != null,
     uiPanels: extras.uiPanels != null,

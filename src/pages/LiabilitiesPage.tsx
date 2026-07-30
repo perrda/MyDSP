@@ -9,7 +9,13 @@ import { ConfirmDialog, Field, Modal } from '../components/ui/Modal'
 import { OverflowMenu } from '../components/ui/OverflowMenu'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
 import { usePortfolio } from '../context/PortfolioContext'
-import { dailyInterestGbp, ragClass, ragLabel, type LiabilityKind } from '../domain/liabilityHelpers'
+import {
+  dailyInterestGbp,
+  liabilitiesDueWithinDays,
+  ragClass,
+  ragLabel,
+  type LiabilityKind,
+} from '../domain/liabilityHelpers'
 import type { CreditCard, LiabilityContactMethod, Loan, RagStatus } from '../domain/types'
 import {
   loadLiabilitiesRagFilter,
@@ -299,6 +305,10 @@ export function LiabilitiesPage() {
       .filter((i) => i.includeInPortfolio !== false)
       .reduce((s, i) => s + dailyInterestGbp(i.balance, i.apr), 0)
   }, [data.creditCards, data.loans])
+  const upcomingDue = useMemo(
+    () => liabilitiesDueWithinDays(data.creditCards, data.loans, 30),
+    [data.creditCards, data.loans],
+  )
 
   return (
     <div>
@@ -322,6 +332,56 @@ export function LiabilitiesPage() {
           />
         }
       />
+
+      {upcomingDue.length > 0 ? (
+        <section
+          className="liability-due-calendar surface p-3 md:p-4 mb-4"
+          aria-labelledby="liability-due-calendar-title"
+        >
+          <div className="flex items-baseline justify-between gap-3 mb-2">
+            <div>
+              <p
+                id="liability-due-calendar-title"
+                className="text-xs uppercase tracking-wider text-text-subtle font-semibold"
+              >
+                Due calendar · next 30 days
+              </p>
+              <p className="text-xs text-text-muted">Minimum payments by due date.</p>
+            </div>
+            <span className="text-xs tabular-nums text-text-subtle">
+              {upcomingDue.length} due
+            </span>
+          </div>
+          <ul className="flex gap-2 overflow-x-auto pb-1" aria-label="Upcoming liability payments">
+            {upcomingDue.map((due) => {
+              const detailHref = `/liabilities/${due.kind}/${due.id}`
+              const paymentHref = `${detailHref}?payment=1&amount=${encodeURIComponent(String(due.minPay))}`
+              return (
+                <li
+                  key={`${due.kind}-${due.id}`}
+                  className={`shrink-0 min-w-52 border border-border bg-surface-hover/40 p-3 ${privacyClass(privacy)}`}
+                >
+                  <p className="text-[11px] uppercase tracking-wider text-text-subtle font-semibold">
+                    {due.daysUntil === 0 ? 'Due today' : formatDate(due.dueDate)}
+                  </p>
+                  <p className="text-sm font-semibold truncate mt-0.5">{due.name}</p>
+                  <p className="text-xs tabular-nums text-text-muted mt-0.5">
+                    Minimum {formatGBP(due.minPay)}
+                  </p>
+                  <div className="flex gap-2 mt-2">
+                    <Link to={detailHref} className="btn-ghost btn-sm">
+                      Open
+                    </Link>
+                    <Link to={paymentHref} className="btn-primary btn-sm">
+                      Mark paid
+                    </Link>
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        </section>
+      ) : null}
 
       <div className={`grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-px mb-6 ${privacyClass(privacy)}`}>
         <div className="surface p-6">

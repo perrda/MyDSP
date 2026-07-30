@@ -545,6 +545,45 @@ export function EquitiesPage() {
         }
       />
 
+      {dueCorporateActions.length > 0 ? (
+        <section
+          className="equities-corporate-actions-due border border-amber-500/40 bg-amber-500/10 p-3 md:p-4 mb-4"
+          aria-labelledby="equities-corporate-actions-title"
+        >
+          <div className="flex items-baseline justify-between gap-3 mb-2">
+            <div>
+              <p
+                id="equities-corporate-actions-title"
+                className="text-xs uppercase tracking-wider font-semibold text-amber-800 dark:text-amber-200"
+              >
+                Corporate actions due
+              </p>
+              <p className="text-xs text-text-muted">Review effective actions on each holding.</p>
+            </div>
+            <span className="text-xs tabular-nums text-amber-800 dark:text-amber-200">
+              {dueCorporateActions.length} due
+            </span>
+          </div>
+          <ul className="flex gap-2 overflow-x-auto pb-1">
+            {dueCorporateActions.map((holding) => (
+              <li key={holding.id} className="shrink-0">
+                <Link
+                  to={`/equities/${holding.id}#corporate-action`}
+                  className="block min-w-52 max-w-72 border border-amber-500/35 bg-bg-elevated/80 px-3 py-2 hover:border-amber-500"
+                >
+                  <span className="block text-sm font-semibold">
+                    {holding.symbol} · {formatDate(holding.corporateActionDate!)}
+                  </span>
+                  <span className="block text-xs text-text-muted truncate">
+                    {holding.corporateActionNote}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
       <div
         ref={holdingsSearchRef}
         className="holdings-in-list-search holdings-sticky-search sticky z-[9] -mx-1 mb-4 bg-bg/95 px-1 py-2 backdrop-blur supports-[backdrop-filter]:bg-bg/80"
