@@ -279,7 +279,7 @@ function fxTriangleSuggestion(
   return null
 }
 
-/** Freshest quote `updatedAt` in the section, else Markets `lastRefreshAt`. */
+/** Freshest quote `updatedAt` in the list, else Markets `lastRefreshAt`. */
 function sectionAsOfIso(
   tickers: MarketTicker[],
   quotes: Map<string, MarketQuote>,
@@ -1167,20 +1167,32 @@ export function MarketsPage() {
     }
   }, [refresh])
 
-  const slaChip = useMemo(() => {
+  const quoteFreshness = useMemo(() => {
     const list = [...quotes.values()].filter((q) => q.last > 0)
-    if (!hasStaleSyncedQuotes(list)) return null
+    const synced = list.filter((q) => (q.source || '').startsWith('sync:'))
+    if (!hasStaleSyncedQuotes(list)) {
+      return synced.length > 0
+        ? `Synced quotes within ${formatSlaAge(QUOTE_FRESHNESS_SLA_MS)} SLA`
+        : `Freshness SLA ${formatSlaAge(QUOTE_FRESHNESS_SLA_MS)}`
+    }
     let oldest = 0
-    for (const q of list) {
-      if (!(q.source || '').startsWith('sync:')) continue
+    for (const q of synced) {
       const age = quoteAgeMs(q)
       if (age != null && age > oldest) oldest = age
     }
-    if (oldest <= QUOTE_FRESHNESS_SLA_MS) return null
     return `Synced quotes past ${formatSlaAge(QUOTE_FRESHNESS_SLA_MS)} SLA · oldest ${formatSlaAge(oldest)}`
   }, [quotes])
 
   const finnhubMissing = !hasFinnhubKey(data)
+  const overallAsOfIso = useMemo(
+    () => sectionAsOfIso(tickers, quotes, loadMarketsState().lastRefreshAt),
+    [quotes, tickers],
+  )
+  const overallAsOf = useMemo(() => {
+    void relativeTick
+    if (!overallAsOfIso) return 'As of unavailable'
+    return `As of ${formatMarketsRelative(overallAsOfIso)} · ${formatMarketsAbsolute(overallAsOfIso)}`
+  }, [overallAsOfIso, relativeTick])
 
   const applySuggestedFxRate = useCallback(
     (suggestion: { ticker: MarketTicker; rate: number }) => {
@@ -1445,10 +1457,6 @@ export function MarketsPage() {
     const totals = sectionTotals(items, quotes, holdings)
     const isCollapsed = collapsed[section]
     const isRateSection = section === 'fx' || section === 'crosses' || section === 'indices'
-    const asOfIso = sectionAsOfIso(items, quotes, loadMarketsState().lastRefreshAt)
-    const asOf = asOfIso
-      ? `Updated ${formatMarketsRelative(asOfIso)}${relativeTick >= 0 ? '' : ''} · ${formatMarketsAbsolute(asOfIso)}`
-      : null
     const sectionBusy = sectionRefreshing === section || refreshing
 
     return (
@@ -1529,9 +1537,6 @@ export function MarketsPage() {
                     ? `${formatGBP(totals.changeAbs, { signed: true })} (${formatPct(totals.changePct, 2)})`
                     : formatPct(totals.avgPct, 2)}
               </p>
-              {asOf ? (
-                <p className="markets-section-asof text-[11px] text-text-subtle tabular-nums">{asOf}</p>
-              ) : null}
             </div>
             </div>
           </div>
@@ -2269,33 +2274,30 @@ export function MarketsPage() {
           </div>
         )
       })()}
-      {finnhubMissing ? (
-        <div
-          className="markets-finnhub-missing-chip mb-3 px-3 py-2 text-xs border border-amber-500/45 bg-amber-500/10 text-amber-900 dark:text-amber-100 rounded-lg md:rounded-none"
-          role="status"
-        >
-          Finnhub key missing on this device — equities rely on Yahoo.{' '}
-          <Link to="/settings#prices" className="font-semibold underline hover:no-underline">
-            Add key in Settings
-          </Link>
-        </div>
-      ) : null}
-      {finnhubQuotaLimited ? (
-        <div
-          className="markets-finnhub-quota-chip mb-3 px-3 py-2 text-xs border border-amber-500/45 bg-amber-500/10 text-amber-900 dark:text-amber-100 rounded-lg md:rounded-none"
-          role="status"
-        >
-          Finnhub rate-limited (429) — using Yahoo until quota resets
-        </div>
-      ) : null}
-      {slaChip ? (
-        <div
-          className="markets-quote-sla-chip mb-3 px-3 py-2 text-xs border border-border bg-surface/50 rounded-lg md:rounded-none flex flex-wrap items-center gap-2"
-          role="status"
-        >
-          <span>{slaChip}</span>
-        </div>
-      ) : null}
+      <div
+        className="markets-quote-trust-strip markets-quote-sla-chip mb-3 flex flex-wrap items-center gap-x-2 gap-y-1 border border-border bg-surface/50 px-3 py-2 text-[11px] text-text-muted rounded-lg md:rounded-none"
+        role="status"
+        data-testid="markets-quote-trust-strip"
+      >
+        <span className="markets-section-asof tabular-nums">{overallAsOf}</span>
+        <span aria-hidden>·</span>
+        <span>{quoteFreshness}</span>
+        <span aria-hidden>·</span>
+        {finnhubMissing ? (
+          <span className="markets-finnhub-missing-chip">
+            Finnhub key missing on this device — equities rely on Yahoo.{' '}
+            <Link to="/settings#prices" className="font-semibold text-accent underline hover:no-underline">
+              Add key in Settings
+            </Link>
+          </span>
+        ) : finnhubQuotaLimited ? (
+          <span className="markets-finnhub-quota-chip">
+            Finnhub rate-limited (429) — using Yahoo until quota resets
+          </span>
+        ) : (
+          <span>Finnhub configured</span>
+        )}
+      </div>
       <div
         ref={marketsToolbarRef}
         className="markets-sticky-toolbar sticky z-[9] -mx-1 mb-3 bg-bg/95 px-1 py-1.5 backdrop-blur supports-[backdrop-filter]:bg-bg/80"
