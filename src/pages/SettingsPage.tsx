@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { DataExportPanel } from '../components/DataExportPanel'
 import { SettingsSection } from '../components/SettingsSection'
 import { WhatsNewArchive } from '../components/WhatsNewArchive'
+import { useToasts } from '../components/ToastProvider'
 import { PageHeader } from '../components/ui/PageHeader'
 import { openSettingsSection, setAllSettingsSectionsOpen } from '../storage/settingsSectionsStore'
 import { ConfirmDialog } from '../components/ui/Modal'
@@ -98,6 +99,7 @@ import {
   allConflictsResolved,
   applyMergePreview,
   applyWorkspaceExtrasFromPreview,
+  captureMergeUndoSnapshot,
   downloadEncryptedBackup,
   formatRemoteBlobAge,
   formatSyncPayloadBytes,
@@ -107,12 +109,18 @@ import {
   previewImport,
   previewPull,
   pushSync,
+  restoreMergeUndoSnapshot,
   saveSyncConfig,
   shareSyncDiagnostics,
   type MergePreview,
+  type MergeUndoSnapshot,
 } from '../services/sync/syncService'
 import {
   announceWhatArrived,
+  clearSyncHighlights,
+  collectSyncHighlights,
+  firstSyncHighlightHref,
+  setSyncHighlights,
   summarizeWorkspaceExtras,
   workspaceExtrasFlagsFromPreview,
 } from '../services/sync/syncHighlights'
@@ -185,6 +193,7 @@ import {
   getPendingAutoSyncConflicts,
   isAutoSyncPaused,
   pauseAutoSync,
+  restorePendingAutoSyncConflicts,
   resumeAutoSync,
   subscribeAutoSync,
   syncNow,
@@ -304,6 +313,8 @@ const TAX_RESIDENCIES = [
 ]
 
 export function SettingsPage() {
+  const navigate = useNavigate()
+  const { showToast } = useToasts()
   const {
     data,
     portfolios,
@@ -539,6 +550,40 @@ export function SettingsPage() {
     setMessage(msg)
     if (isSyncTradeBackupSuccess(msg)) triggerSuccessFlash()
     window.setTimeout(() => setMessage(null), 5000)
+  }
+
+  const announceAppliedPreview = (preview: MergePreview, merged: number) => {
+    const highlights = collectSyncHighlights(
+      preview.portfolios.map((p) => ({ local: p.local, remote: p.remote })),
+    )
+    const hasHighlights = Object.values(highlights).some((ids) => (ids?.length ?? 0) > 0)
+    if (hasHighlights) setSyncHighlights(highlights)
+    const extrasSummary = summarizeWorkspaceExtras(
+      workspaceExtrasFlagsFromPreview(preview.workspaceExtras),
+    )
+    const summary = announceWhatArrived({ highlights, extrasSummary, merged })
+    return { summary, openHref: firstSyncHighlightHref(highlights) }
+  }
+
+  const undoAppliedConflictMerge = (record: {
+    snapshot: MergeUndoSnapshot
+    preview: MergePreview
+    choices: Record<string, ConflictChoice>
+  }) => {
+    restoreMergeUndoSnapshot(record.snapshot)
+    clearSyncHighlights()
+    if (record.preview.conflicts.length > 0) {
+      restorePendingAutoSyncConflicts(record.preview)
+      setPendingMerge(record.preview)
+      setConflicts(record.preview.conflicts)
+      setConflictChoices(record.choices)
+    } else {
+      setPendingMerge(null)
+      setConflicts([])
+      setConflictChoices({})
+    }
+    reload()
+    flash('Merge undone — previous portfolio data and row choices restored.')
   }
 
   const currentSyncPassphrase = () => syncPass || getSessionSyncPassphrase() || ''
@@ -1895,6 +1940,7 @@ export function SettingsPage() {
             <button
               type="button"
               className="btn-primary"
+              data-testid="sync-conflicts-settings-apply"
               disabled={
                 !pendingMerge ||
                 (pendingMerge.conflicts.length > 0 &&
@@ -1911,7 +1957,10 @@ export function SettingsPage() {
                     return
                   }
                   try {
-                    const r = await applyMergePreview(pendingMerge, conflictChoices)
+                    const appliedPreview = pendingMerge
+                    const appliedChoices = { ...conflictChoices }
+                    const undoSnapshot = captureMergeUndoSnapshot(appliedPreview)
+                    const r = await applyMergePreview(appliedPreview, appliedChoices)
                     reload()
                     setPendingMerge(null)
                     setConflicts([])
@@ -1930,8 +1979,34 @@ export function SettingsPage() {
                     }
                     setSyncCfg(next)
                     saveSyncConfig(next)
-                    flash(`Applied merge · ${r.merged} portfolios.`)
-                    if (r.removedDupes > 0 || pendingMerge.remoteHadDuplicateNames) {
+                    const { summary, openHref } = announceAppliedPreview(appliedPreview, r.merged)
+                    flash(`Applied merge · ${r.merged} portfolios${summary ? ` · ${summary}` : ''}.`)
+                    const undoRecord = {
+                      snapshot: undoSnapshot,
+                      preview: appliedPreview,
+                      choices: appliedChoices,
+                    }
+                    const actions = [
+                      {
+                        label: 'Undo',
+                        onClick: () => undoAppliedConflictMerge(undoRecord),
+                      },
+                    ]
+                    if (openHref) {
+                      actions.push({
+                        label: 'Open first',
+                        onClick: () => navigate(openHref),
+                      })
+                    }
+                    showToast({
+                      type: 'success',
+                      title: 'Sync merge applied',
+                      message: summary ?? `${r.merged} portfolio${r.merged === 1 ? '' : 's'} merged`,
+                      duration: 10_000,
+                      actions,
+                      className: 'sync-merge-undo-toast',
+                    })
+                    if (r.removedDupes > 0 || appliedPreview.remoteHadDuplicateNames) {
                       void syncNow().catch(() => {
                         /* local already cleaned */
                       })
@@ -2320,8 +2395,10 @@ export function SettingsPage() {
                 const key = conflictKey(c)
                 return (
                   <div
-                    key={`${c.portfolioId}-${key}`}
+                    key={key}
                     className="text-sm border border-border/60 rounded-lg p-3 space-y-2"
+                    data-testid="sync-conflict-settings-row"
+                    data-conflict-key={key}
                   >
                     <p className="text-xs text-text-muted font-light">{summarizeConflict(c)}</p>
                     <div className="flex flex-wrap items-center gap-2">
@@ -2336,6 +2413,8 @@ export function SettingsPage() {
                         <button
                           type="button"
                           className={`btn-sm ${conflictChoices[key] === 'local' ? 'btn-primary' : 'btn-ghost'}`}
+                          aria-pressed={conflictChoices[key] === 'local'}
+                          data-testid="sync-conflict-settings-keep-local"
                           onClick={() =>
                             setConflictChoices((prev) => ({ ...prev, [key]: 'local' }))
                           }
@@ -2345,6 +2424,8 @@ export function SettingsPage() {
                         <button
                           type="button"
                           className={`btn-sm ${conflictChoices[key] === 'remote' ? 'btn-primary' : 'btn-ghost'}`}
+                          aria-pressed={conflictChoices[key] === 'remote'}
+                          data-testid="sync-conflict-settings-keep-remote"
                           onClick={() =>
                             setConflictChoices((prev) => ({ ...prev, [key]: 'remote' }))
                           }
