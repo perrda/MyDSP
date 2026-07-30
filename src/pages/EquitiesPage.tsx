@@ -171,7 +171,9 @@ export function EquitiesPage() {
   const corpActionToastKeyRef = useRef('')
   const brokerImportRef = useRef<HTMLInputElement | null>(null)
   const holdingsSearchRef = useRef<HTMLDivElement | null>(null)
+  const holdingsTotalsRef = useRef<HTMLDivElement | null>(null)
   useCssVarFromElementSize(holdingsSearchRef, '--holdings-search-height')
+  useCssVarFromElementSize(holdingsTotalsRef, '--holdings-totals-height')
 
   const holdings = useMemo(() => sortBySortOrder(data.equities), [data.equities])
   const includedPortfolioValue = useMemo(() => includedPortfolioHoldingValue(data), [data])
@@ -575,6 +577,7 @@ export function EquitiesPage() {
       </div>
 
       <div
+        ref={holdingsTotalsRef}
         className={`holdings-included-value-bar holdings-sticky-totals sticky z-[8] -mx-1 mb-4 border border-border bg-bg-elevated px-3 py-2 text-xs text-text-muted shadow-sm ${privacyClass(privacy)}`}
         role="status"
       >

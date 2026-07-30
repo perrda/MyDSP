@@ -634,7 +634,7 @@ export function Dashboard() {
     return { detail }
   }, [data.settings.taxResidency, data.disposals])
 
-  /** Next-action stack: todo / bill / interview / goal / budget / top mover (max 3). */
+  /** Next-action: single highest-priority card (todo / bill / interview / …). */
   const nextActions = useMemo(
     () =>
       buildNextActionStack({
@@ -644,6 +644,7 @@ export function Dashboard() {
         goals: data.goals,
         budgetOffenders: budgetPulse,
         movers: todayMovers,
+        max: 1,
       }),
     [
       data.todoItems,
@@ -1851,7 +1852,7 @@ export function Dashboard() {
         </TodayAccordionSection>
       ) : null}
 
-      {/* Next-action stack — up to 3: todo / bill / top mover */}
+      {/* Next action — single highest-priority card; detail lives in dedicated sections */}
       {showNextCard ? (
       <TodayAccordionSection
         id="today-next-action"
@@ -1859,7 +1860,7 @@ export function Dashboard() {
         enabled={todayAccordionEnabled}
         defaultOpen
         className="today-next-action-stack today-focus-card space-y-2 mb-3"
-        ariaLabel="Next actions"
+        ariaLabel="Next action"
         action={
           <Link to="/todos" className="text-xs text-accent font-semibold">
             All To Do's

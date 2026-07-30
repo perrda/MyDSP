@@ -112,6 +112,7 @@ import {
   type MergePreview,
 } from '../services/sync/syncService'
 import {
+  announceWhatArrived,
   summarizeWorkspaceExtras,
   workspaceExtrasFlagsFromPreview,
 } from '../services/sync/syncHighlights'
@@ -568,6 +569,7 @@ export function SettingsPage() {
       const extrasSummary = summarizeWorkspaceExtras(
         workspaceExtrasFlagsFromPreview(preview.workspaceExtras),
       )
+      announceWhatArrived({ extrasSummary })
       const next = loadSyncConfig()
       setSyncCfg(next)
       const prefix =
@@ -1216,11 +1218,21 @@ export function SettingsPage() {
               data-testid="sync-unlock-onboarding"
             >
               <p className="font-semibold text-text mb-1">Cloud sync is locked on this device</p>
-              <p className="text-xs opacity-90 leading-relaxed">
+              <p className="text-xs opacity-90 leading-relaxed mb-3">
                 Markets live prices still work. Enter the same sync passphrase you used on your other
-                device, turn on Remember passphrase for this browser, then pull media from cloud so
-                YouTube, News, Markets, and favourites arrive here.
+                device, turn on Remember passphrase for this browser, then unlock so YouTube, News,
+                Markets, and favourites arrive here.
               </p>
+              <button
+                type="button"
+                className="btn-primary btn-sm"
+                data-testid="sync-unlock-onboarding-cta"
+                onClick={() => {
+                  void pullWorkspaceMediaFromCloud()
+                }}
+              >
+                Unlock & pull media from cloud
+              </button>
             </div>
           ) : null}
           <div className="flex flex-col gap-3 mb-6 max-w-2xl">

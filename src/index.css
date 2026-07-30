@@ -2889,8 +2889,16 @@ html.success-haptic-flash::after {
   .holdings-master-detail-panel {
     display: block;
     position: sticky;
-    top: calc(var(--app-header-offset, 3.5rem) + 0.75rem);
+    top: calc(
+      var(--app-header-offset, 3.5rem) + var(--holdings-search-height, 0px) +
+        var(--holdings-totals-height, 0px) + 1rem
+    );
     border-left: 3px solid color-mix(in srgb, var(--accent) 55%, transparent);
+    max-height: calc(
+      100vh - var(--app-header-offset, 3.5rem) - var(--holdings-search-height, 0px) -
+        var(--holdings-totals-height, 0px) - 2rem
+    );
+    overflow: auto;
   }
 }
 

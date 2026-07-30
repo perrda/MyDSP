@@ -353,3 +353,30 @@ export function collectSyncHighlights(
   }
   return out
 }
+
+/** Dispatch What arrived for auto-sync and manual Settings pull/merge paths. */
+export function announceWhatArrived(opts: {
+  highlights?: SyncHighlightMap
+  extrasSummary?: string | null
+  merged?: boolean
+}): string | null {
+  const entitySummary = opts.highlights ? summarizeSyncHighlights(opts.highlights) : null
+  const summary = [entitySummary, opts.extrasSummary].filter(Boolean).join(' · ') || null
+  try {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('mydsp-sync-applied', {
+          detail: {
+            merged: opts.merged ?? false,
+            highlights: opts.highlights ?? {},
+            extrasSummary: opts.extrasSummary ?? null,
+            summary,
+          },
+        }),
+      )
+    }
+  } catch {
+    /* ignore */
+  }
+  return summary
+}

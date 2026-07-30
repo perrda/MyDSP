@@ -441,7 +441,17 @@ export function ComparePage() {
         className="compare-week-delta-note text-xs text-text-muted font-light mb-3"
         data-testid="compare-week-delta-note"
       >
-        Week Δ uses the net worth captured on your first Compare visit this week — not live week-over-week.
+        Week Δ compares each portfolio to its previous-week snapshot
+        {weekSnap?.capturedAt
+          ? ` (baseline captured ${new Date(weekSnap.capturedAt).toLocaleString('en-GB', {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+            })})`
+          : ''}
+        — not live week-over-week market moves.
       </p>
 
       <div className="table-wrap surface overflow-x-auto mb-8">

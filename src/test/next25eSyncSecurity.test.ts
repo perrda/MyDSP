@@ -31,7 +31,7 @@ describe('next25e sync / security (1-5)', () => {
     ).toBe("2 To Do's · 1 job application")
 
     const auto = readFileSync(resolve(__dirname, '../services/sync/autoSyncService.ts'), 'utf8')
-    expect(auto).toMatch(/summarizeSyncHighlights/)
+    expect(auto).toMatch(/announceWhatArrived/)
     expect(auto).toMatch(/title:\s*'What arrived'/)
     expect(auto).toMatch(/setSyncHighlights\(highlights\)/)
   })
