@@ -52,6 +52,7 @@ import {
   type MarketTicker,
   type MarketTickerTag,
   type MarketsDensity,
+  type MarketsScreenerFilter,
   type MarketsSectionKey,
 } from '../domain/markets'
 import { addHoldingsMissingFromWatchlist, holdingsMissingFromWatchlist } from '../domain/addHoldingsToWatchlist'
@@ -104,6 +105,8 @@ import {
   setMarketsCollapsed,
   setMarketsDensity,
   getMarketsDensity,
+  setMarketsScreener,
+  getMarketsScreener,
   setMarketsTimeframe,
   getMarketsTimeframe,
   getMarketsTagFilter,
@@ -136,13 +139,6 @@ type FormState = {
   quantity: string
   avgCostGbp: string
   includeInNetWorth: boolean
-}
-
-type MarketsScreenerFilter = {
-  owned: 'all' | 'owned'
-  alerts: 'all' | 'set'
-  stale: 'all' | 'stale'
-  kind: 'all' | MarketAssetKind
 }
 
 const emptyForm: FormState = {
@@ -626,12 +622,9 @@ export function MarketsPage() {
     'assets' | 'timeframe' | 'format' | 'filters' | null
   >(null)
   const [marketSearch, setMarketSearch] = useState('')
-  const [marketScreener, setMarketScreener] = useState<MarketsScreenerFilter>({
-    owned: 'all',
-    alerts: 'all',
-    stale: 'all',
-    kind: 'all',
-  })
+  const [marketScreener, setMarketScreener] = useState<MarketsScreenerFilter>(() =>
+    getMarketsScreener(),
+  )
   const [priceAlerts, setPriceAlerts] = useState(() => loadPriceAlertThresholds())
   const [online, setOnline] = useState(() => isOnline())
   const [relativeTick, setRelativeTick] = useState(0)
@@ -645,6 +638,10 @@ export function MarketsPage() {
   const applyYieldSort = useCallback((next: boolean) => {
     setYieldSort(next)
     setMarketsYieldSort(next)
+  }, [])
+  const applyMarketScreener = useCallback((next: MarketsScreenerFilter) => {
+    setMarketScreener(next)
+    setMarketsScreener(next)
   }, [])
   const longPressTimer = useRef<number | null>(null)
   const sectionLongPressTimer = useRef<number | null>(null)
@@ -2620,10 +2617,10 @@ export function MarketsPage() {
                 aria-label="Owned filter"
                 value={marketScreener.owned}
                 onChange={(e) =>
-                  setMarketScreener((prev) => ({
-                    ...prev,
+                  applyMarketScreener({
+                    ...marketScreener,
                     owned: e.target.value as MarketsScreenerFilter['owned'],
-                  }))
+                  })
                 }
               >
                 <option value="all">All ownership</option>
@@ -2634,10 +2631,10 @@ export function MarketsPage() {
                 aria-label="Price alert filter"
                 value={marketScreener.alerts}
                 onChange={(e) =>
-                  setMarketScreener((prev) => ({
-                    ...prev,
+                  applyMarketScreener({
+                    ...marketScreener,
                     alerts: e.target.value as MarketsScreenerFilter['alerts'],
-                  }))
+                  })
                 }
               >
                 <option value="all">All alerts</option>
@@ -2648,10 +2645,10 @@ export function MarketsPage() {
                 aria-label="Stale quote filter"
                 value={marketScreener.stale}
                 onChange={(e) =>
-                  setMarketScreener((prev) => ({
-                    ...prev,
+                  applyMarketScreener({
+                    ...marketScreener,
                     stale: e.target.value as MarketsScreenerFilter['stale'],
-                  }))
+                  })
                 }
               >
                 <option value="all">All freshness</option>
@@ -2662,10 +2659,10 @@ export function MarketsPage() {
                 aria-label="Asset type filter"
                 value={marketScreener.kind}
                 onChange={(e) =>
-                  setMarketScreener((prev) => ({
-                    ...prev,
+                  applyMarketScreener({
+                    ...marketScreener,
                     kind: e.target.value as MarketsScreenerFilter['kind'],
-                  }))
+                  })
                 }
               >
                 <option value="all">All types</option>
@@ -2685,7 +2682,7 @@ export function MarketsPage() {
                   className="btn-ghost btn-sm"
                   data-testid="markets-filters-clear"
                   onClick={() =>
-                    setMarketScreener({
+                    applyMarketScreener({
                       owned: 'all',
                       alerts: 'all',
                       stale: 'all',

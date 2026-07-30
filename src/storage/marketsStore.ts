@@ -2,6 +2,7 @@
 
 import {
   createEmptyMarketsState,
+  DEFAULT_MARKETS_SCREENER,
   defaultNameForPair,
   mergeDefaultTickers,
   newMarketTickerId,
@@ -15,6 +16,7 @@ import {
   type MarketTickerTag,
   type MarketsCollapsed,
   type MarketsDensity,
+  type MarketsScreenerFilter,
   type MarketsSectionKey,
   type MarketsState,
 } from '../domain/markets'
@@ -31,7 +33,10 @@ function touchPrefs(state: MarketsState): void {
 }
 
 const KEY = 'mydsp_markets_v1'
-type StoredMarketsState = Omit<MarketsState, 'density'> & { density?: unknown }
+type StoredMarketsState = Omit<MarketsState, 'density' | 'screener'> & {
+  density?: unknown
+  screener?: unknown
+}
 
 function notifyChanged(opts?: { fromSync?: boolean }): void {
   // Markets edits mark workspace sync dirty so watchlists replicate across devices.
@@ -69,6 +74,25 @@ function normalizeTag(raw: unknown): MarketTickerTag | undefined {
   if (typeof raw !== 'string') return undefined
   const t = raw.trim()
   return (MARKET_TICKER_TAGS as string[]).includes(t) ? (t as MarketTickerTag) : undefined
+}
+
+function normalizeMarketsScreener(raw: unknown): MarketsScreenerFilter {
+  if (!raw || typeof raw !== 'object') return { ...DEFAULT_MARKETS_SCREENER }
+  const value = raw as Partial<MarketsScreenerFilter>
+  return {
+    owned: value.owned === 'owned' ? 'owned' : 'all',
+    alerts: value.alerts === 'set' ? 'set' : 'all',
+    stale: value.stale === 'stale' ? 'stale' : 'all',
+    kind:
+      value.kind === 'crypto' ||
+      value.kind === 'equity' ||
+      value.kind === 'commodity' ||
+      value.kind === 'fx' ||
+      value.kind === 'cross' ||
+      value.kind === 'index'
+        ? value.kind
+        : 'all',
+  }
 }
 
 function normalizeYieldPct(raw: unknown): number | undefined {
@@ -131,6 +155,7 @@ export function loadMarketsState(): MarketsState {
       timeframe: isMarketTimeframe((existing as MarketsState).timeframe)
         ? (existing as MarketsState).timeframe
         : '24H',
+      screener: normalizeMarketsScreener(existing.screener),
     }
     const { state, added } = mergeDefaultTickers(normalized)
     const hadNoSectionOrder = !Array.isArray((existing as MarketsState).sectionOrder)
@@ -382,6 +407,17 @@ export function getMarketsDensity(): MarketsDensity {
   return 'comfortable'
 }
 
+export function setMarketsScreener(screener: MarketsScreenerFilter): void {
+  const state = loadMarketsState()
+  state.screener = normalizeMarketsScreener(screener)
+  touchPrefs(state)
+  saveMarketsState(state)
+}
+
+export function getMarketsScreener(): MarketsScreenerFilter {
+  return normalizeMarketsScreener(loadMarketsState().screener)
+}
+
 export function setMarketsTimeframe(timeframe: MarketTimeframe): void {
   const state = loadMarketsState()
   state.timeframe = timeframe
@@ -567,6 +603,11 @@ export function importMarketsFromBackup(raw: unknown): void {
     : Boolean(
         (local as MarketsState | null)?.yieldSort ?? (parsed as MarketsState).yieldSort,
       )
+  const screener = normalizeMarketsScreener(
+    preferRemotePrefs
+      ? (parsed as MarketsState).screener
+      : ((local as MarketsState | null)?.screener ?? (parsed as MarketsState).screener),
+  )
   const prefsUpdatedAt =
     remotePrefsAt >= localPrefsAt
       ? (parsed as MarketsState).prefsUpdatedAt || (local as MarketsState | null)?.prefsUpdatedAt
@@ -581,6 +622,7 @@ export function importMarketsFromBackup(raw: unknown): void {
     timeframe,
     tagFilter,
     yieldSort,
+    screener,
     prefsUpdatedAt,
     deletedTickers: [...tombByKey.entries()].map(([key, deletedAt]) => ({ key, deletedAt })),
   })

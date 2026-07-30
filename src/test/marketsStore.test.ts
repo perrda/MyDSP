@@ -155,6 +155,50 @@ describe('markets watchlist store', () => {
     expect(store.listMarketTickers('cross').some((t) => t.symbol === 'ETH/BTC')).toBe(true)
     expect(store.listMarketTickers('fx').some((t) => t.symbol === 'GBP/USD')).toBe(true)
   })
+
+  it('persists screener filters and merges them with prefs LWW', async () => {
+    const store = await import('../storage/marketsStore')
+    store.loadMarketsState()
+    store.setMarketsScreener({
+      owned: 'owned',
+      alerts: 'all',
+      stale: 'stale',
+      kind: 'equity',
+    })
+
+    expect(store.getMarketsScreener()).toEqual({
+      owned: 'owned',
+      alerts: 'all',
+      stale: 'stale',
+      kind: 'equity',
+    })
+    expect(store.loadMarketsState().prefsUpdatedAt).toBeTruthy()
+
+    const local = store.exportMarketsForBackup()
+    store.importMarketsFromBackup({
+      ...local,
+      prefsUpdatedAt: '2100-01-01T00:00:00.000Z',
+      screener: { owned: 'all', alerts: 'set', stale: 'all', kind: 'crypto' },
+    })
+    expect(store.getMarketsScreener()).toEqual({
+      owned: 'all',
+      alerts: 'set',
+      stale: 'all',
+      kind: 'crypto',
+    })
+
+    store.importMarketsFromBackup({
+      ...local,
+      prefsUpdatedAt: '2000-01-01T00:00:00.000Z',
+      screener: { owned: 'owned', alerts: 'all', stale: 'stale', kind: 'commodity' },
+    })
+    expect(store.getMarketsScreener()).toEqual({
+      owned: 'all',
+      alerts: 'set',
+      stale: 'all',
+      kind: 'crypto',
+    })
+  })
 })
 
 describe('markets domain helpers', () => {
