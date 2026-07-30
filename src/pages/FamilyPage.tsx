@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import { AllocationRing } from '../components/charts/AllocationRing'
+import { OverflowMenu } from '../components/ui/OverflowMenu'
 import { PageHeader, StatCard } from '../components/ui/PageHeader'
+import { PagePrimaryActions } from '../components/ui/PagePrimaryActions'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
 import { usePortfolio } from '../context/PortfolioContext'
 import { calcBreakdown } from '../domain/calc'
@@ -103,9 +105,11 @@ export function FamilyPage() {
         title="Family"
         description="Roll up household net worth across members — link portfolios or enter manual totals."
         action={
-          <button type="button" className="btn-primary btn-sm" onClick={openCreate}>
-            Add member
-          </button>
+          <PagePrimaryActions
+            primaryLabel="Add member"
+            onPrimary={openCreate}
+            menuLabel="Family actions"
+          />
         }
       />
 
@@ -173,7 +177,7 @@ export function FamilyPage() {
           {data.family.members.map((m) => {
             const c = totals.contributions.find((x) => x.id === m.id)
             return (
-              <div key={m.id} className={`surface p-6 ${!m.isActive ? 'opacity-50' : ''}`}>
+              <div key={m.id} className={`surface p-4 sm:p-5 ${!m.isActive ? 'opacity-50' : ''}`}>
                 <div className="flex justify-between gap-2 mb-2">
                   <h3 className="font-bold tracking-tight">{m.name}</h3>
                   <span className="text-[10px] font-bold uppercase tracking-widest text-accent">
@@ -192,33 +196,37 @@ export function FamilyPage() {
                     Linked: {portfolios.find((p) => p.id === m.portfolioId)?.name ?? m.portfolioId}
                   </p>
                 )}
-                <div className="flex flex-wrap gap-2">
-                  <button type="button" className="btn-ghost btn-sm" onClick={() => openEdit(m)}>
-                    Edit
-                  </button>
-                  {m.id !== 'primary' && (
-                    <button type="button" className="btn-ghost btn-sm" onClick={() => setDeleteId(m.id)}>
-                      Delete
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    className="btn-ghost btn-sm"
-                    onClick={() =>
-                      setData((prev) => ({
-                        ...prev,
-                        family: {
-                          ...prev.family,
-                          members: prev.family.members.map((x) =>
-                            x.id === m.id ? { ...x, isActive: !x.isActive } : x,
-                          ),
-                        },
-                      }))
-                    }
-                  >
-                    {m.isActive ? 'Deactivate' : 'Activate'}
-                  </button>
-                </div>
+                <OverflowMenu
+                  compact
+                  label={`Actions for ${m.name}`}
+                  items={[
+                    { id: 'edit', label: 'Edit', onClick: () => openEdit(m) },
+                    {
+                      id: 'active',
+                      label: m.isActive ? 'Deactivate' : 'Activate',
+                      onClick: () =>
+                        setData((prev) => ({
+                          ...prev,
+                          family: {
+                            ...prev.family,
+                            members: prev.family.members.map((x) =>
+                              x.id === m.id ? { ...x, isActive: !x.isActive } : x,
+                            ),
+                          },
+                        })),
+                    },
+                    ...(m.id !== 'primary'
+                      ? [
+                          {
+                            id: 'delete',
+                            label: 'Delete',
+                            destructive: true,
+                            onClick: () => setDeleteId(m.id),
+                          },
+                        ]
+                      : []),
+                  ]}
+                />
               </div>
             )
           })}
@@ -341,12 +349,6 @@ export function FamilyPage() {
         }}
       />
 
-      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary family actions">
-        <button type="button" className="btn-primary btn-sm" onClick={openCreate}>
-          Add member
-        </button>
-      </div>
-      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }

@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react'
+import { OverflowMenu } from '../components/ui/OverflowMenu'
 import { PageHeader, StatCard } from '../components/ui/PageHeader'
+import { PagePrimaryActions } from '../components/ui/PagePrimaryActions'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
 import { usePortfolio } from '../context/PortfolioContext'
@@ -114,9 +116,11 @@ export function TripsPage() {
         description="Track trip spend and shared expense balances. Drag active trips to reorder."
         action={
           tab === 'trips' ? (
-            <button type="button" className="btn-primary btn-sm" onClick={openCreate}>
-              Add trip
-            </button>
+            <PagePrimaryActions
+              primaryLabel="Add trip"
+              onPrimary={openCreate}
+              menuLabel="Trip actions"
+            />
           ) : undefined
         }
       />
@@ -161,7 +165,7 @@ export function TripsPage() {
                 const budget = t.budget ?? 0
                 const over = budget > 0 && spent > budget
                 return (
-                  <div className="surface p-6 sm:p-8 trips-density-card">
+                  <div className="surface p-4 sm:p-5 trips-density-card">
                     <div className="flex items-start gap-2 mb-3">
                       <ReorderHandle label={`Reorder ${t.name}`} />
                       <div className="flex-1 min-w-0 flex justify-between gap-3">
@@ -197,35 +201,39 @@ export function TripsPage() {
                         />
                       </div>
                     )}
-                    <div className="flex flex-wrap gap-2">
-                      <button type="button" className="btn-ghost btn-sm" onClick={() => setSpendTripId(t.id)}>
-                        View spend
-                      </button>
-                      <button type="button" className="btn-ghost btn-sm" onClick={() => openEdit(t)}>
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        className="btn-ghost btn-sm"
-                        onClick={() =>
-                          setData((prev) => ({
-                            ...prev,
-                            trips: prev.trips.map((x) =>
-                              x.id === t.id ? { ...x, completed: true } : x,
-                            ),
-                          }))
-                        }
-                      >
-                        Complete
-                      </button>
-                      <button
-                        type="button"
-                        className="btn-ghost btn-sm"
-                        onClick={() => setDeleteId(t.id)}
-                      >
-                        Delete
-                      </button>
-                    </div>
+                    <OverflowMenu
+                      compact
+                      label={`Actions for ${t.name}`}
+                      leading={
+                        <button
+                          type="button"
+                          className="btn-secondary btn-sm"
+                          onClick={() => setSpendTripId(t.id)}
+                        >
+                          View spend
+                        </button>
+                      }
+                      items={[
+                        { id: 'edit', label: 'Edit', onClick: () => openEdit(t) },
+                        {
+                          id: 'complete',
+                          label: 'Complete',
+                          onClick: () =>
+                            setData((prev) => ({
+                              ...prev,
+                              trips: prev.trips.map((x) =>
+                                x.id === t.id ? { ...x, completed: true } : x,
+                              ),
+                            })),
+                        },
+                        {
+                          id: 'delete',
+                          label: 'Delete',
+                          destructive: true,
+                          onClick: () => setDeleteId(t.id),
+                        },
+                      ]}
+                    />
                   </div>
                 )
               }}
@@ -237,34 +245,38 @@ export function TripsPage() {
               <p className="label-uppercase mb-4">Past</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-px">
                 {past.map((t) => (
-                  <div key={t.id} className="surface p-6 opacity-80">
+                  <div key={t.id} className="surface p-4 sm:p-5 opacity-80">
                     <h3 className="font-bold tracking-tight mb-2">{t.name}</h3>
                     <p className={`text-lg font-semibold tabular-nums ${privacyClass(privacy)}`}>
                       {formatGBP(tripSpend(data.spending, t.id))}
                     </p>
-                    <div className="flex flex-wrap gap-2 mt-3">
-                      <button
-                        type="button"
-                        className="btn-ghost btn-sm"
-                        onClick={() => setSpendTripId(t.id)}
-                      >
-                        View spend
-                      </button>
-                      <button
-                        type="button"
-                        className="btn-ghost btn-sm"
-                        onClick={() =>
-                          setData((prev) => ({
-                            ...prev,
-                            trips: prev.trips.map((x) =>
-                              x.id === t.id ? { ...x, completed: false } : x,
-                            ),
-                          }))
-                        }
-                      >
-                        Reopen
-                      </button>
-                    </div>
+                    <OverflowMenu
+                      compact
+                      className="mt-3"
+                      label={`Actions for ${t.name}`}
+                      leading={
+                        <button
+                          type="button"
+                          className="btn-secondary btn-sm"
+                          onClick={() => setSpendTripId(t.id)}
+                        >
+                          View spend
+                        </button>
+                      }
+                      items={[
+                        {
+                          id: 'reopen',
+                          label: 'Reopen',
+                          onClick: () =>
+                            setData((prev) => ({
+                              ...prev,
+                              trips: prev.trips.map((x) =>
+                                x.id === t.id ? { ...x, completed: false } : x,
+                              ),
+                            })),
+                        },
+                      ]}
+                    />
                   </div>
                 ))}
               </div>
@@ -282,7 +294,7 @@ export function TripsPage() {
             <StatCard label="Settle" value={settleHint} />
           </div>
 
-          <div className="surface p-6 sm:p-8 mb-px">
+          <div className="surface p-4 sm:p-5 mb-px">
             <p className="eyebrow mb-4">People</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field label="Person 1">
@@ -354,7 +366,7 @@ export function TripsPage() {
               </tbody>
             </table>
             {balance.splitCount === 0 && (
-              <p className="p-8 text-center text-text-subtle">No split expenses yet.</p>
+              <p className="p-4 sm:p-5 text-center text-text-subtle">No split expenses yet.</p>
             )}
           </div>
         </>
@@ -466,12 +478,6 @@ export function TripsPage() {
         }}
       />
 
-      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary trips actions">
-        <button type="button" className="btn-primary btn-sm" onClick={openCreate}>
-          Add trip
-        </button>
-      </div>
-      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { PageHeader } from '../components/ui/PageHeader'
 import { ConfirmDialog, Field, Modal } from '../components/ui/Modal'
+import { useToasts } from '../components/ToastProvider'
 import { usePortfolio } from '../context/PortfolioContext'
 import { resolveCategory } from '../domain/merchantRules'
 import type { MerchantMatchType, MerchantRule } from '../domain/types'
@@ -35,6 +36,7 @@ const empty = {
 
 export function RulesPage() {
   const { data, setData } = usePortfolio()
+  const { success } = useToasts()
   const [searchParams, setSearchParams] = useSearchParams()
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<MerchantRule | null>(null)
@@ -51,7 +53,7 @@ export function RulesPage() {
   useEffect(() => {
     const pattern = searchParams.get('pattern')
     if (pattern == null || !pattern.trim()) return
-    const categoryRaw = searchParams.get('category') ?? 'other'
+    const categoryRaw = (searchParams.get('category') ?? 'other').trim().toLowerCase()
     const category = CATEGORIES.includes(categoryRaw) ? categoryRaw : 'other'
     setEditing(null)
     setForm({
@@ -85,6 +87,7 @@ export function RulesPage() {
   }
 
   const save = () => {
+    const isCreate = editing === null
     const rule: MerchantRule = {
       id: editing?.id ?? nextId(data.merchantRules),
       pattern: form.pattern.trim(),
@@ -100,6 +103,7 @@ export function RulesPage() {
         : [...prev.merchantRules, rule],
     }))
     setOpen(false)
+    if (isCreate) success('Rule created', rule.pattern)
   }
 
   return (
@@ -109,9 +113,11 @@ export function RulesPage() {
         title="Merchant rules"
         description="Match bank descriptions to categories. Higher priority wins."
         action={
-          <button type="button" className="btn-primary btn-sm" onClick={openCreate}>
-            Add rule
-          </button>
+          <div data-testid="page-primary-actions">
+            <button type="button" className="btn-primary btn-sm" onClick={openCreate}>
+              Add rule
+            </button>
+          </div>
         }
       />
 
@@ -236,12 +242,6 @@ export function RulesPage() {
         }}
       />
 
-      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary rules actions">
-        <button type="button" className="btn-primary btn-sm" onClick={openCreate}>
-          Add rule
-        </button>
-      </div>
-      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }

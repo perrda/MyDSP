@@ -19,10 +19,7 @@ import { calcFire } from '../domain/fire'
 import { appendManualSnapshot } from '../domain/history'
 import { nearestGoalProjection, formatGoalProjectionLine } from '../domain/goalProjectedDate'
 import { formatMoneyPulseLine, moneyPulseDelta } from '../domain/moneyPulse'
-import {
-  buildNextActionStack,
-  stackIncludesBill,
-} from '../domain/nextActionStack'
+import { buildNextActionStack, stackIncludesBill } from '../domain/nextActionStack'
 import { ensureFinnhubSetupTodo } from '../domain/finnhubReminder'
 import {
   netWorthSparkSeries,
@@ -1244,6 +1241,12 @@ export function Dashboard() {
     () => dueWithinDays(data.recurringTransactions, 7).slice(0, 4),
     [data.recurringTransactions],
   )
+  const nextCardVisible = isTodayCardVisible('next')
+  const dailyPlanCardVisible = isTodayCardVisible('dailyPlan')
+  const nextHasBill = stackIncludesBill(nextActions)
+  const nextBill = nextActions.find((card) => card.kind === 'bill')
+  const nextBillId =
+    nextCardVisible && nextHasBill && nextBill?.kind === 'bill' ? nextBill.bill.id : undefined
   const todayDailyPlan = useMemo<DailyPlanItem[]>(() => {
     const today = todayYmd()
     const rows: DailyPlanItem[] = []
@@ -1261,6 +1264,7 @@ export function Dashboard() {
     }
 
     for (const bill of billsDueSoon) {
+      if (bill.id === nextBillId) continue
       if ((bill.nextDue ?? '').slice(0, 10) !== today) continue
       rows.push({
         id: `bill-${bill.id}`,
@@ -1297,15 +1301,20 @@ export function Dashboard() {
     }
 
     return rows.sort((a, b) => a.sortKey.localeCompare(b.sortKey))
-  }, [billsDueSoon, data.jobApplications, data.todoItems])
+  }, [billsDueSoon, data.jobApplications, data.todoItems, nextBillId])
   const todayDailyPlanHasPhoneOverflow =
     todayDailyPlan.length > DAILY_PLAN_PHONE_VISIBLE_ROWS
-  /** Hide longer bills strip when next bill already sits in the action stack. */
-  const showBillsStrip = billsDueSoon.length > 1 && stackIncludesBill(nextActions)
-    ? billsDueSoon.slice(1)
-    : stackIncludesBill(nextActions)
-      ? []
-      : billsDueSoon
+  const dailyPlanBillIds = new Set(
+    dailyPlanCardVisible
+      ? todayDailyPlan
+          .filter((item) => item.id.startsWith('bill-'))
+          .map((item) => Number(item.id.slice('bill-'.length)))
+      : [],
+  )
+  /** A bill appears once: Next, then Daily plan, then the lower-priority bills strip. */
+  const showBillsStrip = billsDueSoon.filter(
+    (bill) => bill.id !== nextBillId && !dailyPlanBillIds.has(bill.id),
+  )
 
   const careerPulse = useMemo(() => {
     const jobs = data.jobApplications ?? []
@@ -1320,10 +1329,10 @@ export function Dashboard() {
   }, [data.jobApplications])
 
   const goalProjection = useMemo(() => nearestGoalProjection(data), [data])
-  const showNextCard = isTodayCardVisible('next')
-  const showDailyPlanCard = isTodayCardVisible('dailyPlan') && todayDailyPlan.length > 0
+  const showNextCard = nextCardVisible
+  const showDailyPlanCard = dailyPlanCardVisible
   const showCareerPulseCard = isTodayCardVisible('careerPulse') && Boolean(careerPulse)
-  const showBillsCard = isTodayCardVisible('bills') && showBillsStrip.length > 0
+  const showBillsCard = isTodayCardVisible('bills')
   const showGoalsCard = isTodayCardVisible('goals') && Boolean(soonGoal || goalProjection)
   const showTaxCard = isTodayCardVisible('tax')
   const showMediaCard = isTodayCardVisible('media')
@@ -1760,30 +1769,36 @@ export function Dashboard() {
             className="surface p-3 md:p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none"
             data-testid="today-daily-plan"
           >
-            <ul className="divide-y divide-border/70">
-              {todayDailyPlan.map((item) => (
-                <li key={item.id} className="today-daily-plan-row">
-                  <Link
-                    to={item.to}
-                    className="py-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 hover:bg-surface-hover/50 -mx-2 px-2 transition-colors"
-                  >
-                    <span className="min-w-0">
-                      <span className="block text-sm font-semibold truncate">{item.label}</span>
-                      <span
-                        className={`block text-xs text-text-muted tabular-nums ${
-                          item.privateAmount ? privacyClass(privacy) : ''
-                        }`}
-                      >
-                        {item.when}
+            {todayDailyPlan.length === 0 ? (
+              <p className="py-2 text-sm text-text-muted font-light">
+                Nothing scheduled for today.
+              </p>
+            ) : (
+              <ul className="divide-y divide-border/70">
+                {todayDailyPlan.map((item) => (
+                  <li key={item.id} className="today-daily-plan-row">
+                    <Link
+                      to={item.to}
+                      className="py-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 hover:bg-surface-hover/50 -mx-2 px-2 transition-colors"
+                    >
+                      <span className="min-w-0">
+                        <span className="block text-sm font-semibold truncate">{item.label}</span>
+                        <span
+                          className={`block text-xs text-text-muted tabular-nums ${
+                            item.privateAmount ? privacyClass(privacy) : ''
+                          }`}
+                        >
+                          {item.when}
+                        </span>
                       </span>
-                    </span>
-                    <span className="btn-ghost btn-sm hidden sm:inline-flex self-start sm:self-center">
-                      Open
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
+                      <span className="btn-ghost btn-sm hidden sm:inline-flex self-start sm:self-center">
+                        Open
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
             {todayDailyPlanHasPhoneOverflow ? (
               <Link
                 to="/todos"
@@ -2234,42 +2249,60 @@ export function Dashboard() {
           }
         >
           <div className="today-bills-strip surface p-3 md:p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none">
-            <ul className="flex flex-col gap-1.5">
-              {showBillsStrip.map((r) => {
-                const billNote = latestRecurringCommentary(r)
-                return (
-                <li key={r.id}>
-                  <SwipeBillRow
-                    onMarkPaid={() => markBillPaid(r.id)}
-                    onSkip={() => skipBill(r.id)}
-                    className="rounded-lg md:rounded-none"
-                  >
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm py-1.5">
-                      <Link to={`/recurring?focus=${r.id}`} className="min-w-0 group">
-                        <span className="block truncate font-medium group-hover:text-accent">{r.name}</span>
-                        <span className={`text-xs text-text-muted tabular-nums ${privacyClass(privacy)}`}>
-                          {formatDate(r.nextDue)} · {formatGBP(r.amount)}
-                        </span>
-                        {billNote ? (
-                          <span className="today-bill-commentary block text-xs text-text-subtle font-light mt-0.5 line-clamp-1 group-hover:text-accent">
-                            {billNote}
-                          </span>
-                        ) : null}
-                      </Link>
-                      <div className="hidden sm:flex shrink-0 gap-1">
-                        <button type="button" className="btn-primary btn-sm" onClick={() => markBillPaid(r.id)}>
-                          Mark paid
-                        </button>
-                        <button type="button" className="btn-ghost btn-sm" onClick={() => skipBill(r.id)}>
-                          Skip
-                        </button>
-                      </div>
-                    </div>
-                  </SwipeBillRow>
-                </li>
-                )
-              })}
-            </ul>
+            {showBillsStrip.length === 0 ? (
+              <p className="py-2 text-sm text-text-muted font-light">
+                Nothing due in the next 7 days.
+              </p>
+            ) : (
+              <ul className="flex flex-col gap-1.5">
+                {showBillsStrip.map((r) => {
+                  const billNote = latestRecurringCommentary(r)
+                  return (
+                    <li key={r.id}>
+                      <SwipeBillRow
+                        onMarkPaid={() => markBillPaid(r.id)}
+                        onSkip={() => skipBill(r.id)}
+                        className="rounded-lg md:rounded-none"
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm py-1.5">
+                          <Link to={`/recurring?focus=${r.id}`} className="min-w-0 group">
+                            <span className="block truncate font-medium group-hover:text-accent">
+                              {r.name}
+                            </span>
+                            <span
+                              className={`text-xs text-text-muted tabular-nums ${privacyClass(privacy)}`}
+                            >
+                              {formatDate(r.nextDue)} · {formatGBP(r.amount)}
+                            </span>
+                            {billNote ? (
+                              <span className="today-bill-commentary block text-xs text-text-subtle font-light mt-0.5 line-clamp-1 group-hover:text-accent">
+                                {billNote}
+                              </span>
+                            ) : null}
+                          </Link>
+                          <div className="hidden sm:flex shrink-0 gap-1">
+                            <button
+                              type="button"
+                              className="btn-primary btn-sm"
+                              onClick={() => markBillPaid(r.id)}
+                            >
+                              Mark paid
+                            </button>
+                            <button
+                              type="button"
+                              className="btn-ghost btn-sm"
+                              onClick={() => skipBill(r.id)}
+                            >
+                              Skip
+                            </button>
+                          </div>
+                        </div>
+                      </SwipeBillRow>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
           </div>
         </TodayAccordionSection>
       ) : null}

@@ -178,12 +178,12 @@ describe('next25c today / money / tax (16–20)', () => {
     expect(dash).toMatch(/30d/)
   })
 
-  it('20: Compare invite copy sheet for second portfolio', () => {
+  it('20: Compare local family workspace setup sheet', () => {
     const compare = readFileSync(resolve(__dirname, '../pages/ComparePage.tsx'), 'utf8')
-    expect(compare).toMatch(/compare-invite-btn/)
-    expect(compare).toMatch(/compare-invite-sheet/)
-    expect(compare).toMatch(/Add a second portfolio/)
-    expect(compare).toMatch(/inviteOpen/)
+    expect(compare).toMatch(/compare-workspace-setup-btn/)
+    expect(compare).toMatch(/compare-workspace-setup-sheet/)
+    expect(compare).toMatch(/Set up a local family workspace/)
+    expect(compare).toMatch(/workspaceSetupOpen/)
     expect(compare).toMatch(/settings#portfolios/)
     expect(compare).toMatch(/opening-balance wizard/)
   })
@@ -192,6 +192,6 @@ describe('next25c today / money / tax (16–20)', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8')) as {
       version: string
     }
-    expect(pkg.version).toBe('1.2.111')
+    expect(pkg.version).toBe('1.2.112')
   })
 })

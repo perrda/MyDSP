@@ -39,12 +39,15 @@ export function OptimizerPage() {
     const debts = getDebts(data.creditCards, data.loans)
     if (debts.length === 0) return null
     const top = sortDebts(strategy, debts)[0]
+    const paymentAmount = Math.min(top.balance, Math.max(0, top.minPay + extra))
+    const paymentValue = Math.round(paymentAmount * 100) / 100
     return {
       kind: top.type === 'cc' ? ('card' as const) : ('loan' as const),
       id: top.id,
       name: top.name,
+      paymentUrl: `/liabilities/${top.type === 'cc' ? 'card' : 'loan'}/${top.id}?payment=1&amount=${paymentValue}&returnTo=optimizer`,
     }
-  }, [data.creditCards, data.loans, strategy])
+  }, [data.creditCards, data.loans, extra, strategy])
 
   if (!hasDebts) {
     return (
@@ -148,11 +151,11 @@ export function OptimizerPage() {
             {topLiability ? `: ${topLiability.name}` : ''}.
           </p>
           <Link
-            to={topLiability ? `/liabilities/${topLiability.kind}/${topLiability.id}` : '/liabilities'}
+            to={topLiability?.paymentUrl ?? '/liabilities'}
             className="btn-secondary btn-sm"
             data-testid="optimizer-open-top-liability"
           >
-            Open top liability
+            Pay top liability
           </Link>
         </div>
       ) : null}

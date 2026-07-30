@@ -6,6 +6,9 @@ import { usePortfolio } from '../context/PortfolioContext'
 import { buildAlerts } from '../domain/alerts'
 import { buildPriceAlertNotifications } from '../domain/priceAlerts'
 import { buildYoutubeUploadNotifications } from '../domain/youtubeUploadAlerts'
+import { calculateReminders } from './SmartReminders'
+import { newsUnreadFromCache } from '../storage/newsStore'
+import type { PortfolioData } from '../domain/types'
 import { notificationManager, type Notification } from '../utils/notifications'
 import { logger } from '../utils/logger'
 import {
@@ -30,6 +33,40 @@ function severityToType(severity: string): Notification['type'] {
   if (severity === 'amber') return 'warning'
   if (severity === 'green') return 'success'
   return 'info'
+}
+
+type SyncedNotification = Omit<Notification, 'timestamp' | 'read' | 'category'> & { id: string }
+
+export function buildReminderCenterNotifications(data: PortfolioData): SyncedNotification[] {
+  return calculateReminders(data)
+    .filter((reminder) => reminder.type === 'todo' || reminder.type === 'job')
+    .map((reminder) => ({
+      id: reminder.id,
+      type: 'reminder',
+      priority: reminder.priority,
+      title: reminder.title,
+      message: reminder.message,
+      actionUrl: reminder.action!.path,
+      actionLabel: reminder.action!.label,
+      dismissible: true,
+      metadata: { reminderType: reminder.type },
+    }))
+}
+
+export function buildNewsUnreadNotifications(unreadCount: number): SyncedNotification[] {
+  if (unreadCount <= 0) return []
+  return [
+    {
+      id: `news-unread-${unreadCount}`,
+      type: 'info',
+      priority: 'medium',
+      title: 'Unread news',
+      message: `${unreadCount} new headline${unreadCount === 1 ? '' : 's'} ready to review`,
+      actionUrl: '/news',
+      actionLabel: 'Open News',
+      dismissible: true,
+    },
+  ]
 }
 
 export function useSmartNotifications() {
@@ -67,6 +104,16 @@ export function useSmartNotifications() {
       notificationManager.syncCategory('price-alerts', priceAlerts)
       const ytUploads = buildYoutubeUploadNotifications()
       notificationManager.syncCategory('youtube-uploads', ytUploads)
+      const reminders = buildReminderCenterNotifications(data)
+      notificationManager.syncCategory(
+        'todos',
+        reminders.filter((reminder) => reminder.metadata?.reminderType === 'todo'),
+      )
+      notificationManager.syncCategory(
+        'jobs',
+        reminders.filter((reminder) => reminder.metadata?.reminderType === 'job'),
+      )
+      notificationManager.syncCategory('news', buildNewsUnreadNotifications(newsUnreadFromCache()))
       setNotifications(notificationManager.getAll())
     } catch (error) {
       logger.error('Failed to process smart notifications', error as Error, 'app')
@@ -77,17 +124,23 @@ export function useSmartNotifications() {
     processNotifications()
     const interval = setInterval(processNotifications, 5 * 60 * 1000)
     const onPrice = () => processNotifications()
-    const onYt = () => processNotifications()
+    const onMedia = () => processNotifications()
     window.addEventListener('mydsp-price-alerts', onPrice)
     window.addEventListener('mydsp-markets-quotes', onPrice)
-    window.addEventListener('mydsp-youtube-videos', onYt)
-    window.addEventListener('mydsp-youtube-changed', onYt)
+    window.addEventListener('mydsp-youtube-videos', onMedia)
+    window.addEventListener('mydsp-youtube-changed', onMedia)
+    window.addEventListener('mydsp-news-articles', onMedia)
+    window.addEventListener('mydsp-news-changed', onMedia)
+    window.addEventListener('mydsp-sync-applied', onMedia)
     return () => {
       clearInterval(interval)
       window.removeEventListener('mydsp-price-alerts', onPrice)
       window.removeEventListener('mydsp-markets-quotes', onPrice)
-      window.removeEventListener('mydsp-youtube-videos', onYt)
-      window.removeEventListener('mydsp-youtube-changed', onYt)
+      window.removeEventListener('mydsp-youtube-videos', onMedia)
+      window.removeEventListener('mydsp-youtube-changed', onMedia)
+      window.removeEventListener('mydsp-news-articles', onMedia)
+      window.removeEventListener('mydsp-news-changed', onMedia)
+      window.removeEventListener('mydsp-sync-applied', onMedia)
     }
   }, [processNotifications])
 
@@ -206,7 +259,7 @@ export function NotificationCenter() {
                 <BellIcon className="w-10 h-10 mx-auto mb-2 opacity-40 text-text-subtle" />
                 <p className="text-sm">All clear</p>
                 <p className="text-xs text-text-subtle mt-1">
-                  Budget, debt, price moves, and new YouTube uploads from favourites appear here.
+                  Tasks, jobs, news, price moves, and new YouTube uploads appear here.
                 </p>
                 <a
                   href="/settings#alerts"

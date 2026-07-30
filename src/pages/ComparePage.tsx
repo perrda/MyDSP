@@ -102,7 +102,7 @@ export function ComparePage() {
   )
   const [scanToken, setScanToken] = useState(0)
   const [filling, setFilling] = useState(false)
-  const [inviteOpen, setInviteOpen] = useState(false)
+  const [workspaceSetupOpen, setWorkspaceSetupOpen] = useState(false)
   const [digestOpen, setDigestOpen] = useState(false)
   const [digestInput, setDigestInput] = useState<WeeklyDigestInput | null>(null)
   const [relativeTick, setRelativeTick] = useState(0)
@@ -291,6 +291,8 @@ export function ComparePage() {
   }
 
   const exportHouseholdSnapshot = async () => {
+    const generatedAt = new Date()
+    const generatedMessage = `Generated ${generatedAt.toLocaleString('en-GB')}`
     const input = {
       title: 'Household snapshot',
       netWorth: totals.netWorth,
@@ -299,6 +301,7 @@ export function ComparePage() {
       crypto: totals.crypto,
       equity: totals.equity,
       portfolios: rows.map((r) => ({ name: r.name, netWorth: r.netWorth })),
+      generatedAt,
     }
     try {
       const result = await shareHouseholdSnapshot(input)
@@ -306,13 +309,18 @@ export function ComparePage() {
         showToast({
           type: 'info',
           title: 'Snapshot ready',
-          message: 'Print / save as PDF from the dialog.',
+          message: `Print / save as PDF from the dialog. ${generatedMessage}.`,
         })
       } else if (result === 'shared') {
-        showToast({ type: 'success', title: 'Snapshot shared' })
+        showToast({ type: 'success', title: 'Snapshot shared', message: generatedMessage })
       }
     } catch {
       printHouseholdSnapshot(input)
+      showToast({
+        type: 'info',
+        title: 'Snapshot ready',
+        message: `Print / save as PDF from the dialog. ${generatedMessage}.`,
+      })
     }
   }
 
@@ -363,9 +371,9 @@ export function ComparePage() {
         action={
           <PagePrimaryActions
             primaryLabel="Add a portfolio"
-            onPrimary={() => setInviteOpen(true)}
+            onPrimary={() => setWorkspaceSetupOpen(true)}
             menuLabel="Compare actions"
-            className="compare-invite-btn household-snapshot-btn"
+            className="compare-workspace-setup-btn household-snapshot-btn"
             items={[
               {
                 id: 'snapshot',
@@ -636,12 +644,16 @@ export function ComparePage() {
         </Link>
       </p>
 
-      <Modal open={inviteOpen} title="Add a second portfolio" onClose={() => setInviteOpen(false)}>
-        <div className="compare-invite-sheet space-y-4 text-sm text-text-muted font-light leading-relaxed">
+      <Modal
+        open={workspaceSetupOpen}
+        title="Set up a local family workspace"
+        onClose={() => setWorkspaceSetupOpen(false)}
+      >
+        <div className="compare-workspace-setup-sheet space-y-4 text-sm text-text-muted font-light leading-relaxed">
           <p>
-            Compare works best with two or more family workspaces — for example David and a partner,
-            or a personal and a joint book. Each portfolio keeps its own holdings, currency, and tax
-            residency.
+            Create another portfolio as a local family workspace — for example a partner or joint
+            book. This does not invite anyone or send a link. Each portfolio keeps its own holdings,
+            currency, and tax residency.
           </p>
           <ol className="list-decimal pl-5 space-y-2 text-text">
             <li>
@@ -649,7 +661,7 @@ export function ComparePage() {
               <Link
                 to="/settings#portfolios"
                 className="text-accent hover:underline font-medium"
-                onClick={() => setInviteOpen(false)}
+                onClick={() => setWorkspaceSetupOpen(false)}
               >
                 Settings → Portfolios
               </Link>
@@ -661,7 +673,7 @@ export function ComparePage() {
               <Link
                 to="/setup/opening"
                 className="text-accent hover:underline font-medium"
-                onClick={() => setInviteOpen(false)}
+                onClick={() => setWorkspaceSetupOpen(false)}
               >
                 opening-balance wizard
               </Link>
@@ -670,19 +682,23 @@ export function ComparePage() {
             <li>Return here and tick both portfolios under Include to compare side-by-side.</li>
           </ol>
           <p className="text-xs text-text-subtle">
-            Tip: sync is per device — use the same cloud sync passphrase on each phone so family
-            books stay in step. Names must be unique; you can rename or delete portfolios anytime in
-            Settings.
+            Encrypted cloud sync can keep these workspaces in step across your devices. Configure the
+            same Sync Remote URL and passphrase on each device. Names must be unique; you can rename
+            or delete portfolios anytime in Settings.
           </p>
           <div className="flex flex-wrap gap-2 pt-2">
             <Link
               to="/settings#portfolios"
               className="btn-primary btn-sm"
-              onClick={() => setInviteOpen(false)}
+              onClick={() => setWorkspaceSetupOpen(false)}
             >
               Open Portfolios
             </Link>
-            <button type="button" className="btn-ghost btn-sm" onClick={() => setInviteOpen(false)}>
+            <button
+              type="button"
+              className="btn-ghost btn-sm"
+              onClick={() => setWorkspaceSetupOpen(false)}
+            >
               Close
             </button>
           </div>

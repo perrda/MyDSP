@@ -13,7 +13,7 @@ describe('buildTaxDisposalHref', () => {
     })
 
     expect(href).toBe(
-      '/tax?assetType=equity&symbol=BRK+B&date=2026-07-30&qty=2.5&proceeds=1000&cost=750',
+      '/tax?assetType=equity&symbol=BRK+B&open=1&date=2026-07-30&qty=2.5&proceeds=1000&cost=750',
     )
   })
 

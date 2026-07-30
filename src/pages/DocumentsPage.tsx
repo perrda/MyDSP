@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
 import { Download, Upload } from 'lucide-react'
+import { OverflowMenu } from '../components/ui/OverflowMenu'
 import { PageHeader } from '../components/ui/PageHeader'
 import { PagePrimaryActions } from '../components/ui/PagePrimaryActions'
 import { ConfirmDialog, Field, Modal } from '../components/ui/Modal'
@@ -155,7 +156,7 @@ export function DocumentsPage() {
           className="grid grid-cols-1 md:grid-cols-2 gap-px"
         >
           {(d) => (
-            <div className="surface p-6">
+            <div className="surface p-4 sm:p-5">
               <div className="flex items-start gap-2 mb-2">
                 <ReorderHandle label={`Reorder ${d.name}`} />
                 <div className="flex-1 min-w-0 flex justify-between gap-3">
@@ -181,23 +182,30 @@ export function DocumentsPage() {
                   {d.linkedId != null ? ` #${d.linkedId}` : ''}
                 </span>
               )}
-              <div className="flex gap-2 flex-wrap">
-                {d.hasBlob && (
-                  <button
-                    type="button"
-                    className="btn-ghost btn-sm inline-flex items-center gap-1.5"
-                    onClick={() => onDownload(d)}
-                  >
-                    <Download size={14} strokeWidth={1.5} /> Download
-                  </button>
-                )}
-                <button type="button" className="btn-ghost btn-sm" onClick={() => openEdit(d)}>
-                  Edit
-                </button>
-                <button type="button" className="btn-ghost btn-sm" onClick={() => setDeleteId(d.id)}>
-                  Delete
-                </button>
-              </div>
+              <OverflowMenu
+                compact
+                label={`Actions for ${d.name}`}
+                leading={
+                  d.hasBlob ? (
+                    <button
+                      type="button"
+                      className="btn-secondary btn-sm inline-flex items-center gap-1.5"
+                      onClick={() => onDownload(d)}
+                    >
+                      <Download size={14} strokeWidth={1.5} /> Download
+                    </button>
+                  ) : undefined
+                }
+                items={[
+                  { id: 'edit', label: 'Edit', onClick: () => openEdit(d) },
+                  {
+                    id: 'delete',
+                    label: 'Delete',
+                    destructive: true,
+                    onClick: () => setDeleteId(d.id),
+                  },
+                ]}
+              />
             </div>
           )}
         </ReorderList>

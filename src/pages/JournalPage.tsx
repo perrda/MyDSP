@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
+import { OverflowMenu } from '../components/ui/OverflowMenu'
 import { PageHeader } from '../components/ui/PageHeader'
+import { PagePrimaryActions } from '../components/ui/PagePrimaryActions'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
 import { usePortfolio } from '../context/PortfolioContext'
@@ -64,14 +66,15 @@ function JournalRowBody({
       <span className={`text-sm tabular-nums ${privacyClass(privacy)}`}>{formatGBPPrecise(j.price)}</span>
       <span className={`text-sm tabular-nums ${privacyClass(privacy)}`}>{formatGBPPrecise(j.fees)}</span>
       <span className={`text-sm font-semibold tabular-nums ${privacyClass(privacy)}`}>{formatGBP(j.total)}</span>
-      <div className="whitespace-nowrap text-right">
-        <button type="button" className="btn-ghost btn-sm" onClick={onEdit}>
-          Edit
-        </button>
-        <button type="button" className="btn-ghost btn-sm" onClick={onDelete}>
-          Delete
-        </button>
-      </div>
+      <OverflowMenu
+        compact
+        className="justify-self-end"
+        label={`Actions for ${j.asset} on ${formatDate(j.date)}`}
+        items={[
+          { id: 'edit', label: 'Edit', onClick: onEdit },
+          { id: 'delete', label: 'Delete', destructive: true, onClick: onDelete },
+        ]}
+      />
     </>
   )
 }
@@ -221,14 +224,16 @@ export function JournalPage() {
         title="Investment journal"
         description="Buy, sell, staking, and transfer ledger — drag ⋮⋮ to reorder when showing all assets."
         action={
-          <button type="button" className="btn-primary btn-sm" onClick={openCreate}>
-            Add entry
-          </button>
+          <PagePrimaryActions
+            primaryLabel="Add entry"
+            onPrimary={openCreate}
+            menuLabel="Journal actions"
+          />
         }
       />
 
       <div
-        className="journal-sticky-filter surface p-5 mb-px"
+        className="journal-sticky-filter surface p-4 sm:p-5 mb-px"
         data-testid="journal-sticky-filter"
       >
         <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle mb-2">
@@ -264,7 +269,7 @@ export function JournalPage() {
             <span className="label-uppercase">Price</span>
             <span className="label-uppercase">Fees</span>
             <span className="label-uppercase">Total</span>
-            <span className="w-28" />
+            <span className="w-11" />
           </div>
           {rows.length === 0 ? (
             <p className="px-5 py-12 text-center text-text-subtle">No journal entries yet.</p>
@@ -455,12 +460,6 @@ export function JournalPage() {
         }}
       />
 
-      <div className="thumb-cta-bar" role="toolbar" aria-label="Primary journal actions">
-        <button type="button" className="btn-primary btn-sm" onClick={openCreate}>
-          Add entry
-        </button>
-      </div>
-      <div className="thumb-cta-bar-spacer" aria-hidden />
     </div>
   )
 }

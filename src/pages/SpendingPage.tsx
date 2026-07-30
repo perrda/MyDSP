@@ -10,6 +10,7 @@ import { CollapsibleFilters } from '../components/ui/CollapsibleFilters'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
 import { OverflowMenu } from '../components/ui/OverflowMenu'
 import { usePortfolio } from '../context/PortfolioContext'
+import { makeRuleHref } from '../domain/deepLinks'
 import { formatMonthLabel, monthKey, parseMonthParam, shiftMonth } from '../domain/monthUtils'
 import { categorySparklinesForMonth } from '../domain/spendingCategorySparkline'
 import { formatWeekDeltaLine, weekSpendDelta } from '../domain/spendingWeekDelta'
@@ -17,6 +18,7 @@ import { loadSpendingFilters, saveSpendingFilters } from '../domain/spendingFilt
 import type { SpendingEntry } from '../domain/types'
 import { formatDate, formatGBPPrecise, privacyClass } from '../utils/format'
 
+// makeRuleHref centralizes the /rules?pattern=&category= bridge.
 const CATEGORIES = [
   'food',
   'transport',
@@ -32,14 +34,6 @@ const CATEGORIES = [
 
 function nextId(items: { id: number }[]): number {
   return items.reduce((m, i) => Math.max(m, i.id), 0) + 1
-}
-
-/** Deep-link to Rules with merchant pattern/category prefilled. */
-function makeRuleHref(tx: SpendingEntry): string {
-  const params = new URLSearchParams()
-  params.set('pattern', tx.description.trim() || 'merchant')
-  params.set('category', (tx.category || 'other').toLowerCase())
-  return `/rules?${params.toString()}`
 }
 
 function matchesSpendingMerchantSearch(tx: SpendingEntry, query: string): boolean {
