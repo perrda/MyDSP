@@ -23,11 +23,11 @@ export function titleCaseHeader(title: string): string {
 }
 
 /**
- * Page intro chrome.
+ * Page intro chrome — resize-safe across phone / tablet / web.
+ * Stacks copy above actions by default; side-by-side only at ≥1024px with a
+ * guaranteed min width on copy so description never collapses to one-word lines.
  * Phone: full eyebrow + title (shell title is hidden).
  * ≥sm: shell sticky title is visible — hide duplicate heading; keep description + actions.
- * Actions sit beside the text block from sm up; on &lt;640px CSS order keeps actions below copy
- * for one-handed reach (see `.page-header` / `.thumb-cta-bar` in index.css).
  */
 export function PageHeader({ eyebrow, title, description, action }: PageHeaderProps) {
   const display = titleCaseHeader(title)
@@ -37,8 +37,8 @@ export function PageHeader({ eyebrow, title, description, action }: PageHeaderPr
   const accent = hasAccentSplit ? display.slice(lastSpace + 1) : display
 
   return (
-    <div className="page-header flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4 mb-6 md:mb-8">
-      <div className="page-header__copy min-w-0 flex-1">
+    <div className="page-header mb-6 md:mb-8">
+      <div className="page-header__copy">
         <p className="eyebrow app-page-eyebrow mb-2 md:mb-3 sm:hidden">{eyebrow}</p>
         <h2 className="app-page-title font-bold tracking-tight leading-tight sm:hidden">
           {hasAccentSplit ? (
@@ -51,17 +51,12 @@ export function PageHeader({ eyebrow, title, description, action }: PageHeaderPr
           )}
         </h2>
         {description && (
-          <p
-            className={`text-xs md:text-sm text-text-muted font-light leading-relaxed max-w-2xl ${
-              /* On sm+ the shell owns the title — description is the first page copy */
-              'mt-2 md:mt-3 sm:mt-0'
-            }`}
-          >
+          <p className="page-header__description text-xs md:text-sm text-text-muted font-light leading-relaxed mt-2 md:mt-3 sm:mt-0">
             {description}
           </p>
         )}
       </div>
-      {action && <div className="page-header__action shrink-0 self-start">{action}</div>}
+      {action && <div className="page-header__action">{action}</div>}
     </div>
   )
 }

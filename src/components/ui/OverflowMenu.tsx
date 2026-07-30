@@ -7,6 +7,7 @@ export type OverflowMenuItem = {
   onClick: () => void
   destructive?: boolean
   active?: boolean
+  disabled?: boolean
 }
 
 interface OverflowMenuProps {
@@ -14,15 +15,27 @@ interface OverflowMenuProps {
   items: OverflowMenuItem[]
   /** Extra content shown beside the trigger (e.g. primary Buy/Sell). */
   leading?: ReactNode
+  /**
+   * Always use the ⋯ menu (never expand items inline on md+).
+   * Required for dense list/master-detail rows — inline actions crush
+   * identity/metrics text and cause overlap.
+   */
+  compact?: boolean
   className?: string
 }
 
 /**
- * Compact actions for phone: primary leading controls + a ⋯ menu.
- * On md+ the menu items render inline next to leading (caller can also
- * pass `inlineOnDesktop` via className on a parent).
+ * Compact actions: optional leading controls + a ⋯ menu.
+ * Default: phone uses ⋯; md+ expands items inline (page headers only).
+ * Pass `compact` for list rows / master-detail so text never overlaps.
  */
-export function OverflowMenu({ label, items, leading, className = '' }: OverflowMenuProps) {
+export function OverflowMenu({
+  label,
+  items,
+  leading,
+  compact = false,
+  className = '',
+}: OverflowMenuProps) {
   const [open, setOpen] = useState(false)
   const menuId = useId()
   const wrapRef = useRef<HTMLDivElement>(null)
@@ -46,34 +59,82 @@ export function OverflowMenu({ label, items, leading, className = '' }: Overflow
     }
   }, [open])
 
-  return (
-    <div ref={wrapRef} className={`relative flex flex-wrap items-center gap-2 ${className}`}>
-      {leading}
-
-      {/* Desktop / tablet: full inline secondary actions */}
-      <div className="hidden md:flex flex-wrap items-center gap-2">
+  const menuSheet =
+    open ? (
+      <div
+        id={menuId}
+        role="menu"
+        className="overflow-menu-sheet fixed inset-0 z-50 flex min-w-0 flex-col border border-border bg-bg-elevated p-4 pt-[calc(1rem+env(safe-area-inset-top,0px))] shadow-lg sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:mt-1 sm:block sm:min-w-[10.5rem] sm:p-0 sm:py-1"
+      >
+        <div className="mb-4 flex items-center justify-between gap-3 border-b border-border pb-3 sm:hidden">
+          <p className="text-xs font-bold uppercase tracking-widest text-text-subtle">
+            Actions
+          </p>
+          <button type="button" className="btn-ghost btn-sm" onClick={() => setOpen(false)}>
+            Close
+          </button>
+        </div>
         {items.map((item) => (
           <button
             key={item.id}
             type="button"
-            className={
+            role="menuitem"
+            disabled={item.disabled}
+            className={`w-full text-left px-4 py-3 text-base min-h-12 transition-colors hover:bg-surface-hover sm:py-2.5 sm:text-sm sm:min-h-11 disabled:opacity-45 disabled:pointer-events-none ${
               item.destructive
-                ? 'btn-ghost btn-sm min-h-9 text-red-500'
+                ? 'text-red-500'
                 : item.active
-                  ? 'text-[11px] font-bold uppercase tracking-widest px-2 py-1 border min-h-9 border-accent text-accent'
-                  : item.id === 'nw'
-                    ? 'text-[11px] font-bold uppercase tracking-widest px-2 py-1 border min-h-9 border-border-strong text-text-subtle'
-                    : 'btn-ghost btn-sm min-h-9'
-            }
-            onClick={item.onClick}
+                  ? 'text-accent font-semibold'
+                  : 'text-text'
+            }`}
+            onClick={() => {
+              setOpen(false)
+              item.onClick()
+            }}
           >
             {item.label}
           </button>
         ))}
       </div>
+    ) : null
 
-      {/* Phone: overflow trigger */}
-      <div className="md:hidden relative">
+  return (
+    <div
+      ref={wrapRef}
+      className={`relative flex flex-wrap items-center gap-2 ${className}`}
+      data-overflow-compact={compact ? 'true' : undefined}
+      onClick={(e) => e.stopPropagation()}
+      onKeyDown={(e) => e.stopPropagation()}
+    >
+      {leading}
+
+      {/* Desktop / tablet: full inline secondary actions (headers only — not list rows) */}
+      {!compact ? (
+        <div className="hidden md:flex flex-wrap items-center gap-2">
+          {items.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              disabled={item.disabled}
+              className={
+                item.destructive
+                  ? 'btn-ghost btn-sm min-h-9 text-red-500 disabled:opacity-45'
+                  : item.active
+                    ? 'text-[11px] font-bold uppercase tracking-widest px-2 py-1 border min-h-9 border-accent text-accent disabled:opacity-45'
+                    : item.id === 'nw'
+                      ? 'text-[11px] font-bold uppercase tracking-widest px-2 py-1 border min-h-9 border-border-strong text-text-subtle disabled:opacity-45'
+                      : 'btn-ghost btn-sm min-h-9 disabled:opacity-45'
+              }
+              onClick={item.onClick}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      {/* Phone (always) or compact (all breakpoints): overflow trigger */}
+      <div className={compact ? 'relative' : 'md:hidden relative'}>
         <button
           type="button"
           className="btn-ghost btn-sm min-h-11 min-w-11 p-2"
@@ -84,42 +145,7 @@ export function OverflowMenu({ label, items, leading, className = '' }: Overflow
         >
           <MoreHorizontal size={18} strokeWidth={2} />
         </button>
-        {open ? (
-          <div
-            id={menuId}
-            role="menu"
-            className="overflow-menu-sheet fixed inset-0 z-50 flex min-w-0 flex-col border border-border bg-bg-elevated p-4 pt-[calc(1rem+env(safe-area-inset-top,0px))] shadow-lg sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:mt-1 sm:block sm:min-w-[10.5rem] sm:p-0 sm:py-1"
-          >
-            <div className="mb-4 flex items-center justify-between gap-3 border-b border-border pb-3 sm:hidden">
-              <p className="text-xs font-bold uppercase tracking-widest text-text-subtle">
-                Actions
-              </p>
-              <button type="button" className="btn-ghost btn-sm" onClick={() => setOpen(false)}>
-                Close
-              </button>
-            </div>
-            {items.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                role="menuitem"
-                className={`w-full text-left px-4 py-3 text-base min-h-12 transition-colors hover:bg-surface-hover sm:py-2.5 sm:text-sm sm:min-h-11 ${
-                  item.destructive
-                    ? 'text-red-500'
-                    : item.active
-                      ? 'text-accent font-semibold'
-                      : 'text-text'
-                }`}
-                onClick={() => {
-                  setOpen(false)
-                  item.onClick()
-                }}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
-        ) : null}
+        {menuSheet}
       </div>
     </div>
   )

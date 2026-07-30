@@ -6,17 +6,18 @@ import { RELEASE_NOTES, releaseNotesArchive } from '../domain/releaseNotes'
 const readPage = (name: string) =>
   readFileSync(resolve(__dirname, `../pages/${name}`), 'utf8')
 
-describe('next10 priorities wave (v1.2.109)', () => {
+describe('next10 priorities wave (retained in v1.2.110 tip)', () => {
   it('0: package + release notes tip', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.109')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.109')
+    expect(pkg.version).toBe('1.2.110')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.110')
+    expect(RELEASE_NOTES.some((e) => e.version === '1.2.109')).toBe(true)
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.110',
       '1.2.109',
       '1.2.108',
       '1.2.107',
       '1.2.106',
-      '1.2.105',
     ])
   })
 
@@ -105,5 +106,80 @@ describe('next10 priorities wave (v1.2.109)', () => {
     expect(markets).toMatch(/data-testid="markets-panel-body-filters"/)
     expect(markets).toMatch(/All ownership/)
     expect(markets).toMatch(/markets-panel-toggle--filtered/)
+  })
+
+  it('11: Holdings list rows never nowrap-crush identity over Cost/P&L', () => {
+    const css = readFileSync(resolve(__dirname, '../index.css'), 'utf8')
+    expect(css).toMatch(/\.holdings-list-row\s*\{/)
+    expect(css).toMatch(/holdings-list-row__identity/)
+    expect(css).toMatch(/holdings-list-row__metrics/)
+
+    const menu = readFileSync(
+      resolve(__dirname, '../components/ui/OverflowMenu.tsx'),
+      'utf8',
+    )
+    expect(menu).toMatch(/compact\?: boolean/)
+    expect(menu).toMatch(/data-overflow-compact/)
+
+    for (const name of ['EquitiesPage.tsx', 'CryptoPage.tsx'] as const) {
+      const page = readPage(name)
+      expect(page).toMatch(/holdings-list-row/)
+      expect(page).toMatch(/compact\b/)
+      expect(page).not.toMatch(/md:flex-nowrap/)
+      expect(page).not.toMatch(/leading=\{/)
+    }
+
+    const markets = readPage('MarketsPage.tsx')
+    expect(markets).toMatch(/<OverflowMenu[\s\S]*?compact/)
+
+    const rule = readFileSync(
+      resolve(__dirname, '../../.cursor/rules/no-text-overlap.mdc'),
+      'utf8',
+    )
+    expect(rule).toMatch(/alwaysApply:\s*true/)
+    expect(rule).toMatch(/OverflowMenu/)
+    expect(rule).toMatch(/holdings-list-row/)
+  })
+
+  it('12: Page headers are resize-safe (stack + compact PagePrimaryActions)', () => {
+    const css = readFileSync(resolve(__dirname, '../index.css'), 'utf8')
+    expect(css).toMatch(/\.page-header\s*\{/)
+    expect(css).toMatch(/page-header__copy/)
+    expect(css).toMatch(/page-header__action/)
+    expect(css).toMatch(/min-width:\s*min\(100%,\s*16rem\)/)
+
+    const header = readFileSync(
+      resolve(__dirname, '../components/ui/PageHeader.tsx'),
+      'utf8',
+    )
+    expect(header).toMatch(/page-header__copy/)
+    expect(header).not.toMatch(/sm:flex-row/)
+
+    const primary = readFileSync(
+      resolve(__dirname, '../components/ui/PagePrimaryActions.tsx'),
+      'utf8',
+    )
+    expect(primary).toMatch(/compact\s*=\s*true/)
+
+    for (const name of [
+      'EquitiesPage.tsx',
+      'CryptoPage.tsx',
+      'ComparePage.tsx',
+      'HistoryPage.tsx',
+      'NewsPage.tsx',
+      'YouTubePage.tsx',
+    ] as const) {
+      const page = readPage(name)
+      expect(page).toMatch(/PagePrimaryActions/)
+      expect(page).not.toMatch(/md:flex-nowrap/)
+    }
+
+    const resizeRule = readFileSync(
+      resolve(__dirname, '../../.cursor/rules/resize-safe-layouts.mdc'),
+      'utf8',
+    )
+    expect(resizeRule).toMatch(/alwaysApply:\s*true/)
+    expect(resizeRule).toMatch(/PagePrimaryActions/)
+    expect(resizeRule).toMatch(/page-header/)
   })
 })

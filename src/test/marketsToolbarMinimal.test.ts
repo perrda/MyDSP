@@ -6,14 +6,14 @@ import { RELEASE_NOTES, releaseNotesArchive } from '../domain/releaseNotes'
 describe('Markets minimal toolbar · seg buttons (v1.2.94)', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.109')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.109')
+    expect(pkg.version).toBe('1.2.110')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.110')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.110',
       '1.2.109',
       '1.2.108',
       '1.2.107',
       '1.2.106',
-      '1.2.105',
     ])
   })
 
@@ -41,13 +41,15 @@ describe('Markets minimal toolbar · seg buttons (v1.2.94)', () => {
     expect(css).toMatch(/\.ui-seg-group\b/)
   })
 
-  it('News / YouTube Sort and Today / Jobs jumps share ui-seg', () => {
+  it('News / YouTube Sort live in compact PagePrimaryActions; Today / Jobs jumps use ui-seg', () => {
     const news = readFileSync(resolve(__dirname, '../pages/NewsPage.tsx'), 'utf8')
     const yt = readFileSync(resolve(__dirname, '../pages/YouTubePage.tsx'), 'utf8')
     const dash = readFileSync(resolve(__dirname, '../pages/Dashboard.tsx'), 'utf8')
     const jobs = readFileSync(resolve(__dirname, '../pages/JobsPage.tsx'), 'utf8')
-    expect(news).toMatch(/className=\{`ui-seg\$\{sorting/)
-    expect(yt).toMatch(/className=\{`ui-seg\$\{sorting/)
+    expect(news).toMatch(/PagePrimaryActions/)
+    expect(news).toMatch(/Sort tags/)
+    expect(yt).toMatch(/PagePrimaryActions/)
+    expect(yt).toMatch(/Sort channels/)
     expect(dash).toMatch(/today-section-jump-chip ui-seg/)
     expect(jobs).toMatch(/jobs-kanban-jump-chips ui-seg-group/)
     expect(jobs).toMatch(/jobs-follow-up-chip ui-seg/)

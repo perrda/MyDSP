@@ -1,0 +1,30 @@
+---
+description: Resize-safe layouts across web, tablet, and mobile — no crushed or overlapping chrome
+alwaysApply: true
+---
+
+# Resize-safe layouts (web · tablet · mobile)
+
+Browser windows and device viewports will be resized. **All text, graphics, and controls must remain readable and non-overlapping** at every width — not only at a few design breakpoints.
+
+## Never
+
+- Crush page titles / descriptions beside `shrink-0` action clusters (`Import` · `Fill` · `Sort` · `Weight %` · `Add…` all inline).
+- Use `md:flex-nowrap` (or nowrap flex) with many always-visible buttons in a header or list row.
+- Force one-word-per-line wrapping by letting copy share a row with a wide non-wrapping action group.
+- Rely on a single “desktop” width looking fine — mid widths (sidebar + resized window) are first-class.
+
+## Required patterns
+
+1. **Page headers** — use `PageHeader` + CSS `.page-header` (stack by default; side-by-side only ≥1024px with copy `min-width ≥ 16rem`). Prefer **`PagePrimaryActions`** (primary + compact ⋯) over raw multi-button flex rows.
+2. **Dense lists** — follow `no-text-overlap.mdc` (`.holdings-list-row`, `OverflowMenu compact`).
+3. **Search / filters** — `min-w-0` + `flex-1` / `w-full`; avoid large fixed `min-w-[14rem]` that overflow narrow panes.
+4. **Images / charts** — `max-width: 100%`, `min-width: 0` on flex/grid children; no fixed widths that escape the content column.
+5. **Custom heroes** (e.g. Job detail) — reuse `.page-header__copy` / `.page-header__action`; never `sm:flex-row` + `shrink-0` button strips.
+
+## Checklist before merging UI
+
+- [ ] Resize the main content column from ~320px → full desktop: no overlapping text, no vertical one-word strips, no clipped CTAs.
+- [ ] Phone portrait, phone landscape, tablet, and desktop web all readable.
+- [ ] Page actions are Add + ⋯ (or equivalent compact) unless the header is truly wide and still stacks safely.
+- [ ] Tip harness / visual QA covers the page you touched.

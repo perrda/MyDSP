@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { GitCompareArrows, ArrowRight } from 'lucide-react'
 import { PageHeader, StatCard } from '../components/ui/PageHeader'
+import { PagePrimaryActions } from '../components/ui/PagePrimaryActions'
 import { Modal } from '../components/ui/Modal'
 import { usePortfolio } from '../context/PortfolioContext'
 import {
@@ -360,43 +361,30 @@ export function ComparePage() {
         title="Compare portfolios"
         description="Side-by-side net worth and allocation across David and family workspaces. Week Δ uses a local previous-week snapshot."
         action={
-          <div className="flex flex-wrap gap-2" data-testid="page-primary-actions">
-            <button
-              type="button"
-              className="btn-ghost btn-sm compare-invite-btn"
-              data-testid="page-primary-create"
-              onClick={() => setInviteOpen(true)}
-              title="How to add a second portfolio for family compare"
-            >
-              Add a portfolio
-            </button>
-            <button
-              type="button"
-              className="btn-ghost btn-sm household-snapshot-btn"
-              disabled={rows.length === 0}
-              onClick={() => void exportHouseholdSnapshot()}
-              title="Print or share a one-page net worth + allocation snapshot"
-            >
-              Snapshot PDF
-            </button>
-            <button
-              type="button"
-              className="btn-ghost btn-sm"
-              disabled={filling || selected.length === 0}
-              onClick={fillFromLastSynced}
-              title={
-                cacheAgeLabel
-                  ? `Apply last-synced Markets quotes (${cacheAgeLabel})`
-                  : 'Apply last-synced Markets quotes to holdings in selected portfolios'
-              }
-            >
-              {filling
-                ? 'Filling…'
-                : cacheAgeLabel
-                  ? `Fill from last synced (${cacheAgeLabel})`
-                  : 'Fill from last synced'}
-            </button>
-          </div>
+          <PagePrimaryActions
+            primaryLabel="Add a portfolio"
+            onPrimary={() => setInviteOpen(true)}
+            menuLabel="Compare actions"
+            className="compare-invite-btn household-snapshot-btn"
+            items={[
+              {
+                id: 'snapshot',
+                label: 'Snapshot PDF',
+                disabled: rows.length === 0,
+                onClick: () => void exportHouseholdSnapshot(),
+              },
+              {
+                id: 'fill',
+                label: filling
+                  ? 'Filling…'
+                  : cacheAgeLabel
+                    ? `Fill from last synced (${cacheAgeLabel})`
+                    : 'Fill from last synced',
+                disabled: filling || selected.length === 0,
+                onClick: fillFromLastSynced,
+              },
+            ]}
+          />
         }
       />
 

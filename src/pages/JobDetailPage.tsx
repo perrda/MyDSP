@@ -15,6 +15,7 @@ import {
   Users,
   X,
 } from 'lucide-react'
+import { OverflowMenu } from '../components/ui/OverflowMenu'
 import { PageHeader } from '../components/ui/PageHeader'
 import { BackNav } from '../components/ui/BackNav'
 import { ConfirmDialog } from '../components/ui/Modal'
@@ -497,9 +498,9 @@ export function JobDetailPage() {
         <BackNav to="/jobs" label="Back to applications" />
       </div>
 
-      {/* Company-first hero — always visible (PageHeader hides title on sm+) */}
-      <div className="page-header flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4 mb-6 md:mb-8">
-        <div className="min-w-0 flex-1" data-testid="job-detail-hero">
+      {/* Company-first hero — resize-safe page-header grid (never crush title beside actions) */}
+      <div className="page-header mb-6 md:mb-8">
+        <div className="page-header__copy" data-testid="job-detail-hero">
           <p className="eyebrow app-page-eyebrow mb-2 md:mb-3">Career</p>
           <div className="flex items-start gap-3 min-w-0">
             <div className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent">
@@ -542,20 +543,39 @@ export function JobDetailPage() {
             </div>
           </div>
         </div>
-        <div className="hidden sm:flex gap-2 shrink-0 self-start">
-          <button type="button" onClick={() => setShowJobForm(true)} className="btn-ghost btn-sm btn-icon-edit">
-            <Edit2 size={16} strokeWidth={1.75} className="icon-edit" aria-hidden /> Edit Details
-          </button>
-          <button type="button" onClick={() => handleCreateLinkedTodo()} className="btn-secondary btn-sm">
-            <Plus size={14} /> Add Todo
-          </button>
-          <button type="button" onClick={() => setEditMode(!editMode)} className="btn-ghost btn-sm btn-icon-edit">
-            {editMode ? <X size={14} /> : <Edit2 size={16} strokeWidth={1.75} className="icon-edit" aria-hidden />}{' '}
-            {editMode ? 'Done' : 'Quick Edit'}
-          </button>
-          <button type="button" onClick={handleDeleteApplication} className="btn-ghost btn-sm text-red-500">
-            <Trash2 size={14} /> Delete
-          </button>
+        <div className="page-header__action page-header__action--lg-only">
+          <OverflowMenu
+            compact
+            label="Job detail actions"
+            leading={
+              <button
+                type="button"
+                onClick={() => setShowJobForm(true)}
+                className="btn-ghost btn-sm btn-icon-edit"
+              >
+                <Edit2 size={16} strokeWidth={1.75} className="icon-edit" aria-hidden /> Edit Details
+              </button>
+            }
+            items={[
+              {
+                id: 'todo',
+                label: 'Add Todo',
+                onClick: () => handleCreateLinkedTodo(),
+              },
+              {
+                id: 'quick',
+                label: editMode ? 'Done' : 'Quick Edit',
+                active: editMode,
+                onClick: () => setEditMode(!editMode),
+              },
+              {
+                id: 'delete',
+                label: 'Delete',
+                destructive: true,
+                onClick: handleDeleteApplication,
+              },
+            ]}
+          />
         </div>
       </div>
 

@@ -1,0 +1,32 @@
+---
+description: Prevent text overlapping in dense list rows and master-detail layouts
+alwaysApply: true
+---
+
+# No text overlapping
+
+List rows and master-detail panes must never paint identity text over metrics (or vice versa).
+
+## Root cause to avoid
+
+- `md:flex-nowrap` (or any nowrap flex row) **plus** many inline actions (`OverflowMenu` default md+ expansion, Buy/Sell/Edit/Delete buttons) in a narrow column (especially holdings master-detail ≥900px).
+- Flex children that shrink (`min-w-0` / `flex-1`) without `overflow: hidden` / ellipsis on text cells.
+
+## Required patterns
+
+1. **Dense list rows** (Equities, Crypto, Markets compact rows, similar):
+   - Use CSS grid with explicit columns and `min-width: 0` + `overflow: hidden` on text cells.
+   - Prefer shared `.holdings-list-row` (or equivalent) — do not invent a new nowrap flex row.
+   - Pass **`compact`** to `OverflowMenu` so actions stay behind ⋯ at every breakpoint.
+   - Do **not** put Buy/Sell/Edit/Delete as always-visible leading buttons inside cramped list rows; keep them in the compact menu (swipe actions may still expose Buy/Sell/NW on phone).
+
+2. **Page headers** — prefer `PagePrimaryActions` with compact ⋯. Do **not** park multi-button clusters beside titles; see `resize-safe-layouts.mdc`.
+
+3. **Any new list row**: if removing a border/shadow still leaves colliding text, the layout is wrong — fix columns before shipping.
+
+## Checklist before merging UI
+
+- [ ] Narrow master-detail list (~400px content): symbol, Cost/P&L, and % are fully readable with no overlap.
+- [ ] Phone portrait: metrics stack below identity; actions are ⋯ only.
+- [ ] `OverflowMenu` in list context uses `compact`.
+- [ ] Long symbols / large GBP strings ellipsize rather than paint over neighbours.

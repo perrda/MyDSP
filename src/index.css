@@ -2578,30 +2578,87 @@ html.a11y-reduce-motion *::after {
 
 /* ----- next25b mobile ergonomics (11–15) + content-first chrome ----- */
 
-/* mobile-content-first-chrome: header create sits top-right; content owns the viewport */
-@media (max-width: 639px) {
+/*
+ * Resize-safe page headers (web / tablet / phone).
+ * Never crush eyebrow/title/description beside a fat action cluster —
+ * stack by default; side-by-side only when copy keeps ≥16rem.
+ */
+.page-header {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.75rem;
+  width: 100%;
+  min-width: 0;
+}
+.page-header__copy {
+  min-width: 0;
+  max-width: 100%;
+  flex: 1 1 auto;
+}
+.page-header__copy .app-page-title,
+.page-header__copy .app-page-eyebrow {
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: auto;
+}
+.page-header__description {
+  max-width: 42rem;
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+.page-header__action {
+  min-width: 0;
+  max-width: 100%;
+  align-self: stretch;
+}
+.page-header__action .page-primary-actions,
+.page-header__action > .flex {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 100%;
+  justify-content: flex-start;
+}
+.page-primary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 100%;
+  min-width: 0;
+}
+@media (min-width: 1024px) {
   .page-header {
-    display: flex;
     flex-direction: row;
-    flex-wrap: wrap;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 0.5rem 0.75rem;
+    gap: 1rem 1.5rem;
   }
   .page-header__copy {
-    order: 1;
-    flex: 1 1 12rem;
-    min-width: 0;
+    flex: 1 1 16rem;
+    min-width: min(100%, 16rem);
   }
   .page-header__action {
-    order: 2;
+    flex: 0 1 auto;
     align-self: flex-start;
-    margin-top: 0.15rem;
-    flex: 0 0 auto;
+    max-width: min(100%, 28rem);
+  }
+  .page-header__action .page-primary-actions,
+  .page-header__action > .flex {
+    justify-content: flex-end;
   }
   .page-primary-actions {
-    display: flex;
     justify-content: flex-end;
+  }
+}
+.page-header__action--lg-only {
+  display: none;
+}
+@media (min-width: 1024px) {
+  .page-header__action--lg-only {
+    display: block;
   }
 }
 
@@ -2834,6 +2891,93 @@ html.success-haptic-flash::after {
     position: sticky;
     top: calc(var(--app-header-offset, 3.5rem) + 0.75rem);
     border-left: 3px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  }
+}
+
+/*
+ * Holdings list rows — no text overlap (Equities / Crypto).
+ * Grid cells clip; never md:flex-nowrap + inline OverflowMenu actions.
+ */
+.holdings-list-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(6.75rem, max-content) 4.25rem 2.75rem;
+  column-gap: 0.75rem;
+  row-gap: 0.45rem;
+  align-items: start;
+  width: 100%;
+  min-width: 0;
+}
+.holdings-list-row--sorting {
+  grid-template-columns: 2rem minmax(0, 1fr) minmax(6.75rem, max-content) 4.25rem 2.75rem;
+}
+.holdings-list-row__handle {
+  align-self: center;
+}
+.holdings-list-row__identity,
+.holdings-list-row__metrics {
+  min-width: 0;
+  overflow: hidden;
+}
+.holdings-list-row__symbol {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+.holdings-list-row__metrics {
+  text-align: right;
+  justify-self: end;
+}
+.holdings-list-row__metrics p {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+.holdings-list-row__change {
+  text-align: right;
+  white-space: nowrap;
+  justify-self: end;
+  min-width: 0;
+}
+.holdings-list-row__actions {
+  justify-self: end;
+  align-self: start;
+  min-width: 0;
+}
+.holdings-list-row__alert {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+@media (max-width: 639px) {
+  .holdings-list-row {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      'identity change actions'
+      'metrics metrics metrics';
+  }
+  .holdings-list-row--sorting {
+    grid-template-columns: 2rem minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      'handle identity change actions'
+      'handle metrics metrics metrics';
+  }
+  .holdings-list-row__handle {
+    grid-area: handle;
+  }
+  .holdings-list-row__identity {
+    grid-area: identity;
+  }
+  .holdings-list-row__metrics {
+    grid-area: metrics;
+    text-align: left;
+    justify-self: stretch;
+  }
+  .holdings-list-row__change {
+    grid-area: change;
+  }
+  .holdings-list-row__actions {
+    grid-area: actions;
   }
 }
 
