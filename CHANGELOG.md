@@ -1,5 +1,19 @@
 # MyDSP Changelog
 
+## [1.2.114] - 2026-07-30
+
+### Improved — Next 10 wave 5 (cross-format)
+- **Today layout:** reorder core sections, hide cards, and sync the LWW layout across devices
+- **Spending rules:** suggest frequent unmatched merchants with prefilled rule links
+- **Liability calendar:** show minimum payments due in the next 30 days with Open / Mark paid links
+- **Corporate actions:** surface due holding notes in an anchored Equities review strip
+- **Staking income:** optionally post a new reward to Spending’s cash-income ledger
+- **Job documents:** open the filtered document vault directly from Job detail
+- **Named scenarios:** save, load, and delete portfolio-scoped predictive assumptions
+- **Broker import honesty:** retain a visible imported/skipped report, including Undo state
+- **Bottom tabs:** open the editor from header More and reorder with drag or accessible Move buttons
+- **Accessibility:** labelled wave controls, visible focus rings, and reduced-motion guards for new strips/sheets
+
 ## [1.2.113] - 2026-07-30
 
 ### Improved — Next 10 wave 4 (cross-format)

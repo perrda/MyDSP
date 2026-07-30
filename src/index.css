@@ -381,6 +381,25 @@ html.theme-transitioning *::after {
   text-transform: uppercase;
   color: var(--text-subtle);
 }
+.toolbar-more-action {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 2.75rem;
+  margin-top: 0.55rem;
+  padding: 0.5rem 0.625rem;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+.toolbar-more-action:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
 
 .toolbar-icon.is-active {
   border-color: var(--accent);
@@ -2086,6 +2105,18 @@ select:focus {
     animation: none !important;
     transition: none !important;
   }
+  .bottom-nav-editor-sheet,
+  .bottom-nav-editor-move,
+  .today-layout-panel,
+  .liability-due-calendar,
+  .liability-action-strip,
+  .equities-corporate-actions-due,
+  .corp-action-strip {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+    transform: none !important;
+  }
 }
 
 /* Skeleton loaders */
@@ -2420,6 +2451,26 @@ html.glass.light .holdings-sticky-totals {
   min-height: 1rem;
   padding: 0;
   accent-color: var(--accent);
+}
+
+/* Wave 5 controls: preserve a clear keyboard ring across compact strips and sheets. */
+.bottom-nav-editor-sheet button:focus-visible,
+.today-layout-customize:focus-visible,
+.today-layout-panel button:focus-visible,
+.today-layout-panel input:focus-visible,
+.liability-due-calendar a:focus-visible,
+.liability-workspace-bar button:focus-visible,
+.liability-workspace-bar a:focus-visible,
+.liability-action-strip button:focus-visible,
+.liability-action-strip a:focus-visible,
+.equities-corporate-actions-due a:focus-visible,
+#corporate-action button:focus-visible,
+#corporate-action input:focus-visible,
+#corporate-action textarea:focus-visible,
+.corp-action-strip button:focus-visible,
+.corp-action-strip a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 @media (max-width: 639px) {
