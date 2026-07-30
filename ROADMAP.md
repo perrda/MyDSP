@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.111**
+**Current version: 1.2.112**
 
-## Completed (through v1.2.111)
+## Completed (through v1.2.112)
 
+- Next 10 wave 3 (v1.2.112): Today cockpit · trade journal follow-ups · Spending→Rules · Optimizer payment · Tax filter honesty · Jobs offer×3 · Markets trust strip · Compare workspace setup · Notification Center · Goals/Trips/Family/Journal/Documents density
 - Next 10 wave 2 (v1.2.111): holdings sticky panel · money-ops ⋯ · tax disposal links · alert deep-links · Today Next×1 · Markets screener LWW · broker CSV aliases · Compare Week Δ honesty · lower-traffic content-first · sync unlock CTA
 - No text overlap + resize-safe chrome (v1.2.110): Equities/Crypto `.holdings-list-row` · compact ⋯ menus · resize-safe `.page-header` · `PagePrimaryActions` on holdings/Compare/History/News/YouTube · `no-text-overlap.mdc` + `resize-safe-layouts.mdc`
 - Next 10 priorities wave (v1.2.109): Spending/Recurring deep-links · Today loops · liability→Spending · alerts→holdings · Compare Week Δ honesty · Optimizer CTAs · Jobs ICS · import honesty · content-first Equities/Crypto/News/YouTube/History/Dashboard/Compare/HoldingDetail/Import

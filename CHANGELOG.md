@@ -1,5 +1,20 @@
 # MyDSP Changelog
 
+## [1.2.112] - 2026-07-30
+
+### Improved — Next 10 wave 3 (cross-format)
+- **Today cockpit:** bill de-dupe across Next → Daily plan → Bills · calm empty states
+- **Holdings journal:** post-trade toast actions (Tax / History / Markets) · `?history=1` · “Journal buy batches” honesty
+- **Spending→Rules:** shared `makeRuleHref` bridge · Rules content-first
+- **Optimizer pay-down:** liability `?payment=1&returnTo=optimizer` · Back to Optimizer toast
+- **Tax honesty:** unset residency empty state · §104 vs FIFO label · `?symbol=` filter + `open=1` for sell-prefill
+- **Jobs offer compare:** up to 3 apps · `/jobs?compare=` · Compare salary from Job detail
+- **Markets trust strip:** single as-of / SLA / Finnhub chip (no Sync buttons)
+- **Compare workspace setup:** local family workspace copy (not invite) · snapshot timestamp consistency
+- **Notification Center:** Jobs + News unread actions · todos stay `?focus=`
+- **Density:** Goals · Trips · Family · Journal · Documents compact ⋯ / tighter padding
+- Full tip harness + `tsc -b` QA
+
 ## [1.2.111] - 2026-07-30
 
 ### Improved — Next 10 wave 2 (cross-format)
