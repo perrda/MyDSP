@@ -7,6 +7,7 @@ import { BudgetSparkline } from '../components/charts/BudgetSparkline'
 import { Sparkline } from '../components/charts/Sparkline'
 import { SwipeBillRow } from '../components/ui/SwipeBillRow'
 import { PageHeader } from '../components/ui/PageHeader'
+import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
 import { RemindersPanel, useSmartReminders } from '../components/SmartReminders'
 import { PortfolioShareCard } from '../components/SocialShare'
 import { useToasts } from '../components/ToastProvider'
@@ -67,6 +68,17 @@ import {
 } from '../services/offlineQueue'
 import { getSessionSyncPassphrase } from '../services/sync/sessionPassphrase'
 import { LAST_BACKUP_KEY } from '../storage/backupStore'
+import {
+  DEFAULT_TODAY_SECTION_ORDER,
+  TODAY_ACCORDION_OPTIONS,
+  TODAY_LAYOUT_CARD_OPTIONS,
+  loadTodayLayout,
+  resetTodayLayout as resetStoredTodayLayout,
+  saveTodayLayout,
+  subscribeTodayLayout,
+  type TodayCardId,
+  type TodaySectionId,
+} from '../storage/todayLayoutStore'
 import {
   BACKUP_NUDGE_DISMISS_ID,
   dismissAlertForCalendarMonth,
@@ -176,51 +188,9 @@ const QUICK_SECONDARY = [
 const ISA_ALLOWANCE_GBP = 20_000
 const ISA_REMAINING_KEY = 'mydsp_isa_remaining_gbp'
 const ISA_LOW_REMAINING_THRESHOLD_GBP = 2_000
-const TODAY_LAYOUT_STORAGE_KEY = 'mydsp.today.layout.v1'
-const TODAY_LAYOUT_CARD_OPTIONS = [
-  { id: 'next', label: 'Next' },
-  { id: 'dailyPlan', label: 'Daily plan' },
-  { id: 'careerPulse', label: 'Career pulse' },
-  { id: 'bills', label: 'Bills' },
-  { id: 'goals', label: 'Goals' },
-  { id: 'tax', label: 'Tax' },
-  { id: 'media', label: 'Media' },
-  { id: 'markets', label: 'Markets' },
-  { id: 'budget', label: 'Budget' },
-  { id: 'gettingStarted', label: 'Getting started' },
-  { id: 'alerts', label: 'Alerts' },
-  { id: 'reminders', label: 'Reminders' },
-  { id: 'charts', label: 'Charts' },
-  { id: 'activity', label: 'Activity' },
-] as const
-type TodayCardId = (typeof TODAY_LAYOUT_CARD_OPTIONS)[number]['id']
-type TodayLayoutPrefs = { hiddenCards: TodayCardId[] }
-const TODAY_LAYOUT_CARD_IDS = new Set<TodayCardId>(
-  TODAY_LAYOUT_CARD_OPTIONS.map((option) => option.id),
-)
+// todayLayoutStore migrates legacy { hiddenCards } from mydsp.today.layout.v1.
+// Customizable core ids include id: 'dailyPlan' and id: 'careerPulse'.
 const DAILY_PLAN_PHONE_VISIBLE_ROWS = 5
-
-function readTodayLayoutPrefs(): TodayLayoutPrefs {
-  try {
-    const raw = localStorage.getItem(TODAY_LAYOUT_STORAGE_KEY)
-    if (!raw) return { hiddenCards: [] }
-    const parsed = JSON.parse(raw) as Partial<TodayLayoutPrefs>
-    const hiddenCards = Array.isArray(parsed.hiddenCards)
-      ? parsed.hiddenCards.filter((id): id is TodayCardId => TODAY_LAYOUT_CARD_IDS.has(id as TodayCardId))
-      : []
-    return { hiddenCards }
-  } catch {
-    return { hiddenCards: [] }
-  }
-}
-
-function saveTodayLayoutPrefs(prefs: TodayLayoutPrefs) {
-  try {
-    localStorage.setItem(TODAY_LAYOUT_STORAGE_KEY, JSON.stringify(prefs))
-  } catch {
-    /* ignore */
-  }
-}
 
 type DailyPlanItem = {
   id: string
@@ -307,6 +277,7 @@ function TodayAccordionSection({
   defaultOpen = true,
   className = '',
   ariaLabel,
+  order,
   children,
 }: {
   id: TodayPanelId
@@ -316,6 +287,7 @@ function TodayAccordionSection({
   defaultOpen?: boolean
   className?: string
   ariaLabel?: string
+  order?: number
   children: ReactNode
 }) {
   const [open, setOpen] = useState(() => readTodayPanelOpen(id, defaultOpen))
@@ -334,7 +306,11 @@ function TodayAccordionSection({
   }
 
   return (
-    <section className={`today-accordion-section ${className}`} aria-label={ariaLabel}>
+    <section
+      className={`today-accordion-section ${className}`}
+      aria-label={ariaLabel}
+      style={order == null ? undefined : { order }}
+    >
       <div className="today-accordion-header flex items-center justify-between gap-3 px-0.5 mb-2">
         <button
           type="button"
@@ -439,28 +415,33 @@ export function Dashboard() {
   const youtubeMarkAllUndoTimer = useRef<number | null>(null)
   const [activeJumpSection, setActiveJumpSection] = useState<string | null>(null)
   const [todayLayoutOpen, setTodayLayoutOpen] = useState(false)
-  const [todayHiddenCards, setTodayHiddenCards] = useState<Set<TodayCardId>>(
-    () => new Set(readTodayLayoutPrefs().hiddenCards),
-  )
+  const [todayLayout, setTodayLayout] = useState(loadTodayLayout)
+  const todayHiddenCards = useMemo(() => new Set(todayLayout.hidden), [todayLayout.hidden])
+  const todaySectionOrder = todayLayout.order
   const isTodayCardVisible = (id: TodayCardId) => !todayHiddenCards.has(id)
   const toggleTodayCard = (id: TodayCardId) => {
-    setTodayHiddenCards((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) {
-        next.delete(id)
-      } else {
-        next.add(id)
-      }
-      saveTodayLayoutPrefs({ hiddenCards: [...next] })
-      return next
-    })
+    const next = new Set(todayLayout.hidden)
+    if (next.has(id)) {
+      next.delete(id)
+    } else {
+      next.add(id)
+    }
+    setTodayLayout(saveTodayLayout({ order: todayLayout.order, hidden: [...next] }))
   }
   const resetTodayLayout = () => {
-    saveTodayLayoutPrefs({ hiddenCards: [] })
-    setTodayHiddenCards(new Set())
+    setTodayLayout(resetStoredTodayLayout())
+  }
+  const reorderTodaySections = (items: Array<{ id: TodaySectionId; label: string }>) => {
+    setTodayLayout(
+      saveTodayLayout({
+        order: items.map((item) => item.id),
+        hidden: todayLayout.hidden,
+      }),
+    )
   }
 
   useEffect(() => subscribeAutoSync(setSyncStatus), [])
+  useEffect(() => subscribeTodayLayout(() => setTodayLayout(loadTodayLayout())), [])
   useEffect(() => {
     const id = window.setInterval(() => setRelativeTick((n) => n + 1), 30_000)
     return () => window.clearInterval(id)
@@ -1382,12 +1363,22 @@ export function Dashboard() {
             })()
           : 'Cloud sync ready'
 
+  const accordionJumpChips: Partial<Record<TodaySectionId, [string, string, string]>> = {
+    next: showNextCard ? ['today-next-action', 'Next', 'today-section-jump-next'] : undefined,
+    dailyPlan: showDailyPlanCard
+      ? ['today-daily-plan', 'Daily plan', 'today-section-jump-daily-plan']
+      : undefined,
+    careerPulse: showCareerPulseCard
+      ? ['today-career-pulse', 'Career', 'today-section-jump-career']
+      : undefined,
+    bills: showBillsCard ? ['today-bills', 'Bills', 'today-section-jump-bills'] : undefined,
+    goals: showGoalsCard ? ['today-goals', 'Goals', 'today-section-jump-goals'] : undefined,
+  }
   const todayJumpChips: Array<[string, string, string]> = [
-    ...(showNextCard ? [['today-next-action', 'Next', 'today-section-jump-next'] as [string, string, string]] : []),
-    ...(showDailyPlanCard ? [['today-daily-plan', 'Daily plan', 'today-section-jump-daily-plan'] as [string, string, string]] : []),
-    ...(showCareerPulseCard ? [['today-career-pulse', 'Career', 'today-section-jump-career'] as [string, string, string]] : []),
-    ...(showBillsCard ? [['today-bills', 'Bills', 'today-section-jump-bills'] as [string, string, string]] : []),
-    ...(showGoalsCard ? [['today-goals', 'Goals', 'today-section-jump-goals'] as [string, string, string]] : []),
+    ...todaySectionOrder.flatMap((id) => {
+      const chip = accordionJumpChips[id]
+      return chip ? [chip] : []
+    }),
     ...(showTaxCard ? [['today-tax', 'Tax', 'today-section-jump-tax'] as [string, string, string]] : []),
     ...(liabilities > 0 ? [['today-debt', 'Debt', 'today-section-jump-debt'] as [string, string, string]] : []),
     ...(monthlyBudgetPulse && showBudgetPulseCards
@@ -1451,6 +1442,7 @@ export function Dashboard() {
           className="today-layout-customize ui-seg shrink-0 self-start"
           aria-expanded={todayLayoutOpen}
           aria-controls="today-layout-panel"
+          aria-label="Customize Today layout"
           onClick={() => setTodayLayoutOpen((open) => !open)}
         >
           Customize{todayHiddenCards.size > 0 ? ` · ${todayHiddenCards.size} hidden` : ''}
@@ -1469,23 +1461,56 @@ export function Dashboard() {
               <p className="text-xs uppercase tracking-wider text-text-subtle font-semibold">
                 Today layout
               </p>
-              <p className="text-xs text-text-muted">Choose which cards show on this device.</p>
+              <p className="text-xs text-text-muted">
+                Drag the main sections into order and choose which cards show. Layout syncs across devices.
+              </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <button type="button" className="btn-ghost btn-sm" onClick={resetTodayLayout}>
+              <button
+                type="button"
+                className="btn-ghost btn-sm"
+                aria-label="Show all Today cards"
+                onClick={resetTodayLayout}
+              >
                 Show all
               </button>
               <button
                 type="button"
                 className="btn-secondary btn-sm"
+                aria-label="Close Today layout editor"
                 onClick={() => setTodayLayoutOpen(false)}
               >
                 Done
               </button>
             </div>
           </div>
+          <ReorderList
+            items={todaySectionOrder.map(
+              (id) => TODAY_ACCORDION_OPTIONS.find((option) => option.id === id)!,
+            )}
+            getId={(option) => option.id}
+            onReorder={reorderTodaySections}
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mb-2"
+          >
+            {(option) => (
+              <label
+                className="today-layout-option flex items-center gap-2 border border-border bg-surface-hover/50 px-3 py-2 text-sm"
+              >
+                <ReorderHandle label={`Reorder ${option.label}`} />
+                <input
+                  type="checkbox"
+                  checked={!todayHiddenCards.has(option.id)}
+                  onChange={() => toggleTodayCard(option.id)}
+                />
+                <span className="flex-1">{option.label}</span>
+              </label>
+            )}
+          </ReorderList>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-            {TODAY_LAYOUT_CARD_OPTIONS.map((option) => (
+            {TODAY_LAYOUT_CARD_OPTIONS.filter(
+              (option) =>
+                !(DEFAULT_TODAY_SECTION_ORDER as readonly string[]).includes(option.id),
+            ).map((option) => (
               <label
                 key={option.id}
                 className="today-layout-option flex items-center gap-2 border border-border bg-surface-hover/50 px-3 py-2 text-sm"
@@ -1763,12 +1788,14 @@ export function Dashboard() {
         ) : null}
       </div>
 
+      <div className="today-reorderable-sections flex flex-col">
       {showDailyPlanCard ? (
         <TodayAccordionSection
           id="today-daily-plan"
           title="Daily plan"
           enabled={todayAccordionEnabled}
           defaultOpen
+          order={todaySectionOrder.indexOf('dailyPlan')}
           className="mb-3"
           action={
             <Link to="/todos" className="text-xs text-accent font-semibold">
@@ -1828,6 +1855,7 @@ export function Dashboard() {
           title="Career pulse"
           enabled={todayAccordionEnabled}
           defaultOpen={false}
+          order={todaySectionOrder.indexOf('careerPulse')}
           className="mb-3"
           action={
             <Link to="/jobs" className="text-xs text-accent font-semibold">
@@ -1885,6 +1913,7 @@ export function Dashboard() {
         title="Next"
         enabled={todayAccordionEnabled}
         defaultOpen
+        order={todaySectionOrder.indexOf('next')}
         className="today-next-action-stack today-focus-card space-y-2 mb-3"
         ariaLabel="Next action"
         action={
@@ -2255,6 +2284,7 @@ export function Dashboard() {
           title="Bills · due in 7 days"
           enabled={todayAccordionEnabled}
           defaultOpen={false}
+          order={todaySectionOrder.indexOf('bills')}
           className="mb-3"
           action={
             <Link to="/recurring" className="text-xs text-accent font-semibold">
@@ -2327,6 +2357,7 @@ export function Dashboard() {
           title="Goals"
           enabled={todayAccordionEnabled}
           defaultOpen={false}
+          order={todaySectionOrder.indexOf('goals')}
           className="mb-3"
           action={
             <Link to="/goals" className="text-xs text-accent font-semibold">
@@ -2407,6 +2438,7 @@ export function Dashboard() {
           ) : null}
         </TodayAccordionSection>
       ) : null}
+      </div>
 
       {showTaxCard ? (
       <div

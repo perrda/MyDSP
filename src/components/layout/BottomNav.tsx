@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
+import { ArrowDown, ArrowUp } from 'lucide-react'
 import { useLayoutMode, useShowBottomNav } from '../../hooks/useShowBottomNav'
 import { prefetchRouteChunk } from '../../hooks/useIdlePrefetch'
 import { prefetchMarketQuotes } from '../../services/marketsQuotes'
@@ -9,6 +10,7 @@ import {
 } from '../../storage/bottomNavSlots'
 import { BOTTOM_NAV_CATALOG, resolveBottomNavItems, type BottomNavItem } from '../../domain/bottomNav'
 import { dueWithinDays } from '../../domain/recurringDueStrip'
+import { moveIndex } from '../../utils/reorder'
 import { usePortfolio } from '../../context/PortfolioContext'
 import { newsUnreadFromCache } from '../../storage/newsStore'
 import { youtubeUnreadFromCache } from '../../storage/youtubeStore'
@@ -52,18 +54,26 @@ export function BottomNav() {
     [data.recurringTransactions],
   )
 
+  const openFavouriteSheet = useCallback(() => {
+    setMiddleItems(readMiddleItems())
+    setFavSheetOpen(true)
+  }, [])
+
   useEffect(() => {
     const refresh = () => {
       setItems(readItems())
       setMiddleItems(readMiddleItems())
     }
+    const openEditor = () => openFavouriteSheet()
     window.addEventListener('mydsp-nav-order', refresh)
+    window.addEventListener('mydsp-open-bottom-nav-editor', openEditor)
     window.addEventListener('storage', refresh)
     return () => {
       window.removeEventListener('mydsp-nav-order', refresh)
+      window.removeEventListener('mydsp-open-bottom-nav-editor', openEditor)
       window.removeEventListener('storage', refresh)
     }
-  }, [])
+  }, [openFavouriteSheet])
 
   useEffect(() => {
     const refreshNewsUnread = () => setNewsUnread(newsUnreadFromCache())
@@ -87,11 +97,6 @@ export function BottomNav() {
       window.clearTimeout(longPressTimer.current)
       longPressTimer.current = null
     }
-  }
-
-  const openFavouriteSheet = () => {
-    setMiddleItems(readMiddleItems())
-    setFavSheetOpen(true)
   }
 
   const dispatchWeeklyDigestOpen = () => {
@@ -124,138 +129,165 @@ export function BottomNav() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  if (!show) return null
+  if (!show && !favSheetOpen) return null
 
   const tablet = mode === 'tablet'
 
   return (
     <>
-      <nav
-        className={`bottom-nav fixed bottom-0 left-0 right-0 z-40 bg-bg-elevated border-t border-border pb-[env(safe-area-inset-bottom)] ${
-          tablet ? 'bottom-nav--tablet' : ''
-        }`}
-        aria-label={tablet ? 'Tablet navigation' : 'Mobile navigation'}
-        role="navigation"
-        onContextMenu={(e) => {
-          e.preventDefault()
-          openFavouriteSheet()
-        }}
-      >
-        <div
-          className={`flex items-center justify-around px-1 pt-1.5 ${
-            tablet ? 'max-w-3xl mx-auto px-4 gap-1' : ''
+      {show ? (
+        <nav
+          className={`bottom-nav fixed bottom-0 left-0 right-0 z-40 bg-bg-elevated border-t border-border pb-[env(safe-area-inset-bottom)] ${
+            tablet ? 'bottom-nav--tablet' : ''
           }`}
+          aria-label={tablet ? 'Tablet navigation' : 'Mobile navigation'}
+          role="navigation"
+          onContextMenu={(e) => {
+            e.preventDefault()
+            openFavouriteSheet()
+          }}
         >
-          {items.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.to === '/'}
-              onMouseEnter={item.to === '/markets' ? prefetchMarketsNav : undefined}
-              onFocus={item.to === '/markets' ? prefetchMarketsNav : undefined}
-              onTouchStart={() => startLongPress(item)}
-              onTouchEnd={clearLongPress}
-              onTouchMove={clearLongPress}
-              onTouchCancel={clearLongPress}
-              onContextMenu={(e) => {
-                if (!isDigestLongPressItem(item)) return
-                e.preventDefault()
-                e.stopPropagation()
-                longPressFired.current = true
-                clearLongPress()
-                dispatchWeeklyDigestOpen()
-              }}
-              onClick={(e) => {
-                if (longPressFired.current) {
+          <div
+            className={`flex items-center justify-around px-1 pt-1.5 ${
+              tablet ? 'max-w-3xl mx-auto px-4 gap-1' : ''
+            }`}
+          >
+            {items.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.to === '/'}
+                onMouseEnter={item.to === '/markets' ? prefetchMarketsNav : undefined}
+                onFocus={item.to === '/markets' ? prefetchMarketsNav : undefined}
+                onTouchStart={() => startLongPress(item)}
+                onTouchEnd={clearLongPress}
+                onTouchMove={clearLongPress}
+                onTouchCancel={clearLongPress}
+                onContextMenu={(e) => {
+                  if (!isDigestLongPressItem(item)) return
                   e.preventDefault()
-                  longPressFired.current = false
-                  return
-                }
-                if (item.to === '/') {
-                  const now = Date.now()
-                  if (pathname === '/' && now - lastOverviewTap.current < 450) {
+                  e.stopPropagation()
+                  longPressFired.current = true
+                  clearLongPress()
+                  dispatchWeeklyDigestOpen()
+                }}
+                onClick={(e) => {
+                  if (longPressFired.current) {
                     e.preventDefault()
-                    scrollTodayToTop()
+                    longPressFired.current = false
+                    return
                   }
-                  lastOverviewTap.current = now
+                  if (item.to === '/') {
+                    const now = Date.now()
+                    if (pathname === '/' && now - lastOverviewTap.current < 450) {
+                      e.preventDefault()
+                      scrollTodayToTop()
+                    }
+                    lastOverviewTap.current = now
+                  }
+                }}
+                className={({ isActive }) =>
+                  `bottom-nav-link relative flex flex-col items-center gap-0.5 py-2 min-h-11 transition-colors ${
+                    tablet ? 'px-4 min-w-[4.5rem] flex-1' : 'px-2 min-w-[3.5rem]'
+                  } ${isActive ? 'text-accent bottom-nav-link--active' : 'text-text-muted'}`
                 }
-              }}
-              className={({ isActive }) =>
-                `bottom-nav-link relative flex flex-col items-center gap-0.5 py-2 min-h-11 transition-colors ${
-                  tablet ? 'px-4 min-w-[4.5rem] flex-1' : 'px-2 min-w-[3.5rem]'
-                } ${isActive ? 'text-accent bottom-nav-link--active' : 'text-text-muted'}`
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  <span className="relative inline-flex">
-                    <item.icon size={tablet ? 22 : 20} strokeWidth={isActive ? 2.25 : 1.75} />
-                    {item.to === '/news' && newsUnread > 0 ? (
-                      <span
-                        className="bottom-nav-unread"
-                        aria-label={`${newsUnread} unread news`}
-                      />
-                    ) : null}
-                    {item.to === '/youtube' && youtubeUnread > 0 ? (
-                      <span
-                        className="bottom-nav-unread"
-                        aria-label={`${youtubeUnread} unread videos`}
-                      />
-                    ) : null}
-                    {(item.to === '/recurring' || item.to === '/spending') && billsDueSoon ? (
-                      <span
-                        className="bottom-nav-bills-due bottom-nav-unread"
-                        aria-label="Bills due within 7 days"
-                      />
-                    ) : null}
-                  </span>
-                  <span
-                    className={`bottom-nav-link-label font-semibold leading-tight tracking-tight ${
-                      tablet ? 'text-xs' : 'text-[11px]'
-                    }`}
-                    title={item.label}
-                  >
-                    {item.label}
-                  </span>
-                </>
-              )}
-            </NavLink>
-          ))}
-        </div>
-      </nav>
+              >
+                {({ isActive }) => (
+                  <>
+                    <span className="relative inline-flex">
+                      <item.icon size={tablet ? 22 : 20} strokeWidth={isActive ? 2.25 : 1.75} />
+                      {item.to === '/news' && newsUnread > 0 ? (
+                        <span
+                          className="bottom-nav-unread"
+                          aria-label={`${newsUnread} unread news`}
+                        />
+                      ) : null}
+                      {item.to === '/youtube' && youtubeUnread > 0 ? (
+                        <span
+                          className="bottom-nav-unread"
+                          aria-label={`${youtubeUnread} unread videos`}
+                        />
+                      ) : null}
+                      {(item.to === '/recurring' || item.to === '/spending') && billsDueSoon ? (
+                        <span
+                          className="bottom-nav-bills-due bottom-nav-unread"
+                          aria-label="Bills due within 7 days"
+                        />
+                      ) : null}
+                    </span>
+                    <span
+                      className={`bottom-nav-link-label font-semibold leading-tight tracking-tight ${
+                        tablet ? 'text-xs' : 'text-[11px]'
+                      }`}
+                      title={item.label}
+                    >
+                      {item.label}
+                    </span>
+                  </>
+                )}
+              </NavLink>
+            ))}
+          </div>
+        </nav>
+      ) : null}
 
       <Modal open={favSheetOpen} title="Reorder middle tabs" onClose={() => setFavSheetOpen(false)}>
-        <p className="text-sm text-text-muted font-light mb-4">
-          Drag ⋮⋮ to reorder the three middle tabs. Overview and Settings stay fixed at each end.
-        </p>
-        {middleItems.length === 0 ? (
-          <p className="text-sm text-text-subtle">No middle tabs yet.</p>
-        ) : (
-          <ReorderList
-            items={middleItems}
-            getId={(item) => item.to}
-            onReorder={onMiddleReorder}
-            className="space-y-2"
-          >
-            {(item) => (
-              <div className="flex items-center gap-3 surface px-3 py-2.5 rounded-lg md:rounded-none">
-                <ReorderHandle label={`Reorder ${item.label}`} />
-                <item.icon size={18} strokeWidth={1.75} className="text-text-muted shrink-0" />
-                <span className="text-sm font-semibold">{item.label}</span>
-              </div>
-            )}
-          </ReorderList>
-        )}
-        <p className="mt-4 text-xs text-text-subtle">
-          <Link
-            to="/settings#layout"
-            className="text-accent font-semibold hover:underline"
-            onClick={() => setFavSheetOpen(false)}
-          >
-            Open Settings → Layout
-          </Link>{' '}
-          to swap which sections appear in the three middle slots.
-        </p>
+        <div className="bottom-nav-editor-sheet">
+          <p className="text-sm text-text-muted font-light mb-4">
+            Drag ⋮⋮ or use Move up / Move down to reorder the three middle tabs. Overview and
+            Settings stay fixed at each end.
+          </p>
+          {middleItems.length === 0 ? (
+            <p className="text-sm text-text-subtle">No middle tabs yet.</p>
+          ) : (
+            <ReorderList
+              items={middleItems}
+              getId={(item) => item.to}
+              onReorder={onMiddleReorder}
+              className="space-y-2"
+            >
+              {(item, index) => (
+                <div className="flex items-center gap-3 surface px-3 py-2.5 rounded-lg md:rounded-none">
+                  <ReorderHandle label={`Reorder ${item.label}`} />
+                  <item.icon size={18} strokeWidth={1.75} className="text-text-muted shrink-0" />
+                  <span className="text-sm font-semibold min-w-0 flex-1">{item.label}</span>
+                  <div className="flex items-center gap-1" role="group" aria-label={`Move ${item.label}`}>
+                    <button
+                      type="button"
+                      className="bottom-nav-editor-move btn-ghost btn-sm min-h-11 min-w-11 p-0"
+                      aria-label={`Move ${item.label} up`}
+                      title={`Move ${item.label} up`}
+                      disabled={index === 0}
+                      onClick={() => onMiddleReorder(moveIndex(middleItems, index, index - 1))}
+                    >
+                      <ArrowUp size={16} strokeWidth={1.75} aria-hidden />
+                    </button>
+                    <button
+                      type="button"
+                      className="bottom-nav-editor-move btn-ghost btn-sm min-h-11 min-w-11 p-0"
+                      aria-label={`Move ${item.label} down`}
+                      title={`Move ${item.label} down`}
+                      disabled={index === middleItems.length - 1}
+                      onClick={() => onMiddleReorder(moveIndex(middleItems, index, index + 1))}
+                    >
+                      <ArrowDown size={16} strokeWidth={1.75} aria-hidden />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </ReorderList>
+          )}
+          <p className="mt-4 text-xs text-text-subtle">
+            <Link
+              to="/settings#layout"
+              className="text-accent font-semibold hover:underline"
+              onClick={() => setFavSheetOpen(false)}
+            >
+              Open Settings → Layout
+            </Link>{' '}
+            to swap which sections appear in the three middle slots.
+          </p>
+        </div>
       </Modal>
     </>
   )

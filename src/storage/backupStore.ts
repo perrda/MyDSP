@@ -29,6 +29,10 @@ import {
   importBottomNavSlotsFromBackup,
 } from './bottomNavSlots'
 import {
+  exportTodayLayoutForBackup,
+  importTodayLayoutFromBackup,
+} from './todayLayoutStore'
+import {
   exportLaunchPathForBackup,
   importLaunchPathFromBackup,
 } from './launchPathStore'
@@ -245,6 +249,8 @@ export interface FullBackupRecord extends FullBackupMeta {
   navLayout?: unknown
   /** Optional phone/tablet bottom-nav middle slots */
   bottomNavSlots?: unknown
+  /** Optional Today card order and visibility */
+  todayLayout?: unknown
   /** Optional on-launch home path */
   launchPath?: unknown
   /** Optional UI panel open/collapsed map */
@@ -319,6 +325,7 @@ function backupCanonical(record: Pick<
   | 'jobsFilter'
   | 'navLayout'
   | 'bottomNavSlots'
+  | 'todayLayout'
   | 'launchPath'
   | 'uiPanels'
   | 'settingsSections'
@@ -366,6 +373,7 @@ function backupCanonical(record: Pick<
     jobsFilter: record.jobsFilter ?? null,
     navLayout: record.navLayout ?? null,
     bottomNavSlots: record.bottomNavSlots ?? null,
+    todayLayout: record.todayLayout ?? null,
     launchPath: record.launchPath ?? null,
     uiPanels: record.uiPanels ?? null,
     settingsSections: record.settingsSections ?? null,
@@ -418,6 +426,7 @@ export async function computeFullBackupChecksum(
     | 'jobsFilter'
     | 'navLayout'
     | 'bottomNavSlots'
+    | 'todayLayout'
     | 'launchPath'
     | 'uiPanels'
     | 'settingsSections'
@@ -508,6 +517,7 @@ export function captureFullWorkspace(): Omit<
     jobsFilter: exportJobsFilterForBackup() ?? undefined,
     navLayout: exportNavLayoutForBackup() ?? undefined,
     bottomNavSlots: exportBottomNavSlotsForBackup() ?? undefined,
+    todayLayout: exportTodayLayoutForBackup() ?? undefined,
     launchPath: exportLaunchPathForBackup() ?? undefined,
     uiPanels: exportUiPanelsForBackup() ?? undefined,
     settingsSections: exportSettingsSectionsForBackup() ?? undefined,
@@ -767,6 +777,9 @@ export async function restoreFullWorkspace(record: FullBackupRecord): Promise<vo
   if (record.bottomNavSlots) {
     importBottomNavSlotsFromBackup(record.bottomNavSlots)
   }
+  if (record.todayLayout) {
+    importTodayLayoutFromBackup(record.todayLayout)
+  }
   if (record.launchPath) {
     importLaunchPathFromBackup(record.launchPath)
   }
@@ -880,6 +893,7 @@ function fullBackupPayload(record: FullBackupRecord) {
     ...(record.jobsFilter ? { jobsFilter: record.jobsFilter } : {}),
     ...(record.navLayout ? { navLayout: record.navLayout } : {}),
     ...(record.bottomNavSlots ? { bottomNavSlots: record.bottomNavSlots } : {}),
+    ...(record.todayLayout ? { todayLayout: record.todayLayout } : {}),
     ...(record.launchPath ? { launchPath: record.launchPath } : {}),
     ...(record.uiPanels ? { uiPanels: record.uiPanels } : {}),
     ...(record.settingsSections ? { settingsSections: record.settingsSections } : {}),
@@ -1063,6 +1077,7 @@ export function parseFullBackupFile(raw: unknown): FullBackupRecord | null {
     jobsFilter: o.jobsFilter,
     navLayout: o.navLayout,
     bottomNavSlots: o.bottomNavSlots,
+    todayLayout: o.todayLayout,
     launchPath: o.launchPath,
     uiPanels: o.uiPanels,
     settingsSections: o.settingsSections,

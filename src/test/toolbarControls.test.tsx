@@ -101,4 +101,27 @@ describe('ToolbarControls', () => {
     fireEvent.click(refreshButtons[refreshButtons.length - 1])
     expect(onRefresh).toHaveBeenCalledTimes(1)
   })
+
+  it('opens the bottom-tab editor from the More menu', () => {
+    const onOpen = vi.fn()
+    window.addEventListener('mydsp-open-bottom-nav-editor', onOpen)
+
+    render(
+      <ToolbarControls
+        portfolioSelect={portfolio}
+        currencySelect={currency}
+        refreshing={false}
+        onRefresh={vi.fn()}
+        privacy={false}
+        onPrivacyToggle={vi.fn()}
+      />,
+    )
+
+    fireEvent.click(screen.getByLabelText('More workspace controls'))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Edit bottom tabs' }))
+
+    expect(onOpen).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('menu', { name: 'Workspace actions' })).not.toBeInTheDocument()
+    window.removeEventListener('mydsp-open-bottom-nav-editor', onOpen)
+  })
 })

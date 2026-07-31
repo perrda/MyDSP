@@ -9,6 +9,76 @@ export interface LiabilityRef {
   id: number
 }
 
+export interface LiabilityDue extends LiabilityRef {
+  name: string
+  minPay: number
+  dueDate: string
+  daysUntil: number
+}
+
+function ymd(date: Date): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function dueDateInMonth(year: number, month: number, dueDay: number): Date {
+  const lastDay = new Date(year, month + 1, 0).getDate()
+  return new Date(year, month, Math.min(dueDay, lastDay))
+}
+
+/** Next occurrence of a liability's monthly due day, including today. */
+export function nextLiabilityDueDate(
+  liability: Pick<CreditCard | Loan, 'paymentDueDay'>,
+  from = new Date(),
+): string | null {
+  const dueDay = liability.paymentDueDay
+  if (!Number.isInteger(dueDay) || dueDay == null || dueDay < 1 || dueDay > 31) return null
+  const thisMonth = dueDateInMonth(from.getFullYear(), from.getMonth(), dueDay)
+  if (ymd(thisMonth) >= ymd(from)) return ymd(thisMonth)
+  return ymd(dueDateInMonth(from.getFullYear(), from.getMonth() + 1, dueDay))
+}
+
+/** Cards and loans with a payment due from today through the requested window. */
+export function liabilitiesDueWithinDays(
+  cards: CreditCard[],
+  loans: Loan[],
+  days = 30,
+  from = new Date(),
+): LiabilityDue[] {
+  const todayUtc = Date.UTC(from.getFullYear(), from.getMonth(), from.getDate())
+  const limit = Math.max(0, Math.floor(days))
+  const due: LiabilityDue[] = []
+
+  const add = (liability: CreditCard | Loan, kind: LiabilityKind) => {
+    const dueDate = nextLiabilityDueDate(liability, from)
+    if (!dueDate) return
+    const [year, month, day] = dueDate.split('-').map(Number)
+    const daysUntil = Math.round(
+      (Date.UTC(year!, month! - 1, day!) - todayUtc) / 86_400_000,
+    )
+    if (daysUntil < 0 || daysUntil > limit) return
+    due.push({
+      kind,
+      id: liability.id,
+      name: liability.name,
+      minPay: liability.minPay,
+      dueDate,
+      daysUntil,
+    })
+  }
+
+  cards.forEach((card) => add(card, 'card'))
+  loans.forEach((loan) => add(loan, 'loan'))
+  return due.sort(
+    (a, b) =>
+      a.dueDate.localeCompare(b.dueDate) ||
+      a.name.localeCompare(b.name) ||
+      a.id - b.id,
+  )
+}
+
 export function ragLabel(status: RagStatus | undefined): string {
   if (status === 'red') return 'Critical'
   if (status === 'amber') return 'Watch'

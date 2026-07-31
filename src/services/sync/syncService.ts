@@ -261,6 +261,7 @@ export interface MergePreview {
     todosQuickFilter?: unknown
     jobsFilter?: unknown
     bottomNavSlots?: unknown
+    todayLayout?: unknown
     launchPath?: unknown
     uiPanels?: unknown
     settingsSections?: unknown
@@ -694,6 +695,7 @@ async function decryptEnvelope(
     if (a.todosQuickFilter != null) extras.todosQuickFilter = a.todosQuickFilter
     if (a.jobsFilter != null) extras.jobsFilter = a.jobsFilter
     if (a.bottomNavSlots != null) extras.bottomNavSlots = a.bottomNavSlots
+    if (a.todayLayout != null) extras.todayLayout = a.todayLayout
     if (a.launchPath != null) extras.launchPath = a.launchPath
     if (a.uiPanels != null) extras.uiPanels = a.uiPanels
     if (a.settingsSections != null) extras.settingsSections = a.settingsSections
@@ -884,6 +886,10 @@ export async function applyWorkspaceExtrasFromPreview(
   if (preview.workspaceExtras?.bottomNavSlots != null) {
     const { importBottomNavSlotsFromBackup } = await import('../../storage/bottomNavSlots')
     importBottomNavSlotsFromBackup(preview.workspaceExtras.bottomNavSlots)
+  }
+  if (preview.workspaceExtras?.todayLayout != null) {
+    const { importTodayLayoutFromBackup } = await import('../../storage/todayLayoutStore')
+    importTodayLayoutFromBackup(preview.workspaceExtras.todayLayout)
   }
   if (preview.workspaceExtras?.markets != null) {
     importMarketsFromBackup(preview.workspaceExtras.markets)
