@@ -60,11 +60,12 @@ describe('next10 wave 2 (v1.2.111)', () => {
       '/spending?highlight=42&category=food&month=2026-07',
     )
     expect(recurringFocusUrl(7)).toBe('/recurring?focus=7')
+    const ym = new Date().toISOString().slice(0, 7)
     const alerts = buildAlerts({
       spending: [
         {
           id: 9,
-          date: '2026-07-01',
+          date: `${ym}-01`,
           description: 'Groceries',
           category: 'food',
           method: 'card',

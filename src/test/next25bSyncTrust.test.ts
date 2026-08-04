@@ -104,6 +104,7 @@ describe('next25b sync / backup trust', () => {
       webhookUrl: null,
       achievementsSeen: null,
       gettingStartedDismissed: null,
+      merchantRuleSuggestionDismiss: null,
       whatArrivedDismiss: null,
       todosSort: null,
       jobsView: null,
