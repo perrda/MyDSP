@@ -3497,3 +3497,23 @@ html.success-haptic-flash::after {
 }
 
 .weekly-digest-preview h1{font-size:1.1rem;font-weight:700;margin:0 0 .5rem}.weekly-digest-preview h2{font-size:.75rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-subtle);margin:1rem 0 .4rem}.weekly-digest-preview table{width:100%;border-collapse:collapse;font-size:.8125rem}.weekly-digest-preview th,.weekly-digest-preview td{text-align:left;padding:.25rem .35rem;border-bottom:1px solid var(--border)}.weekly-digest-preview .summary-card{margin:.5rem 0;padding:.5rem .65rem;border-left:2px solid var(--accent);background:color-mix(in srgb,var(--accent) 8%,transparent)}.weekly-digest-preview .meta{font-size:.7rem;color:var(--text-subtle)}
+
+
+/* Favourites phone density — denser pins, Others stays disclosure-collapsed by default */
+@media (max-width: 1023px) {
+  .nav-favourites-list .nav-link {
+    padding: 0.45rem 0.85rem;
+    min-height: 2.35rem;
+    font-size: 0.625rem;
+    letter-spacing: 0.1em;
+    gap: 0.55rem;
+  }
+  .nav-favourites-list .nav-link svg {
+    width: 1rem;
+    height: 1rem;
+  }
+  .bottom-nav-editor-sheet .nav-reorder-item,
+  .bottom-nav-editor-sheet button {
+    min-height: 2.4rem;
+  }
+}

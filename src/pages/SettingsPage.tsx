@@ -3627,8 +3627,8 @@ export function SettingsPage() {
             <span>
               <span className="text-sm font-semibold block">Show Markets tag + Yield % chips</span>
               <span className="text-xs text-text-muted font-light">
-                Device-local. When on, Markets shows Core/Speculative/Income tag filters and a Yield
-                % sort chip for equities.
+                Syncs across devices. When on, Markets shows Core/Speculative/Income tag filters and a
+                Yield % sort chip for equities. Discoverable from Markets → Filters when off.
               </span>
             </span>
           </label>

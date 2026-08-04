@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.114**
+**Current version: 1.2.115**
 
-## Completed (through v1.2.114)
+## Completed (through v1.2.115)
 
+- Next 10 wave 6 (v1.2.115): Today presets · Favourites density · Markets Yield hint · `/commodities` · remittance packs · broker alias suggestions · rule Accept/Dismiss · Analytics→Planning · Docs↔Job · liability/corp-action notifications
 - Next 10 wave 5 (v1.2.114): Today reorder+sync · merchant rule suggestions · liability due calendar · corporate-action strip · staking→cash income · Job→document vault · named scenarios · broker import report · bottom-tab editor · a11y/motion pass
 - Next 10 wave 4 (v1.2.113): Recurring Undo · dividend ledger · crypto honesty · Todos Day overdue · Jobs funnel · Budgets merchants · FIRE→Planning · News Owned sticky · YT unread · sync conflict rows
 - Next 10 wave 3 (v1.2.112): Today cockpit · trade journal follow-ups · Spending→Rules · Optimizer payment · Tax filter honesty · Jobs offer×3 · Markets trust strip · Compare workspace setup · Notification Center · Goals/Trips/Family/Journal/Documents density
@@ -137,7 +138,7 @@
 - **Reintroduce Markets tag chips + Yield % sort** (Core / Speculative / Income / Other) — hidden in 1.2.75 via `SHOW_MARKETS_TAG_YIELD_CHIPS`; prefs + `ticker.tag` still persist
 - Tune broker aliases from more real IBKR/T212/Coinbase exports
 - Remittance-basis notes / deepen non-UK tax packs further
-- Optional: dedicated `/commodities` holdings page (qty · cost · P&L) beyond Markets watchlist
+- Optional: deepen `/commodities` lots / tax cost basis beyond paper qty
 
 ## Parking lot
 

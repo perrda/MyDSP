@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   Coins,
   TrendingUp,
+  Gem,
   Landmark,
   Target,
   ArrowLeftRight,
@@ -66,6 +67,7 @@ const DEFAULT_LINKS: NavItem[] = [
   { to: '/youtube', label: 'YouTube', icon: Video },
   { to: '/crypto', label: 'Crypto', icon: Coins },
   { to: '/equities', label: 'Equities', icon: TrendingUp },
+  { to: '/commodities', label: 'Commodities', icon: Gem },
   { to: '/staking', label: 'Staking', icon: Layers },
   { to: '/liabilities', label: 'Liabilities', icon: Landmark },
   { to: '/goals', label: 'Goals', icon: Target },
@@ -383,7 +385,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
               {(link) => renderRow(link, 'favourites')}
             </ReorderList>
           ) : (
-            <ul className="flex flex-col">
+            <ul className="flex flex-col nav-favourites-list">
               {favourites.map((link) => (
                 <li key={link.to}>{renderRow(link, 'favourites')}</li>
               ))}
@@ -394,6 +396,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             <button
               type="button"
               className="nav-section-label nav-section-toggle w-full"
+              data-testid="nav-others-toggle"
               aria-expanded={othersOpen}
               onClick={() => {
                 if (sorting) return

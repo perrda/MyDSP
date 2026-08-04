@@ -12,6 +12,11 @@ import { OverflowMenu } from '../components/ui/OverflowMenu'
 import { usePortfolio } from '../context/PortfolioContext'
 import { makeRuleHref } from '../domain/deepLinks'
 import { suggestMerchantRules } from '../domain/merchantRules'
+import {
+  dismissMerchantRuleSuggestion,
+  loadDismissedMerchantRulePatterns,
+  subscribeMerchantRuleSuggestionDismiss,
+} from '../domain/merchantRuleSuggestionDismissPref'
 import { formatMonthLabel, monthKey, parseMonthParam, shiftMonth } from '../domain/monthUtils'
 import { categorySparklinesForMonth } from '../domain/spendingCategorySparkline'
 import { formatWeekDeltaLine, weekSpendDelta } from '../domain/spendingWeekDelta'
@@ -195,10 +200,18 @@ export function SpendingPage() {
     () => categorySparklinesForMonth(data.spending, ym, 5),
     [data.spending, ym],
   )
-  const suggestedRules = useMemo(
-    () => suggestMerchantRules(data.spending, data.merchantRules).slice(0, 5),
-    [data.spending, data.merchantRules],
+  const [dismissedRulePatterns, setDismissedRulePatterns] = useState(() =>
+    loadDismissedMerchantRulePatterns(),
   )
+  useEffect(() => subscribeMerchantRuleSuggestionDismiss(() => {
+    setDismissedRulePatterns(loadDismissedMerchantRulePatterns())
+  }), [])
+  const suggestedRules = useMemo(() => {
+    const dismissed = new Set(dismissedRulePatterns)
+    return suggestMerchantRules(data.spending, data.merchantRules)
+      .filter((suggestion) => !dismissed.has(suggestion.pattern.trim().replace(/\s+/g, ' ').toLocaleLowerCase()))
+      .slice(0, 5)
+  }, [data.spending, data.merchantRules, dismissedRulePatterns])
 
   const addCustomCategory = () => {
     const name = customDraft.trim().toLowerCase()
@@ -451,22 +464,37 @@ export function SpendingPage() {
           </div>
           <ul className="flex gap-2 overflow-x-auto pb-1" aria-label="Suggested merchant rules">
             {suggestedRules.map((suggestion) => (
-              <li key={suggestion.pattern.toLocaleLowerCase()} className="shrink-0">
-                <Link
-                  to={makeRuleHref({
-                    description: suggestion.pattern,
-                    category: suggestion.category,
-                  })}
-                  className="block min-w-40 max-w-64 border border-border bg-surface-hover/50 px-3 py-2 hover:border-accent"
-                >
-                  <span className="block text-sm font-semibold truncate">
-                    {suggestion.pattern}
-                  </span>
-                  <span className="block text-xs text-text-muted capitalize">
-                    {suggestion.count} transaction{suggestion.count === 1 ? '' : 's'} ·{' '}
-                    {suggestion.category}
-                  </span>
-                </Link>
+              <li key={suggestion.pattern.toLocaleLowerCase()} className="shrink-0 min-w-40 max-w-64 border border-border bg-surface-hover/50 px-3 py-2">
+                <span className="block text-sm font-semibold truncate">
+                  {suggestion.pattern}
+                </span>
+                <span className="block text-xs text-text-muted capitalize mb-2">
+                  {suggestion.count} transaction{suggestion.count === 1 ? '' : 's'} ·{' '}
+                  {suggestion.category}
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  <Link
+                    to={makeRuleHref({
+                      description: suggestion.pattern,
+                      category: suggestion.category,
+                    })}
+                    className="btn-secondary btn-sm"
+                    data-testid="suggested-rule-accept"
+                  >
+                    Accept
+                  </Link>
+                  <button
+                    type="button"
+                    className="btn-ghost btn-sm"
+                    data-testid="suggested-rule-dismiss"
+                    aria-label={`Dismiss suggestion for ${suggestion.pattern}`}
+                    onClick={() => {
+                      setDismissedRulePatterns(dismissMerchantRuleSuggestion(suggestion.pattern))
+                    }}
+                  >
+                    Dismiss
+                  </button>
+                </div>
               </li>
             ))}
           </ul>

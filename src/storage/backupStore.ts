@@ -77,6 +77,10 @@ import {
   importGettingStartedDismissedFromBackup,
 } from '../domain/gettingStartedDismissedPref'
 import {
+  exportMerchantRuleSuggestionDismissForBackup,
+  importMerchantRuleSuggestionDismissFromBackup,
+} from '../domain/merchantRuleSuggestionDismissPref'
+import {
   exportWhatArrivedDismissForBackup,
   importWhatArrivedDismissFromBackup,
 } from '../domain/whatArrivedDismissPref'
@@ -273,6 +277,8 @@ export interface FullBackupRecord extends FullBackupMeta {
   achievementsSeen?: unknown
   /** Optional getting-started checklist dismissed */
   gettingStartedDismissed?: unknown
+  /** Optional dismissed merchant-rule suggestion patterns */
+  merchantRuleSuggestionDismiss?: unknown
   /** Optional What arrived dismiss fingerprint */
   whatArrivedDismiss?: unknown
   /** Optional Todos sort preference */
@@ -337,6 +343,7 @@ function backupCanonical(record: Pick<
   | 'webhookUrl'
   | 'achievementsSeen'
   | 'gettingStartedDismissed'
+  | 'merchantRuleSuggestionDismiss'
   | 'whatArrivedDismiss'
   | 'todosSort'
   | 'jobsView'
@@ -385,6 +392,7 @@ function backupCanonical(record: Pick<
     webhookUrl: record.webhookUrl ?? null,
     achievementsSeen: record.achievementsSeen ?? null,
     gettingStartedDismissed: record.gettingStartedDismissed ?? null,
+    merchantRuleSuggestionDismiss: record.merchantRuleSuggestionDismiss ?? null,
     whatArrivedDismiss: record.whatArrivedDismiss ?? null,
     todosSort: record.todosSort ?? null,
     jobsView: record.jobsView ?? null,
@@ -438,6 +446,7 @@ export async function computeFullBackupChecksum(
     | 'webhookUrl'
     | 'achievementsSeen'
     | 'gettingStartedDismissed'
+    | 'merchantRuleSuggestionDismiss'
     | 'whatArrivedDismiss'
     | 'todosSort'
     | 'jobsView'
@@ -529,6 +538,7 @@ export function captureFullWorkspace(): Omit<
     webhookUrl: exportWebhookUrlForBackup() ?? undefined,
     achievementsSeen: exportAchievementsSeenForBackup() ?? undefined,
     gettingStartedDismissed: exportGettingStartedDismissedForBackup() ?? undefined,
+    merchantRuleSuggestionDismiss: exportMerchantRuleSuggestionDismissForBackup() ?? undefined,
     whatArrivedDismiss: exportWhatArrivedDismissForBackup() ?? undefined,
     todosSort: exportTodosSortForBackup() ?? undefined,
     jobsView: exportJobsViewForBackup() ?? undefined,
@@ -813,6 +823,9 @@ export async function restoreFullWorkspace(record: FullBackupRecord): Promise<vo
   if (record.gettingStartedDismissed) {
     importGettingStartedDismissedFromBackup(record.gettingStartedDismissed)
   }
+  if (record.merchantRuleSuggestionDismiss) {
+    importMerchantRuleSuggestionDismissFromBackup(record.merchantRuleSuggestionDismiss)
+  }
   if (record.whatArrivedDismiss) {
     importWhatArrivedDismissFromBackup(record.whatArrivedDismiss)
   }
@@ -908,6 +921,9 @@ function fullBackupPayload(record: FullBackupRecord) {
     ...(record.achievementsSeen ? { achievementsSeen: record.achievementsSeen } : {}),
     ...(record.gettingStartedDismissed
       ? { gettingStartedDismissed: record.gettingStartedDismissed }
+      : {}),
+    ...(record.merchantRuleSuggestionDismiss
+      ? { merchantRuleSuggestionDismiss: record.merchantRuleSuggestionDismiss }
       : {}),
     ...(record.whatArrivedDismiss ? { whatArrivedDismiss: record.whatArrivedDismiss } : {}),
     ...(record.todosSort ? { todosSort: record.todosSort } : {}),
@@ -1089,6 +1105,7 @@ export function parseFullBackupFile(raw: unknown): FullBackupRecord | null {
     webhookUrl: o.webhookUrl,
     achievementsSeen: o.achievementsSeen,
     gettingStartedDismissed: o.gettingStartedDismissed,
+    merchantRuleSuggestionDismiss: o.merchantRuleSuggestionDismiss,
     whatArrivedDismiss: o.whatArrivedDismiss,
     todosSort: o.todosSort,
     jobsView: o.jobsView,

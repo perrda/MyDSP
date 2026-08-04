@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
 import { Download, Upload } from 'lucide-react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { OverflowMenu } from '../components/ui/OverflowMenu'
 import { PageHeader } from '../components/ui/PageHeader'
 import { PagePrimaryActions } from '../components/ui/PagePrimaryActions'
@@ -227,10 +227,21 @@ export function DocumentsPage() {
                 </p>
               )}
               {d.linkedKind && (
-                <span className="inline-block bg-accent/10 text-accent text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 mb-3">
-                  {d.linkedKind}
-                  {d.linkedId != null ? ` #${d.linkedId}` : ''}
-                </span>
+                <div className="flex flex-wrap items-center gap-2 mb-3">
+                  <span className="inline-block bg-accent/10 text-accent text-[10px] font-bold uppercase tracking-widest px-2 py-0.5">
+                    {d.linkedKind}
+                    {d.linkedId != null ? ` #${d.linkedId}` : ''}
+                  </span>
+                  {d.linkedKind === 'job' && d.linkedId != null ? (
+                    <Link
+                      to={`/jobs/${d.linkedId}`}
+                      className="text-xs font-semibold text-accent hover:underline"
+                      data-testid="document-linked-job"
+                    >
+                      Open linked job
+                    </Link>
+                  ) : null}
+                </div>
               )}
               <OverflowMenu
                 compact

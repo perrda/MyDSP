@@ -1,6 +1,7 @@
 /** Parse dated buy/sell CSV for a holding. */
 
 import type { TradeInput, TradeKind, TradeSide } from '../domain/trades'
+import { levenshteinDistance } from '../utils/search'
 
 export type TradeCsvDateOrder = 'dmy' | 'mdy'
 
@@ -158,6 +159,7 @@ export interface ParsedTradeCsv {
   trades: TradeInput[]
   errors: string[]
   broker?: BrokerTradePreset
+  columnSuggestions?: ColumnAliasSuggestion[]
 }
 
 export interface ParsePortfolioTradeCsvOptions {
@@ -285,6 +287,45 @@ export function parseTradeCsv(text: string, opts: ParseTradeCsvOptions): ParsedT
  * Portfolio-level broker stub: date,type/side,symbol,qty,price[,fees][,notes][,platform].
  * Unlike parseTradeCsv, this honours the CSV symbol column and can append multiple symbols.
  */
+
+export interface ColumnAliasSuggestion {
+  header: string
+  suggestedField: keyof typeof TRADE_CSV_COLUMN_ALIASES
+  alias: string
+  score: number
+}
+
+/** Rank unmatched CSV headers against known trade column aliases. */
+export function suggestColumnAliases(headers: string[]): ColumnAliasSuggestion[] {
+  const known = new Set<string>()
+  for (const aliases of Object.values(TRADE_CSV_COLUMN_ALIASES)) {
+    for (const alias of aliases) known.add(alias)
+  }
+  for (const alias of NOTES_COLUMN_ALIASES) known.add(alias)
+  for (const alias of PLATFORM_COLUMN_ALIASES) known.add(alias)
+
+  const fields = Object.keys(TRADE_CSV_COLUMN_ALIASES) as Array<keyof typeof TRADE_CSV_COLUMN_ALIASES>
+  const out: ColumnAliasSuggestion[] = []
+  for (const raw of headers) {
+    const header = normalizeHeaderToken(raw)
+    if (!header || known.has(header)) continue
+    let best: ColumnAliasSuggestion | null = null
+    for (const field of fields) {
+      for (const alias of TRADE_CSV_COLUMN_ALIASES[field]) {
+        const dist = levenshteinDistance(header, alias)
+        const maxLen = Math.max(header.length, alias.length) || 1
+        const score = 1 - dist / maxLen
+        if (score < 0.55) continue
+        if (!best || score > best.score) {
+          best = { header: raw.trim() || header, suggestedField: field, alias, score }
+        }
+      }
+    }
+    if (best) out.push(best)
+  }
+  return out.sort((a, b) => b.score - a.score || a.header.localeCompare(b.header))
+}
+
 export function parsePortfolioTradeCsv(
   text: string,
   opts: ParsePortfolioTradeCsvOptions,
@@ -319,10 +360,15 @@ export function parsePortfolioTradeCsv(
   const iPlatform = col(PLATFORM_COLUMN_ALIASES)
 
   if (iDate < 0 || iSide < 0 || iSymbol < 0 || iQty < 0 || iPrice < 0) {
+    const columnSuggestions = suggestColumnAliases(header)
+    const suggestionLines = columnSuggestions.slice(0, 5).map(
+      (s) => `Unknown column “${s.header}” → try ${s.suggestedField} (like “${s.alias}”)`,
+    )
     return {
       trades: [],
-      errors: ['Need columns: date, type/side, symbol, qty, price'],
+      errors: ['Need columns: date, type/side, symbol, qty, price', ...suggestionLines],
       broker,
+      columnSuggestions,
     }
   }
 

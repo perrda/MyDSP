@@ -30,6 +30,7 @@ const SettingsPage = lazy(() =>
 )
 const CryptoPage = lazy(() => import('./pages/CryptoPage').then(m => ({ default: m.CryptoPage })))
 const EquitiesPage = lazy(() => import('./pages/EquitiesPage').then(m => ({ default: m.EquitiesPage })))
+const CommoditiesPage = lazy(() => import('./pages/CommoditiesPage').then(m => ({ default: m.CommoditiesPage })))
 const LiabilitiesPage = lazy(() => import('./pages/LiabilitiesPage').then(m => ({ default: m.LiabilitiesPage })))
 const GoalsPage = lazy(() => import('./pages/Goals').then(m => ({ default: m.GoalsPage })))
 const SpendingPage = lazy(() => import('./pages/SpendingPage').then(m => ({ default: m.SpendingPage })))
@@ -95,6 +96,7 @@ export default function App() {
                         <Route path="crypto" element={<CryptoPage />} />
                         <Route path="crypto/:id" element={<HoldingDetailPage />} />
                         <Route path="equities" element={<EquitiesPage />} />
+                        <Route path="commodities" element={<CommoditiesPage />} />
                         <Route path="equities/:id" element={<HoldingDetailPage />} />
                         <Route path="staking" element={<StakingPage />} />
                         <Route path="liabilities" element={<LiabilitiesPage />} />

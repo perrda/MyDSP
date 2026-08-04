@@ -1,5 +1,20 @@
 # MyDSP Changelog
 
+## [1.2.115] - 2026-08-04
+
+### Improved — Next 10 wave 6 (cross-format)
+- **Today presets:** Work / Money / Quiet + Show all Reset in Customize
+- **Favourites nav:** denser phone pins · Others stays disclosure-collapsed
+- **Markets Yield discoverability:** Filters hint → Settings → Prices (synced pref copy)
+- **Commodities holdings:** `/commodities` paper qty · cost · P&L page
+- **Tax remittance:** deeper IE/TH guidance + US honesty note
+- **Broker CSV aliases:** suggest nearest columns for unknown headers
+- **Spending rules:** Accept / Dismiss suggestions (LWW dismissals)
+- **Analytics → Planning:** Open in Planning seeds Monte Carlo mean
+- **Documents ↔ Job:** reverse Open linked job from vault chips
+- **Notification Center:** liability-due (7d) + corporate-action alerts
+- Full tip harness + `tsc -b` QA
+
 ## [1.2.114] - 2026-07-30
 
 ### Improved — Next 10 wave 5 (cross-format)

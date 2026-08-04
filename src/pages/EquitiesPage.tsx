@@ -52,6 +52,7 @@ import {
 } from '../utils/format'
 import { convertFromGbp } from '../services/fx'
 import { parsePortfolioTradeCsv } from '../services/tradeCsvImport'
+import { isCorporateActionDue } from '../domain/corporateActions'
 import { useToasts } from '../components/ToastProvider'
 
 function nextId(items: { id: number }[]): number {
@@ -96,16 +97,6 @@ function accountTypeLabel(accountType?: EquityAccountType): string {
   if (accountType === 'sipp') return 'SIPP'
   if (accountType === 'other') return 'Other'
   return 'General'
-}
-
-function todayIsoDate(): string {
-  const now = new Date()
-  const local = new Date(now.getTime() - now.getTimezoneOffset() * 60_000)
-  return local.toISOString().slice(0, 10)
-}
-
-function isCorporateActionDue(date?: string): boolean {
-  return Boolean(date && /^\d{4}-\d{2}-\d{2}$/.test(date) && date <= todayIsoDate())
 }
 
 function matchesPortfolioSearch(holding: { symbol: string; name: string }, query: string): boolean {

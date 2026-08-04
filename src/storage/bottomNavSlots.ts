@@ -17,6 +17,7 @@ export const BOTTOM_NAV_SLOT_CHOICES = [
   '/goals',
   '/crypto',
   '/equities',
+  '/commodities',
   '/todos',
   '/jobs',
   '/news',
