@@ -72,11 +72,14 @@ import {
   DEFAULT_TODAY_SECTION_ORDER,
   TODAY_ACCORDION_OPTIONS,
   TODAY_LAYOUT_CARD_OPTIONS,
+  TODAY_LAYOUT_PRESETS,
+  applyTodayLayoutPreset,
   loadTodayLayout,
   resetTodayLayout as resetStoredTodayLayout,
   saveTodayLayout,
   subscribeTodayLayout,
   type TodayCardId,
+  type TodayLayoutPresetId,
   type TodaySectionId,
 } from '../storage/todayLayoutStore'
 import {
@@ -1466,13 +1469,27 @@ export function Dashboard() {
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1.5" role="group" aria-label="Today layout presets">
+                {(Object.keys(TODAY_LAYOUT_PRESETS) as TodayLayoutPresetId[]).map((id) => (
+                  <button
+                    key={id}
+                    type="button"
+                    className="btn-ghost btn-sm"
+                    data-testid={`today-layout-preset-${id}`}
+                    aria-label={`Apply ${TODAY_LAYOUT_PRESETS[id].label} Today layout preset`}
+                    onClick={() => setTodayLayout(applyTodayLayoutPreset(id))}
+                  >
+                    {TODAY_LAYOUT_PRESETS[id].label}
+                  </button>
+                ))}
+              </div>
               <button
                 type="button"
                 className="btn-ghost btn-sm"
                 aria-label="Show all Today cards"
                 onClick={resetTodayLayout}
               >
-                Show all
+                Show all / Reset
               </button>
               <button
                 type="button"

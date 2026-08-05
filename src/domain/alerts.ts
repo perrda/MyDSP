@@ -6,6 +6,8 @@ import { monthKey } from './monthUtils'
 import { calcAllocation, calcRebalanceActions } from './rebalance'
 import { dueWithinDays } from './recurringDueStrip'
 import { recurringFocusUrl, spendingHighlightUrl } from './deepLinks'
+import { liabilitiesDueWithinDays } from './liabilityHelpers'
+import { isCorporateActionDue } from './corporateActions'
 
 export interface AppAlert {
   id: string
@@ -157,6 +159,30 @@ export function buildAlerts(data: PortfolioData): AppAlert[] {
         to: '/goals',
       })
     }
+  }
+
+  for (const due of liabilitiesDueWithinDays(data.creditCards, data.loans, 7).slice(0, 3)) {
+    alerts.push({
+      id: `liability-due-${due.kind}-${due.id}`,
+      severity: due.daysUntil <= 2 ? 'red' : 'amber',
+      title: `Payment due: ${due.name}`,
+      detail:
+        due.daysUntil === 0
+          ? `Minimum ${due.minPay.toFixed(0)} due today.`
+          : `Minimum ${due.minPay.toFixed(0)} due in ${due.daysUntil} day${due.daysUntil === 1 ? '' : 's'}.`,
+      to: `/liabilities/${due.kind}/${due.id}?payment=1&amount=${encodeURIComponent(String(due.minPay))}`,
+    })
+  }
+
+  for (const holding of data.equities) {
+    if (!holding.corporateActionNote || !isCorporateActionDue(holding.corporateActionDate)) continue
+    alerts.push({
+      id: `corp-action-${holding.id}`,
+      severity: 'amber',
+      title: `Corporate action: ${holding.symbol}`,
+      detail: holding.corporateActionNote,
+      to: `/equities/${holding.id}#corporate-action`,
+    })
   }
 
   if (alerts.length === 0) {

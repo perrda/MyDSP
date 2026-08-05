@@ -104,6 +104,7 @@ describe('next25b sync / backup trust', () => {
       webhookUrl: null,
       achievementsSeen: null,
       gettingStartedDismissed: null,
+      merchantRuleSuggestionDismiss: null,
       whatArrivedDismiss: null,
       todosSort: null,
       jobsView: null,
@@ -196,6 +197,6 @@ describe('next25b sync / backup trust', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8')) as {
       version: string
     }
-    expect(pkg.version).toBe('1.2.114')
+    expect(pkg.version).toBe('1.2.115')
   })
 })

@@ -24,11 +24,24 @@ export function budgetCategoryUrl(category: string, month: string): string {
   return `/budgets?${params.toString()}`
 }
 
-export function planningMonteCarloUrl(netWorth: number, monthlySavings: number): string {
+export function planningMonteCarloUrl(
+  netWorth: number,
+  monthlySavings: number,
+  opts?: { meanReturnPct?: number; inflationPct?: number; scenario?: string },
+): string {
   const params = new URLSearchParams()
   params.set('tab', 'montecarlo')
   params.set('nw', String(Math.max(0, netWorth)))
   params.set('savings', String(Math.max(0, monthlySavings)))
+  if (opts?.meanReturnPct != null && Number.isFinite(opts.meanReturnPct)) {
+    params.set('mean', String(opts.meanReturnPct))
+  }
+  if (opts?.inflationPct != null && Number.isFinite(opts.inflationPct)) {
+    params.set('inflation', String(opts.inflationPct))
+  }
+  if (opts?.scenario?.trim()) {
+    params.set('scenario', opts.scenario.trim())
+  }
   return `/planning?${params.toString()}`
 }
 

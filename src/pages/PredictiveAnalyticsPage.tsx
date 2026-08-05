@@ -24,6 +24,7 @@ import {
   loadAnalyticsScenarios,
   saveAnalyticsScenario,
 } from '../storage/analyticsScenariosStore'
+import { planningMonteCarloUrl } from '../domain/deepLinks'
 import {
   LineChart,
   Line,
@@ -52,7 +53,7 @@ function formatProjectionMonths(months: number | null): string {
 }
 
 export function PredictiveAnalyticsPage() {
-  const { data, privacy, activeId } = usePortfolio()
+  const { data, privacy, activeId, breakdown } = usePortfolio()
   const { success, warning } = useToasts()
   const [scenario, setScenario] = useState({
     incomeDeltaPct: 0,
@@ -445,10 +446,26 @@ export function PredictiveAnalyticsPage() {
             >
               Delete
             </button>
+            <Link
+              to={planningMonteCarloUrl(
+                breakdown.netWorth,
+                data.fireInputs.savings || 0,
+                {
+                  meanReturnPct: scenario.marketReturnPct,
+                  inflationPct: scenario.inflationPct,
+                  scenario: scenarioName.trim() || selectedScenarioId || 'analytics',
+                },
+              )}
+              className="btn-secondary btn-sm"
+              data-testid="analytics-open-planning"
+              aria-label="Open scenario in Planning Monte Carlo"
+            >
+              Open in Planning
+            </Link>
           </div>
           <p className="text-xs text-text-subtle mt-3">
             Saved locally for the active portfolio. Loading changes assumptions only; it does not
-            change portfolio data.
+            change portfolio data. Open in Planning seeds Monte Carlo mean return from this scenario.
           </p>
         </div>
         <div className={`grid grid-cols-1 sm:grid-cols-3 gap-px ${privacyClass(privacy)}`}>

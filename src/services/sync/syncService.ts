@@ -273,6 +273,7 @@ export interface MergePreview {
     webhookUrl?: unknown
     achievementsSeen?: unknown
     gettingStartedDismissed?: unknown
+    merchantRuleSuggestionDismiss?: unknown
     whatArrivedDismiss?: unknown
     todosSort?: unknown
     jobsView?: unknown
@@ -707,6 +708,7 @@ async function decryptEnvelope(
     if (a.webhookUrl != null) extras.webhookUrl = a.webhookUrl
     if (a.achievementsSeen != null) extras.achievementsSeen = a.achievementsSeen
     if (a.gettingStartedDismissed != null) extras.gettingStartedDismissed = a.gettingStartedDismissed
+    if (a.merchantRuleSuggestionDismiss != null) extras.merchantRuleSuggestionDismiss = a.merchantRuleSuggestionDismiss
     if (a.whatArrivedDismiss != null) extras.whatArrivedDismiss = a.whatArrivedDismiss
     if (a.todosSort != null) extras.todosSort = a.todosSort
     if (a.jobsView != null) extras.jobsView = a.jobsView
@@ -1008,6 +1010,12 @@ export async function applyWorkspaceExtrasFromPreview(
       '../../domain/gettingStartedDismissedPref'
     )
     importGettingStartedDismissedFromBackup(preview.workspaceExtras.gettingStartedDismissed)
+  }
+  if (preview.workspaceExtras?.merchantRuleSuggestionDismiss != null) {
+    const { importMerchantRuleSuggestionDismissFromBackup } = await import(
+      '../../domain/merchantRuleSuggestionDismissPref'
+    )
+    importMerchantRuleSuggestionDismissFromBackup(preview.workspaceExtras.merchantRuleSuggestionDismiss)
   }
   if (preview.workspaceExtras?.whatArrivedDismiss != null) {
     const { importWhatArrivedDismissFromBackup } = await import('../../domain/whatArrivedDismissPref')

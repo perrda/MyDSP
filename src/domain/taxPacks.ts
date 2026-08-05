@@ -60,6 +60,8 @@ const PACKS: Record<string, TaxJurisdictionPack> = {
     hasCgt: true,
     disclaimer:
       'Simplified US long-term capital gains at a flat 15% reference rate. Short-term ordinary rates, wash-sale, and Form 8949 are not modelled — export the journal for tax software. Calendar tax year. Not formal tax advice.',
+    remittanceBasisGuidance:
+      'The US generally taxes citizens and residents on worldwide gains. Remittance-basis concepts mainly apply to other jurisdictions; US filers should still track foreign accounts/forms separately. MyDSP does not prepare Form 8949 or wash-sale adjustments.',
     exportLabel: 'US gains estimate (not Form 8949)',
   },
   IE: {
@@ -73,7 +75,7 @@ const PACKS: Record<string, TaxJurisdictionPack> = {
     disclaimer:
       'Simplified Irish CGT at 33% with a flat annual exemption reference. Share identification / remittance nuances are not modelled. Calendar tax year. Not formal tax advice.',
     remittanceBasisGuidance:
-      'Irish-resident non-domiciled individuals may be taxed on some foreign gains on a remittance basis. This depends on domicile, residence, the asset and whether proceeds are brought into Ireland; MyDSP does not model it.',
+      'Irish-resident non-domiciled individuals may be taxed on some foreign gains on a remittance basis. Remittance typically looks at whether sale proceeds (or substituted assets) are brought into Ireland, plus domicile and residence tests. MyDSP shows this note only — it does not classify remitted vs unremitted gains, nor apply share-identification rules beyond simplified FIFO.',
     exportLabel: 'IE CGT estimate export',
   },
   AU: {
@@ -123,7 +125,7 @@ const PACKS: Record<string, TaxJurisdictionPack> = {
     disclaimer:
       'Thailand personal capital gains treatment depends on residency and asset class (including remittance-basis considerations for foreign assets). MyDSP does not compute Thai CGT — journal only.',
     remittanceBasisGuidance:
-      'Thai treatment of foreign-source income and gains can depend on tax residence, when income arose and when it was remitted to Thailand. MyDSP does not assess remittance-basis liability; seek current local advice.',
+      'Thai treatment of foreign-source income and gains can depend on tax residence, when the income/gain arose, and whether (and when) proceeds were remitted to Thailand. Rules have changed across tax years; MyDSP keeps a disposal journal only and does not assess remittance-basis liability. Seek current local advice before filing.',
     exportLabel: 'TH disposal journal',
   },
   XX: {

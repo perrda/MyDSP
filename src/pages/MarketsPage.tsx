@@ -2695,6 +2695,17 @@ export function MarketsPage() {
                   Clear filters
                 </button>
               ) : null}
+              {!showMarketsTagYieldChips ? (
+                <p
+                  className="basis-full text-xs text-text-muted"
+                  data-testid="markets-tag-yield-hint"
+                >
+                  Tag chips and Yield % sort stay off for a quieter toolbar.{' '}
+                  <Link to="/settings#prices" className="font-semibold text-accent hover:underline">
+                    Turn on in Settings → Prices
+                  </Link>
+                </p>
+              ) : null}
             </div>
           ) : null}
         </div>

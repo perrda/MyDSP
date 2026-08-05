@@ -33,9 +33,17 @@ export function PlanningPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const urlNetWorth = nonNegativeParam(searchParams.get('nw'))
   const urlSavings = nonNegativeParam(searchParams.get('savings'))
-  const hasTodaySeed = urlNetWorth !== null || urlSavings !== null
+  const urlMean = nonNegativeParam(searchParams.get('mean'))
+  const urlInflation = nonNegativeParam(searchParams.get('inflation'))
+  const scenarioSeed = searchParams.get('scenario')?.trim() || ''
+  const hasTodaySeed =
+    urlNetWorth !== null ||
+    urlSavings !== null ||
+    urlMean !== null ||
+    Boolean(scenarioSeed)
   const initialNetWorth = urlNetWorth ?? breakdown.netWorth
   const initialSavings = urlSavings ?? data.fireInputs.savings ?? 0
+  const initialMean = urlMean ?? (data.fireInputs.returnRate || 7)
   const [tab, setTab] = useState<'rebalance' | 'montecarlo'>(
     () => (searchParams.get('tab') === 'montecarlo' ? 'montecarlo' : 'rebalance'),
   )
@@ -45,7 +53,7 @@ export function PlanningPage() {
   const [fromToday, setFromToday] = useState(hasTodaySeed)
   const [mcYears, setMcYears] = useState('10')
   const [mcSims, setMcSims] = useState('5000')
-  const [mcMean, setMcMean] = useState(String(data.fireInputs.returnRate || 7))
+  const [mcMean, setMcMean] = useState(String(initialMean))
   const [mcVol, setMcVol] = useState('18')
   const [mcResult, setMcResult] = useState(() =>
     runMonteCarlo({
@@ -53,10 +61,13 @@ export function PlanningPage() {
       monthlyContribution: initialSavings,
       years: 10,
       simulations: 2000,
-      meanReturn: (data.fireInputs.returnRate || 7) / 100,
+      meanReturn: initialMean / 100,
       stdDev: 0.18,
     }),
   )
+  // Keep inflation query visible for honesty when seeded from Analytics (MC uses mean return).
+  void urlInflation
+  void scenarioSeed
 
   const alloc = useMemo(
     () => calcAllocation(breakdown.equity.value, data.crypto),
@@ -117,6 +128,9 @@ export function PlanningPage() {
     next.set('tab', 'montecarlo')
     next.delete('nw')
     next.delete('savings')
+    next.delete('mean')
+    next.delete('inflation')
+    next.delete('scenario')
     setSearchParams(next, { replace: true })
   }
 

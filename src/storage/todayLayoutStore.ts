@@ -113,6 +113,46 @@ export function resetTodayLayout(): TodayLayout {
   return saveTodayLayout({ order: [...DEFAULT_TODAY_SECTION_ORDER], hidden: [] })
 }
 
+export type TodayLayoutPresetId = 'work' | 'money' | 'quiet'
+
+export const TODAY_LAYOUT_PRESETS: Record<
+  TodayLayoutPresetId,
+  { label: string; order: TodaySectionId[]; hidden: TodayCardId[] }
+> = {
+  work: {
+    label: 'Work',
+    order: ['next', 'dailyPlan', 'careerPulse', 'goals', 'bills'],
+    hidden: ['markets', 'charts', 'activity', 'gettingStarted'],
+  },
+  money: {
+    label: 'Money',
+    order: ['bills', 'next', 'goals', 'dailyPlan', 'careerPulse'],
+    hidden: ['careerPulse', 'media', 'gettingStarted', 'reminders'],
+  },
+  quiet: {
+    label: 'Quiet',
+    order: ['next', 'dailyPlan', 'bills', 'goals', 'careerPulse'],
+    hidden: [
+      'tax',
+      'media',
+      'markets',
+      'budget',
+      'gettingStarted',
+      'alerts',
+      'reminders',
+      'charts',
+      'activity',
+      'careerPulse',
+      'goals',
+    ],
+  },
+}
+
+export function applyTodayLayoutPreset(id: TodayLayoutPresetId): TodayLayout {
+  const preset = TODAY_LAYOUT_PRESETS[id]
+  return saveTodayLayout({ order: [...preset.order], hidden: [...preset.hidden] })
+}
+
 export function subscribeTodayLayout(listener: () => void): () => void {
   window.addEventListener(EVENT, listener)
   return () => window.removeEventListener(EVENT, listener)
