@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { X, Calendar, Clock, MapPin, Users, MessageSquare } from 'lucide-react'
+import { Calendar, Clock, MapPin, Users, MessageSquare } from 'lucide-react'
 import type { InterviewType, JobInterview } from '../domain/job-types'
+import { Modal } from './ui/Modal'
 
 interface InterviewModalProps {
   interview?: JobInterview
@@ -77,24 +78,16 @@ export function InterviewModal({ interview, onSave, onClose }: InterviewModalPro
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="surface rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 surface border-b border-border p-4 flex items-center justify-between rounded-t-xl md:rounded-t-none">
-          <h2 className="text-xl font-bold">{interview ? 'Edit Interview' : 'Add Interview'}</h2>
-          <button type="button" onClick={onClose} className="btn-ghost btn-sm">
-            <X size={16} />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+    <Modal open title={interview ? 'Edit Interview' : 'Add Interview'} onClose={onClose} size="full">
+        <form onSubmit={handleSubmit} className="space-y-6">
           {/* Interview Type */}
           <div>
-            <label className="block text-sm font-semibold mb-2">Interview Type *</label>
+            <label className="block text-xs text-text-subtle mb-1">Interview Type *</label>
             <select
               required
               value={formData.type}
               onChange={(e) => setFormData({ ...formData, type: e.target.value as InterviewType })}
-              className="w-full px-4 py-3 bg-surface-hover border border-border rounded-lg text-base focus:border-accent focus:outline-none"
+              className="w-full px-3 py-2.5 bg-surface-hover border border-border rounded text-base min-h-11"
             >
               {INTERVIEW_TYPES.map((type) => (
                 <option key={type.value} value={type.value}>
@@ -106,47 +99,47 @@ export function InterviewModal({ interview, onSave, onClose }: InterviewModalPro
 
           {/* Date & Time */}
           <div>
-            <label className="block text-sm font-semibold mb-2 flex items-center gap-2">
-              <Calendar size={16} /> Date & Time *
+            <label className="block text-xs text-text-subtle mb-1 flex items-center gap-2">
+              <Calendar size={14} aria-hidden /> Date & Time *
             </label>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <input
                 type="date"
                 required
                 value={formData.scheduledDate}
                 onChange={(e) => setFormData({ ...formData, scheduledDate: e.target.value })}
-                className="w-full px-4 py-3 bg-surface-hover border border-border rounded-lg text-base focus:border-accent focus:outline-none"
+                className="w-full px-3 py-2.5 bg-surface-hover border border-border rounded text-base min-h-11"
               />
               <input
                 type="time"
                 value={formData.scheduledTime}
                 onChange={(e) => setFormData({ ...formData, scheduledTime: e.target.value })}
-                className="w-full px-4 py-3 bg-surface-hover border border-border rounded-lg text-base focus:border-accent focus:outline-none"
+                className="w-full px-3 py-2.5 bg-surface-hover border border-border rounded text-base min-h-11"
               />
             </div>
           </div>
 
           {/* Duration & Outcome */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-semibold mb-2 flex items-center gap-2">
-                <Clock size={16} /> Duration (minutes)
+              <label className="block text-xs text-text-subtle mb-1 flex items-center gap-2">
+                <Clock size={14} aria-hidden /> Duration (minutes)
               </label>
               <input
                 type="number"
                 min="0"
                 value={formData.duration}
                 onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-                className="w-full px-4 py-3 bg-surface-hover border border-border rounded-lg text-base focus:border-accent focus:outline-none"
+                className="w-full px-3 py-2.5 bg-surface-hover border border-border rounded text-base min-h-11"
                 placeholder="60"
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold mb-2">Outcome</label>
+              <label className="block text-xs text-text-subtle mb-1">Outcome</label>
               <select
                 value={formData.outcome}
                 onChange={(e) => setFormData({ ...formData, outcome: e.target.value as 'pending' | 'passed' | 'failed' | 'cancelled' })}
-                className="w-full px-4 py-3 bg-surface-hover border border-border rounded-lg text-base focus:border-accent focus:outline-none"
+                className="w-full px-3 py-2.5 bg-surface-hover border border-border rounded text-base min-h-11"
               >
                 <option value="pending">Pending</option>
                 <option value="passed">Passed</option>
@@ -157,26 +150,26 @@ export function InterviewModal({ interview, onSave, onClose }: InterviewModalPro
           </div>
 
           {/* Location / Meeting URL */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-semibold mb-2 flex items-center gap-2">
-                <MapPin size={16} /> Location
+              <label className="block text-xs text-text-subtle mb-1 flex items-center gap-2">
+                <MapPin size={14} aria-hidden /> Location
               </label>
               <input
                 type="text"
                 value={formData.location}
                 onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                className="w-full px-4 py-3 bg-surface-hover border border-border rounded-lg text-base focus:border-accent focus:outline-none"
+                className="w-full px-3 py-2.5 bg-surface-hover border border-border rounded text-base min-h-11"
                 placeholder="Office address or Remote"
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold mb-2">Meeting URL</label>
+              <label className="block text-xs text-text-subtle mb-1">Meeting URL</label>
               <input
                 type="url"
                 value={formData.meetingUrl}
                 onChange={(e) => setFormData({ ...formData, meetingUrl: e.target.value })}
-                className="w-full px-4 py-3 bg-surface-hover border border-border rounded-lg text-base focus:border-accent focus:outline-none"
+                className="w-full px-3 py-2.5 bg-surface-hover border border-border rounded text-base min-h-11"
                 placeholder="https://zoom.us/..."
               />
             </div>
@@ -184,38 +177,38 @@ export function InterviewModal({ interview, onSave, onClose }: InterviewModalPro
 
           {/* Interviewers */}
           <div>
-            <label className="block text-sm font-semibold mb-2 flex items-center gap-2">
-              <Users size={16} /> Interviewers
+            <label className="block text-xs text-text-subtle mb-1 flex items-center gap-2">
+              <Users size={14} aria-hidden /> Interviewers
             </label>
             <input
               type="text"
               value={formData.interviewers}
               onChange={(e) => setFormData({ ...formData, interviewers: e.target.value })}
-              className="w-full px-4 py-3 bg-surface-hover border border-border rounded-lg text-base focus:border-accent focus:outline-none"
+              className="w-full px-3 py-2.5 bg-surface-hover border border-border rounded text-base min-h-11"
               placeholder="John Smith, Jane Doe (comma separated)"
             />
           </div>
 
           {/* Preparation Notes */}
           <div>
-            <label className="block text-sm font-semibold mb-2">Preparation Notes</label>
+            <label className="block text-xs text-text-subtle mb-1">Preparation Notes</label>
             <textarea
               value={formData.preparation}
               onChange={(e) => setFormData({ ...formData, preparation: e.target.value })}
-              className="w-full px-4 py-3 bg-surface-hover border border-border rounded-lg text-base focus:border-accent focus:outline-none min-h-[80px]"
+              className="w-full px-3 py-2.5 bg-surface-hover border border-border rounded text-base min-h-[80px]"
               placeholder="Topics to review, questions to ask..."
             />
           </div>
 
           {/* Interview Notes */}
           <div>
-            <label className="block text-sm font-semibold mb-2 flex items-center gap-2">
-              <MessageSquare size={16} /> Interview Notes
+            <label className="block text-xs text-text-subtle mb-1 flex items-center gap-2">
+              <MessageSquare size={14} aria-hidden /> Interview Notes
             </label>
             <textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              className="w-full px-4 py-3 bg-surface-hover border border-border rounded-lg text-base focus:border-accent focus:outline-none min-h-[100px]"
+              className="w-full px-3 py-2.5 bg-surface-hover border border-border rounded text-base min-h-[100px]"
               placeholder="What happened during the interview..."
             />
           </div>
@@ -223,11 +216,11 @@ export function InterviewModal({ interview, onSave, onClose }: InterviewModalPro
           {/* Feedback */}
           {formData.outcome !== 'pending' && (
             <div>
-              <label className="block text-sm font-semibold mb-2">Feedback Received</label>
+              <label className="block text-xs text-text-subtle mb-1">Feedback Received</label>
               <textarea
                 value={formData.feedback}
                 onChange={(e) => setFormData({ ...formData, feedback: e.target.value })}
-                className="w-full px-4 py-3 bg-surface-hover border border-border rounded-lg text-base focus:border-accent focus:outline-none min-h-[100px]"
+                className="w-full px-3 py-2.5 bg-surface-hover border border-border rounded text-base min-h-[100px]"
                 placeholder="Feedback from interviewers..."
               />
             </div>
@@ -235,15 +228,14 @@ export function InterviewModal({ interview, onSave, onClose }: InterviewModalPro
 
           {/* Actions */}
           <div className="flex gap-3 pt-4 border-t border-border">
-            <button type="button" onClick={onClose} className="btn-ghost flex-1">
+            <button type="button" onClick={onClose} className="btn-ghost flex-1 min-h-11">
               Cancel
             </button>
-            <button type="submit" className="btn-primary flex-1">
+            <button type="submit" className="btn-primary flex-1 min-h-11">
               {interview ? 'Save Changes' : 'Add Interview'}
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   )
 }

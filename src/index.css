@@ -23,8 +23,13 @@
   border: 0;
 }
 
-.focus\:not-sr-only:focus {
-  position: static;
+/*
+ * Undo .sr-only on focus without forcing position:static.
+ * Skip links use focus:fixed — a static override hid them off-screen
+ * and broke keyboard “Skip to main content”.
+ */
+.focus\:not-sr-only:focus,
+.focus\:not-sr-only:focus-visible {
   width: auto;
   height: auto;
   padding: inherit;
@@ -32,6 +37,35 @@
   overflow: visible;
   clip: auto;
   white-space: normal;
+}
+
+/* Skip-link target stack (keyboard only) */
+.skip-links a:focus,
+.skip-links a:focus-visible {
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  z-index: 9999;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 0.5rem 1rem;
+  overflow: visible;
+  clip: auto;
+  white-space: nowrap;
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+.skip-links a:nth-child(2):focus,
+.skip-links a:nth-child(2):focus-visible {
+  top: 3.75rem;
+}
+.skip-links a:nth-child(3):focus,
+.skip-links a:nth-child(3):focus-visible {
+  top: 6.5rem;
 }
 
 /* High contrast mode support */

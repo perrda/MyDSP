@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { X, FileText } from 'lucide-react'
+import { FileText } from 'lucide-react'
 import { putDocumentBlob, deleteDocumentBlob } from '../storage/documentBlobStore'
+import { Modal } from './ui/Modal'
 
 export interface JobDocumentDraft {
   name: string
@@ -76,82 +77,86 @@ export function DocumentModal({ document, onSave, onClose }: DocumentModalProps)
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4">
-      <div className="w-full sm:max-w-md bg-bg-elevated border border-border rounded-t-2xl sm:rounded-xl shadow-xl">
-        <div className="flex items-center justify-between p-4 border-b border-border">
-          <div className="flex items-center gap-2">
-            <FileText size={18} className="text-accent" />
-            <h2 className="font-bold">{document ? 'Edit Document' : 'Add Document'}</h2>
-          </div>
-          <button type="button" onClick={onClose} className="p-2 hover:bg-bg rounded-lg" aria-label="Close" disabled={busy}>
-            <X size={18} />
+    <Modal
+      open
+      title={document ? 'Edit Document' : 'Add Document'}
+      onClose={() => {
+        if (!busy) onClose()
+      }}
+      size="sheet"
+    >
+      <div className="mb-4 flex items-center gap-2 text-text-muted">
+        <FileText size={18} className="text-accent" aria-hidden />
+        <span className="text-sm">CV, cover letter, or related file</span>
+      </div>
+      <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4">
+        <div>
+          <label className="block text-xs text-text-subtle mb-1">Name *</label>
+          <input
+            autoFocus
+            className="w-full px-3 py-2 bg-surface-hover border border-border rounded text-sm min-h-11"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="e.g. CV v3, Cover Letter"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-xs text-text-subtle mb-1">Upload file (CV / PDF)</label>
+          <input
+            type="file"
+            accept=".pdf,.doc,.docx,.txt,image/*,.png,.jpg,.jpeg"
+            className="w-full text-sm min-h-11"
+            onChange={(e) => {
+              const f = e.target.files?.[0] ?? null
+              setFile(f)
+              if (f && !name.trim()) setName(f.name.replace(/\.[^.]+$/, ''))
+            }}
+          />
+          {(file || document?.fileName) && (
+            <p className="text-xs text-text-subtle mt-1">
+              {file ? file.name : document?.fileName}
+              {document?.hasBlob && !file ? ' (IndexedDB attachment)' : ''}
+            </p>
+          )}
+          <p className="text-[11px] text-text-subtle mt-1">
+            Files are included in full backup and encrypted sync when under 2&nbsp;MB each (20&nbsp;MB
+            total). Oversized files stay on this device only.
+          </p>
+        </div>
+        <div>
+          <label className="block text-xs text-text-subtle mb-1">URL</label>
+          <input
+            type="url"
+            className="w-full px-3 py-2 bg-surface-hover border border-border rounded text-sm min-h-11"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="https://..."
+          />
+        </div>
+        <div>
+          <label className="block text-xs text-text-subtle mb-1">Notes</label>
+          <textarea
+            className="w-full px-3 py-2 bg-surface-hover border border-border rounded text-sm min-h-[80px]"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Optional notes"
+          />
+        </div>
+        {error && (
+          <p className="text-sm text-red-500" role="alert">
+            {error}
+          </p>
+        )}
+        <div className="flex gap-3 pt-2 border-t border-border">
+          <button type="button" onClick={onClose} className="btn-ghost flex-1 min-h-11" disabled={busy}>
+            Cancel
+          </button>
+          <button type="submit" className="btn-primary flex-1 min-h-11" disabled={!name.trim() || busy}>
+            {busy ? 'Saving…' : document ? 'Save Changes' : 'Add Document'}
           </button>
         </div>
-        <form onSubmit={(e) => void handleSubmit(e)} className="p-4 space-y-4">
-          <div>
-            <label className="block text-xs text-text-subtle mb-1">Name *</label>
-            <input
-              autoFocus
-              className="w-full px-3 py-2 bg-surface-hover border border-border rounded text-sm"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. CV v3, Cover Letter"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-text-subtle mb-1">Upload file (CV / PDF)</label>
-            <input
-              type="file"
-              accept=".pdf,.doc,.docx,.txt,image/*,.png,.jpg,.jpeg"
-              className="w-full text-sm"
-              onChange={(e) => {
-                const f = e.target.files?.[0] ?? null
-                setFile(f)
-                if (f && !name.trim()) setName(f.name.replace(/\.[^.]+$/, ''))
-              }}
-            />
-            {(file || document?.fileName) && (
-              <p className="text-xs text-text-subtle mt-1">
-                {file ? file.name : document?.fileName}
-                {document?.hasBlob && !file ? ' (IndexedDB attachment)' : ''}
-              </p>
-            )}
-            <p className="text-[11px] text-text-subtle mt-1">
-              Files are included in full backup and encrypted sync when under 2&nbsp;MB each (20&nbsp;MB
-              total). Oversized files stay on this device only.
-            </p>
-          </div>
-          <div>
-            <label className="block text-xs text-text-subtle mb-1">URL</label>
-            <input
-              type="url"
-              className="w-full px-3 py-2 bg-surface-hover border border-border rounded text-sm"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://..."
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-text-subtle mb-1">Notes</label>
-            <textarea
-              className="w-full px-3 py-2 bg-surface-hover border border-border rounded text-sm min-h-[80px]"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Optional notes"
-            />
-          </div>
-          {error && <p className="text-sm text-red-500">{error}</p>}
-          <div className="flex gap-3 pt-2 border-t border-border">
-            <button type="button" onClick={onClose} className="btn-ghost flex-1" disabled={busy}>
-              Cancel
-            </button>
-            <button type="submit" className="btn-primary flex-1" disabled={!name.trim() || busy}>
-              {busy ? 'Saving…' : document ? 'Save Changes' : 'Add Document'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+      </form>
+    </Modal>
   )
 }

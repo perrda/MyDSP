@@ -309,7 +309,11 @@ export function savePortfolio(
   const existing = saveTimers.get(portfolioId)
   if (existing) clearTimeout(existing)
   const timer = setTimeout(() => {
-    savePortfolioImmediate(data, portfolioId)
+    // Always flush the latest pending snapshot (not a stale closed-over `data`).
+    const pending = pendingWrites.get(portfolioId)
+    if (pending) {
+      savePortfolioImmediate(pending, portfolioId)
+    }
   }, 300)
   saveTimers.set(portfolioId, timer)
 }

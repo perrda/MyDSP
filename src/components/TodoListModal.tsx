@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { X } from 'lucide-react'
 import type { TodoList } from '../domain/todo-types'
 import { createTodoList } from '../domain/todos'
+import { Modal } from './ui/Modal'
 
 const LIST_COLORS = [
   { value: '#F7931A', label: 'Accent' },
@@ -68,16 +68,8 @@ export function TodoListModal({ list, onSave, onClose }: TodoListModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="surface rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto my-8">
-        <div className="sticky top-0 surface border-b border-border p-4 flex items-center justify-between">
-          <h2 className="text-xl font-bold">{list ? 'Edit List' : 'New List'}</h2>
-          <button type="button" onClick={onClose} className="btn-ghost btn-sm" aria-label="Close">
-            <X size={16} />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+    <Modal open title={list ? 'Edit List' : 'New List'} onClose={onClose}>
+        <form onSubmit={handleSubmit} className="space-y-6">
           <section>
             <h3 className="font-bold mb-3">List Details</h3>
             <div className="grid grid-cols-1 gap-4">
@@ -89,7 +81,7 @@ export function TodoListModal({ list, onSave, onClose }: TodoListModalProps) {
                   autoFocus
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 bg-surface-hover border border-border rounded text-sm"
+                  className="w-full px-3 py-2 bg-surface-hover border border-border rounded text-sm min-h-11"
                   placeholder="e.g. Finance, Personal, Career"
                 />
               </div>
@@ -161,15 +153,14 @@ export function TodoListModal({ list, onSave, onClose }: TodoListModalProps) {
           </section>
 
           <div className="flex gap-3 pt-4 border-t border-border">
-            <button type="button" onClick={onClose} className="btn-ghost flex-1">
+            <button type="button" onClick={onClose} className="btn-ghost flex-1 min-h-11">
               Cancel
             </button>
-            <button type="submit" className="btn-primary flex-1" disabled={!formData.name.trim()}>
+            <button type="submit" className="btn-primary flex-1 min-h-11" disabled={!formData.name.trim()}>
               {list ? 'Save Changes' : 'Create List'}
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   )
 }

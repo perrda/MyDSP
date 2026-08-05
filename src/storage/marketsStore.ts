@@ -344,6 +344,21 @@ export function removeMarketTicker(id: string): void {
 }
 
 /**
+ * Tombstone wins only when delete is strictly after createdAt
+ * (same-ms / later re-add keeps the ticker — matches YouTube/News).
+ */
+export function marketsTombstoneSuppressesTicker(
+  deletedAt: string,
+  createdAt: string | undefined,
+): boolean {
+  const del = Date.parse(deletedAt) || 0
+  const created = Date.parse(createdAt || '') || 0
+  if (!del) return false
+  if (!created) return true
+  return del > created
+}
+
+/**
  * Reorder tickers within a single asset kind. Other kinds keep their sortOrder.
  * `orderedIds` is the full id list for that kind in the new top→bottom order.
  */
@@ -527,25 +542,46 @@ export function importMarketsFromBackup(raw: unknown): void {
     const prev = tombByKey.get(d.key)
     if (!prev || Date.parse(d.deletedAt) >= Date.parse(prev)) tombByKey.set(d.key, d.deletedAt)
   }
-  const isTombstoned = (k: string) => tombByKey.has(k)
 
   // Union watchlists: keep local ticker when both have the same kind+symbol;
   // append remote-only tickers so a phone wipe cannot drop Mac-only crosses.
-  // Skip keys with deletion tombstones so removals sync across devices.
+  // Tombstones suppress only when deletedAt > createdAt (re-add after delete wins).
   const byKey = new Map<string, MarketTicker>()
-  const localList = local?.tickers?.map(normalizeTicker) ?? []
-  for (const t of localList) {
+  const consider = (t: MarketTicker) => {
     const k = keyOf(t)
-    if (isTombstoned(k)) continue
-    byKey.set(k, t)
+    const delAt = tombByKey.get(k)
+    if (delAt && marketsTombstoneSuppressesTicker(delAt, t.createdAt)) return
+    const prev = byKey.get(k)
+    if (!prev) {
+      byKey.set(k, t)
+      return
+    }
+    // Prefer the newer createdAt when both sides have the same kind+symbol.
+    const prevMs = Date.parse(prev.createdAt) || 0
+    const nextMs = Date.parse(t.createdAt) || 0
+    if (nextMs > prevMs) byKey.set(k, { ...t, sortOrder: prev.sortOrder })
   }
+  const localList = local?.tickers?.map(normalizeTicker) ?? []
+  for (const t of localList) consider(t)
   let nextOrder =
     localList.reduce((m, t) => Math.max(m, typeof t.sortOrder === 'number' ? t.sortOrder : 0), 0) + 1
   for (const t of remoteTickers) {
     const k = keyOf(t)
-    if (isTombstoned(k)) continue
-    if (byKey.has(k)) continue
+    if (byKey.has(k)) {
+      consider(t)
+      continue
+    }
+    const delAt = tombByKey.get(k)
+    if (delAt && marketsTombstoneSuppressesTicker(delAt, t.createdAt)) continue
     byKey.set(k, { ...t, sortOrder: nextOrder++ })
+  }
+
+  // Drop tombstones superseded by a later re-add so they don't suppress forever.
+  for (const [k, delAt] of [...tombByKey.entries()]) {
+    const kept = byKey.get(k)
+    if (kept && !marketsTombstoneSuppressesTicker(delAt, kept.createdAt)) {
+      tombByKey.delete(k)
+    }
   }
 
   const remoteOrder = normalizeSectionOrder((parsed as MarketsState).sectionOrder)

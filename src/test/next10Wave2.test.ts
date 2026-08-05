@@ -5,22 +5,23 @@ import { RELEASE_NOTES, releaseNotesArchive } from '../domain/releaseNotes'
 import { buildNextActionStack } from '../domain/nextActionStack'
 import { spendingHighlightUrl, recurringFocusUrl } from '../domain/deepLinks'
 import { buildAlerts } from '../domain/alerts'
+import { monthKey } from '../domain/monthUtils'
 import type { PortfolioData } from '../domain/types'
 
 const readPage = (name: string) =>
   readFileSync(resolve(__dirname, `../pages/${name}`), 'utf8')
 
-describe('next10 wave 2 (v1.2.111)', () => {
+describe('next10 wave 2 (v1.2.111 features; package tracks current)', () => {
   it('0: package + release notes tip', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.111')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.111')
+    expect(pkg.version).toBe('1.2.112')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.112')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.112',
       '1.2.111',
       '1.2.110',
       '1.2.109',
       '1.2.108',
-      '1.2.107',
     ])
   })
 
@@ -60,11 +61,13 @@ describe('next10 wave 2 (v1.2.111)', () => {
       '/spending?highlight=42&category=food&month=2026-07',
     )
     expect(recurringFocusUrl(7)).toBe('/recurring?focus=7')
+    // buildAlerts filters spending/budgets by current calendar month
+    const ym = monthKey()
     const alerts = buildAlerts({
       spending: [
         {
           id: 9,
-          date: '2026-07-01',
+          date: `${ym}-01`,
           description: 'Groceries',
           category: 'food',
           method: 'card',

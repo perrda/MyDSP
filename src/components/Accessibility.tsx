@@ -4,22 +4,13 @@ import { useCallback } from 'react'
 export function SkipToContent() {
   return (
     <nav aria-label="Skip links" className="skip-links">
-      <a
-        href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-accent focus:text-white focus:shadow-lg"
-      >
+      <a href="#main-content" className="sr-only">
         Skip to main content
       </a>
-      <a
-        href="#sync-conflicts-panel"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-accent focus:text-white focus:shadow-lg focus:mt-14"
-      >
+      <a href="#sync-conflicts-panel" className="sr-only">
         Skip to sync conflicts
       </a>
-      <a
-        href="#markets-cached-mode-banner"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-accent focus:text-white focus:shadow-lg focus:mt-28"
-      >
+      <a href="#markets-cached-mode-banner" className="sr-only">
         Skip to Markets cached banner
       </a>
     </nav>

@@ -183,11 +183,34 @@ describe('next25p — sync / Markets / Today polish tip (1–25 → v1.2.81)', (
     const tomb = loadMarketsState().deletedTickers ?? []
     expect(tomb.some((d) => d.key === 'equity:ZZTOP')).toBe(true)
 
+    // Device A deleted; Device B still has old ticker (created before tombstone) → suppress
     const exported = exportMarketsForBackup()
+    mem.clear()
+    const stale = {
+      ...exported,
+      deletedTickers: [],
+      tickers: [
+        {
+          id: 'mkt_equity_zztop_stale',
+          kind: 'equity' as const,
+          symbol: 'ZZTOP',
+          name: 'ZZ Top stale',
+          createdAt: '2020-01-01T00:00:00.000Z',
+          sortOrder: 0,
+        },
+      ],
+    }
+    importMarketsFromBackup({
+      ...stale,
+      deletedTickers: exported.deletedTickers,
+    })
+    expect(listMarketTickers('equity').some((t) => t.symbol === 'ZZTOP')).toBe(false)
+
+    // Re-add after tombstone timestamp — re-add must win (stale tombstone dropped)
     mem.clear()
     addMarketTicker({ kind: 'equity', symbol: 'ZZTOP', name: 'ZZ Top again' })
     importMarketsFromBackup(exported)
-    expect(listMarketTickers('equity').some((t) => t.symbol === 'ZZTOP')).toBe(false)
+    expect(listMarketTickers('equity').some((t) => t.symbol === 'ZZTOP')).toBe(true)
   })
 
   it('7–10: Markets thumbs · keyboard rows · retry aria · jump aria-controls', () => {

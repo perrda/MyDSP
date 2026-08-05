@@ -17,7 +17,9 @@ import type { NetWorthBreakdown, PortfolioData, PortfolioMeta } from '../domain/
 import { fetchCryptoPricesGbp, fetchEquityPrices } from '../services/prices'
 import {
   enqueueOfflineJob,
+  jobsReadyToFlush,
   loadOfflineQueue,
+  markOfflineJobFailed,
   removeOfflineJob,
 } from '../services/offlineQueue'
 import {
@@ -484,10 +486,16 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
   // Flush offline quote + sync jobs when connectivity returns
   useEffect(() => {
     const onOnline = () => {
-      const queue = loadOfflineQueue()
-      for (const job of queue) {
+      for (const job of jobsReadyToFlush(loadOfflineQueue())) {
         if (job.type === 'quote_refresh') {
-          void refreshPrices().then(() => removeOfflineJob(job.id))
+          void refreshPrices()
+            .then(() => removeOfflineJob(job.id))
+            .catch((e) => {
+              markOfflineJobFailed(
+                job.id,
+                e instanceof Error ? e.message : 'Quote refresh failed',
+              )
+            })
           continue
         }
         if (job.type === 'sync_push' && job.remoteUrl) {
@@ -495,8 +503,11 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
           if (!pass) continue
           void pushSync(job.remoteUrl, pass)
             .then(() => removeOfflineJob(job.id))
-            .catch(() => {
-              /* keep queued */
+            .catch((e) => {
+              markOfflineJobFailed(
+                job.id,
+                e instanceof Error ? e.message : 'Sync push failed',
+              )
             })
         }
       }

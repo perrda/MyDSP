@@ -40,14 +40,29 @@ export function parseCSVLine(line: string, delimiter = ','): string[] {
 export { guessCategory }
 
 export function normalizeDate(dateStr: string): string {
-  const d = new Date(dateStr)
-  if (!Number.isNaN(d.getTime())) return d.toISOString().slice(0, 10)
-  const parts = dateStr.split(/[/\-.]/)
-  if (parts.length === 3 && parts[0].length <= 2) {
-    const uk = new Date(`${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`)
-    if (!Number.isNaN(uk.getTime())) return uk.toISOString().slice(0, 10)
+  const raw = String(dateStr || '').trim()
+  if (!raw) return raw
+  // Already ISO date (or datetime) — keep calendar day without UTC shift.
+  if (/^\d{4}-\d{2}-\d{2}/.test(raw)) return raw.slice(0, 10)
+  // UK-style d/m/y or d-m-y
+  const parts = raw.split(/[/\-.]/)
+  if (parts.length === 3 && parts[0]!.length <= 2 && parts[2]!.length >= 2) {
+    const day = parts[0]!.padStart(2, '0')
+    const month = parts[1]!.padStart(2, '0')
+    const year = parts[2]!.length === 2 ? `20${parts[2]}` : parts[2]!
+    if (/^\d{4}$/.test(year) && Number(month) >= 1 && Number(month) <= 12) {
+      return `${year}-${month}-${day}`
+    }
   }
-  return dateStr
+  // Fallback: parse then use local calendar components (never toISOString — TZ shift).
+  const d = new Date(raw)
+  if (!Number.isNaN(d.getTime())) {
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${y}-${m}-${day}`
+  }
+  return raw
 }
 
 function findCol(headers: string[], candidates: string[]): number {

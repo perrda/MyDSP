@@ -187,7 +187,7 @@ export function TodosPage() {
       m.set(item.listId, (m.get(item.listId) ?? 0) + 1)
     }
     return m
-  }, [allItems])
+  }, [data.todoItems])
   const todoItemsRef = useRef(allItems)
   todoItemsRef.current = allItems
 

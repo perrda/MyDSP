@@ -16,6 +16,9 @@ export type ConflictCollection =
   | 'todoLists'
   | 'jobApplications'
   | 'documents'
+  | 'recurringTransactions'
+  | 'trips'
+  | 'merchantRules'
 
 export interface FieldDiff {
   field: string
@@ -102,6 +105,9 @@ const COLLECTIONS: ConflictCollection[] = [
   'todoLists',
   'jobApplications',
   'documents',
+  'recurringTransactions',
+  'trips',
+  'merchantRules',
 ]
 
 export function detectConflicts(
@@ -134,8 +140,15 @@ export function detectConflicts(
   return out
 }
 
-export function conflictKey(c: Pick<SyncConflict, 'collection' | 'id'>): string {
-  return `${c.collection}:${c.id}`
+/**
+ * Stable resolution key. Includes portfolioId so same collection:id on Mum vs David
+ * cannot share one choice (multi-portfolio conflict collision).
+ */
+export function conflictKey(
+  c: Pick<SyncConflict, 'portfolioId' | 'collection' | 'id'>,
+): string {
+  const pid = c.portfolioId || 'default'
+  return `${pid}:${c.collection}:${c.id}`
 }
 
 const COLLECTION_LABEL: Record<ConflictCollection, string> = {
@@ -151,6 +164,9 @@ const COLLECTION_LABEL: Record<ConflictCollection, string> = {
   todoLists: "To Do list",
   jobApplications: 'job application',
   documents: 'document',
+  recurringTransactions: 'recurring bill',
+  trips: 'trip',
+  merchantRules: 'merchant rule',
 }
 
 /** One-line plain-English summary for conflict review UI. */
@@ -181,11 +197,13 @@ export function summarizeConflictBatch(conflicts: SyncConflict[]): string {
 /**
  * Apply union merge, then overwrite conflicting IDs per user choice.
  * Default (no choice) keeps local for conflicting rows.
+ * `portfolioId` must match the id used when building conflictKey() resolutions.
  */
 export function mergeWithResolutions(
   local: PortfolioData,
   remote: PortfolioData,
   resolutions: Record<string, ConflictChoice> = {},
+  portfolioId = 'default',
 ): PortfolioData {
   const base = mergePortfolio(local, remote)
 
@@ -198,8 +216,9 @@ export function mergeWithResolutions(
     const localMap = new Map(localArr.map((x) => [x.id, x]))
     const remoteMap = new Map(remoteArr.map((x) => [x.id, x]))
     return merged.map((row) => {
-      const key = `${collection}:${row.id}`
-      const choice = resolutions[key]
+      const key = conflictKey({ portfolioId, collection, id: row.id })
+      // Legacy keys (pre multi-portfolio scoping) still resolve during one session
+      const choice = resolutions[key] ?? resolutions[`${collection}:${row.id}`]
       if (!choice) {
         if (localMap.has(row.id) && remoteMap.has(row.id)) {
           const loc = localMap.get(row.id)!
@@ -232,5 +251,18 @@ export function mergeWithResolutions(
       remote.jobApplications ?? [],
     ),
     documents: apply('documents', base.documents ?? [], local.documents ?? [], remote.documents ?? []),
+    recurringTransactions: apply(
+      'recurringTransactions',
+      base.recurringTransactions ?? [],
+      local.recurringTransactions ?? [],
+      remote.recurringTransactions ?? [],
+    ),
+    trips: apply('trips', base.trips ?? [], local.trips ?? [], remote.trips ?? []),
+    merchantRules: apply(
+      'merchantRules',
+      base.merchantRules ?? [],
+      local.merchantRules ?? [],
+      remote.merchantRules ?? [],
+    ),
   }
 }

@@ -58,6 +58,7 @@ import {
 } from '../services/sync/syncHighlights'
 import {
   loadOfflineQueue,
+  markOfflineJobFailed,
   removeOfflineJob,
   retryOfflineJobNow,
 } from '../services/offlineQueue'
@@ -809,17 +810,21 @@ export function Dashboard() {
     setDigestOpen(true)
   }
 
+  // Keep a stable listener; read latest openWeeklyDigest via ref to avoid re-subscribe churn
+  const openWeeklyDigestRef = useRef(openWeeklyDigest)
+  openWeeklyDigestRef.current = openWeeklyDigest
+
   useEffect(() => {
-    const open = () => openWeeklyDigest()
+    const open = () => openWeeklyDigestRef.current()
     window.addEventListener('mydsp-open-weekly-digest', open)
     return () => window.removeEventListener('mydsp-open-weekly-digest', open)
-  })
+  }, [])
 
   useEffect(() => {
     try {
       const params = new URLSearchParams(window.location.search)
       if (params.get('digest') !== '1') return
-      openWeeklyDigest()
+      openWeeklyDigestRef.current()
       params.delete('digest')
       const next = params.toString()
       const url = `${window.location.pathname}${next ? `?${next}` : ''}${window.location.hash}`
@@ -883,7 +888,14 @@ export function Dashboard() {
     for (const j of queue) retryOfflineJobNow(j.id)
     for (const job of loadOfflineQueue()) {
       if (job.type === 'quote_refresh') {
-        void refreshPrices().then(() => removeOfflineJob(job.id))
+        void refreshPrices()
+          .then(() => removeOfflineJob(job.id))
+          .catch((e) => {
+            markOfflineJobFailed(
+              job.id,
+              e instanceof Error ? e.message : 'Quote refresh failed',
+            )
+          })
         continue
       }
       if (job.type === 'sync_push' && job.remoteUrl) {
@@ -891,8 +903,11 @@ export function Dashboard() {
         if (!pass) continue
         void pushSync(job.remoteUrl, pass)
           .then(() => removeOfflineJob(job.id))
-          .catch(() => {
-            /* keep queued */
+          .catch((e) => {
+            markOfflineJobFailed(
+              job.id,
+              e instanceof Error ? e.message : 'Sync push failed',
+            )
           })
       }
     }

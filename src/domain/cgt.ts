@@ -31,15 +31,26 @@ export function getCurrentTaxYear(now = new Date()): string {
 
 export function getTaxYearRange(taxYear: string): { start: Date; end: Date } {
   const startYear = parseInt(taxYear.split('/')[0], 10)
-  const start = new Date(startYear, 3, 6)
-  const end = new Date(startYear + 1, 3, 5, 23, 59, 59)
+  // Local calendar bounds (not UTC) so UK tax year edges are stable.
+  const start = new Date(startYear, 3, 6, 0, 0, 0, 0)
+  const end = new Date(startYear + 1, 3, 5, 23, 59, 59, 999)
   return { start, end }
+}
+
+/** Parse YYYY-MM-DD (or full ISO) as a local calendar date — avoid UTC midnight shifts. */
+export function parseDisposalDate(dateStr: string): Date {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(dateStr || '').trim())
+  if (m) {
+    return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 12, 0, 0, 0)
+  }
+  return new Date(dateStr)
 }
 
 export function getDisposalsForYear(disposals: Disposal[], taxYear: string): Disposal[] {
   const { start, end } = getTaxYearRange(taxYear)
   return disposals.filter((d) => {
-    const date = new Date(d.date)
+    const date = parseDisposalDate(d.date)
+    if (Number.isNaN(date.getTime())) return false
     return date >= start && date <= end
   })
 }

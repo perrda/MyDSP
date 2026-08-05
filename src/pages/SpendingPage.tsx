@@ -140,10 +140,25 @@ export function SpendingPage() {
   }, [searchParams, data.spending, ym, category, query])
 
   useEffect(() => {
-    const params: Record<string, string> = { month: ym }
-    if (category !== 'All') params.category = category.toLowerCase()
-    setSearchParams(params, { replace: true })
-  }, [category, ym, setSearchParams])
+    // Keep filter state in the URL without wiping deep-link highlight
+    const next = new URLSearchParams()
+    next.set('month', ym)
+    if (category !== 'All') next.set('category', category.toLowerCase())
+    const highlight = searchParams.get('highlight')
+    if (highlight) next.set('highlight', highlight)
+    const curMonth = searchParams.get('month') ?? ''
+    const curCat = searchParams.get('category') ?? ''
+    const nextCat = category !== 'All' ? category.toLowerCase() : ''
+    const curHighlight = searchParams.get('highlight') ?? ''
+    if (
+      curMonth === ym &&
+      curCat === nextCat &&
+      curHighlight === (highlight ?? '')
+    ) {
+      return
+    }
+    setSearchParams(next, { replace: true })
+  }, [category, ym, searchParams, setSearchParams])
 
   const allCategories = useMemo(
     () =>

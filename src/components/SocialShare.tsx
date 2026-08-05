@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Share2, Copy, Link as LinkIcon, Mail, MessageCircle, Check } from 'lucide-react'
 import { useToasts } from '../components/ToastProvider'
+import { Modal } from './ui/Modal'
 
 interface ShareData {
   title: string
@@ -110,22 +111,14 @@ export function ShareMenu({ title, text, url, onClose }: ShareMenuProps) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-4">
-      <div className="surface rounded-t-2xl sm:rounded-2xl max-w-md w-full p-6 animate-slide-in-right">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-bold text-lg">Share</h3>
-          <button type="button" onClick={onClose} className="btn-ghost btn-sm">
-            ✕
-          </button>
-        </div>
-
+    <Modal open title="Share" onClose={onClose} size="sheet">
         <div className="space-y-2">
           {/* Native Share */}
           {typeof navigator !== 'undefined' && 'share' in navigator && (
             <button
               type="button"
               onClick={handleNativeShare}
-              className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-surface-hover transition-colors"
+              className="w-full flex items-center gap-3 p-3 min-h-11 rounded-lg hover:bg-surface-hover transition-colors"
             >
               <Share2 size={20} className="text-accent" />
               <span className="text-sm font-medium">Share via...</span>
@@ -202,8 +195,7 @@ export function ShareMenu({ title, text, url, onClose }: ShareMenuProps) {
             <span className="text-sm font-medium">LinkedIn</span>
           </button>
         </div>
-      </div>
-    </div>
+    </Modal>
   )
 }
 

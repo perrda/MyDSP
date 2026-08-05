@@ -25,6 +25,12 @@ export function GlobalSearch() {
   const navigate = useNavigate()
   const shortcut = useMemo(() => searchShortcutLabel(), [])
 
+  const closeSearch = useCallback(() => {
+    setIsOpen(false)
+    setQuery('')
+    setResults([])
+  }, [])
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -33,17 +39,21 @@ export function GlobalSearch() {
         logger.track('global_search_opened', { trigger: 'keyboard' })
       }
       if (e.key === 'Escape' && isOpen) {
-        setIsOpen(false)
-        setQuery('')
-        setResults([])
+        closeSearch()
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen])
+  }, [isOpen, closeSearch])
 
   useEffect(() => {
-    if (isOpen && inputRef.current) inputRef.current.focus()
+    if (!isOpen) return
+    inputRef.current?.focus()
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prevOverflow
+    }
   }, [isOpen])
 
   const performSearch = useCallback(
@@ -129,8 +139,19 @@ export function GlobalSearch() {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[max(1rem,env(safe-area-inset-top))] sm:pt-20 bg-black/50 backdrop-blur-sm">
-      <div className="w-full max-w-2xl mx-0 sm:mx-3 h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[min(85vh,40rem)] bg-bg-elevated sm:rounded-none shadow-2xl border-0 sm:border border-border overflow-hidden flex flex-col">
+    <div className="fixed inset-0 z-[1000] flex items-start justify-center pt-[max(1rem,env(safe-area-inset-top))] sm:pt-20">
+      <button
+        type="button"
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        aria-label="Close search"
+        onClick={closeSearch}
+      />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Search portfolio"
+        className="relative z-10 w-full max-w-2xl mx-0 sm:mx-3 h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[min(85vh,40rem)] bg-bg-elevated sm:rounded-none shadow-2xl border-0 sm:border border-border overflow-hidden flex flex-col"
+      >
         <div className="flex items-center gap-3 p-4 border-b border-border shrink-0">
           <Search className="w-5 h-5 text-text-muted shrink-0" aria-hidden />
           <input
@@ -152,11 +173,7 @@ export function GlobalSearch() {
           </kbd>
           <button
             type="button"
-            onClick={() => {
-              setIsOpen(false)
-              setQuery('')
-              setResults([])
-            }}
+            onClick={closeSearch}
             className="toolbar-icon shrink-0"
             aria-label="Close search"
           >

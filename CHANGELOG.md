@@ -1,5 +1,21 @@
 # MyDSP Changelog
 
+## [1.2.112] - 2026-08-05
+
+### Fixed — Full QA bug hunt (frontend + backend)
+- **Sync crypto:** AES-GCM/PBKDF2 uses view-safe salt/iv bytes (no shared-buffer decode risk)
+- **Conflicts:** resolution keys scoped by `portfolioId` so Mum/David same entity ids cannot collide; recurring · trips · merchant rules in conflict detection
+- **Markets tombstones:** re-add after delete wins over older tombstone (YouTube/News parity)
+- **Family merge:** same-id member edits apply from remote (LWW)
+- **CGT / CSV dates:** local calendar parsing — no UTC day-shift near tax-year or bank CSV boundaries
+- **Offline queue:** max attempts + backoff on failed auto-flush (no infinite retry storm)
+- **Portfolio save:** debounced flush always writes latest pending snapshot
+- **A11y:** skip links focus stack restored; GlobalSearch dialog chrome; mobile sidebar/OverflowMenu body lock + Esc
+- **Modals:** Todo/List/OCR/Interview/Note/Task/Document/Share use shared `Modal` (Esc, trap, aria)
+- **Weekly digest:** SPA `navigate` (no hard reload); listeners no longer re-subscribe every render
+- **Spending deep-links:** URL rewrite preserves `?highlight=`
+- Full unit suite green (897) + production build
+
 ## [1.2.111] - 2026-07-30
 
 ### Improved — Next 10 wave 2 (cross-format)

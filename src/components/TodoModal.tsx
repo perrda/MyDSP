@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { X } from 'lucide-react'
 import type {
   TodoItem,
   TodoList,
@@ -9,6 +8,7 @@ import type {
   TodoSubtask,
 } from '../domain/todo-types'
 import { createTodoItem } from '../domain/todos'
+import { Modal } from './ui/Modal'
 
 interface TodoModalProps {
   todo?: TodoItem
@@ -94,16 +94,8 @@ export function TodoModal({ todo, listId, lists = [], onSave, onClose }: TodoMod
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-0 sm:p-4 overflow-y-auto">
-      <div className="surface rounded-none sm:rounded-xl max-w-3xl w-full h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[min(92dvh,56rem)] overflow-y-auto my-0 sm:my-8 pb-[env(safe-area-inset-bottom)]">
-        <div className="sticky top-0 surface border-b border-border p-4 flex items-center justify-between pt-[max(1rem,env(safe-area-inset-top))]">
-          <h2 className="text-xl font-bold">{todo ? 'Edit Task' : 'New Task'}</h2>
-          <button type="button" onClick={onClose} className="btn-ghost btn-sm" aria-label="Close">
-            <X size={16} />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+    <Modal open title={todo ? 'Edit Task' : 'New Task'} onClose={onClose} size="full">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <section>
             <h3 className="font-bold mb-3">Basic Information</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -343,15 +335,14 @@ export function TodoModal({ todo, listId, lists = [], onSave, onClose }: TodoMod
           </section>
 
           <div className="flex gap-3 pt-4 border-t border-border">
-            <button type="button" onClick={onClose} className="btn-ghost flex-1">
+            <button type="button" onClick={onClose} className="btn-ghost flex-1 min-h-11">
               Cancel
             </button>
-            <button type="submit" className="btn-primary flex-1" disabled={!formData.title.trim()}>
+            <button type="submit" className="btn-primary flex-1 min-h-11" disabled={!formData.title.trim()}>
               {todo ? 'Save Changes' : 'Create Task'}
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   )
 }

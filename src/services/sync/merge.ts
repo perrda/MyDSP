@@ -107,9 +107,11 @@ export function mergePortfolio(local: PortfolioData, remote: PortfolioData): Por
     family: {
       settings: remote.family?.settings ?? local.family?.settings,
       members: (() => {
+        // Union by id; remote overwrites same-id so name/role edits sync across devices
+        // (family members are not in conflict review COLLECTIONS).
         const map = new Map((local.family?.members ?? []).map((m) => [m.id, m]))
         for (const m of remote.family?.members ?? []) {
-          if (!map.has(m.id)) map.set(m.id, m)
+          map.set(m.id, m)
         }
         return [...map.values()]
       })(),

@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
-import { NavLink, useLocation } from 'react-router-dom'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard,
   Coins,
@@ -112,6 +112,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const [newsUnread, setNewsUnread] = useState(() => newsUnreadFromCache())
   const [youtubeUnread, setYoutubeUnread] = useState(() => youtubeUnreadFromCache())
   const { pathname, hash } = useLocation()
+  const navigate = useNavigate()
   const { data } = usePortfolio()
   const billsDueSoon = useMemo(
     () => dueWithinDays(data.recurringTransactions, 7).length > 0,
@@ -148,6 +149,24 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       window.removeEventListener('mydsp-youtube-changed', refreshYt)
     }
   }, [])
+
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
+
+  // Phone/tablet drawer: Escape closes + lock body scroll while open
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onCloseRef.current()
+    }
+    window.addEventListener('keydown', onKey)
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.body.style.overflow = prevOverflow
+    }
+  }, [open])
 
   const favourites = useMemo(() => pathsToItems(layout.favourites), [layout.favourites])
   const others = useMemo(() => pathsToItems(layout.others), [layout.others])
@@ -300,7 +319,8 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                 window.dispatchEvent(new CustomEvent('mydsp-open-weekly-digest'))
                 return
               }
-              window.location.assign('/?digest=1')
+              // Client-side nav preserves SPA state + respects Router basename
+              navigate('/?digest=1')
             }}
           >
             <Newspaper size={16} strokeWidth={1.5} />

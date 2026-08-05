@@ -52,10 +52,16 @@ export function OverflowMenu({
     document.addEventListener('mousedown', onDoc)
     document.addEventListener('touchstart', onDoc)
     document.addEventListener('keydown', onKey)
+    // Phone full-screen sheet: prevent background scroll
+    const isPhoneSheet =
+      typeof window !== 'undefined' && window.matchMedia('(max-width: 639px)').matches
+    const prevOverflow = document.body.style.overflow
+    if (isPhoneSheet) document.body.style.overflow = 'hidden'
     return () => {
       document.removeEventListener('mousedown', onDoc)
       document.removeEventListener('touchstart', onDoc)
       document.removeEventListener('keydown', onKey)
+      if (isPhoneSheet) document.body.style.overflow = prevOverflow
     }
   }, [open])
 

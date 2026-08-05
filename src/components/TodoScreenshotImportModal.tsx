@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ImagePlus, Loader2, Trash2, X } from 'lucide-react'
+import { ImagePlus, Loader2, Trash2 } from 'lucide-react'
 import type { TodoItem, TodoList, TodoPriority } from '../domain/todo-types'
 import {
   candidatesToTodoItems,
   parseOcrTextToCandidates,
   type ParsedTodoCandidate,
 } from '../domain/todoOcr'
+import { Modal } from './ui/Modal'
 
 type DraftRow = ParsedTodoCandidate & { include: boolean }
 
@@ -148,16 +149,15 @@ export function TodoScreenshotImportModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="surface rounded-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto my-8">
-        <div className="sticky top-0 surface border-b border-border p-4 flex items-center justify-between">
-          <h2 className="text-xl font-bold">Import from Screenshot</h2>
-          <button type="button" onClick={onClose} className="btn-ghost btn-sm" aria-label="Close" disabled={busy}>
-            <X size={16} />
-          </button>
-        </div>
-
-        <div className="p-6 space-y-6">
+    <Modal
+      open
+      title="Import from Screenshot"
+      onClose={() => {
+        if (!busy) onClose()
+      }}
+      size="full"
+    >
+        <div className="space-y-6">
           <section>
             <h3 className="font-bold mb-3">Target List</h3>
             <label className="block text-xs text-text-subtle mb-1">Add imported tasks to</label>
@@ -300,12 +300,12 @@ export function TodoScreenshotImportModal({
           )}
 
           <div className="flex gap-3 pt-4 border-t border-border">
-            <button type="button" onClick={onClose} className="btn-ghost flex-1" disabled={busy}>
+            <button type="button" onClick={onClose} className="btn-ghost flex-1 min-h-11" disabled={busy}>
               Cancel
             </button>
             <button
               type="button"
-              className="btn-primary flex-1"
+              className="btn-primary flex-1 min-h-11"
               disabled={busy || selected.length === 0 || !listId}
               onClick={handleImport}
             >
@@ -313,7 +313,6 @@ export function TodoScreenshotImportModal({
             </button>
           </div>
         </div>
-      </div>
-    </div>
+    </Modal>
   )
 }

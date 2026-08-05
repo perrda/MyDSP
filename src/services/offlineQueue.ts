@@ -100,16 +100,22 @@ export function offlineBackoffMs(attempts: number): number {
 
 export function markOfflineJobFailed(id: string, note?: string): OfflineJob[] {
   const queue = loadOfflineQueue()
-  const next = queue.map((j) => {
-    if (j.id !== id) return j
+  const next: OfflineJob[] = []
+  for (const j of queue) {
+    if (j.id !== id) {
+      next.push(j)
+      continue
+    }
     const attempts = (j.attempts ?? 0) + 1
-    return {
+    // Drop permanently after MAX_ATTEMPTS so dead jobs cannot retry forever.
+    if (attempts > MAX_ATTEMPTS) continue
+    next.push({
       ...j,
       attempts,
       nextRetryAt: new Date(Date.now() + offlineBackoffMs(attempts)).toISOString(),
       note: note ?? j.note,
-    }
-  })
+    })
+  }
   save(next)
   return next
 }
