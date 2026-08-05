@@ -7,6 +7,7 @@
  * - Push ~4s after the last local edit (debounced)
  * - Pull on open / focus / online / pull-to-refresh / Sync now / ~60s while open
  * - Edit/hide cycles pull-before-push when another device wrote the cloud envelope
+ * - Push sends X-MyDSP-Base-ExportedAt; Worker 409 → one pull-merge-retry
  */
 
 import { enqueueOfflineJob } from '../offlineQueue'
@@ -16,10 +17,12 @@ import {
   applyWorkspaceExtrasFromPreview,
   fetchRemoteMeta,
   getLocalDeviceId,
+  isSyncCasConflictError,
   loadSyncConfig,
   previewPull,
   pushSync,
   saveSyncConfig,
+  SyncCasConflictError,
   type MergePreview,
   type SyncConfig,
 } from './syncService'
@@ -480,7 +483,7 @@ async function doPull(cfg: SyncConfig, pass: string, reason: CycleReason): Promi
   }
 }
 
-async function doPush(cfg: SyncConfig, pass: string): Promise<void> {
+async function doPush(cfg: SyncConfig, pass: string, opts?: { casRetried?: boolean }): Promise<void> {
   if (!dirty) return
   if (typeof navigator !== 'undefined' && !navigator.onLine) {
     enqueueOfflineJob('sync_push', {
@@ -520,6 +523,25 @@ async function doPush(cfg: SyncConfig, pass: string): Promise<void> {
       /* ignore */
     }
   } catch (e) {
+    // Another device wrote first — pull-merge once, then retry push with new base.
+    if (isSyncCasConflictError(e) && !opts?.casRetried) {
+      const remoteAt =
+        e instanceof SyncCasConflictError ? e.remoteExportedAt : 'unknown'
+      emit({
+        state: 'pulling',
+        message: 'Remote changed — merging before push…',
+        lastAt: status.lastAt,
+      })
+      updateCfg({
+        lastRemoteExportedAt:
+          remoteAt !== 'unknown' ? remoteAt : loadSyncConfig().lastRemoteExportedAt,
+      })
+      // Force pull past throttle (CAS path is always intentional)
+      lastPullAttempt = 0
+      await doPull(loadSyncConfig(), pass, 'manual')
+      if (dirty) await doPush(loadSyncConfig(), pass, { casRetried: true })
+      return
+    }
     const msg = e instanceof Error ? e.message : 'Push failed'
     updateCfg({ lastSyncError: msg })
     if (typeof navigator !== 'undefined' && !navigator.onLine) {

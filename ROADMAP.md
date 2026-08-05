@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.112**
+**Current version: 1.2.113**
 
-## Completed (through v1.2.112)
+## Completed (through v1.2.113)
 
+- Sync trust Wave 1 (v1.2.113): Worker CAS (base exportedAt → 409) · client pull-merge-retry · envelope schema check · SYNC_KEY prod docs · meta encryptedBytes
 - Full QA bug hunt (v1.2.112): sync crypto buffer safety · portfolio-scoped conflicts · markets re-add vs tombstone · CGT/CSV TZ dates · offline backoff · modal/a11y/digest · spending highlight preserve
 - Next 10 wave 2 (v1.2.111): holdings sticky panel · money-ops ⋯ · tax disposal links · alert deep-links · Today Next×1 · Markets screener LWW · broker CSV aliases · Compare Week Δ honesty · lower-traffic content-first · sync unlock CTA
 - No text overlap + resize-safe chrome (v1.2.110): Equities/Crypto `.holdings-list-row` · compact ⋯ menus · resize-safe `.page-header` · `PagePrimaryActions` on holdings/Compare/History/News/YouTube · `no-text-overlap.mdc` + `resize-safe-layouts.mdc`

@@ -39,13 +39,20 @@ Open it and jump to step **4** (KV binding) below.
 6. Open **Edit code** / **Code** / **Quick edit**.
 7. Replace the default script with the full contents of  
    [`sync-endpoint/worker.js`](./sync-endpoint/worker.js) from this repo → **Deploy**.
-8. (Strongly recommended) **Settings** → **Variables and Secrets** → add secret:
+8. **Required for production** — **Settings** → **Variables and Secrets** → add secret:
    - Name: `SYNC_KEY`  
    - Value: a long random string (e.g. password manager)  
+   Without `SYNC_KEY`, anyone who discovers the Worker URL can overwrite your encrypted blob.
 9. Copy your Worker URL from the overview (looks like  
    `https://mydsp-sync.<your-subdomain>.workers.dev`).  
-   If you set `SYNC_KEY`, append it:  
+   Append the key:  
    `https://mydsp-sync.<your-subdomain>.workers.dev?key=YOUR_SECRET`
+
+### After deploy — re-paste Worker code for CAS
+
+v1.2.113+ Workers enforce optimistic concurrency and envelope shape checks.
+If your Worker was deployed from an older `worker.js`, open **Edit code**, paste the latest
+[`sync-endpoint/worker.js`](./sync-endpoint/worker.js), and **Deploy** again (or `npm run deploy:sync`).
 
 ### Option 2 — CLI
 

@@ -1,5 +1,16 @@
 # MyDSP Changelog
 
+## [1.2.113] - 2026-08-05
+
+### Improved — Sync trust (Wave 1)
+- **Optimistic concurrency (CAS):** push sends `X-MyDSP-Base-ExportedAt`; Worker returns **409** when another device wrote first
+- **Auto-sync:** on 409, one pull-merge then retry push (no silent envelope loss)
+- **Envelope validation:** Worker rejects non-MyDSP / malformed JSON before KV write
+- **Meta:** `?meta=1` includes `encryptedBytes` for diagnostics
+- **Force:** `X-MyDSP-Force: 1` for intentional overwrite (prefer merge path)
+- **Ops:** `SYNC_KEY` documented as **required in production**; redeploy `sync-endpoint/worker.js`
+- Shared rules in `src/services/sync/syncCas.ts` (mirrored in Worker)
+
 ## [1.2.112] - 2026-08-05
 
 ### Fixed — Full QA bug hunt (frontend + backend)

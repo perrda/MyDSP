@@ -8,7 +8,7 @@ alwaysApply: true
 - **Sole build home:** `/Users/davidperry/AI_Projects/MyDSP`
 - **Do not modify** `/Users/davidperry/AI_Projects/FCC`
 - **Dev server:** `http://localhost:5173`
-- **Version:** `1.2.112` — bump by **0.01** (semver patch) per release
+- **Version:** `1.2.113` — bump by **0.01** (semver patch) per release
 - **Charts:** ranges `1D|1W|1M|12M|YTD|5Y|ALL`; static prices in `public/data/prices/`
 - **Currencies:** GBP, BTC, USD, THB only
 - **Deploy:** see `DEPLOY.md` (Netlify / Vercel / Cloudflare Pages)

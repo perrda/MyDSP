@@ -7,14 +7,14 @@ import { normalizePortfolio } from '../domain/normalize'
 describe('Liability commentary collapse + preferred contact (v1.2.100)', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.111')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.111')
+    expect(pkg.version).toBe('1.2.113')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.113')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.113',
+      '1.2.112',
       '1.2.111',
       '1.2.110',
       '1.2.109',
-      '1.2.108',
-      '1.2.107',
     ])
   })
 

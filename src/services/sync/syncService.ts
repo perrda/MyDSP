@@ -38,7 +38,15 @@ import {
   type ConflictChoice,
   type SyncConflict,
 } from './conflicts'
+import { parseCasConflictResponse } from './syncCas'
 import type { DocumentBlobPayload } from '../../storage/documentBlobStore'
+
+export {
+  SyncCasConflictError,
+  isSyncCasConflictError,
+  isValidSyncEnvelopeShape,
+  resolveCasDecision,
+} from './syncCas'
 
 const CONFIG_KEY = 'mydsp_sync_config'
 const DEVICE_KEY = 'mydsp_device_id'
@@ -448,7 +456,24 @@ function pushFailureMessage(url: string, putStatus: number, postStatus: number):
   if (putStatus === 401 || postStatus === 401) {
     return 'Push unauthorized (401) — check SYNC_KEY matches ?key= in the Remote URL.'
   }
+  if (putStatus === 409 || postStatus === 409) {
+    return 'Remote changed (409) — pull and merge, then push again.'
+  }
+  if (putStatus === 400 || postStatus === 400) {
+    return 'Push rejected (400) — invalid envelope. Update the app or re-export sync.'
+  }
   return `Push failed (${putStatus}/${postStatus})`
+}
+
+export interface PushSyncOptions {
+  /**
+   * Last remote exportedAt this device applied. Sent as X-MyDSP-Base-ExportedAt.
+   * Defaults to `loadSyncConfig().lastRemoteExportedAt`.
+   * Pass `null` to omit (legacy / empty cloud first push).
+   */
+  baseExportedAt?: string | null
+  /** Skip CAS (Settings force overwrite). Prefer pull-merge-push. */
+  force?: boolean
 }
 
 function deviceId(): string {
@@ -582,25 +607,47 @@ export async function buildEnvelope(
   }
 }
 
-export async function pushSync(url: string, passphrase: string): Promise<SyncPushResult> {
+export async function pushSync(
+  url: string,
+  passphrase: string,
+  opts?: PushSyncOptions,
+): Promise<SyncPushResult> {
   setSessionSyncPassphrase(passphrase)
   const remote = normalizeSyncRemoteUrl(url)
   const envelope = await buildEnvelope(passphrase, { includeFullArchive: true })
   const body = JSON.stringify(envelope)
   const bytes = estimateSyncPayloadBytes(body)
+
+  const cfg = loadSyncConfig()
+  const baseExportedAt =
+    opts && 'baseExportedAt' in opts ? opts.baseExportedAt : (cfg.lastRemoteExportedAt ?? null)
+
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (baseExportedAt) headers['X-MyDSP-Base-ExportedAt'] = baseExportedAt
+  if (opts?.force) headers['X-MyDSP-Force'] = '1'
+
   const res = await fetch(remote, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body,
   })
   if (!res.ok) {
+    const putText = await res.text().catch(() => '')
+    const cas = parseCasConflictResponse(res.status, putText)
+    if (cas) throw cas
+
     // Some hosts only allow POST
     const res2 = await fetch(remote, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body,
     })
-    if (!res2.ok) throw new Error(pushFailureMessage(url, res.status, res2.status))
+    if (!res2.ok) {
+      const postText = await res2.text().catch(() => '')
+      const cas2 = parseCasConflictResponse(res2.status, postText)
+      if (cas2) throw cas2
+      throw new Error(pushFailureMessage(url, res.status, res2.status))
+    }
   }
   rememberSyncPayloadStats({
     lastRemoteExportedAt: envelope.exportedAt,

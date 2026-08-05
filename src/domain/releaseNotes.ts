@@ -29,6 +29,24 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.113',
+    date: '2026-08-05',
+    bullets: [
+      {
+        text: 'Sync CAS: no silent cloud overwrite · pull-merge on 409',
+        to: '/settings#sync',
+      },
+      {
+        text: 'Worker rejects bad envelopes · SYNC_KEY required in prod',
+        to: '/settings#sync',
+      },
+      {
+        text: 'Meta reports encrypted blob size for diagnostics',
+        to: '/settings#sync',
+      },
+    ],
+  },
+  {
     version: '1.2.112',
     date: '2026-08-05',
     bullets: [
