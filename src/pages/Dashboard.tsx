@@ -1301,7 +1301,7 @@ export function Dashboard() {
           .map((item) => Number(item.id.slice('bill-'.length)))
       : [],
   )
-  /** A bill appears once: Next, then Daily plan, then the lower-priority bills strip. */
+  /** A bill appears once: To-dos, then To-dos, then the lower-priority bills strip. */
   const showBillsStrip = billsDueSoon.filter(
     (bill) => bill.id !== nextBillId && !dailyPlanBillIds.has(bill.id),
   )
@@ -1366,9 +1366,9 @@ export function Dashboard() {
           : 'Cloud sync ready'
 
   const accordionJumpChips: Partial<Record<TodaySectionId, [string, string, string]>> = {
-    next: showNextCard ? ['today-next-action', 'Next', 'today-section-jump-next'] : undefined,
+    next: showNextCard ? ['today-next-action', 'To-dos', 'today-section-jump-next'] : undefined,
     dailyPlan: showDailyPlanCard
-      ? ['today-daily-plan', 'Daily plan', 'today-section-jump-daily-plan']
+      ? ['today-daily-plan', 'To-dos', 'today-section-jump-daily-plan']
       : undefined,
     careerPulse: showCareerPulseCard
       ? ['today-career-pulse', 'Career', 'today-section-jump-career']
@@ -1817,7 +1817,7 @@ export function Dashboard() {
       {showDailyPlanCard ? (
         <TodayAccordionSection
           id="today-daily-plan"
-          title="Daily plan"
+          title="To-dos"
           enabled={todayAccordionEnabled}
           defaultOpen
           order={todaySectionOrder.indexOf('dailyPlan')}
@@ -1940,7 +1940,7 @@ export function Dashboard() {
       {showNextCard ? (
       <TodayAccordionSection
         id="today-next-action"
-        title="Next"
+        title="To-dos"
         enabled={todayAccordionEnabled}
         defaultOpen
         order={todaySectionOrder.indexOf('next')}
