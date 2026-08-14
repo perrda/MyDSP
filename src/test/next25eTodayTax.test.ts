@@ -48,12 +48,17 @@ describe('next25e Today / money / tax items 16-20', () => {
     expect(tax).toMatch(/setOpen\(true\)/)
   })
 
-  it('20: Today FIRE chip is derived from calcFire when fireInputs exist', () => {
+  it('20: Today FIRE chip is derived from calcFire when fireInputs exist and are explicitly set', () => {
     const dashboard = readFileSync(resolve(__dirname, '../pages/Dashboard.tsx'), 'utf8')
 
     expect(dashboard).toMatch(/calcFire/)
+    expect(dashboard).toMatch(/hasExplicitFireInputs/)
     expect(dashboard).toMatch(/data\.fireInputs/)
     expect(dashboard).toMatch(/today-fire-chip/)
     expect(dashboard).toMatch(/planningMonteCarloUrl\(netWorth,\s*data\.fireInputs\.savings/)
+    
+    const fire = readFileSync(resolve(__dirname, '../domain/fire.ts'), 'utf8')
+    expect(fire).toMatch(/hasExplicitFireInputs/)
+    expect(fire).toMatch(/Check if FIRE inputs have been explicitly set/)
   })
 })
