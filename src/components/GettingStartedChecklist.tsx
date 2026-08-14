@@ -64,6 +64,7 @@ function buildSteps(data: ReturnType<typeof usePortfolio>['data']): Step[] {
 export function GettingStartedChecklist() {
   const { data } = usePortfolio()
   const [dismissed, setDismissed] = useState(loadGettingStartedDismissedPref)
+  const [expanded, setExpanded] = useState(false)
   const [, bump] = useState(0)
 
   const steps = buildSteps(data)
@@ -86,18 +87,28 @@ export function GettingStartedChecklist() {
 
   if (dismissed || complete) return null
 
+  const nextUndone = steps.find((s) => !s.done)
+
   return (
     <section
-      className="surface border-l-2 border-l-accent px-4 sm:px-5 py-4 mb-6 animate-fade-in"
+      className="surface border-l-2 border-l-accent px-4 sm:px-5 py-3 mb-6 animate-fade-in"
       aria-labelledby="getting-started-heading"
     >
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <div>
-          <p className="eyebrow tracking-[0.16em] text-accent mb-1">Getting started</p>
-          <h2 id="getting-started-heading" className="text-sm font-bold tracking-tight">
-            Make MyDSP yours · {doneCount}/{steps.length}
-          </h2>
-        </div>
+      <div className="flex items-center justify-between gap-3">
+        <button
+          type="button"
+          className="flex-1 flex items-center gap-3 text-left min-w-0"
+          onClick={() => setExpanded((v) => !v)}
+          aria-expanded={expanded}
+          aria-label="Getting started progress"
+        >
+          <div className="flex-1 min-w-0">
+            <p className="eyebrow tracking-[0.16em] text-accent mb-0.5 text-[11px]">Getting started</p>
+            <h2 id="getting-started-heading" className="text-sm font-bold tracking-tight">
+              {doneCount}/{steps.length} · {nextUndone ? nextUndone.label : 'Complete'}
+            </h2>
+          </div>
+        </button>
         <button
           type="button"
           className="toolbar-icon shrink-0"
@@ -111,23 +122,25 @@ export function GettingStartedChecklist() {
           <X size={16} strokeWidth={1.5} />
         </button>
       </div>
-      <ul className="space-y-2">
-        {steps.map((s) => (
-          <li key={s.id}>
-            <Link
-              to={s.to}
-              className="flex items-center gap-2.5 min-h-11 text-sm text-text-muted hover:text-text transition-colors"
-            >
-              {s.done ? (
-                <Check size={16} className="text-accent shrink-0" strokeWidth={2} />
-              ) : (
-                <Circle size={16} className="text-text-subtle shrink-0" strokeWidth={1.5} />
-              )}
-              <span className={s.done ? 'line-through opacity-60' : ''}>{s.label}</span>
-            </Link>
-          </li>
-        ))}
-      </ul>
+      {expanded ? (
+        <ul className="space-y-2 mt-3 pt-3 border-t border-border">
+          {steps.map((s) => (
+            <li key={s.id}>
+              <Link
+                to={s.to}
+                className="flex items-center gap-2.5 min-h-11 text-sm text-text-muted hover:text-text transition-colors"
+              >
+                {s.done ? (
+                  <Check size={16} className="text-accent shrink-0" strokeWidth={2} />
+                ) : (
+                  <Circle size={16} className="text-text-subtle shrink-0" strokeWidth={1.5} />
+                )}
+                <span className={s.done ? 'line-through opacity-60' : ''}>{s.label}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </section>
   )
 }

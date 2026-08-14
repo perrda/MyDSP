@@ -1803,6 +1803,15 @@ export function Dashboard() {
             ) : null}
           </div>
         ) : null}
+        {alerts.length > 0 && alerts[0].severity !== 'green' ? (
+          <Link
+            to={alerts[0].to}
+            className={`today-top-alert mt-4 block p-3 border-l-4 rounded-r-lg md:hidden ${ALERT_BORDER[alerts[0].severity] ?? 'border-l-border-strong'} bg-surface-hover/60`}
+          >
+            <p className="text-xs font-semibold uppercase tracking-wider mb-0.5">{alerts[0].title}</p>
+            <p className="text-xs text-text-muted font-light leading-snug">{alerts[0].detail}</p>
+          </Link>
+        ) : null}
       </div>
 
       <div className="today-reorderable-sections flex flex-col">
