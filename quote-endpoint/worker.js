@@ -24,6 +24,15 @@ const ALLOWED_HOSTS = new Set([
   'youtube.com',
 ])
 
+const ALLOWED_ORIGINS = new Set([
+  'https://perrda.github.io',
+  'https://mydspv1.dave-perry.workers.dev',
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:5175',
+  'http://localhost:3000',
+])
+
 const FEED_HOSTS = new Set([
   'news.google.com',
   'feeds.finance.yahoo.com',
@@ -31,9 +40,24 @@ const FEED_HOSTS = new Set([
   'youtube.com',
 ])
 
+function isOriginAllowed(origin) {
+  if (!origin) return false
+  try {
+    const url = new URL(origin)
+    const base = `${url.protocol}//${url.hostname}`
+    if (ALLOWED_ORIGINS.has(base)) return true
+    // Allow local network IPs for mobile testing (192.168.x.x, 10.x.x.x)
+    if (url.hostname.match(/^(192\.168\.|10\.)\d+\.\d+$/)) return true
+    return false
+  } catch {
+    return false
+  }
+}
+
 function corsHeaders(origin) {
+  const allowedOrigin = origin && isOriginAllowed(origin) ? origin : 'null'
   return {
-    'Access-Control-Allow-Origin': origin || '*',
+    'Access-Control-Allow-Origin': allowedOrigin,
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Cache-Control': 'public, max-age=60',
