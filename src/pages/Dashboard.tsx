@@ -65,7 +65,10 @@ import {
   removeOfflineJob,
   retryOfflineJobNow,
 } from '../services/offlineQueue'
-import { getSessionSyncPassphrase } from '../services/sync/sessionPassphrase'
+import {
+  getSessionSyncPassphrase,
+  hasRememberedSyncPassphrase,
+} from '../services/sync/sessionPassphrase'
 import { LAST_BACKUP_KEY } from '../storage/backupStore'
 import {
   DEFAULT_TODAY_SECTION_ORDER,
@@ -1336,7 +1339,13 @@ export function Dashboard() {
   const showActivityCard = isTodayCardVisible('activity')
   const useTodayTwoPane = twoPane && showMarketsCard
 
-  const syncLine = showGettingStartedCard
+  const gettingStartedStep1Done = (() => {
+    const cfg = loadSyncConfig()
+    const passOk = Boolean(getSessionSyncPassphrase() || hasRememberedSyncPassphrase())
+    return Boolean(cfg.enabled && cfg.remoteUrl.trim() && passOk && cfg.rememberPassphrase)
+  })()
+
+  const syncLine = !gettingStartedStep1Done
     ? ''
     : !syncEnabled
     ? 'Cloud sync off — enable in Settings'
@@ -1384,7 +1393,6 @@ export function Dashboard() {
       return chip ? [chip] : []
     }),
     ...(showTaxCard ? [['today-tax', 'Tax', 'today-section-jump-tax'] as [string, string, string]] : []),
-    ...(liabilities > 0 ? [['today-debt', 'Liabilities', 'today-section-jump-debt'] as [string, string, string]] : []),
     ...(monthlyBudgetPulse && showBudgetPulseCards
       ? [['today-budget-pulse', 'Budget', 'today-section-jump-budget'] as [string, string, string]]
       : []),
@@ -1606,9 +1614,6 @@ export function Dashboard() {
         <div className="today-trust-strip mt-3" role="status" aria-label="Today sync and price trust">
           <div className="today-trust-strip-primary flex flex-wrap gap-x-4 gap-y-1 text-xs text-text-subtle">
             {showGettingStartedCard ? <GettingStartedChecklist /> : syncLine ? <span>{syncLine}</span> : null}
-            <Link to="/markets" className="hover:text-accent">
-              {marketsCount} Markets ticker{marketsCount === 1 ? '' : 's'} →
-            </Link>
           </div>
           {priceLagChip ||
           !hasFinnhubKey(data) ||
@@ -1669,8 +1674,7 @@ export function Dashboard() {
         </div>
         {((showBudgetPulseCards && (monthlyBudgetPulse || weekToDateSpend.spent > 0)) ||
           cashRunway ||
-          fireChip ||
-          liabilities > 0) ? (
+          fireChip) ? (
           <div className="today-pulse-chips mt-4 flex flex-wrap gap-2">
             {monthlyBudgetPulse && showBudgetPulseCards ? (
               <Link
@@ -1709,21 +1713,6 @@ export function Dashboard() {
                   {formatGBP(weekToDateSpend.spent)}
                 </span>
                 <span className="block text-text-subtle">This week →</span>
-              </Link>
-            ) : null}
-            {liabilities > 0 ? (
-              <Link
-                id="today-debt"
-                to="/liabilities"
-                data-testid="today-debt-pulse"
-                className={`today-debt-pulse border border-border bg-surface-hover/60 px-3 py-2 text-xs hover:border-accent ${privacyClass(privacy)}`}
-                title="Total liabilities"
-              >
-                <span className="block uppercase tracking-wider text-text-subtle font-semibold">
-                  Liabilities
-                </span>
-                <span className="block tabular-nums">{formatGBP(liabilities)}</span>
-                <span className="block text-text-subtle">Total owed →</span>
               </Link>
             ) : null}
             {cashRunway ? (
@@ -2615,25 +2604,6 @@ export function Dashboard() {
         ) : null}
       </div>
 
-      {/* Secondary stats — Assets / Liabilities / allocation (net worth lives in Today pulse above) */}
-      <div className={`grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-px mb-6 ${privacyClass(privacy)}`}>
-        <div className="surface p-4 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
-          <p className="text-xs uppercase tracking-wider text-text-subtle mb-2 md:mb-1 font-semibold">Assets</p>
-          <p className="text-xl md:text-2xl font-bold tabular-nums mb-1 break-words">{formatGBP(assets)}</p>
-          <p className="text-xs text-text-muted font-light leading-tight">Crypto + Equity</p>
-        </div>
-        <div className="surface p-4 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
-          <p className="text-xs uppercase tracking-wider text-text-subtle mb-2 md:mb-1 font-semibold">Liabilities</p>
-          <p className="text-xl md:text-2xl font-bold tabular-nums mb-1 text-text-muted break-words">{formatGBP(liabilities)}</p>
-          <p className="text-xs text-text-muted font-light leading-tight">Total owed</p>
-        </div>
-        <div className="surface p-4 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none col-span-2 md:col-span-1">
-          <p className="text-xs uppercase tracking-wider text-text-subtle mb-2 md:mb-1 font-semibold">Monthly</p>
-          <p className="text-xl md:text-2xl font-bold tabular-nums mb-1 break-words">{formatGBP(liability.monthly)}</p>
-          <p className="text-xs text-text-muted font-light leading-tight">Min payments</p>
-        </div>
-      </div>
-
       {/* Alerts - mobile optimized */}
       {showAlertsCard && (
         <div className="grid grid-cols-1 gap-3 md:gap-px mb-6">
@@ -2731,8 +2701,8 @@ export function Dashboard() {
       </div>
       ) : null}
 
-      {/* Score, Level, Liabilities cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-px mb-6">
+      {/* Score, Level cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-px mb-6">
         <Link to="/achievements" className="surface surface-interactive p-5 md:p-8 block rounded-xl md:rounded-none shadow-sm md:shadow-none">
           <p className="text-xs uppercase tracking-wider text-text-subtle mb-2 font-semibold">Financial score</p>
           <p className={`text-3xl md:text-2xl font-bold tabular-nums mb-1 ${privacyClass(privacy)}`}>
@@ -2747,15 +2717,6 @@ export function Dashboard() {
           </p>
           <p className="text-xs text-accent font-light">
             {achievements.xp} XP · {achievements.unlocked.length} unlocked
-          </p>
-        </Link>
-        <Link to="/liabilities" className="surface surface-interactive p-5 md:p-8 block rounded-xl md:rounded-none shadow-sm md:shadow-none">
-          <p className="text-xs uppercase tracking-wider text-text-subtle mb-2 font-semibold">Liabilities</p>
-          <p className={`text-3xl md:text-2xl font-bold tabular-nums mb-1 ${privacyClass(privacy)}`}>
-            {formatGBP(liabilities)}
-          </p>
-          <p className="text-xs text-text-subtle font-light">
-            {data.creditCards.length} cards · {data.loans.length} loans
           </p>
         </Link>
       </div>

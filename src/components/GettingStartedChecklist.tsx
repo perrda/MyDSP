@@ -90,12 +90,64 @@ export function GettingStartedChecklist() {
   const nextUndone = steps.find((s) => !s.done)
 
   return (
-    <Link
-      to={nextUndone?.to || '/settings#sync'}
-      className="text-text-subtle hover:text-accent font-medium"
-      title={nextUndone ? nextUndone.label : 'Setup complete'}
-    >
-      Setup {doneCount}/{steps.length} →
-    </Link>
+    <span className="inline-flex items-center gap-2">
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        aria-expanded={expanded}
+        className="text-text-subtle hover:text-accent font-medium"
+        title={nextUndone ? nextUndone.label : 'Setup complete'}
+      >
+        Setup {doneCount}/{steps.length} →
+      </button>
+      {expanded ? (
+        <>
+          <button
+            type="button"
+            className="text-text-subtle hover:text-accent font-medium text-[11px]"
+            aria-label="Dismiss getting started"
+            onClick={() => {
+              dismissGettingStarted()
+              setDismissed(true)
+            }}
+          >
+            ✕
+          </button>
+          <span className="fixed inset-0 z-50 flex items-start justify-center pt-20 bg-black/20" onClick={() => setExpanded(false)}>
+            <div className="surface border border-border p-4 rounded-lg shadow-lg max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-semibold">Getting started</p>
+                <button
+                  type="button"
+                  className="text-text-subtle hover:text-accent"
+                  aria-label="Close"
+                  onClick={() => setExpanded(false)}
+                >
+                  ✕
+                </button>
+              </div>
+              <ul className="space-y-2">
+                {steps.map((s) => (
+                  <li key={s.id}>
+                    <Link
+                      to={s.to}
+                      className="flex items-center gap-2.5 min-h-11 text-sm text-text-muted hover:text-text transition-colors"
+                      onClick={() => setExpanded(false)}
+                    >
+                      {s.done ? (
+                        <Check size={16} className="text-accent shrink-0" strokeWidth={2} />
+                      ) : (
+                        <Circle size={16} className="text-text-subtle shrink-0" strokeWidth={1.5} />
+                      )}
+                      <span className={s.done ? 'line-through opacity-60' : ''}>{s.label}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </span>
+        </>
+      ) : null}
+    </span>
   )
 }
