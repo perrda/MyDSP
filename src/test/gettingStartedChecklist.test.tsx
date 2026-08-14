@@ -52,9 +52,9 @@ describe('GettingStartedChecklist', () => {
         <GettingStartedChecklist />
       </MemoryRouter>,
     )
-    expect(screen.getByRole('heading', { name: /Make MyDSP yours/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /0\/4 ·/i })).toBeInTheDocument()
     fireEvent.click(screen.getByLabelText('Dismiss getting started'))
-    expect(screen.queryByRole('heading', { name: /Make MyDSP yours/i })).toBeNull()
+    expect(screen.queryByRole('heading', { name: /0\/4 ·/i })).toBeNull()
     expect(localStorage.getItem('mydsp_getting_started_dismissed')).toBe('1')
   })
 

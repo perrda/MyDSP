@@ -127,11 +127,22 @@ export function buildAlerts(data: PortfolioData): AppAlert[] {
   const alloc = calcAllocation(breakdown.equity.value, data.crypto)
   const actions = calcRebalanceActions(alloc, data.targetAllocations)
   if (actions.some((a) => Math.abs(a.pctDiff) >= 10) && alloc.total > 0) {
+    const worst = actions.reduce((acc, a) =>
+      Math.abs(a.pctDiff) > Math.abs(acc.pctDiff) ? a : acc,
+    )
+    const sleeveLabel =
+      worst.bucket === 'equity'
+        ? 'Equities'
+        : worst.bucket === 'crypto'
+          ? 'Crypto'
+          : 'Cash'
+    const overUnder = worst.pctDiff > 0 ? 'under' : 'over'
+    const pts = Math.abs(Math.round(worst.pctDiff))
     alerts.push({
       id: 'alloc-drift',
       severity: 'amber',
       title: 'Allocation drift',
-      detail: 'Portfolio weights have drifted from targets.',
+      detail: `${sleeveLabel} ${pts}pts ${overUnder} target — open Planning to rebalance.`,
       to: '/planning',
     })
   }
