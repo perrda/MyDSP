@@ -1,6 +1,6 @@
 // Unit tests for Logger
 
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { Logger, logger, createLogger } from '../utils/logger'
 
 describe('Logger', () => {

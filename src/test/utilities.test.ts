@@ -195,7 +195,7 @@ describe('Job Queue', () => {
   })
 
   it('should register job handlers', () => {
-    queue.process('test-job', async (data) => {
+    queue.process('test-job', async (_data) => {
       return { processed: true }
     })
     
@@ -273,7 +273,7 @@ describe('Job Queue', () => {
   })
 
   it('should process jobs asynchronously', async () => {
-    const handler = vi.fn(async (data) => {
+    const handler = vi.fn(async (_data) => {
       await new Promise(resolve => setTimeout(resolve, 10))
       return { processed: true }
     })
