@@ -181,7 +181,7 @@ const ALERT_BORDER: Record<string, string> = {
 
 const QUICK_PRIMARY = { to: '/markets', label: 'Markets', icon: CandlestickChart }
 const QUICK_SECONDARY = [
-  { to: '/todos', label: "To Do's", badge: 'todos' as const },
+  { to: '/todos', label: 'To-dos', badge: 'todos' as const },
   { to: '/jobs', label: 'Jobs', badge: 'jobs' as const },
   { to: '/liabilities', label: 'Liabilities', badge: null },
   { to: '/goals', label: 'Goals', badge: null },
@@ -1824,7 +1824,7 @@ export function Dashboard() {
           className="mb-3"
           action={
             <Link to="/todos" className="text-xs text-accent font-semibold">
-              To Do's
+              All to-dos
             </Link>
           }
         >
@@ -1948,7 +1948,7 @@ export function Dashboard() {
         ariaLabel="Next action"
         action={
           <Link to="/todos" className="text-xs text-accent font-semibold">
-            All To Do's
+            All to-dos
           </Link>
         }
       >
