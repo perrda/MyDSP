@@ -9,11 +9,11 @@ const readPage = (name: string) =>
 describe('next10 priorities wave (retained in v1.2.110 tip)', () => {
   it('0: package + release notes tip', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.115')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.115')
+    expect(pkg.version).toBe('1.2.116')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.116')
     expect(RELEASE_NOTES.some((e) => e.version === '1.2.109')).toBe(true)
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
-      '1.2.115',
+      '1.2.116',
       '1.2.114',
       '1.2.113',
       '1.2.112',

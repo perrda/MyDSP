@@ -29,7 +29,7 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
-    version: '1.2.115',
+    version: '1.2.116',
     date: '2026-08-04',
     bullets: [
       {
