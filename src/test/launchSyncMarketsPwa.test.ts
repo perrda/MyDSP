@@ -196,11 +196,11 @@ describe('applyLastSyncedQuotesToHoldings', () => {
 
   it('fills zero crypto prices from Markets quote cache', async () => {
     const store = await import('../storage/marketsStore')
-    const domain = await import('../domain/markets')
+    const markets = await import('../domain/markets')
     store.loadMarketsState()
     const btc = store.listMarketTickers('crypto').find((t) => t.symbol === 'BTC')
     expect(btc).toBeTruthy()
-    const quote: domain.MarketQuote = {
+    const quote: markets.MarketQuote = {
       symbol: 'BTC',
       kind: 'crypto',
       last: 50000,

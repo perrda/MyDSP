@@ -16,9 +16,9 @@ const NOISE_PATTERNS = [
 ]
 
 const CHECKBOX_PREFIX =
-  /^(?:[☐☑□■▪▫•·●○◦*✓✔]|\-\s+|–\s+|—\s+|[0-9]+[.)]\s*|[\[\(]\s*[xX✓✔☑ ]?\s*[\]\)]\s*)\s*/
+  /^(?:[☐☑□■▪▫•·●○◦*✓✔]|-\s+|–\s+|—\s+|[0-9]+[.)]\s*|[[(]\s*[xX✓✔☑ ]?\s*[)\]]\s*)\s*/
 
-const COMPLETED_PREFIX = /^(?:[\[\(]\s*[xX✓✔☑]\s*[\]\)]|[☑✓✔])\s*/
+const COMPLETED_PREFIX = /^(?:[[(]\s*[xX✓✔☑]\s*[)\]]|[☑✓✔])\s*/
 
 const PRIORITY_HINTS: Array<{ re: RegExp; priority: TodoPriority }> = [
   { re: /\b(urgent|asap|critical|high\s*priority|!!!)\b/i, priority: 'high' },
@@ -57,7 +57,7 @@ export function extractDueDate(text: string): { title: string; dueDate?: string 
     },
     {
       // 13/07/2026 or 13-07-26
-      re: /\b(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})\b/,
+      re: /\b(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2,4})\b/,
       parse: (m) => {
         const day = Number(m[1])
         const month = Number(m[2])

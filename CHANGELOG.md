@@ -1,5 +1,15 @@
 # MyDSP Changelog
 
+## [1.2.116] - 2026-08-14
+
+### Security & Quality — Engineering audit + CAS hardening
+- **npm audit:** Fixed 11 high-severity vulnerabilities (nanoid, playwright, react-router-dom, postcss, sharp, undici, wrangler, miniflare)
+- **Sample portfolio:** Neutralized first-run data — removed named lenders (Lloyds/MBNA/Barclays), last-4 digits, large amounts that look real; now generic names with modest £6.5k portfolio
+- **CI test gate:** Added `npm test` job before Pages deploy — 994 tests must pass before build/deploy
+- **Quote Worker:** Added origin allowlist (GitHub Pages, Cloudflare, localhost, local network) — prevents open CORS proxy abuse
+- **Security tests:** Added comprehensive test coverage for crypto (SHA-256 checksums) and PIN (hashing, verification, timing attacks, input sanitization)
+- **Lint:** Fixed 5 critical warnings (regex escapes, unused imports/variables)
+
 ## [1.2.115] - 2026-08-04
 
 ### Improved — Next 10 wave 6 (cross-format)
