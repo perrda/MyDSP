@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Check, Circle, X } from 'lucide-react'
+import { Check, ChevronUp, Circle, X } from 'lucide-react'
 import { loadSyncConfig } from '../services/sync/syncService'
 import {
   hasRememberedSyncPassphrase,
@@ -64,11 +64,13 @@ function buildSteps(data: ReturnType<typeof usePortfolio>['data']): Step[] {
 export function GettingStartedChecklist() {
   const { data } = usePortfolio()
   const [dismissed, setDismissed] = useState(loadGettingStartedDismissedPref)
+  const [expanded, setExpanded] = useState(false)
   const [, bump] = useState(0)
 
   const steps = buildSteps(data)
   const doneCount = steps.filter((s) => s.done).length
   const complete = doneCount === steps.length
+  const nextUndone = steps.find((s) => !s.done)
 
   // Hooks must run unconditionally (no early return above this line).
   useEffect(() => {
@@ -88,46 +90,93 @@ export function GettingStartedChecklist() {
 
   return (
     <section
-      className="surface border-l-2 border-l-accent px-4 sm:px-5 py-4 mb-6 animate-fade-in"
+      className="surface border-l-2 border-l-accent px-4 sm:px-5 py-3 mb-3 animate-fade-in"
       aria-labelledby="getting-started-heading"
     >
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <div>
-          <p className="eyebrow tracking-[0.16em] text-accent mb-1">Getting started</p>
-          <h2 id="getting-started-heading" className="text-sm font-bold tracking-tight">
-            Make MyDSP yours · {doneCount}/{steps.length}
-          </h2>
-        </div>
+      {!expanded ? (
         <button
           type="button"
-          className="toolbar-icon shrink-0"
-          aria-label="Dismiss getting started"
-          title="Dismiss"
-          onClick={() => {
-            dismissGettingStarted()
-            setDismissed(true)
-          }}
+          className="w-full flex items-center justify-between gap-3 text-left min-h-11"
+          onClick={() => setExpanded(true)}
+          aria-expanded="false"
+          aria-controls="getting-started-details"
         >
-          <X size={16} strokeWidth={1.5} />
-        </button>
-      </div>
-      <ul className="space-y-2">
-        {steps.map((s) => (
-          <li key={s.id}>
-            <Link
-              to={s.to}
-              className="flex items-center gap-2.5 min-h-11 text-sm text-text-muted hover:text-text transition-colors"
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-xs font-semibold text-accent tabular-nums">
+              {doneCount}/{steps.length}
+            </span>
+            <span className="text-sm text-text-muted truncate">
+              {nextUndone ? nextUndone.label : 'All done'}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              className="toolbar-icon"
+              aria-label="Dismiss getting started"
+              title="Dismiss"
+              onClick={(e) => {
+                e.stopPropagation()
+                dismissGettingStarted()
+                setDismissed(true)
+              }}
             >
-              {s.done ? (
-                <Check size={16} className="text-accent shrink-0" strokeWidth={2} />
-              ) : (
-                <Circle size={16} className="text-text-subtle shrink-0" strokeWidth={1.5} />
-              )}
-              <span className={s.done ? 'line-through opacity-60' : ''}>{s.label}</span>
-            </Link>
-          </li>
-        ))}
-      </ul>
+              <X size={16} strokeWidth={1.5} />
+            </button>
+          </div>
+        </button>
+      ) : (
+        <>
+          <div className="flex items-start justify-between gap-3 mb-3">
+            <div>
+              <p className="eyebrow tracking-[0.16em] text-accent mb-1">Getting started</p>
+              <h2 id="getting-started-heading" className="text-sm font-bold tracking-tight">
+                Make MyDSP yours · {doneCount}/{steps.length}
+              </h2>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                className="toolbar-icon"
+                aria-label="Collapse"
+                title="Collapse"
+                onClick={() => setExpanded(false)}
+              >
+                <ChevronUp size={16} strokeWidth={1.5} />
+              </button>
+              <button
+                type="button"
+                className="toolbar-icon"
+                aria-label="Dismiss getting started"
+                title="Dismiss"
+                onClick={() => {
+                  dismissGettingStarted()
+                  setDismissed(true)
+                }}
+              >
+                <X size={16} strokeWidth={1.5} />
+              </button>
+            </div>
+          </div>
+          <ul id="getting-started-details" className="space-y-2">
+            {steps.map((s) => (
+              <li key={s.id}>
+                <Link
+                  to={s.to}
+                  className="flex items-center gap-2.5 min-h-11 text-sm text-text-muted hover:text-text transition-colors"
+                >
+                  {s.done ? (
+                    <Check size={16} className="text-accent shrink-0" strokeWidth={2} />
+                  ) : (
+                    <Circle size={16} className="text-text-subtle shrink-0" strokeWidth={1.5} />
+                  )}
+                  <span className={s.done ? 'line-through opacity-60' : ''}>{s.label}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </section>
   )
 }

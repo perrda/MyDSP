@@ -155,9 +155,16 @@ export function PortfolioSeriesChart({
       </div>
 
       {chartData.length < 2 ? (
-        <p className="text-text-subtle font-light text-sm py-14 md:py-16 text-center px-4">
-          Need at least two snapshots in this range. Use Snapshot or keep using MyDSP daily.
-        </p>
+        <div className="py-8 px-4 text-center">
+          <p className="text-text-subtle font-light text-sm mb-3">
+            Need at least two snapshots in this range.
+          </p>
+          {onSnapshot && (
+            <button type="button" className="btn-secondary btn-sm" onClick={onSnapshot}>
+              Snapshot
+            </button>
+          )}
+        </div>
       ) : (
         <div className={`${heightClass} w-full p-4 md:p-6 ${privacyClass(privacy)}`}>
           <p className="sr-only">

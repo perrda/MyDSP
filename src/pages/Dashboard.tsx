@@ -1545,7 +1545,7 @@ export function Dashboard() {
       ) : null}
 
       {queueLen > 0 ? (
-        <p className="today-offline-queue-chip mb-3 text-xs text-accent font-medium" role="status">
+        <p className="status-rail today-offline-queue-chip mb-3 text-xs text-accent font-medium" role="status">
           Offline queue · {queueLen} —{' '}
           <Link to="/settings#sync" className="hover:underline">
             open Sync
@@ -1560,11 +1560,9 @@ export function Dashboard() {
             Retry now
           </button>
         </p>
-      ) : null}
-
-      {showBackupNudge ? (
+      ) : showBackupNudge ? (
         <div
-          className="backup-nudge mb-3 px-3 py-2 text-xs text-text-muted border border-border/70 bg-surface/40 rounded-lg md:rounded-none flex flex-wrap items-center justify-between gap-2"
+          className="status-rail backup-nudge mb-3 px-3 py-2 text-xs text-text-muted border border-border/70 bg-surface/40 rounded-lg md:rounded-none flex flex-wrap items-center justify-between gap-2"
           role="status"
         >
           <span>
