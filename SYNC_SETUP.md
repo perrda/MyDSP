@@ -39,12 +39,13 @@ Open it and jump to step **4** (KV binding) below.
 6. Open **Edit code** / **Code** / **Quick edit**.
 7. Replace the default script with the full contents of  
    [`sync-endpoint/worker.js`](./sync-endpoint/worker.js) from this repo → **Deploy**.
-8. (Strongly recommended) **Settings** → **Variables and Secrets** → add secret:
+8. **REQUIRED:** **Settings** → **Variables and Secrets** → add secret:
    - Name: `SYNC_KEY`  
-   - Value: a long random string (e.g. password manager)  
+   - Value: a long random string (use password manager to generate 32+ characters)  
+   - **The Worker will refuse all requests without this secret set.**
 9. Copy your Worker URL from the overview (looks like  
    `https://mydsp-sync.<your-subdomain>.workers.dev`).  
-   If you set `SYNC_KEY`, append it:  
+   Append your `SYNC_KEY`:  
    `https://mydsp-sync.<your-subdomain>.workers.dev?key=YOUR_SECRET`
 
 ### Option 2 — CLI

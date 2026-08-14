@@ -1,12 +1,27 @@
 /**
  * Minimal MyDSP sync store — Cloudflare Worker + KV binding `STORE`.
- * Optional env SYNC_KEY: require ?key= or header X-MyDSP-Key.
+ * REQUIRED env SYNC_KEY: every request must include ?key= or header X-MyDSP-Key.
  * GET ?meta=1 returns lightweight { exportedAt, deviceId, checksum } without the full blob body size win when possible.
  */
 export default {
   async fetch(request, env) {
     const url = new URL(request.url)
-    if (env.SYNC_KEY) {
+    
+    // SYNC_KEY is now REQUIRED (not optional) — refuse to operate without it
+    if (!env.SYNC_KEY) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Server misconfigured: SYNC_KEY environment variable not set. Deploy with wrangler secret put SYNC_KEY.' 
+        }), 
+        { 
+          status: 500,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      )
+    }
+    
+    // Validate auth on every request (OPTIONS still bypasses for CORS preflight below)
+    if (request.method !== 'OPTIONS') {
       const key = url.searchParams.get('key') || request.headers.get('X-MyDSP-Key')
       if (key !== env.SYNC_KEY) {
         return new Response('Unauthorized', { status: 401 })

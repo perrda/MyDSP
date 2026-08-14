@@ -94,6 +94,6 @@ download/restore) to share between phone and Mac.
 1. Workers & Pages → open **`mydsp-sync`** (or **Create application** → Worker → `mydsp-sync`)
 2. Bind a KV namespace as `STORE`
 3. Paste `sync-endpoint/worker.js`
-4. Optional: set secret `SYNC_KEY` and append `?key=…` to the URL
+4. **REQUIRED:** set secret `SYNC_KEY` (long random string) and append `?key=…` to the URL
 5. In MyDSP Settings → Sync, paste the Worker URL and your passphrase → **Push** on desktop,
    **Pull & merge** on phone
