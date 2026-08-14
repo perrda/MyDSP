@@ -1,25 +1,28 @@
 /**
  * Minimal MyDSP sync store — Cloudflare Worker + KV binding `STORE`.
- * Optional env SYNC_KEY: require ?key= or header X-MyDSP-Key.
+ * Requires env SYNC_KEY: all routes require ?key= or header X-MyDSP-Key.
  * GET ?meta=1 returns lightweight { exportedAt, deviceId, checksum } without the full blob body size win when possible.
  */
 export default {
   async fetch(request, env) {
     const url = new URL(request.url)
-    if (env.SYNC_KEY) {
-      const key = url.searchParams.get('key') || request.headers.get('X-MyDSP-Key')
-      if (key !== env.SYNC_KEY) {
-        return new Response('Unauthorized', { status: 401 })
-      }
-    }
-
     const cors = {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, PUT, POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, X-MyDSP-Key',
     }
+
     if (request.method === 'OPTIONS') {
       return new Response(null, { status: 204, headers: cors })
+    }
+
+    // Auth required for all routes
+    if (!env.SYNC_KEY) {
+      return new Response('Server misconfigured', { status: 500, headers: cors })
+    }
+    const key = url.searchParams.get('key') || request.headers.get('X-MyDSP-Key')
+    if (!key || key !== env.SYNC_KEY) {
+      return new Response('Unauthorized', { status: 401, headers: cors })
     }
 
     if (request.method === 'GET') {
