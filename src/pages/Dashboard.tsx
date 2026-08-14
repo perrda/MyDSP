@@ -6,7 +6,6 @@ import { AllocationRing, NetWorthChart } from '../components/charts/LazyCharts'
 import { BudgetSparkline } from '../components/charts/BudgetSparkline'
 import { Sparkline } from '../components/charts/Sparkline'
 import { SwipeBillRow } from '../components/ui/SwipeBillRow'
-import { PageHeader } from '../components/ui/PageHeader'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
 import { RemindersPanel, useSmartReminders } from '../components/SmartReminders'
 import { PortfolioShareCard } from '../components/SocialShare'
@@ -1383,14 +1382,13 @@ export function Dashboard() {
       return chip ? [chip] : []
     }),
     ...(showTaxCard ? [['today-tax', 'Tax', 'today-section-jump-tax'] as [string, string, string]] : []),
-    ...(liabilities > 0 ? [['today-debt', 'Debt', 'today-section-jump-debt'] as [string, string, string]] : []),
+    ...(liabilities > 0 ? [['today-debt', 'Liabilities', 'today-section-jump-debt'] as [string, string, string]] : []),
     ...(monthlyBudgetPulse && showBudgetPulseCards
       ? [['today-budget-pulse', 'Budget', 'today-section-jump-budget'] as [string, string, string]]
       : []),
     ...(cashRunway ? [['today-cash-runway', 'Runway', 'today-section-jump-runway'] as [string, string, string]] : []),
     ...(fireChip ? [['today-fire-chip', 'FIRE', 'today-section-jump-fire'] as [string, string, string]] : []),
     ...(showMediaCard ? [['today-media', 'Media', 'today-section-jump-media'] as [string, string, string]] : []),
-    ...(showMarketsCard ? [['today-markets', 'Markets', 'today-section-jump-markets'] as [string, string, string]] : []),
   ]
 
   return (
@@ -1401,55 +1399,23 @@ export function Dashboard() {
         onClose={() => setDigestOpen(false)}
         onFlash={(msg) => toastSuccess(msg)}
       />
-      <PageHeader
-        eyebrow="MyDSP"
-        title="Today"
-        description="Net worth, tasks due now, sync health, and Markets — act first, explore below."
-        action={
+      <div className="page-header mb-6 md:mb-8">
+        <div className="page-header__copy">
+          <p className="eyebrow app-page-eyebrow mb-2 md:mb-3 sm:hidden">MyDSP</p>
+          <h2 className="app-page-title font-bold tracking-tight leading-tight sm:hidden">
+            <span className="gradient-text">Today</span>
+          </h2>
+          <p className="page-header__description text-xs md:text-sm text-text-muted font-light leading-relaxed mt-2 md:mt-3 sm:mt-0 hidden sm:block">
+            Net worth, tasks due now, sync health, and Markets — act first, explore below.
+          </p>
+        </div>
+        <div className="page-header__action">
           <div className="page-primary-actions" data-testid="page-primary-actions">
             <Link to="/markets" className="btn-secondary btn-sm">
               Markets
             </Link>
           </div>
-        }
-      />
-
-      <div className="today-jump-toolbar mb-3 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-        <nav
-          className="today-section-jump-chips flex flex-wrap gap-1.5"
-          aria-label="Jump to Today section"
-        >
-          {todayJumpChips.map(([id, label, chipClass]) => {
-            const active = activeJumpSection === id
-            return (
-              <a
-                key={id}
-                href={`#${id}`}
-                className={`today-section-jump-chip ui-seg ${chipClass}${
-                  active ? ' is-active today-section-jump-chip--active' : ''
-                }`}
-                aria-current={active ? 'true' : undefined}
-                onClick={(e) => {
-                  e.preventDefault()
-                  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-                  setActiveJumpSection(id)
-                }}
-              >
-                {label}
-              </a>
-            )
-          })}
-        </nav>
-        <button
-          type="button"
-          className="today-layout-customize ui-seg shrink-0 self-start"
-          aria-expanded={todayLayoutOpen}
-          aria-controls="today-layout-panel"
-          aria-label="Customize Today layout"
-          onClick={() => setTodayLayoutOpen((open) => !open)}
-        >
-          Customize{todayHiddenCards.size > 0 ? ` · ${todayHiddenCards.size} hidden` : ''}
-        </button>
+        </div>
       </div>
 
       {todayLayoutOpen ? (
@@ -1562,31 +1528,6 @@ export function Dashboard() {
         </p>
       ) : null}
 
-      {showBackupNudge ? (
-        <div
-          className="backup-nudge mb-3 px-3 py-2 text-xs text-text-muted border border-border/70 bg-surface/40 rounded-lg md:rounded-none flex flex-wrap items-center justify-between gap-2"
-          role="status"
-        >
-          <span>
-            Weekly backup overdue —{' '}
-            <Link to="/settings#full-backup" className="text-accent hover:underline font-semibold">
-              open Settings backups
-            </Link>
-          </span>
-          <button
-            type="button"
-            className="btn-ghost btn-sm text-[11px] min-h-8"
-            aria-label="Dismiss backup reminder for a calendar month"
-            onClick={() => {
-              dismissAlertForCalendarMonth(BACKUP_NUDGE_DISMISS_ID)
-              setBackupDismissTick((n) => n + 1)
-            }}
-          >
-            Dismiss
-          </button>
-        </div>
-      ) : null}
-
       <div className={useTodayTwoPane ? 'today-two-pane grid grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)] gap-4 mb-4 items-start' : ''}>
         <div className={useTodayTwoPane ? 'min-w-0' : ''}>
       <div className={`surface p-5 md:p-6 mb-4 rounded-xl md:rounded-none shadow-sm md:shadow-none ${privacyClass(privacy)}`}>
@@ -1594,6 +1535,26 @@ export function Dashboard() {
         <p className="today-net-worth-value text-3xl md:text-4xl font-bold tabular-nums tracking-tight mb-1 break-words">
           {formatGBP(netWorth)}
         </p>
+        {showBackupNudge ? (
+          <p className="backup-nudge text-xs text-text-muted mt-2 mb-1">
+            Weekly backup overdue —{' '}
+            <Link to="/settings#full-backup" className="text-accent hover:underline font-semibold">
+              Back up now
+            </Link>
+            {' · '}
+            <button
+              type="button"
+              className="text-text-subtle hover:text-accent font-medium"
+              aria-label="Dismiss backup reminder for a calendar month"
+              onClick={() => {
+                dismissAlertForCalendarMonth(BACKUP_NUDGE_DISMISS_ID)
+                setBackupDismissTick((n) => n + 1)
+              }}
+            >
+              Dismiss
+            </button>
+          </p>
+        ) : null}
         {moneyPulse ? (
           <Link
             to="/history"
@@ -1638,7 +1599,7 @@ export function Dashboard() {
           </div>
         ) : null}
         <p className="text-sm text-text-muted font-light mb-4">
-          Assets {formatGBP(assets)} · Debt {formatGBP(liabilities)}
+          Assets {formatGBP(assets)} · Liabilities {formatGBP(liabilities)}
         </p>
         <div className="today-trust-strip mt-3" role="status" aria-label="Today sync and price trust">
           <div className="today-trust-strip-primary flex flex-wrap gap-x-4 gap-y-1 text-xs text-text-subtle">
@@ -1757,10 +1718,10 @@ export function Dashboard() {
                 title="Total liabilities"
               >
                 <span className="block uppercase tracking-wider text-text-subtle font-semibold">
-                  Debt
+                  Liabilities
                 </span>
                 <span className="block tabular-nums">{formatGBP(liabilities)}</span>
-                <span className="block text-text-subtle">Liabilities →</span>
+                <span className="block text-text-subtle">Total owed →</span>
               </Link>
             ) : null}
             {cashRunway ? (
@@ -1814,6 +1775,44 @@ export function Dashboard() {
         ) : null}
       </div>
 
+      <div className="today-jump-toolbar mb-3 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+        <nav
+          className="today-section-jump-chips hidden sm:flex sm:flex-wrap gap-1.5"
+          aria-label="Jump to Today section"
+        >
+          {todayJumpChips.map(([id, label, chipClass]) => {
+            const active = activeJumpSection === id
+            return (
+              <a
+                key={id}
+                href={`#${id}`}
+                className={`today-section-jump-chip ui-seg ${chipClass}${
+                  active ? ' is-active today-section-jump-chip--active' : ''
+                }`}
+                aria-current={active ? 'true' : undefined}
+                onClick={(e) => {
+                  e.preventDefault()
+                  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                  setActiveJumpSection(id)
+                }}
+              >
+                {label}
+              </a>
+            )
+          })}
+        </nav>
+        <button
+          type="button"
+          className="today-layout-customize ui-seg shrink-0 self-start"
+          aria-expanded={todayLayoutOpen}
+          aria-controls="today-layout-panel"
+          aria-label="Customize Today layout"
+          onClick={() => setTodayLayoutOpen((open) => !open)}
+        >
+          Customize{todayHiddenCards.size > 0 ? ` · ${todayHiddenCards.size} hidden` : ''}
+        </button>
+      </div>
+
       <div className="today-reorderable-sections flex flex-col">
       {showDailyPlanCard ? (
         <TodayAccordionSection
@@ -1834,9 +1833,14 @@ export function Dashboard() {
             data-testid="today-daily-plan"
           >
             {todayDailyPlan.length === 0 ? (
-              <p className="py-2 text-sm text-text-muted font-light">
-                Nothing scheduled for today.
-              </p>
+              <div className="py-2">
+                <p className="text-sm text-text-muted font-light mb-3">
+                  Nothing scheduled for today.
+                </p>
+                <Link to="/todos" className="btn-secondary btn-sm">
+                  Add a to-do
+                </Link>
+              </div>
             ) : (
               <ul className="divide-y divide-border/70">
                 {todayDailyPlan.map((item) => (
@@ -1950,7 +1954,10 @@ export function Dashboard() {
       >
         {nextActions.length === 0 ? (
           <div className="surface p-4 md:p-5 rounded-xl md:rounded-none shadow-sm md:shadow-none">
-            <p className="text-sm text-text-muted font-light">Clear day — nothing due, no movers yet.</p>
+            <p className="text-sm text-text-muted font-light mb-3">Clear day — nothing due, no movers yet.</p>
+            <Link to="/todos" className="btn-secondary btn-sm">
+              Add a to-do
+            </Link>
           </div>
         ) : (
           nextActions.map((card) => {
@@ -2080,12 +2087,6 @@ export function Dashboard() {
                     ) : null}
                   </Link>
                   <div className="today-goal-next-actions flex flex-wrap gap-2 mt-3">
-                    <Link
-                      to="/goals"
-                      className="btn-primary btn-sm inline-flex items-center"
-                    >
-                      Open
-                    </Link>
                     <Link
                       to={`/goals?note=${card.goalId}`}
                       className="btn-secondary btn-sm inline-flex items-center"
@@ -2320,9 +2321,14 @@ export function Dashboard() {
         >
           <div className="today-bills-strip surface p-3 md:p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none">
             {showBillsStrip.length === 0 ? (
-              <p className="py-2 text-sm text-text-muted font-light">
-                Nothing due in the next 7 days.
-              </p>
+              <div className="py-2">
+                <p className="text-sm text-text-muted font-light mb-3">
+                  Nothing due in the next 7 days.
+                </p>
+                <Link to="/recurring" className="btn-secondary btn-sm">
+                  Add a bill
+                </Link>
+              </div>
             ) : (
               <ul className="flex flex-col gap-1.5">
                 {showBillsStrip.map((r) => {
@@ -2387,7 +2393,7 @@ export function Dashboard() {
           className="mb-3"
           action={
             <Link to="/goals" className="text-xs text-accent font-semibold">
-              Goals
+              Open
             </Link>
           }
         >
@@ -2547,37 +2553,42 @@ export function Dashboard() {
                 </span>
               ) : null}
             </Link>
-            <Link
-              to="/news?refresh=1"
-              className="btn-ghost btn-sm text-xs min-h-9 today-news-refresh-open"
-            >
-              Refresh & open
-            </Link>
             {newsUnread > 0 ? (
-              <button
-                type="button"
-                className="btn-ghost btn-sm text-xs min-h-9 today-news-mark-all-read"
-                onClick={() => {
-                  const previousSeenAt = getNewsSeenAt()
-                  const previousUnread = newsUnread
-                  const now = new Date().toISOString()
-                  setNewsSeenAt(now)
-                  setNewsUnread(0)
-                  setNewsMarkAllUndo({ previousSeenAt, previousUnread })
-                  if (newsMarkAllUndoTimer.current) window.clearTimeout(newsMarkAllUndoTimer.current)
-                  newsMarkAllUndoTimer.current = window.setTimeout(
-                    () => setNewsMarkAllUndo(null),
-                    5_000,
-                  )
-                  toastSuccess('News marked all read')
-                }}
-              >
-                Mark all read
-              </button>
+              <>
+                <Link
+                  to="/news?refresh=1"
+                  className="btn-ghost btn-sm text-xs min-h-9 today-news-refresh-open"
+                >
+                  Refresh & open
+                </Link>
+                <button
+                  type="button"
+                  className="btn-ghost btn-sm text-xs min-h-9 today-news-mark-all-read"
+                  onClick={() => {
+                    const previousSeenAt = getNewsSeenAt()
+                    const previousUnread = newsUnread
+                    const now = new Date().toISOString()
+                    setNewsSeenAt(now)
+                    setNewsUnread(0)
+                    setNewsMarkAllUndo({ previousSeenAt, previousUnread })
+                    if (newsMarkAllUndoTimer.current) window.clearTimeout(newsMarkAllUndoTimer.current)
+                    newsMarkAllUndoTimer.current = window.setTimeout(
+                      () => setNewsMarkAllUndo(null),
+                      5_000,
+                    )
+                    toastSuccess('News marked all read')
+                  }}
+                >
+                  Mark all read
+                </button>
+              </>
             ) : (
-              <span className="today-news-all-caught-up text-[11px] text-text-subtle font-medium">
-                All caught up
-              </span>
+              <Link
+                to="/news"
+                className="btn-ghost btn-sm text-xs min-h-9 today-news-open"
+              >
+                Open News
+              </Link>
             )}
           </div>
           {newsMarkAllUndo ? (
@@ -2616,38 +2627,43 @@ export function Dashboard() {
                 </span>
               ) : null}
             </Link>
-            <Link
-              to="/youtube?refresh=1"
-              className="btn-ghost btn-sm text-xs min-h-9 today-youtube-refresh-open"
-            >
-              Refresh & open
-            </Link>
             {youtubeUnread > 0 ? (
-              <button
-                type="button"
-                className="btn-ghost btn-sm text-xs min-h-9 today-youtube-mark-all-read"
-                onClick={() => {
-                  const previousSeenAt = getYoutubeSeenAt()
-                  const previousUnread = youtubeUnread
-                  const now = new Date().toISOString()
-                  setYoutubeSeenAt(now)
-                  setYoutubeUnread(0)
-                  setYoutubeMarkAllUndo({ previousSeenAt, previousUnread })
-                  if (youtubeMarkAllUndoTimer.current)
-                    window.clearTimeout(youtubeMarkAllUndoTimer.current)
-                  youtubeMarkAllUndoTimer.current = window.setTimeout(
-                    () => setYoutubeMarkAllUndo(null),
-                    5_000,
-                  )
-                  toastSuccess('YouTube marked all read')
-                }}
-              >
-                Mark all read
-              </button>
+              <>
+                <Link
+                  to="/youtube?refresh=1"
+                  className="btn-ghost btn-sm text-xs min-h-9 today-youtube-refresh-open"
+                >
+                  Refresh & open
+                </Link>
+                <button
+                  type="button"
+                  className="btn-ghost btn-sm text-xs min-h-9 today-youtube-mark-all-read"
+                  onClick={() => {
+                    const previousSeenAt = getYoutubeSeenAt()
+                    const previousUnread = youtubeUnread
+                    const now = new Date().toISOString()
+                    setYoutubeSeenAt(now)
+                    setYoutubeUnread(0)
+                    setYoutubeMarkAllUndo({ previousSeenAt, previousUnread })
+                    if (youtubeMarkAllUndoTimer.current)
+                      window.clearTimeout(youtubeMarkAllUndoTimer.current)
+                    youtubeMarkAllUndoTimer.current = window.setTimeout(
+                      () => setYoutubeMarkAllUndo(null),
+                      5_000,
+                    )
+                    toastSuccess('YouTube marked all read')
+                  }}
+                >
+                  Mark all read
+                </button>
+              </>
             ) : (
-              <span className="today-youtube-all-caught-up text-[11px] text-text-subtle font-medium">
-                All caught up
-              </span>
+              <Link
+                to="/youtube"
+                className="btn-ghost btn-sm text-xs min-h-9 today-youtube-open"
+              >
+                Open YouTube
+              </Link>
             )}
           </div>
           {youtubeMarkAllUndo ? (
@@ -2775,9 +2791,14 @@ export function Dashboard() {
               </div>
             ) : null}
             {todayMovers.length === 0 ? (
-              <p className="text-sm text-text-muted font-light">
-                No fresh movers (last 24h) — open Markets to refresh.
-              </p>
+              <div>
+                <p className="text-sm text-text-muted font-light mb-3">
+                  No fresh movers (last 24h).
+                </p>
+                <Link to="/markets" className="btn-secondary btn-sm">
+                  Open Markets
+                </Link>
+              </div>
             ) : (
               <ul className="space-y-2">
                 {todayMovers.map((m) => (
@@ -2822,9 +2843,14 @@ export function Dashboard() {
               </Link>
             </div>
             {todayMovers.length === 0 ? (
-              <p className="text-sm text-text-muted font-light">
-                No fresh movers (last 24h) — open Markets to refresh.
-              </p>
+              <div>
+                <p className="text-sm text-text-muted font-light mb-3">
+                  No fresh movers (last 24h).
+                </p>
+                <Link to="/markets" className="btn-secondary btn-sm">
+                  Open Markets
+                </Link>
+              </div>
             ) : (
               <ul className="space-y-2">
                 {todayMovers.slice(0, 5).map((m) => (
@@ -2856,7 +2882,7 @@ export function Dashboard() {
 
       {showGettingStartedCard ? <GettingStartedChecklist /> : null}
 
-      {/* Secondary stats — Assets / Debt / allocation (net worth lives in Today pulse above) */}
+      {/* Secondary stats — Assets / Liabilities / allocation (net worth lives in Today pulse above) */}
       <div className={`grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-px mb-6 ${privacyClass(privacy)}`}>
         <div className="surface p-4 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
           <p className="text-xs uppercase tracking-wider text-text-subtle mb-2 md:mb-1 font-semibold">Assets</p>
@@ -2864,7 +2890,7 @@ export function Dashboard() {
           <p className="text-xs text-text-muted font-light leading-tight">Crypto + Equity</p>
         </div>
         <div className="surface p-4 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
-          <p className="text-xs uppercase tracking-wider text-text-subtle mb-2 md:mb-1 font-semibold">Debt</p>
+          <p className="text-xs uppercase tracking-wider text-text-subtle mb-2 md:mb-1 font-semibold">Liabilities</p>
           <p className="text-xl md:text-2xl font-bold tabular-nums mb-1 text-text-muted break-words">{formatGBP(liabilities)}</p>
           <p className="text-xs text-text-muted font-light leading-tight">Total owed</p>
         </div>
@@ -2878,16 +2904,22 @@ export function Dashboard() {
       {/* Alerts - mobile optimized */}
       {showAlertsCard && (
         <div className="grid grid-cols-1 gap-3 md:gap-px mb-6">
-          {alerts.slice(0, 3).map((a) => (
-            <Link
-              key={a.id}
-              to={a.to}
-              className={`surface surface-interactive p-4 md:px-5 md:py-4 border-l-4 md:border-l-2 block rounded-r-xl md:rounded-none shadow-sm md:shadow-none ${ALERT_BORDER[a.severity] ?? 'border-l-border-strong'}`}
-            >
-              <p className="text-sm font-semibold uppercase tracking-wider mb-1">{a.title}</p>
-              <p className="text-sm text-text-muted font-light leading-snug">{a.detail}</p>
-            </Link>
-          ))}
+          {alerts.slice(0, 3).map((a) => {
+            const topAlertId = alerts.length > 0 && alerts[0].severity !== 'green' ? alerts[0].id : null
+            const hideOnPhone = a.id === topAlertId
+            return (
+              <Link
+                key={a.id}
+                to={a.to}
+                className={`surface surface-interactive p-4 md:px-5 md:py-4 border-l-4 md:border-l-2 block rounded-r-xl md:rounded-none shadow-sm md:shadow-none ${ALERT_BORDER[a.severity] ?? 'border-l-border-strong'} ${
+                  hideOnPhone ? 'hidden md:block' : ''
+                }`}
+              >
+                <p className="text-sm font-semibold uppercase tracking-wider mb-1">{a.title}</p>
+                <p className="text-sm text-text-muted font-light leading-snug">{a.detail}</p>
+              </Link>
+            )
+          })}
         </div>
       )}
 
@@ -2966,7 +2998,7 @@ export function Dashboard() {
       </div>
       ) : null}
 
-      {/* Score, Level, Debt cards */}
+      {/* Score, Level, Liabilities cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-px mb-6">
         <Link to="/achievements" className="surface surface-interactive p-5 md:p-8 block rounded-xl md:rounded-none shadow-sm md:shadow-none">
           <p className="text-xs uppercase tracking-wider text-text-subtle mb-2 font-semibold">Financial score</p>
@@ -2985,7 +3017,7 @@ export function Dashboard() {
           </p>
         </Link>
         <Link to="/liabilities" className="surface surface-interactive p-5 md:p-8 block rounded-xl md:rounded-none shadow-sm md:shadow-none">
-          <p className="text-xs uppercase tracking-wider text-text-subtle mb-2 font-semibold">Debt</p>
+          <p className="text-xs uppercase tracking-wider text-text-subtle mb-2 font-semibold">Liabilities</p>
           <p className={`text-3xl md:text-2xl font-bold tabular-nums mb-1 ${privacyClass(privacy)}`}>
             {formatGBP(liabilities)}
           </p>
@@ -3036,9 +3068,14 @@ export function Dashboard() {
           <h3 className="text-lg font-bold tracking-tight">Activity</h3>
         </div>
         {recentJournal.length === 0 && recentSpend.length === 0 ? (
-          <p className="text-sm text-text-muted font-light py-4">
-            No journal or spending entries yet. Import a bank CSV or add spending to get started.
-          </p>
+          <div className="py-4">
+            <p className="text-sm text-text-muted font-light mb-3">
+              No journal or spending entries yet.
+            </p>
+            <Link to="/import" className="btn-secondary btn-sm">
+              Import transactions
+            </Link>
+          </div>
         ) : (
           <ul className="divide-y divide-border">
             {recentJournal.map((j) => (
