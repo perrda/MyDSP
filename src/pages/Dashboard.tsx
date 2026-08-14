@@ -22,7 +22,7 @@ import {
   spendingCategoryUrl,
 } from '../domain/deepLinks'
 import { getTaxPack } from '../domain/taxPacks'
-import { calcFire } from '../domain/fire'
+import { calcFire, hasExplicitFireInputs } from '../domain/fire'
 import { appendManualSnapshot } from '../domain/history'
 import { monthKey } from '../domain/monthUtils'
 import { nearestGoalProjection, formatGoalProjectionLine } from '../domain/goalProjectedDate'
@@ -722,7 +722,7 @@ export function Dashboard() {
   }, [data.recurringTransactions, assets, liabilities])
 
   const fireChip = useMemo(() => {
-    if (!data.fireInputs) return null
+    if (!data.fireInputs || !hasExplicitFireInputs(data.fireInputs)) return null
     return calcFire(netWorth, data.fireInputs, 'regular')
   }, [data.fireInputs, netWorth])
 
@@ -1668,10 +1668,10 @@ export function Dashboard() {
             {!hasFinnhubKey(data) ? (
               <Link
                 to="/settings#prices"
-                className="today-finnhub-missing-chip text-amber-700 dark:text-amber-300 hover:underline font-medium"
-                title="Finnhub API key is not saved on this device"
+                className="today-finnhub-missing-chip text-text-muted hover:text-accent font-medium"
+                title="Finnhub API key is not saved on this device — optional for live equity quotes"
               >
-                Finnhub missing here
+                Finnhub not configured
               </Link>
             ) : null}
             {finnhubQuotaLimited ? (

@@ -255,7 +255,7 @@ describe('next25h — Finnhub / media / polish tip (1–25 → v1.2.80)', () => 
   it('25: cross-device Finnhub missing chip', () => {
     const dash = readFileSync(resolve(__dirname, '../pages/Dashboard.tsx'), 'utf8')
     expect(dash).toMatch(/today-finnhub-missing-chip/)
-    expect(dash).toMatch(/Finnhub missing here/)
+    expect(dash).toMatch(/Finnhub not configured/)
     const page = readFileSync(resolve(__dirname, '../pages/MarketsPage.tsx'), 'utf8')
     expect(page).toMatch(/markets-finnhub-missing-chip/)
   })

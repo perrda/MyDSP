@@ -18,6 +18,52 @@ export const DEFAULT_FIRE: FireInputs = {
   pensionAge: 60,
 }
 
+/**
+ * Check if FIRE inputs have been explicitly set by the user.
+ * Returns false if they exactly match common default patterns.
+ */
+export function hasExplicitFireInputs(inputs: FireInputs | undefined): boolean {
+  if (!inputs) return false
+  
+  // Check if exactly matches DEFAULT_FIRE from createEmptyPortfolio
+  if (
+    inputs.expenses === 25000 &&
+    inputs.savings === 1000 &&
+    inputs.returnRate === 7 &&
+    inputs.age === 35 &&
+    inputs.swr === 4 &&
+    inputs.pensionAge === 65
+  ) {
+    return false
+  }
+  
+  // Check if exactly matches DEFAULT_FIRE from createSamplePortfolio
+  if (
+    inputs.expenses === 30000 &&
+    inputs.savings === 1500 &&
+    inputs.returnRate === 7 &&
+    inputs.age === 45 &&
+    inputs.swr === 4 &&
+    inputs.pensionAge === 60
+  ) {
+    return false
+  }
+  
+  // Check if exactly matches the DEFAULT_FIRE constant in this file
+  if (
+    inputs.expenses === DEFAULT_FIRE.expenses &&
+    inputs.savings === DEFAULT_FIRE.savings &&
+    inputs.returnRate === DEFAULT_FIRE.returnRate &&
+    inputs.age === DEFAULT_FIRE.age &&
+    inputs.swr === DEFAULT_FIRE.swr &&
+    inputs.pensionAge === DEFAULT_FIRE.pensionAge
+  ) {
+    return false
+  }
+  
+  return true
+}
+
 export function calcYearsToTarget(
   current: number,
   target: number,
