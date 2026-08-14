@@ -4,8 +4,8 @@ const KEY = 'mydsp.today.layout.v1'
 const EVENT = 'mydsp-today-layout'
 
 export const TODAY_ACCORDION_OPTIONS = [
-  { id: 'next', label: 'Next' },
-  { id: 'dailyPlan', label: 'Daily plan' },
+  { id: 'next', label: 'To-dos' },
+  { id: 'dailyPlan', label: 'To-dos' },
   { id: 'bills', label: 'Bills' },
   { id: 'goals', label: 'Goals' },
   { id: 'careerPulse', label: 'Career pulse' },

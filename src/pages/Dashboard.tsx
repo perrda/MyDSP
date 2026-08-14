@@ -181,7 +181,7 @@ const ALERT_BORDER: Record<string, string> = {
 
 const QUICK_PRIMARY = { to: '/markets', label: 'Markets', icon: CandlestickChart }
 const QUICK_SECONDARY = [
-  { to: '/todos', label: "To Do's", badge: 'todos' as const },
+  { to: '/todos', label: 'To-dos', badge: 'todos' as const },
   { to: '/jobs', label: 'Jobs', badge: 'jobs' as const },
   { to: '/liabilities', label: 'Liabilities', badge: null },
   { to: '/goals', label: 'Goals', badge: null },
@@ -1301,7 +1301,7 @@ export function Dashboard() {
           .map((item) => Number(item.id.slice('bill-'.length)))
       : [],
   )
-  /** A bill appears once: Next, then Daily plan, then the lower-priority bills strip. */
+  /** A bill appears once: To-dos, then To-dos, then the lower-priority bills strip. */
   const showBillsStrip = billsDueSoon.filter(
     (bill) => bill.id !== nextBillId && !dailyPlanBillIds.has(bill.id),
   )
@@ -1366,9 +1366,9 @@ export function Dashboard() {
           : 'Cloud sync ready'
 
   const accordionJumpChips: Partial<Record<TodaySectionId, [string, string, string]>> = {
-    next: showNextCard ? ['today-next-action', 'Next', 'today-section-jump-next'] : undefined,
+    next: showNextCard ? ['today-next-action', 'To-dos', 'today-section-jump-next'] : undefined,
     dailyPlan: showDailyPlanCard
-      ? ['today-daily-plan', 'Daily plan', 'today-section-jump-daily-plan']
+      ? ['today-daily-plan', 'To-dos', 'today-section-jump-daily-plan']
       : undefined,
     careerPulse: showCareerPulseCard
       ? ['today-career-pulse', 'Career', 'today-section-jump-career']
@@ -1817,14 +1817,14 @@ export function Dashboard() {
       {showDailyPlanCard ? (
         <TodayAccordionSection
           id="today-daily-plan"
-          title="Daily plan"
+          title="To-dos"
           enabled={todayAccordionEnabled}
           defaultOpen
           order={todaySectionOrder.indexOf('dailyPlan')}
           className="mb-3"
           action={
             <Link to="/todos" className="text-xs text-accent font-semibold">
-              To Do's
+              All to-dos
             </Link>
           }
         >
@@ -1940,7 +1940,7 @@ export function Dashboard() {
       {showNextCard ? (
       <TodayAccordionSection
         id="today-next-action"
-        title="Next"
+        title="To-dos"
         enabled={todayAccordionEnabled}
         defaultOpen
         order={todaySectionOrder.indexOf('next')}
@@ -1948,7 +1948,7 @@ export function Dashboard() {
         ariaLabel="Next action"
         action={
           <Link to="/todos" className="text-xs text-accent font-semibold">
-            All To Do's
+            All to-dos
           </Link>
         }
       >
