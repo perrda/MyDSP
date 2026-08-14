@@ -9,5 +9,5 @@ compatibility_date = "2026-07-01"
 # paste the id below, then deploy.
 [[kv_namespaces]]
 binding = "STORE"
-id = "REPLACE_WITH_KV_NAMESPACE_ID"
+id = "bc080d9f39be487fa848b970b6a67f38"
 # preview_id = "REPLACE_WITH_PREVIEW_KV_ID"  # optional for wrangler dev
