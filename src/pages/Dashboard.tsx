@@ -6,7 +6,6 @@ import { AllocationRing, NetWorthChart } from '../components/charts/LazyCharts'
 import { BudgetSparkline } from '../components/charts/BudgetSparkline'
 import { Sparkline } from '../components/charts/Sparkline'
 import { SwipeBillRow } from '../components/ui/SwipeBillRow'
-import { PageHeader } from '../components/ui/PageHeader'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
 import { RemindersPanel, useSmartReminders } from '../components/SmartReminders'
 import { PortfolioShareCard } from '../components/SocialShare'
@@ -1419,44 +1418,6 @@ export function Dashboard() {
         </div>
       </div>
 
-      <div className="today-jump-toolbar mb-3 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-        <nav
-          className="today-section-jump-chips flex flex-wrap gap-1.5"
-          aria-label="Jump to Today section"
-        >
-          {todayJumpChips.map(([id, label, chipClass]) => {
-            const active = activeJumpSection === id
-            return (
-              <a
-                key={id}
-                href={`#${id}`}
-                className={`today-section-jump-chip ui-seg ${chipClass}${
-                  active ? ' is-active today-section-jump-chip--active' : ''
-                }`}
-                aria-current={active ? 'true' : undefined}
-                onClick={(e) => {
-                  e.preventDefault()
-                  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-                  setActiveJumpSection(id)
-                }}
-              >
-                {label}
-              </a>
-            )
-          })}
-        </nav>
-        <button
-          type="button"
-          className="today-layout-customize ui-seg shrink-0 self-start"
-          aria-expanded={todayLayoutOpen}
-          aria-controls="today-layout-panel"
-          aria-label="Customize Today layout"
-          onClick={() => setTodayLayoutOpen((open) => !open)}
-        >
-          Customize{todayHiddenCards.size > 0 ? ` · ${todayHiddenCards.size} hidden` : ''}
-        </button>
-      </div>
-
       {todayLayoutOpen ? (
         <div
           id="today-layout-panel"
@@ -1578,7 +1539,7 @@ export function Dashboard() {
           <p className="backup-nudge text-xs text-text-muted mt-2 mb-1">
             Weekly backup overdue —{' '}
             <Link to="/settings#full-backup" className="text-accent hover:underline font-semibold">
-              Settings backups
+              Back up now
             </Link>
             {' · '}
             <button
@@ -1638,7 +1599,7 @@ export function Dashboard() {
           </div>
         ) : null}
         <p className="text-sm text-text-muted font-light mb-4">
-          Assets {formatGBP(assets)} · Debt {formatGBP(liabilities)}
+          Assets {formatGBP(assets)} · Liabilities {formatGBP(liabilities)}
         </p>
         <div className="today-trust-strip mt-3" role="status" aria-label="Today sync and price trust">
           <div className="today-trust-strip-primary flex flex-wrap gap-x-4 gap-y-1 text-xs text-text-subtle">
@@ -1757,10 +1718,10 @@ export function Dashboard() {
                 title="Total liabilities"
               >
                 <span className="block uppercase tracking-wider text-text-subtle font-semibold">
-                  Debt
+                  Liabilities
                 </span>
                 <span className="block tabular-nums">{formatGBP(liabilities)}</span>
-                <span className="block text-text-subtle">Liabilities →</span>
+                <span className="block text-text-subtle">Total owed →</span>
               </Link>
             ) : null}
             {cashRunway ? (
@@ -1812,6 +1773,44 @@ export function Dashboard() {
             <p className="text-xs text-text-muted font-light leading-snug">{alerts[0].detail}</p>
           </Link>
         ) : null}
+      </div>
+
+      <div className="today-jump-toolbar mb-3 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+        <nav
+          className="today-section-jump-chips hidden sm:flex sm:flex-wrap gap-1.5"
+          aria-label="Jump to Today section"
+        >
+          {todayJumpChips.map(([id, label, chipClass]) => {
+            const active = activeJumpSection === id
+            return (
+              <a
+                key={id}
+                href={`#${id}`}
+                className={`today-section-jump-chip ui-seg ${chipClass}${
+                  active ? ' is-active today-section-jump-chip--active' : ''
+                }`}
+                aria-current={active ? 'true' : undefined}
+                onClick={(e) => {
+                  e.preventDefault()
+                  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                  setActiveJumpSection(id)
+                }}
+              >
+                {label}
+              </a>
+            )
+          })}
+        </nav>
+        <button
+          type="button"
+          className="today-layout-customize ui-seg shrink-0 self-start"
+          aria-expanded={todayLayoutOpen}
+          aria-controls="today-layout-panel"
+          aria-label="Customize Today layout"
+          onClick={() => setTodayLayoutOpen((open) => !open)}
+        >
+          Customize{todayHiddenCards.size > 0 ? ` · ${todayHiddenCards.size} hidden` : ''}
+        </button>
       </div>
 
       <div className="today-reorderable-sections flex flex-col">
@@ -2394,7 +2393,7 @@ export function Dashboard() {
           className="mb-3"
           action={
             <Link to="/goals" className="text-xs text-accent font-semibold">
-              All goals
+              Open
             </Link>
           }
         >
@@ -2554,37 +2553,42 @@ export function Dashboard() {
                 </span>
               ) : null}
             </Link>
-            <Link
-              to="/news?refresh=1"
-              className="btn-ghost btn-sm text-xs min-h-9 today-news-refresh-open"
-            >
-              Refresh & open
-            </Link>
             {newsUnread > 0 ? (
-              <button
-                type="button"
-                className="btn-ghost btn-sm text-xs min-h-9 today-news-mark-all-read"
-                onClick={() => {
-                  const previousSeenAt = getNewsSeenAt()
-                  const previousUnread = newsUnread
-                  const now = new Date().toISOString()
-                  setNewsSeenAt(now)
-                  setNewsUnread(0)
-                  setNewsMarkAllUndo({ previousSeenAt, previousUnread })
-                  if (newsMarkAllUndoTimer.current) window.clearTimeout(newsMarkAllUndoTimer.current)
-                  newsMarkAllUndoTimer.current = window.setTimeout(
-                    () => setNewsMarkAllUndo(null),
-                    5_000,
-                  )
-                  toastSuccess('News marked all read')
-                }}
-              >
-                Mark all read
-              </button>
+              <>
+                <Link
+                  to="/news?refresh=1"
+                  className="btn-ghost btn-sm text-xs min-h-9 today-news-refresh-open"
+                >
+                  Refresh & open
+                </Link>
+                <button
+                  type="button"
+                  className="btn-ghost btn-sm text-xs min-h-9 today-news-mark-all-read"
+                  onClick={() => {
+                    const previousSeenAt = getNewsSeenAt()
+                    const previousUnread = newsUnread
+                    const now = new Date().toISOString()
+                    setNewsSeenAt(now)
+                    setNewsUnread(0)
+                    setNewsMarkAllUndo({ previousSeenAt, previousUnread })
+                    if (newsMarkAllUndoTimer.current) window.clearTimeout(newsMarkAllUndoTimer.current)
+                    newsMarkAllUndoTimer.current = window.setTimeout(
+                      () => setNewsMarkAllUndo(null),
+                      5_000,
+                    )
+                    toastSuccess('News marked all read')
+                  }}
+                >
+                  Mark all read
+                </button>
+              </>
             ) : (
-              <span className="today-news-all-caught-up text-[11px] text-text-subtle font-medium">
-                All caught up
-              </span>
+              <Link
+                to="/news"
+                className="btn-ghost btn-sm text-xs min-h-9 today-news-open"
+              >
+                Open News
+              </Link>
             )}
           </div>
           {newsMarkAllUndo ? (
@@ -2623,38 +2627,43 @@ export function Dashboard() {
                 </span>
               ) : null}
             </Link>
-            <Link
-              to="/youtube?refresh=1"
-              className="btn-ghost btn-sm text-xs min-h-9 today-youtube-refresh-open"
-            >
-              Refresh & open
-            </Link>
             {youtubeUnread > 0 ? (
-              <button
-                type="button"
-                className="btn-ghost btn-sm text-xs min-h-9 today-youtube-mark-all-read"
-                onClick={() => {
-                  const previousSeenAt = getYoutubeSeenAt()
-                  const previousUnread = youtubeUnread
-                  const now = new Date().toISOString()
-                  setYoutubeSeenAt(now)
-                  setYoutubeUnread(0)
-                  setYoutubeMarkAllUndo({ previousSeenAt, previousUnread })
-                  if (youtubeMarkAllUndoTimer.current)
-                    window.clearTimeout(youtubeMarkAllUndoTimer.current)
-                  youtubeMarkAllUndoTimer.current = window.setTimeout(
-                    () => setYoutubeMarkAllUndo(null),
-                    5_000,
-                  )
-                  toastSuccess('YouTube marked all read')
-                }}
-              >
-                Mark all read
-              </button>
+              <>
+                <Link
+                  to="/youtube?refresh=1"
+                  className="btn-ghost btn-sm text-xs min-h-9 today-youtube-refresh-open"
+                >
+                  Refresh & open
+                </Link>
+                <button
+                  type="button"
+                  className="btn-ghost btn-sm text-xs min-h-9 today-youtube-mark-all-read"
+                  onClick={() => {
+                    const previousSeenAt = getYoutubeSeenAt()
+                    const previousUnread = youtubeUnread
+                    const now = new Date().toISOString()
+                    setYoutubeSeenAt(now)
+                    setYoutubeUnread(0)
+                    setYoutubeMarkAllUndo({ previousSeenAt, previousUnread })
+                    if (youtubeMarkAllUndoTimer.current)
+                      window.clearTimeout(youtubeMarkAllUndoTimer.current)
+                    youtubeMarkAllUndoTimer.current = window.setTimeout(
+                      () => setYoutubeMarkAllUndo(null),
+                      5_000,
+                    )
+                    toastSuccess('YouTube marked all read')
+                  }}
+                >
+                  Mark all read
+                </button>
+              </>
             ) : (
-              <span className="today-youtube-all-caught-up text-[11px] text-text-subtle font-medium">
-                All caught up
-              </span>
+              <Link
+                to="/youtube"
+                className="btn-ghost btn-sm text-xs min-h-9 today-youtube-open"
+              >
+                Open YouTube
+              </Link>
             )}
           </div>
           {youtubeMarkAllUndo ? (
@@ -2873,7 +2882,7 @@ export function Dashboard() {
 
       {showGettingStartedCard ? <GettingStartedChecklist /> : null}
 
-      {/* Secondary stats — Assets / Debt / allocation (net worth lives in Today pulse above) */}
+      {/* Secondary stats — Assets / Liabilities / allocation (net worth lives in Today pulse above) */}
       <div className={`grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-px mb-6 ${privacyClass(privacy)}`}>
         <div className="surface p-4 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
           <p className="text-xs uppercase tracking-wider text-text-subtle mb-2 md:mb-1 font-semibold">Assets</p>
@@ -2881,7 +2890,7 @@ export function Dashboard() {
           <p className="text-xs text-text-muted font-light leading-tight">Crypto + Equity</p>
         </div>
         <div className="surface p-4 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
-          <p className="text-xs uppercase tracking-wider text-text-subtle mb-2 md:mb-1 font-semibold">Debt</p>
+          <p className="text-xs uppercase tracking-wider text-text-subtle mb-2 md:mb-1 font-semibold">Liabilities</p>
           <p className="text-xl md:text-2xl font-bold tabular-nums mb-1 text-text-muted break-words">{formatGBP(liabilities)}</p>
           <p className="text-xs text-text-muted font-light leading-tight">Total owed</p>
         </div>
@@ -2895,18 +2904,22 @@ export function Dashboard() {
       {/* Alerts - mobile optimized */}
       {showAlertsCard && (
         <div className="grid grid-cols-1 gap-3 md:gap-px mb-6">
-          {alerts.slice(0, 3).map((a, idx) => (
-            <Link
-              key={a.id}
-              to={a.to}
-              className={`surface surface-interactive p-4 md:px-5 md:py-4 border-l-4 md:border-l-2 block rounded-r-xl md:rounded-none shadow-sm md:shadow-none ${ALERT_BORDER[a.severity] ?? 'border-l-border-strong'} ${
-                idx === 0 ? 'hidden md:block' : ''
-              }`}
-            >
-              <p className="text-sm font-semibold uppercase tracking-wider mb-1">{a.title}</p>
-              <p className="text-sm text-text-muted font-light leading-snug">{a.detail}</p>
-            </Link>
-          ))}
+          {alerts.slice(0, 3).map((a) => {
+            const topAlertId = alerts.length > 0 && alerts[0].severity !== 'green' ? alerts[0].id : null
+            const hideOnPhone = a.id === topAlertId
+            return (
+              <Link
+                key={a.id}
+                to={a.to}
+                className={`surface surface-interactive p-4 md:px-5 md:py-4 border-l-4 md:border-l-2 block rounded-r-xl md:rounded-none shadow-sm md:shadow-none ${ALERT_BORDER[a.severity] ?? 'border-l-border-strong'} ${
+                  hideOnPhone ? 'hidden md:block' : ''
+                }`}
+              >
+                <p className="text-sm font-semibold uppercase tracking-wider mb-1">{a.title}</p>
+                <p className="text-sm text-text-muted font-light leading-snug">{a.detail}</p>
+              </Link>
+            )
+          })}
         </div>
       )}
 
@@ -2985,7 +2998,7 @@ export function Dashboard() {
       </div>
       ) : null}
 
-      {/* Score, Level, Debt cards */}
+      {/* Score, Level, Liabilities cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-px mb-6">
         <Link to="/achievements" className="surface surface-interactive p-5 md:p-8 block rounded-xl md:rounded-none shadow-sm md:shadow-none">
           <p className="text-xs uppercase tracking-wider text-text-subtle mb-2 font-semibold">Financial score</p>
@@ -3004,7 +3017,7 @@ export function Dashboard() {
           </p>
         </Link>
         <Link to="/liabilities" className="surface surface-interactive p-5 md:p-8 block rounded-xl md:rounded-none shadow-sm md:shadow-none">
-          <p className="text-xs uppercase tracking-wider text-text-subtle mb-2 font-semibold">Debt</p>
+          <p className="text-xs uppercase tracking-wider text-text-subtle mb-2 font-semibold">Liabilities</p>
           <p className={`text-3xl md:text-2xl font-bold tabular-nums mb-1 ${privacyClass(privacy)}`}>
             {formatGBP(liabilities)}
           </p>
