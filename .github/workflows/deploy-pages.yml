@@ -1,9 +1,7 @@
-# Build & deploy MyDSP to GitHub Pages on every push to main
-name: Deploy MyDSP to GitHub Pages
+# GitHub Pages deployment DISABLED — live app is https://mydspv1.dave-perry.workers.dev/
+name: Deploy MyDSP to GitHub Pages (DISABLED)
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
