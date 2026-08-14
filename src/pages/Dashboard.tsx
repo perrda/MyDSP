@@ -1327,8 +1327,8 @@ export function Dashboard() {
   const showTaxCard = isTodayCardVisible('tax')
   const showMediaCard = isTodayCardVisible('media')
   const showMarketsCard = isTodayCardVisible('markets')
-  const showBudgetCard = isTodayCardVisible('budget') && budgetPulse.length > 0
   const showBudgetPulseCards = isTodayCardVisible('budget')
+  const showBudgetCard = isTodayCardVisible('budget') && budgetPulse.length > 0 && !monthlyBudgetPulse
   const showGettingStartedCard = isTodayCardVisible('gettingStarted')
   const showAlertsCard = isTodayCardVisible('alerts') && alerts.length > 0
   const showRemindersCard = isTodayCardVisible('reminders') && reminders.length > 0
@@ -1336,7 +1336,9 @@ export function Dashboard() {
   const showActivityCard = isTodayCardVisible('activity')
   const useTodayTwoPane = twoPane && showMarketsCard
 
-  const syncLine = !syncEnabled
+  const syncLine = showGettingStartedCard
+    ? ''
+    : !syncEnabled
     ? 'Cloud sync off — enable in Settings'
     : syncStatus.state === 'needs-passphrase'
       ? 'Cloud sync locked — unlock in Settings'
@@ -1603,7 +1605,7 @@ export function Dashboard() {
         </p>
         <div className="today-trust-strip mt-3" role="status" aria-label="Today sync and price trust">
           <div className="today-trust-strip-primary flex flex-wrap gap-x-4 gap-y-1 text-xs text-text-subtle">
-            <span>{syncLine}</span>
+            {showGettingStartedCard ? <GettingStartedChecklist /> : syncLine ? <span>{syncLine}</span> : null}
             <Link to="/markets" className="hover:text-accent">
               {marketsCount} Markets ticker{marketsCount === 1 ? '' : 's'} →
             </Link>
@@ -2491,263 +2493,6 @@ export function Dashboard() {
       </div>
       ) : null}
 
-      {showMediaCard ? (
-      <div
-        id="today-media"
-        className="surface p-4 md:p-5 mb-6 rounded-xl md:rounded-none shadow-sm md:shadow-none"
-      >
-        <div className="flex items-center justify-between mb-3">
-          <p className="text-xs uppercase tracking-wider text-text-subtle font-semibold">Jump in</p>
-        </div>
-        {todayPriceAlerts.length > 0 ? (
-          <p className="text-sm mb-3">
-            <Link to={todayPriceAlerts[0].actionUrl ?? '/markets'} className="font-medium text-accent hover:underline line-clamp-1">
-              Alert · {todayPriceAlerts[0].title}
-            </Link>
-          </p>
-        ) : null}
-        {needsSyncUnlock ? (
-          <Link
-            to="/settings#sync"
-            className="today-unlock-sync-nudge mb-3 inline-flex items-center gap-1.5 border border-amber-500/45 bg-amber-500/10 px-2.5 py-1.5 text-xs font-medium text-amber-800 hover:underline dark:text-amber-200"
-            data-testid="today-unlock-sync-nudge"
-          >
-            Unlock sync to pull media and favourites →
-          </Link>
-        ) : null}
-        <div className="flex flex-wrap items-center gap-3">
-          <Link
-            to={QUICK_PRIMARY.to}
-            className="btn-primary btn-sm inline-flex items-center gap-2"
-          >
-            <QUICK_PRIMARY.icon size={16} strokeWidth={1.5} /> {QUICK_PRIMARY.label}
-          </Link>
-          {QUICK_SECONDARY.map((l) => (
-            <Link
-              key={l.to}
-              to={l.to}
-              className="text-sm font-semibold text-accent hover:underline inline-flex items-center gap-1.5"
-            >
-              {l.label} →
-              {l.badge === 'todos' && todayTodosDueCount > 0 ? (
-                <span className="today-todos-due-badge inline-flex items-center text-[11px] font-bold tabular-nums px-2 py-0.5 bg-accent/15 text-accent border border-accent/30 rounded-full">
-                  {todayTodosDueCount}
-                </span>
-              ) : null}
-              {l.badge === 'jobs' && jobsFollowUpCount > 0 ? (
-                <span className="today-jobs-follow-up-badge inline-flex items-center text-[11px] font-bold tabular-nums px-2 py-0.5 bg-accent/15 text-accent border border-accent/30 rounded-full">
-                  {jobsFollowUpCount}
-                </span>
-              ) : null}
-            </Link>
-          ))}
-          <div className="inline-flex flex-wrap items-center gap-1.5">
-            <Link
-              to="/news"
-              className="text-sm font-semibold text-accent hover:underline inline-flex items-center gap-1.5"
-            >
-              News →
-              {newsUnread > 0 ? (
-                <span className="today-news-unread inline-flex items-center text-[11px] font-bold tabular-nums px-2 py-0.5 bg-accent/15 text-accent border border-accent/30 rounded-full">
-                  {newsUnread} new
-                </span>
-              ) : null}
-            </Link>
-            {newsUnread > 0 ? (
-              <>
-                <Link
-                  to="/news?refresh=1"
-                  className="btn-ghost btn-sm text-xs min-h-9 today-news-refresh-open"
-                >
-                  Refresh & open
-                </Link>
-                <button
-                  type="button"
-                  className="btn-ghost btn-sm text-xs min-h-9 today-news-mark-all-read"
-                  onClick={() => {
-                    const previousSeenAt = getNewsSeenAt()
-                    const previousUnread = newsUnread
-                    const now = new Date().toISOString()
-                    setNewsSeenAt(now)
-                    setNewsUnread(0)
-                    setNewsMarkAllUndo({ previousSeenAt, previousUnread })
-                    if (newsMarkAllUndoTimer.current) window.clearTimeout(newsMarkAllUndoTimer.current)
-                    newsMarkAllUndoTimer.current = window.setTimeout(
-                      () => setNewsMarkAllUndo(null),
-                      5_000,
-                    )
-                    toastSuccess('News marked all read')
-                  }}
-                >
-                  Mark all read
-                </button>
-              </>
-            ) : (
-              <Link
-                to="/news"
-                className="btn-ghost btn-sm text-xs min-h-9 today-news-open"
-              >
-                Open News
-              </Link>
-            )}
-          </div>
-          {newsMarkAllUndo ? (
-            <div
-              className="today-news-mark-all-undo-banner mt-2 flex flex-wrap items-center justify-between gap-2 surface px-3 py-2 border border-border"
-              role="status"
-            >
-              <p className="text-sm text-text-muted">News marked all read</p>
-              <button
-                type="button"
-                className="btn-secondary btn-sm today-news-mark-all-undo"
-                data-testid="today-news-mark-all-undo"
-                onClick={() => {
-                  setNewsSeenAt(newsMarkAllUndo.previousSeenAt)
-                  setNewsUnread(newsMarkAllUndo.previousUnread)
-                  setNewsMarkAllUndo(null)
-                  if (newsMarkAllUndoTimer.current) {
-                    window.clearTimeout(newsMarkAllUndoTimer.current)
-                    newsMarkAllUndoTimer.current = null
-                  }
-                }}
-              >
-                Undo
-              </button>
-            </div>
-          ) : null}
-          <div className="inline-flex flex-wrap items-center gap-1.5">
-            <Link
-              to={youtubeUnread > 0 ? '/youtube?unread=1' : '/youtube'}
-              className="text-sm font-semibold text-accent hover:underline inline-flex items-center gap-1.5"
-            >
-              YouTube →
-              {youtubeUnread > 0 ? (
-                <span className="today-youtube-unread inline-flex items-center text-[11px] font-bold tabular-nums px-2 py-0.5 bg-accent/15 text-accent border border-accent/30 rounded-full">
-                  {youtubeUnread} new
-                </span>
-              ) : null}
-            </Link>
-            {youtubeUnread > 0 ? (
-              <>
-                <Link
-                  to="/youtube?refresh=1"
-                  className="btn-ghost btn-sm text-xs min-h-9 today-youtube-refresh-open"
-                >
-                  Refresh & open
-                </Link>
-                <button
-                  type="button"
-                  className="btn-ghost btn-sm text-xs min-h-9 today-youtube-mark-all-read"
-                  onClick={() => {
-                    const previousSeenAt = getYoutubeSeenAt()
-                    const previousUnread = youtubeUnread
-                    const now = new Date().toISOString()
-                    setYoutubeSeenAt(now)
-                    setYoutubeUnread(0)
-                    setYoutubeMarkAllUndo({ previousSeenAt, previousUnread })
-                    if (youtubeMarkAllUndoTimer.current)
-                      window.clearTimeout(youtubeMarkAllUndoTimer.current)
-                    youtubeMarkAllUndoTimer.current = window.setTimeout(
-                      () => setYoutubeMarkAllUndo(null),
-                      5_000,
-                    )
-                    toastSuccess('YouTube marked all read')
-                  }}
-                >
-                  Mark all read
-                </button>
-              </>
-            ) : (
-              <Link
-                to="/youtube"
-                className="btn-ghost btn-sm text-xs min-h-9 today-youtube-open"
-              >
-                Open YouTube
-              </Link>
-            )}
-          </div>
-          {youtubeMarkAllUndo ? (
-            <div
-              className="today-youtube-mark-all-undo-banner mt-2 flex flex-wrap items-center justify-between gap-2 surface px-3 py-2 border border-border"
-              role="status"
-            >
-              <p className="text-sm text-text-muted">YouTube marked all read</p>
-              <button
-                type="button"
-                className="btn-secondary btn-sm today-youtube-mark-all-undo"
-                data-testid="today-youtube-mark-all-undo"
-                onClick={() => {
-                  setYoutubeSeenAt(youtubeMarkAllUndo.previousSeenAt)
-                  setYoutubeUnread(youtubeMarkAllUndo.previousUnread)
-                  setYoutubeMarkAllUndo(null)
-                  if (youtubeMarkAllUndoTimer.current) {
-                    window.clearTimeout(youtubeMarkAllUndoTimer.current)
-                    youtubeMarkAllUndoTimer.current = null
-                  }
-                }}
-              >
-                Undo
-              </button>
-            </div>
-          ) : null}
-        </div>
-        {whatArrivedChip ? (
-          <div
-            className="today-what-arrived-chip mt-3 flex flex-wrap items-center gap-2 text-xs text-accent font-medium"
-            role="status"
-          >
-            <Link to="/settings#sync" className="hover:underline">
-              What arrived · {whatArrivedChip}
-            </Link>
-            {whatArrivedOpenHref ? (
-              <Link
-                to={whatArrivedOpenHref}
-                className="btn-secondary btn-sm text-[11px] min-h-8 today-what-arrived-open"
-                data-testid="today-what-arrived-open"
-              >
-                Open first
-              </Link>
-            ) : null}
-            <button
-              type="button"
-              className="btn-ghost btn-sm text-[11px] min-h-8 today-what-arrived-dismiss"
-              data-testid="today-what-arrived-dismiss"
-              onClick={() => {
-                if (whatArrivedChip) {
-                  saveWhatArrivedDismissPref(whatArrivedChip)
-                }
-                setWhatArrivedChip(null)
-                setWhatArrivedOpenHref(null)
-              }}
-            >
-              Dismiss
-            </button>
-          </div>
-        ) : null}
-        {(newsFetchedAt || youtubeFetchedAt) && relativeTick >= 0 ? (
-          <p
-            className="today-media-trust mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs text-text-subtle"
-            role="status"
-          >
-            {newsFetchedAt ? (
-              <span className="today-news-trust">
-                News updated {formatQuoteAgeShort(Date.now() - Date.parse(newsFetchedAt))}
-              </span>
-            ) : null}
-            {youtubeFetchedAt ? (
-              <span className="today-youtube-trust">
-                YouTube updated {formatQuoteAgeShort(Date.now() - Date.parse(youtubeFetchedAt))}
-              </span>
-            ) : null}
-          </p>
-        ) : null}
-        {fccDataPresent ? null : (
-          <p className="text-xs text-text-subtle mt-3 font-light">
-            Sample portfolio — import live data in Settings anytime.
-          </p>
-        )}
-      </div>
-      ) : null}
         </div>
 
         {useTodayTwoPane ? (
@@ -2791,14 +2536,9 @@ export function Dashboard() {
               </div>
             ) : null}
             {todayMovers.length === 0 ? (
-              <div>
-                <p className="text-sm text-text-muted font-light mb-3">
-                  No fresh movers (last 24h).
-                </p>
-                <Link to="/markets" className="btn-secondary btn-sm">
-                  Open Markets
-                </Link>
-              </div>
+              <p className="text-sm text-text-muted font-light">
+                No fresh movers (last 24h).
+              </p>
             ) : (
               <ul className="space-y-2">
                 {todayMovers.map((m) => (
@@ -2843,14 +2583,9 @@ export function Dashboard() {
               </Link>
             </div>
             {todayMovers.length === 0 ? (
-              <div>
-                <p className="text-sm text-text-muted font-light mb-3">
-                  No fresh movers (last 24h).
-                </p>
-                <Link to="/markets" className="btn-secondary btn-sm">
-                  Open Markets
-                </Link>
-              </div>
+              <p className="text-sm text-text-muted font-light">
+                No fresh movers (last 24h).
+              </p>
             ) : (
               <ul className="space-y-2">
                 {todayMovers.slice(0, 5).map((m) => (
@@ -2879,8 +2614,6 @@ export function Dashboard() {
           </section>
         ) : null}
       </div>
-
-      {showGettingStartedCard ? <GettingStartedChecklist /> : null}
 
       {/* Secondary stats — Assets / Liabilities / allocation (net worth lives in Today pulse above) */}
       <div className={`grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-px mb-6 ${privacyClass(privacy)}`}>
@@ -3049,16 +2782,6 @@ export function Dashboard() {
         </Link>
       </div>
 
-      {/* Share Card */}
-      <div className="mb-8">
-        <PortfolioShareCard
-          data={{
-            netWorth,
-            monthlyGrowth: (crypto.pct + equity.pct) / 2,
-            portfolioSize: data.crypto.length + data.equities.length,
-          }}
-        />
-      </div>
 
       {/* Recent Activity */}
       {showActivityCard ? (
