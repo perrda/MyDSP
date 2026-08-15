@@ -90,57 +90,64 @@ export function GettingStartedChecklist() {
   const nextUndone = steps.find((s) => !s.done)
 
   return (
-    <section
-      className="surface border-l-2 border-l-accent px-4 sm:px-5 py-3 mb-6 animate-fade-in"
-      aria-labelledby="getting-started-heading"
-    >
-      <div className="flex items-center justify-between gap-3">
-        <button
-          type="button"
-          className="flex-1 flex items-center gap-3 text-left min-w-0"
-          onClick={() => setExpanded((v) => !v)}
-          aria-expanded={expanded}
-          aria-label="Getting started progress"
-        >
-          <div className="flex-1 min-w-0">
-            <p className="eyebrow tracking-[0.16em] text-accent mb-0.5 text-[11px]">Getting started</p>
-            <h2 id="getting-started-heading" className="text-sm font-bold tracking-tight">
-              {doneCount}/{steps.length} · {nextUndone ? nextUndone.label : 'Complete'}
-            </h2>
-          </div>
-        </button>
-        <button
-          type="button"
-          className="toolbar-icon shrink-0"
-          aria-label="Dismiss getting started"
-          title="Dismiss"
-          onClick={() => {
-            dismissGettingStarted()
-            setDismissed(true)
-          }}
-        >
-          <X size={16} strokeWidth={1.5} />
-        </button>
-      </div>
+    <span className="inline-flex items-center gap-2">
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        aria-expanded={expanded}
+        className="text-text-subtle hover:text-accent font-medium"
+        title={nextUndone ? nextUndone.label : 'Setup complete'}
+      >
+        Setup {doneCount}/{steps.length} →
+      </button>
       {expanded ? (
-        <ul className="space-y-2 mt-3 pt-3 border-t border-border">
-          {steps.map((s) => (
-            <li key={s.id}>
-              <Link
-                to={s.to}
-                className="flex items-center gap-2.5 min-h-11 text-sm text-text-muted hover:text-text transition-colors"
-              >
-                {s.done ? (
-                  <Check size={16} className="text-accent shrink-0" strokeWidth={2} />
-                ) : (
-                  <Circle size={16} className="text-text-subtle shrink-0" strokeWidth={1.5} />
-                )}
-                <span className={s.done ? 'line-through opacity-60' : ''}>{s.label}</span>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <>
+          <button
+            type="button"
+            className="text-text-subtle hover:text-accent font-medium text-[11px]"
+            aria-label="Dismiss getting started"
+            onClick={() => {
+              dismissGettingStarted()
+              setDismissed(true)
+            }}
+          >
+            ✕
+          </button>
+          <span className="fixed inset-0 z-50 flex items-start justify-center pt-20 bg-black/20" onClick={() => setExpanded(false)}>
+            <div className="surface border border-border p-4 rounded-lg shadow-lg max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-semibold">Getting started</p>
+                <button
+                  type="button"
+                  className="text-text-subtle hover:text-accent"
+                  aria-label="Close"
+                  onClick={() => setExpanded(false)}
+                >
+                  ✕
+                </button>
+              </div>
+              <ul className="space-y-2">
+                {steps.map((s) => (
+                  <li key={s.id}>
+                    <Link
+                      to={s.to}
+                      className="flex items-center gap-2.5 min-h-11 text-sm text-text-muted hover:text-text transition-colors"
+                      onClick={() => setExpanded(false)}
+                    >
+                      {s.done ? (
+                        <Check size={16} className="text-accent shrink-0" strokeWidth={2} />
+                      ) : (
+                        <Circle size={16} className="text-text-subtle shrink-0" strokeWidth={1.5} />
+                      )}
+                      <span className={s.done ? 'line-through opacity-60' : ''}>{s.label}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </span>
+        </>
       ) : null}
-    </section>
+    </span>
   )
 }
