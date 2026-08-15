@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { ArrowRight, CandlestickChart, ChevronDown, ChevronUp } from 'lucide-react'
+import { ArrowRight, ChevronDown, ChevronUp } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { GettingStartedChecklist } from '../components/GettingStartedChecklist'
 import { AllocationRing, NetWorthChart } from '../components/charts/LazyCharts'
@@ -8,7 +8,6 @@ import { Sparkline } from '../components/charts/Sparkline'
 import { SwipeBillRow } from '../components/ui/SwipeBillRow'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
 import { RemindersPanel, useSmartReminders } from '../components/SmartReminders'
-import { PortfolioShareCard } from '../components/SocialShare'
 import { useToasts } from '../components/ToastProvider'
 import { usePortfolio } from '../context/PortfolioContext'
 import { evaluateAchievements } from '../domain/achievements'
@@ -36,10 +35,6 @@ import {
   loadNwSparkWindowPref,
   saveNwSparkWindowPref,
 } from '../domain/nwSparkWindowPref'
-import {
-  loadWhatArrivedDismissPref,
-  saveWhatArrivedDismissPref,
-} from '../domain/whatArrivedDismissPref'
 import { dueWithinDays } from '../domain/recurringDueStrip'
 import { markRecurringPaid, skipRecurringOccurrence } from '../domain/recurringActions'
 import { monthlyRecurringTotal } from '../domain/recurringHelpers'
@@ -55,11 +50,6 @@ import {
   type AutoSyncStatus,
 } from '../services/sync/autoSyncService'
 import { loadSyncConfig, pushSync } from '../services/sync/syncService'
-import {
-  firstSyncHighlightHref,
-  peekSyncHighlights,
-  type SyncHighlightMap,
-} from '../services/sync/syncHighlights'
 import {
   loadOfflineQueue,
   removeOfflineJob,
@@ -99,15 +89,11 @@ import {
 } from '../domain/quoteFreshnessSla'
 import { listMarketTickers, loadMarketQuotesCache } from '../storage/marketsStore'
 import {
-  getNewsSeenAt,
   loadNewsArticlesCache,
   newsUnreadFromCache,
-  setNewsSeenAt,
 } from '../storage/newsStore'
 import {
-  getYoutubeSeenAt,
   loadYoutubeVideosCache,
-  setYoutubeSeenAt,
   youtubeUnreadFromCache,
 } from '../storage/youtubeStore'
 import { getMarketsProviderHealth } from '../services/marketsProviderHealth'
@@ -162,7 +148,6 @@ import {
   setUiPanelOpen,
   subscribeUiPanels,
 } from '../storage/uiPanelsStore'
-import { buildPriceAlertNotifications } from '../domain/priceAlerts'
 import { formatDate, formatGBP, formatPct, privacyClass } from '../utils/format'
 import {
   weekDeltaFromHistory,
@@ -181,14 +166,6 @@ const ALERT_BORDER: Record<string, string> = {
   green: 'border-l-accent',
   info: 'border-l-border-strong',
 }
-
-const QUICK_PRIMARY = { to: '/markets', label: 'Markets', icon: CandlestickChart }
-const QUICK_SECONDARY = [
-  { to: '/todos', label: 'To-dos', badge: 'todos' as const },
-  { to: '/jobs', label: 'Jobs', badge: 'jobs' as const },
-  { to: '/liabilities', label: 'Liabilities', badge: null },
-  { to: '/goals', label: 'Goals', badge: null },
-] as const
 
 const ISA_ALLOWANCE_GBP = 20_000
 const ISA_REMAINING_KEY = 'mydsp_isa_remaining_gbp'
@@ -343,9 +320,9 @@ function TodayAccordionSection({
 }
 
 export function Dashboard() {
-  const { data, breakdown, privacy, fccDataPresent, setData, goalProgress, refreshPrices } =
+  const { data, breakdown, privacy, setData, goalProgress, refreshPrices } =
     usePortfolio()
-  const { netWorth, assets, liabilities, crypto, equity, liability } = breakdown
+  const { netWorth, assets, liabilities, crypto, equity } = breakdown
   const { reminders } = useSmartReminders()
   const { success: toastSuccess } = useToasts()
   const [digestOpen, setDigestOpen] = useState(false)
@@ -361,17 +338,15 @@ export function Dashboard() {
       : false,
   )
   const todayAccordionEnabled = useTodayAccordionEnabled()
-  const [youtubeUnread, setYoutubeUnread] = useState(() => youtubeUnreadFromCache())
-  const [newsUnread, setNewsUnread] = useState(() => newsUnreadFromCache())
-  const [relativeTick, setRelativeTick] = useState(0)
-  const [newsFetchedAt, setNewsFetchedAt] = useState(
+  const [, setYoutubeUnread] = useState(() => youtubeUnreadFromCache())
+  const [, setNewsUnread] = useState(() => newsUnreadFromCache())
+  const [, setRelativeTick] = useState(0)
+  const [, setNewsFetchedAt] = useState(
     () => loadNewsArticlesCache().fetchedAt ?? null,
   )
-  const [youtubeFetchedAt, setYoutubeFetchedAt] = useState(
+  const [, setYoutubeFetchedAt] = useState(
     () => loadYoutubeVideosCache().fetchedAt ?? null,
   )
-  const [whatArrivedChip, setWhatArrivedChip] = useState<string | null>(null)
-  const [whatArrivedOpenHref, setWhatArrivedOpenHref] = useState<string | null>(null)
   const [focusUndo, setFocusUndo] = useState<{
     id: number
     status: string
@@ -408,16 +383,6 @@ export function Dashboard() {
     updatedAt: string
   } | null>(null)
   const focusSnoozeUndoTimer = useRef<number | null>(null)
-  const [newsMarkAllUndo, setNewsMarkAllUndo] = useState<{
-    previousSeenAt: string
-    previousUnread: number
-  } | null>(null)
-  const newsMarkAllUndoTimer = useRef<number | null>(null)
-  const [youtubeMarkAllUndo, setYoutubeMarkAllUndo] = useState<{
-    previousSeenAt: string
-    previousUnread: number
-  } | null>(null)
-  const youtubeMarkAllUndoTimer = useRef<number | null>(null)
   const [activeJumpSection, setActiveJumpSection] = useState<string | null>(null)
   const [todayLayoutOpen, setTodayLayoutOpen] = useState(false)
   const [todayLayout, setTodayLayout] = useState(loadTodayLayout)
@@ -508,19 +473,6 @@ export function Dashboard() {
       .filter((t) => isDueToday(t) || isOverdue(t))
       .slice(0, 4)
   }, [data.todoItems])
-
-  const todayTodosDueCount = useMemo(
-    () =>
-      (data.todoItems ?? []).filter(
-        (t) => t.status !== 'done' && t.status !== 'archived' && (isDueToday(t) || isOverdue(t)),
-      ).length,
-    [data.todoItems],
-  )
-
-  const jobsFollowUpCount = useMemo(
-    () => (data.jobApplications ?? []).filter((a) => needsFollowUp(a)).length,
-    [data.jobApplications],
-  )
 
   const marketsCount = useMemo(() => listMarketTickers().length, [syncStatus.lastAt])
 
@@ -649,14 +601,8 @@ export function Dashboard() {
   const focusTodoCard = nextActions.find((c) => c.kind === 'todo')
   const focusTodoItem = focusTodoCard?.kind === 'todo' ? focusTodoCard.todo : null
 
-  const todayPriceAlerts = useMemo(
-    () => buildPriceAlertNotifications(data).slice(0, 2),
-    [data, syncStatus.lastAt, marketsCount],
-  )
-
   const syncCfg = loadSyncConfig()
   const syncEnabled = Boolean(syncCfg.enabled && syncCfg.remoteUrl.trim())
-  const needsSyncUnlock = syncEnabled && syncStatus.state === 'needs-passphrase'
 
   const [backupDismissTick, setBackupDismissTick] = useState(0)
   const showBackupNudge = useMemo(() => {
@@ -1114,21 +1060,7 @@ export function Dashboard() {
   }
 
   useEffect(() => {
-    const onArrived = (ev: Event) => {
-      const detail = (ev as CustomEvent<{
-        summary?: string | null
-        extrasSummary?: string | null
-        highlights?: SyncHighlightMap | null
-      }>).detail
-      const summary = detail?.summary || detail?.extrasSummary || null
-      const highlights = detail?.highlights ?? peekSyncHighlights()
-      const openHref = firstSyncHighlightHref(highlights)
-      if (summary) {
-        if (loadWhatArrivedDismissPref() !== summary) {
-          setWhatArrivedChip(summary)
-          setWhatArrivedOpenHref(openHref)
-        }
-      }
+    const onArrived = () => {
       setNwSparkDays(loadNwSparkWindowPref())
     }
     window.addEventListener('mydsp-sync-applied', onArrived)
@@ -1142,8 +1074,6 @@ export function Dashboard() {
       if (interviewUndoTimer.current) window.clearTimeout(interviewUndoTimer.current)
       if (followupUndoTimer.current) window.clearTimeout(followupUndoTimer.current)
       if (focusSnoozeUndoTimer.current) window.clearTimeout(focusSnoozeUndoTimer.current)
-      if (newsMarkAllUndoTimer.current) window.clearTimeout(newsMarkAllUndoTimer.current)
-      if (youtubeMarkAllUndoTimer.current) window.clearTimeout(youtubeMarkAllUndoTimer.current)
       if (billSkipUndoTimer.current) window.clearTimeout(billSkipUndoTimer.current)
     }
   }, [])
