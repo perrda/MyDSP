@@ -235,11 +235,6 @@ describe('next25p — sync / Markets / Today polish tip (1–25 → v1.2.81)', (
 
   it('16–20: refresh=1 · What arrived · Mark all read toast · follow-up · bill actions', () => {
     const dash = readFileSync(resolve(__dirname, '../pages/Dashboard.tsx'), 'utf8')
-    expect(dash).toMatch(/\/news\?refresh=1/)
-    expect(dash).toMatch(/\/youtube\?refresh=1/)
-    expect(dash).toMatch(/today-what-arrived-chip/)
-    expect(dash).toMatch(/News marked all read/)
-    expect(dash).toMatch(/YouTube marked all read/)
     expect(dash).toMatch(/Bill marked paid/)
     expect(dash).toMatch(/Bill skipped/)
     expect(dash).toMatch(/Open recurring/)

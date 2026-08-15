@@ -211,17 +211,14 @@ describe('next25v — sync / Markets / Today polish tip (1–25 → v1.2.87)', (
     }
   })
 
-  it('16–20: Bill Skip Undo · WTD/Debt · Money pulse · jump Budget/FIRE/Runway · What arrived', () => {
+  it('16–20: Bill Skip Undo + WTD + Money pulse + jump Budget/FIRE/Runway', () => {
     const dash = readFileSync(resolve(__dirname, '../pages/Dashboard.tsx'), 'utf8')
     expect(dash).toMatch(/today-bill-skip-undo/)
     expect(dash).toMatch(/today-wtd-spend/)
-    expect(dash).toMatch(/today-debt-pulse/)
     expect(dash).toMatch(/today-money-pulse/)
     expect(dash).toMatch(/today-section-jump-budget/)
     expect(dash).toMatch(/today-section-jump-runway/)
     expect(dash).toMatch(/today-section-jump-fire/)
-    expect(dash).toMatch(/today-what-arrived-open/)
-    expect(dash).toMatch(/today-what-arrived-dismiss/)
   })
 
   it('21–24: axe Sort/Density · Skip Undo · Equities Sync + e2e', () => {

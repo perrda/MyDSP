@@ -17,7 +17,7 @@ describe('favourites Overview + predictive analytics fixes', () => {
 
     expect(shell).toMatch(/'\/': \{ eyebrow: 'Portfolio', title: 'Today' \}/)
     expect(sidebar).toMatch(/label: 'Overview'/)
-    expect(dashboard).toMatch(/title="Today"/)
+    expect(dashboard).toMatch(/gradient-text">Today</)
   })
 
   it('wires Today customization, conditional chips, trust strip, and five movers', () => {

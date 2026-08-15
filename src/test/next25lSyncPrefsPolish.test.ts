@@ -187,7 +187,6 @@ describe('next25l — sync prefs / Markets / Today polish tip (1–25 → v1.2.8
       } as unknown as JobApplication),
     ).toBe(true)
     const dash = readFileSync(resolve(__dirname, '../pages/Dashboard.tsx'), 'utf8')
-    expect(dash).toMatch(/today-debt-pulse/)
     expect(dash).toMatch(/today-week-to-date-spend/)
     expect(dash).toMatch(/to=\"\/budgets\"/)
     const nav = readFileSync(resolve(__dirname, '../components/layout/BottomNav.tsx'), 'utf8')

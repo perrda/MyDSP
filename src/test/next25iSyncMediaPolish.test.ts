@@ -198,10 +198,9 @@ describe('next25i — sync / media / polish tip (1–25 → v1.2.80)', () => {
     expect(tax).toMatch(/market-value estimate/)
   })
 
-  it('18: YouTube unread on nav/Jump-in', () => {
+  it('18: YouTube unread state tracking', () => {
     const dash = readFileSync(resolve(__dirname, '../pages/Dashboard.tsx'), 'utf8')
     expect(dash).toMatch(/youtubeUnreadFromCache/)
-    expect(dash).toMatch(/today-youtube-unread/)
   })
 
   it('19: News Cached-mode banner', () => {

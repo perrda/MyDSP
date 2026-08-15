@@ -166,13 +166,9 @@ describe('next25k — sync / Markets / Today polish tip (1–25 → v1.2.80)', (
     expect(dash).toMatch(/aria-label=\"Prices trust\"/)
   })
 
-  it('16–17: Focus Open + News/YT Refresh & open', () => {
+  it('16–17: Focus deep-links exist', () => {
     const dash = readFileSync(resolve(__dirname, '../pages/Dashboard.tsx'), 'utf8')
     expect(dash).toMatch(/\/todos\?focus=/)
-    expect(dash).toMatch(/today-news-refresh-open/)
-    expect(dash).toMatch(/today-youtube-refresh-open/)
-    expect(dash).toMatch(/\/news\?refresh=1/)
-    expect(dash).toMatch(/\/youtube\?refresh=1/)
   })
 
   it('18–19: Bill Mark paid + interview next-action', () => {

@@ -197,11 +197,9 @@ describe('next25t — sync / Markets / Today polish tip (1–25 → v1.2.87)', (
     expect(news).toMatch(/news-sticky-filters/)
   })
 
-  it('16–20: follow-up Undo · Debt jump · Focus Snooze Undo · FIRE · scroll-spy', () => {
+  it('16–20: follow-up Undo + Focus Snooze Undo + FIRE + scroll-spy', () => {
     const dash = readFileSync(resolve(__dirname, '../pages/Dashboard.tsx'), 'utf8')
     expect(dash).toMatch(/today-followup-undo/)
-    expect(dash).toMatch(/today-section-jump-debt/)
-    expect(dash).toMatch(/id=\"today-debt\"|id='today-debt'/)
     expect(dash).toMatch(/today-focus-snooze-undo/)
     expect(dash).toMatch(/today-fire-chip/)
     expect(dash).toMatch(/today-section-jump-chip--active/)

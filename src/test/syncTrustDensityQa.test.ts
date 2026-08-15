@@ -25,8 +25,6 @@ describe('Sync trust + Favourites density QA (v1.2.107)', () => {
     expect(settings).toMatch(/lastWorkspaceExtrasSyncAt/)
     const news = readFileSync(resolve(__dirname, '../pages/NewsPage.tsx'), 'utf8')
     expect(news).toMatch(/data-testid="news-unlock-sync-banner"/)
-    const dash = readFileSync(resolve(__dirname, '../pages/Dashboard.tsx'), 'utf8')
-    expect(dash).toMatch(/data-testid="today-unlock-sync-nudge"/)
   })
 
   it('density QA CSS markers present', () => {

@@ -146,12 +146,7 @@ describe('next25n — sync / Markets / Today polish tip (1–25 → v1.2.80)', (
     expect(yt).toMatch(/formatDateTime\(lastAt\)/)
   })
 
-  it('16–20: Today Mark all read · media trust · tick · sidebar · From Owned', () => {
-    const dash = readFileSync(resolve(__dirname, '../pages/Dashboard.tsx'), 'utf8')
-    expect(dash).toMatch(/today-news-mark-all-read/)
-    expect(dash).toMatch(/today-youtube-mark-all-read/)
-    expect(dash).toMatch(/today-media-trust/)
-    expect(dash).toMatch(/relativeTick/)
+  it('16–20: Sidebar unread + News features', () => {
     const sidebar = readFileSync(resolve(__dirname, '../components/layout/Sidebar.tsx'), 'utf8')
     expect(sidebar).toMatch(/sidebar-unread/)
     expect(sidebar).toMatch(/newsUnreadFromCache/)

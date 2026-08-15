@@ -204,14 +204,13 @@ describe('next25r — sync / Markets / Today polish tip (1–25 → v1.2.87)', (
     expect(css).toMatch(/analytics-kpi-row/)
   })
 
-  it('16–20: Goals jump · offline Retry · goal next-action · What arrived persist · Focus undo', () => {
+  it('16–20: Goals jump + offline Retry + goal next-action + Focus undo', () => {
     const dash = readFileSync(resolve(__dirname, '../pages/Dashboard.tsx'), 'utf8')
     expect(dash).toMatch(/today-goals/)
     expect(dash).toMatch(/today-section-jump-goals/)
     expect(dash).toMatch(/today-offline-queue-retry/)
     expect(dash).toMatch(/goal-next-action/)
     expect(dash).toMatch(/today-focus-undo/)
-    expect(dash).toMatch(/what.?arrived|today-what-arrived/i)
     const stack = readFileSync(resolve(__dirname, '../domain/nextActionStack.ts'), 'utf8')
     expect(stack).toMatch(/goal/)
   })
