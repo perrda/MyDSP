@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Check, Circle, X } from 'lucide-react'
+import { Check, Circle } from 'lucide-react'
 import { loadSyncConfig } from '../services/sync/syncService'
 import {
   hasRememberedSyncPassphrase,
