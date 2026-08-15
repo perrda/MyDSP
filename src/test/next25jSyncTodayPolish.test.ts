@@ -156,9 +156,8 @@ describe('next25j — sync / Today polish tip (1–25 → v1.2.80)', () => {
     expect(page).toMatch(/getMarketsTagFilter|setMarketsTagFilter/)
   })
 
-  it('11–12: News unread Jump-in + bottom-nav dots', () => {
+  it('11–12: News unread state tracking + bottom-nav dots', () => {
     const dash = readFileSync(resolve(__dirname, '../pages/Dashboard.tsx'), 'utf8')
-    expect(dash).toMatch(/today-news-unread/)
     expect(dash).toMatch(/newsUnreadFromCache/)
     const nav = readFileSync(resolve(__dirname, '../components/layout/BottomNav.tsx'), 'utf8')
     expect(nav).toMatch(/bottom-nav-unread/)

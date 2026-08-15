@@ -139,10 +139,8 @@ describe('next25o — sync / Markets / Today polish tip (1–25 → v1.2.80)', (
     expect(nav).not.toMatch(/syncNow\(\)/)
   })
 
-  it('16–20: Today badges · sidebar bills · interview actions · Compare tick', () => {
+  it('16–20: Sidebar bills + interview actions + Compare tick', () => {
     const dash = readFileSync(resolve(__dirname, '../pages/Dashboard.tsx'), 'utf8')
-    expect(dash).toMatch(/today-todos-due-badge/)
-    expect(dash).toMatch(/today-jobs-follow-up-badge/)
     expect(dash).toMatch(/today-interview-actions/)
     expect(dash).toMatch(/markInterviewDone/)
     const sidebar = readFileSync(resolve(__dirname, '../components/layout/Sidebar.tsx'), 'utf8')

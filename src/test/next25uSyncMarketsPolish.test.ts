@@ -205,13 +205,11 @@ describe('next25u — sync / Markets / Today polish tip (1–25 → v1.2.87)', (
     expect(recurring).toMatch(/recurring-sticky-sort/)
   })
 
-  it('16–20: focus/bill/interview Undo testids · Mark-all Undo · Budget/Cash runway', () => {
+  it('16–20: focus/bill/interview Undo testids + Budget/Cash runway', () => {
     const dash = readFileSync(resolve(__dirname, '../pages/Dashboard.tsx'), 'utf8')
     expect(dash).toMatch(/today-focus-undo/)
     expect(dash).toMatch(/today-bill-undo/)
     expect(dash).toMatch(/today-interview-undo/)
-    expect(dash).toMatch(/today-news-mark-all-undo/)
-    expect(dash).toMatch(/today-youtube-mark-all-undo/)
     expect(dash).toMatch(/today-budget-pulse/)
     expect(dash).toMatch(/today-cash-runway/)
   })

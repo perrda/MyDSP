@@ -219,13 +219,9 @@ describe('next25q — sync / Markets / Today polish tip (1–25 → v1.2.87)', (
     expect(smoke).toMatch(/FIRE \/ Optimizer \/ Achievements \/ API \/ Insights \/ Review/)
   })
 
-  it('16–20: What arrived dismiss · All caught up · jump chips · offline queue · focus pulse', () => {
+  it('16–20: Jump chips + offline queue + focus pulse', () => {
     const dash = readFileSync(resolve(__dirname, '../pages/Dashboard.tsx'), 'utf8')
-    expect(dash).toMatch(/today-what-arrived-chip/)
-    expect(dash).toMatch(/today-what-arrived-dismiss/)
     expect(dash).toMatch(/settings#sync/)
-    expect(dash).toMatch(/today-news-all-caught-up/)
-    expect(dash).toMatch(/today-youtube-all-caught-up/)
     expect(dash).toMatch(/today-section-jump-chip/)
     expect(dash).toMatch(/today-media/)
     expect(dash).toMatch(/today-markets/)

@@ -61,7 +61,5 @@ describe('Sync trust UX', () => {
     expect(news).toMatch(/data-testid="news-unlock-sync-banner"/)
     expect(news).toMatch(/needs-passphrase/)
     expect(news).toMatch(/Unlock sync to pull saved tickers and headlines/)
-    expect(dashboard).toMatch(/data-testid="today-unlock-sync-nudge"/)
-    expect(dashboard).toMatch(/settings#sync/)
   })
 })

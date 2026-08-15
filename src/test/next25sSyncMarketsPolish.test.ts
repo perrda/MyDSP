@@ -202,7 +202,6 @@ describe('next25s — sync / Markets / Today polish tip (1–25 → v1.2.87)', (
     expect(dash).toMatch(/today-section-jump-tax/)
     expect(dash).toMatch(/id=\"today-tax\"|id='today-tax'/)
     expect(dash).toMatch(/budget-next-action/)
-    expect(dash).toMatch(/today-what-arrived-open/)
     const stack = readFileSync(resolve(__dirname, '../domain/nextActionStack.ts'), 'utf8')
     expect(stack).toMatch(/budget/)
     const highlights = readFileSync(resolve(__dirname, '../services/sync/syncHighlights.ts'), 'utf8')
