@@ -211,6 +211,7 @@ textarea,
 html {
   scroll-behavior: smooth;
   font-family: var(--font-sans);
+  overflow-x: clip;
 }
 @media (min-width: 640px) {
   html {
@@ -602,13 +603,16 @@ html.theme-transitioning *::after {
 }
 
 /* Floating banners / toasts sit above the bottom tab bar + any thumb CTA.
- * Width is viewport-capped — max-w-sm (24rem) + 1rem left was 400px on a 390 frame. */
+ * Width is left + calc only — left 1rem + max-w-sm (24rem) is 400px on a 390 frame. */
 .floating-banner {
   box-sizing: border-box;
-  left: max(1rem, env(safe-area-inset-left, 0px));
-  right: max(1rem, env(safe-area-inset-right, 0px));
-  width: auto;
-  max-width: min(24rem, calc(100vw - 2rem));
+  left: max(0.75rem, env(safe-area-inset-left, 0px));
+  right: auto;
+  width: min(
+    24rem,
+    calc(100vw - 1.5rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))
+  );
+  max-width: calc(100vw - 1.5rem);
   bottom: max(
     1rem,
     calc(var(--thumb-cta-height, 0px) + env(safe-area-inset-bottom, 0px) + 0.5rem)
@@ -627,14 +631,25 @@ html.has-bottom-nav .floating-banner--toast {
     5.5rem + var(--thumb-cta-height, 0px) + 0.5rem + env(safe-area-inset-bottom, 0px)
   );
 }
-/* Phone: dock achievement/toasts under the header so they do not cover Markets rows */
-@media (max-width: 639px) {
+/* Phone + short landscape: one-line toast under the header.
+ * Bottom cards cover Markets My Crypto / BTC; tall top cards cover the first section. */
+@media (max-width: 639px), (orientation: landscape) and (max-height: 500px) {
   .floating-banner--toast,
   html.has-bottom-nav .floating-banner--toast {
-    top: calc(var(--app-header-offset, 3.5rem) + 0.35rem);
+    top: calc(var(--app-header-offset, 3.5rem) + 0.25rem);
     bottom: auto;
-    max-height: min(40dvh, 14rem);
-    overflow: auto;
+    max-height: 3.35rem;
+    overflow: hidden;
+  }
+  .floating-banner--toast:not(:has(*)) {
+    display: none;
+  }
+  .floating-banner--toast [role='status'] {
+    padding-top: 0.45rem;
+    padding-bottom: 0.45rem;
+  }
+  .floating-banner--toast .toast-extra {
+    display: none;
   }
 }
 
@@ -723,8 +738,7 @@ html.has-bottom-nav .floating-banner--toast {
   html.has-bottom-nav .app-content.app-content-with-bottom-nav {
     padding-bottom: calc(3.75rem + env(safe-area-inset-bottom, 0px));
   }
-  html.has-bottom-nav .floating-banner,
-  html.has-bottom-nav .floating-banner--toast {
+  html.has-bottom-nav .floating-banner:not(.floating-banner--toast) {
     bottom: calc(
       3.75rem + var(--thumb-cta-height, 0px) + env(safe-area-inset-bottom, 0px) + 0.35rem
     );
@@ -1662,7 +1676,8 @@ select:focus {
 
   .app-header-row {
     min-height: 3.25rem;
-    padding: 0.4rem 0.75rem;
+    padding: 0.4rem max(1.15rem, env(safe-area-inset-right, 0px)) 0.4rem
+      max(0.75rem, env(safe-area-inset-left, 0px));
     gap: 0.375rem;
     /* Must stay visible — More / Notifications menus escape below the row */
     overflow: visible;
@@ -1690,14 +1705,15 @@ select:focus {
   }
 
   .toolbar-select-currency {
-    width: 4.75rem !important;
-    min-width: 4.5rem;
-    max-width: 4.85rem;
+    width: 4.5rem !important;
+    min-width: 3.85rem;
+    max-width: 4.6rem;
+    flex-shrink: 1;
     font-size: 0.625rem !important;
     letter-spacing: 0.08em;
     padding-left: 0.35rem !important;
-    padding-right: 1.2rem !important;
-    background-position: right 0.35rem center;
+    padding-right: 1.1rem !important;
+    background-position: right 0.3rem center;
   }
 
   .toolbar-icon {
@@ -3509,6 +3525,33 @@ html.success-haptic-flash::after {
   /* Keep NET WORTH on the first landscape screen — install card must not eat the fold */
   .install-prompt {
     display: none;
+  }
+  /* Leftover desktop sidebar gutter at 844×390 — drawer stays off-canvas unless opened. */
+  .app-sidebar {
+    position: fixed !important;
+    width: min(20rem, 88vw) !important;
+    max-width: min(20rem, 88vw) !important;
+    z-index: 50 !important;
+    padding-top: env(safe-area-inset-top) !important;
+  }
+  .app-sidebar:not(.app-sidebar--open) {
+    transform: translateX(-110%) !important;
+  }
+  .app-sidebar .sidebar-close-btn,
+  .toolbar-menu-btn {
+    display: flex !important;
+  }
+  .bottom-nav {
+    display: flex !important;
+  }
+  .page-header {
+    display: none;
+  }
+  .floating-banner--toast,
+  html.has-bottom-nav .floating-banner--toast {
+    top: calc(var(--app-header-offset, 3.5rem) + 0.25rem);
+    bottom: auto;
+    max-height: 3.35rem;
   }
 }
 

@@ -86,7 +86,7 @@ export function ToastItem({ toast, onDismiss }: ToastItemProps) {
         <div className="min-w-0 flex-1">
           <p className="font-semibold text-sm mb-0.5">{toast.title}</p>
           {toast.message && (
-            <p className="text-xs text-text-muted leading-relaxed">{toast.message}</p>
+            <p className="toast-extra text-xs text-text-muted leading-relaxed">{toast.message}</p>
           )}
           {actions.length > 0 ? (
             <div className="mt-2 flex flex-wrap gap-x-3 gap-y-2">

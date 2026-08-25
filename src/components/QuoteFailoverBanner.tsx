@@ -30,7 +30,7 @@ export function QuoteFailoverBanner() {
 
   return (
     <div
-      className="floating-banner fixed left-[max(1rem,env(safe-area-inset-left))] z-[1390] max-w-sm surface border border-amber-500/50 border-l-2 border-l-amber-500 px-4 py-3"
+      className="floating-banner fixed z-[1390] surface border border-amber-500/50 border-l-2 border-l-amber-500 px-4 py-3"
       role="status"
     >
       <p className="text-sm font-semibold text-amber-700 dark:text-amber-300">Markets feeds degraded</p>
