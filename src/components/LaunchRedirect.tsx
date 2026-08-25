@@ -14,6 +14,12 @@ export function LaunchRedirect() {
   const done = useRef(false)
 
   useEffect(() => {
+    const hashRoute = location.hash.match(/^#(\/[-a-z0-9/]*)/i)
+    if (hashRoute) {
+      done.current = true
+      navigate(hashRoute[1], { replace: true })
+      return
+    }
     if (done.current) return
     // Only redirect the initial landing on Overview
     if (location.pathname !== '/' && location.pathname !== '') return

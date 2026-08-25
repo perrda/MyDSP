@@ -82,6 +82,17 @@ describe('cheap rail fixes (v1.2.117)', () => {
     expect(stripAt).toBeGreaterThan(missAt)
   })
 
+  it('does not show two To-dos sections at once; hash /#/settings routes to /settings', () => {
+    const dash = readFileSync(resolve(__dirname, '../pages/Dashboard.tsx'), 'utf8')
+    expect(dash).toMatch(/showDailyPlanCard = dailyPlanCardVisible && !nextCardVisible/)
+    const launch = readFileSync(resolve(__dirname, '../components/LaunchRedirect.tsx'), 'utf8')
+    expect(launch).toMatch(/hashRoute/)
+    expect(launch).toMatch(/\^#\(\\\/\[-a-z0-9\/\]\*\)/)
+    const tile = dash.slice(dash.indexOf('Crypto</p>'))
+    expect(tile).toMatch(/formatGBP\(crypto\.value\)/)
+    expect(tile).toMatch(/formatPct\(crypto\.pct\)/)
+  })
+
   it('points Open CSV import at the holding importer, not bare /crypto/1', () => {
     const crypto = readFileSync(resolve(__dirname, '../pages/CryptoPage.tsx'), 'utf8')
     expect(crypto).toMatch(/`\/crypto\/\$\{selectedHolding\.id\}\?import=1`/)

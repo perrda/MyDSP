@@ -1242,7 +1242,8 @@ export function Dashboard() {
 
   const goalProjection = useMemo(() => nearestGoalProjection(data), [data])
   const showNextCard = nextCardVisible
-  const showDailyPlanCard = dailyPlanCardVisible
+  // Copy rename made both accordion titles "To-dos". Keep one section when both are on.
+  const showDailyPlanCard = dailyPlanCardVisible && !nextCardVisible
   const showCareerPulseCard = isTodayCardVisible('careerPulse') && Boolean(careerPulse)
   const showBillsCard = isTodayCardVisible('bills')
   const showGoalsCard = isTodayCardVisible('goals') && Boolean(soonGoal || goalProjection)

@@ -24,6 +24,8 @@
 - **VWRL / VUSA:** treated as LSE GBP listings (no USD footer / no USD→GBP convert).
 - **Family flags:** `combined` false rolls up primary only; the same `portfolioId` is counted once. `shareDebt` still reconciles NW + debt = assets.
 - **Goal surplus:** monthly surplus subtracts liability minPay so projections are after debt service.
+- **Duplicate To-dos:** when Next and Daily plan are both on, only one To-dos section/chip shows.
+- **Hash `/#/settings`:** HashRouter-style paths redirect to `/settings`.
 
 ## [1.2.116] - 2026-08-14
 
