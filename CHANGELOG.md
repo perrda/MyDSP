@@ -12,6 +12,7 @@
 - **Alerts:** budget overrun and liability-due amounts use display-CCY `formatGBP`.
 - **Sample family:** partner demo totals are modest (not a £120k invented household).
 - **PIN copy:** Settings states the lock is a screen cover and does not encrypt local data.
+- **390 layout punches:** Install/toast banners cap at `100vw − 2rem` (was `1rem + 24rem` = 400px scrollWidth). Short phone landscape (844×390) no longer uses the tablet sidebar gutter; install card hides so NET WORTH stays on the first screen. Phone achievement toasts dock under the header so they do not cover Markets My Crypto / BTC.
 
 ## [1.2.116] - 2026-08-14
 

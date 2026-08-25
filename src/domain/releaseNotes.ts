@@ -41,8 +41,8 @@ export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
         to: '/goals',
       },
       {
-        text: 'Family rollup + budget pulse no longer fight the figure',
-        to: '/family',
+        text: 'Phone 390: no overflow, no leftover landscape gutter',
+        to: '/',
       },
     ],
   },

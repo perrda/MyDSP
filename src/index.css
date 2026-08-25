@@ -265,6 +265,8 @@ html.theme-transitioning *::after {
   min-height: 100vh;
   min-height: 100dvh;
   width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
 }
@@ -599,8 +601,14 @@ html.theme-transitioning *::after {
   padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
 }
 
-/* Floating banners / toasts sit above the bottom tab bar + any thumb CTA */
+/* Floating banners / toasts sit above the bottom tab bar + any thumb CTA.
+ * Width is viewport-capped — max-w-sm (24rem) + 1rem left was 400px on a 390 frame. */
 .floating-banner {
+  box-sizing: border-box;
+  left: max(1rem, env(safe-area-inset-left, 0px));
+  right: max(1rem, env(safe-area-inset-right, 0px));
+  width: auto;
+  max-width: min(24rem, calc(100vw - 2rem));
   bottom: max(
     1rem,
     calc(var(--thumb-cta-height, 0px) + env(safe-area-inset-bottom, 0px) + 0.5rem)
@@ -618,6 +626,16 @@ html.has-bottom-nav .floating-banner--toast {
   bottom: calc(
     5.5rem + var(--thumb-cta-height, 0px) + 0.5rem + env(safe-area-inset-bottom, 0px)
   );
+}
+/* Phone: dock achievement/toasts under the header so they do not cover Markets rows */
+@media (max-width: 639px) {
+  .floating-banner--toast,
+  html.has-bottom-nav .floating-banner--toast {
+    top: calc(var(--app-header-offset, 3.5rem) + 0.35rem);
+    bottom: auto;
+    max-height: min(40dvh, 14rem);
+    overflow: auto;
+  }
 }
 
 /* Bottom nav active affordance (beyond accent colour alone) */
@@ -2753,8 +2771,9 @@ html.a11y-reduce-motion *::after {
   }
 }
 
-/* 14: Landscape tablet — sticky sidebar, hide bottom-nav (768–1023) */
-@media (orientation: landscape) and (min-width: 768px) and (max-width: 1023px) {
+/* 14: Landscape tablet — sticky sidebar, hide bottom-nav (768–1023, tall).
+ * Short phone landscape (844×390) must keep the drawer + figure — no leftover gutter. */
+@media (orientation: landscape) and (min-width: 768px) and (max-width: 1023px) and (min-height: 501px) {
   .app-sidebar-backdrop {
     display: none !important;
   }
@@ -3486,6 +3505,10 @@ html.success-haptic-flash::after {
   .todos-sticky-filters {
     position: static;
     top: auto;
+  }
+  /* Keep NET WORTH on the first landscape screen — install card must not eat the fold */
+  .install-prompt {
+    display: none;
   }
 }
 
