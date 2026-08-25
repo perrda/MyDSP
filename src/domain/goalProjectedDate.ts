@@ -1,7 +1,8 @@
 /** Simple projected goal date from monthly surplus (estimate). */
 
 import type { Goal, GoalMetric, PortfolioData, SpendingEntry } from './types'
-import { goalCurrent } from './calc'
+import { isBudgetSpend } from './budgetChart'
+import { calcLiabilities, goalCurrent } from './calc'
 
 function ymdLocal(d: Date): string {
   const y = d.getFullYear()
@@ -23,10 +24,11 @@ export function goalRemaining(goal: Goal, current: number): number {
 }
 
 /**
- * Monthly surplus estimate:
+ * Monthly surplus estimate (after scheduled debt service):
  * 1) monthlyIncome − monthlyExpenses when income &gt; 0 and expenses set
  * 2) else monthlyIncome − avg monthly spend from spending entries (last ~3 months)
- * 3) null when income unavailable or surplus ≤ 0
+ * 3) minus liability minPay
+ * 4) null when income unavailable or surplus ≤ 0
  */
 export function estimateMonthlySurplus(data: PortfolioData, now = new Date()): number | null {
   const income = data.monthlyIncome ?? 0
@@ -36,7 +38,8 @@ export function estimateMonthlySurplus(data: PortfolioData, now = new Date()): n
   if (!(expenses > 0)) {
     expenses = avgMonthlySpend(data.spending, now)
   }
-  const surplus = income - expenses
+  const minPay = calcLiabilities(data).monthly
+  const surplus = income - expenses - minPay
   return surplus > 0 ? surplus : null
 }
 
@@ -47,6 +50,7 @@ function avgMonthlySpend(spending: SpendingEntry[] | undefined, now = new Date()
   for (const s of list) {
     const ym = (s.date ?? '').slice(0, 7)
     if (!/^\d{4}-\d{2}$/.test(ym)) continue
+    if (!isBudgetSpend(s)) continue
     months.set(ym, (months.get(ym) ?? 0) + Math.abs(s.amount))
   }
   if (months.size === 0) return 0
@@ -103,7 +107,7 @@ export function nearestGoalProjection(
   if (surplus == null) return null
   let best: GoalProjection | null = null
   for (const g of data.goals ?? []) {
-    const current = goalCurrent(data, g.metric)
+    const current = goalCurrent(data, g.metric, g)
     const proj = projectGoalDate(g, current, surplus, now)
     if (!proj) continue
     if (!best || proj.projectedDate < best.projectedDate) best = proj
@@ -114,7 +118,18 @@ export function nearestGoalProjection(
 export function formatGoalProjectionLine(
   proj: GoalProjection,
   formatDate: (d: string) => string,
+  now = new Date(),
 ): string {
   const m = proj.months < 1 ? '<1' : String(Math.ceil(proj.months))
-  return `Est. ${formatDate(proj.projectedDate)} if surplus holds (~${m} mo)`
+  const base = `Est. ${formatDate(proj.projectedDate)} if surplus holds (~${m} mo)`
+  const deadline = (proj.goal.deadline ?? '').slice(0, 10)
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(deadline)) return base
+  const today = ymdLocal(now)
+  if (deadline < today) {
+    return `${base} · deadline ${formatDate(deadline)} already passed`
+  }
+  if (proj.projectedDate > deadline) {
+    return `${base} · after deadline ${formatDate(deadline)}`
+  }
+  return base
 }

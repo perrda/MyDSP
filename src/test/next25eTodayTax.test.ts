@@ -7,6 +7,7 @@ describe('next25e Today / money / tax items 16-20', () => {
     const dashboard = readFileSync(resolve(__dirname, '../pages/Dashboard.tsx'), 'utf8')
 
     expect(dashboard).toMatch(/monthlyBudgetPulse/)
+    expect(dashboard).toMatch(/monthlyBudgetPulseFrom/)
     expect(dashboard).toMatch(/today-budget-pulse/)
     expect(dashboard).toMatch(/totalBudget/)
     expect(dashboard).toMatch(/to="\/budgets"/)

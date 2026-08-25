@@ -1,5 +1,6 @@
 import type {
   AssetTotals,
+  CryptoHolding,
   LiabilityTotals,
   NetWorthBreakdown,
   PortfolioData,
@@ -9,15 +10,69 @@ function included<T extends { includeInPortfolio?: boolean }>(items: T[]): T[] {
   return items.filter((i) => i.includeInPortfolio !== false)
 }
 
+/** Stables / cash-like crypto used for emergency-fund and allocation cash. */
+export const CASH_CRYPTO_SYMBOLS = new Set([
+  'USDC',
+  'USDT',
+  'DAI',
+  'GBP',
+  'GBPT',
+  'EURC',
+  'PYUSD',
+])
+
+export function isCashCryptoSymbol(symbol: string): boolean {
+  return CASH_CRYPTO_SYMBOLS.has(symbol.trim().toUpperCase())
+}
+
+/**
+ * Mark price for a crypto line. Equities already fall back to avgCost when
+ * livePrice is 0; unquoted crypto used to drop the whole position from NW.
+ */
+export function cryptoMarkPrice(c: Pick<CryptoHolding, 'qty' | 'price' | 'cost'>): number {
+  if (c.price > 0) return c.price
+  if (c.qty > 0 && c.cost > 0) return c.cost / c.qty
+  return 0
+}
+
+/**
+ * Fill leftover `price === 0` lines from cost/qty (equity parity).
+ * USDC must not stay £0 / −100% / 0% weight after BTC/ETH hydrate.
+ */
+export function applyCryptoCostFallback(data: PortfolioData): PortfolioData {
+  let changed = false
+  const crypto = data.crypto.map((c) => {
+    if (c.price > 0) return c
+    const mark = cryptoMarkPrice(c)
+    if (!(mark > 0)) return c
+    changed = true
+    return { ...c, price: mark }
+  })
+  return changed ? { ...data, crypto } : data
+}
+
+export function isEmergencyFundGoal(goal: { name?: string }): boolean {
+  return /^emergency fund$/i.test((goal.name ?? '').trim())
+}
+
 export function calcCrypto(data: PortfolioData): AssetTotals {
   let value = 0
   let cost = 0
   for (const c of included(data.crypto)) {
-    value += c.qty * c.price
+    value += c.qty * cryptoMarkPrice(c)
     cost += c.cost
   }
   const pnl = value - cost
   return { value, cost, pnl, pct: cost > 0 ? (pnl / cost) * 100 : 0 }
+}
+
+export function calcCash(data: PortfolioData): number {
+  let value = 0
+  for (const c of included(data.crypto)) {
+    if (!isCashCryptoSymbol(c.symbol)) continue
+    value += c.qty * cryptoMarkPrice(c)
+  }
+  return value
 }
 
 export function calcEquity(data: PortfolioData): AssetTotals {
@@ -65,8 +120,14 @@ export function calcBreakdown(data: PortfolioData): NetWorthBreakdown {
 }
 
 /** Current value for a goal metric (FCC getGoalCurrent). */
-export function goalCurrent(data: PortfolioData, metric: string): number {
-  switch (metric) {
+export function goalCurrent(
+  data: PortfolioData,
+  metric: string,
+  goal?: { name?: string },
+): number {
+  const resolved =
+    goal && isEmergencyFundGoal(goal) ? 'cash' : metric
+  switch (resolved) {
     case 'cc':
       return calcLiabilities(data).cc
     case 'debt':
@@ -77,13 +138,15 @@ export function goalCurrent(data: PortfolioData, metric: string): number {
       return calcEquity(data).value
     case 'crypto':
       return calcCrypto(data).value
+    case 'cash':
+      return calcCash(data)
     default:
       return 0
   }
 }
 
 export function goalProgress(data: PortfolioData, goal: PortfolioData['goals'][number]): number {
-  const current = goalCurrent(data, goal.metric)
+  const current = goalCurrent(data, goal.metric, goal)
   if (goal.metric === 'cc' || goal.metric === 'debt') {
     // Debt goals: target is usually 0 — progress = how much paid down from start
     const start = goal.startVal ?? current

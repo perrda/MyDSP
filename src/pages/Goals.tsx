@@ -89,7 +89,7 @@ export function GoalsPage() {
       metric: form.metric,
       deadline: form.deadline || new Date().toISOString().slice(0, 10),
       created: editing?.created || new Date().toISOString().slice(0, 10),
-      startVal: editing?.startVal ?? goalCurrent(form.metric),
+      startVal: editing?.startVal ?? goalCurrent(form.metric, form),
       ragStatus: form.ragStatus || undefined,
       commentaries: editing?.commentaries,
       sortOrder: editing?.sortOrder,
@@ -168,7 +168,7 @@ export function GoalsPage() {
           className="flex flex-col gap-px goals-list-density"
         >
           {(g) => {
-            const current = goalCurrent(g.metric)
+            const current = goalCurrent(g.metric, g)
             const progress = goalProgress(g)
             const notes = g.commentaries?.length ?? 0
             const projection =
@@ -291,6 +291,7 @@ export function GoalsPage() {
                 <option value="cc">Credit cards</option>
                 <option value="equity">Equities</option>
                 <option value="crypto">Crypto</option>
+                <option value="cash">Cash / stables</option>
               </select>
             </Field>
             <Field label="Target (GBP)">

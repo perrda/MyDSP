@@ -1,5 +1,32 @@
 # MyDSP Changelog
 
+## [1.2.117] - 2026-08-25
+
+### Fixed — Bug hunt (quotes, planning math, family, Today copy)
+- **Quote Worker origin allowlist:** localhost / 127.0.0.1 with Vite ports work again (the 1.2.116 check compared hostname-only `http://localhost` to entries that included `:5173`). Four-octet `10.x.x.x` and `172.16–31` LAN origins are allowed for phone-on-LAN testing. The `/` identity JSON now echoes the request Origin (was always `null`, which blocked the in-app smoke ping from the SPA).
+- **Crypto net worth:** unquoted lines (`price === 0`) now fall back to cost/qty, matching equities’ `livePrice || avgCost` — sample / stale quotes no longer drop the whole crypto sleeve from Today NW.
+- **Goal surplus:** spending-ledger fallback no longer treats `income` rows as expenses (same `isBudgetSpend` rule as Budgets).
+- **Goal estimate copy:** projection line states when the deadline already passed or the estimate lands after the deadline — no more “Est. 2028 if surplus holds” fighting “Goal overdue”.
+- **Budget pulse:** month pulse is omitted when no spend is logged — do not claim **0% used** next to a high debt-service alert.
+- **Family rollup:** with “Include debt in rollup” off, household NW is assets-only so NW + debt = assets.
+- **Alerts:** budget overrun and liability-due amounts use display-CCY `formatGBP`.
+- **Sample family:** partner demo totals are modest (not a £120k invented household).
+- **PIN copy:** Settings states the lock is a screen cover and does not encrypt local data.
+- **390 layout punches:** Install/toast banners cap at `100vw − 2rem` (was `1rem + 24rem` = 400px scrollWidth). Short phone landscape (844×390) no longer uses the tablet sidebar gutter; install card hides so NET WORTH stays on the first screen. Phone achievement toasts dock under the header so they do not cover Markets My Crypto / BTC.
+- **USDC after hydrate:** leftover `price === 0` stables pick up cost/qty once any coin has a live print — no more £0 / −100% / 0% weight next to Live BTC/ETH.
+- **Today chips:** accordion sections now own the chip id (not only `-panel`). Media chip jumps to a real News/YouTube strip.
+- **`/household`:** renders Family (Household), not a silent Today fallback.
+- **Crypto concentration:** banner is crypto-only (no VWRL / `/equities/1`) and weights use the same mark-price book so 37.6% ↔ 67.9% flicker is gone.
+- **Markets `?symbol=`:** query stays until a watchlist hit, then focuses the row (no bare `/markets` strip on a miss / late ticker load).
+- **Crypto CSV import:** Open CSV import goes to `/crypto/:id?import=1` and opens the holding trade-history importer.
+- **One asset engine:** Predictive Analytics uses the same `calcBreakdown` book as Today (livePrice||avgCost / crypto mark price + includeInPortfolio). Seed livePrice=0 no longer shows Analytics £0 vs Overview assets.
+- **Emergency fund:** seed + persisted “Emergency fund” goals use a **cash / stables** metric (USDC cost fallback), not total NW.
+- **VWRL / VUSA:** treated as LSE GBP listings (no USD footer / no USD→GBP convert).
+- **Family flags:** `combined` false rolls up primary only; the same `portfolioId` is counted once. `shareDebt` still reconciles NW + debt = assets.
+- **Goal surplus:** monthly surplus subtracts liability minPay so projections are after debt service.
+- **Duplicate To-dos:** when Next and Daily plan are both on, only one To-dos section/chip shows.
+- **Hash `/#/settings`:** HashRouter-style paths redirect to `/settings`.
+
 ## [1.2.116] - 2026-08-14
 
 ### Security & Quality — Engineering audit + CAS hardening

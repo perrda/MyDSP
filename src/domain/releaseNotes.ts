@@ -29,6 +29,32 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.117',
+    date: '2026-08-25',
+    bullets: [
+      {
+        text: 'Quote Worker: localhost + LAN origins work again',
+        to: '/markets',
+      },
+      {
+        text: 'Planning: crypto cost fallback · honest goal dates',
+        to: '/goals',
+      },
+      {
+        text: 'Phone 390: no overflow, no leftover landscape gutter',
+        to: '/',
+      },
+      {
+        text: 'USDC cost fallback · Today chips · /household',
+        to: '/household',
+      },
+      {
+        text: 'Emergency fund is cash · VWRL/VUSA GBP',
+        to: '/goals',
+      },
+    ],
+  },
+  {
     version: '1.2.116',
     date: '2026-08-04',
     bullets: [

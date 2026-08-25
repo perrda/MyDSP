@@ -40,14 +40,34 @@ const FEED_HOSTS = new Set([
   'youtube.com',
 ])
 
-function isOriginAllowed(origin) {
+function originVariants(url) {
+  const hostOnly = `${url.protocol}//${url.hostname}`
+  const hostPort = url.port ? `${url.protocol}//${url.hostname}:${url.port}` : hostOnly
+  return [hostPort, hostOnly]
+}
+
+function isLoopbackHost(hostname) {
+  return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]' || hostname === '::1'
+}
+
+function isPrivateLanHost(hostname) {
+  // 192.168.0.0/16 · 10.0.0.0/8 · 172.16.0.0/12
+  if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true
+  if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true
+  if (/^172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true
+  return false
+}
+
+/** Exported for unit tests — localhost ports must match (hostname-only compare used to drop :5173). */
+export function isOriginAllowed(origin) {
   if (!origin) return false
   try {
     const url = new URL(origin)
-    const base = `${url.protocol}//${url.hostname}`
-    if (ALLOWED_ORIGINS.has(base)) return true
-    // Allow local network IPs for mobile testing (192.168.x.x, 10.x.x.x)
-    if (url.hostname.match(/^(192\.168\.|10\.)\d+\.\d+$/)) return true
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return false
+    if (originVariants(url).some((variant) => ALLOWED_ORIGINS.has(variant))) return true
+    // Vite / wrangler / phone-on-LAN testing
+    if (isLoopbackHost(url.hostname)) return true
+    if (isPrivateLanHost(url.hostname)) return true
     return false
   } catch {
     return false
@@ -135,9 +155,14 @@ async function handleQuoteProxy(request) {
 
 export default {
   async fetch(request) {
-    const path = new URL(request.url).pathname
+    const url = new URL(request.url)
+    const path = url.pathname
+    const origin = request.headers.get('Origin')
     if (path === '/' || path === '/quote' || path === '/api/quote' || path === '/feed' || path === '/api/feed') {
-      if ((path === '/' || path === '/feed') && !new URL(request.url).searchParams.has('url')) {
+      if ((path === '/' || path === '/feed') && !url.searchParams.has('url')) {
+        if (request.method === 'OPTIONS') {
+          return new Response(null, { status: 204, headers: corsHeaders(origin) })
+        }
         return new Response(
           JSON.stringify({
             ok: true,
@@ -145,11 +170,11 @@ export default {
             usage: '/quote?url=' + encodeURIComponent('https://query1.finance.yahoo.com/...'),
             feeds: '/quote?url=' + encodeURIComponent('https://news.google.com/rss/search?q=...'),
           }),
-          { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders(null) } },
+          { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders(origin) } },
         )
       }
       return handleQuoteProxy(request)
     }
-    return new Response('Not found', { status: 404, headers: corsHeaders(null) })
+    return new Response('Not found', { status: 404, headers: corsHeaders(origin) })
   },
 }

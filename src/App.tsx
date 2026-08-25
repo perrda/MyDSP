@@ -109,6 +109,7 @@ export default function App() {
                         <Route path="review" element={<MonthlyReviewPage />} />
                         <Route path="trips" element={<TripsPage />} />
                         <Route path="family" element={<FamilyPage />} />
+                        <Route path="household" element={<FamilyPage />} />
                         <Route path="history" element={<HistoryPage />} />
                         <Route path="documents" element={<DocumentsPage />} />
                         <Route path="import" element={<EnhancedImportPage />} />

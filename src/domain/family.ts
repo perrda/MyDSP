@@ -36,11 +36,19 @@ export function calcFamilyTotals(
   let assets = 0
   let debt = 0
 
-  for (const m of family.members.filter((x) => x.isActive)) {
+  const active = family.members.filter((x) => x.isActive)
+  const members = family.settings.combined
+    ? active
+    : active.filter((m) => m.id === 'primary' || m.type === 'primary')
+  const seenPortfolios = new Set<string>()
+
+  for (const m of members) {
     let nw = 0
     let a = 0
     let d = 0
     if (m.portfolioId && portfolioBreakdowns.has(m.portfolioId)) {
+      if (seenPortfolios.has(m.portfolioId)) continue
+      seenPortfolios.add(m.portfolioId)
       const b = portfolioBreakdowns.get(m.portfolioId)!
       nw = b.netWorth
       a = b.assets
@@ -54,10 +62,17 @@ export function calcFamilyTotals(
       a = m.assets ?? 0
       d = m.debt ?? 0
     }
-    netWorth += nw
     assets += a
-    if (family.settings.shareDebt) debt += d
-    contributions.push({ id: m.id, name: m.name, netWorth: nw, pct: 0 })
+    if (family.settings.shareDebt) {
+      netWorth += nw
+      debt += d
+      contributions.push({ id: m.id, name: m.name, netWorth: nw, pct: 0 })
+    } else {
+      // "Include debt in rollup" off: contribute assets only so
+      // Household NW + Household debt === Household assets.
+      netWorth += a
+      contributions.push({ id: m.id, name: m.name, netWorth: a, pct: 0 })
+    }
   }
 
   for (const c of contributions) {

@@ -740,8 +740,8 @@ export function MarketsPage() {
       }
       return false
     })
-    setSearchParams({}, { replace: true })
     if (!hit) return
+    setSearchParams({}, { replace: true })
     const section =
       hit.kind === 'crypto'
         ? 'crypto'

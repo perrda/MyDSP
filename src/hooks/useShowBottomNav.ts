@@ -5,7 +5,7 @@ export type LayoutMode = 'phone' | 'tablet' | 'desktop'
 /**
  * Layout mode for chrome:
  * - desktop (≥1024px): permanent sidebar, no bottom nav
- * - landscape tablet (orientation landscape + ≥768px): sticky sidebar, no bottom nav
+ * - landscape tablet (orientation landscape + ≥768px + height > 500px): sticky sidebar, no bottom nav
  * - tablet (768–1023px portrait, or touch + mid width): bottom nav with roomier tabs
  * - phone (<768px): compact bottom nav
  */
@@ -13,9 +13,17 @@ function detectLayoutMode(): LayoutMode {
   if (typeof window === 'undefined') return 'phone'
   const wideDesktop = window.matchMedia('(min-width: 1024px)').matches
   if (wideDesktop) return 'desktop'
-  // Landscape iPad / tablet: prefer sticky sidebar over bottom-nav
+  // Phone landscape (844×390): never leave a desktop sidebar gutter, even in a
+  // mouse-only resized desktop window. Bottom nav + off-canvas drawer only.
+  const shortLandscape = window.matchMedia(
+    '(orientation: landscape) and (max-height: 500px)',
+  ).matches
+  if (shortLandscape) {
+    return window.matchMedia('(min-width: 768px)').matches ? 'tablet' : 'phone'
+  }
+  // Landscape iPad / tablet: prefer sticky sidebar over bottom-nav.
   const landscapeTablet = window.matchMedia(
-    '(orientation: landscape) and (min-width: 768px)',
+    '(orientation: landscape) and (min-width: 768px) and (min-height: 501px)',
   ).matches
   if (landscapeTablet) return 'desktop'
   // Mouse-only browsers keep desktop chrome (sidebar) even when the window is narrow
@@ -41,8 +49,11 @@ export function useLayoutMode(): LayoutMode {
     const wideMq = window.matchMedia('(min-width: 1024px)')
     const midMq = window.matchMedia('(min-width: 768px)')
     const landscapeMq = window.matchMedia('(orientation: landscape)')
+    const shortLandscapeMq = window.matchMedia(
+      '(orientation: landscape) and (max-height: 500px)',
+    )
     const landscapeTabletMq = window.matchMedia(
-      '(orientation: landscape) and (min-width: 768px)',
+      '(orientation: landscape) and (min-width: 768px) and (min-height: 501px)',
     )
     const pointerMq = window.matchMedia('(hover: hover) and (pointer: fine)')
     const update = () => setMode(detectLayoutMode())
@@ -50,12 +61,14 @@ export function useLayoutMode(): LayoutMode {
     wideMq.addEventListener('change', update)
     midMq.addEventListener('change', update)
     landscapeMq.addEventListener('change', update)
+    shortLandscapeMq.addEventListener('change', update)
     landscapeTabletMq.addEventListener('change', update)
     pointerMq.addEventListener('change', update)
     return () => {
       wideMq.removeEventListener('change', update)
       midMq.removeEventListener('change', update)
       landscapeMq.removeEventListener('change', update)
+      shortLandscapeMq.removeEventListener('change', update)
       landscapeTabletMq.removeEventListener('change', update)
       pointerMq.removeEventListener('change', update)
     }

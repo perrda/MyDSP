@@ -12,7 +12,7 @@ import { useToasts } from '../components/ToastProvider'
 import { usePortfolio } from '../context/PortfolioContext'
 import { evaluateAchievements } from '../domain/achievements'
 import { buildAlerts } from '../domain/alerts'
-import { isBudgetSpend, worstBudgetOffenders } from '../domain/budgetChart'
+import { isBudgetSpend, monthlyBudgetPulseFrom, worstBudgetOffenders } from '../domain/budgetChart'
 import {
   budgetCategoryUrl,
   planningMonteCarloUrl,
@@ -289,6 +289,7 @@ function TodayAccordionSection({
 
   return (
     <section
+      id={id}
       className={`today-accordion-section ${className}`}
       aria-label={ariaLabel}
       style={order == null ? undefined : { order }}
@@ -633,22 +634,10 @@ export function Dashboard() {
 
   const alerts = useMemo(() => buildAlerts(data), [data])
 
-  const monthlyBudgetPulse = useMemo(() => {
-    const totalBudget = Object.values(data.budgetGoals ?? {})
-      .filter((v) => v > 0)
-      .reduce((sum, v) => sum + v, 0)
-    if (!(totalBudget > 0)) return null
-    const ym = monthKey()
-    const spent = (data.spending ?? [])
-      .filter((s) => isBudgetSpend(s) && (s.date ?? '').startsWith(ym))
-      .reduce((sum, s) => sum + Math.abs(s.amount), 0)
-    return {
-      month: ym,
-      spent,
-      totalBudget,
-      ratio: totalBudget > 0 ? spent / totalBudget : 0,
-    }
-  }, [data.spending, data.budgetGoals])
+  const monthlyBudgetPulse = useMemo(
+    () => monthlyBudgetPulseFrom(data.spending, data.budgetGoals),
+    [data.spending, data.budgetGoals],
+  )
 
   const weekToDateSpend = useMemo(() => {
     const start = weekStartKey()
@@ -1253,7 +1242,8 @@ export function Dashboard() {
 
   const goalProjection = useMemo(() => nearestGoalProjection(data), [data])
   const showNextCard = nextCardVisible
-  const showDailyPlanCard = dailyPlanCardVisible
+  // Copy rename made both accordion titles "To-dos". Keep one section when both are on.
+  const showDailyPlanCard = dailyPlanCardVisible && !nextCardVisible
   const showCareerPulseCard = isTodayCardVisible('careerPulse') && Boolean(careerPulse)
   const showBillsCard = isTodayCardVisible('bills')
   const showGoalsCard = isTodayCardVisible('goals') && Boolean(soonGoal || goalProjection)
@@ -2409,6 +2399,30 @@ export function Dashboard() {
         <Link to="/tax" className="btn-secondary btn-sm shrink-0">
           Open Tax
         </Link>
+      </div>
+      ) : null}
+
+      {showMediaCard ? (
+      <div
+        id="today-media"
+        className="today-media-strip surface p-3 md:p-4 mb-3 rounded-xl md:rounded-none shadow-sm md:shadow-none flex flex-wrap items-center justify-between gap-2"
+      >
+        <div className="min-w-0">
+          <p className="text-xs uppercase tracking-wider text-text-subtle font-semibold mb-0.5">
+            Media
+          </p>
+          <p className="text-sm text-text-muted font-light">
+            News and YouTube favourites stay in sync across devices.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2 shrink-0">
+          <Link to="/news" className="btn-secondary btn-sm">
+            News
+          </Link>
+          <Link to="/youtube" className="btn-secondary btn-sm">
+            YouTube
+          </Link>
+        </div>
       </div>
       ) : null}
 

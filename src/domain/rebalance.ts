@@ -1,21 +1,20 @@
 /** Portfolio allocation & rebalance suggestions. */
 
+import { cryptoMarkPrice, isCashCryptoSymbol } from './calc'
 import type { CryptoHolding, TargetAllocations } from './types'
-
-const CASH_SYMBOLS = new Set(['USDC', 'USDT', 'DAI', 'GBP', 'GBPT', 'EURC', 'PYUSD'])
 
 export function getCashValue(crypto: CryptoHolding[]): number {
   return crypto
     .filter((c) => c.includeInPortfolio !== false)
-    .filter((c) => CASH_SYMBOLS.has(c.symbol.toUpperCase()))
-    .reduce((s, c) => s + c.qty * c.price, 0)
+    .filter((c) => isCashCryptoSymbol(c.symbol))
+    .reduce((s, c) => s + c.qty * cryptoMarkPrice(c), 0)
 }
 
 export function getInvestedCryptoValue(crypto: CryptoHolding[]): number {
   return crypto
     .filter((c) => c.includeInPortfolio !== false)
-    .filter((c) => !CASH_SYMBOLS.has(c.symbol.toUpperCase()))
-    .reduce((s, c) => s + c.qty * c.price, 0)
+    .filter((c) => !isCashCryptoSymbol(c.symbol))
+    .reduce((s, c) => s + c.qty * cryptoMarkPrice(c), 0)
 }
 
 export interface AllocationBreakdown {

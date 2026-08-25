@@ -38,7 +38,7 @@ function allowPullToRefresh(pathname: string): boolean {
   if (pathname === '/goals' || pathname === '/trips') return true
   if (pathname === '/history' || pathname === '/budgets' || pathname === '/import') return true
   if (pathname === '/import/legacy') return true
-  if (pathname === '/family' || pathname === '/documents') return true
+  if (pathname === '/family' || pathname === '/household' || pathname === '/documents') return true
   if (pathname === '/journal' || pathname === '/rules') return true
   if (pathname === '/settings' || pathname.startsWith('/settings')) return true
   if (pathname === '/staking' || pathname === '/planning' || pathname === '/smoke') return true
@@ -68,6 +68,7 @@ const titles: Record<string, { eyebrow: string; title: string }> = {
   '/review': { eyebrow: 'Insights', title: 'Monthly review' },
   '/trips': { eyebrow: 'Activity', title: 'Trips & splits' },
   '/family': { eyebrow: 'Household', title: 'Family' },
+  '/household': { eyebrow: 'Household', title: 'Family' },
   '/history': { eyebrow: 'Insights', title: 'History' },
   '/documents': { eyebrow: 'Vault', title: 'Documents' },
   '/todos': { eyebrow: 'Tasks', title: "To Do's" },

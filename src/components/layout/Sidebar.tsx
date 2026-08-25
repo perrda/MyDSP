@@ -260,6 +260,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         aria-label="Sidebar navigation"
         className={`
           app-sidebar
+          ${open ? 'app-sidebar--open' : ''}
           fixed inset-y-0 left-0 z-50 w-[min(20rem,88%)]
           bg-bg-elevated border-r border-border
           flex flex-col

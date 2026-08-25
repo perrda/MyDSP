@@ -92,6 +92,8 @@ describe('next25b mobile ergonomics (11–15)', () => {
     const hook = readFileSync(resolve(__dirname, '../hooks/useShowBottomNav.ts'), 'utf8')
     expect(hook).toMatch(/orientation: landscape/)
     expect(hook).toMatch(/min-width: 768px/)
+    expect(hook).toMatch(/min-height: 501px/)
+    expect(css).toMatch(/min-height: 501px/)
 
     const sidebar = readFileSync(resolve(__dirname, '../components/layout/Sidebar.tsx'), 'utf8')
     expect(sidebar).toMatch(/app-sidebar/)
@@ -168,6 +170,6 @@ describe('next25b mobile ergonomics (11–15)', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8')) as {
       version: string
     }
-    expect(pkg.version).toBe('1.2.116')
+    expect(pkg.version).toBe('1.2.117')
   })
 })

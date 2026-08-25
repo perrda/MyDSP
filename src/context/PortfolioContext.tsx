@@ -8,7 +8,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { goalCurrent, goalProgress } from '../domain/calc'
+import { applyCryptoCostFallback, goalCurrent, goalProgress } from '../domain/calc'
 import { calcBreakdownWithPaper } from '../domain/netWorthWithPaper'
 import { createEmptyPortfolio, createSamplePortfolio } from '../domain/defaults'
 import { upsertDailySnapshot } from '../domain/history'
@@ -78,7 +78,7 @@ interface PortfolioContextValue {
   importJson: (raw: unknown) => void
   exportJson: () => Record<string, unknown>
   fccDataPresent: boolean
-  goalCurrent: (metric: string) => number
+  goalCurrent: (metric: string, goal?: { name?: string }) => number
   goalProgress: (goal: PortfolioData['goals'][number]) => number
   privacy: boolean
   setPrivacy: (v: boolean) => void
@@ -104,11 +104,13 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
     const initial = loadPortfolio(getActivePortfolioId())
     const rates = loadCachedFxRates()
     const { data: migrated, migrated: didMigrate } = migrateEquityLivePricesToGbp(initial, rates)
-    if (didMigrate) {
-      savePortfolioImmediate(migrated, getActivePortfolioId())
+    const filled = applyLastSyncedQuotesToHoldings(migrated, { overwrite: false }).data
+    const priced = applyCryptoCostFallback(filled)
+    if (didMigrate || priced !== migrated) {
+      savePortfolioImmediate(priced, getActivePortfolioId())
     }
-    setDisplayCurrency(migrated.settings.currency || 'GBP', rates)
-    return migrated
+    setDisplayCurrency(priced.settings.currency || 'GBP', rates)
+    return priced
   })
   const [fccDataPresent, setFccDataPresent] = useState(() => hasFccData())
   const [refreshing, setRefreshing] = useState(false)
@@ -391,7 +393,7 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
         }
         // Fill any still-zero holdings from Markets last-synced quotes (do not clobber live)
         const filled = applyLastSyncedQuotesToHoldings(next, { overwrite: false })
-        next = filled.data
+        next = applyCryptoCostFallback(filled.data)
         const holdingUpdates = [
           ...next.crypto
             .filter((c) => c.price > 0)
@@ -597,7 +599,7 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
     importJson,
     exportJson,
     fccDataPresent,
-    goalCurrent: (metric) => goalCurrent(data, metric),
+    goalCurrent: (metric, goal) => goalCurrent(data, metric, goal),
     goalProgress: (goal) => goalProgress(data, goal),
     privacy: data.settings.privacy,
     setPrivacy,

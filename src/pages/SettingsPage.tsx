@@ -3056,9 +3056,9 @@ export function SettingsPage() {
           <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
             Same lock on <span className="text-text font-medium">iPhone and iPad</span>: enable a
             4-digit PIN, then register {getBiometricLabel()} so unlock leads with Face ID. PIN is
-            always the fallback if Face ID is cancelled or unavailable. Security stays on this
-            device and is not included in cloud backups. Use the installed PWA on HTTPS (e.g.
-            workers.dev) — Face ID needs a secure context.
+            always the fallback if Face ID is cancelled or unavailable. The lock is a screen cover
+            on this device — it does not encrypt local data. Credentials stay off cloud backups.
+            Use the installed PWA on HTTPS (e.g. workers.dev) — Face ID needs a secure context.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 max-w-lg">
             <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle">

@@ -1,8 +1,11 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.115**
+**Current version: 1.2.117**
 
-## Completed (through v1.2.115)
+## Completed (through v1.2.117)
+
+- Bug hunt (v1.2.117): quote origin allowlist (localhost ports + 10.x LAN) · crypto cost fallback · honest goal dates · budget pulse skips 0% used · family shareDebt reconcile · display-CCY alerts · PIN screen-cover copy · modest sample family · USDC leftover after hydrate · Today chip ids + Media target · /household → Family · crypto-only concentration · Markets ?symbol= honor · CSV import deep-link · one asset engine · emergency-fund cash metric · VWRL/VUSA GBP · family combined + no double-count · surplus after minPay
+
 
 - Next 10 wave 6 (v1.2.115): Today presets · Favourites density · Markets Yield hint · `/commodities` · remittance packs · broker alias suggestions · rule Accept/Dismiss · Analytics→Planning · Docs↔Job · liability/corp-action notifications
 - Next 10 wave 5 (v1.2.114): Today reorder+sync · merchant rule suggestions · liability due calendar · corporate-action strip · staking→cash income · Job→document vault · named scenarios · broker import report · bottom-tab editor · a11y/motion pass

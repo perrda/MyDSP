@@ -110,7 +110,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={value}>
       {children}
       <div
-        className="floating-banner floating-banner--toast fixed right-4 z-[1500] flex flex-col gap-3 max-w-sm w-[calc(100%-2rem)]"
+        className="floating-banner floating-banner--toast fixed z-[1500] flex flex-col gap-3"
         aria-live="polite"
       >
         {/* Regular toasts */}
@@ -134,10 +134,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                   Achievement unlocked
                 </p>
                 <p className="font-bold tracking-tight text-sm">{t.achievement.name}</p>
-                <p className="text-xs text-text-muted font-light leading-relaxed mt-0.5">
+                <p className="toast-extra text-xs text-text-muted font-light leading-relaxed mt-0.5">
                   {t.achievement.desc}
                 </p>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-text-subtle mt-2">
+                <p className="toast-extra text-[10px] font-bold uppercase tracking-widest text-text-subtle mt-2">
                   +{t.achievement.xp} XP ·{' '}
                   <Link to="/achievements" className="text-accent hover:underline">
                     View all
