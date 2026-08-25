@@ -8,7 +8,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { goalCurrent, goalProgress } from '../domain/calc'
+import { applyCryptoCostFallback, goalCurrent, goalProgress } from '../domain/calc'
 import { calcBreakdownWithPaper } from '../domain/netWorthWithPaper'
 import { createEmptyPortfolio, createSamplePortfolio } from '../domain/defaults'
 import { upsertDailySnapshot } from '../domain/history'
@@ -391,7 +391,7 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
         }
         // Fill any still-zero holdings from Markets last-synced quotes (do not clobber live)
         const filled = applyLastSyncedQuotesToHoldings(next, { overwrite: false })
-        next = filled.data
+        next = applyCryptoCostFallback(filled.data)
         const holdingUpdates = [
           ...next.crypto
             .filter((c) => c.price > 0)

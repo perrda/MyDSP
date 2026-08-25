@@ -20,6 +20,23 @@ export function cryptoMarkPrice(c: Pick<CryptoHolding, 'qty' | 'price' | 'cost'>
   return 0
 }
 
+/**
+ * After any coin has a live print, fill remaining zeros from cost/qty
+ * (USDC must not stay £0 / −100% while BTC/ETH show Live).
+ */
+export function applyCryptoCostFallback(data: PortfolioData): PortfolioData {
+  if (!data.crypto.some((c) => c.price > 0)) return data
+  let changed = false
+  const crypto = data.crypto.map((c) => {
+    if (c.price > 0) return c
+    const mark = cryptoMarkPrice(c)
+    if (!(mark > 0)) return c
+    changed = true
+    return { ...c, price: mark }
+  })
+  return changed ? { ...data, crypto } : data
+}
+
 export function calcCrypto(data: PortfolioData): AssetTotals {
   let value = 0
   let cost = 0

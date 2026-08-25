@@ -1,5 +1,8 @@
 import type { PortfolioData } from './types'
+import { cryptoMarkPrice } from './calc'
 import { equityUnitPriceGbp } from './migrateEquityGbp'
+
+export type PortfolioConcentrationKind = 'crypto' | 'equity'
 
 const KEY = 'mydsp_portfolio_concentration_pct'
 const META_KEY = 'mydsp_portfolio_concentration_pct_meta_v1'
@@ -104,15 +107,24 @@ export function importPortfolioConcentrationFromBackup(raw: unknown): void {
   }
 }
 
-export function includedPortfolioHoldingValue(data: PortfolioData): number {
+export function includedPortfolioHoldingValue(
+  data: PortfolioData,
+  kinds?: readonly PortfolioConcentrationKind[],
+): number {
+  const wantCrypto = !kinds || kinds.includes('crypto')
+  const wantEquity = !kinds || kinds.includes('equity')
   let total = 0
-  for (const c of data.crypto) {
-    if (c.includeInPortfolio === false) continue
-    total += c.qty * c.price
+  if (wantCrypto) {
+    for (const c of data.crypto) {
+      if (c.includeInPortfolio === false) continue
+      total += c.qty * cryptoMarkPrice(c)
+    }
   }
-  for (const e of data.equities) {
-    if (e.includeInPortfolio === false) continue
-    total += e.shares * equityUnitPriceGbp(e)
+  if (wantEquity) {
+    for (const e of data.equities) {
+      if (e.includeInPortfolio === false) continue
+      total += e.shares * equityUnitPriceGbp(e)
+    }
   }
   return total
 }
@@ -120,25 +132,32 @@ export function includedPortfolioHoldingValue(data: PortfolioData): number {
 export function portfolioConcentrationHits(
   data: PortfolioData,
   thresholdPct: number = loadPortfolioConcentrationThresholdPct(),
+  kinds?: readonly PortfolioConcentrationKind[],
 ): PortfolioConcentrationHit[] {
-  const total = includedPortfolioHoldingValue(data)
+  const total = includedPortfolioHoldingValue(data, kinds)
   if (!(total > 0)) return []
+  const wantCrypto = !kinds || kinds.includes('crypto')
+  const wantEquity = !kinds || kinds.includes('equity')
 
   const hits: PortfolioConcentrationHit[] = []
-  for (const c of data.crypto) {
-    if (c.includeInPortfolio === false) continue
-    const value = c.qty * c.price
-    const weightPct = (value / total) * 100
-    if (value > 0 && weightPct >= thresholdPct) {
-      hits.push({ kind: 'crypto', id: c.id, symbol: c.symbol, name: c.name, value, weightPct })
+  if (wantCrypto) {
+    for (const c of data.crypto) {
+      if (c.includeInPortfolio === false) continue
+      const value = c.qty * cryptoMarkPrice(c)
+      const weightPct = (value / total) * 100
+      if (value > 0 && weightPct >= thresholdPct) {
+        hits.push({ kind: 'crypto', id: c.id, symbol: c.symbol, name: c.name, value, weightPct })
+      }
     }
   }
-  for (const e of data.equities) {
-    if (e.includeInPortfolio === false) continue
-    const value = e.shares * equityUnitPriceGbp(e)
-    const weightPct = (value / total) * 100
-    if (value > 0 && weightPct >= thresholdPct) {
-      hits.push({ kind: 'equity', id: e.id, symbol: e.symbol, name: e.name, value, weightPct })
+  if (wantEquity) {
+    for (const e of data.equities) {
+      if (e.includeInPortfolio === false) continue
+      const value = e.shares * equityUnitPriceGbp(e)
+      const weightPct = (value / total) * 100
+      if (value > 0 && weightPct >= thresholdPct) {
+        hits.push({ kind: 'equity', id: e.id, symbol: e.symbol, name: e.name, value, weightPct })
+      }
     }
   }
   return hits.sort((a, b) => b.weightPct - a.weightPct)

@@ -13,6 +13,12 @@
 - **Sample family:** partner demo totals are modest (not a £120k invented household).
 - **PIN copy:** Settings states the lock is a screen cover and does not encrypt local data.
 - **390 layout punches:** Install/toast banners cap at `100vw − 2rem` (was `1rem + 24rem` = 400px scrollWidth). Short phone landscape (844×390) no longer uses the tablet sidebar gutter; install card hides so NET WORTH stays on the first screen. Phone achievement toasts dock under the header so they do not cover Markets My Crypto / BTC.
+- **USDC after hydrate:** leftover `price === 0` stables pick up cost/qty once any coin has a live print — no more £0 / −100% / 0% weight next to Live BTC/ETH.
+- **Today chips:** accordion sections now own the chip id (not only `-panel`). Media chip jumps to a real News/YouTube strip.
+- **`/household`:** renders Family (Household), not a silent Today fallback.
+- **Crypto concentration:** banner is crypto-only (no VWRL / `/equities/1`) and weights use the same mark-price book so 37.6% ↔ 67.9% flicker is gone.
+- **Markets `?symbol=`:** query stays until a watchlist hit, then focuses the row (no bare `/markets` strip on a miss / late ticker load).
+- **Crypto CSV import:** Open CSV import goes to `/crypto/:id?import=1` and opens the holding trade-history importer.
 
 ## [1.2.116] - 2026-08-14
 

@@ -2,6 +2,7 @@
 
 import type { PortfolioData } from './types'
 import { listMarketTickers, loadMarketQuotesCache } from '../storage/marketsStore'
+import { applyCryptoCostFallback } from './calc'
 import { appendHoldingPrices } from './holdingHistory'
 
 function normSym(s: string): string {
@@ -70,7 +71,8 @@ export function applyLastSyncedQuotesToHoldings(
   })
 
   if (cryptoN === 0 && equitiesN === 0) {
-    return { data, crypto: 0, equities: 0 }
+    const fallback = applyCryptoCostFallback(data)
+    return { data: fallback, crypto: 0, equities: 0 }
   }
 
   let next: PortfolioData = {
@@ -88,5 +90,6 @@ export function applyLastSyncedQuotesToHoldings(
       .map((e) => ({ kind: 'equity' as const, symbol: e.symbol, price: e.livePrice })),
   ]
   next = appendHoldingPrices(next, holdingUpdates, now)
+  next = applyCryptoCostFallback(next)
   return { data: next, crypto: cryptoN, equities: equitiesN }
 }

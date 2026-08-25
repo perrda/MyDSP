@@ -143,6 +143,16 @@ export function HoldingDetailPage() {
   const [tradeOpen, setTradeOpen] = useState(false)
   const [tradeSide, setTradeSide] = useState<'buy' | 'sell'>('buy')
   const [historyOpen, setHistoryOpen] = useState(false)
+
+  useEffect(() => {
+    const params = new URLSearchParams(search)
+    const imp = params.get('import')
+    if (imp !== '1' && imp !== 'csv') return
+    setHistoryOpen(true)
+    params.delete('import')
+    const q = params.toString()
+    navigate({ pathname, search: q ? `?${q}` : '' }, { replace: true })
+  }, [search, pathname, navigate])
   const [editingTrade, setEditingTrade] = useState<JournalEntry | null>(null)
   const [deleteTradeId, setDeleteTradeId] = useState<number | null>(null)
   const [shareHint, setShareHint] = useState<string | null>(null)

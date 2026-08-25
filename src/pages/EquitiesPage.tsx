@@ -239,7 +239,7 @@ export function EquitiesPage() {
   const [dismissTick, setDismissTick] = useState(0)
   const concentrationHits = useMemo(() => {
     void dismissTick
-    return portfolioConcentrationHits(data, concentrationThreshold).filter(
+    return portfolioConcentrationHits(data, concentrationThreshold, ['equity']).filter(
       (h) => !isAlertDismissed(concentrationDismissId(h.symbol)),
     )
   }, [data, concentrationThreshold, dismissTick])

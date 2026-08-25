@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createEmptyPortfolio, createSamplePortfolio } from './defaults'
-import { calcCrypto, calcEquity, calcNetWorth, cryptoMarkPrice } from './calc'
+import { applyCryptoCostFallback, calcCrypto, calcEquity, calcNetWorth, cryptoMarkPrice } from './calc'
 
 describe('calc — mark prices and net worth', () => {
   it('falls crypto back to cost/qty when live price is 0 (equity parity)', () => {
@@ -23,5 +23,21 @@ describe('calc — mark prices and net worth', () => {
     const crypto = calcCrypto(sample)
     expect(crypto.value).toBe(sample.crypto.reduce((s, c) => s + c.cost, 0))
     expect(calcNetWorth(sample)).toBeGreaterThan(0)
+  })
+
+  it('fills leftover zeros from cost after any coin has a live print', () => {
+    const data = createEmptyPortfolio()
+    data.crypto = [
+      { id: 1, symbol: 'BTC', name: 'Bitcoin', qty: 0.05, price: 80000, cost: 2000 },
+      { id: 3, symbol: 'USDC', name: 'USD Coin', qty: 1000, price: 0, cost: 1000 },
+    ]
+    const next = applyCryptoCostFallback(data)
+    expect(next.crypto.find((c) => c.symbol === 'USDC')?.price).toBe(1)
+    expect(applyCryptoCostFallback(data)).not.toBe(data)
+    const cold = applyCryptoCostFallback({
+      ...data,
+      crypto: data.crypto.map((c) => ({ ...c, price: 0 })),
+    })
+    expect(cold.crypto.every((c) => c.price === 0)).toBe(true)
   })
 })

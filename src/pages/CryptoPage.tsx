@@ -12,6 +12,7 @@ import { TradeModal } from '../components/ui/TradeModal'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
 import { SwipeHoldingRow } from '../components/ui/SwipeHoldingRow'
 import { usePortfolio } from '../context/PortfolioContext'
+import { cryptoMarkPrice } from '../domain/calc'
 import { applyTrade } from '../domain/trades'
 import { buildTaxDisposalHref } from '../domain/taxDisposalLink'
 import { applyLastSyncedQuotesToHoldings } from '../domain/lastSyncedHoldings'
@@ -158,11 +159,11 @@ export function CryptoPage() {
         ? [...filteredHoldings].sort((a, b) => {
             const av =
               a.includeInPortfolio !== false && includedPortfolioValue > 0
-                ? (a.qty * a.price) / includedPortfolioValue
+                ? (a.qty * cryptoMarkPrice(a)) / includedPortfolioValue
                 : -1
             const bv =
               b.includeInPortfolio !== false && includedPortfolioValue > 0
-                ? (b.qty * b.price) / includedPortfolioValue
+                ? (b.qty * cryptoMarkPrice(b)) / includedPortfolioValue
                 : -1
             if (bv !== av) return bv - av
             return a.symbol.localeCompare(b.symbol)
@@ -201,7 +202,7 @@ export function CryptoPage() {
         continue
       }
       includedCount++
-      includedValue += c.qty * c.price
+      includedValue += c.qty * cryptoMarkPrice(c)
     }
     return { includedValue, includedCount, excludedCount }
   }, [holdings])
@@ -209,7 +210,7 @@ export function CryptoPage() {
   const [dismissTick, setDismissTick] = useState(0)
   const concentrationHits = useMemo(() => {
     void dismissTick
-    return portfolioConcentrationHits(data, concentrationThreshold).filter(
+    return portfolioConcentrationHits(data, concentrationThreshold, ['crypto']).filter(
       (h) => !isAlertDismissed(concentrationDismissId(h.symbol)),
     )
   }, [data, concentrationThreshold, dismissTick])
@@ -265,8 +266,8 @@ export function CryptoPage() {
   const pieSlices = useMemo(
     () =>
       holdings
-        .filter((c) => c.includeInPortfolio !== false && c.qty * c.price > 0)
-        .map((c) => ({ name: c.symbol, value: c.qty * c.price }))
+        .filter((c) => c.includeInPortfolio !== false && c.qty * cryptoMarkPrice(c) > 0)
+        .map((c) => ({ name: c.symbol, value: c.qty * cryptoMarkPrice(c) }))
         .sort((a, b) => b.value - a.value),
     [holdings],
   )
@@ -438,7 +439,7 @@ export function CryptoPage() {
           </p>
         </div>
         {selectedHolding ? (
-          <Link to={`/crypto/${selectedHolding.id}`} className="btn-secondary btn-sm">
+          <Link to={`/crypto/${selectedHolding.id}?import=1`} className="btn-secondary btn-sm">
             Open CSV import
           </Link>
         ) : (
@@ -532,7 +533,7 @@ export function CryptoPage() {
         >
           <span>
             Concentration: {concentrationHits[0]!.symbol} is{' '}
-            {concentrationHits[0]!.weightPct.toFixed(1)}% of included portfolio value (threshold{' '}
+            {concentrationHits[0]!.weightPct.toFixed(1)}% of included crypto value (threshold{' '}
             {concentrationThreshold}%)
             {concentrationHits.length > 1 ? ` · +${concentrationHits.length - 1} more` : ''}.
           </span>
@@ -628,7 +629,8 @@ export function CryptoPage() {
           className="flex flex-col gap-3 md:gap-px"
         >
           {(c) => {
-            const value = c.qty * c.price
+            const mark = cryptoMarkPrice(c)
+            const value = c.qty * mark
             const pnl = value - c.cost
             const included = c.includeInPortfolio !== false
             const portfolioWeightPct =
@@ -684,7 +686,7 @@ export function CryptoPage() {
                 <div className={`holdings-list-row__metrics text-sm tabular-nums ${privacyClass(privacy)}`}>
                   <p className="font-semibold">{formatGBP(value)}</p>
                   <p className="text-xs text-text-subtle">
-                    {formatQty(c.qty)} · {formatGBPPrecise(c.price)}
+                    {formatQty(c.qty)} · {formatGBPPrecise(mark)}
                   </p>
                   <p className="text-[11px] text-text-subtle tabular-nums mt-0.5">
                     Cost {formatGBP(c.cost)} · P&L {formatGBP(pnl, { signed: true })}
@@ -783,7 +785,8 @@ export function CryptoPage() {
             aria-label={`Selected crypto detail for ${selectedHolding.symbol}`}
           >
             {(() => {
-              const value = selectedHolding.qty * selectedHolding.price
+              const mark = cryptoMarkPrice(selectedHolding)
+              const value = selectedHolding.qty * mark
               const pnl = value - selectedHolding.cost
               const weight =
                 selectedHolding.includeInPortfolio !== false && includedPortfolioValue > 0
@@ -808,7 +811,7 @@ export function CryptoPage() {
                     <div>
                       <dt className="text-xs uppercase tracking-wider text-text-subtle">Holding</dt>
                       <dd className="tabular-nums">
-                        {formatQty(selectedHolding.qty)} × {formatGBPPrecise(selectedHolding.price)}
+                        {formatQty(selectedHolding.qty)} × {formatGBPPrecise(mark)}
                       </dd>
                     </div>
                     <div>

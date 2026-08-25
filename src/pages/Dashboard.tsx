@@ -289,6 +289,7 @@ function TodayAccordionSection({
 
   return (
     <section
+      id={id}
       className={`today-accordion-section ${className}`}
       aria-label={ariaLabel}
       style={order == null ? undefined : { order }}
@@ -2397,6 +2398,30 @@ export function Dashboard() {
         <Link to="/tax" className="btn-secondary btn-sm shrink-0">
           Open Tax
         </Link>
+      </div>
+      ) : null}
+
+      {showMediaCard ? (
+      <div
+        id="today-media"
+        className="today-media-strip surface p-3 md:p-4 mb-3 rounded-xl md:rounded-none shadow-sm md:shadow-none flex flex-wrap items-center justify-between gap-2"
+      >
+        <div className="min-w-0">
+          <p className="text-xs uppercase tracking-wider text-text-subtle font-semibold mb-0.5">
+            Media
+          </p>
+          <p className="text-sm text-text-muted font-light">
+            News and YouTube favourites stay in sync across devices.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2 shrink-0">
+          <Link to="/news" className="btn-secondary btn-sm">
+            News
+          </Link>
+          <Link to="/youtube" className="btn-secondary btn-sm">
+            YouTube
+          </Link>
+        </div>
       </div>
       ) : null}
 

@@ -44,6 +44,10 @@ export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
         text: 'Phone 390: no overflow, no leftover landscape gutter',
         to: '/',
       },
+      {
+        text: 'USDC cost fallback · Today chips · /household',
+        to: '/household',
+      },
     ],
   },
   {
