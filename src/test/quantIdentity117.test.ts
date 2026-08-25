@@ -44,6 +44,10 @@ describe('quant identity (v1.2.117)', () => {
     })
     expect(persisted.goals[0]?.metric).toBe('cash')
     expect(goalCurrent(persisted, persisted.goals[0]!.metric)).toBe(1000)
+    expect(goalCurrent(sample, 'networth', { name: 'Emergency fund' })).toBe(1000)
+    expect(goalCurrent(sample, 'networth', { name: 'Emergency fund' })).not.toBe(
+      calcNetWorth(sample),
+    )
   })
 
   it('treats VWRL and VUSA as GBP LSE listings, not USD', () => {

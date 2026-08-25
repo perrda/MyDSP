@@ -36,11 +36,10 @@ export function cryptoMarkPrice(c: Pick<CryptoHolding, 'qty' | 'price' | 'cost'>
 }
 
 /**
- * After any coin has a live print, fill remaining zeros from cost/qty
- * (USDC must not stay £0 / −100% while BTC/ETH show Live).
+ * Fill leftover `price === 0` lines from cost/qty (equity parity).
+ * USDC must not stay £0 / −100% / 0% weight after BTC/ETH hydrate.
  */
 export function applyCryptoCostFallback(data: PortfolioData): PortfolioData {
-  if (!data.crypto.some((c) => c.price > 0)) return data
   let changed = false
   const crypto = data.crypto.map((c) => {
     if (c.price > 0) return c
@@ -50,6 +49,10 @@ export function applyCryptoCostFallback(data: PortfolioData): PortfolioData {
     return { ...c, price: mark }
   })
   return changed ? { ...data, crypto } : data
+}
+
+export function isEmergencyFundGoal(goal: { name?: string }): boolean {
+  return /^emergency fund$/i.test((goal.name ?? '').trim())
 }
 
 export function calcCrypto(data: PortfolioData): AssetTotals {
@@ -117,8 +120,14 @@ export function calcBreakdown(data: PortfolioData): NetWorthBreakdown {
 }
 
 /** Current value for a goal metric (FCC getGoalCurrent). */
-export function goalCurrent(data: PortfolioData, metric: string): number {
-  switch (metric) {
+export function goalCurrent(
+  data: PortfolioData,
+  metric: string,
+  goal?: { name?: string },
+): number {
+  const resolved =
+    goal && isEmergencyFundGoal(goal) ? 'cash' : metric
+  switch (resolved) {
     case 'cc':
       return calcLiabilities(data).cc
     case 'debt':
@@ -137,7 +146,7 @@ export function goalCurrent(data: PortfolioData, metric: string): number {
 }
 
 export function goalProgress(data: PortfolioData, goal: PortfolioData['goals'][number]): number {
-  const current = goalCurrent(data, goal.metric)
+  const current = goalCurrent(data, goal.metric, goal)
   if (goal.metric === 'cc' || goal.metric === 'debt') {
     // Debt goals: target is usually 0 — progress = how much paid down from start
     const start = goal.startVal ?? current

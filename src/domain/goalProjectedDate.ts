@@ -107,7 +107,7 @@ export function nearestGoalProjection(
   if (surplus == null) return null
   let best: GoalProjection | null = null
   for (const g of data.goals ?? []) {
-    const current = goalCurrent(data, g.metric)
+    const current = goalCurrent(data, g.metric, g)
     const proj = projectGoalDate(g, current, surplus, now)
     if (!proj) continue
     if (!best || proj.projectedDate < best.projectedDate) best = proj

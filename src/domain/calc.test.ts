@@ -46,6 +46,7 @@ describe('calc — mark prices and net worth', () => {
       ...data,
       crypto: data.crypto.map((c) => ({ ...c, price: 0 })),
     })
-    expect(cold.crypto.every((c) => c.price === 0)).toBe(true)
+    expect(cold.crypto.find((c) => c.symbol === 'USDC')?.price).toBe(1)
+    expect(cold.crypto.find((c) => c.symbol === 'BTC')?.price).toBe(40000)
   })
 })
