@@ -1,6 +1,7 @@
 /** Simple projected goal date from monthly surplus (estimate). */
 
 import type { Goal, GoalMetric, PortfolioData, SpendingEntry } from './types'
+import { isBudgetSpend } from './budgetChart'
 import { goalCurrent } from './calc'
 
 function ymdLocal(d: Date): string {
@@ -47,6 +48,7 @@ function avgMonthlySpend(spending: SpendingEntry[] | undefined, now = new Date()
   for (const s of list) {
     const ym = (s.date ?? '').slice(0, 7)
     if (!/^\d{4}-\d{2}$/.test(ym)) continue
+    if (!isBudgetSpend(s)) continue
     months.set(ym, (months.get(ym) ?? 0) + Math.abs(s.amount))
   }
   if (months.size === 0) return 0
@@ -114,7 +116,18 @@ export function nearestGoalProjection(
 export function formatGoalProjectionLine(
   proj: GoalProjection,
   formatDate: (d: string) => string,
+  now = new Date(),
 ): string {
   const m = proj.months < 1 ? '<1' : String(Math.ceil(proj.months))
-  return `Est. ${formatDate(proj.projectedDate)} if surplus holds (~${m} mo)`
+  const base = `Est. ${formatDate(proj.projectedDate)} if surplus holds (~${m} mo)`
+  const deadline = (proj.goal.deadline ?? '').slice(0, 10)
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(deadline)) return base
+  const today = ymdLocal(now)
+  if (deadline < today) {
+    return `${base} · deadline ${formatDate(deadline)} already passed`
+  }
+  if (proj.projectedDate > deadline) {
+    return `${base} · after deadline ${formatDate(deadline)}`
+  }
+  return base
 }

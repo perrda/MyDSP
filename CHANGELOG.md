@@ -1,5 +1,18 @@
 # MyDSP Changelog
 
+## [1.2.117] - 2026-08-25
+
+### Fixed — Bug hunt (quotes, planning math, family, Today copy)
+- **Quote Worker origin allowlist:** localhost / 127.0.0.1 with Vite ports work again (the 1.2.116 check compared hostname-only `http://localhost` to entries that included `:5173`). Four-octet `10.x.x.x` and `172.16–31` LAN origins are allowed for phone-on-LAN testing. The `/` identity JSON now echoes the request Origin (was always `null`, which blocked the in-app smoke ping from the SPA).
+- **Crypto net worth:** unquoted lines (`price === 0`) now fall back to cost/qty, matching equities’ `livePrice || avgCost` — sample / stale quotes no longer drop the whole crypto sleeve from Today NW.
+- **Goal surplus:** spending-ledger fallback no longer treats `income` rows as expenses (same `isBudgetSpend` rule as Budgets).
+- **Goal estimate copy:** projection line states when the deadline already passed or the estimate lands after the deadline — no more “Est. 2028 if surplus holds” fighting “Goal overdue”.
+- **Budget pulse:** month pulse is omitted when no spend is logged — do not claim **0% used** next to a high debt-service alert.
+- **Family rollup:** with “Include debt in rollup” off, household NW is assets-only so NW + debt = assets.
+- **Alerts:** budget overrun and liability-due amounts use display-CCY `formatGBP`.
+- **Sample family:** partner demo totals are modest (not a £120k invented household).
+- **PIN copy:** Settings states the lock is a screen cover and does not encrypt local data.
+
 ## [1.2.116] - 2026-08-14
 
 ### Security & Quality — Engineering audit + CAS hardening

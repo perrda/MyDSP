@@ -54,10 +54,17 @@ export function calcFamilyTotals(
       a = m.assets ?? 0
       d = m.debt ?? 0
     }
-    netWorth += nw
     assets += a
-    if (family.settings.shareDebt) debt += d
-    contributions.push({ id: m.id, name: m.name, netWorth: nw, pct: 0 })
+    if (family.settings.shareDebt) {
+      netWorth += nw
+      debt += d
+      contributions.push({ id: m.id, name: m.name, netWorth: nw, pct: 0 })
+    } else {
+      // "Include debt in rollup" off: contribute assets only so
+      // Household NW + Household debt === Household assets.
+      netWorth += a
+      contributions.push({ id: m.id, name: m.name, netWorth: a, pct: 0 })
+    }
   }
 
   for (const c of contributions) {

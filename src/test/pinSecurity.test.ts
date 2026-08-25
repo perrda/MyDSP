@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   clearAttempts,
@@ -87,6 +89,12 @@ describe('PIN security', () => {
     if (!window.PublicKeyCredential) {
       expect(supported).toBe(false)
     }
+  })
+
+  it('Settings copy says PIN is a screen cover, not encryption', () => {
+    const settings = readFileSync(resolve(__dirname, '../pages/SettingsPage.tsx'), 'utf8')
+    expect(settings).toMatch(/screen cover/)
+    expect(settings).toMatch(/does not encrypt local data/)
   })
 
   it('labels iPhone UA as Face ID', () => {

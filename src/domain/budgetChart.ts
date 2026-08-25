@@ -73,3 +73,31 @@ export function worstBudgetOffenders(
     .filter((r) => r.limit > 0)
     .sort((a, b) => b.ratio - a.ratio)
 }
+
+export interface MonthlyBudgetPulse {
+  month: string
+  spent: number
+  totalBudget: number
+  ratio: number
+}
+
+/**
+ * Month-to-date spend vs all budget limits.
+ * Returns null when there is no spend logged — do not claim "0% used".
+ */
+export function monthlyBudgetPulseFrom(
+  spending: SpendingEntry[],
+  budgetGoals: Record<string, number> | undefined,
+  now = new Date(),
+): MonthlyBudgetPulse | null {
+  const totalBudget = Object.values(budgetGoals ?? {})
+    .filter((v) => v > 0)
+    .reduce((sum, v) => sum + v, 0)
+  if (!(totalBudget > 0)) return null
+  const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  const spent = (spending ?? [])
+    .filter((s) => isBudgetSpend(s) && (s.date ?? '').startsWith(ym))
+    .reduce((sum, s) => sum + Math.abs(s.amount), 0)
+  if (!(spent > 0)) return null
+  return { month: ym, spent, totalBudget, ratio: spent / totalBudget }
+}

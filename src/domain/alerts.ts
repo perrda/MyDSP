@@ -1,6 +1,7 @@
 /** Overview / command-centre alerts. */
 
 import type { PortfolioData, RagStatus } from './types'
+import { formatGBP } from '../utils/format'
 import { calcBreakdown } from './calc'
 import { monthKey } from './monthUtils'
 import { calcAllocation, calcRebalanceActions } from './rebalance'
@@ -100,7 +101,7 @@ export function buildAlerts(data: PortfolioData): AppAlert[] {
         id: `budget-${category}`,
         severity: 'red',
         title: `Budget overrun: ${category}`,
-        detail: `Spent ${used.toFixed(0)} vs limit ${limit.toFixed(0)} this month.`,
+        detail: `Spent ${formatGBP(used)} vs limit ${formatGBP(limit)} this month.`,
         to: spendingTo,
       })
     } else if (used / limit >= 0.8) {
@@ -179,8 +180,8 @@ export function buildAlerts(data: PortfolioData): AppAlert[] {
       title: `Payment due: ${due.name}`,
       detail:
         due.daysUntil === 0
-          ? `Minimum ${due.minPay.toFixed(0)} due today.`
-          : `Minimum ${due.minPay.toFixed(0)} due in ${due.daysUntil} day${due.daysUntil === 1 ? '' : 's'}.`,
+          ? `Minimum ${formatGBP(due.minPay)} due today.`
+          : `Minimum ${formatGBP(due.minPay)} due in ${due.daysUntil} day${due.daysUntil === 1 ? '' : 's'}.`,
       to: `/liabilities/${due.kind}/${due.id}?payment=1&amount=${encodeURIComponent(String(due.minPay))}`,
     })
   }

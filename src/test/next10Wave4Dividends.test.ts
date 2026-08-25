@@ -1,7 +1,12 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { categoryMonthlySeries, isBudgetSpend, worstBudgetOffenders } from '../domain/budgetChart'
+import {
+  categoryMonthlySeries,
+  isBudgetSpend,
+  monthlyBudgetPulseFrom,
+  worstBudgetOffenders,
+} from '../domain/budgetChart'
 import type { SpendingEntry } from '../domain/types'
 
 const expense: SpendingEntry = {
@@ -34,6 +39,14 @@ describe('next-10 wave 4 dividend workflow', () => {
     expect(categoryMonthlySeries([dividend], 'income', 100, 1, new Date(2026, 6, 20))[0]?.spent).toBe(
       0,
     )
+    expect(monthlyBudgetPulseFrom([], { food: 450 }, new Date(2026, 6, 20))).toBeNull()
+    expect(monthlyBudgetPulseFrom([expense], { food: 450 }, new Date(2026, 6, 20))).toEqual({
+      month: '2026-07',
+      spent: 80,
+      totalBudget: 450,
+      ratio: 80 / 450,
+    })
+    expect(monthlyBudgetPulseFrom([dividend], { food: 450 }, new Date(2026, 6, 20))).toBeNull()
   })
 
   it('logs dividend cash with a highlighted Spending destination and honest tax copy', () => {

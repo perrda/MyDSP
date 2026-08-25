@@ -1,5 +1,6 @@
 import type {
   AssetTotals,
+  CryptoHolding,
   LiabilityTotals,
   NetWorthBreakdown,
   PortfolioData,
@@ -9,11 +10,21 @@ function included<T extends { includeInPortfolio?: boolean }>(items: T[]): T[] {
   return items.filter((i) => i.includeInPortfolio !== false)
 }
 
+/**
+ * Mark price for a crypto line. Equities already fall back to avgCost when
+ * livePrice is 0; unquoted crypto used to drop the whole position from NW.
+ */
+export function cryptoMarkPrice(c: Pick<CryptoHolding, 'qty' | 'price' | 'cost'>): number {
+  if (c.price > 0) return c.price
+  if (c.qty > 0 && c.cost > 0) return c.cost / c.qty
+  return 0
+}
+
 export function calcCrypto(data: PortfolioData): AssetTotals {
   let value = 0
   let cost = 0
   for (const c of included(data.crypto)) {
-    value += c.qty * c.price
+    value += c.qty * cryptoMarkPrice(c)
     cost += c.cost
   }
   const pnl = value - cost

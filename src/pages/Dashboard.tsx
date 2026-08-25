@@ -12,7 +12,7 @@ import { useToasts } from '../components/ToastProvider'
 import { usePortfolio } from '../context/PortfolioContext'
 import { evaluateAchievements } from '../domain/achievements'
 import { buildAlerts } from '../domain/alerts'
-import { isBudgetSpend, worstBudgetOffenders } from '../domain/budgetChart'
+import { isBudgetSpend, monthlyBudgetPulseFrom, worstBudgetOffenders } from '../domain/budgetChart'
 import {
   budgetCategoryUrl,
   planningMonteCarloUrl,
@@ -633,22 +633,10 @@ export function Dashboard() {
 
   const alerts = useMemo(() => buildAlerts(data), [data])
 
-  const monthlyBudgetPulse = useMemo(() => {
-    const totalBudget = Object.values(data.budgetGoals ?? {})
-      .filter((v) => v > 0)
-      .reduce((sum, v) => sum + v, 0)
-    if (!(totalBudget > 0)) return null
-    const ym = monthKey()
-    const spent = (data.spending ?? [])
-      .filter((s) => isBudgetSpend(s) && (s.date ?? '').startsWith(ym))
-      .reduce((sum, s) => sum + Math.abs(s.amount), 0)
-    return {
-      month: ym,
-      spent,
-      totalBudget,
-      ratio: totalBudget > 0 ? spent / totalBudget : 0,
-    }
-  }, [data.spending, data.budgetGoals])
+  const monthlyBudgetPulse = useMemo(
+    () => monthlyBudgetPulseFrom(data.spending, data.budgetGoals),
+    [data.spending, data.budgetGoals],
+  )
 
   const weekToDateSpend = useMemo(() => {
     const start = weekStartKey()

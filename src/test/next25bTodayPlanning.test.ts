@@ -123,6 +123,29 @@ describe('next25b today / planning (16–20)', () => {
     expect(proj!.projectedDate).toBe('2026-12-15')
     expect(formatGoalProjectionLine(proj!, (d) => d)).toMatch(/Est\. 2026-12-15/)
     expect(formatGoalProjectionLine(proj!, (d) => d)).toMatch(/if surplus holds/)
+    expect(formatGoalProjectionLine(proj!, (d) => d, new Date(2026, 6, 15))).not.toMatch(
+      /already passed/,
+    )
+
+    const overdue = projectGoalDate(
+      { ...goal, deadline: '2026-03-01' },
+      40_000,
+      2_000,
+      new Date(2026, 6, 15),
+    )
+    expect(
+      formatGoalProjectionLine(overdue!, (d) => d, new Date(2026, 6, 15)),
+    ).toMatch(/deadline 2026-03-01 already passed/)
+
+    const late = projectGoalDate(
+      { ...goal, deadline: '2026-09-01', target: 80_000 },
+      40_000,
+      2_000,
+      new Date(2026, 6, 15),
+    )
+    expect(formatGoalProjectionLine(late!, (d) => d, new Date(2026, 6, 15))).toMatch(
+      /after deadline 2026-09-01/,
+    )
 
     const data = createEmptyPortfolio()
     data.monthlyIncome = 5000
@@ -132,6 +155,29 @@ describe('next25b today / planning (16–20)', () => {
     const nearest = nearestGoalProjection(data, new Date(2026, 6, 15))
     expect(nearest).not.toBeNull()
     expect(estimateMonthlySurplus(data)).toBe(2000)
+
+    const incomeOnly = createEmptyPortfolio()
+    incomeOnly.monthlyIncome = 4000
+    incomeOnly.monthlyExpenses = 0
+    incomeOnly.spending = [
+      {
+        id: 1,
+        date: '2026-07-02',
+        amount: 3500,
+        description: 'Salary',
+        category: 'income',
+        method: 'transfer',
+      },
+      {
+        id: 2,
+        date: '2026-07-10',
+        amount: 200,
+        description: 'Groceries',
+        category: 'food',
+        method: 'debit',
+      },
+    ]
+    expect(estimateMonthlySurplus(incomeOnly, new Date(2026, 6, 15))).toBe(3800)
 
     const goalsPage = readFileSync(resolve(__dirname, '../pages/Goals.tsx'), 'utf8')
     expect(goalsPage).toMatch(/goal-projection-line/)
@@ -161,6 +207,6 @@ describe('next25b today / planning (16–20)', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8')) as {
       version: string
     }
-    expect(pkg.version).toBe('1.2.116')
+    expect(pkg.version).toBe('1.2.117')
   })
 })
