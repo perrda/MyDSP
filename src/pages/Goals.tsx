@@ -291,6 +291,7 @@ export function GoalsPage() {
                 <option value="cc">Credit cards</option>
                 <option value="equity">Equities</option>
                 <option value="crypto">Crypto</option>
+                <option value="cash">Cash / stables</option>
               </select>
             </Field>
             <Field label="Target (GBP)">

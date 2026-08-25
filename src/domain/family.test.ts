@@ -53,4 +53,34 @@ describe('calcFamilyTotals', () => {
     expect(totals.netWorth).toBe(16_000)
     expect(totals.contributions.map((c) => c.netWorth)).toEqual([10_000, 6_000])
   })
+
+  it('reads settings.combined and does not double-count the same portfolioId', () => {
+    const primaryOnly = calcFamilyTotals(
+      primary,
+      { ...family, settings: { ...family.settings, combined: false } },
+      map,
+    )
+    expect(primaryOnly.assets).toBe(10_000)
+    expect(primaryOnly.debt).toBe(2_000)
+    expect(primaryOnly.contributions).toHaveLength(1)
+
+    const dup: FamilyState = {
+      ...family,
+      members: [
+        ...family.members,
+        {
+          id: 'clone',
+          name: 'Clone',
+          role: 'Partner',
+          type: 'partner',
+          isActive: true,
+          portfolioId: 'p_partner',
+        },
+      ],
+    }
+    const totals = calcFamilyTotals(primary, dup, map)
+    expect(totals.assets).toBe(16_000)
+    expect(totals.debt).toBe(3_000)
+    expect(totals.contributions).toHaveLength(2)
+  })
 })

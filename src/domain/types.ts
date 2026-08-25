@@ -4,7 +4,7 @@ import type { TodoItem, TodoList } from './todo-types'
 import type { JobApplication } from './job-types'
 
 export type GoalType = 'debt' | 'networth' | 'investment'
-export type GoalMetric = 'cc' | 'networth' | 'debt' | 'equity' | 'crypto'
+export type GoalMetric = 'cc' | 'networth' | 'debt' | 'equity' | 'crypto' | 'cash'
 
 export type JournalType = 'buy' | 'sell' | 'staking' | 'transfer' | string
 

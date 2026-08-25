@@ -48,6 +48,10 @@ export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
         text: 'USDC cost fallback · Today chips · /household',
         to: '/household',
       },
+      {
+        text: 'Emergency fund is cash · VWRL/VUSA GBP',
+        to: '/goals',
+      },
     ],
   },
   {

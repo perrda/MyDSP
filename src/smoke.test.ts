@@ -94,6 +94,9 @@ describe('equity FX (USD→GBP)', () => {
     expect(equityNeedsUsdToGbp('TSLA')).toBe(true)
     expect(equityNativeCurrency('VOD.L')).toBe('GBP')
     expect(equityNeedsUsdToGbp('VOD.L')).toBe(false)
+    expect(equityNativeCurrency('VWRL')).toBe('GBP')
+    expect(equityNativeCurrency('VUSA')).toBe('GBP')
+    expect(equityNeedsUsdToGbp('VWRL')).toBe(false)
   })
 
   it('migrates livePrice once and sets equityPricesAreGbp', async () => {

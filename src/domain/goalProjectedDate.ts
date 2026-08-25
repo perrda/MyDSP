@@ -2,7 +2,7 @@
 
 import type { Goal, GoalMetric, PortfolioData, SpendingEntry } from './types'
 import { isBudgetSpend } from './budgetChart'
-import { goalCurrent } from './calc'
+import { calcLiabilities, goalCurrent } from './calc'
 
 function ymdLocal(d: Date): string {
   const y = d.getFullYear()
@@ -24,10 +24,11 @@ export function goalRemaining(goal: Goal, current: number): number {
 }
 
 /**
- * Monthly surplus estimate:
+ * Monthly surplus estimate (after scheduled debt service):
  * 1) monthlyIncome − monthlyExpenses when income &gt; 0 and expenses set
  * 2) else monthlyIncome − avg monthly spend from spending entries (last ~3 months)
- * 3) null when income unavailable or surplus ≤ 0
+ * 3) minus liability minPay
+ * 4) null when income unavailable or surplus ≤ 0
  */
 export function estimateMonthlySurplus(data: PortfolioData, now = new Date()): number | null {
   const income = data.monthlyIncome ?? 0
@@ -37,7 +38,8 @@ export function estimateMonthlySurplus(data: PortfolioData, now = new Date()): n
   if (!(expenses > 0)) {
     expenses = avgMonthlySpend(data.spending, now)
   }
-  const surplus = income - expenses
+  const minPay = calcLiabilities(data).monthly
+  const surplus = income - expenses - minPay
   return surplus > 0 ? surplus : null
 }
 

@@ -117,23 +117,8 @@ export function PredictiveAnalyticsPage() {
 
   const budgetGoals = useMemo(() => data.budgetGoals, [data.budgetGoals])
 
-  const totalAssets = useMemo(() => 
-    data.crypto.reduce(
-      (sum, c) => sum + (c.includeInPortfolio === false ? 0 : c.qty * c.price),
-      0,
-    ) +
-    data.equities.reduce(
-      (sum, e) => sum + (e.includeInPortfolio === false ? 0 : e.shares * e.livePrice),
-      0,
-    ),
-    [data.crypto, data.equities]
-  )
-
-  const totalLiabilities = useMemo(() => 
-    data.creditCards.reduce((sum, c) => sum + c.balance, 0) +
-    data.loans.reduce((sum, l) => sum + l.balance, 0),
-    [data.creditCards, data.loans]
-  )
+  const totalAssets = breakdown.assets
+  const totalLiabilities = breakdown.liabilities
 
   const monthlyExpenses = useMemo(() => {
     const now = new Date()

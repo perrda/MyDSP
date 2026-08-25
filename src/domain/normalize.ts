@@ -316,7 +316,12 @@ function normalizeGoals(raw: unknown): Goal[] {
       name: str(r.name, 'Goal'),
       type: str(r.type, 'networth') as Goal['type'],
       target: num(r.target),
-      metric: str(r.metric, 'networth') as Goal['metric'],
+      metric: (() => {
+        const metric = str(r.metric, 'networth') as Goal['metric']
+        const name = str(r.name, 'Goal')
+        if (metric === 'networth' && /^emergency fund$/i.test(name)) return 'cash'
+        return metric
+      })(),
       deadline: str(r.deadline),
       created: str(r.created),
       startVal: r.startVal !== undefined ? num(r.startVal) : undefined,

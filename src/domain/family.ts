@@ -36,11 +36,19 @@ export function calcFamilyTotals(
   let assets = 0
   let debt = 0
 
-  for (const m of family.members.filter((x) => x.isActive)) {
+  const active = family.members.filter((x) => x.isActive)
+  const members = family.settings.combined
+    ? active
+    : active.filter((m) => m.id === 'primary' || m.type === 'primary')
+  const seenPortfolios = new Set<string>()
+
+  for (const m of members) {
     let nw = 0
     let a = 0
     let d = 0
     if (m.portfolioId && portfolioBreakdowns.has(m.portfolioId)) {
+      if (seenPortfolios.has(m.portfolioId)) continue
+      seenPortfolios.add(m.portfolioId)
       const b = portfolioBreakdowns.get(m.portfolioId)!
       nw = b.netWorth
       a = b.assets

@@ -19,6 +19,11 @@
 - **Crypto concentration:** banner is crypto-only (no VWRL / `/equities/1`) and weights use the same mark-price book so 37.6% ↔ 67.9% flicker is gone.
 - **Markets `?symbol=`:** query stays until a watchlist hit, then focuses the row (no bare `/markets` strip on a miss / late ticker load).
 - **Crypto CSV import:** Open CSV import goes to `/crypto/:id?import=1` and opens the holding trade-history importer.
+- **One asset engine:** Predictive Analytics uses the same `calcBreakdown` book as Today (livePrice||avgCost / crypto mark price + includeInPortfolio). Seed livePrice=0 no longer shows Analytics £0 vs Overview assets.
+- **Emergency fund:** seed + persisted “Emergency fund” goals use a **cash / stables** metric (USDC cost fallback), not total NW.
+- **VWRL / VUSA:** treated as LSE GBP listings (no USD footer / no USD→GBP convert).
+- **Family flags:** `combined` false rolls up primary only; the same `portfolioId` is counted once. `shareDebt` still reconciles NW + debt = assets.
+- **Goal surplus:** monthly surplus subtracts liability minPay so projections are after debt service.
 
 ## [1.2.116] - 2026-08-14
 

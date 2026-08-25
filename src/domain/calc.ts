@@ -10,6 +10,21 @@ function included<T extends { includeInPortfolio?: boolean }>(items: T[]): T[] {
   return items.filter((i) => i.includeInPortfolio !== false)
 }
 
+/** Stables / cash-like crypto used for emergency-fund and allocation cash. */
+export const CASH_CRYPTO_SYMBOLS = new Set([
+  'USDC',
+  'USDT',
+  'DAI',
+  'GBP',
+  'GBPT',
+  'EURC',
+  'PYUSD',
+])
+
+export function isCashCryptoSymbol(symbol: string): boolean {
+  return CASH_CRYPTO_SYMBOLS.has(symbol.trim().toUpperCase())
+}
+
 /**
  * Mark price for a crypto line. Equities already fall back to avgCost when
  * livePrice is 0; unquoted crypto used to drop the whole position from NW.
@@ -46,6 +61,15 @@ export function calcCrypto(data: PortfolioData): AssetTotals {
   }
   const pnl = value - cost
   return { value, cost, pnl, pct: cost > 0 ? (pnl / cost) * 100 : 0 }
+}
+
+export function calcCash(data: PortfolioData): number {
+  let value = 0
+  for (const c of included(data.crypto)) {
+    if (!isCashCryptoSymbol(c.symbol)) continue
+    value += c.qty * cryptoMarkPrice(c)
+  }
+  return value
 }
 
 export function calcEquity(data: PortfolioData): AssetTotals {
@@ -105,6 +129,8 @@ export function goalCurrent(data: PortfolioData, metric: string): number {
       return calcEquity(data).value
     case 'crypto':
       return calcCrypto(data).value
+    case 'cash':
+      return calcCash(data)
     default:
       return 0
   }

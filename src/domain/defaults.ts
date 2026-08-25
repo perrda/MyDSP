@@ -94,7 +94,7 @@ export function createSamplePortfolio(): PortfolioData {
         name: 'Emergency fund',
         type: 'networth',
         target: 10000,
-        metric: 'networth',
+        metric: 'cash',
         deadline: '2027-06-30',
         created: '2026-01-01',
       },

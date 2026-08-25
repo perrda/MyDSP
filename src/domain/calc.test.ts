@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { createEmptyPortfolio, createSamplePortfolio } from './defaults'
-import { applyCryptoCostFallback, calcCrypto, calcEquity, calcNetWorth, cryptoMarkPrice } from './calc'
+import {
+  applyCryptoCostFallback,
+  calcCrypto,
+  calcEquity,
+  calcNetWorth,
+  cryptoMarkPrice,
+  goalCurrent,
+} from './calc'
 
 describe('calc — mark prices and net worth', () => {
   it('falls crypto back to cost/qty when live price is 0 (equity parity)', () => {
@@ -23,6 +30,7 @@ describe('calc — mark prices and net worth', () => {
     const crypto = calcCrypto(sample)
     expect(crypto.value).toBe(sample.crypto.reduce((s, c) => s + c.cost, 0))
     expect(calcNetWorth(sample)).toBeGreaterThan(0)
+    expect(goalCurrent(sample, 'cash')).toBe(1000)
   })
 
   it('fills leftover zeros from cost after any coin has a live print', () => {

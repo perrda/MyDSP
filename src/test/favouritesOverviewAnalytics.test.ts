@@ -37,8 +37,8 @@ describe('favourites Overview + predictive analytics fixes', () => {
   it('uses predictive market values, privacy classes, honest copy, and action links', () => {
     const page = readFileSync(resolve(__dirname, '../pages/PredictiveAnalyticsPage.tsx'), 'utf8')
 
-    expect(page).toMatch(/c\.qty \* c\.price/)
-    expect(page).toMatch(/e\.shares \* e\.livePrice/)
+    expect(page).toMatch(/const totalAssets = breakdown\.assets/)
+    expect(page).toMatch(/const totalLiabilities = breakdown\.liabilities/)
     expect(page).toMatch(/privacyClass\(privacy\)/)
     expect(page).toMatch(/Projection models/)
     expect(page).not.toMatch(/AI-powered/)
