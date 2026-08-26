@@ -1,5 +1,19 @@
 # MyDSP Changelog
 
+## [1.2.118] - 2026-08-26
+
+### Fixed — Bug hunt (planning math, Optimizer, deep-links)
+- **Optimizer:** avalanche/snowball now rolls freed minimum payments onto remaining debts (payoff months match the strategy compare engine).
+- **Predictive Analytics:** expenses use Settings / budget spend (income rows excluded); surplus and FIRE-ish years subtract liability minPay; emergency-fund months use cash/stables.
+- **Analytics:** “Spend this month” and radar income/savings use real cashflow, not invented `spend × 1.2`.
+- **Markets + full report:** unquoted holdings use the same mark-price engine (`cryptoMarkPrice` / `livePrice || avgCost`).
+- **Sync Open first:** `/journal?highlight=` and `/todos?list=` now select and scroll to the arrived row/list.
+- **Planning:** Analytics → Planning honours `inflation` and `scenario` (real return = mean − inflation).
+- **Commodities:** App header title + pull-to-refresh match other holdings pages.
+- **Markets migrate:** default-ticker / section-order writes are silent (no dirty empty push).
+- **Today:** Daily plan and Career jump chips highlight while scrolling; weekly-digest listener no longer rebinds every render.
+- **Liability commentary:** payment notes follow display CCY.
+
 ## [1.2.117] - 2026-08-25
 
 ### Fixed — Bug hunt (quotes, planning math, family, Today copy)

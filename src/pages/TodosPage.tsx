@@ -202,6 +202,25 @@ export function TodosPage() {
     return () => window.clearInterval(id)
   }, [success])
 
+  // Deep-link: /todos?list=<id> selects the synced list (focus wins if both present)
+  useEffect(() => {
+    if (searchParams.get('focus')) return
+    const raw = searchParams.get('list')
+    if (!raw) return
+    const id = Number(raw)
+    if (!Number.isFinite(id)) {
+      setSearchParams({}, { replace: true })
+      return
+    }
+    const list = lists.find((l) => l.id === id)
+    if (!list) {
+      setSearchParams({}, { replace: true })
+      return
+    }
+    setSelectedListId(id)
+    setSearchParams({}, { replace: true })
+  }, [searchParams, lists, setSearchParams])
+
   // Deep-link: /todos?focus=<id> selects list, reveals item, scrolls into view
   useEffect(() => {
     const raw = searchParams.get('focus')

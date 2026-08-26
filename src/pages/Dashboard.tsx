@@ -734,11 +734,14 @@ export function Dashboard() {
     setDigestOpen(true)
   }
 
+  const openWeeklyDigestRef = useRef(openWeeklyDigest)
+  openWeeklyDigestRef.current = openWeeklyDigest
+
   useEffect(() => {
-    const open = () => openWeeklyDigest()
+    const open = () => openWeeklyDigestRef.current()
     window.addEventListener('mydsp-open-weekly-digest', open)
     return () => window.removeEventListener('mydsp-open-weekly-digest', open)
-  })
+  }, [])
 
   useEffect(() => {
     try {
@@ -1071,10 +1074,11 @@ export function Dashboard() {
   useEffect(() => {
     const sectionIds = [
       'today-next-action',
+      'today-daily-plan',
+      'today-career-pulse',
       'today-bills',
       'today-goals',
       'today-tax',
-      'today-debt',
       'today-budget-pulse',
       'today-cash-runway',
       'today-fire-chip',

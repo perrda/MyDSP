@@ -10,6 +10,8 @@ import {
   mean
 } from '../domain/advancedMath'
 import { formatGBP } from '../utils/format'
+import { goalCurrent, goalProgress } from '../domain/calc'
+import { goalRemaining } from '../domain/goalProjectedDate'
 import { TrendingUp, AlertTriangle, Lightbulb, Target, Zap } from 'lucide-react'
 
 interface AdvancedInsight {
@@ -151,24 +153,14 @@ export function AdvancedAnalyticsDashboard() {
       if (data.goals && data.goals.length > 0) {
         data.goals.forEach(goal => {
           // Calculate current value based on goal metric
-          let currentValue = 0
-          if (goal.metric === 'networth') {
-            currentValue = data.history && data.history.length > 0 
-              ? data.history[data.history.length - 1].netWorth 
-              : 0
-          } else if (goal.metric === 'debt') {
-            const totalDebt = (data.creditCards?.reduce((sum, cc) => sum + cc.balance, 0) || 0) +
-                             (data.loans?.reduce((sum, l) => sum + l.balance, 0) || 0)
-            currentValue = totalDebt
-          }
-
-          const progress = (currentValue / goal.target) * 100
+          const currentValue = goalCurrent(data, goal.metric, goal)
+          const progress = goalProgress(data, goal)
           const deadline = new Date(goal.deadline)
           const now = new Date()
           const daysRemaining = Math.max(0, Math.floor((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
           
           if (daysRemaining > 0 && progress < 80) {
-            const remaining = goal.target - currentValue
+            const remaining = goalRemaining(goal, currentValue)
             const dailyRequired = remaining / daysRemaining
 
             results.push({

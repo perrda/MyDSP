@@ -17,6 +17,7 @@ import { Download, FileText, Table as TableIcon, Printer, CheckCircle } from 'lu
 import { logger } from '../utils/logger'
 import { useToasts } from './ToastProvider'
 import { formatGBP } from '../utils/format'
+import { cryptoMarkPrice } from '../domain/calc'
 
 type ExportFormat = 'pdf' | 'excel' | 'csv'
 type ExportType = 'transactions' | 'spending' | 'goals' | 'portfolio' | 'jobs' | 'todos' | 'full'
@@ -63,7 +64,7 @@ export function DataExportPanel() {
         title = 'Portfolio Summary'
         htmlContent = `
           <h1>Portfolio Summary</h1>
-          <h2>Net Worth: ${data.history?.[data.history.length - 1]?.netWorth.toFixed(2) || 'N/A'}</h2>
+          <h2>Net Worth: ${data.history?.[data.history.length - 1]?.netWorth != null ? formatGBP(data.history[data.history.length - 1].netWorth) : 'N/A'}</h2>
           <h3>Crypto Holdings</h3>
           <table>
             <thead><tr><th>Symbol</th><th>Quantity</th><th>Value</th></tr></thead>
@@ -72,7 +73,7 @@ export function DataExportPanel() {
                 <tr>
                   <td>${c.symbol}</td>
                   <td>${c.qty}</td>
-                  <td>${formatGBP(c.qty * c.price)}</td>
+                  <td>${formatGBP(c.qty * cryptoMarkPrice(c))}</td>
                 </tr>
               `).join('')}
             </tbody>
