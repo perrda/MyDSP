@@ -125,10 +125,11 @@ export function PredictiveAnalyticsPage() {
   const monthlyExpenses = useMemo(() => {
     const now = new Date()
     const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-    return data.spending
+    const fromLedger = data.spending
       .filter(s => s.date.startsWith(currentMonth) && isBudgetSpend(s))
       .reduce((sum, s) => sum + Math.abs(s.amount), 0)
-  }, [data.spending])
+    return fromLedger > 0 ? fromLedger : Math.max(0, data.monthlyExpenses)
+  }, [data.spending, data.monthlyExpenses])
 
   const financialHealth = useMemo(() => 
     calculateFinancialHealth({

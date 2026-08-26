@@ -205,6 +205,7 @@ describe('bug hunt 1.2.118', () => {
     expect(predictive).toMatch(/isBudgetSpend\(s\)/)
     expect(predictive).toMatch(/cash: calcCash\(data\)/)
     expect(predictive).toMatch(/liabilities: totalLiabilities/)
+    expect(predictive).toMatch(/fromLedger > 0 \? fromLedger : Math.max\(0, data.monthlyExpenses\)/)
   })
 
   it('digest listeners stay mounted; hash routes keep #sync', () => {
