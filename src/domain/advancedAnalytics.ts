@@ -3,7 +3,6 @@
 
 import { isBudgetSpend } from './budgetChart'
 import type { SpendingEntry, HistoryPoint } from '../domain/types'
-import { isBudgetSpend } from './budgetChart'
 
 export interface SpendingTrend {
   category: string

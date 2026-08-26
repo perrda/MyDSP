@@ -40,7 +40,6 @@ import {
 import { applyLastSyncedQuotesToHoldings } from '../domain/lastSyncedHoldings'
 import { cryptoMarkPrice } from '../domain/calc'
 import { includedPortfolioHoldingValue } from '../domain/portfolioConcentration'
-import { cryptoMarkPrice } from '../domain/calc'
 import { equityUnitPriceGbp } from '../domain/migrateEquityGbp'
 import {
   defaultNameForPair,
