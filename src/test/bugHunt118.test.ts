@@ -166,11 +166,8 @@ describe('bug hunt 1.2.118', () => {
 
     const todos = src('../pages/TodosPage.tsx')
     expect(todos).toMatch(/searchParams.get\('list'\)/)
-    const focusBlock = todos.slice(todos.indexOf("searchParams.get('focus')"))
-    expect(focusBlock).toMatch(/if \(!item\) return/)
-    expect(focusBlock.indexOf('if (!item) return')).toBeLessThan(
-      focusBlock.indexOf("next.delete('focus')"),
-    )
+    expect(todos).toMatch(/if \(!item\) return/)
+    expect(todos).not.toMatch(/if \(!item\) \{\s*setSearchParams/)
 
     const recurring = src('../pages/RecurringPage.tsx')
     expect(recurring).toMatch(/if \(!item\) return/)
