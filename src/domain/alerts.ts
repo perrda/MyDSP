@@ -2,6 +2,7 @@
 
 import type { PortfolioData, RagStatus } from './types'
 import { formatGBP } from '../utils/format'
+import { isBudgetSpend } from './budgetChart'
 import { calcBreakdown } from './calc'
 import { monthKey } from './monthUtils'
 import { calcAllocation, calcRebalanceActions } from './rebalance'
@@ -86,6 +87,7 @@ export function buildAlerts(data: PortfolioData): AppAlert[] {
   const spent = new Map<string, number>()
   for (const s of data.spending) {
     if (!s.date.startsWith(ym)) continue
+    if (!isBudgetSpend(s)) continue
     const cat = s.category.toLowerCase()
     spent.set(cat, (spent.get(cat) ?? 0) + Math.abs(s.amount))
   }

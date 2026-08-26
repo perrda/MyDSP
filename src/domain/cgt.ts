@@ -1,3 +1,5 @@
+import { parseLocalYmd } from './monthUtils'
+
 export interface Disposal {
   id: number
   date: string
@@ -39,7 +41,8 @@ export function getTaxYearRange(taxYear: string): { start: Date; end: Date } {
 export function getDisposalsForYear(disposals: Disposal[], taxYear: string): Disposal[] {
   const { start, end } = getTaxYearRange(taxYear)
   return disposals.filter((d) => {
-    const date = new Date(d.date)
+    const date = parseLocalYmd(d.date)
+    if (!date) return false
     return date >= start && date <= end
   })
 }

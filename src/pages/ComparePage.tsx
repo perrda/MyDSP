@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { GitCompareArrows, ArrowRight } from 'lucide-react'
 import { PageHeader, StatCard } from '../components/ui/PageHeader'
@@ -350,11 +350,13 @@ export function ComparePage() {
     setDigestOpen(true)
   }
 
+  const exportWeeklyDigestRef = useRef(exportWeeklyDigest)
+  exportWeeklyDigestRef.current = exportWeeklyDigest
   useEffect(() => {
-    const open = () => exportWeeklyDigest()
+    const open = () => exportWeeklyDigestRef.current()
     window.addEventListener('mydsp-open-weekly-digest', open)
     return () => window.removeEventListener('mydsp-open-weekly-digest', open)
-  })
+  }, [])
 
   return (
     <div>

@@ -293,7 +293,7 @@ const SETTINGS_SECTION_SEARCH: Record<(typeof SETTINGS_SECTION_IDS)[number], str
   account: 'Cloud account OAuth identity',
   'open-banking': 'Open banking PSD2 bank feed',
   portfolios: 'Create rename delete portfolios',
-  'full-backup': 'Encrypted full backup download restore',
+  'full-backup': 'Full backup local JSON download restore',
   export: 'Export data CSV JSON',
   reports: 'PDF financial report',
   versions: 'App version changelog rollback',

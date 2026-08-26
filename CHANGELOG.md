@@ -1,5 +1,18 @@
 # MyDSP Changelog
 
+## [1.2.118] - 2026-08-26
+
+### Fixed — Bug hunt (ISA, FIRE, deep-links, calendar)
+- **ISA crypto:** unquoted ISA-platform coins use `cryptoMarkPrice` (cost÷qty), not `qty × total cost` — a £1,000 USDC line no longer books as £1,000,000 of allowance used.
+- **FIRE years:** Predictive Analytics starts from net worth (assets − liabilities), not gross assets.
+- **Emergency fund score:** health months use cash/stables (`calcCash`) when provided, not total assets.
+- **Spend honesty:** week delta, budget alerts, analytics trends/anomalies, and the PDF report skip `income` rows.
+- **Deep-links:** Spending keeps `?highlight=` when syncing month/category; Todos/Recurring wait for hydrate instead of wiping `?focus=`; `/todos?list=` and `/journal?highlight=` now land on the row; Cmd+K spending/todo/goal hits include the deep-link.
+- **Calendar:** history snapshots and CGT/tax-pack year filters use the local calendar day (not UTC `toISOString` / `new Date("YYYY-MM-DD")`).
+- **Markets ownership:** watchlist held-value uses mark-price fallbacks (same as Equities/Crypto).
+- **Exports:** API snapshot and full PDF report use the shared calc engine + includeInPortfolio.
+- **Chrome:** digest listeners no longer re-bind every render; hash `#/settings#sync` keeps the section; budget templates follow display CCY; `/dashboard` `/portfolio` `/predictive` aliases.
+
 ## [1.2.117] - 2026-08-25
 
 ### Fixed — Bug hunt (quotes, planning math, family, Today copy)

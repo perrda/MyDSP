@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { OverflowMenu } from '../components/ui/OverflowMenu'
 import { PageHeader } from '../components/ui/PageHeader'
 import { PagePrimaryActions } from '../components/ui/PagePrimaryActions'
@@ -81,6 +82,8 @@ function JournalRowBody({
 
 export function JournalPage() {
   const { data, setData, privacy } = usePortfolio()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [focusHighlightId, setFocusHighlightId] = useState<number | null>(null)
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<JournalEntry | null>(null)
   const [form, setForm] = useState(empty)
@@ -94,6 +97,34 @@ export function JournalPage() {
     window.addEventListener('mydsp-sync-applied', onSyncApplied)
     return () => window.removeEventListener('mydsp-sync-applied', onSyncApplied)
   }, [])
+
+  useEffect(() => {
+    const raw = searchParams.get('highlight')
+    if (!raw) return
+    const id = Number(raw)
+    if (!Number.isFinite(id)) {
+      const next = new URLSearchParams(searchParams)
+      next.delete('highlight')
+      setSearchParams(next, { replace: true })
+      return
+    }
+    const entry = data.journal.find((j) => j.id === id)
+    if (!entry) return
+    if (filter !== 'All' && entry.asset !== filter) setFilter('All')
+    setFocusHighlightId(id)
+    const next = new URLSearchParams(searchParams)
+    next.delete('highlight')
+    setSearchParams(next, { replace: true })
+  }, [searchParams, data.journal, filter, setSearchParams])
+
+  useEffect(() => {
+    if (focusHighlightId == null) return
+    const el = document.getElementById(`journal-row-${focusHighlightId}`)
+    if (!el) return
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    const clear = window.setTimeout(() => setFocusHighlightId(null), 2500)
+    return () => window.clearTimeout(clear)
+  }, [focusHighlightId, filter])
 
   const holdingSymbols = useMemo(() => {
     const set = new Set<string>()
@@ -280,7 +311,13 @@ export function JournalPage() {
               onReorder={(next) => setData((prev) => ({ ...prev, journal: applySortOrder(next) }))}
             >
               {(j) => (
-                <div className={`${ROW_GRID} border-b border-border/60 px-5 py-3 text-sm last:border-0`}>
+                <div
+                  id={`journal-row-${j.id}`}
+                  data-testid={`journal-row-${j.id}`}
+                  className={`${ROW_GRID} border-b border-border/60 px-5 py-3 text-sm last:border-0 ${
+                    focusHighlightId === j.id ? 'todo-focus-ring ring-2 ring-accent bg-accent/10' : ''
+                  }`}
+                >
                   <JournalRowBody
                     j={j}
                     privacy={privacy}
@@ -293,7 +330,14 @@ export function JournalPage() {
             </ReorderList>
           ) : (
             rows.map((j) => (
-              <div key={j.id} className={`${ROW_GRID} border-b border-border/60 px-5 py-3 text-sm last:border-0`}>
+              <div
+                key={j.id}
+                id={`journal-row-${j.id}`}
+                data-testid={`journal-row-${j.id}`}
+                className={`${ROW_GRID} border-b border-border/60 px-5 py-3 text-sm last:border-0 ${
+                  focusHighlightId === j.id ? 'todo-focus-ring ring-2 ring-accent bg-accent/10' : ''
+                }`}
+              >
                 <JournalRowBody
                   j={j}
                   privacy={privacy}

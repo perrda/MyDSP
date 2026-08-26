@@ -1,16 +1,30 @@
 /** Build multi-section HTML for the full financial PDF report. */
 
+import { cryptoMarkPrice } from '../domain/calc'
+import { isBudgetSpend } from '../domain/budgetChart'
 import { formatGBP } from './format'
 
 /** Minimal portfolio shape used by the full report (avoids circular imports). */
 export type FullReportData = {
   history?: Array<{ netWorth?: number }>
-  crypto?: Array<{ symbol: string; qty: number; price: number }>
-  equities?: Array<{ symbol: string; shares: number; livePrice: number }>
+  crypto?: Array<{
+    symbol: string
+    qty: number
+    price: number
+    cost?: number
+    includeInPortfolio?: boolean
+  }>
+  equities?: Array<{
+    symbol: string
+    shares: number
+    livePrice: number
+    avgCost?: number
+    includeInPortfolio?: boolean
+  }>
   spending?: Array<{ date: string; description: string; category: string; amount: number }>
   goals?: Array<{ name: string; target: number; deadline: string; type: string; startVal?: number }>
-  creditCards?: Array<{ name: string; balance: number }>
-  loans?: Array<{ name: string; balance: number }>
+  creditCards?: Array<{ name: string; balance: number; includeInPortfolio?: boolean }>
+  loans?: Array<{ name: string; balance: number; includeInPortfolio?: boolean }>
   settings?: { taxResidency?: string }
 }
 
@@ -23,25 +37,38 @@ function escapeHtml(s: string): string {
 }
 
 export function buildFullReportHtml(data: FullReportData): string {
-  const netWorth = data.history?.[data.history.length - 1]?.netWorth
-  const crypto = data.crypto ?? []
-  const equities = data.equities ?? []
+  const crypto = (data.crypto ?? []).filter((c) => c.includeInPortfolio !== false)
+  const equities = (data.equities ?? []).filter((e) => e.includeInPortfolio !== false)
   const spending = data.spending ?? []
+  const spendRows = spending.filter((s) => isBudgetSpend(s))
   const goals = data.goals ?? []
-  const cards = data.creditCards ?? []
-  const loans = data.loans ?? []
+  const cards = (data.creditCards ?? []).filter((c) => c.includeInPortfolio !== false)
+  const loans = (data.loans ?? []).filter((l) => l.includeInPortfolio !== false)
   const residency = data.settings?.taxResidency || 'GB'
 
-  const spendingByCategory = new Map<string, number>()
-  for (const s of spending) {
-    const cat = s.category || 'other'
-    spendingByCategory.set(cat, (spendingByCategory.get(cat) ?? 0) + s.amount)
-  }
-  const categoryRows = [...spendingByCategory.entries()].sort((a, b) => b[1] - a[1])
-  const recent = [...spending].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 25)
-  const recentTotal = recent.reduce((sum, s) => sum + s.amount, 0)
+  const cryptoValue = (c: (typeof crypto)[number]) =>
+    c.qty * cryptoMarkPrice({ qty: c.qty, price: c.price, cost: c.cost ?? 0 })
+  const equityValue = (e: (typeof equities)[number]) =>
+    e.shares * (e.livePrice || e.avgCost || 0)
+
+  const liveAssets =
+    crypto.reduce((sum, c) => sum + cryptoValue(c), 0) +
+    equities.reduce((sum, e) => sum + equityValue(e), 0)
   const liabTotal =
     cards.reduce((sum, c) => sum + c.balance, 0) + loans.reduce((sum, l) => sum + l.balance, 0)
+  const hasLiveBook = crypto.length + equities.length + cards.length + loans.length > 0
+  const netWorth = hasLiveBook
+    ? liveAssets - liabTotal
+    : data.history?.[data.history.length - 1]?.netWorth
+
+  const spendingByCategory = new Map<string, number>()
+  for (const s of spendRows) {
+    const cat = s.category || 'other'
+    spendingByCategory.set(cat, (spendingByCategory.get(cat) ?? 0) + Math.abs(s.amount))
+  }
+  const categoryRows = [...spendingByCategory.entries()].sort((a, b) => b[1] - a[1])
+  const recent = [...spendRows].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 25)
+  const recentTotal = recent.reduce((sum, s) => sum + Math.abs(s.amount), 0)
 
   return `
     <h1>MyDSP Full Financial Report</h1>
@@ -60,7 +87,7 @@ export function buildFullReportHtml(data: FullReportData): string {
           <tr>
             <td>${escapeHtml(c.symbol)}</td>
             <td>${c.qty}</td>
-            <td>${formatGBP(c.qty * c.price)}</td>
+            <td>${formatGBP(cryptoValue(c))}</td>
           </tr>`,
                 )
                 .join('')
@@ -80,7 +107,7 @@ export function buildFullReportHtml(data: FullReportData): string {
           <tr>
             <td>${escapeHtml(e.symbol)}</td>
             <td>${e.shares}</td>
-            <td>${formatGBP(e.shares * e.livePrice)}</td>
+            <td>${formatGBP(equityValue(e))}</td>
           </tr>`,
                 )
                 .join('')

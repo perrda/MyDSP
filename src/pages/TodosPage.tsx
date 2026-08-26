@@ -208,14 +208,13 @@ export function TodosPage() {
     if (!raw) return
     const id = Number(raw)
     if (!Number.isFinite(id)) {
-      setSearchParams({}, { replace: true })
+      const next = new URLSearchParams(searchParams)
+      next.delete('focus')
+      setSearchParams(next, { replace: true })
       return
     }
     const item = allItems.find((t) => t.id === id)
-    if (!item) {
-      setSearchParams({}, { replace: true })
-      return
-    }
+    if (!item) return
     setSelectedListId(item.listId)
     setFilterBy('all')
     setSearchQuery('')
@@ -229,8 +228,29 @@ export function TodosPage() {
       setCompletedOpen(true)
     }
     setFocusTodoId(id)
-    setSearchParams({}, { replace: true })
+    const next = new URLSearchParams(searchParams)
+    next.delete('focus')
+    setSearchParams(next, { replace: true })
   }, [searchParams, allItems, setSearchParams, viewMode])
+
+  // Deep-link: /todos?list=<id> selects the list after hydrate
+  useEffect(() => {
+    const raw = searchParams.get('list')
+    if (!raw) return
+    const id = Number(raw)
+    if (!Number.isFinite(id)) {
+      const next = new URLSearchParams(searchParams)
+      next.delete('list')
+      setSearchParams(next, { replace: true })
+      return
+    }
+    const list = lists.find((l) => l.id === id)
+    if (!list) return
+    setSelectedListId(id)
+    const next = new URLSearchParams(searchParams)
+    next.delete('list')
+    setSearchParams(next, { replace: true })
+  }, [searchParams, lists, setSearchParams])
 
   useEffect(() => {
     if (focusTodoId == null) return

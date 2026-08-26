@@ -1,6 +1,7 @@
 /** Alert when Markets live quote differs from holding price by more than X%. */
 
 import type { CryptoHolding, EquityHolding } from './types'
+import { cryptoMarkPrice } from './calc'
 import { lastSyncedHoldingPrices } from './lastSyncedHoldings'
 import { equityUnitPriceGbp } from './migrateEquityGbp'
 
@@ -140,7 +141,7 @@ export function cryptoDriftHits(
   for (const c of crypto) {
     const market = marketMap.get(normSym(c.symbol))
     if (!(market && market > 0)) continue
-    const holding = c.price
+    const holding = cryptoMarkPrice(c)
     const pct = driftPct(holding, market)
     if (pct == null) continue
     if (Math.abs(pct) < thresholdPct) continue

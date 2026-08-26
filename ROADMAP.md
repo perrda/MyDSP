@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.117**
+**Current version: 1.2.118**
 
-## Completed (through v1.2.117)
+## Completed (through v1.2.118)
 
+- Bug hunt (v1.2.118): ISA crypto mark price · FIRE from net worth · emergency-fund cash in health score · spend totals skip income · Spending/Todos/Journal/Recurring deep-link hydrate · history+CGT local calendar · Markets ownership marks · API/PDF shared calc · digest listener deps · hash #sync keep · display-CCY budget templates
 - Bug hunt (v1.2.117): quote origin allowlist (localhost ports + 10.x LAN) · crypto cost fallback · honest goal dates · budget pulse skips 0% used · family shareDebt reconcile · display-CCY alerts · PIN screen-cover copy · modest sample family · USDC leftover after hydrate · Today chip ids + Media target · /household → Family · crypto-only concentration · Markets ?symbol= honor · CSV import deep-link · one asset engine · emergency-fund cash metric · VWRL/VUSA GBP · family combined + no double-count · surplus after minPay
 
 

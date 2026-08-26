@@ -29,6 +29,32 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.118',
+    date: '2026-08-26',
+    bullets: [
+      {
+        text: 'ISA / reports: crypto mark price, not cost × qty',
+        to: '/tax',
+      },
+      {
+        text: 'FIRE + emergency fund use net worth / cash',
+        to: '/analytics/predictive',
+      },
+      {
+        text: 'Deep-links wait for hydrate (Spending, Todos, Journal)',
+        to: '/todos',
+      },
+      {
+        text: 'History + CGT use local calendar days',
+        to: '/history',
+      },
+      {
+        text: 'Markets ownership + spend totals skip income',
+        to: '/markets',
+      },
+    ],
+  },
+  {
     version: '1.2.117',
     date: '2026-08-25',
     bullets: [

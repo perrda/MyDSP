@@ -8,14 +8,14 @@ const page = (name: string) => readFileSync(resolve(__dirname, `../pages/${name}
 describe('Mobile content-first chrome (v1.2.108)', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.117')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.117')
+    expect(pkg.version).toBe('1.2.118')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.118')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.118',
       '1.2.117',
       '1.2.116',
       '1.2.114',
       '1.2.113',
-      '1.2.112',
     ])
   })
 

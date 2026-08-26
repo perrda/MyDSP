@@ -734,11 +734,13 @@ export function Dashboard() {
     setDigestOpen(true)
   }
 
+  const openWeeklyDigestRef = useRef(openWeeklyDigest)
+  openWeeklyDigestRef.current = openWeeklyDigest
   useEffect(() => {
-    const open = () => openWeeklyDigest()
+    const open = () => openWeeklyDigestRef.current()
     window.addEventListener('mydsp-open-weekly-digest', open)
     return () => window.removeEventListener('mydsp-open-weekly-digest', open)
-  })
+  }, [])
 
   useEffect(() => {
     try {

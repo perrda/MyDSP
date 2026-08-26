@@ -40,7 +40,9 @@ export function parseCSVLine(line: string, delimiter = ','): string[] {
 export { guessCategory }
 
 export function normalizeDate(dateStr: string): string {
-  const d = new Date(dateStr)
+  const trimmed = dateStr.trim()
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed
+  const d = new Date(trimmed)
   if (!Number.isNaN(d.getTime())) return d.toISOString().slice(0, 10)
   const parts = dateStr.split(/[/\-.]/)
   if (parts.length === 3 && parts[0].length <= 2) {

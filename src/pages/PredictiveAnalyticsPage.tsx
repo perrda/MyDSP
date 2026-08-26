@@ -16,6 +16,8 @@ import {
   projectScenario,
   type SpendingTrend,
 } from '../domain/advancedAnalytics'
+import { isBudgetSpend } from '../domain/budgetChart'
+import { calcCash } from '../domain/calc'
 import { compareDebtStrategies } from '../domain/debtStrategies'
 import { formatGBP, privacyClass } from '../utils/format'
 import { formatChartYTick, formatChartPctTick } from '../domain/chartAxis'
@@ -124,7 +126,7 @@ export function PredictiveAnalyticsPage() {
     const now = new Date()
     const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
     return data.spending
-      .filter(s => s.date.startsWith(currentMonth))
+      .filter(s => s.date.startsWith(currentMonth) && isBudgetSpend(s))
       .reduce((sum, s) => sum + Math.abs(s.amount), 0)
   }, [data.spending])
 
@@ -137,8 +139,9 @@ export function PredictiveAnalyticsPage() {
       monthlyExpenses,
       spending: data.spending,
       budgetGoals,
+      cash: calcCash(data),
     }),
-    [totalAssets, totalLiabilities, data.monthlyIncome, monthlyExpenses, data.spending, budgetGoals]
+    [totalAssets, totalLiabilities, data, data.monthlyIncome, monthlyExpenses, data.spending, budgetGoals]
   )
 
   const scenarioProjection = useMemo(
@@ -172,11 +175,12 @@ export function PredictiveAnalyticsPage() {
     () =>
       estimateFireYears({
         assets: totalAssets,
+        liabilities: totalLiabilities,
         monthlyIncome: data.monthlyIncome,
         monthlyExpenses,
         annualReturnPct: scenario.marketReturnPct,
       }),
-    [data.monthlyIncome, monthlyExpenses, scenario.marketReturnPct, totalAssets],
+    [data.monthlyIncome, monthlyExpenses, scenario.marketReturnPct, totalAssets, totalLiabilities],
   )
 
   const savingsRateTrend = useMemo(() => 

@@ -272,13 +272,13 @@ export function BudgetsPage() {
           <p className="text-sm text-text-muted mb-4">Choose a budget template to get started:</p>
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={() => applyBudgetTemplate('conservative')} className="btn-secondary btn-sm">
-              Conservative (£1,250/mo)
+              Conservative ({formatGBP(1250)}/mo)
             </button>
             <button type="button" onClick={() => applyBudgetTemplate('balanced')} className="btn-secondary btn-sm">
-              Balanced (£1,550/mo)
+              Balanced ({formatGBP(1550)}/mo)
             </button>
             <button type="button" onClick={() => applyBudgetTemplate('flexible')} className="btn-secondary btn-sm">
-              Flexible (£1,900/mo)
+              Flexible ({formatGBP(1900)}/mo)
             </button>
           </div>
         </div>
