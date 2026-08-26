@@ -35,7 +35,8 @@ import {
   setYoutubeSeenAt,
   updateYoutubeChannel,
 } from '../storage/youtubeStore'
-import { loadPortfolio } from '../storage/portfolioStore'
+import { usePortfolio } from '../context/PortfolioContext'
+import { ownedHoldingSymbols } from '../domain/calc'
 import { formatDateTime } from '../utils/format'
 import { notificationManager } from '../utils/notifications'
 
@@ -77,6 +78,7 @@ function textHasSymbol(text: string, symbol: string): boolean {
 }
 
 export function YouTubePage() {
+  const { data } = usePortfolio()
   const { showToast } = useToasts()
   const [syncStatus, setSyncStatus] = useState<AutoSyncStatus>(() => getAutoSyncStatus())
   const [syncConfigured, setSyncConfigured] = useState(() => {
@@ -218,12 +220,7 @@ export function YouTubePage() {
     }
   }, [])
 
-  const portfolioSymbols = useMemo(() => {
-    const portfolio = loadPortfolio()
-    return [...portfolio.equities.map((e) => e.symbol), ...portfolio.crypto.map((c) => c.symbol)]
-      .map((s) => s.trim().toUpperCase())
-      .filter(Boolean)
-  }, [])
+  const portfolioSymbols = useMemo(() => ownedHoldingSymbols(data), [data])
   const folders = useMemo(
     () => [...new Set(channels.map((c) => c.folder?.trim()).filter((x): x is string => Boolean(x)))].sort(),
     [channels],
@@ -235,7 +232,6 @@ export function YouTubePage() {
   const channelById = useMemo(() => new Map(channels.map((c) => [c.channelId, c])), [channels])
   const cachedWithoutChannels = channels.length === 0 && videos.length > 0
   const displayedVideos = useMemo(() => {
-    if (cachedWithoutChannels) return []
     const allowedChannels =
       folderFilter === 'all'
         ? null
@@ -252,16 +248,12 @@ export function YouTubePage() {
         const boostedB = Date.parse(b.publishedAt) + score(b) * 15 * 60_000
         return boostedB - boostedA
       })
-  }, [cachedWithoutChannels, videos, folderFilter, channels, channelById, portfolioSymbols])
+  }, [videos, folderFilter, channels, channelById, portfolioSymbols])
   const unreadCount = displayedVideos.filter((v) => !seenAt || v.publishedAt > seenAt).length
   const cachedMode =
     channels.length > 0 &&
     videos.length > 0 &&
     (!online || (error !== null && error.toLowerCase().includes('unavailable')))
-
-  useEffect(() => {
-    if (cachedWithoutChannels) setSelectedVideo(null)
-  }, [cachedWithoutChannels])
 
   useEffect(() => {
     const requestedVideo = searchParams.get('video')?.trim() ?? ''
@@ -474,7 +466,7 @@ export function YouTubePage() {
         >
           <p className="font-semibold">Cached from last sync — add a channel</p>
           <p className="text-xs mt-0.5 opacity-90">
-            {videos.length} cached video{videos.length === 1 ? '' : 's'} hidden until you add a favourite channel.
+            Showing {videos.length} cached video{videos.length === 1 ? '' : 's'}. Add a favourite channel to keep this feed fresh.
           </p>
         </div>
       ) : null}
@@ -632,7 +624,7 @@ export function YouTubePage() {
                     ? 'Loading videos…'
                     : channels.length === 0
                       ? cachedWithoutChannels
-                        ? 'Cached videos are hidden until you add a channel.'
+                        ? 'No cached videos match this folder yet.'
                         : 'Add a channel to see new uploads here.'
                       : 'No videos yet — use the header refresh to pull latest uploads.'
                 }

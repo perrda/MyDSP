@@ -61,6 +61,9 @@ export function calcFamilyTotals(
       nw = m.networth ?? 0
       a = m.assets ?? 0
       d = m.debt ?? 0
+      // Manual members often enter only “NW” — treat that as assets so they
+      // are not dropped when “Include debt in rollup” is off.
+      if (!(a > 0) && !(d > 0) && nw > 0) a = nw
     }
     assets += a
     if (family.settings.shareDebt) {

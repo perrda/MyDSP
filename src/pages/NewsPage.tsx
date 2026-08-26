@@ -39,7 +39,8 @@ import {
   updateNewsTag,
 } from '../storage/newsStore'
 import { loadNewsFilterTag, saveNewsFilterTag } from '../domain/newsFilterPrefs'
-import { loadPortfolio } from '../storage/portfolioStore'
+import { usePortfolio } from '../context/PortfolioContext'
+import { ownedHoldingSymbols } from '../domain/calc'
 import { formatDateTime } from '../utils/format'
 
 function formatRelative(iso: string): string {
@@ -180,6 +181,7 @@ function ArticleRow({
 }
 
 export function NewsPage() {
+  const { data } = usePortfolio()
   const { showToast } = useToasts()
   const [searchParams, setSearchParams] = useSearchParams()
   const [syncStatus, setSyncStatus] = useState<AutoSyncStatus>(() => getAutoSyncStatus())
@@ -331,14 +333,10 @@ export function NewsPage() {
     }
   }, [])
 
-  const portfolioSymbols = useMemo(() => {
-    const portfolio = loadPortfolio()
-    return new Set(
-      [...portfolio.equities.map((e) => e.symbol), ...portfolio.crypto.map((c) => c.symbol)]
-        .map((s) => s.trim().toUpperCase())
-        .filter(Boolean),
-    )
-  }, [])
+  const portfolioSymbols = useMemo(
+    () => new Set(ownedHoldingSymbols(data)),
+    [data],
+  )
 
   const savedSet = useMemo(() => new Set(savedArticleKeys), [savedArticleKeys])
   const articleInPortfolio = useCallback(
@@ -456,11 +454,11 @@ export function NewsPage() {
   }
 
   const addTagsFromOwned = () => {
-    const portfolio = loadPortfolio()
     const existing = new Set(listNewsTags().map((t) => t.tag.toUpperCase()))
     let added = 0
     let firstAdded: string | null = null
-    for (const e of portfolio.equities) {
+    for (const e of data.equities) {
+      if (e.includeInPortfolio === false) continue
       const sym = e.symbol.trim().toUpperCase()
       if (!sym || existing.has(sym)) continue
       try {
@@ -472,7 +470,8 @@ export function NewsPage() {
         /* ignore */
       }
     }
-    for (const c of portfolio.crypto) {
+    for (const c of data.crypto) {
+      if (c.includeInPortfolio === false) continue
       const sym = c.symbol.trim().toUpperCase()
       if (!sym || existing.has(sym)) continue
       try {

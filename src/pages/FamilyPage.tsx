@@ -5,8 +5,8 @@ import { PageHeader, StatCard } from '../components/ui/PageHeader'
 import { PagePrimaryActions } from '../components/ui/PagePrimaryActions'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
 import { usePortfolio } from '../context/PortfolioContext'
-import { calcBreakdown } from '../domain/calc'
 import { calcFamilyTotals, type FamilyMemberType } from '../domain/family'
+import { calcBreakdownWithPaper } from '../domain/netWorthWithPaper'
 import type { FamilyMember } from '../domain/types'
 import { loadPortfolio } from '../storage/portfolioStore'
 import { formatGBP, privacyClass } from '../utils/format'
@@ -31,11 +31,11 @@ export function FamilyPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
   const portfolioBreakdowns = useMemo(() => {
-    const map = new Map<string, ReturnType<typeof calcBreakdown>>()
+    const map = new Map<string, ReturnType<typeof calcBreakdownWithPaper>>()
     for (const p of portfolios) {
       try {
         if (p.id === activeId) map.set(p.id, breakdown)
-        else map.set(p.id, calcBreakdown(loadPortfolio(p.id)))
+        else map.set(p.id, calcBreakdownWithPaper(loadPortfolio(p.id)))
       } catch {
         /* skip */
       }
@@ -295,7 +295,7 @@ export function FamilyPage() {
           </Field>
           {!form.portfolioId && form.type !== 'primary' && (
             <div className="grid grid-cols-3 gap-3">
-              <Field label="NW £">
+              <Field label="NW (GBP)">
                 <input
                   type="text"
                   inputMode="decimal"
@@ -303,7 +303,7 @@ export function FamilyPage() {
                   onChange={(e) => setForm({ ...form, networth: e.target.value })}
                 />
               </Field>
-              <Field label="Assets £">
+              <Field label="Assets (GBP)">
                 <input
                   type="text"
                   inputMode="decimal"
@@ -311,7 +311,7 @@ export function FamilyPage() {
                   onChange={(e) => setForm({ ...form, assets: e.target.value })}
                 />
               </Field>
-              <Field label="Debt £">
+              <Field label="Debt (GBP)">
                 <input
                   type="text"
                   inputMode="decimal"

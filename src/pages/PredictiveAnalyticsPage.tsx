@@ -153,8 +153,9 @@ export function PredictiveAnalyticsPage() {
         marketReturnPct: scenario.marketReturnPct,
         inflationPct: scenario.inflationPct,
         monthlyDebtService,
+        cash: cashBalance,
       }),
-    [data.monthlyIncome, monthlyExpenses, scenario, totalAssets, totalLiabilities, monthlyDebtService],
+    [data.monthlyIncome, monthlyExpenses, scenario, totalAssets, totalLiabilities, monthlyDebtService, cashBalance],
   )
 
   const debtComparison = useMemo(

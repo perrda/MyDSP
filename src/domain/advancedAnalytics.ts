@@ -390,6 +390,8 @@ export interface ScenarioProjectionInput {
   inflationPct: number
   /** Scheduled liability minPay (not inflated). */
   monthlyDebtService?: number
+  /** Cash / stables for runway — not investable net worth. */
+  cash?: number
 }
 
 export interface ScenarioProjection {
@@ -407,16 +409,14 @@ export function projectScenario(input: ScenarioProjectionInput): ScenarioProject
   const monthlySurplus = adjustedMonthlyIncome - adjustedMonthlyExpenses - debtService
   const projectedAssets =
     Math.max(0, input.assets) * (1 + input.marketReturnPct / 100) + monthlySurplus * 12
-  const currentNetWorth = input.assets - input.liabilities
+  const liquid =
+    input.cash != null ? Math.max(0, input.cash) : Math.max(0, input.assets - input.liabilities)
   return {
     adjustedMonthlyIncome,
     adjustedMonthlyExpenses,
     monthlySurplus,
     projectedNetWorth12Months: Math.round(projectedAssets - input.liabilities),
-    runwayMonths:
-      adjustedMonthlyExpenses > 0
-        ? Math.max(0, currentNetWorth) / adjustedMonthlyExpenses
-        : null,
+    runwayMonths: adjustedMonthlyExpenses > 0 ? liquid / adjustedMonthlyExpenses : null,
   }
 }
 
