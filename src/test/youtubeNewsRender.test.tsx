@@ -3,14 +3,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { ToastProvider } from '../components/ToastProvider'
+import { PortfolioProvider } from '../context/PortfolioContext'
 import { YouTubePage } from '../pages/YouTubePage'
 import { NewsPage } from '../pages/NewsPage'
 
 function renderWithProviders(ui: ReactElement) {
   return render(
-    <MemoryRouter>
-      <ToastProvider>{ui}</ToastProvider>
-    </MemoryRouter>,
+    <PortfolioProvider>
+      <MemoryRouter>
+        <ToastProvider>{ui}</ToastProvider>
+      </MemoryRouter>
+    </PortfolioProvider>,
   )
 }
 

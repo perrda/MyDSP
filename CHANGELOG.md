@@ -1,5 +1,15 @@
 # MyDSP Changelog
 
+## [1.2.119] - 2026-08-26
+
+### Fixed — Bug hunt (cash runway, family, todos, media owned)
+- **Cash runway:** Today and Predictive Analytics scenario runway use cash/stables (`calcCash`), not full net worth — BTC no longer looks like 99+ months of bills.
+- **Family:** manual members entered with only “NW” still roll up when Include debt is off; linked portfolios use the paper-commodity book; form labels say GBP stored.
+- **To-dos:** due dates parse as local calendar days so US/tablet users no longer see today as Overdue.
+- **Reminders / alerts:** income rows are not spend; high-interest warnings read `creditCards`/`loans` + `apr`; excluded debts stay quiet; goal “behind schedule” uses live `goalProgress`.
+- **News / YouTube / Markets:** owned filters follow the active included book; YouTube shows cached videos (and `?video=` landings) before channels hydrate; commodity section totals honour `includeInNetWorth`.
+- **Compare / export:** allocation pie includes paper commodities; financial report Current/Progress uses live goal metrics.
+
 ## [1.2.118] - 2026-08-26
 
 ### Fixed — Bug hunt (planning math, Optimizer, deep-links)

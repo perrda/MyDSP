@@ -1,5 +1,6 @@
 import { Download } from 'lucide-react'
 import type { PortfolioData } from '../domain/types'
+import { goalCurrent, goalProgress } from '../domain/calc'
 import { formatGBP, formatPct } from '../utils/format'
 import { monthKey } from '../domain/monthUtils'
 
@@ -154,10 +155,11 @@ export function generateFinancialReport(
     lines.push('  Goal'.padEnd(30) + 'Type'.padEnd(12) + 'Target'.padStart(12) + 'Current'.padStart(12) + 'Progress'.padStart(10))
     lines.push('  ' + '─'.repeat(74))
 
-    data.goals.forEach((goal: any) => {
-      const progress = goal.target > 0 ? `${Math.round((goal.current / goal.target) * 100)}%` : 'N/A'
+    data.goals.forEach((goal) => {
+      const current = goalCurrent(data, goal.metric, goal)
+      const progress = goal.target > 0 ? `${Math.round(goalProgress(data, goal))}%` : 'N/A'
       lines.push(
-        `  ${goal.name.substring(0, 28).padEnd(30)}${goal.type.padEnd(12)}${formatGBP(goal.target).padStart(12)}${formatGBP(goal.current).padStart(12)}${progress.padStart(10)}`
+        `  ${goal.name.substring(0, 28).padEnd(30)}${goal.type.padEnd(12)}${formatGBP(goal.target).padStart(12)}${formatGBP(current).padStart(12)}${progress.padStart(10)}`
       )
     })
     lines.push('')

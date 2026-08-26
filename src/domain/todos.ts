@@ -52,29 +52,43 @@ export function createTodoList(partial: Partial<TodoList> & Pick<TodoList, 'name
   }
 }
 
-export function isOverdue(item: TodoItem): boolean {
-  if (!item.dueDate || item.status === 'done' || item.status === 'archived') return false
-  const due = new Date(item.dueDate)
-  const now = new Date()
-  now.setHours(0, 0, 0, 0)
-  return due < now
+/** Local-calendar due date — `YYYY-MM-DD` must not parse as UTC midnight. */
+function dueDateLocal(item: TodoItem): Date | null {
+  if (!item.dueDate) return null
+  if (/^\d{4}-\d{2}-\d{2}$/.test(item.dueDate)) {
+    const [y, m, d] = item.dueDate.split('-').map(Number)
+    return new Date(y, m - 1, d)
+  }
+  const parsed = new Date(item.dueDate)
+  return Number.isFinite(parsed.getTime()) ? parsed : null
 }
 
-export function isDueToday(item: TodoItem): boolean {
+export function isOverdue(item: TodoItem, now: Date = new Date()): boolean {
+  if (!item.dueDate || item.status === 'done' || item.status === 'archived') return false
+  const due = dueDateLocal(item)
+  if (!due) return false
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  due.setHours(0, 0, 0, 0)
+  return due < today
+}
+
+export function isDueToday(item: TodoItem, now: Date = new Date()): boolean {
   if (!item.dueDate) return false
-  const due = new Date(item.dueDate)
-  const today = new Date()
+  const due = dueDateLocal(item)
+  if (!due) return false
   return (
-    due.getFullYear() === today.getFullYear() &&
-    due.getMonth() === today.getMonth() &&
-    due.getDate() === today.getDate()
+    due.getFullYear() === now.getFullYear() &&
+    due.getMonth() === now.getMonth() &&
+    due.getDate() === now.getDate()
   )
 }
 
-export function isDueThisWeek(item: TodoItem): boolean {
+export function isDueThisWeek(item: TodoItem, now: Date = new Date()): boolean {
   if (!item.dueDate) return false
-  const due = new Date(item.dueDate)
-  const today = new Date()
+  const due = dueDateLocal(item)
+  if (!due) return false
+  due.setHours(0, 0, 0, 0)
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   const weekFromNow = new Date(today)
   weekFromNow.setDate(weekFromNow.getDate() + 7)
   return due >= today && due <= weekFromNow

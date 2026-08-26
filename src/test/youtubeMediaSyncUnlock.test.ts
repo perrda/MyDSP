@@ -7,14 +7,14 @@ import { youtubeTombstoneSuppressesChannel } from '../storage/youtubeStore'
 describe('YouTube media sync unlock (v1.2.104)', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.118')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.118')
+    expect(pkg.version).toBe('1.2.119')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.119')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.119',
       '1.2.118',
       '1.2.117',
       '1.2.116',
       '1.2.114',
-      '1.2.113',
     ])
   })
 

@@ -32,11 +32,11 @@ describe('favourites excellence — Markets / News / YouTube fixes', () => {
     expect(page).toMatch(/news-empty-from-owned/)
   })
 
-  it('YouTube hides no-channel cache, uses 900px detail rows, and allows URL repair', () => {
+  it('YouTube shows cached videos without channels, uses 900px detail rows, and allows URL repair', () => {
     const page = readFileSync(resolve(__dirname, '../pages/YouTubePage.tsx'), 'utf8')
     expect(page).toMatch(/cachedWithoutChannels/)
     expect(page).toMatch(/const displayedVideos = useMemo/)
-    expect(page).toMatch(/if \(cachedWithoutChannels\) return \[\]/)
+    expect(page).not.toMatch(/if \(cachedWithoutChannels\) return \[\]/)
     expect(page).toMatch(/Cached from last sync — add a channel/)
     expect(page).toMatch(/youtube-row-phone-link/)
     expect(page).toMatch(/youtube-row-detail-button/)
