@@ -1,17 +1,38 @@
 # MyDSP Changelog
 
-## [1.2.118] - 2026-08-26
+## [1.2.120] - 2026-08-26
 
-### Fixed — Bug hunt (ISA, FIRE, deep-links, calendar)
+### Fixed — Bug hunt leftovers (ISA, FIRE basis, hydrate deep-links, calendar)
 - **ISA crypto:** unquoted ISA-platform coins use `cryptoMarkPrice` (cost÷qty), not `qty × total cost` — a £1,000 USDC line no longer books as £1,000,000 of allowance used.
 - **FIRE years:** Predictive Analytics starts from net worth (assets − liabilities), not gross assets.
-- **Emergency fund score:** health months use cash/stables (`calcCash`) when provided, not total assets.
-- **Spend honesty:** week delta, budget alerts, analytics trends/anomalies, and the PDF report skip `income` rows.
-- **Deep-links:** Spending keeps `?highlight=` when syncing month/category; Todos/Recurring wait for hydrate instead of wiping `?focus=`; `/todos?list=` and `/journal?highlight=` now land on the row; Cmd+K spending/todo/goal hits include the deep-link.
+- **Deep-links:** Spending keeps `?highlight=` when syncing month/category; Todos/Recurring wait for hydrate instead of wiping `?focus=`; Cmd+K spending/todo/goal hits include the deep-link.
 - **Calendar:** history snapshots and CGT/tax-pack year filters use the local calendar day (not UTC `toISOString` / `new Date("YYYY-MM-DD")`).
-- **Markets ownership:** watchlist held-value uses mark-price fallbacks (same as Equities/Crypto).
-- **Exports:** API snapshot and full PDF report use the shared calc engine + includeInPortfolio.
-- **Chrome:** digest listeners no longer re-bind every render; hash `#/settings#sync` keeps the section; budget templates follow display CCY; `/dashboard` `/portfolio` `/predictive` aliases.
+- **Exports:** API snapshot uses the shared calc engine; PDF report skips `income` rows and honour `includeInPortfolio`.
+- **Chrome:** hash `#/settings#sync` keeps the section; budget templates follow display CCY; `/dashboard` `/portfolio` `/predictive` aliases.
+
+## [1.2.119] - 2026-08-26
+
+### Fixed — Bug hunt (cash runway, family, todos, media owned)
+- **Cash runway:** Today and Predictive Analytics scenario runway use cash/stables (`calcCash`), not full net worth — BTC no longer looks like 99+ months of bills.
+- **Family:** manual members entered with only “NW” still roll up when Include debt is off; linked portfolios use the paper-commodity book; form labels say GBP stored.
+- **To-dos:** due dates parse as local calendar days so US/tablet users no longer see today as Overdue.
+- **Reminders / alerts:** income rows are not spend; high-interest warnings read `creditCards`/`loans` + `apr`; excluded debts stay quiet; goal “behind schedule” uses live `goalProgress`.
+- **News / YouTube / Markets:** owned filters follow the active included book; YouTube shows cached videos (and `?video=` landings) before channels hydrate; commodity section totals honour `includeInNetWorth`.
+- **Compare / export:** allocation pie includes paper commodities; financial report Current/Progress uses live goal metrics.
+
+## [1.2.118] - 2026-08-26
+
+### Fixed — Bug hunt (planning math, Optimizer, deep-links)
+- **Optimizer:** avalanche/snowball now rolls freed minimum payments onto remaining debts (payoff months match the strategy compare engine).
+- **Predictive Analytics:** expenses use Settings / budget spend (income rows excluded); surplus and FIRE-ish years subtract liability minPay; emergency-fund months use cash/stables.
+- **Analytics:** “Spend this month” and radar income/savings use real cashflow, not invented `spend × 1.2`.
+- **Markets + full report:** unquoted holdings use the same mark-price engine (`cryptoMarkPrice` / `livePrice || avgCost`).
+- **Sync Open first:** `/journal?highlight=` and `/todos?list=` now select and scroll to the arrived row/list.
+- **Planning:** Analytics → Planning honours `inflation` and `scenario` (real return = mean − inflation).
+- **Commodities:** App header title + pull-to-refresh match other holdings pages.
+- **Markets migrate:** default-ticker / section-order writes are silent (no dirty empty push).
+- **Today:** Daily plan and Career jump chips highlight while scrolling; weekly-digest listener no longer rebinds every render.
+- **Liability commentary:** payment notes follow display CCY.
 
 ## [1.2.117] - 2026-08-25
 

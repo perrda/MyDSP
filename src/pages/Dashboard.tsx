@@ -39,6 +39,7 @@ import { dueWithinDays } from '../domain/recurringDueStrip'
 import { markRecurringPaid, skipRecurringOccurrence } from '../domain/recurringActions'
 import { monthlyRecurringTotal } from '../domain/recurringHelpers'
 import { needsFollowUp } from '../domain/jobs'
+import { calcCash } from '../domain/calc'
 import { isDueToday, isOverdue } from '../domain/todos'
 import { snoozeDueDateOneDay } from '../domain/todoSnooze'
 import { sparklineTrendFromSeries } from '../domain/sparklineSeries'
@@ -650,13 +651,13 @@ export function Dashboard() {
   const cashRunway = useMemo(() => {
     const monthlyRecurring = monthlyRecurringTotal(data.recurringTransactions ?? [])
     if (!(monthlyRecurring > 0)) return null
-    const liquidishNetWorth = Math.max(0, assets - liabilities)
+    const cash = Math.max(0, calcCash(data))
     return {
-      months: liquidishNetWorth / monthlyRecurring,
+      months: cash / monthlyRecurring,
       monthlyRecurring,
-      liquidishNetWorth,
+      cash,
     }
-  }, [data.recurringTransactions, assets, liabilities])
+  }, [data])
 
   const fireChip = useMemo(() => {
     if (!data.fireInputs || !hasExplicitFireInputs(data.fireInputs)) return null
@@ -1073,10 +1074,11 @@ export function Dashboard() {
   useEffect(() => {
     const sectionIds = [
       'today-next-action',
+      'today-daily-plan',
+      'today-career-pulse',
       'today-bills',
       'today-goals',
       'today-tax',
-      'today-debt',
       'today-budget-pulse',
       'today-cash-runway',
       'today-fire-chip',
@@ -1643,7 +1645,7 @@ export function Dashboard() {
                 to="/recurring"
                 data-testid="today-cash-runway"
                 className={`today-cash-runway border border-border bg-surface-hover/60 px-3 py-2 text-xs hover:border-accent ${privacyClass(privacy)}`}
-                title="Liquid-ish net worth divided by monthly recurring bills"
+                title="Cash and stables divided by monthly recurring bills"
               >
                 <span className="block uppercase tracking-wider text-text-subtle font-semibold">
                   Cash runway

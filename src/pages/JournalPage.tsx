@@ -83,7 +83,7 @@ function JournalRowBody({
 export function JournalPage() {
   const { data, setData, privacy } = usePortfolio()
   const [searchParams, setSearchParams] = useSearchParams()
-  const [focusHighlightId, setFocusHighlightId] = useState<number | null>(null)
+  const [highlightId, setHighlightId] = useState<number | null>(null)
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<JournalEntry | null>(null)
   const [form, setForm] = useState(empty)
@@ -98,6 +98,7 @@ export function JournalPage() {
     return () => window.removeEventListener('mydsp-sync-applied', onSyncApplied)
   }, [])
 
+  // Deep-link: /journal?highlight=<id> shows the synced journal row
   useEffect(() => {
     const raw = searchParams.get('highlight')
     if (!raw) return
@@ -111,20 +112,20 @@ export function JournalPage() {
     const entry = data.journal.find((j) => j.id === id)
     if (!entry) return
     if (filter !== 'All' && entry.asset !== filter) setFilter('All')
-    setFocusHighlightId(id)
+    setHighlightId(id)
     const next = new URLSearchParams(searchParams)
     next.delete('highlight')
     setSearchParams(next, { replace: true })
   }, [searchParams, data.journal, filter, setSearchParams])
 
   useEffect(() => {
-    if (focusHighlightId == null) return
-    const el = document.getElementById(`journal-row-${focusHighlightId}`)
+    if (highlightId == null) return
+    const el = document.getElementById(`journal-${highlightId}`)
     if (!el) return
     el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    const clear = window.setTimeout(() => setFocusHighlightId(null), 2500)
+    const clear = window.setTimeout(() => setHighlightId(null), 2500)
     return () => window.clearTimeout(clear)
-  }, [focusHighlightId, filter])
+  }, [highlightId])
 
   const holdingSymbols = useMemo(() => {
     const set = new Set<string>()
@@ -312,10 +313,10 @@ export function JournalPage() {
             >
               {(j) => (
                 <div
-                  id={`journal-row-${j.id}`}
+                  id={`journal-${j.id}`}
                   data-testid={`journal-row-${j.id}`}
                   className={`${ROW_GRID} border-b border-border/60 px-5 py-3 text-sm last:border-0 ${
-                    focusHighlightId === j.id ? 'todo-focus-ring ring-2 ring-accent bg-accent/10' : ''
+                    highlightId === j.id ? 'todo-focus-ring ring-2 ring-accent bg-accent/10' : ''
                   }`}
                 >
                   <JournalRowBody
@@ -332,10 +333,10 @@ export function JournalPage() {
             rows.map((j) => (
               <div
                 key={j.id}
-                id={`journal-row-${j.id}`}
+                id={`journal-${j.id}`}
                 data-testid={`journal-row-${j.id}`}
                 className={`${ROW_GRID} border-b border-border/60 px-5 py-3 text-sm last:border-0 ${
-                  focusHighlightId === j.id ? 'todo-focus-ring ring-2 ring-accent bg-accent/10' : ''
+                  highlightId === j.id ? 'todo-focus-ring ring-2 ring-accent bg-accent/10' : ''
                 }`}
               >
                 <JournalRowBody

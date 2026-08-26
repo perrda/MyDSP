@@ -233,8 +233,9 @@ export function TodosPage() {
     setSearchParams(next, { replace: true })
   }, [searchParams, allItems, setSearchParams, viewMode])
 
-  // Deep-link: /todos?list=<id> selects the list after hydrate
+  // Deep-link: /todos?list=<id> selects the synced list (focus wins if both present)
   useEffect(() => {
+    if (searchParams.get('focus')) return
     const raw = searchParams.get('list')
     if (!raw) return
     const id = Number(raw)

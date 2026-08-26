@@ -28,6 +28,7 @@ function largestSpendingIdForCategory(
   let bestAbs = 0
   for (const s of data.spending) {
     if (!s.date.startsWith(ym)) continue
+    if (!isBudgetSpend(s)) continue
     if (s.category.toLowerCase() !== category.toLowerCase()) continue
     const abs = Math.abs(s.amount)
     if (abs >= bestAbs) {
@@ -44,6 +45,7 @@ export function buildAlerts(data: PortfolioData): AppAlert[] {
   const ym = monthKey()
 
   for (const c of data.creditCards) {
+    if (c.includeInPortfolio === false) continue
     if (c.ragStatus === 'red') {
       alerts.push({
         id: `card-rag-${c.id}`,
@@ -61,7 +63,7 @@ export function buildAlerts(data: PortfolioData): AppAlert[] {
         to: `/liabilities/card/${c.id}`,
       })
     }
-    if (c.limit > 0 && c.balance / c.limit >= 0.85 && c.includeInPortfolio !== false) {
+    if (c.limit > 0 && c.balance / c.limit >= 0.85) {
       alerts.push({
         id: `card-util-${c.id}`,
         severity: 'red',
@@ -73,6 +75,7 @@ export function buildAlerts(data: PortfolioData): AppAlert[] {
   }
 
   for (const l of data.loans) {
+    if (l.includeInPortfolio === false) continue
     if (l.ragStatus === 'red') {
       alerts.push({
         id: `loan-rag-${l.id}`,

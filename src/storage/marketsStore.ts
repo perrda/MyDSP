@@ -159,7 +159,9 @@ export function loadMarketsState(): MarketsState {
     }
     const { state, added } = mergeDefaultTickers(normalized)
     const hadNoSectionOrder = !Array.isArray((existing as MarketsState).sectionOrder)
-    if (added.length > 0 || hadLegacyHeatDensity || hadNoSectionOrder) writeState(state)
+    if (added.length > 0 || hadLegacyHeatDensity || hadNoSectionOrder) {
+      writeState(state, { silent: true })
+    }
     return state
   }
   // Silent seed — nav chrome may load Markets before the first pull; never mark

@@ -223,9 +223,11 @@ export function ComparePage() {
   const allocationData = useMemo<SliceDatum[]>(() => {
     const crypto = totals.crypto
     const equity = totals.equity
+    const paper = Math.max(0, totals.assets - totals.crypto - totals.equity)
     const data: SliceDatum[] = []
     if (crypto > 0) data.push({ name: 'Crypto', value: crypto })
     if (equity > 0) data.push({ name: 'Equities', value: equity })
+    if (paper > 0) data.push({ name: 'Commodities', value: paper })
     return data
   }, [totals])
 

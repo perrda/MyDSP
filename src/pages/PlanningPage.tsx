@@ -40,6 +40,7 @@ export function PlanningPage() {
     urlNetWorth !== null ||
     urlSavings !== null ||
     urlMean !== null ||
+    urlInflation !== null ||
     Boolean(scenarioSeed)
   const initialNetWorth = urlNetWorth ?? breakdown.netWorth
   const initialSavings = urlSavings ?? data.fireInputs.savings ?? 0
@@ -54,6 +55,7 @@ export function PlanningPage() {
   const [mcYears, setMcYears] = useState('10')
   const [mcSims, setMcSims] = useState('5000')
   const [mcMean, setMcMean] = useState(String(initialMean))
+  const [mcInflation, setMcInflation] = useState(String(urlInflation ?? 0))
   const [mcVol, setMcVol] = useState('18')
   const [mcResult, setMcResult] = useState(() =>
     runMonteCarlo({
@@ -61,13 +63,12 @@ export function PlanningPage() {
       monthlyContribution: initialSavings,
       years: 10,
       simulations: 2000,
-      meanReturn: initialMean / 100,
+      meanReturn: (initialMean - (urlInflation ?? 0)) / 100,
       stdDev: 0.18,
     }),
   )
-  // Keep inflation query visible for honesty when seeded from Analytics (MC uses mean return).
-  void urlInflation
-  void scenarioSeed
+
+  const realReturnPct = () => (parseNum(mcMean) || 7) - (parseNum(mcInflation) || 0)
 
   const alloc = useMemo(
     () => calcAllocation(breakdown.equity.value, data.crypto),
@@ -95,7 +96,7 @@ export function PlanningPage() {
           monthlyContribution: mcMonthlyContribution,
           years: parseNum(mcYears) || 10,
           simulations: parseNum(mcSims) || 5000,
-          meanReturn: (parseNum(mcMean) || 7) / 100,
+          meanReturn: realReturnPct() / 100,
           stdDev: (parseNum(mcVol) || 18) / 100,
         }),
       )
@@ -113,6 +114,7 @@ export function PlanningPage() {
     const liveSavings = data.fireInputs.savings || 0
     setMcCurrentValue(breakdown.netWorth)
     setMcMonthlyContribution(liveSavings)
+    setMcInflation('0')
     setFromToday(false)
     setMcResult(
       runMonteCarlo({
@@ -120,7 +122,7 @@ export function PlanningPage() {
         monthlyContribution: liveSavings,
         years: parseNum(mcYears) || 10,
         simulations: parseNum(mcSims) || 5000,
-        meanReturn: (parseNum(mcMean) || 7) / 100,
+        meanReturn: (parseNum(mcMean) || 7) / 100, // inflation reset to 0
         stdDev: (parseNum(mcVol) || 18) / 100,
       }),
     )
@@ -290,6 +292,14 @@ export function PlanningPage() {
                   <span className="text-xs font-bold uppercase tracking-wider text-accent bg-accent/10 px-2 py-1">
                     From Today
                   </span>
+                  {scenarioSeed ? (
+                    <span
+                      className="text-xs font-bold uppercase tracking-wider text-text-muted bg-surface-hover px-2 py-1"
+                      data-testid="planning-scenario-seed"
+                    >
+                      {scenarioSeed}
+                    </span>
+                  ) : null}
                   <button type="button" className="btn-ghost btn-sm" onClick={resetMonteCarloToLive}>
                     Reset to live values
                   </button>
@@ -327,6 +337,15 @@ export function PlanningPage() {
               <Field label="Mean return %">
                 <input type="text" inputMode="decimal" value={mcMean} onChange={(e) => setMcMean(e.target.value)} />
               </Field>
+              <Field label="Inflation %">
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={mcInflation}
+                  onChange={(e) => setMcInflation(e.target.value)}
+                  data-testid="planning-inflation"
+                />
+              </Field>
               <Field label="Volatility %">
                 <input type="text" inputMode="decimal" value={mcVol} onChange={(e) => setMcVol(e.target.value)} />
               </Field>
@@ -353,7 +372,7 @@ export function PlanningPage() {
                           monthlyContribution: mcMonthlyContribution,
                           years: parseNum(mcYears) || 10,
                           simulations: parseNum(mcSims) || 5000,
-                          meanReturn: mean / 100,
+                          meanReturn: (mean - (parseNum(mcInflation) || 0)) / 100,
                           stdDev: vol / 100,
                         }),
                       )

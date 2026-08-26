@@ -3,9 +3,21 @@ import { useNavigate } from 'react-router-dom'
 import { AlertCircle, Bell, Calendar, Target, TrendingDown } from 'lucide-react'
 import { usePortfolio } from '../context/PortfolioContext'
 import { useToasts } from '../components/ToastProvider'
+import { isBudgetSpend } from '../domain/budgetChart'
+import { goalProgress } from '../domain/calc'
 import { monthKey } from '../domain/monthUtils'
 import { needsFollowUp } from '../domain/jobs'
+import type { CreditCard, Loan, PortfolioData } from '../domain/types'
 import { formatGBP } from '../utils/format'
+
+function parseLocalYmd(value: string): Date | null {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [y, m, d] = value.split('-').map(Number)
+    return new Date(y, m - 1, d)
+  }
+  const parsed = new Date(value)
+  return Number.isFinite(parsed.getTime()) ? parsed : null
+}
 
 export interface Reminder {
   id: string
@@ -47,15 +59,16 @@ export function useSmartReminders() {
   return { reminders: calculateReminders(data) }
 }
 
-export function calculateReminders(data: any): Reminder[] {
+export function calculateReminders(data: PortfolioData): Reminder[] {
   const reminders: Reminder[] = []
   const now = new Date()
   const ym = monthKey()
 
   // Budget overages
   const spentByCategory = new Map<string, number>()
-  for (const s of data.spending) {
+  for (const s of data.spending ?? []) {
     if (!s.date.startsWith(ym)) continue
+    if (!isBudgetSpend(s)) continue
     const cat = s.category.toLowerCase()
     spentByCategory.set(cat, (spentByCategory.get(cat) ?? 0) + Math.abs(s.amount))
   }
@@ -85,9 +98,10 @@ export function calculateReminders(data: any): Reminder[] {
   })
 
   // Goal deadlines
-  ;(data.goals || []).forEach((goal: any) => {
-    if (!goal.deadline || goal.achieved) return
-    const deadline = new Date(goal.deadline)
+  ;(data.goals || []).forEach((goal) => {
+    if (!goal.deadline) return
+    const deadline = parseLocalYmd(goal.deadline)
+    if (!deadline) return
     const daysUntil = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
 
     if (daysUntil < 0) {
@@ -110,17 +124,16 @@ export function calculateReminders(data: any): Reminder[] {
       })
     }
 
-    // Check if goal is behind schedule
+    // Check if goal is behind schedule (live metric, not a missing `goal.current`)
     if (goal.type === 'investment' || goal.type === 'networth') {
-      const target = goal.target || 0
-      const current = goal.current || 0
-      if (current < target * 0.5 && daysUntil < 30) {
+      const progress = goalProgress(data, goal)
+      if (progress < 50 && daysUntil < 30 && daysUntil >= 0) {
         reminders.push({
           id: `goal-behind-${goal.name}`,
           type: 'goal',
           priority: 'medium',
           title: 'Goal behind schedule',
-          message: `"${goal.name}" is at ${Math.round((current / target) * 100)}% with ${daysUntil} days left`,
+          message: `"${goal.name}" is at ${Math.round(progress)}% with ${daysUntil} days left`,
           action: { label: 'View Goals', path: '/goals' },
         })
       }
@@ -145,7 +158,7 @@ export function calculateReminders(data: any): Reminder[] {
       todo.reminderDate && /^\d{4}-\d{2}-\d{2}$/.test(todo.reminderDate)
         ? todo.reminderDate
         : null
-    const today = now.toISOString().slice(0, 10)
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
     const reminderDue = Boolean(reminderDate && reminderDate <= today)
 
     if (!overdue && !reminderDue) return
@@ -233,8 +246,10 @@ export function calculateReminders(data: any): Reminder[] {
   })
 
   // High interest debt warnings
-  ;(data.liabilities || []).forEach((liability: any) => {
-    const rate = liability.interestRate || 0
+  const debts: Array<CreditCard | Loan> = [...(data.creditCards ?? []), ...(data.loans ?? [])]
+  debts.forEach((liability) => {
+    if (liability.includeInPortfolio === false) return
+    const rate = liability.apr || 0
     if (rate > 15 && liability.balance > 1000) {
       reminders.push({
         id: `debt-high-interest-${liability.id}`,

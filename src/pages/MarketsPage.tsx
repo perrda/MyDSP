@@ -40,6 +40,7 @@ import {
 import { applyLastSyncedQuotesToHoldings } from '../domain/lastSyncedHoldings'
 import { cryptoMarkPrice } from '../domain/calc'
 import { includedPortfolioHoldingValue } from '../domain/portfolioConcentration'
+import { cryptoMarkPrice } from '../domain/calc'
 import { equityUnitPriceGbp } from '../domain/migrateEquityGbp'
 import {
   defaultNameForPair,
@@ -791,8 +792,14 @@ export function MarketsPage() {
   const bySection = useMemo(
     () => {
       const ownedKeys = new Set<string>()
-      for (const c of data.crypto) ownedKeys.add(`crypto:${normPortfolioSymbol(c.symbol)}`)
-      for (const e of data.equities) ownedKeys.add(`equity:${normPortfolioSymbol(e.symbol)}`)
+      for (const c of data.crypto) {
+        if (c.includeInPortfolio === false) continue
+        ownedKeys.add(`crypto:${normPortfolioSymbol(c.symbol)}`)
+      }
+      for (const e of data.equities) {
+        if (e.includeInPortfolio === false) continue
+        ownedKeys.add(`equity:${normPortfolioSymbol(e.symbol)}`)
+      }
       const alertMatches = (ticker: MarketTicker) =>
         priceAlerts.some(
           (th) =>
@@ -900,6 +907,7 @@ export function MarketsPage() {
     const map = new Map<string, number>()
     for (const t of tickers) {
       if (t.kind !== 'commodity') continue
+      if (!t.includeInNetWorth) continue
       if (!(t.quantity != null && t.quantity > 0)) continue
       const q = quotes.get(t.id)
       if (!q || !(q.last > 0)) continue

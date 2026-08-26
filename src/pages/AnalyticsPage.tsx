@@ -15,6 +15,9 @@ import { AdvancedAnalyticsDashboard } from '../components/AdvancedAnalyticsDashb
 import { PageHeader, StatCard } from '../components/ui/PageHeader'
 import { usePortfolio } from '../context/PortfolioContext'
 import { performanceSummary } from '../domain/performance'
+import { isBudgetSpend } from '../domain/budgetChart'
+import { calcLiabilities } from '../domain/calc'
+import { estimateMonthlyExpenses } from '../domain/goalProjectedDate'
 import { formatGBP, formatPct, privacyClass } from '../utils/format'
 
 export function AnalyticsPage() {
@@ -27,13 +30,14 @@ export function AnalyticsPage() {
     const now = new Date()
     const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
     return data.spending
-      .filter((s) => s.date.startsWith(ym))
+      .filter((s) => s.date.startsWith(ym) && isBudgetSpend(s))
       .reduce((sum, s) => sum + Math.abs(s.amount), 0)
   }, [data.spending])
 
   const byCategory = useMemo(() => {
     const map = new Map<string, number>()
     for (const s of data.spending) {
+      if (!isBudgetSpend(s)) continue
       map.set(s.category, (map.get(s.category) ?? 0) + Math.abs(s.amount))
     }
     return [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6)
@@ -218,9 +222,15 @@ export function AnalyticsPage() {
               netWorth,
               assets,
               liabilities,
-              monthlyIncome: monthSpend * 1.2, // Estimate
-              monthlyExpenses: monthSpend,
-              savingsRate: assets > 0 ? Math.max(0, (1 - monthSpend / (assets * 0.05)) * 100) : 0,
+              monthlyIncome: data.monthlyIncome,
+              monthlyExpenses: estimateMonthlyExpenses(data),
+              savingsRate: (() => {
+                const income = data.monthlyIncome ?? 0
+                if (!(income > 0)) return 0
+                const expenses = estimateMonthlyExpenses(data)
+                const debtService = calcLiabilities(data).monthly
+                return Math.max(0, ((income - expenses - debtService) / income) * 100)
+              })(),
             }}
             privacy={privacy}
           />

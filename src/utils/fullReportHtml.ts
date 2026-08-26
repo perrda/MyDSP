@@ -36,6 +36,14 @@ function escapeHtml(s: string): string {
     .replace(/"/g, '&quot;')
 }
 
+function cryptoLineValue(c: { qty: number; price: number; cost?: number }): number {
+  return c.qty * cryptoMarkPrice({ qty: c.qty, price: c.price, cost: c.cost ?? 0 })
+}
+
+function equityLineValue(e: { shares: number; livePrice: number; avgCost?: number }): number {
+  return e.shares * (e.livePrice || e.avgCost || 0)
+}
+
 export function buildFullReportHtml(data: FullReportData): string {
   const crypto = (data.crypto ?? []).filter((c) => c.includeInPortfolio !== false)
   const equities = (data.equities ?? []).filter((e) => e.includeInPortfolio !== false)
@@ -45,21 +53,13 @@ export function buildFullReportHtml(data: FullReportData): string {
   const cards = (data.creditCards ?? []).filter((c) => c.includeInPortfolio !== false)
   const loans = (data.loans ?? []).filter((l) => l.includeInPortfolio !== false)
   const residency = data.settings?.taxResidency || 'GB'
-
-  const cryptoValue = (c: (typeof crypto)[number]) =>
-    c.qty * cryptoMarkPrice({ qty: c.qty, price: c.price, cost: c.cost ?? 0 })
-  const equityValue = (e: (typeof equities)[number]) =>
-    e.shares * (e.livePrice || e.avgCost || 0)
-
-  const liveAssets =
-    crypto.reduce((sum, c) => sum + cryptoValue(c), 0) +
-    equities.reduce((sum, e) => sum + equityValue(e), 0)
   const liabTotal =
     cards.reduce((sum, c) => sum + c.balance, 0) + loans.reduce((sum, l) => sum + l.balance, 0)
-  const hasLiveBook = crypto.length + equities.length + cards.length + loans.length > 0
-  const netWorth = hasLiveBook
-    ? liveAssets - liabTotal
-    : data.history?.[data.history.length - 1]?.netWorth
+  const computedAssets =
+    crypto.reduce((sum, c) => sum + cryptoLineValue(c), 0) +
+    equities.reduce((sum, e) => sum + equityLineValue(e), 0)
+  const historyNw = data.history?.[data.history.length - 1]?.netWorth
+  const netWorth = historyNw != null ? historyNw : computedAssets - liabTotal
 
   const spendingByCategory = new Map<string, number>()
   for (const s of spendRows) {
@@ -87,7 +87,7 @@ export function buildFullReportHtml(data: FullReportData): string {
           <tr>
             <td>${escapeHtml(c.symbol)}</td>
             <td>${c.qty}</td>
-            <td>${formatGBP(cryptoValue(c))}</td>
+            <td>${formatGBP(cryptoLineValue(c))}</td>
           </tr>`,
                 )
                 .join('')
@@ -107,7 +107,7 @@ export function buildFullReportHtml(data: FullReportData): string {
           <tr>
             <td>${escapeHtml(e.symbol)}</td>
             <td>${e.shares}</td>
-            <td>${formatGBP(equityValue(e))}</td>
+            <td>${formatGBP(equityLineValue(e))}</td>
           </tr>`,
                 )
                 .join('')

@@ -16,8 +16,6 @@ import {
   projectScenario,
   type SpendingTrend,
 } from '../domain/advancedAnalytics'
-import { isBudgetSpend } from '../domain/budgetChart'
-import { calcCash } from '../domain/calc'
 import { compareDebtStrategies } from '../domain/debtStrategies'
 import { formatGBP, privacyClass } from '../utils/format'
 import { formatChartYTick, formatChartPctTick } from '../domain/chartAxis'
@@ -27,6 +25,8 @@ import {
   saveAnalyticsScenario,
 } from '../storage/analyticsScenariosStore'
 import { planningMonteCarloUrl } from '../domain/deepLinks'
+import { calcCash, calcLiabilities } from '../domain/calc'
+import { estimateMonthlyExpenses } from '../domain/goalProjectedDate'
 import {
   LineChart,
   Line,
@@ -122,14 +122,9 @@ export function PredictiveAnalyticsPage() {
   const totalAssets = breakdown.assets
   const totalLiabilities = breakdown.liabilities
 
-  const monthlyExpenses = useMemo(() => {
-    const now = new Date()
-    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-    const fromLedger = data.spending
-      .filter(s => s.date.startsWith(currentMonth) && isBudgetSpend(s))
-      .reduce((sum, s) => sum + Math.abs(s.amount), 0)
-    return fromLedger > 0 ? fromLedger : Math.max(0, data.monthlyExpenses)
-  }, [data.spending, data.monthlyExpenses])
+  const monthlyExpenses = useMemo(() => estimateMonthlyExpenses(data), [data])
+  const monthlyDebtService = useMemo(() => calcLiabilities(data).monthly, [data])
+  const cashBalance = useMemo(() => calcCash(data), [data])
 
   const financialHealth = useMemo(() => 
     calculateFinancialHealth({
@@ -140,9 +135,11 @@ export function PredictiveAnalyticsPage() {
       monthlyExpenses,
       spending: data.spending,
       budgetGoals,
-      cash: calcCash(data),
+      monthlyDebtService,
+      cashBalance,
+      emergencyFundMonths: monthlyExpenses > 0 ? cashBalance / monthlyExpenses : undefined,
     }),
-    [totalAssets, totalLiabilities, data, data.monthlyIncome, monthlyExpenses, data.spending, budgetGoals]
+    [totalAssets, totalLiabilities, data.monthlyIncome, monthlyExpenses, data.spending, budgetGoals, monthlyDebtService, cashBalance]
   )
 
   const scenarioProjection = useMemo(
@@ -155,8 +152,10 @@ export function PredictiveAnalyticsPage() {
         incomeDeltaPct: scenario.incomeDeltaPct,
         marketReturnPct: scenario.marketReturnPct,
         inflationPct: scenario.inflationPct,
+        monthlyDebtService,
+        cash: cashBalance,
       }),
-    [data.monthlyIncome, monthlyExpenses, scenario, totalAssets, totalLiabilities],
+    [data.monthlyIncome, monthlyExpenses, scenario, totalAssets, totalLiabilities, monthlyDebtService, cashBalance],
   )
 
   const debtComparison = useMemo(
@@ -180,8 +179,9 @@ export function PredictiveAnalyticsPage() {
         monthlyIncome: data.monthlyIncome,
         monthlyExpenses,
         annualReturnPct: scenario.marketReturnPct,
+        monthlyDebtService,
       }),
-    [data.monthlyIncome, monthlyExpenses, scenario.marketReturnPct, totalAssets, totalLiabilities],
+    [data.monthlyIncome, monthlyExpenses, scenario.marketReturnPct, totalAssets, totalLiabilities, monthlyDebtService],
   )
 
   const savingsRateTrend = useMemo(() => 
@@ -645,7 +645,8 @@ export function PredictiveAnalyticsPage() {
       {/* Savings Rate Trend */}
       {savingsRateTrend.length > 0 && (
         <div className="surface p-6 mb-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
-          <h3 className="font-bold text-lg mb-4">Savings Rate Trend</h3>
+          <h3 className="font-bold text-lg mb-4">Net worth change</h3>
+          <p className="text-xs text-text-muted mb-4">Month-to-month change in recorded net worth, not cash savings rate.</p>
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={savingsRateTrend}>
               <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
@@ -661,7 +662,7 @@ export function PredictiveAnalyticsPage() {
                 stroke="#3b82f6"
                 strokeWidth={2}
                 dot={{ r: 4 }}
-                name="Savings Rate"
+                name="NW change"
               />
             </LineChart>
           </ResponsiveContainer>

@@ -25,6 +25,20 @@ export function isCashCryptoSymbol(symbol: string): boolean {
   return CASH_CRYPTO_SYMBOLS.has(symbol.trim().toUpperCase())
 }
 
+/** Symbols treated as “owned” for News / YouTube / Markets screener. */
+export function ownedHoldingSymbols(data: Pick<PortfolioData, 'crypto' | 'equities'>): string[] {
+  const out: string[] = []
+  for (const e of included(data.equities)) {
+    const s = e.symbol.trim().toUpperCase()
+    if (s) out.push(s)
+  }
+  for (const c of included(data.crypto)) {
+    const s = c.symbol.trim().toUpperCase()
+    if (s) out.push(s)
+  }
+  return out
+}
+
 /**
  * Mark price for a crypto line. Equities already fall back to avgCost when
  * livePrice is 0; unquoted crypto used to drop the whole position from NW.

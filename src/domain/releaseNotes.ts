@@ -29,19 +29,19 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
-    version: '1.2.118',
+    version: '1.2.120',
     date: '2026-08-26',
     bullets: [
       {
-        text: 'ISA / reports: crypto mark price, not cost × qty',
+        text: 'ISA: crypto mark price, not cost × qty',
         to: '/tax',
       },
       {
-        text: 'FIRE + emergency fund use net worth / cash',
+        text: 'FIRE years start from net worth',
         to: '/analytics/predictive',
       },
       {
-        text: 'Deep-links wait for hydrate (Spending, Todos, Journal)',
+        text: 'Deep-links wait for hydrate (Spending, Todos)',
         to: '/todos',
       },
       {
@@ -49,8 +49,60 @@ export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
         to: '/history',
       },
       {
-        text: 'Markets ownership + spend totals skip income',
+        text: 'Hash #/settings#sync keeps the section',
+        to: '/settings#sync',
+      },
+    ],
+  },
+  {
+    version: '1.2.119',
+    date: '2026-08-26',
+    bullets: [
+      {
+        text: 'Cash runway uses cash/stables, not net worth',
+        to: '/',
+      },
+      {
+        text: 'Family NW-only members still roll up',
+        to: '/family',
+      },
+      {
+        text: 'To-do due dates stay on the local calendar day',
+        to: '/todos',
+      },
+      {
+        text: 'News/YouTube/Markets owned follows included holdings',
+        to: '/news',
+      },
+      {
+        text: 'Reminders use live goal progress and real debts',
+        to: '/',
+      },
+    ],
+  },
+  {
+    version: '1.2.118',
+    date: '2026-08-26',
+    bullets: [
+      {
+        text: 'Optimizer rolls freed min payments onto remaining debts',
+        to: '/optimizer',
+      },
+      {
+        text: 'Analytics surplus after debt service · cash emergency months',
+        to: '/analytics/predictive',
+      },
+      {
+        text: 'Markets and reports use the same mark-price engine',
         to: '/markets',
+      },
+      {
+        text: 'Sync Open first lands on Journal rows and To-do lists',
+        to: '/journal',
+      },
+      {
+        text: 'Planning honours inflation + scenario from Analytics',
+        to: '/planning',
       },
     ],
   },

@@ -1,10 +1,12 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.118**
+**Current version: 1.2.120**
 
-## Completed (through v1.2.118)
+## Completed (through v1.2.120)
 
-- Bug hunt (v1.2.118): ISA crypto mark price · FIRE from net worth · emergency-fund cash in health score · spend totals skip income · Spending/Todos/Journal/Recurring deep-link hydrate · history+CGT local calendar · Markets ownership marks · API/PDF shared calc · digest listener deps · hash #sync keep · display-CCY budget templates
+- Bug hunt (v1.2.120): ISA crypto mark price · FIRE from net worth · Spending/Todos/Recurring hydrate deep-links · Cmd+K row links · history+CGT local calendar · API/PDF shared calc · hash #sync · display-CCY budget templates · route aliases
+- Bug hunt (v1.2.119): cash runway is cash · family NW-only members · local todo due dates · reminders/alerts skip income · live goal progress · News/YouTube/Markets owned from included book · YouTube cached `?video=` · Compare paper slice
+- Bug hunt (v1.2.118): Optimizer rolls freed minPays · Predictive/Analytics surplus after debt service · cash emergency months · Markets/report mark prices · Journal/Todos sync landings · Planning inflation+scenario · Commodities chrome · silent Markets migrate · Today jump chips · display-CCY liability notes
 - Bug hunt (v1.2.117): quote origin allowlist (localhost ports + 10.x LAN) · crypto cost fallback · honest goal dates · budget pulse skips 0% used · family shareDebt reconcile · display-CCY alerts · PIN screen-cover copy · modest sample family · USDC leftover after hydrate · Today chip ids + Media target · /household → Family · crypto-only concentration · Markets ?symbol= honor · CSV import deep-link · one asset engine · emergency-fund cash metric · VWRL/VUSA GBP · family combined + no double-count · surplus after minPay
 
 
