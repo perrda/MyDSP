@@ -1,6 +1,7 @@
 // API Export and Automation Foundations
 // Export data in standard formats for external integrations
 
+import { calcBreakdownWithPaper } from './netWorthWithPaper'
 import type { PortfolioData } from '../domain/types'
 
 export interface DataExportOptions {
@@ -32,15 +33,10 @@ export interface StandardApiResponse<T = any> {
 
 // Export portfolio summary in standard API format
 export function exportPortfolioSummary(data: PortfolioData): StandardApiResponse {
-  const totalAssets = 
-    data.crypto.reduce((sum, c) => sum + c.qty * c.cost, 0) +
-    data.equities.reduce((sum, e) => sum + e.shares * e.avgCost, 0)
-  
-  const totalLiabilities = 
-    data.creditCards.reduce((sum, c) => sum + c.balance, 0) +
-    data.loans.reduce((sum, l) => sum + l.balance, 0)
-  
-  const netWorth = totalAssets - totalLiabilities
+  const breakdown = calcBreakdownWithPaper(data)
+  const totalAssets = breakdown.assets
+  const totalLiabilities = breakdown.liabilities
+  const netWorth = breakdown.netWorth
   
   const activeGoals = data.goals.filter(g => {
     const deadline = new Date(g.deadline)
@@ -53,13 +49,13 @@ export function exportPortfolioSummary(data: PortfolioData): StandardApiResponse
       netWorth,
       assets: {
         total: totalAssets,
-        crypto: data.crypto.reduce((sum, c) => sum + c.qty * c.cost, 0),
-        equities: data.equities.reduce((sum, e) => sum + e.shares * e.avgCost, 0),
+        crypto: breakdown.crypto.value,
+        equities: breakdown.equity.value,
       },
       liabilities: {
         total: totalLiabilities,
-        creditCards: data.creditCards.reduce((sum, c) => sum + c.balance, 0),
-        loans: data.loans.reduce((sum, l) => sum + l.balance, 0),
+        creditCards: breakdown.liability.cc,
+        loans: breakdown.liability.loans,
       },
       counts: {
         cryptoHoldings: data.crypto.length,

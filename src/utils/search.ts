@@ -1,5 +1,6 @@
 // Advanced search and filtering utilities with fuzzy matching
 
+import { spendingHighlightUrl } from '../domain/deepLinks'
 import type { SpendingEntry, CryptoHolding, EquityHolding, Goal } from '../domain/types'
 import type { JobApplication } from '../domain/job-types'
 import type { TodoItem } from '../domain/todo-types'
@@ -368,7 +369,7 @@ export function globalSearch(
         title: s.description,
         subtitle: `${s.category} · ${s.date}`,
         score,
-        url: '/spending',
+        url: spendingHighlightUrl(s.id),
       })
     }
   })
@@ -413,7 +414,7 @@ export function globalSearch(
         title: g.name,
         subtitle: `Goal · ${g.type}`,
         score,
-        url: '/goals',
+        url: `/goals?note=${g.id}`,
       })
     }
   })
@@ -443,7 +444,7 @@ export function globalSearch(
         title: t.title,
         subtitle: `To Do · ${t.priority} priority`,
         score,
-        url: '/todos',
+        url: `/todos?focus=${t.id}`,
       })
     }
   })

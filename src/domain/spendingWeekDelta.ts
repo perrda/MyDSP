@@ -32,12 +32,13 @@ export function weekRange(now = new Date()): { thisStart: string; thisEnd: strin
 }
 
 export function sumSpendInRange(
-  spending: { date?: string; amount: number }[],
+  spending: { date?: string; amount: number; category?: string }[],
   start: string,
   end: string,
 ): number {
   let total = 0
   for (const s of spending) {
+    if (String(s.category ?? '').trim().toLowerCase() === 'income') continue
     const d = (s.date ?? '').slice(0, 10)
     if (d >= start && d <= end) total += Math.abs(s.amount)
   }

@@ -1,5 +1,6 @@
 /** Derive ISA allowance used from holdings whose platform mentions ISA. */
 
+import { cryptoMarkPrice } from './calc'
 import type { CryptoHolding, EquityHolding, PortfolioData } from './types'
 
 export const ISA_ALLOWANCE_GBP = 20_000
@@ -18,8 +19,7 @@ function equityValue(e: EquityHolding): number {
 
 function cryptoValue(c: CryptoHolding): number {
   if (c.includeInPortfolio === false) return 0
-  const px = c.price > 0 ? c.price : c.cost
-  return Math.max(0, c.qty * px)
+  return Math.max(0, c.qty * cryptoMarkPrice(c))
 }
 
 /**

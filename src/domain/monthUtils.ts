@@ -1,5 +1,12 @@
 /** Calendar month helpers (YYYY-MM). */
 
+/** Parse `YYYY-MM-DD` as a local calendar day (not UTC midnight). */
+export function parseLocalYmd(iso: string | undefined | null): Date | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec((iso ?? '').trim())
+  if (!m) return null
+  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+}
+
 export function monthKey(d = new Date()): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }

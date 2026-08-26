@@ -140,10 +140,16 @@ export function SpendingPage() {
   }, [searchParams, data.spending, ym, category, query])
 
   useEffect(() => {
-    const params: Record<string, string> = { month: ym }
-    if (category !== 'All') params.category = category.toLowerCase()
-    setSearchParams(params, { replace: true })
-  }, [category, ym, setSearchParams])
+    const next = new URLSearchParams(searchParams)
+    const desiredCat = category !== 'All' ? category.toLowerCase() : null
+    if (next.get('month') === ym && (desiredCat ? next.get('category') === desiredCat : !next.get('category'))) {
+      return
+    }
+    next.set('month', ym)
+    if (desiredCat) next.set('category', desiredCat)
+    else next.delete('category')
+    setSearchParams(next, { replace: true })
+  }, [category, ym, searchParams, setSearchParams])
 
   const allCategories = useMemo(
     () =>

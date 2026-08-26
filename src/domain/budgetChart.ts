@@ -9,8 +9,8 @@ export interface MonthSpendPoint {
 }
 
 /** Income rows share the cash ledger but are not budget consumption. */
-export function isBudgetSpend(entry: SpendingEntry): boolean {
-  return String(entry.category).trim().toLowerCase() !== 'income'
+export function isBudgetSpend(entry: Pick<SpendingEntry, 'category'> | { category?: string }): boolean {
+  return String(entry.category ?? '').trim().toLowerCase() !== 'income'
 }
 
 export function monthKeysLastN(n: number, now = new Date()): string[] {

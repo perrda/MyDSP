@@ -90,16 +90,17 @@ export function RecurringPage() {
     if (!raw) return
     const id = Number(raw)
     if (!Number.isFinite(id)) {
-      setSearchParams({}, { replace: true })
+      const next = new URLSearchParams(searchParams)
+      next.delete('focus')
+      setSearchParams(next, { replace: true })
       return
     }
     const item = (data.recurringTransactions ?? []).find((r) => r.id === id)
-    if (!item) {
-      setSearchParams({}, { replace: true })
-      return
-    }
+    if (!item) return
     setFocusRecurringId(id)
-    setSearchParams({}, { replace: true })
+    const next = new URLSearchParams(searchParams)
+    next.delete('focus')
+    setSearchParams(next, { replace: true })
   }, [searchParams, data.recurringTransactions, setSearchParams])
 
   useEffect(() => {

@@ -133,6 +133,9 @@ export default function App() {
                         <Route path="smoke" element={<SmokePage />} />
                         <Route path="accounts" element={<Navigate to="/crypto" replace />} />
                         <Route path="transactions" element={<Navigate to="/spending" replace />} />
+                        <Route path="dashboard" element={<Navigate to="/" replace />} />
+                        <Route path="portfolio" element={<Navigate to="/" replace />} />
+                        <Route path="predictive" element={<Navigate to="/analytics/predictive" replace />} />
                         <Route path="*" element={<Navigate to="/" replace />} />
                       </Route>
                     </Routes>

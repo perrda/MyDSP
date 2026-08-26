@@ -104,18 +104,19 @@ export function JournalPage() {
     if (!raw) return
     const id = Number(raw)
     if (!Number.isFinite(id)) {
-      setSearchParams({}, { replace: true })
+      const next = new URLSearchParams(searchParams)
+      next.delete('highlight')
+      setSearchParams(next, { replace: true })
       return
     }
     const entry = data.journal.find((j) => j.id === id)
-    if (!entry) {
-      setSearchParams({}, { replace: true })
-      return
-    }
-    setFilter('All')
+    if (!entry) return
+    if (filter !== 'All' && entry.asset !== filter) setFilter('All')
     setHighlightId(id)
-    setSearchParams({}, { replace: true })
-  }, [searchParams, data.journal, setSearchParams])
+    const next = new URLSearchParams(searchParams)
+    next.delete('highlight')
+    setSearchParams(next, { replace: true })
+  }, [searchParams, data.journal, filter, setSearchParams])
 
   useEffect(() => {
     if (highlightId == null) return
@@ -313,7 +314,10 @@ export function JournalPage() {
               {(j) => (
                 <div
                   id={`journal-${j.id}`}
-                  className={`${ROW_GRID} border-b border-border/60 px-5 py-3 text-sm last:border-0 ${highlightId === j.id ? 'ring-2 ring-accent' : ''}`}
+                  data-testid={`journal-row-${j.id}`}
+                  className={`${ROW_GRID} border-b border-border/60 px-5 py-3 text-sm last:border-0 ${
+                    highlightId === j.id ? 'todo-focus-ring ring-2 ring-accent bg-accent/10' : ''
+                  }`}
                 >
                   <JournalRowBody
                     j={j}
@@ -330,7 +334,10 @@ export function JournalPage() {
               <div
                 key={j.id}
                 id={`journal-${j.id}`}
-                className={`${ROW_GRID} border-b border-border/60 px-5 py-3 text-sm last:border-0 ${highlightId === j.id ? 'ring-2 ring-accent' : ''}`}
+                data-testid={`journal-row-${j.id}`}
+                className={`${ROW_GRID} border-b border-border/60 px-5 py-3 text-sm last:border-0 ${
+                  highlightId === j.id ? 'todo-focus-ring ring-2 ring-accent bg-accent/10' : ''
+                }`}
               >
                 <JournalRowBody
                   j={j}

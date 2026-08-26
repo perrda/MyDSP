@@ -175,12 +175,13 @@ export function PredictiveAnalyticsPage() {
     () =>
       estimateFireYears({
         assets: totalAssets,
+        liabilities: totalLiabilities,
         monthlyIncome: data.monthlyIncome,
         monthlyExpenses,
         annualReturnPct: scenario.marketReturnPct,
         monthlyDebtService,
       }),
-    [data.monthlyIncome, monthlyExpenses, scenario.marketReturnPct, totalAssets, monthlyDebtService],
+    [data.monthlyIncome, monthlyExpenses, scenario.marketReturnPct, totalAssets, totalLiabilities, monthlyDebtService],
   )
 
   const savingsRateTrend = useMemo(() => 

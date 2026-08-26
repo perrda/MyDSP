@@ -7,6 +7,7 @@ import {
   type Disposal,
   type TaxSummary,
 } from './cgt'
+import { parseLocalYmd } from './monthUtils'
 
 export type TaxYearKind = 'uk-apr' | 'calendar'
 export type TaxMatching = 'uk-section104' | 'fifo-simple' | 'none'
@@ -198,7 +199,8 @@ export function matchDisposalsSimple(
   const { start, end } = getPackYearRange(pack, yearKey)
   return disposals
     .filter((d) => {
-      const date = new Date(d.date)
+      const date = parseLocalYmd(d.date)
+      if (!date) return false
       return date >= start && date <= end
     })
     .map((d) => {

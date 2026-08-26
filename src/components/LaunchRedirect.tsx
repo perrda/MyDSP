@@ -17,7 +17,9 @@ export function LaunchRedirect() {
     const hashRoute = location.hash.match(/^#(\/[-a-z0-9/]*)/i)
     if (hashRoute) {
       done.current = true
-      navigate(hashRoute[1], { replace: true })
+      const rest = location.hash.slice(hashRoute[0].length)
+      const dest = rest.startsWith('#') ? `${hashRoute[1]}${rest}` : hashRoute[1]
+      navigate(dest, { replace: true })
       return
     }
     if (done.current) return

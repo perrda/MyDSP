@@ -1,8 +1,8 @@
 // Advanced Analytics and Forecasting Engine
 // ML-style predictions, anomaly detection, and financial insights
 
-import type { SpendingEntry, HistoryPoint } from '../domain/types'
 import { isBudgetSpend } from './budgetChart'
+import type { SpendingEntry, HistoryPoint } from '../domain/types'
 
 export interface SpendingTrend {
   category: string
@@ -93,7 +93,7 @@ export function analyzeSpendingTrends(spending: SpendingEntry[], months: number 
   const cutoffDate = new Date()
   cutoffDate.setMonth(cutoffDate.getMonth() - months)
   
-  const recentSpending = spending.filter(s => new Date(s.date) >= cutoffDate)
+  const recentSpending = spending.filter(s => isBudgetSpend(s) && new Date(s.date) >= cutoffDate)
   
   // Group by category and month
   const categoryMonthly = new Map<string, Map<string, number>>()
@@ -209,7 +209,7 @@ export function detectAnomalies(spending: SpendingEntry[], monthsToAnalyze: numb
   const cutoffDate = new Date()
   cutoffDate.setMonth(cutoffDate.getMonth() - monthsToAnalyze)
   
-  const recentSpending = spending.filter(s => new Date(s.date) >= cutoffDate)
+  const recentSpending = spending.filter(s => isBudgetSpend(s) && new Date(s.date) >= cutoffDate)
   
   // Group by category
   const categorySpending = new Map<string, number[]>()
@@ -422,6 +422,7 @@ export function projectScenario(input: ScenarioProjectionInput): ScenarioProject
 
 export function estimateFireYears(params: {
   assets: number
+  liabilities?: number
   monthlyIncome: number
   monthlyExpenses: number
   annualReturnPct?: number
@@ -433,10 +434,11 @@ export function estimateFireYears(params: {
   if (!(params.monthlyIncome > 0) || !(monthlySavings > 0) || !(params.monthlyExpenses > 0)) {
     return null
   }
+  const starting = Math.max(0, params.assets - Math.max(0, params.liabilities ?? 0))
   const target = params.monthlyExpenses * 12 * (params.fireMultiple ?? 25)
-  if (params.assets >= target) return 0
+  if (starting >= target) return 0
   const monthlyReturn = Math.max(0, params.annualReturnPct ?? 0) / 100 / 12
-  let balance = Math.max(0, params.assets)
+  let balance = starting
   for (let month = 1; month <= 1200; month++) {
     balance = balance * (1 + monthlyReturn) + monthlySavings
     if (balance >= target) return Math.round((month / 12) * 10) / 10

@@ -38,8 +38,8 @@ import {
   type PriceAlertThreshold,
 } from '../domain/priceAlerts'
 import { applyLastSyncedQuotesToHoldings } from '../domain/lastSyncedHoldings'
-import { includedPortfolioHoldingValue } from '../domain/portfolioConcentration'
 import { cryptoMarkPrice } from '../domain/calc'
+import { includedPortfolioHoldingValue } from '../domain/portfolioConcentration'
 import { equityUnitPriceGbp } from '../domain/migrateEquityGbp'
 import {
   defaultNameForPair,

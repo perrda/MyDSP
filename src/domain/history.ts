@@ -1,5 +1,6 @@
 /** Net worth history helpers + chart ranges + intraday snapshots. */
 
+import { todayKeyLocal } from './moneyPulse'
 import { calcBreakdownWithPaper } from './netWorthWithPaper'
 import type { HistoryPoint, PortfolioData } from './types'
 
@@ -18,7 +19,7 @@ export const HISTORY_RETENTION = 2500
 export const INTRADAY_GAP_MS = 15 * 60_000
 
 export function todayKey(): string {
-  return new Date().toISOString().slice(0, 10)
+  return todayKeyLocal()
 }
 
 export function normalizeHistoryDate(date?: string | null): string {
@@ -39,7 +40,7 @@ function buildRow(
   const b = calcBreakdownWithPaper(data)
   const when = at ?? new Date().toISOString()
   return {
-    date: when.slice(0, 10),
+    date: todayKeyLocal(new Date(when)),
     at: when,
     netWorth: b.netWorth,
     assets: b.assets,
@@ -63,7 +64,7 @@ export function upsertDailySnapshot(
   opts?: { forceIntraday?: boolean },
 ): PortfolioData {
   const now = new Date().toISOString()
-  const today = now.slice(0, 10)
+  const today = todayKeyLocal()
   const row = buildRow(data, source, now)
   const hist = [...data.history]
     .map((h) => ({ ...h, date: normalizeHistoryDate(h.date) }))
