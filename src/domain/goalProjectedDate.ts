@@ -30,14 +30,18 @@ export function goalRemaining(goal: Goal, current: number): number {
  * 3) minus liability minPay
  * 4) null when income unavailable or surplus ≤ 0
  */
+/** Monthly expenses: Settings figure, else avg budget spend (income rows excluded). */
+export function estimateMonthlyExpenses(data: PortfolioData, now = new Date()): number {
+  const expenses = data.monthlyExpenses ?? 0
+  if (expenses > 0) return expenses
+  return avgMonthlySpend(data.spending, now)
+}
+
 export function estimateMonthlySurplus(data: PortfolioData, now = new Date()): number | null {
   const income = data.monthlyIncome ?? 0
   if (!(income > 0)) return null
 
-  let expenses = data.monthlyExpenses ?? 0
-  if (!(expenses > 0)) {
-    expenses = avgMonthlySpend(data.spending, now)
-  }
+  const expenses = estimateMonthlyExpenses(data, now)
   const minPay = calcLiabilities(data).monthly
   const surplus = income - expenses - minPay
   return surplus > 0 ? surplus : null

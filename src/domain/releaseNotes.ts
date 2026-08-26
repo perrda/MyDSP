@@ -29,6 +29,32 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.118',
+    date: '2026-08-26',
+    bullets: [
+      {
+        text: 'Optimizer rolls freed min payments onto remaining debts',
+        to: '/optimizer',
+      },
+      {
+        text: 'Analytics surplus after debt service · cash emergency months',
+        to: '/analytics/predictive',
+      },
+      {
+        text: 'Markets and reports use the same mark-price engine',
+        to: '/markets',
+      },
+      {
+        text: 'Sync Open first lands on Journal rows and To-do lists',
+        to: '/journal',
+      },
+      {
+        text: 'Planning honours inflation + scenario from Analytics',
+        to: '/planning',
+      },
+    ],
+  },
+  {
     version: '1.2.117',
     date: '2026-08-25',
     bullets: [

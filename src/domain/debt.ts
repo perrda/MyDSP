@@ -95,27 +95,33 @@ export function simulateDebt(
       }
     }
 
-    for (const d of debts) {
-      if (d.balance > 0) {
-        const pay = Math.min(d.minPay, d.balance)
-        d.balance -= pay
-        monthPrin += pay
-        if (d.balance <= 0.01) {
-          d.balance = 0
-          const key = `${d.id}${d.type}`
-          if (!payoffs[key]) {
-            payoffs[key] = months
-            notes.push(d.name)
-          }
-        }
-      }
-    }
-
-    let avail = extra
+    // Keep the original min-pay budget + extra rolling onto remaining debts
+    // (avalanche/snowball), matching estimateDebtPaydown.
+    const monthlyPayment = baseMin + extra
     const sorted = sortDebts(
       strategy,
       debts.filter((d) => d.balance > 0),
     )
+    const target = sorted[0]
+    let paid = 0
+
+    for (const d of debts) {
+      if (d.balance <= 0 || d === target) continue
+      const pay = Math.min(d.minPay, d.balance, monthlyPayment - paid)
+      d.balance -= pay
+      monthPrin += pay
+      paid += pay
+      if (d.balance <= 0.01) {
+        d.balance = 0
+        const key = `${d.id}${d.type}`
+        if (!payoffs[key]) {
+          payoffs[key] = months
+          notes.push(d.name)
+        }
+      }
+    }
+
+    let avail = Math.max(0, monthlyPayment - paid)
     for (const d of sorted) {
       if (avail <= 0 || d.balance <= 0) continue
       const apply = Math.min(avail, d.balance)
@@ -135,7 +141,7 @@ export function simulateDebt(
     const remaining = debts.reduce((s, d) => s + d.balance, 0)
     schedule.push({
       month: months,
-      payment: baseMin + extra,
+      payment: monthlyPayment,
       principal: monthPrin,
       interest: monthInt,
       remaining,

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { OverflowMenu } from '../components/ui/OverflowMenu'
 import { PageHeader } from '../components/ui/PageHeader'
 import { PagePrimaryActions } from '../components/ui/PagePrimaryActions'
@@ -81,6 +82,8 @@ function JournalRowBody({
 
 export function JournalPage() {
   const { data, setData, privacy } = usePortfolio()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [highlightId, setHighlightId] = useState<number | null>(null)
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<JournalEntry | null>(null)
   const [form, setForm] = useState(empty)
@@ -94,6 +97,34 @@ export function JournalPage() {
     window.addEventListener('mydsp-sync-applied', onSyncApplied)
     return () => window.removeEventListener('mydsp-sync-applied', onSyncApplied)
   }, [])
+
+  // Deep-link: /journal?highlight=<id> shows the synced journal row
+  useEffect(() => {
+    const raw = searchParams.get('highlight')
+    if (!raw) return
+    const id = Number(raw)
+    if (!Number.isFinite(id)) {
+      setSearchParams({}, { replace: true })
+      return
+    }
+    const entry = data.journal.find((j) => j.id === id)
+    if (!entry) {
+      setSearchParams({}, { replace: true })
+      return
+    }
+    setFilter('All')
+    setHighlightId(id)
+    setSearchParams({}, { replace: true })
+  }, [searchParams, data.journal, setSearchParams])
+
+  useEffect(() => {
+    if (highlightId == null) return
+    const el = document.getElementById(`journal-${highlightId}`)
+    if (!el) return
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    const clear = window.setTimeout(() => setHighlightId(null), 2500)
+    return () => window.clearTimeout(clear)
+  }, [highlightId])
 
   const holdingSymbols = useMemo(() => {
     const set = new Set<string>()
@@ -280,7 +311,10 @@ export function JournalPage() {
               onReorder={(next) => setData((prev) => ({ ...prev, journal: applySortOrder(next) }))}
             >
               {(j) => (
-                <div className={`${ROW_GRID} border-b border-border/60 px-5 py-3 text-sm last:border-0`}>
+                <div
+                  id={`journal-${j.id}`}
+                  className={`${ROW_GRID} border-b border-border/60 px-5 py-3 text-sm last:border-0 ${highlightId === j.id ? 'ring-2 ring-accent' : ''}`}
+                >
                   <JournalRowBody
                     j={j}
                     privacy={privacy}
@@ -293,7 +327,11 @@ export function JournalPage() {
             </ReorderList>
           ) : (
             rows.map((j) => (
-              <div key={j.id} className={`${ROW_GRID} border-b border-border/60 px-5 py-3 text-sm last:border-0`}>
+              <div
+                key={j.id}
+                id={`journal-${j.id}`}
+                className={`${ROW_GRID} border-b border-border/60 px-5 py-3 text-sm last:border-0 ${highlightId === j.id ? 'ring-2 ring-accent' : ''}`}
+              >
                 <JournalRowBody
                   j={j}
                   privacy={privacy}

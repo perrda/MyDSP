@@ -1,12 +1,13 @@
 /** Build multi-section HTML for the full financial PDF report. */
 
 import { formatGBP } from './format'
+import { cryptoMarkPrice } from '../domain/calc'
 
 /** Minimal portfolio shape used by the full report (avoids circular imports). */
 export type FullReportData = {
   history?: Array<{ netWorth?: number }>
-  crypto?: Array<{ symbol: string; qty: number; price: number }>
-  equities?: Array<{ symbol: string; shares: number; livePrice: number }>
+  crypto?: Array<{ symbol: string; qty: number; price: number; cost?: number }>
+  equities?: Array<{ symbol: string; shares: number; livePrice: number; avgCost?: number }>
   spending?: Array<{ date: string; description: string; category: string; amount: number }>
   goals?: Array<{ name: string; target: number; deadline: string; type: string; startVal?: number }>
   creditCards?: Array<{ name: string; balance: number }>
@@ -22,8 +23,15 @@ function escapeHtml(s: string): string {
     .replace(/"/g, '&quot;')
 }
 
+function cryptoLineValue(c: { qty: number; price: number; cost?: number }): number {
+  return c.qty * cryptoMarkPrice({ qty: c.qty, price: c.price, cost: c.cost ?? 0 })
+}
+
+function equityLineValue(e: { shares: number; livePrice: number; avgCost?: number }): number {
+  return e.shares * (e.livePrice || e.avgCost || 0)
+}
+
 export function buildFullReportHtml(data: FullReportData): string {
-  const netWorth = data.history?.[data.history.length - 1]?.netWorth
   const crypto = data.crypto ?? []
   const equities = data.equities ?? []
   const spending = data.spending ?? []
@@ -31,6 +39,13 @@ export function buildFullReportHtml(data: FullReportData): string {
   const cards = data.creditCards ?? []
   const loans = data.loans ?? []
   const residency = data.settings?.taxResidency || 'GB'
+  const liabTotal =
+    cards.reduce((sum, c) => sum + c.balance, 0) + loans.reduce((sum, l) => sum + l.balance, 0)
+  const computedAssets =
+    crypto.reduce((sum, c) => sum + cryptoLineValue(c), 0) +
+    equities.reduce((sum, e) => sum + equityLineValue(e), 0)
+  const historyNw = data.history?.[data.history.length - 1]?.netWorth
+  const netWorth = historyNw != null ? historyNw : computedAssets - liabTotal
 
   const spendingByCategory = new Map<string, number>()
   for (const s of spending) {
@@ -40,8 +55,6 @@ export function buildFullReportHtml(data: FullReportData): string {
   const categoryRows = [...spendingByCategory.entries()].sort((a, b) => b[1] - a[1])
   const recent = [...spending].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 25)
   const recentTotal = recent.reduce((sum, s) => sum + s.amount, 0)
-  const liabTotal =
-    cards.reduce((sum, c) => sum + c.balance, 0) + loans.reduce((sum, l) => sum + l.balance, 0)
 
   return `
     <h1>MyDSP Full Financial Report</h1>
@@ -60,7 +73,7 @@ export function buildFullReportHtml(data: FullReportData): string {
           <tr>
             <td>${escapeHtml(c.symbol)}</td>
             <td>${c.qty}</td>
-            <td>${formatGBP(c.qty * c.price)}</td>
+            <td>${formatGBP(cryptoLineValue(c))}</td>
           </tr>`,
                 )
                 .join('')
@@ -80,7 +93,7 @@ export function buildFullReportHtml(data: FullReportData): string {
           <tr>
             <td>${escapeHtml(e.symbol)}</td>
             <td>${e.shares}</td>
-            <td>${formatGBP(e.shares * e.livePrice)}</td>
+            <td>${formatGBP(equityLineValue(e))}</td>
           </tr>`,
                 )
                 .join('')

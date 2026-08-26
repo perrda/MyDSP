@@ -31,7 +31,8 @@ import { refreshMediaFeeds } from '../../services/mediaRefresh'
 /** Pull-to-refresh on approved primary/detail routes (no page jump). */
 function allowPullToRefresh(pathname: string): boolean {
   if (pathname === '/' || pathname === '/markets') return true
-  if (pathname === '/equities' || pathname === '/crypto' || pathname === '/news') return true
+  if (pathname === '/equities' || pathname === '/crypto' || pathname === '/commodities') return true
+  if (pathname === '/news') return true
   if (pathname === '/youtube' || pathname === '/tax' || pathname === '/compare') return true
   if (pathname === '/todos' || pathname === '/jobs' || pathname === '/spending') return true
   if (pathname === '/recurring' || pathname === '/liabilities') return true
@@ -58,6 +59,7 @@ const titles: Record<string, { eyebrow: string; title: string }> = {
   '/youtube': { eyebrow: 'Media', title: 'YouTube' },
   '/crypto': { eyebrow: 'Holdings', title: 'Crypto' },
   '/equities': { eyebrow: 'Holdings', title: 'Equities' },
+  '/commodities': { eyebrow: 'Holdings', title: 'Commodities' },
   '/staking': { eyebrow: 'Crypto', title: 'Staking' },
   '/liabilities': { eyebrow: 'Debt', title: 'Liabilities' },
   '/goals': { eyebrow: 'Targets', title: 'Goals' },

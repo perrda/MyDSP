@@ -39,6 +39,7 @@ import {
 } from '../domain/priceAlerts'
 import { applyLastSyncedQuotesToHoldings } from '../domain/lastSyncedHoldings'
 import { includedPortfolioHoldingValue } from '../domain/portfolioConcentration'
+import { cryptoMarkPrice } from '../domain/calc'
 import { equityUnitPriceGbp } from '../domain/migrateEquityGbp'
 import {
   defaultNameForPair,
@@ -879,7 +880,7 @@ export function MarketsPage() {
     for (const c of data.crypto) {
       if (c.includeInPortfolio === false) continue
       const sym = c.symbol.toUpperCase()
-      map.set(sym, (map.get(sym) ?? 0) + c.qty * c.price)
+      map.set(sym, (map.get(sym) ?? 0) + c.qty * cryptoMarkPrice(c))
     }
     return map
   }, [data.crypto])
@@ -889,7 +890,7 @@ export function MarketsPage() {
     for (const e of data.equities) {
       if (e.includeInPortfolio === false) continue
       const sym = e.symbol.toUpperCase()
-      map.set(sym, (map.get(sym) ?? 0) + e.shares * e.livePrice)
+      map.set(sym, (map.get(sym) ?? 0) + e.shares * equityUnitPriceGbp(e))
     }
     return map
   }, [data.equities])
@@ -915,7 +916,7 @@ export function MarketsPage() {
     for (const c of data.crypto) {
       if (c.includeInPortfolio === false) continue
       const key = `crypto:${normPortfolioSymbol(c.symbol)}`
-      map.set(key, (map.get(key) ?? 0) + c.qty * c.price)
+      map.set(key, (map.get(key) ?? 0) + c.qty * cryptoMarkPrice(c))
     }
     for (const e of data.equities) {
       if (e.includeInPortfolio === false) continue

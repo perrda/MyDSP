@@ -2,6 +2,7 @@
 // ML-style predictions, anomaly detection, and financial insights
 
 import type { SpendingEntry, HistoryPoint } from '../domain/types'
+import { isBudgetSpend } from './budgetChart'
 
 export interface SpendingTrend {
   category: string
@@ -98,6 +99,7 @@ export function analyzeSpendingTrends(spending: SpendingEntry[], months: number 
   const categoryMonthly = new Map<string, Map<string, number>>()
   
   recentSpending.forEach(s => {
+    if (!isBudgetSpend(s)) return
     const category = s.category.toLowerCase()
     const month = s.date.slice(0, 7) // YYYY-MM
     
@@ -213,6 +215,7 @@ export function detectAnomalies(spending: SpendingEntry[], monthsToAnalyze: numb
   const categorySpending = new Map<string, number[]>()
   
   recentSpending.forEach(s => {
+    if (!isBudgetSpend(s)) return
     const category = s.category.toLowerCase()
     const amount = Math.abs(s.amount)
     
@@ -276,12 +279,18 @@ export function calculateFinancialHealth(data: {
   spending: SpendingEntry[]
   budgetGoals: Record<string, number>
   emergencyFundMonths?: number
+  /** Cash / stables for emergency coverage (preferred over total assets). */
+  cashBalance?: number
+  /** Scheduled liability minPay — subtracted from surplus / savings rate. */
+  monthlyDebtService?: number
 }): FinancialHealthScore {
   const recommendations: string[] = []
+  const debtService = Math.max(0, data.monthlyDebtService ?? 0)
   
-  // 1. Savings Rate (0-25 points)
+  // 1. Savings Rate (0-25 points) — after scheduled debt service
+  const surplus = data.monthlyIncome - data.monthlyExpenses - debtService
   const savingsRate = data.monthlyIncome > 0
-    ? ((data.monthlyIncome - data.monthlyExpenses) / data.monthlyIncome) * 100
+    ? (surplus / data.monthlyIncome) * 100
     : data.monthlyExpenses > 0
       ? -100
       : 0
@@ -293,10 +302,12 @@ export function calculateFinancialHealth(data: {
   const debtScore = Math.min(25, Math.max(0, 25 - (debtRatio / 40) * 25))
   if (debtRatio > 30) recommendations.push('Reduce debt to below 30% of assets')
   
-  // 3. Emergency Fund (0-20 points)
+  // 3. Emergency Fund (0-20 points) — cash/stables when provided
   const emergencyMonths = data.emergencyFundMonths != null
     ? Math.max(0, finiteNumber(data.emergencyFundMonths))
-    : data.monthlyExpenses > 0 && data.assets > 0
+    : data.monthlyExpenses > 0 && data.cashBalance != null
+      ? Math.max(0, finiteNumber(data.cashBalance)) / data.monthlyExpenses
+      : data.monthlyExpenses > 0 && data.assets > 0
       ? data.assets / data.monthlyExpenses
       : data.assets > 0
         ? 6
@@ -313,6 +324,7 @@ export function calculateFinancialHealth(data: {
   const categorySpending = new Map<string, number>()
   
   monthSpending.forEach(s => {
+    if (!isBudgetSpend(s)) return
     const cat = s.category.toLowerCase()
     categorySpending.set(cat, (categorySpending.get(cat) || 0) + Math.abs(s.amount))
   })
@@ -376,6 +388,8 @@ export interface ScenarioProjectionInput {
   incomeDeltaPct: number
   marketReturnPct: number
   inflationPct: number
+  /** Scheduled liability minPay (not inflated). */
+  monthlyDebtService?: number
 }
 
 export interface ScenarioProjection {
@@ -389,7 +403,8 @@ export interface ScenarioProjection {
 export function projectScenario(input: ScenarioProjectionInput): ScenarioProjection {
   const adjustedMonthlyIncome = Math.max(0, input.monthlyIncome * (1 + input.incomeDeltaPct / 100))
   const adjustedMonthlyExpenses = Math.max(0, input.monthlyExpenses * (1 + input.inflationPct / 100))
-  const monthlySurplus = adjustedMonthlyIncome - adjustedMonthlyExpenses
+  const debtService = Math.max(0, input.monthlyDebtService ?? 0)
+  const monthlySurplus = adjustedMonthlyIncome - adjustedMonthlyExpenses - debtService
   const projectedAssets =
     Math.max(0, input.assets) * (1 + input.marketReturnPct / 100) + monthlySurplus * 12
   const currentNetWorth = input.assets - input.liabilities
@@ -411,8 +426,10 @@ export function estimateFireYears(params: {
   monthlyExpenses: number
   annualReturnPct?: number
   fireMultiple?: number
+  monthlyDebtService?: number
 }): number | null {
-  const monthlySavings = params.monthlyIncome - params.monthlyExpenses
+  const monthlySavings =
+    params.monthlyIncome - params.monthlyExpenses - Math.max(0, params.monthlyDebtService ?? 0)
   if (!(params.monthlyIncome > 0) || !(monthlySavings > 0) || !(params.monthlyExpenses > 0)) {
     return null
   }

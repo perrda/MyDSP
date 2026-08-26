@@ -23,14 +23,14 @@ describe('next10 wave 6 tip harness (v1.2.117)', () => {
 
   it('0: package + release notes tip', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.117')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.117')
+    expect(pkg.version).toBe('1.2.118')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.118')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.118',
       '1.2.117',
       '1.2.116',
       '1.2.114',
       '1.2.113',
-      '1.2.112',
     ])
   })
 
@@ -94,6 +94,8 @@ describe('next10 wave 6 tip harness (v1.2.117)', () => {
     expect(href).toContain('scenario=Base')
     expect(readPage('PredictiveAnalyticsPage.tsx')).toMatch(/analytics-open-planning/)
     expect(readPage('PlanningPage.tsx')).toMatch(/searchParams\.get\('mean'\)/)
+    expect(readPage('PlanningPage.tsx')).toMatch(/planning-inflation/)
+    expect(readPage('PlanningPage.tsx')).toMatch(/planning-scenario-seed/)
   })
 
   it('9: Documents reverse link to Job', () => {

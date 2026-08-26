@@ -399,8 +399,8 @@ export function LiabilityDetailPage() {
     }
     const now = new Date().toISOString()
     const commentText = note
-      ? `Payment logged: ${amount.toFixed(2)} GBP on ${paymentForm.date}. ${note}`
-      : `Payment logged: ${amount.toFixed(2)} GBP on ${paymentForm.date}.`
+      ? `Payment logged: ${formatGBP(amount)} on ${paymentForm.date}. ${note}`
+      : `Payment logged: ${formatGBP(amount)} on ${paymentForm.date}.`
     const postToSpending = paymentForm.postToSpending
     const reduceBalance = paymentForm.reduceBalance
     const returnToOptimizer = searchParams.get('returnTo') === 'optimizer'
@@ -1390,7 +1390,7 @@ export function LiabilityDetailPage() {
         onConfirm={() => {
           applyBalance(
             afterLumpBalance,
-            `Lump-sum applied: −${lump.toFixed(2)} GBP. New balance ${afterLumpBalance.toFixed(2)} GBP.`,
+            `Lump-sum applied: −${formatGBP(lump)}. New balance ${formatGBP(afterLumpBalance)}.`,
           )
           setLumpSum('')
           setApplyConfirm(null)
