@@ -41,7 +41,7 @@ export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
         to: '/money',
       },
       {
-        text: 'Alerts, scorebook, and sync on one plot each',
+        text: 'Alerts once · XP scorebook · one sync card',
         to: '/',
       },
       {

@@ -1353,13 +1353,11 @@ export function Dashboard() {
         onClose={() => setDigestOpen(false)}
         onFlash={(msg) => toastSuccess(msg)}
       />
-      <div className="page-header mb-4 md:mb-5 sm:hidden">
-        <div className="page-header__copy">
-          <p className="eyebrow app-page-eyebrow mb-2">MyDSP</p>
-          <h2 className="app-page-title font-bold tracking-tight leading-tight">
-            <span className="gradient-text">Today</span>
-          </h2>
-        </div>
+      <div className="today-fold-title mb-4 sm:hidden">
+        <p className="eyebrow app-page-eyebrow mb-2">MyDSP</p>
+        <h2 className="app-page-title font-bold tracking-tight leading-tight">
+          <span className="gradient-text">Today</span>
+        </h2>
       </div>
 
       {todayLayoutOpen ? (
@@ -2655,12 +2653,11 @@ export function Dashboard() {
           Scorebook
         </p>
         <p className={`text-3xl md:text-2xl font-bold tabular-nums mb-1 ${privacyClass(privacy)}`}>
-          {achievements.score}
+          {achievements.xp} XP
         </p>
         <p className="text-sm text-text-muted font-light">
-          L{achievements.level} · {achievements.xp} XP · {achievements.unlocked.length} unlocked
+          L{achievements.level} · {achievements.unlocked.length} unlocked
         </p>
-        <p className="text-xs text-text-subtle font-light mt-1">0–1000 composite · same book</p>
       </Link>
 
       {/* Crypto and Equities */}

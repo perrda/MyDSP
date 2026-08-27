@@ -28,8 +28,8 @@ export function AchievementsPage() {
       <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px mb-8 ${privacyClass(privacy)}`}>
         <StatCard
           label="Scorebook"
-          value={String(evalResult.score)}
-          hint={`L${evalResult.level} · ${evalResult.xp} XP · ${evalResult.unlocked.length} unlocked`}
+          value={`${evalResult.xp} XP`}
+          hint={`L${evalResult.level} · ${evalResult.unlocked.length} unlocked`}
         />
         <StatCard
           label="Level progress"

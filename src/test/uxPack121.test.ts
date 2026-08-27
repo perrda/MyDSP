@@ -70,13 +70,17 @@ describe('MyDSP 1.2.121 UX pack', () => {
     expect(dash).toMatch(/title="Allocation"/)
   })
 
-  it('5: One scorebook', () => {
+  it('5: One scorebook is XP / level / unlocks (not the independent 0–1000 score)', () => {
     const dash = read('../pages/Dashboard.tsx')
     expect(dash).toMatch(/today-scorebook/)
-    expect(dash).toMatch(/0–1000 composite · same book/)
-    expect(dash).not.toMatch(/Financial score<\/p>/)
+    expect(dash).toMatch(/\{achievements\.xp\} XP/)
+    expect(dash).not.toMatch(/Financial score/)
+    expect(dash).not.toMatch(/achievements\.score/)
+    expect(dash).not.toMatch(/0–1000 composite/)
     const ach = read('../pages/AchievementsPage.tsx')
     expect(ach).toMatch(/label="Scorebook"/)
+    expect(ach).toMatch(/evalResult\.xp\} XP/)
+    expect(ach).not.toMatch(/evalResult\.score/)
   })
 
   it('6: Markets and Timeline stay honest', () => {
