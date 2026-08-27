@@ -6,7 +6,8 @@ import { DEFAULT_LAUNCH_PATH, loadLaunchPath } from '../storage/launchPathStore'
 
 /**
  * Runs once per browser session when the app mounts on `/`.
- * Does not interfere with in-app navigation back to Overview.
+ * Hash leftovers such as `#/settings` are repaired to `/settings` (Settings is always a path).
+ * Does not interfere with in-app navigation back to Today.
  */
 export function LaunchRedirect() {
   const location = useLocation()
@@ -23,7 +24,7 @@ export function LaunchRedirect() {
       return
     }
     if (done.current) return
-    // Only redirect the initial landing on Overview
+    // Only redirect the initial landing on Today
     if (location.pathname !== '/' && location.pathname !== '') return
     if (location.search || location.hash) return
 

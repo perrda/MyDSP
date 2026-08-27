@@ -48,14 +48,14 @@ describe('next25k — sync / Markets / Today polish tip (1–25 → v1.2.80)', (
 
   it('25: package + release notes are 1.2.80', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.120')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.120')
+    expect(pkg.version).toBe('1.2.121')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.121')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.121',
       '1.2.120',
       '1.2.119',
       '1.2.118',
       '1.2.117',
-      '1.2.116',
     ])
   })
 
@@ -150,7 +150,7 @@ describe('next25k — sync / Markets / Today polish tip (1–25 → v1.2.80)', (
     expect(nav).toMatch(/isDigestLongPressItem/)
     expect(nav).not.toMatch(/syncNow\(\)/)
     expect(nav).toMatch(/mydsp-open-weekly-digest/)
-    expect(nav).toMatch(/openFavouriteSheet/)
+    expect(nav).toMatch(/isDigestLongPressItem/)
   })
 
   it('14: Jobs portrait sticky column jump chips', () => {

@@ -29,6 +29,32 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.121',
+    date: '2026-08-27',
+    bullets: [
+      {
+        text: 'Today fold: title, then net worth',
+        to: '/',
+      },
+      {
+        text: 'Nav: Today · Markets · Money · Plan · Household',
+        to: '/money',
+      },
+      {
+        text: 'Alerts, scorebook, and sync on one plot each',
+        to: '/',
+      },
+      {
+        text: 'Household page + Settings always /settings',
+        to: '/household',
+      },
+      {
+        text: 'Honest Markets movers and timeline',
+        to: '/markets',
+      },
+    ],
+  },
+  {
     version: '1.2.120',
     date: '2026-08-26',
     bullets: [

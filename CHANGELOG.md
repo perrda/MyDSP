@@ -1,5 +1,19 @@
 # MyDSP Changelog
 
+## [1.2.121] - 2026-08-27
+
+### Improved — Today fold + five-door nav (draft)
+- **Today fold:** title, then Net worth. Dropped the PageHeader lede. Backup stays one quiet line under the number.
+- **Nav:** Today · Markets · Money · Plan · Household. Overview label and the 26-item Others dump are gone. Settings stays `/settings` in the sidebar pin.
+- **Alerts once:** Streaming / Rent / allocation drift print in the alerts card only (not hero + reminders).
+- **One money story:** Assets / Debt stay on the hero; the Budget 0% restatement card is gone; allocation chart is Mix, not a second Assets headline.
+- **One scorebook:** Financial score and XP / unlocks share one card and the Achievements scorebook.
+- **Markets + Timeline:** watchlist copy when there are no 24h movers; no timeline plot without two snapshots.
+- **Sync card:** Setup, Cloud Sync, and Finnhub are one first-device card. No `SYNC_KEY`.
+- **One Markets door:** card Open (no header Markets button + lede).
+- **Jump rail:** chips after the hero that land, including TAX with scroll-margin and contained overscroll.
+- **Household:** `/household` is the page; `/family` redirects there. Hash leftovers still repair to `/settings`.
+
 ## [1.2.120] - 2026-08-26
 
 ### Fixed — Bug hunt leftovers (ISA, FIRE basis, hydrate deep-links, calendar)

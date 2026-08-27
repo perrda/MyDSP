@@ -4,8 +4,11 @@ export const DEFAULT_LAUNCH_PATH = '/'
 
 /** Paths the user can pick as on-launch home (must match App routes). */
 export const LAUNCH_PATH_OPTIONS: Array<{ path: string; label: string }> = [
-  { path: '/', label: 'Overview' },
+  { path: '/', label: 'Today' },
   { path: '/markets', label: 'Markets' },
+  { path: '/money', label: 'Money' },
+  { path: '/plan', label: 'Plan' },
+  { path: '/household', label: 'Household' },
   { path: '/todos', label: "To Do's" },
   { path: '/crypto', label: 'Crypto' },
   { path: '/equities', label: 'Equities' },

@@ -63,6 +63,8 @@ const PredictiveAnalyticsPage = lazy(() => import('./pages/PredictiveAnalyticsPa
 const ApiAutomationPage = lazy(() => import('./pages/ApiAutomationPage').then(m => ({ default: m.ApiAutomationPage })))
 const SmartInsightsPage = lazy(() => import('./pages/SmartInsightsPage').then(m => ({ default: m.SmartInsightsPage })))
 const MarketsPage = lazy(() => import('./pages/MarketsPage').then(m => ({ default: m.MarketsPage })))
+const MoneyPage = lazy(() => import('./pages/MoneyPage').then(m => ({ default: m.MoneyPage })))
+const PlanPage = lazy(() => import('./pages/PlanPage').then(m => ({ default: m.PlanPage })))
 const NewsPage = lazy(() => import('./pages/NewsPage').then(m => ({ default: m.NewsPage })))
 const YouTubePage = lazy(() => import('./pages/YouTubePage').then(m => ({ default: m.YouTubePage })))
 const SmokePage = lazy(() => import('./pages/SmokePage').then(m => ({ default: m.SmokePage })))
@@ -91,6 +93,8 @@ export default function App() {
                       <Route element={<AppShell />}>
                         <Route index element={<Dashboard />} />
                         <Route path="markets" element={<MarketsPage />} />
+                        <Route path="money" element={<MoneyPage />} />
+                        <Route path="plan" element={<PlanPage />} />
                         <Route path="news" element={<NewsPage />} />
                         <Route path="youtube" element={<YouTubePage />} />
                         <Route path="crypto" element={<CryptoPage />} />
@@ -108,7 +112,7 @@ export default function App() {
                         <Route path="recurring" element={<RecurringPage />} />
                         <Route path="review" element={<MonthlyReviewPage />} />
                         <Route path="trips" element={<TripsPage />} />
-                        <Route path="family" element={<FamilyPage />} />
+                        <Route path="family" element={<Navigate to="/household" replace />} />
                         <Route path="household" element={<FamilyPage />} />
                         <Route path="history" element={<HistoryPage />} />
                         <Route path="documents" element={<DocumentsPage />} />

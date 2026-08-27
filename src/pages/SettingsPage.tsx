@@ -166,13 +166,6 @@ import {
 } from '../storage/portfolioStore'
 import { resetNavOrder } from '../storage/navOrder'
 import {
-  DEFAULT_BOTTOM_NAV_MIDDLE,
-  loadBottomNavMiddleSlots,
-  resetBottomNavMiddleSlots,
-  saveBottomNavMiddleSlots,
-} from '../storage/bottomNavSlots'
-import { BOTTOM_NAV_CATALOG } from '../domain/bottomNav'
-import {
   completeFinnhubSetupTodo,
   ensureFinnhubSetupTodo,
   hasFinnhubKey,
@@ -280,7 +273,7 @@ const SETTINGS_SECTION_SEARCH: Record<(typeof SETTINGS_SECTION_IDS)[number], str
   appearance: 'Light dark glass mode theme larger text accessibility',
   accessibility:
     'Accessibility larger text reduced motion high contrast colour blind chart palette a11y',
-  layout: 'On launch favourites sidebar bottom nav tabs middle slots Overview Settings',
+  layout: 'On launch Today Markets Money Plan Household sidebar bottom nav Settings',
   fcc: 'Sample FCC portfolio',
   display: 'Currency tax residency privacy',
   'trade-history': 'Broker CSV IBKR Trading 212 Coinbase trades',
@@ -373,7 +366,6 @@ export function SettingsPage() {
   const [conflictChoices, setConflictChoices] = useState<Record<string, ConflictChoice>>({})
   const [pendingMerge, setPendingMerge] = useState<MergePreview | null>(null)
   const [launchPath, setLaunchPath] = useState(() => loadLaunchPath())
-  const [bottomMiddle, setBottomMiddle] = useState<string[]>(() => loadBottomNavMiddleSlots())
   const [priceThresholds, setPriceThresholds] = useState<PriceAlertThreshold[]>(() =>
     loadPriceAlertThresholds(),
   )
@@ -2738,10 +2730,11 @@ export function SettingsPage() {
           className={layoutFlash ? 'settings-section-flash' : ''}
         >
           <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
-            Open the menu and tap <span className="text-text font-medium">Sort</span> to show grab
-            handles and ★ controls. Pin sections to Favourites (always on top); everything else
-            lives in a collapsible Others list. Favourites order is saved with cloud sync and full
-            backups so phone, tablet, and web stay aligned.
+            Primary nav is fixed:{' '}
+            <span className="text-text font-medium">Today · Markets · Money · Plan · Household</span>
+            . Settings is always{' '}
+            <span className="text-text font-medium">/settings</span> in the sidebar pin. Money, Plan,
+            and Household open the rest of the book.
           </p>
           <label className="block mb-6 max-w-md">
             <span className="label-uppercase block mb-2">On launch</span>
@@ -2753,7 +2746,7 @@ export function SettingsPage() {
                 setLaunchPath(e.target.value)
                 flash(
                   e.target.value === DEFAULT_LAUNCH_PATH
-                    ? 'Opens on Overview by default.'
+                    ? 'Opens on Today by default.'
                     : `Opens on ${LAUNCH_PATH_OPTIONS.find((o) => o.path === e.target.value)?.label ?? e.target.value} on launch.`,
                 )
               }}
@@ -2765,81 +2758,19 @@ export function SettingsPage() {
               ))}
             </select>
             <span className="text-xs text-text-subtle mt-2 block font-light">
-              Default is Overview on web, tablet, and phone. Applies the next time you open MyDSP.
+              Default is Today on web, tablet, and phone. Applies the next time you open MyDSP.
             </span>
           </label>
-
-          <div className="mb-8 max-w-xl">
-            <p className="label-uppercase mb-2">Bottom navigation (phone &amp; tablet)</p>
-            <p className="text-sm text-text-muted font-light mb-4 leading-relaxed">
-              <span className="text-text font-medium">Overview</span> and{' '}
-              <span className="text-text font-medium">Settings</span> stay fixed at each end. Choose
-              the three middle tabs — default is Markets · To Do's · Equities (same on iPhone and
-              iPad).
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
-              {([0, 1, 2] as const).map((slot) => (
-                <label key={slot} className="block text-xs font-bold uppercase tracking-widest text-text-subtle">
-                  Slot {slot + 1}
-                  <select
-                    className="mt-2 w-full normal-case tracking-normal font-medium text-sm"
-                    value={bottomMiddle[slot] ?? DEFAULT_BOTTOM_NAV_MIDDLE[slot]}
-                    aria-label={`Bottom nav middle slot ${slot + 1}`}
-                    onChange={(e) => {
-                      const next = [...bottomMiddle]
-                      const chosen = e.target.value
-                      // Swap if the path is already used in another slot
-                      const other = next.findIndex((p, i) => i !== slot && p === chosen)
-                      if (other >= 0) next[other] = next[slot] ?? DEFAULT_BOTTOM_NAV_MIDDLE[slot]
-                      next[slot] = chosen
-                      saveBottomNavMiddleSlots(next)
-                      setBottomMiddle(loadBottomNavMiddleSlots())
-                      flash('Bottom nav updated.')
-                    }}
-                  >
-                    {Object.values(BOTTOM_NAV_CATALOG)
-                      .filter((item) => item.to !== '/' && item.to !== '/settings')
-                      .map((item) => (
-                        <option key={item.to} value={item.to}>
-                          {item.label}
-                        </option>
-                      ))}
-                  </select>
-                </label>
-              ))}
-            </div>
-            <p className="text-xs text-text-subtle mb-3 font-light">
-              Preview:{' '}
-              <span className="text-text font-medium">
-                Overview ·{' '}
-                {bottomMiddle
-                  .map((p) => BOTTOM_NAV_CATALOG[p]?.label ?? p)
-                  .join(' · ')}{' '}
-                · Settings
-              </span>
-            </p>
-            <button
-              type="button"
-              className="btn-ghost btn-sm"
-              onClick={() => {
-                resetBottomNavMiddleSlots()
-                setBottomMiddle(loadBottomNavMiddleSlots())
-                flash("Bottom nav reset to Markets · To Do's · Equities.")
-              }}
-            >
-              Reset bottom nav defaults
-            </button>
-          </div>
 
           <button
             type="button"
             className="btn-secondary"
             onClick={() => {
               resetNavOrder()
-              flash('Sidebar Favourites reset to defaults.')
+              flash('Saved menu order cleared. Primary nav stays Today · Markets · Money · Plan · Household.')
             }}
           >
-            Reset sidebar Favourites
+            Reset saved menu order
           </button>
         </SettingsSection>
 

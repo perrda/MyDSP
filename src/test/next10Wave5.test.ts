@@ -16,14 +16,14 @@ const readPage = (name: string) =>
 describe('next10 wave 5 tip harness (v1.2.114)', () => {
   it('0: package + release notes tip', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.120')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.120')
+    expect(pkg.version).toBe('1.2.121')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.121')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.121',
       '1.2.120',
       '1.2.119',
       '1.2.118',
       '1.2.117',
-      '1.2.116',
     ])
   })
 
@@ -77,14 +77,15 @@ describe('next10 wave 5 tip harness (v1.2.114)', () => {
     )
   })
 
-  it('9: Bottom-nav editor from header More', () => {
+  it('9: Bottom nav is the fixed five-door IA', () => {
     const toolbar = readFileSync(
       resolve(__dirname, '../components/layout/ToolbarControls.tsx'),
       'utf8',
     )
     const nav = readFileSync(resolve(__dirname, '../components/layout/BottomNav.tsx'), 'utf8')
-    expect(toolbar).toMatch(/mydsp-open-bottom-nav-editor/)
-    expect(nav).toMatch(/Move \$\{item\.label\} up|moveIndex/)
+    expect(toolbar).not.toMatch(/mydsp-open-bottom-nav-editor/)
+    expect(nav).toMatch(/resolveBottomNavItems/)
+    expect(nav).toMatch(/isDigestLongPressItem/)
   })
 
   it('10: focus-visible + reduced-motion a11y', () => {

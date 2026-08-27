@@ -1,249 +1,31 @@
 import { useEffect, useMemo, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import {
-  LayoutDashboard,
-  Coins,
-  TrendingUp,
-  Gem,
-  Landmark,
-  Target,
-  ArrowLeftRight,
-  Settings,
-  Menu,
-  X,
-  Upload,
-  Scale,
-  Flame,
-  Receipt,
-  BarChart3,
-  BookOpen,
-  Wallet,
-  Repeat,
-  CalendarRange,
-  Plane,
-  Tags,
-  LineChart,
-  Trophy,
-  Layers,
-  Users,
-  History,
-  FileText,
-  GitCompareArrows,
-  ListChecks,
-  Briefcase,
-  RefreshCw,
-  CandlestickChart,
-  Newspaper,
-  Video,
-  Star,
-  ChevronDown,
-  ArrowUpDown,
-  type LucideIcon,
-} from 'lucide-react'
+import { Settings, Menu, X, RefreshCw, Newspaper } from 'lucide-react'
 import { usePortfolio } from '../../context/PortfolioContext'
 import { BrandMark } from '../BrandMark'
-import { ReorderHandle, ReorderList } from '../ui/Reorderable'
-import {
-  loadNavLayout,
-  saveNavLayout,
-  type NavLayout,
-} from '../../storage/navOrder'
 import { dueWithinDays } from '../../domain/recurringDueStrip'
-import { newsUnreadFromCache } from '../../storage/newsStore'
-import { youtubeUnreadFromCache } from '../../storage/youtubeStore'
+import { PRIMARY_NAV } from '../../domain/primaryNav'
 import { prefetchRouteChunk } from '../../hooks/useIdlePrefetch'
-
-interface NavItem {
-  to: string
-  label: string
-  icon: LucideIcon
-  end?: boolean
-}
-
-const DEFAULT_LINKS: NavItem[] = [
-  { to: '/', label: 'Overview', icon: LayoutDashboard, end: true },
-  { to: '/markets', label: 'Markets', icon: CandlestickChart },
-  { to: '/news', label: 'News', icon: Newspaper },
-  { to: '/youtube', label: 'YouTube', icon: Video },
-  { to: '/crypto', label: 'Crypto', icon: Coins },
-  { to: '/equities', label: 'Equities', icon: TrendingUp },
-  { to: '/commodities', label: 'Commodities', icon: Gem },
-  { to: '/staking', label: 'Staking', icon: Layers },
-  { to: '/liabilities', label: 'Liabilities', icon: Landmark },
-  { to: '/goals', label: 'Goals', icon: Target },
-  { to: '/spending', label: 'Spending', icon: ArrowLeftRight },
-  { to: '/journal', label: 'Journal', icon: BookOpen },
-  { to: '/budgets', label: 'Budgets', icon: Wallet },
-  { to: '/recurring', label: 'Recurring', icon: Repeat },
-  { to: '/review', label: 'Monthly review', icon: CalendarRange },
-  { to: '/trips', label: 'Trips & splits', icon: Plane },
-  { to: '/family', label: 'Family', icon: Users },
-  { to: '/compare', label: 'Compare', icon: GitCompareArrows },
-  { to: '/history', label: 'History', icon: History },
-  { to: '/documents', label: 'Documents', icon: FileText },
-  { to: '/todos', label: "To Do's", icon: ListChecks },
-  { to: '/jobs', label: 'Job Tracker', icon: Briefcase },
-  { to: '/import', label: 'Import CSV', icon: Upload },
-  { to: '/rules', label: 'Merchant rules', icon: Tags },
-  { to: '/optimizer', label: 'Debt tools', icon: Scale },
-  { to: '/fire', label: 'FIRE', icon: Flame },
-  { to: '/planning', label: 'Rebalance / MC', icon: LineChart },
-  { to: '/achievements', label: 'Achievements', icon: Trophy },
-  { to: '/tax', label: 'Capital gains', icon: Receipt },
-  { to: '/analytics', label: 'Analytics', icon: BarChart3 },
-  { to: '/insights', label: 'Smart Insights', icon: LineChart },
-  { to: '/api', label: 'API & Automation', icon: Layers },
-  { to: '/settings', label: 'Settings', icon: Settings },
-]
-
-const DEFAULT_PATHS = DEFAULT_LINKS.map((l) => l.to)
-const LINK_MAP = new Map(DEFAULT_LINKS.map((l) => [l.to, l]))
 
 interface SidebarProps {
   open: boolean
   onClose: () => void
 }
 
-function pathsToItems(paths: string[]): NavItem[] {
-  return paths.map((to) => LINK_MAP.get(to)).filter((l): l is NavItem => Boolean(l))
-}
-
 export function Sidebar({ open, onClose }: SidebarProps) {
-  const [layout, setLayout] = useState<NavLayout>(() => loadNavLayout(DEFAULT_PATHS))
-  const [sorting, setSorting] = useState(false)
-  const [newsUnread, setNewsUnread] = useState(() => newsUnreadFromCache())
-  const [youtubeUnread, setYoutubeUnread] = useState(() => youtubeUnreadFromCache())
   const { pathname, hash } = useLocation()
   const { data } = usePortfolio()
   const billsDueSoon = useMemo(
     () => dueWithinDays(data.recurringTransactions, 7).length > 0,
     [data.recurringTransactions],
   )
-  const taxLabel =
-    (data.settings.taxResidency || 'GB') === 'GB' ? 'UK CGT' : `Tax (${data.settings.taxResidency})`
   const syncActive = pathname === '/settings' && hash === '#sync'
   const settingsActive = pathname === '/settings' && hash !== '#sync'
+  const [moneyPulse, setMoneyPulse] = useState(billsDueSoon)
 
   useEffect(() => {
-    const sync = () => setLayout(loadNavLayout(DEFAULT_PATHS))
-    window.addEventListener('mydsp-nav-order', sync)
-    window.addEventListener('storage', sync)
-    return () => {
-      window.removeEventListener('mydsp-nav-order', sync)
-      window.removeEventListener('storage', sync)
-    }
-  }, [])
-
-  useEffect(() => {
-    const refreshNews = () => setNewsUnread(newsUnreadFromCache())
-    const refreshYt = () => setYoutubeUnread(youtubeUnreadFromCache())
-    refreshNews()
-    refreshYt()
-    window.addEventListener('mydsp-news-articles', refreshNews)
-    window.addEventListener('mydsp-news-changed', refreshNews)
-    window.addEventListener('mydsp-youtube-videos', refreshYt)
-    window.addEventListener('mydsp-youtube-changed', refreshYt)
-    return () => {
-      window.removeEventListener('mydsp-news-articles', refreshNews)
-      window.removeEventListener('mydsp-news-changed', refreshNews)
-      window.removeEventListener('mydsp-youtube-videos', refreshYt)
-      window.removeEventListener('mydsp-youtube-changed', refreshYt)
-    }
-  }, [])
-
-  const favourites = useMemo(() => pathsToItems(layout.favourites), [layout.favourites])
-  const others = useMemo(() => pathsToItems(layout.others), [layout.others])
-
-  const persist = (next: NavLayout) => {
-    setLayout(next)
-    saveNavLayout(next)
-  }
-
-  const onReorderFavourites = (next: NavItem[]) => {
-    persist({ ...layout, favourites: next.map((l) => l.to) })
-  }
-
-  const onReorderOthers = (next: NavItem[]) => {
-    persist({ ...layout, others: next.map((l) => l.to) })
-  }
-
-  const addToFavourites = (to: string) => {
-    if (layout.favourites.includes(to)) return
-    persist({
-      ...layout,
-      favourites: [...layout.favourites, to],
-      others: layout.others.filter((p) => p !== to),
-    })
-  }
-
-  const removeFromFavourites = (to: string) => {
-    if (!layout.favourites.includes(to)) return
-    persist({
-      ...layout,
-      favourites: layout.favourites.filter((p) => p !== to),
-      others: [...layout.others.filter((p) => p !== to), to],
-    })
-  }
-
-  const othersOpen = sorting || !layout.othersCollapsed
-
-  const renderRow = (link: NavItem, zone: 'favourites' | 'others') => {
-    const Icon = link.icon
-    const isFav = zone === 'favourites'
-    const label = link.to === '/tax' ? taxLabel : link.label
-    return (
-      <div className={`nav-reorder-item ${sorting ? 'is-sorting' : ''}`}>
-        {sorting ? <ReorderHandle label={`Reorder ${label}`} /> : null}
-        <NavLink
-          to={link.to}
-          end={link.end}
-          onClick={onClose}
-          onMouseEnter={() => prefetchRouteChunk(link.to)}
-          onFocus={() => prefetchRouteChunk(link.to)}
-          className={({ isActive }) => `nav-link nav-link-flex ${isActive ? 'active' : ''}`}
-        >
-          <span className="relative inline-flex shrink-0">
-            <Icon size={16} strokeWidth={1.5} />
-            {link.to === '/news' && newsUnread > 0 ? (
-              <span
-                className="sidebar-unread"
-                aria-label={`${newsUnread} unread news`}
-              />
-            ) : null}
-            {link.to === '/youtube' && youtubeUnread > 0 ? (
-              <span
-                className="sidebar-unread"
-                aria-label={`${youtubeUnread} unread videos`}
-              />
-            ) : null}
-            {(link.to === '/recurring' || link.to === '/spending') && billsDueSoon ? (
-              <span
-                className="sidebar-unread sidebar-bills-due"
-                aria-label="Bills due within 7 days"
-              />
-            ) : null}
-          </span>
-          {label}
-        </NavLink>
-        {sorting ? (
-          <button
-            type="button"
-            className={`nav-fav-toggle ${isFav ? 'is-fav' : ''}`}
-            aria-label={isFav ? `Remove ${label} from Favourites` : `Add ${label} to Favourites`}
-            title={isFav ? 'Remove from Favourites' : 'Add to Favourites'}
-            onClick={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              if (isFav) removeFromFavourites(link.to)
-              else addToFavourites(link.to)
-            }}
-          >
-            <Star size={15} strokeWidth={1.75} fill={isFav ? 'currentColor' : 'none'} />
-          </button>
-        ) : null}
-      </div>
-    )
-  }
+    setMoneyPulse(billsDueSoon)
+  }, [billsDueSoon])
 
   return (
     <>
@@ -328,117 +110,38 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           </NavLink>
         </div>
 
-        <div className="px-3 pt-3 pb-2 flex items-center justify-between gap-2">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-text-subtle px-2">
-            Menu
-          </p>
-          <button
-            type="button"
-            className={`nav-sort-toggle ${sorting ? 'is-active' : ''}`}
-            aria-pressed={sorting}
-            aria-label={sorting ? 'Done sorting menu' : 'Sort menu sections'}
-            title={sorting ? 'Done' : 'Sort / Favourites'}
-            onClick={() => {
-              setSorting((v) => {
-                const next = !v
-                if (next && layout.othersCollapsed) {
-                  persist({ ...layout, othersCollapsed: false })
-                }
-                return next
-              })
-            }}
-          >
-            <ArrowUpDown size={14} strokeWidth={1.75} />
-            <span>{sorting ? 'Done' : 'Sort'}</span>
-          </button>
-        </div>
-
-        {sorting ? (
-          <p className="px-5 pb-2 text-[11px] text-text-muted leading-snug">
-            Drag ⋮⋮ to reorder. Tap ★ to move between Favourites and Others.
-          </p>
-        ) : null}
-
         <nav className="flex-1 py-1 overflow-y-auto" role="navigation" aria-label="Primary">
-          <div className="px-3 pb-1">
-            <p className="nav-section-label">
-              <Star size={11} strokeWidth={2} className="text-accent" aria-hidden />
-              Favourites
-              <span className="tabular-nums text-text-subtle font-normal normal-case tracking-normal">
-                {favourites.length}
-              </span>
-            </p>
-          </div>
-
-          {favourites.length === 0 ? (
-            <p className="px-5 py-3 text-xs text-text-muted">
-              {sorting
-                ? 'Star items below to pin them here.'
-                : 'Tap Sort, then ★ to pin sections here.'}
-            </p>
-          ) : sorting ? (
-            <ReorderList
-              items={favourites}
-              getId={(l) => l.to}
-              onReorder={onReorderFavourites}
-              className="flex flex-col"
-            >
-              {(link) => renderRow(link, 'favourites')}
-            </ReorderList>
-          ) : (
-            <ul className="flex flex-col nav-favourites-list">
-              {favourites.map((link) => (
-                <li key={link.to}>{renderRow(link, 'favourites')}</li>
-              ))}
-            </ul>
-          )}
-
           <div className="px-3 pt-3 pb-1">
-            <button
-              type="button"
-              className="nav-section-label nav-section-toggle w-full"
-              data-testid="nav-others-toggle"
-              aria-expanded={othersOpen}
-              onClick={() => {
-                if (sorting) return
-                persist({ ...layout, othersCollapsed: !layout.othersCollapsed })
-              }}
-            >
-              <span className="inline-flex items-center gap-1.5 min-w-0">
-                Others
-                <span className="tabular-nums text-text-subtle font-normal normal-case tracking-normal">
-                  {others.length}
-                </span>
-              </span>
-              <ChevronDown
-                size={14}
-                strokeWidth={1.75}
-                className={`shrink-0 transition-transform ${othersOpen ? 'rotate-180' : ''}`}
-                aria-hidden
-              />
-            </button>
+            <p className="nav-section-label">Menu</p>
           </div>
-
-          {othersOpen ? (
-            others.length === 0 ? (
-              <p className="px-5 py-3 text-xs text-text-muted">All sections are in Favourites.</p>
-            ) : sorting ? (
-              <ReorderList
-                items={others}
-                getId={(l) => l.to}
-                onReorder={onReorderOthers}
-                className="flex flex-col pb-2"
-              >
-                {(link) => renderRow(link, 'others')}
-              </ReorderList>
-            ) : (
-              <ul className="flex flex-col pb-2">
-                {others.map((link) => (
-                  <li key={link.to}>{renderRow(link, 'others')}</li>
-                ))}
-              </ul>
-            )
-          ) : null}
+          <ul className="flex flex-col nav-favourites-list">
+            {PRIMARY_NAV.map((link) => {
+              const Icon = link.icon
+              return (
+                <li key={link.to}>
+                  <NavLink
+                    to={link.to}
+                    end={link.end}
+                    onClick={onClose}
+                    onMouseEnter={() => prefetchRouteChunk(link.to)}
+                    onFocus={() => prefetchRouteChunk(link.to)}
+                    className={({ isActive }) => `nav-link nav-link-flex ${isActive ? 'active' : ''}`}
+                  >
+                    <span className="relative inline-flex shrink-0">
+                      <Icon size={16} strokeWidth={1.5} />
+                      {link.to === '/money' && moneyPulse ? (
+                        <span
+                          className="sidebar-unread sidebar-bills-due"
+                          aria-label="Bills due within 7 days"
+                        />
+                      ) : null}
+                    </span>
+                    {link.label}
+                  </NavLink>
+                </li>
+              )
+            })}
+          </ul>
         </nav>
 
         <div className="px-5 py-4 border-t border-border">

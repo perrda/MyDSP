@@ -25,8 +25,12 @@ export function AchievementsPage() {
         description="Milestones unlocked from your live portfolio — XP grows with history depth."
       />
 
-      <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px mb-8 ${privacyClass(privacy)}`}>
-        <StatCard label="Level" value={`L${evalResult.level}`} hint={`${evalResult.xp} XP`} />
+      <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px mb-8 ${privacyClass(privacy)}`}>
+        <StatCard
+          label="Scorebook"
+          value={String(evalResult.score)}
+          hint={`L${evalResult.level} · ${evalResult.xp} XP · ${evalResult.unlocked.length} unlocked`}
+        />
         <StatCard
           label="Level progress"
           value={`${evalResult.levelProgress.toFixed(0)}%`}
@@ -36,7 +40,6 @@ export function AchievementsPage() {
           label="Unlocked"
           value={`${evalResult.unlocked.length}/${evalResult.unlocked.length + evalResult.locked.length}`}
         />
-        <StatCard label="Financial score" value={String(evalResult.score)} hint="0–1000 composite" />
       </div>
 
       <div className="surface p-6 mb-px">

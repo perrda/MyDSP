@@ -49,7 +49,7 @@ describe('GettingStartedChecklist', () => {
     const { GettingStartedChecklist } = await import('../components/GettingStartedChecklist')
     render(
       <MemoryRouter>
-        <GettingStartedChecklist />
+        <GettingStartedChecklist asCard />
       </MemoryRouter>,
     )
     const setupButton = screen.getByRole('button', { name: /Setup 0\/4/i })
@@ -83,13 +83,13 @@ describe('GettingStartedChecklist', () => {
     const { GettingStartedChecklist } = await import('../components/GettingStartedChecklist')
     const { container, rerender } = render(
       <MemoryRouter>
-        <GettingStartedChecklist />
+        <GettingStartedChecklist asCard />
       </MemoryRouter>,
     )
     // Force a re-render after auto-dismiss effect
     rerender(
       <MemoryRouter>
-        <GettingStartedChecklist />
+        <GettingStartedChecklist asCard />
       </MemoryRouter>,
     )
     expect(container.querySelector('#getting-started-heading')).toBeNull()

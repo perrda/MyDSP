@@ -42,14 +42,14 @@ describe('next25h — Finnhub / media / polish tip (1–25 → v1.2.80)', () => 
 
   it('package + release notes are 1.2.80', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.120')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.120')
+    expect(pkg.version).toBe('1.2.121')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.121')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.121',
       '1.2.120',
       '1.2.119',
       '1.2.118',
       '1.2.117',
-      '1.2.116',
     ])
   })
 
@@ -162,7 +162,7 @@ describe('next25h — Finnhub / media / polish tip (1–25 → v1.2.80)', () => 
   it('14: bottom-nav long-press no longer refreshes Markets (… Refresh only)', () => {
     const nav = readFileSync(resolve(__dirname, '../components/layout/BottomNav.tsx'), 'utf8')
     expect(nav).not.toMatch(/mydsp-markets-refresh/)
-    expect(nav).toMatch(/openFavouriteSheet/)
+    expect(nav).toMatch(/isDigestLongPressItem/)
     const markets = readFileSync(resolve(__dirname, '../pages/MarketsPage.tsx'), 'utf8')
     expect(markets).toMatch(/mydsp-markets-refresh/)
     expect(markets).toMatch(/mydsp-global-refresh/)
@@ -253,9 +253,9 @@ describe('next25h — Finnhub / media / polish tip (1–25 → v1.2.80)', () => 
   })
 
   it('25: cross-device Finnhub missing chip', () => {
-    const dash = readFileSync(resolve(__dirname, '../pages/Dashboard.tsx'), 'utf8')
-    expect(dash).toMatch(/today-finnhub-missing-chip/)
-    expect(dash).toMatch(/Finnhub not configured/)
+    const setup = readFileSync(resolve(__dirname, '../components/GettingStartedChecklist.tsx'), 'utf8')
+    expect(setup).toMatch(/today-sync-setup-card|Finnhub not configured/)
+    expect(setup).toMatch(/Finnhub not configured/)
     const page = readFileSync(resolve(__dirname, '../pages/MarketsPage.tsx'), 'utf8')
     expect(page).toMatch(/markets-finnhub-missing-chip/)
   })
