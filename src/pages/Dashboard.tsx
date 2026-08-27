@@ -511,7 +511,10 @@ export function Dashboard() {
     return listMarketTickers()
       .map((t) => {
         const q = quotes.get(t.id)
-        const changePct = q && Number.isFinite(q.changePct) ? q.changePct : null
+        const changePct =
+          q && Number.isFinite(q.changePct) && (quoteAgeMs(q.updatedAt) ?? Infinity) <= MOVER_MAX_AGE_MS
+            ? q.changePct
+            : null
         return { id: t.id, symbol: t.symbol, changePct }
       })
       .slice(0, 5)

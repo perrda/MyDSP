@@ -29,7 +29,7 @@ export const PLAN_DOORS: readonly HubDoor[] = [
   { to: '/analytics', label: 'Analytics', detail: 'Health and spend' },
   { to: '/analytics/predictive', label: 'Predictive', detail: 'Runway and FIRE years' },
   { to: '/insights', label: 'Smart Insights', detail: 'Suggestions' },
-  { to: '/achievements', label: 'Scorebook', detail: 'Score, XP, unlocks' },
+  { to: '/achievements', label: 'Scorebook', detail: 'XP, level, unlocks' },
   { to: '/history', label: 'History', detail: 'Snapshots' },
 ]
 

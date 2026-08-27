@@ -81,6 +81,9 @@ describe('MyDSP 1.2.121 UX pack', () => {
     expect(ach).toMatch(/label="Scorebook"/)
     expect(ach).toMatch(/evalResult\.xp\} XP/)
     expect(ach).not.toMatch(/evalResult\.score/)
+    const scoreDoor = PLAN_DOORS.find((d) => d.to === '/achievements')
+    expect(scoreDoor?.detail).toBe('XP, level, unlocks')
+    expect(scoreDoor?.detail).not.toMatch(/Score/)
   })
 
   it('6: Markets and Timeline stay honest', () => {
@@ -91,6 +94,7 @@ describe('MyDSP 1.2.121 UX pack', () => {
     expect(dash).not.toMatch(/No fresh movers \(last 24h\)/)
     expect(dash).toMatch(/Need two snapshots before a timeline/)
     expect(dash).toMatch(/data\.history\.length >= 2/)
+    expect(dash).toMatch(/todayWatchlistPreview[\s\S]*MOVER_MAX_AGE_MS/)
   })
 
   it('7: First-device sync is one card — no SYNC_KEY', () => {
