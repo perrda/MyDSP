@@ -1,5 +1,15 @@
 # MyDSP Changelog
 
+## [1.2.122] - 2026-08-28
+
+### Added — Cashflow page (draft, no live)
+- **One page:** `/cashflow` shows money in, money out, leftover, and how long cash lasts if that leftover holds.
+- **Reused:** recurring monthly equivalent, spending ledger (`isBudgetSpend` / income rows), Settings income, `estimateMonthlyExpenses`, `calcCash` runway. Not a second ledger. No `SYNC_KEY`.
+- **Money hub:** Cashflow is the first Money door. Today keeps one quiet runway line that now opens this page — no extra cashflow cards on Today.
+- **Honest chart:** plot only when the spending ledger has two months. Empty if there is no recurring and no spend. No invented series.
+- **Nav / chrome:** five-door Today · Markets · Money · Plan · Household stays. Official Bitcoin orange `#F7931A`.
+- **Draft only:** do not promote. Live mydspv1 stays 1.2.121.
+
 ## [1.2.121] - 2026-08-27
 
 ### Improved — Today fold + five-door nav (draft)

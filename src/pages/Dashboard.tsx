@@ -1592,7 +1592,7 @@ export function Dashboard() {
             {cashRunway ? (
               <Link
                 id="today-cash-runway"
-                to="/recurring"
+                to="/cashflow"
                 data-testid="today-cash-runway"
                 className={`today-cash-runway border border-border bg-surface-hover/60 px-3 py-2 text-xs hover:border-accent ${privacyClass(privacy)}`}
                 title="Cash and stables divided by monthly recurring bills"

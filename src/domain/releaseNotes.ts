@@ -29,6 +29,32 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.122',
+    date: '2026-08-28',
+    bullets: [
+      {
+        text: 'Cashflow page: in, out, leftover, runway',
+        to: '/cashflow',
+      },
+      {
+        text: 'Money hub door + Today runway opens Cashflow',
+        to: '/money',
+      },
+      {
+        text: 'Honest chart — two ledger months, no fake series',
+        to: '/cashflow',
+      },
+      {
+        text: 'Reuses recurring, spending, budgets, cash runway',
+        to: '/cashflow',
+      },
+      {
+        text: 'Draft only — live stays 1.2.121',
+        to: '/',
+      },
+    ],
+  },
+  {
     version: '1.2.121',
     date: '2026-08-27',
     bullets: [

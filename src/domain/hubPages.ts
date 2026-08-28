@@ -7,6 +7,7 @@ export type HubDoor = {
 }
 
 export const MONEY_DOORS: readonly HubDoor[] = [
+  { to: '/cashflow', label: 'Cashflow', detail: 'In, out, leftover, runway' },
   { to: '/spending', label: 'Spending', detail: 'Ledger and categories' },
   { to: '/budgets', label: 'Budgets', detail: 'Monthly limits' },
   { to: '/recurring', label: 'Recurring', detail: 'Bills and income' },

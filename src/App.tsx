@@ -64,6 +64,7 @@ const ApiAutomationPage = lazy(() => import('./pages/ApiAutomationPage').then(m 
 const SmartInsightsPage = lazy(() => import('./pages/SmartInsightsPage').then(m => ({ default: m.SmartInsightsPage })))
 const MarketsPage = lazy(() => import('./pages/MarketsPage').then(m => ({ default: m.MarketsPage })))
 const MoneyPage = lazy(() => import('./pages/MoneyPage').then(m => ({ default: m.MoneyPage })))
+const CashflowPage = lazy(() => import('./pages/CashflowPage').then(m => ({ default: m.CashflowPage })))
 const PlanPage = lazy(() => import('./pages/PlanPage').then(m => ({ default: m.PlanPage })))
 const NewsPage = lazy(() => import('./pages/NewsPage').then(m => ({ default: m.NewsPage })))
 const YouTubePage = lazy(() => import('./pages/YouTubePage').then(m => ({ default: m.YouTubePage })))
@@ -94,6 +95,7 @@ export default function App() {
                         <Route index element={<Dashboard />} />
                         <Route path="markets" element={<MarketsPage />} />
                         <Route path="money" element={<MoneyPage />} />
+                        <Route path="cashflow" element={<CashflowPage />} />
                         <Route path="plan" element={<PlanPage />} />
                         <Route path="news" element={<NewsPage />} />
                         <Route path="youtube" element={<YouTubePage />} />
