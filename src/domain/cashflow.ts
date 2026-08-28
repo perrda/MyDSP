@@ -3,10 +3,9 @@
 
 import { isBudgetSpend } from './budgetChart'
 import { calcCash } from './calc'
-import { estimateMonthlyExpenses } from './goalProjectedDate'
 import { monthKey } from './monthUtils'
-import { monthlyEquivalent } from './recurringHelpers'
-import type { PortfolioData, RecurringTransaction, SpendingEntry } from './types'
+import { monthlyRecurringIn, monthlyRecurringOut } from './recurringHelpers'
+import type { PortfolioData, SpendingEntry } from './types'
 
 export type CashflowMonth = {
   month: string
@@ -15,39 +14,33 @@ export type CashflowMonth = {
   leftover: number
 }
 
-export type CashflowSource = 'settings' | 'ledger' | 'recurring' | 'none'
+export type CashflowBook = 'ledger' | 'recurring'
+
+export type CashflowRunway = {
+  months: number
+  monthlyBills: number
+  cash: number
+}
 
 export type CashflowStory = {
+  book: CashflowBook
+  focusMonth: string | null
   moneyIn: number
   moneyOut: number
   leftover: number
   cash: number
-  /** Leftover-based: cash / |leftover| when burning; Infinity when leftover holds. */
-  runwayMonths: number | null
-  /** Today-style bills runway: cash / monthly out. */
-  billsRunwayMonths: number | null
-  inSource: CashflowSource
-  outSource: CashflowSource
+  /** One runway: stables (calcCash) ÷ monthly bills. Same number as Today. */
+  runway: CashflowRunway | null
   months: CashflowMonth[]
   canPlot: boolean
 }
+
+export { monthlyRecurringIn, monthlyRecurringOut }
 
 export function isCashflowIncome(
   entry: Pick<SpendingEntry, 'category'> | { category?: string },
 ): boolean {
   return !isBudgetSpend(entry)
-}
-
-export function monthlyRecurringOut(items: RecurringTransaction[]): number {
-  return items
-    .filter((r) => isBudgetSpend(r))
-    .reduce((sum, r) => sum + monthlyEquivalent(r.amount, r.frequency), 0)
-}
-
-export function monthlyRecurringIn(items: RecurringTransaction[]): number {
-  return items
-    .filter((r) => isCashflowIncome(r))
-    .reduce((sum, r) => sum + monthlyEquivalent(r.amount, r.frequency), 0)
 }
 
 /** Actual ledger months only — no padded zeros, no recurring projected onto the past. */
@@ -80,13 +73,14 @@ export function canPlotCashflowChart(months: CashflowMonth[]): boolean {
   return months.length >= 2
 }
 
-export function leftoverRunwayMonths(cash: number, leftover: number): number | null {
-  if (leftover < 0) {
-    const burn = Math.abs(leftover)
-    return burn > 0 ? Math.max(0, cash) / burn : null
-  }
-  if (leftover > 0 || cash > 0) return Number.POSITIVE_INFINITY
-  return null
+/** Stables ÷ monthly bills. Null when there are no bills — same gate as Today. */
+export function buildCashflowRunway(
+  data: Pick<PortfolioData, 'crypto' | 'recurringTransactions'>,
+): CashflowRunway | null {
+  const monthlyBills = monthlyRecurringOut(data.recurringTransactions ?? [])
+  if (!(monthlyBills > 0)) return null
+  const cash = Math.max(0, calcCash(data as PortfolioData))
+  return { months: cash / monthlyBills, monthlyBills, cash }
 }
 
 export function formatRunwayMonths(months: number | null): string {
@@ -98,52 +92,36 @@ export function formatRunwayMonths(months: number | null): string {
 export function buildCashflowStory(data: PortfolioData, now = new Date()): CashflowStory {
   const months = buildMonthlyCashflowSeries(data.spending)
   const currentYm = monthKey(now)
-  const thisMonth = months.find((m) => m.month === currentYm)
+  const runway = buildCashflowRunway(data)
+  const cash = runway?.cash ?? Math.max(0, calcCash(data))
 
-  const recurringIn = monthlyRecurringIn(data.recurringTransactions ?? [])
-  const recurringOut = monthlyRecurringOut(data.recurringTransactions ?? [])
-
-  let moneyIn = 0
-  let inSource: CashflowSource = 'none'
-  if ((data.monthlyIncome ?? 0) > 0) {
-    moneyIn = data.monthlyIncome
-    inSource = 'settings'
-  } else if ((thisMonth?.moneyIn ?? 0) > 0) {
-    moneyIn = thisMonth!.moneyIn
-    inSource = 'ledger'
-  } else if (recurringIn > 0) {
-    moneyIn = recurringIn
-    inSource = 'recurring'
-  }
-
-  let moneyOut = 0
-  let outSource: CashflowSource = 'none'
-  if (recurringOut > 0) {
-    moneyOut = recurringOut
-    outSource = 'recurring'
-  } else {
-    const estimated = estimateMonthlyExpenses(data, now)
-    if (estimated > 0) {
-      moneyOut = estimated
-      outSource = (data.monthlyExpenses ?? 0) > 0 ? 'settings' : 'ledger'
+  if (months.length > 0) {
+    const focus = months.find((m) => m.month === currentYm) ?? months[months.length - 1]!
+    return {
+      book: 'ledger',
+      focusMonth: focus.month,
+      moneyIn: focus.moneyIn,
+      moneyOut: focus.moneyOut,
+      leftover: focus.leftover,
+      cash,
+      runway,
+      months,
+      canPlot: canPlotCashflowChart(months),
     }
   }
 
-  const leftover = moneyIn - moneyOut
-  const cash = Math.max(0, calcCash(data))
-  const runwayMonths = leftoverRunwayMonths(cash, leftover)
-  const billsRunwayMonths = moneyOut > 0 ? cash / moneyOut : null
-
+  const rec = data.recurringTransactions ?? []
+  const moneyIn = monthlyRecurringIn(rec)
+  const moneyOut = monthlyRecurringOut(rec)
   return {
+    book: 'recurring',
+    focusMonth: null,
     moneyIn,
     moneyOut,
-    leftover,
+    leftover: moneyIn - moneyOut,
     cash,
-    runwayMonths,
-    billsRunwayMonths,
-    inSource,
-    outSource,
+    runway,
     months,
-    canPlot: canPlotCashflowChart(months),
+    canPlot: false,
   }
 }

@@ -26,9 +26,30 @@ export function monthlyEquivalent(
   return abs
 }
 
-/** Sum of all recurring items as a monthly equivalent (bills + subscriptions). */
+/** Income recurring is not a bill. Same rule as spending `isBudgetSpend`. */
+export function isRecurringIncome(
+  item: Pick<RecurringTransaction, 'category'> | { category?: string },
+): boolean {
+  return String(item.category ?? '').trim().toLowerCase() === 'income'
+}
+
+/** Monthly equivalent of recurring bills only — income rows are not an expense. */
+export function monthlyRecurringOut(items: RecurringTransaction[]): number {
+  return items
+    .filter((r) => !isRecurringIncome(r))
+    .reduce((sum, r) => sum + monthlyEquivalent(r.amount, r.frequency), 0)
+}
+
+/** Monthly equivalent of recurring income rows. */
+export function monthlyRecurringIn(items: RecurringTransaction[]): number {
+  return items
+    .filter((r) => isRecurringIncome(r))
+    .reduce((sum, r) => sum + monthlyEquivalent(r.amount, r.frequency), 0)
+}
+
+/** Bills + subscriptions only. Income rows are not an expense. */
 export function monthlyRecurringTotal(items: RecurringTransaction[]): number {
-  return items.reduce((sum, r) => sum + monthlyEquivalent(r.amount, r.frequency), 0)
+  return monthlyRecurringOut(items)
 }
 
 export function sortRecurringTransactions(

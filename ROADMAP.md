@@ -4,7 +4,7 @@
 
 ## Completed (through v1.2.122)
 
-- Cashflow page (v1.2.122): `/cashflow` · Money hub door · Today runway opens it · reuse recurring/spend/budgets/runway · honest two-month chart · draft only — live stays 1.2.121
+- Cashflow page (v1.2.122): `/cashflow` · one leftover book · one stables÷bills runway (Today + hero) · income not a bill · honest two-month chart · draft only — live stays 1.2.121
 - Today UX pack (v1.2.121): five-door nav · Today fold · alerts/scorebook/sync once · honest Markets/Timeline · Household page · jump rail · draft only — live stays 1.2.120
 - Bug hunt (v1.2.120): ISA crypto mark price · FIRE from net worth · Spending/Todos/Recurring hydrate deep-links · Cmd+K row links · history+CGT local calendar · API/PDF shared calc · hash #sync · display-CCY budget templates · route aliases
 - Bug hunt (v1.2.119): cash runway is cash · family NW-only members · local todo due dates · reminders/alerts skip income · live goal progress · News/YouTube/Markets owned from included book · YouTube cached `?video=` · Compare paper slice

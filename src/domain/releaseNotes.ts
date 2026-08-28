@@ -45,7 +45,7 @@ export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
         to: '/cashflow',
       },
       {
-        text: 'Reuses recurring, spending, budgets, cash runway',
+        text: 'One runway: stables ÷ bills, not leftover Infinity',
         to: '/cashflow',
       },
       {

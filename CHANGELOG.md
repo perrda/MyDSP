@@ -8,6 +8,10 @@
 - **Money hub:** Cashflow is the first Money door. Today keeps one quiet runway line that now opens this page — no extra cashflow cards on Today.
 - **Honest chart:** plot only when the spending ledger has two months. Empty if there is no recurring and no spend. No invented series.
 - **Nav / chrome:** five-door Today · Markets · Money · Plan · Household stays. Official Bitcoin orange `#F7931A`.
+- **One runway:** stables (`calcCash`) ÷ monthly bills — same number on the hero, footer, and Today chip. Leftover ≥ 0 is not Infinity/99+.
+- **One leftover book:** ledger month when spend exists; else recurring in − bills. Settings income is not mixed into leftover.
+- **Bills only:** recurring income is not an expense (`monthlyRecurringOut` / `monthlyRecurringTotal`).
+- **Stables, not a bank pot:** runway labels crypto stables. No invented GBP cash account.
 - **Draft only:** do not promote. Live mydspv1 stays 1.2.121.
 
 ## [1.2.121] - 2026-08-27

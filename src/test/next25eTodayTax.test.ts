@@ -19,7 +19,7 @@ describe('next25e Today / money / tax items 16-20', () => {
     expect(dashboard).toMatch(/cashRunway/)
     expect(dashboard).toMatch(/today-cash-runway/)
     expect(dashboard).toMatch(/monthlyRecurring/)
-    expect(dashboard).toMatch(/calcCash/)
+    expect(dashboard).toMatch(/buildCashflowRunway/)
   })
 
   it('18: Spending search explicitly matches merchant, description, category, location, and notes', () => {

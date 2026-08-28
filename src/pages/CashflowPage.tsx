@@ -10,21 +10,8 @@ import {
   formatRunwayMonths,
   hasCashflowSources,
 } from '../domain/cashflow'
+import { formatMonthLabel } from '../domain/monthUtils'
 import { formatGBP, privacyClass } from '../utils/format'
-
-const IN_HINT: Record<string, string> = {
-  settings: 'Settings income',
-  ledger: 'This month’s income rows',
-  recurring: 'Recurring income',
-  none: 'Add income in Settings or Spending',
-}
-
-const OUT_HINT: Record<string, string> = {
-  recurring: 'Recurring bills',
-  settings: 'Settings expenses',
-  ledger: 'Average spend',
-  none: 'Add recurring or spend',
-}
 
 export function CashflowPage() {
   const { data, privacy } = usePortfolio()
@@ -41,7 +28,7 @@ export function CashflowPage() {
         <PageHeader
           eyebrow="Money"
           title="Cashflow"
-          description="One monthly story: money in, money out, leftover, and how long cash lasts if that holds."
+          description="One monthly story: money in, money out, leftover, and stables runway."
         />
         <EmptyState
           illustration
@@ -55,44 +42,46 @@ export function CashflowPage() {
   }
 
   const leftoverTone = story.leftover > 0 ? 'positive' : story.leftover < 0 ? 'negative' : 'default'
-  const leftoverHolds = story.leftover >= 0
+  const inHint =
+    story.book === 'ledger'
+      ? `${formatMonthLabel(story.focusMonth ?? '')} ledger`
+      : 'Recurring income'
+  const outHint =
+    story.book === 'ledger'
+      ? `${formatMonthLabel(story.focusMonth ?? '')} ledger`
+      : 'Recurring bills'
+  const leftoverHint =
+    story.book === 'ledger'
+      ? `${formatMonthLabel(story.focusMonth ?? '')} in − out`
+      : 'Recurring in − bills'
+  const runwayHint = story.runway
+    ? `Stables ${formatGBP(story.runway.cash)} ÷ bills ${formatGBP(story.runway.monthlyBills)}/mo`
+    : 'No monthly bills — no runway'
 
   return (
     <div>
       <PageHeader
         eyebrow="Money"
         title="Cashflow"
-        description="One monthly story from recurring, spending, and cash — not a second ledger."
+        description="One leftover book and one stables ÷ bills runway — not a second ledger."
       />
 
       <div
         className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px mb-8 ${privacyClass(privacy)}`}
         data-testid="cashflow-story"
       >
-        <StatCard
-          label="Money in"
-          value={formatGBP(story.moneyIn)}
-          hint={IN_HINT[story.inSource]}
-        />
-        <StatCard
-          label="Money out"
-          value={formatGBP(story.moneyOut)}
-          hint={OUT_HINT[story.outSource]}
-        />
+        <StatCard label="Money in" value={formatGBP(story.moneyIn)} hint={inHint} />
+        <StatCard label="Money out" value={formatGBP(story.moneyOut)} hint={outHint} />
         <StatCard
           label="Leftover"
           value={formatGBP(story.leftover, { signed: true })}
           tone={leftoverTone}
-          hint={leftoverHolds ? 'If this holds, cash grows or stays' : 'If this holds, cash shrinks'}
+          hint={leftoverHint}
         />
         <StatCard
-          label="Cash lasts"
-          value={formatRunwayMonths(story.runwayMonths)}
-          hint={
-            leftoverHolds
-              ? `Cash ${formatGBP(story.cash)} · leftover holds`
-              : `Cash ${formatGBP(story.cash)} ÷ leftover`
-          }
+          label="Runway"
+          value={formatRunwayMonths(story.runway?.months ?? null)}
+          hint={runwayHint}
         />
       </div>
 
@@ -102,7 +91,7 @@ export function CashflowPage() {
         <div className="surface mb-6" data-testid="cashflow-chart-empty">
           <EmptyStateInline
             illustration
-            message="Need two months of spend or income in the ledger before a plot. Recurring still sets this month’s run-rate above."
+            message="Need two months of spend or income in the ledger before a plot. Recurring still sets the leftover book above."
             action={{ label: 'Open Spending', to: '/spending' }}
           />
         </div>
@@ -122,7 +111,9 @@ export function CashflowPage() {
       ) : null}
 
       <p className="text-xs text-text-subtle font-light leading-relaxed">
-        Runway uses cash and stables, not net worth.{' '}
+        Runway is crypto stables ÷ monthly bills — not a bank GBP pot, not net worth.
+        Leftover is one book: {story.book === 'ledger' ? 'the spending ledger month' : 'recurring in − bills'}.
+        {' '}
         <Link to="/spending" className="text-accent font-semibold">
           Spending
         </Link>
@@ -134,12 +125,6 @@ export function CashflowPage() {
         <Link to="/budgets" className="text-accent font-semibold">
           Budgets
         </Link>
-        {story.billsRunwayMonths != null ? (
-          <span className="block mt-1 tabular-nums">
-            Bills runway {formatRunwayMonths(story.billsRunwayMonths)} vs{' '}
-            {formatGBP(story.moneyOut)}/mo
-          </span>
-        ) : null}
       </p>
     </div>
   )

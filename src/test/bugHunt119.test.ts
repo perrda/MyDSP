@@ -53,7 +53,7 @@ describe('bug hunt (v1.2.119)', () => {
   })
 
   it('uses cash/stables for Today and scenario runway, not net worth', () => {
-    expect(read('../pages/Dashboard.tsx')).toMatch(/calcCash\(data\)/)
+    expect(read('../pages/Dashboard.tsx')).toMatch(/buildCashflowRunway/)
     expect(read('../pages/Dashboard.tsx')).not.toMatch(/liquidishNetWorth/)
     const cashOnly = projectScenario({
       assets: 100_000,
