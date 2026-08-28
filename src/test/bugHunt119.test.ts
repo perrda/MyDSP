@@ -28,14 +28,14 @@ function breakdown(assets: number, liabilities: number): NetWorthBreakdown {
 describe('bug hunt (v1.2.119)', () => {
   it('bumps package + release notes', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.121')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.121')
+    expect(pkg.version).toBe('1.2.122')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.122')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.122',
       '1.2.121',
       '1.2.120',
       '1.2.119',
       '1.2.118',
-      '1.2.117',
     ])
   })
 
@@ -53,7 +53,7 @@ describe('bug hunt (v1.2.119)', () => {
   })
 
   it('uses cash/stables for Today and scenario runway, not net worth', () => {
-    expect(read('../pages/Dashboard.tsx')).toMatch(/calcCash\(data\)/)
+    expect(read('../pages/Dashboard.tsx')).toMatch(/buildCashflowRunway/)
     expect(read('../pages/Dashboard.tsx')).not.toMatch(/liquidishNetWorth/)
     const cashOnly = projectScenario({
       assets: 100_000,

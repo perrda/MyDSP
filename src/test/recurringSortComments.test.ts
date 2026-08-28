@@ -46,6 +46,11 @@ describe('recurring sort / total / commentary', () => {
     expect(monthlyEquivalent(10, 'weekly')).toBeCloseTo((10 * 52) / 12)
     expect(monthlyEquivalent(120, 'yearly')).toBeCloseTo(10)
     expect(monthlyRecurringTotal(items)).toBeCloseTo(15.99 + (10 * 52) / 12 + 10)
+    const withPay = [
+      ...items,
+      sample({ id: 4, name: 'Salary', amount: 4000, category: 'income' }),
+    ]
+    expect(monthlyRecurringTotal(withPay)).toBeCloseTo(15.99 + (10 * 52) / 12 + 10)
   })
 
   it('mark paid stamps lastPaidAt; skip does not', () => {
@@ -100,6 +105,6 @@ describe('recurring sort / total / commentary', () => {
 
   it('package version is tip', () => {
     const pkg = JSON.parse(readFileSync(resolve('package.json'), 'utf8')) as { version: string }
-    expect(pkg.version).toBe('1.2.121')
+    expect(pkg.version).toBe('1.2.122')
   })
 })

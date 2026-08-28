@@ -56,6 +56,7 @@ export function prefetchRouteChunk(path: string): void {
   else if (p.startsWith('/planning')) void import('../pages/PlanningPage')
   else if (p.startsWith('/history')) void import('../pages/HistoryPage')
   else if (p.startsWith('/markets')) void import('../pages/MarketsPage')
+  else if (p.startsWith('/cashflow')) void import('../pages/CashflowPage')
   else if (p.startsWith('/money')) void import('../pages/MoneyPage')
   else if (p.startsWith('/plan')) void import('../pages/PlanPage')
   else if (p.startsWith('/household') || p.startsWith('/family')) void import('../pages/FamilyPage')

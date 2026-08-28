@@ -39,6 +39,7 @@ function allowPullToRefresh(pathname: string): boolean {
   if (pathname === '/recurring' || pathname === '/liabilities') return true
   if (pathname === '/goals' || pathname === '/trips') return true
   if (pathname === '/history' || pathname === '/budgets' || pathname === '/import') return true
+  if (pathname === '/cashflow') return true
   if (pathname === '/import/legacy') return true
   if (pathname === '/family' || pathname === '/household' || pathname === '/documents') return true
   if (pathname === '/journal' || pathname === '/rules') return true
@@ -57,6 +58,7 @@ const titles: Record<string, { eyebrow: string; title: string }> = {
   '/': { eyebrow: 'Portfolio', title: 'Today' },
   '/markets': { eyebrow: 'Prices', title: 'Markets' },
   '/money': { eyebrow: 'Money', title: 'Money' },
+  '/cashflow': { eyebrow: 'Money', title: 'Cashflow' },
   '/plan': { eyebrow: 'Plan', title: 'Plan' },
   '/news': { eyebrow: 'Insights', title: 'News' },
   '/youtube': { eyebrow: 'Media', title: 'YouTube' },

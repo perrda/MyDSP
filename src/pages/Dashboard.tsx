@@ -37,9 +37,8 @@ import {
 } from '../domain/nwSparkWindowPref'
 import { dueWithinDays } from '../domain/recurringDueStrip'
 import { markRecurringPaid, skipRecurringOccurrence } from '../domain/recurringActions'
-import { monthlyRecurringTotal } from '../domain/recurringHelpers'
+import { buildCashflowRunway, formatRunwayMonths } from '../domain/cashflow'
 import { needsFollowUp } from '../domain/jobs'
-import { calcCash } from '../domain/calc'
 import { isDueToday, isOverdue } from '../domain/todos'
 import { snoozeDueDateOneDay } from '../domain/todoSnooze'
 import { sparklineTrendFromSeries } from '../domain/sparklineSeries'
@@ -663,13 +662,12 @@ export function Dashboard() {
   }, [data.spending])
 
   const cashRunway = useMemo(() => {
-    const monthlyRecurring = monthlyRecurringTotal(data.recurringTransactions ?? [])
-    if (!(monthlyRecurring > 0)) return null
-    const cash = Math.max(0, calcCash(data))
+    const runway = buildCashflowRunway(data)
+    if (!runway) return null
     return {
-      months: cash / monthlyRecurring,
-      monthlyRecurring,
-      cash,
+      months: runway.months,
+      monthlyRecurring: runway.monthlyBills,
+      cash: runway.cash,
     }
   }, [data])
 
@@ -714,7 +712,7 @@ export function Dashboard() {
     }
     if (cashRunway) {
       lines.push(
-        `Cash runway ${cashRunway.months >= 99 ? '99+' : cashRunway.months.toFixed(cashRunway.months < 10 ? 1 : 0)} months`,
+        `Cash runway ${formatRunwayMonths(cashRunway.months)}`,
       )
     }
     if (fireChip) {
@@ -1592,16 +1590,16 @@ export function Dashboard() {
             {cashRunway ? (
               <Link
                 id="today-cash-runway"
-                to="/recurring"
+                to="/cashflow"
                 data-testid="today-cash-runway"
                 className={`today-cash-runway border border-border bg-surface-hover/60 px-3 py-2 text-xs hover:border-accent ${privacyClass(privacy)}`}
-                title="Cash and stables divided by monthly recurring bills"
+                title="Crypto stables ÷ monthly bills — not a bank pot"
               >
                 <span className="block uppercase tracking-wider text-text-subtle font-semibold">
                   Cash runway
                 </span>
                 <span className="block tabular-nums">
-                  {cashRunway.months >= 99 ? '99+' : cashRunway.months.toFixed(cashRunway.months < 10 ? 1 : 0)} mo
+                  {formatRunwayMonths(cashRunway.months)}
                 </span>
                 <span className="block text-text-subtle">
                   vs {formatGBP(cashRunway.monthlyRecurring)}/mo →
