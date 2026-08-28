@@ -67,14 +67,14 @@ describe('next25q — sync / Markets / Today polish tip (1–25 → v1.2.87)', (
 
   it('25: package + release notes are 1.2.83', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.120')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.120')
+    expect(pkg.version).toBe('1.2.121')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.121')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.121',
       '1.2.120',
       '1.2.119',
       '1.2.118',
       '1.2.117',
-      '1.2.116',
     ])
   })
 
@@ -213,7 +213,7 @@ describe('next25q — sync / Markets / Today polish tip (1–25 → v1.2.87)', (
     expect(shell).toMatch(/pathname === '\/insights'/)
     expect(shell).toMatch(/pathname === '\/review'/)
     const nav = readFileSync(resolve(__dirname, '../components/layout/BottomNav.tsx'), 'utf8')
-    expect(nav).toMatch(/openFavouriteSheet/)
+    expect(nav).toMatch(/isDigestLongPressItem/)
     expect(nav).not.toMatch(/syncNow\(\)/)
     const smoke = readFileSync(resolve(__dirname, '../pages/SmokePage.tsx'), 'utf8')
     expect(smoke).toMatch(/FIRE \/ Optimizer \/ Achievements \/ API \/ Insights \/ Review/)

@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { AllocationRing } from '../components/charts/AllocationRing'
 import { OverflowMenu } from '../components/ui/OverflowMenu'
 import { PageHeader, StatCard } from '../components/ui/PageHeader'
 import { PagePrimaryActions } from '../components/ui/PagePrimaryActions'
+import { HOUSEHOLD_DOORS } from '../domain/hubPages'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
 import { usePortfolio } from '../context/PortfolioContext'
 import { calcFamilyTotals, type FamilyMemberType } from '../domain/family'
@@ -102,13 +104,12 @@ export function FamilyPage() {
     <div>
       <PageHeader
         eyebrow="Household"
-        title="Family"
-        description="Roll up household net worth across members — link portfolios or enter manual totals."
+        title="Household"
         action={
           <PagePrimaryActions
             primaryLabel="Add member"
             onPrimary={openCreate}
-            menuLabel="Family actions"
+            menuLabel="Household actions"
           />
         }
       />
@@ -236,11 +237,24 @@ export function FamilyPage() {
             data={pieData}
             privacy={hideMoney}
             eyebrow="Contribution"
-            title="Family net worth mix"
+            title="Household mix"
             donut
             emptyText="No active balances to chart."
           />
         </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-px mb-8">
+        {HOUSEHOLD_DOORS.map((door) => (
+          <Link
+            key={door.to}
+            to={door.to}
+            className="surface surface-interactive p-4 md:p-5 rounded-xl md:rounded-none shadow-sm md:shadow-none block min-w-0"
+          >
+            <p className="text-sm font-semibold tracking-tight truncate">{door.label}</p>
+            <p className="text-xs text-text-muted font-light mt-1">{door.detail}</p>
+          </Link>
+        ))}
       </div>
 
       <Modal open={open} title={editing ? 'Edit member' : 'Add member'} onClose={() => setOpen(false)}>

@@ -38,14 +38,14 @@ describe('next25i — sync / media / polish tip (1–25 → v1.2.80)', () => {
 
   it('package + release notes are 1.2.80', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.120')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.120')
+    expect(pkg.version).toBe('1.2.121')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.121')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.121',
       '1.2.120',
       '1.2.119',
       '1.2.118',
       '1.2.117',
-      '1.2.116',
     ])
   })
 
@@ -164,7 +164,7 @@ describe('next25i — sync / media / polish tip (1–25 → v1.2.80)', () => {
     const nav = readFileSync(resolve(__dirname, '../components/layout/BottomNav.tsx'), 'utf8')
     expect(nav).not.toMatch(/mydsp-news-refresh/)
     expect(nav).not.toMatch(/mydsp-youtube-refresh/)
-    expect(nav).toMatch(/openFavouriteSheet/)
+    expect(nav).toMatch(/isDigestLongPressItem/)
   })
 
   it('13: iPad News / YouTube master–detail', () => {

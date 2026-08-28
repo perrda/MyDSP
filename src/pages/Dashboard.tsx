@@ -80,7 +80,6 @@ import {
   dismissAlertForCalendarMonth,
   isAlertDismissed,
 } from '../domain/alertDismiss'
-import { hasFinnhubKey } from '../domain/finnhubReminder'
 import { isSyncedRemoteQuote } from '../domain/marketQuotesSync'
 import {
   formatSlaAge,
@@ -89,6 +88,7 @@ import {
   QUOTE_FRESHNESS_SLA_MS,
 } from '../domain/quoteFreshnessSla'
 import { listMarketTickers, loadMarketQuotesCache } from '../storage/marketsStore'
+import { todayMoversEmptyCopy } from '../domain/todayMarketsCopy'
 import {
   loadNewsArticlesCache,
   newsUnreadFromCache,
@@ -506,6 +506,20 @@ export function Dashboard() {
       .slice(0, 5)
   }, [syncStatus.lastAt, marketsCount])
 
+  const todayWatchlistPreview = useMemo(() => {
+    const quotes = loadMarketQuotesCache()
+    return listMarketTickers()
+      .map((t) => {
+        const q = quotes.get(t.id)
+        const changePct =
+          q && Number.isFinite(q.changePct) && (quoteAgeMs(q.updatedAt) ?? Infinity) <= MOVER_MAX_AGE_MS
+            ? q.changePct
+            : null
+        return { id: t.id, symbol: t.symbol, changePct }
+      })
+      .slice(0, 5)
+  }, [syncStatus.lastAt, marketsCount])
+
   /** Cross-device quote lag — when last-good prints arrived via sync before this device refreshed. */
   const priceLagChip = useMemo(() => {
     const quotes = loadMarketQuotesCache()
@@ -681,7 +695,7 @@ export function Dashboard() {
           } ${formatPct(todayMovers[0].changePct)}${
             todayMovers[0].fromSync ? ' (from other device)' : ''
           }`
-        : 'No fresh Markets movers (open Markets to refresh)',
+        : todayMoversEmptyCopy(marketsCount),
       ...(todayMovers.some((m) => m.kind === 'commodity')
         ? [
             `Commodity mover ${
@@ -715,6 +729,7 @@ export function Dashboard() {
     fireChip,
     isaRemainingLow,
     monthlyBudgetPulse,
+    marketsCount,
     todayMovers,
     todayTodos.length,
     weekToDateSpend.spent,
@@ -1255,10 +1270,11 @@ export function Dashboard() {
   const showMediaCard = isTodayCardVisible('media')
   const showMarketsCard = isTodayCardVisible('markets')
   const showBudgetPulseCards = isTodayCardVisible('budget')
-  const showBudgetCard = isTodayCardVisible('budget') && budgetPulse.length > 0 && !monthlyBudgetPulse
+  const showBudgetCard = false
   const showGettingStartedCard = isTodayCardVisible('gettingStarted')
   const showAlertsCard = isTodayCardVisible('alerts') && alerts.length > 0
-  const showRemindersCard = isTodayCardVisible('reminders') && reminders.length > 0
+  const showRemindersCard =
+    isTodayCardVisible('reminders') && reminders.length > 0 && !showAlertsCard
   const showChartsCard = isTodayCardVisible('charts')
   const showActivityCard = isTodayCardVisible('activity')
   const useTodayTwoPane = twoPane && showMarketsCard
@@ -1303,7 +1319,7 @@ export function Dashboard() {
   const accordionJumpChips: Partial<Record<TodaySectionId, [string, string, string]>> = {
     next: showNextCard ? ['today-next-action', 'To-dos', 'today-section-jump-next'] : undefined,
     dailyPlan: showDailyPlanCard
-      ? ['today-daily-plan', 'To-dos', 'today-section-jump-daily-plan']
+      ? ['today-daily-plan', 'Daily', 'today-section-jump-daily-plan']
       : undefined,
     careerPulse: showCareerPulseCard
       ? ['today-career-pulse', 'Career', 'today-section-jump-career']
@@ -1317,12 +1333,19 @@ export function Dashboard() {
       return chip ? [chip] : []
     }),
     ...(showTaxCard ? [['today-tax', 'Tax', 'today-section-jump-tax'] as [string, string, string]] : []),
-    ...(monthlyBudgetPulse && showBudgetPulseCards
-      ? [['today-budget-pulse', 'Budget', 'today-section-jump-budget'] as [string, string, string]]
-      : []),
-    ...(cashRunway ? [['today-cash-runway', 'Runway', 'today-section-jump-runway'] as [string, string, string]] : []),
-    ...(fireChip ? [['today-fire-chip', 'FIRE', 'today-section-jump-fire'] as [string, string, string]] : []),
     ...(showMediaCard ? [['today-media', 'Media', 'today-section-jump-media'] as [string, string, string]] : []),
+    ...(showMarketsCard
+      ? [['today-markets', 'Markets', 'today-section-jump-markets'] as [string, string, string]]
+      : []),
+    ...(showAlertsCard
+      ? [['today-alerts', 'Alerts', 'today-section-jump-alerts'] as [string, string, string]]
+      : []),
+    ...(showChartsCard
+      ? [['today-charts', 'Charts', 'today-section-jump-charts'] as [string, string, string]]
+      : []),
+    ...(showGettingStartedCard
+      ? [['today-sync-setup', 'Sync', 'today-section-jump-sync'] as [string, string, string]]
+      : []),
   ]
 
   return (
@@ -1333,23 +1356,11 @@ export function Dashboard() {
         onClose={() => setDigestOpen(false)}
         onFlash={(msg) => toastSuccess(msg)}
       />
-      <div className="page-header mb-6 md:mb-8">
-        <div className="page-header__copy">
-          <p className="eyebrow app-page-eyebrow mb-2 md:mb-3 sm:hidden">MyDSP</p>
-          <h2 className="app-page-title font-bold tracking-tight leading-tight sm:hidden">
-            <span className="gradient-text">Today</span>
-          </h2>
-          <p className="page-header__description text-xs md:text-sm text-text-muted font-light leading-relaxed mt-2 md:mt-3 sm:mt-0 hidden sm:block">
-            Net worth, tasks due now, sync health, and Markets — act first, explore below.
-          </p>
-        </div>
-        <div className="page-header__action">
-          <div className="page-primary-actions" data-testid="page-primary-actions">
-            <Link to="/markets" className="btn-secondary btn-sm">
-              Markets
-            </Link>
-          </div>
-        </div>
+      <div className="today-fold-title mb-4 sm:hidden">
+        <p className="eyebrow app-page-eyebrow mb-2">MyDSP</p>
+        <h2 className="app-page-title font-bold tracking-tight leading-tight">
+          <span className="gradient-text">Today</span>
+        </h2>
       </div>
 
       {todayLayoutOpen ? (
@@ -1535,67 +1546,6 @@ export function Dashboard() {
         <p className="text-sm text-text-muted font-light mb-4">
           Assets {formatGBP(assets)} · Liabilities {formatGBP(liabilities)}
         </p>
-        <div className="today-trust-strip mt-3" role="status" aria-label="Today sync and price trust">
-          <div className="today-trust-strip-primary flex flex-wrap gap-x-4 gap-y-1 text-xs text-text-subtle">
-            {showGettingStartedCard ? <GettingStartedChecklist /> : syncLine ? <span>{syncLine}</span> : null}
-          </div>
-          {priceLagChip ||
-          !hasFinnhubKey(data) ||
-          finnhubQuotaLimited ||
-          quoteSlaChip ||
-          quotePartialChip ? (
-          <div
-            className="today-prices-trust flex flex-wrap gap-x-3 gap-y-1 text-xs"
-            aria-label="Prices trust"
-          >
-            {priceLagChip ? (
-              <Link
-                to="/markets"
-                className="today-price-lag-chip text-accent hover:underline font-medium"
-                title="Last-good Markets quotes arrived from another device via sync"
-              >
-                {priceLagChip.label}
-              </Link>
-            ) : null}
-            {!hasFinnhubKey(data) ? (
-              <Link
-                to="/settings#prices"
-                className="today-finnhub-missing-chip text-text-muted hover:text-accent font-medium"
-                title="Finnhub API key is not saved on this device — optional for live equity quotes"
-              >
-                Finnhub not configured
-              </Link>
-            ) : null}
-            {finnhubQuotaLimited ? (
-              <Link
-                to="/markets"
-                className="today-finnhub-quota-chip text-amber-700 dark:text-amber-300 hover:underline font-medium"
-                title="Finnhub rate-limited — using Yahoo until quota resets"
-              >
-                Finnhub rate-limited (429)
-              </Link>
-            ) : null}
-            {quoteSlaChip ? (
-              <Link
-                to="/markets"
-                className="today-quote-sla-chip text-text-muted hover:text-accent font-medium"
-                title={quoteSlaChip}
-              >
-                {quoteSlaChip}
-              </Link>
-            ) : null}
-            {quotePartialChip ? (
-              <Link
-                to="/markets"
-                className="today-quote-partial-chip text-amber-700 dark:text-amber-300 hover:underline font-medium"
-                title="Some Markets quotes are unavailable after last sync"
-              >
-                {quotePartialChip}
-              </Link>
-            ) : null}
-          </div>
-          ) : null}
-        </div>
         {((showBudgetPulseCards && (monthlyBudgetPulse || weekToDateSpend.spent > 0)) ||
           cashRunway ||
           fireChip) ? (
@@ -1679,20 +1629,11 @@ export function Dashboard() {
             ) : null}
           </div>
         ) : null}
-        {alerts.length > 0 && alerts[0].severity !== 'green' ? (
-          <Link
-            to={alerts[0].to}
-            className={`today-top-alert mt-4 block p-3 border-l-4 rounded-r-lg md:hidden ${ALERT_BORDER[alerts[0].severity] ?? 'border-l-border-strong'} bg-surface-hover/60`}
-          >
-            <p className="text-xs font-semibold uppercase tracking-wider mb-0.5">{alerts[0].title}</p>
-            <p className="text-xs text-text-muted font-light leading-snug">{alerts[0].detail}</p>
-          </Link>
-        ) : null}
       </div>
 
       <div className="today-jump-toolbar mb-3 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
         <nav
-          className="today-section-jump-chips hidden sm:flex sm:flex-wrap gap-1.5"
+          className="today-section-jump-chips flex flex-wrap gap-1.5"
           aria-label="Jump to Today section"
         >
           {todayJumpChips.map(([id, label, chipClass]) => {
@@ -1727,6 +1668,10 @@ export function Dashboard() {
           Customize{todayHiddenCards.size > 0 ? ` · ${todayHiddenCards.size} hidden` : ''}
         </button>
       </div>
+
+      {showGettingStartedCard ? (
+        <GettingStartedChecklist asCard syncLine={syncLine} />
+      ) : null}
 
       <div className="today-reorderable-sections flex flex-col">
       {showDailyPlanCard ? (
@@ -2473,9 +2418,30 @@ export function Dashboard() {
               </div>
             ) : null}
             {todayMovers.length === 0 ? (
-              <p className="text-sm text-text-muted font-light">
-                No fresh movers (last 24h).
-              </p>
+              <div>
+                <p className="text-sm text-text-muted font-light">
+                  {todayMoversEmptyCopy(marketsCount)}
+                </p>
+                {todayWatchlistPreview.length > 0 ? (
+                  <ul className="space-y-2 mt-2">
+                    {todayWatchlistPreview.map((m) => (
+                      <li key={m.id}>
+                        <Link
+                          to={`/markets?symbol=${encodeURIComponent(m.symbol)}`}
+                          className="flex items-baseline justify-between gap-2 hover:text-accent"
+                        >
+                          <span className="font-semibold tracking-tight">{m.symbol}</span>
+                          <span className={`tabular-nums text-sm ${privacyClass(privacy)}`}>
+                            {m.changePct == null
+                              ? '—'
+                              : `${m.changePct >= 0 ? '+' : ''}${m.changePct.toFixed(2)}%`}
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
             ) : (
               <ul className="space-y-2">
                 {todayMovers.map((m) => (
@@ -2520,9 +2486,30 @@ export function Dashboard() {
               </Link>
             </div>
             {todayMovers.length === 0 ? (
-              <p className="text-sm text-text-muted font-light">
-                No fresh movers (last 24h).
-              </p>
+              <div>
+                <p className="text-sm text-text-muted font-light">
+                  {todayMoversEmptyCopy(marketsCount)}
+                </p>
+                {todayWatchlistPreview.length > 0 ? (
+                  <ul className="space-y-2 mt-2">
+                    {todayWatchlistPreview.map((m) => (
+                      <li key={m.id}>
+                        <Link
+                          to={`/markets?symbol=${encodeURIComponent(m.symbol)}`}
+                          className="flex items-baseline justify-between gap-2 hover:text-accent"
+                        >
+                          <span className="font-semibold tracking-tight">{m.symbol}</span>
+                          <span className={`tabular-nums text-sm ${privacyClass(privacy)}`}>
+                            {m.changePct == null
+                              ? '—'
+                              : `${m.changePct >= 0 ? '+' : ''}${m.changePct.toFixed(2)}%`}
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
             ) : (
               <ul className="space-y-2">
                 {todayMovers.slice(0, 5).map((m) => (
@@ -2554,23 +2541,20 @@ export function Dashboard() {
 
       {/* Alerts - mobile optimized */}
       {showAlertsCard && (
-        <div className="grid grid-cols-1 gap-3 md:gap-px mb-6">
-          {alerts.slice(0, 3).map((a) => {
-            const topAlertId = alerts.length > 0 && alerts[0].severity !== 'green' ? alerts[0].id : null
-            const hideOnPhone = a.id === topAlertId
-            return (
+        <div
+          id="today-alerts"
+          className="today-alerts-card grid grid-cols-1 gap-3 md:gap-px mb-6"
+        >
+          {alerts.slice(0, 3).map((a) => (
               <Link
                 key={a.id}
                 to={a.to}
-                className={`surface surface-interactive p-4 md:px-5 md:py-4 border-l-4 md:border-l-2 block rounded-r-xl md:rounded-none shadow-sm md:shadow-none ${ALERT_BORDER[a.severity] ?? 'border-l-border-strong'} ${
-                  hideOnPhone ? 'hidden md:block' : ''
-                }`}
+                className={`surface surface-interactive p-4 md:px-5 md:py-4 border-l-4 md:border-l-2 block rounded-r-xl md:rounded-none shadow-sm md:shadow-none ${ALERT_BORDER[a.severity] ?? 'border-l-border-strong'}`}
               >
                 <p className="text-sm font-semibold uppercase tracking-wider mb-1">{a.title}</p>
                 <p className="text-sm text-text-muted font-light leading-snug">{a.detail}</p>
               </Link>
-            )
-          })}
+          ))}
         </div>
       )}
 
@@ -2630,8 +2614,8 @@ export function Dashboard() {
 
       {/* Asset allocation and net worth chart */}
       {showChartsCard ? (
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-px mb-6">
-        <div className="surface p-5 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
+      <div id="today-charts" className="today-charts-grid grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-px mb-6">
+        <div className="surface p-5 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none chart-panel-shell">
           <AllocationRing
             data={[
               { name: 'Crypto', value: crypto.value },
@@ -2639,35 +2623,45 @@ export function Dashboard() {
             ].filter((s) => s.value > 0)}
             privacy={privacy}
             eyebrow="Mix"
-            title="Assets"
+            title="Allocation"
             donut
           />
         </div>
-        <div className="lg:col-span-2 surface p-5 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
-          <NetWorthChart history={data.history} privacy={privacy} onSnapshot={onSnapshot} />
+        <div className="lg:col-span-2 surface p-5 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none chart-panel-shell">
+          {data.history.length >= 2 ? (
+            <NetWorthChart history={data.history} privacy={privacy} onSnapshot={onSnapshot} />
+          ) : (
+            <div className="today-timeline-empty py-6">
+              <p className="text-xs uppercase tracking-wider text-text-subtle mb-1 font-semibold">
+                History
+              </p>
+              <h3 className="text-base font-bold tracking-tight mb-2">Net worth timeline</h3>
+              <p className="text-sm text-text-muted font-light">
+                Need two snapshots before a timeline.
+              </p>
+              <button type="button" className="btn-secondary btn-sm mt-3" onClick={onSnapshot}>
+                Snapshot
+              </button>
+            </div>
+          )}
         </div>
       </div>
       ) : null}
 
-      {/* Score, Level cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-px mb-6">
-        <Link to="/achievements" className="surface surface-interactive p-5 md:p-8 block rounded-xl md:rounded-none shadow-sm md:shadow-none">
-          <p className="text-xs uppercase tracking-wider text-text-subtle mb-2 font-semibold">Financial score</p>
-          <p className={`text-3xl md:text-2xl font-bold tabular-nums mb-1 ${privacyClass(privacy)}`}>
-            {achievements.score}
-          </p>
-          <p className="text-xs text-text-subtle font-light">0–1000 composite</p>
-        </Link>
-        <Link to="/achievements" className="surface surface-interactive p-5 md:p-8 block rounded-xl md:rounded-none shadow-sm md:shadow-none">
-          <p className="text-xs uppercase tracking-wider text-text-subtle mb-2 font-semibold">Level</p>
-          <p className={`text-3xl md:text-2xl font-bold tabular-nums mb-1 ${privacyClass(privacy)}`}>
-            L{achievements.level}
-          </p>
-          <p className="text-xs text-accent font-light">
-            {achievements.xp} XP · {achievements.unlocked.length} unlocked
-          </p>
-        </Link>
-      </div>
+      <Link
+        to="/achievements"
+        className="today-scorebook surface surface-interactive p-5 md:p-8 mb-6 block rounded-xl md:rounded-none shadow-sm md:shadow-none"
+      >
+        <p className="text-xs uppercase tracking-wider text-text-subtle mb-2 font-semibold">
+          Scorebook
+        </p>
+        <p className={`text-3xl md:text-2xl font-bold tabular-nums mb-1 ${privacyClass(privacy)}`}>
+          {achievements.xp} XP
+        </p>
+        <p className="text-sm text-text-muted font-light">
+          L{achievements.level} · {achievements.unlocked.length} unlocked
+        </p>
+      </Link>
 
       {/* Crypto and Equities */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-px mb-6">

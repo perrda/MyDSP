@@ -10,13 +10,16 @@ function numericLeaves(value: unknown): number[] {
 }
 
 describe('favourites Overview + predictive analytics fixes', () => {
-  it('keeps Overview nav while shell and PageHeader say Today', () => {
+  it('keeps Today nav while shell and PageHeader say Today', () => {
     const shell = readFileSync(resolve(__dirname, '../components/layout/AppShell.tsx'), 'utf8')
     const sidebar = readFileSync(resolve(__dirname, '../components/layout/Sidebar.tsx'), 'utf8')
     const dashboard = readFileSync(resolve(__dirname, '../pages/Dashboard.tsx'), 'utf8')
 
     expect(shell).toMatch(/'\/': \{ eyebrow: 'Portfolio', title: 'Today' \}/)
-    expect(sidebar).toMatch(/label: 'Overview'/)
+    expect(sidebar).toMatch(/PRIMARY_NAV/)
+    expect(readFileSync(resolve(__dirname, '../domain/primaryNav.ts'), 'utf8')).toMatch(
+      /label: 'Today'/,
+    )
     expect(dashboard).toMatch(/gradient-text">Today</)
   })
 

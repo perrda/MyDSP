@@ -91,15 +91,15 @@ describe('recurring sort / total / commentary', () => {
   })
 
   it('user-facing nav uses To Do\'s branding', () => {
-    const sidebar = readFileSync(resolve('src/components/layout/Sidebar.tsx'), 'utf8')
-    const nav = readFileSync(resolve('src/domain/bottomNav.ts'), 'utf8')
-    expect(sidebar).toMatch(/To Do's/)
-    expect(nav).toMatch(/To Do's/)
-    expect(sidebar).not.toMatch(/To Do Lists/)
+    const hubs = readFileSync(resolve('src/domain/hubPages.ts'), 'utf8')
+    const family = readFileSync(resolve('src/pages/FamilyPage.tsx'), 'utf8')
+    expect(hubs).toMatch(/To Do's/)
+    expect(family).toMatch(/HOUSEHOLD_DOORS/)
+    expect(hubs).not.toMatch(/To Do Lists/)
   })
 
   it('package version is tip', () => {
     const pkg = JSON.parse(readFileSync(resolve('package.json'), 'utf8')) as { version: string }
-    expect(pkg.version).toBe('1.2.120')
+    expect(pkg.version).toBe('1.2.121')
   })
 })

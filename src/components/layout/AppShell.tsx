@@ -30,7 +30,8 @@ import { refreshMediaFeeds } from '../../services/mediaRefresh'
 
 /** Pull-to-refresh on approved primary/detail routes (no page jump). */
 function allowPullToRefresh(pathname: string): boolean {
-  if (pathname === '/' || pathname === '/markets') return true
+  if (pathname === '/' || pathname === '/markets' || pathname === '/money' || pathname === '/plan')
+    return true
   if (pathname === '/equities' || pathname === '/crypto' || pathname === '/commodities') return true
   if (pathname === '/news') return true
   if (pathname === '/youtube' || pathname === '/tax' || pathname === '/compare') return true
@@ -55,6 +56,8 @@ function allowPullToRefresh(pathname: string): boolean {
 const titles: Record<string, { eyebrow: string; title: string }> = {
   '/': { eyebrow: 'Portfolio', title: 'Today' },
   '/markets': { eyebrow: 'Prices', title: 'Markets' },
+  '/money': { eyebrow: 'Money', title: 'Money' },
+  '/plan': { eyebrow: 'Plan', title: 'Plan' },
   '/news': { eyebrow: 'Insights', title: 'News' },
   '/youtube': { eyebrow: 'Media', title: 'YouTube' },
   '/crypto': { eyebrow: 'Holdings', title: 'Crypto' },
@@ -69,8 +72,8 @@ const titles: Record<string, { eyebrow: string; title: string }> = {
   '/recurring': { eyebrow: 'Activity', title: 'Recurring' },
   '/review': { eyebrow: 'Insights', title: 'Monthly review' },
   '/trips': { eyebrow: 'Activity', title: 'Trips & splits' },
-  '/family': { eyebrow: 'Household', title: 'Family' },
-  '/household': { eyebrow: 'Household', title: 'Family' },
+  '/family': { eyebrow: 'Household', title: 'Household' },
+  '/household': { eyebrow: 'Household', title: 'Household' },
   '/history': { eyebrow: 'Insights', title: 'History' },
   '/documents': { eyebrow: 'Vault', title: 'Documents' },
   '/todos': { eyebrow: 'Tasks', title: "To Do's" },

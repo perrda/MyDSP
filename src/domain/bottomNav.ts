@@ -1,111 +1,25 @@
-/** Map sidebar favourites → bottom-nav tabs (phone/tablet). */
+/** Bottom bar = Today · Markets · Money · Plan · Household (fixed).
+ *  Settings stays at `/settings` in the header / sidebar pin. */
 
-import {
-  LayoutDashboard,
-  CandlestickChart,
-  Wallet,
-  Target,
-  Settings,
-  Coins,
-  TrendingUp,
-  Gem,
-  ListChecks,
-  Briefcase,
-  Newspaper,
-  Video,
-  Landmark,
-  Receipt,
-  Plane,
-  BarChart3,
-  GitCompareArrows,
-  Repeat,
-  CalendarRange,
-  PiggyBank,
-  History,
-  Users,
-  FileText,
-  BookOpen,
-  ScrollText,
-  Flame,
-  type LucideIcon,
-} from 'lucide-react'
-import {
-  BOTTOM_NAV_FIXED_END,
-  BOTTOM_NAV_FIXED_START,
-  DEFAULT_BOTTOM_NAV_MIDDLE,
-  loadBottomNavMiddleSlots,
-} from '../storage/bottomNavSlots'
+import { PRIMARY_NAV, type PrimaryNavItem } from './primaryNav'
 
 export interface BottomNavItem {
   to: string
   label: string
-  icon: LucideIcon
+  icon: PrimaryNavItem['icon']
 }
 
-export const BOTTOM_NAV_CATALOG: Record<string, BottomNavItem> = {
-  '/': { to: '/', label: 'Overview', icon: LayoutDashboard },
-  '/markets': { to: '/markets', label: 'Markets', icon: CandlestickChart },
-  '/spending': { to: '/spending', label: 'Spending', icon: Wallet },
-  '/goals': { to: '/goals', label: 'Goals', icon: Target },
-  '/crypto': { to: '/crypto', label: 'Crypto', icon: Coins },
-  '/equities': { to: '/equities', label: 'Equities', icon: TrendingUp },
-  '/commodities': { to: '/commodities', label: 'Commodities', icon: Gem },
-  '/todos': { to: '/todos', label: "To Do's", icon: ListChecks },
-  '/jobs': { to: '/jobs', label: 'Jobs', icon: Briefcase },
-  '/news': { to: '/news', label: 'News', icon: Newspaper },
-  '/youtube': { to: '/youtube', label: 'YouTube', icon: Video },
-  '/liabilities': { to: '/liabilities', label: 'Debt', icon: Landmark },
-  '/tax': { to: '/tax', label: 'Tax', icon: Receipt },
-  '/trips': { to: '/trips', label: 'Trips', icon: Plane },
-  '/analytics': { to: '/analytics', label: 'Analytics', icon: BarChart3 },
-  '/compare': { to: '/compare', label: 'Compare', icon: GitCompareArrows },
-  '/recurring': { to: '/recurring', label: 'Recurring', icon: Repeat },
-  '/review': { to: '/review', label: 'Review', icon: CalendarRange },
-  '/budgets': { to: '/budgets', label: 'Budgets', icon: PiggyBank },
-  '/history': { to: '/history', label: 'History', icon: History },
-  '/family': { to: '/family', label: 'Family', icon: Users },
-  '/documents': { to: '/documents', label: 'Docs', icon: FileText },
-  '/journal': { to: '/journal', label: 'Journal', icon: BookOpen },
-  '/rules': { to: '/rules', label: 'Rules', icon: ScrollText },
-  '/fire': { to: '/fire', label: 'FIRE', icon: Flame },
-  '/settings': { to: '/settings', label: 'Settings', icon: Settings },
-}
+export const BOTTOM_NAV_CATALOG: Record<string, BottomNavItem> = Object.fromEntries(
+  PRIMARY_NAV.map((item) => [item.to, { to: item.to, label: item.label, icon: item.icon }]),
+)
 
 /**
- * Bottom bar = Overview (fixed) · 3 user slots · Settings (fixed).
- * `middleSlots` overrides stored prefs when provided (tests / preview).
+ * Fixed five-tab IA. `middleSlots` is ignored (legacy prefs still sync).
  */
-export function resolveBottomNavItems(middleSlots?: string[]): BottomNavItem[] {
-  const slots = middleSlots?.length ? middleSlots : loadBottomNavMiddleSlots()
-  const picked: BottomNavItem[] = []
-  const seen = new Set<string>()
-
-  const start = BOTTOM_NAV_CATALOG[BOTTOM_NAV_FIXED_START]
-  if (start) {
-    picked.push(start)
-    seen.add(start.to)
-  }
-
-  for (const path of slots) {
-    if (path === BOTTOM_NAV_FIXED_START || path === BOTTOM_NAV_FIXED_END) continue
-    const item = BOTTOM_NAV_CATALOG[path]
-    if (!item || seen.has(item.to)) continue
-    picked.push(item)
-    seen.add(item.to)
-    if (picked.length >= 4) break
-  }
-
-  for (const path of DEFAULT_BOTTOM_NAV_MIDDLE) {
-    if (picked.length >= 4) break
-    if (seen.has(path)) continue
-    const item = BOTTOM_NAV_CATALOG[path]
-    if (item) {
-      picked.push(item)
-      seen.add(path)
-    }
-  }
-
-  const end = BOTTOM_NAV_CATALOG[BOTTOM_NAV_FIXED_END]
-  if (end && !seen.has(end.to)) picked.push(end)
-  return picked
+export function resolveBottomNavItems(_middleSlots?: string[]): BottomNavItem[] {
+  return PRIMARY_NAV.map((item) => ({
+    to: item.to,
+    label: item.label,
+    icon: item.icon,
+  }))
 }

@@ -586,6 +586,26 @@ html.theme-transitioning *::after {
   width: 100%;
   margin-left: auto;
   margin-right: auto;
+  overscroll-behavior-y: contain;
+  scroll-padding-top: calc(var(--app-header-offset, 3.5rem) + 0.75rem);
+}
+
+#today-tax,
+#today-media,
+#today-markets,
+#today-alerts,
+#today-charts,
+#today-sync-setup,
+#today-next-action,
+#today-daily-plan,
+#today-career-pulse,
+#today-bills,
+#today-goals {
+  scroll-margin-top: calc(var(--app-header-offset, 3.5rem) + 0.75rem);
+}
+
+.today-scorebook {
+  border-left: 3px solid var(--accent);
 }
 @media (min-width: 640px) {
   .app-content { padding: 1.5rem 1.5rem calc(2rem + env(safe-area-inset-bottom)); }
@@ -1836,6 +1856,15 @@ select:focus {
 
 .chart-panel {
   min-width: 0;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--accent) 8%, transparent),
+    transparent 48%
+  );
+}
+
+.chart-panel-shell .chart-panel {
+  background: transparent;
 }
 
 /* Axis + legend readability (Recharts injects inline fills) */

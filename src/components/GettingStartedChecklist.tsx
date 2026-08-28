@@ -1,4 +1,4 @@
-/** Getting-started checklist — dismissible onboarding for David’s workflow. */
+/** First-device sync / setup card — one line for setup, cloud sync, and Finnhub. */
 
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -13,6 +13,7 @@ import {
   loadGettingStartedDismissedPref,
   saveGettingStartedDismissedPref,
 } from '../domain/gettingStartedDismissedPref'
+import { hasFinnhubKey } from '../domain/finnhubReminder'
 
 type Step = {
   id: string
@@ -32,6 +33,7 @@ function buildSteps(data: ReturnType<typeof usePortfolio>['data']): Step[] {
   const residencyOk = Boolean(data.settings?.taxResidency)
   const hasTrades = (data.journal?.length ?? 0) > 0 || (data.disposals?.length ?? 0) > 0
   const hasTodos = (data.todoItems?.length ?? 0) > 0
+  const finnhubOk = hasFinnhubKey(data)
 
   return [
     {
@@ -58,20 +60,48 @@ function buildSteps(data: ReturnType<typeof usePortfolio>['data']): Step[] {
       to: '/todos',
       done: hasTodos,
     },
+    {
+      id: 'finnhub',
+      label: 'Add Finnhub for live equity quotes (optional)',
+      to: '/settings#prices',
+      done: finnhubOk,
+    },
   ]
 }
 
-export function GettingStartedChecklist() {
+function oneLine(steps: Step[], syncLine: string): { text: string; to: string } {
+  const next = steps.find((s) => !s.done)
+  if (next?.id === 'sync') {
+    return { text: 'Set up cloud sync to use this device everywhere', to: next.to }
+  }
+  if (next?.id === 'finnhub' && steps.filter((s) => s.id !== 'finnhub').every((s) => s.done)) {
+    return { text: 'Finnhub not configured — optional for live equity quotes', to: next.to }
+  }
+  if (next) {
+    return { text: next.label, to: next.to }
+  }
+  if (syncLine) return { text: syncLine, to: '/settings#sync' }
+  return { text: 'Cloud sync ready', to: '/settings#sync' }
+}
+
+export function GettingStartedChecklist({
+  syncLine = '',
+  asCard = false,
+}: {
+  syncLine?: string
+  asCard?: boolean
+}) {
   const { data } = usePortfolio()
   const [dismissed, setDismissed] = useState(loadGettingStartedDismissedPref)
   const [expanded, setExpanded] = useState(false)
   const [, bump] = useState(0)
 
   const steps = buildSteps(data)
-  const doneCount = steps.filter((s) => s.done).length
-  const complete = doneCount === steps.length
+  const coreSteps = steps.filter((s) => s.id !== 'finnhub')
+  const doneCount = coreSteps.filter((s) => s.done).length
+  const complete = doneCount === coreSteps.length
+  const line = oneLine(steps, syncLine)
 
-  // Hooks must run unconditionally (no early return above this line).
   useEffect(() => {
     const onSync = () => bump((n) => n + 1)
     window.addEventListener('mydsp-autosync', onSync)
@@ -85,69 +115,98 @@ export function GettingStartedChecklist() {
     }
   }, [complete, dismissed])
 
-  if (dismissed || complete) return null
+  const finnhubMissing = !hasFinnhubKey(data)
+  if (dismissed && !complete) return null
+  if (dismissed && complete && !finnhubMissing && !syncLine) return null
+  if (dismissed && complete && !asCard) return null
 
-  const nextUndone = steps.find((s) => !s.done)
+  const body = (
+    <>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs uppercase tracking-wider text-text-subtle font-semibold mb-1">
+            Sync
+          </p>
+          <button
+            type="button"
+            className="text-sm text-text-muted hover:text-accent font-light leading-snug text-left"
+            aria-expanded={expanded}
+            onClick={() => setExpanded((v) => !v)}
+          >
+            {complete && !finnhubMissing
+              ? syncLine || 'Cloud sync ready'
+              : !complete
+                ? `Setup ${doneCount}/${coreSteps.length} — ${line.text}`
+                : line.text}
+          </button>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            className="btn-ghost btn-sm text-[11px]"
+            aria-expanded={expanded}
+            onClick={() => setExpanded((v) => !v)}
+          >
+            {expanded ? 'Hide' : 'Steps'}
+          </button>
+          {!complete ? (
+            <button
+              type="button"
+              className="btn-ghost btn-sm text-[11px]"
+              aria-label="Dismiss getting started"
+              onClick={() => {
+                dismissGettingStarted()
+                setDismissed(true)
+              }}
+            >
+              Dismiss
+            </button>
+          ) : null}
+        </div>
+      </div>
+      {expanded ? (
+        <ul className="mt-3 space-y-2">
+          {steps.map((s) => (
+            <li key={s.id}>
+              <Link
+                to={s.to}
+                className="flex items-center gap-2.5 min-h-11 text-sm text-text-muted hover:text-text transition-colors"
+                onClick={() => setExpanded(false)}
+              >
+                {s.done ? (
+                  <Check size={16} className="text-accent shrink-0" strokeWidth={2} />
+                ) : (
+                  <Circle size={16} className="text-text-subtle shrink-0" strokeWidth={1.5} />
+                )}
+                <span className={s.done ? 'line-through opacity-60' : ''}>{s.label}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </>
+  )
+
+  if (asCard) {
+    if (dismissed && complete && !finnhubMissing && !syncLine) return null
+    return (
+      <section
+        id="today-sync-setup"
+        className="today-sync-setup-card surface p-4 md:p-5 mb-3 rounded-xl md:rounded-none shadow-sm md:shadow-none"
+        aria-label="Setup and sync"
+      >
+        {body}
+      </section>
+    )
+  }
+
+  if (dismissed || complete) return null
 
   return (
     <span className="inline-flex items-center gap-2">
-      <button
-        type="button"
-        onClick={() => setExpanded((v) => !v)}
-        aria-expanded={expanded}
-        className="text-text-subtle hover:text-accent font-medium"
-        title={nextUndone ? nextUndone.label : 'Setup complete'}
-      >
-        Setup {doneCount}/{steps.length} →
-      </button>
-      {expanded ? (
-        <>
-          <button
-            type="button"
-            className="text-text-subtle hover:text-accent font-medium text-[11px]"
-            aria-label="Dismiss getting started"
-            onClick={() => {
-              dismissGettingStarted()
-              setDismissed(true)
-            }}
-          >
-            ✕
-          </button>
-          <span className="fixed inset-0 z-50 flex items-start justify-center pt-20 bg-black/20" onClick={() => setExpanded(false)}>
-            <div className="surface border border-border p-4 rounded-lg shadow-lg max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-semibold">Getting started</p>
-                <button
-                  type="button"
-                  className="text-text-subtle hover:text-accent"
-                  aria-label="Close"
-                  onClick={() => setExpanded(false)}
-                >
-                  ✕
-                </button>
-              </div>
-              <ul className="space-y-2">
-                {steps.map((s) => (
-                  <li key={s.id}>
-                    <Link
-                      to={s.to}
-                      className="flex items-center gap-2.5 min-h-11 text-sm text-text-muted hover:text-text transition-colors"
-                      onClick={() => setExpanded(false)}
-                    >
-                      {s.done ? (
-                        <Check size={16} className="text-accent shrink-0" strokeWidth={2} />
-                      ) : (
-                        <Circle size={16} className="text-text-subtle shrink-0" strokeWidth={1.5} />
-                      )}
-                      <span className={s.done ? 'line-through opacity-60' : ''}>{s.label}</span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </span>
-        </>
-      ) : null}
+      <Link to={line.to} className="text-text-subtle hover:text-accent font-medium">
+        Setup {doneCount}/{coreSteps.length} →
+      </Link>
     </span>
   )
 }

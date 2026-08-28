@@ -70,16 +70,16 @@ describe('PR94 leftovers + bottom nav + PWA', () => {
   it('defaults middle bottom-nav slots to Markets · To Do · Equities', () => {
     expect(loadBottomNavMiddleSlots()).toEqual([...DEFAULT_BOTTOM_NAV_MIDDLE])
     const items = resolveBottomNavItems()
-    expect(items.map((i) => i.to)).toEqual(['/', '/markets', '/todos', '/equities', '/settings'])
+    expect(items.map((i) => i.to)).toEqual(['/', '/markets', '/money', '/plan', '/household'])
   })
 
-  it('persists custom middle slots without moving Overview/Settings', () => {
+  it('ignores custom middle slots so the five-door IA stays fixed', () => {
     saveBottomNavMiddleSlots(['/crypto', '/goals', '/news'])
     expect(loadBottomNavMiddleSlots()).toEqual(['/crypto', '/goals', '/news'])
     const items = resolveBottomNavItems(loadBottomNavMiddleSlots())
     expect(items[0].to).toBe('/')
-    expect(items.at(-1)?.to).toBe('/settings')
-    expect(items.map((i) => i.to).slice(1, 4)).toEqual(['/crypto', '/goals', '/news'])
+    expect(items.at(-1)?.to).toBe('/household')
+    expect(items.map((i) => i.to)).toEqual(['/', '/markets', '/money', '/plan', '/household'])
   })
 
   it('dedupes and fills invalid slot saves', () => {

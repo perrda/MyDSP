@@ -42,13 +42,12 @@ describe('next25 mobile interaction', () => {
     document.documentElement.classList.remove('large-text')
   })
 
-  it('11: BottomNav long-press opens middle-tabs reorder sheet', () => {
+  it('11: BottomNav long-press Today opens digest (no reorder sheet)', () => {
     const src = readFileSync(resolve(__dirname, '../components/layout/BottomNav.tsx'), 'utf8')
-    expect(src).toMatch(/favSheetOpen/)
-    expect(src).toMatch(/Reorder middle tabs/)
+    expect(src).not.toMatch(/favSheetOpen/)
+    expect(src).toMatch(/isDigestLongPressItem/)
     expect(src).toMatch(/longPressTimer/)
-    expect(src).toMatch(/saveBottomNavMiddleSlots/)
-    expect(src).toMatch(/settings#layout/)
+    expect(src).toMatch(/dispatchWeeklyDigestOpen/)
   })
 
   it('12: Jobs Kanban supports touch drag between columns', () => {
@@ -105,6 +104,6 @@ describe('next25 mobile interaction', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8')) as {
       version: string
     }
-    expect(pkg.version).toBe('1.2.120')
+    expect(pkg.version).toBe('1.2.121')
   })
 })

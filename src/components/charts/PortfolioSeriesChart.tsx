@@ -290,7 +290,6 @@ export function NetWorthChart({
       title="Net worth timeline"
       eyebrow="History"
       primary="netWorth"
-      allowLayers
       defaultRange="12M"
     />
   )

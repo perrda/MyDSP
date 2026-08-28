@@ -103,18 +103,6 @@ export function ToolbarControls({
               <GlassToggle />
               <GlobalSearch />
             </div>
-            <button
-              type="button"
-              role="menuitem"
-              className="toolbar-more-action"
-              aria-label="Edit bottom tabs"
-              onClick={() => {
-                window.dispatchEvent(new CustomEvent('mydsp-open-bottom-nav-editor'))
-                setMoreOpen(false)
-              }}
-            >
-              Edit bottom tabs
-            </button>
             <p className="toolbar-more-hint">Refresh · Privacy · Theme · Glass · Search</p>
           </div>
         ) : null}
