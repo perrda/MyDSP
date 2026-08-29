@@ -3,7 +3,8 @@
 /* ============================================================================
    MyDSP — DESIGN SYSTEM v0.1
    Ported from DSP Capital Design System v4 (dspcapital.tech).
-   Bitcoin orange (#F7931A) on pure black. Fully angular. Dark by default.
+   Bitcoin orange (#F7931A / RGB 247 147 26) on pure black. Fully angular. Dark by default.
+   Light and Dark use the SAME official token for ALL accents — never muted brown.
    Product UI: no film grain, cursor ring, magnetic CTAs, or card spotlight.
    ============================================================================ */
 
@@ -143,10 +144,15 @@ html.angular {
   --text: #0a0a0a;
   --text-muted: #111827;
   --text-subtle: #374151;
-  /* Darker than brand orange so accent text meets WCAG AA on light surfaces */
-  --accent: #9a5500;
-  --accent-bright: #F7931A;
-  --accent-dim: #7a4200;
+  /*
+   * David lock 29 Aug 2026: Light must use the SAME BTC orange as Dark for ALL accents.
+   * Official token: #F7931A (RGB 247 147 26). Do NOT revert Light to muted brown
+   * (#9a5500 / #7a4200 / #91591D / #A26A2F) or any brown fallback.
+   * Inter + Space Grotesk stay. No second orange.
+   */
+  --accent: #F7931A;
+  --accent-bright: #f9a94b;
+  --accent-dim: #c47210;
   color-scheme: light;
 }
 

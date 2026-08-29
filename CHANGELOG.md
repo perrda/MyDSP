@@ -1,5 +1,13 @@
 # MyDSP Changelog
 
+## [1.2.124] - 2026-08-29
+
+### Changed — Light-mode accent recut (draft, no live)
+- **David lock 29 Aug 2026:** Light and Dark use the **same** official BTC orange `#F7931A` (RGB 247 147 26) for **all** accents. Do not revert. Inter + Space Grotesk stay.
+- **Light no longer uses muted brown** (`#9a5500` / `#7a4200` / `#91591D` / `#A26A2F`) on logo tile, sidebar/nav icons, HOLDINGS titles and breadcrumb, primary buttons (`+ ADD EQUITY`), VALUE / COST BASIS / P&L label accents, positive P&L figures, Mix donut primary slice + legend dot, active timeframe chip (12M), selected holding bar, SELECTED EQUITY chrome, or any other `--accent` surface.
+- **One token:** Light `--accent` / `--accent-bright` / `--accent-dim` match Dark. Chart brand slice uses `var(--accent)`, not a baked brown. Mint/green secondary series stay.
+- **Draft only:** do not promote. Do not wrangler. Live mydspv1 stays 1.2.121. No `SYNC_KEY`. No restyle beyond the accent.
+
 ## [1.2.123] - 2026-08-29
 
 ### Added — Priced book + money cockpit (draft, no live)
