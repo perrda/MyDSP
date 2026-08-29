@@ -247,6 +247,24 @@ describe('MyDSP 1.2.125 digest recut', () => {
     expect(BTC_ORANGE).toBe('#F7931A')
   })
 
+  it('logo tile + Debt chrome lock to #F7931A; leftover brown hex is gone', () => {
+    const css = read('../index.css')
+    expect(css).toMatch(/\.brand-mark[\s\S]*?background:\s*#F7931A/)
+    expect(css).toMatch(/html\.light \.brand-mark[\s\S]*?background:\s*#F7931A/)
+    expect(css).toMatch(/\.btn-primary[\s\S]*?background-color:\s*#F7931A/)
+    expect(css).toMatch(/\.chart-range-btn\.is-active[\s\S]*?background:\s*#F7931A/)
+    expect(css).toMatch(/\.eyebrow[\s\S]*?color:\s*#F7931A/)
+    const withoutComments = css.replace(/\/\*[\s\S]*?\*\//g, '')
+    expect(withoutComments).not.toMatch(/#91591D|#A26A2F|#8c5d2e|#9a5500|#7a4200|#c47210|#d97706/i)
+    const debt = read('../pages/LiabilitiesPage.tsx')
+    expect(debt).toMatch(/btn-primary/)
+    expect(debt).toMatch(/Mark paid/)
+    expect(debt).toMatch(/text-accent/)
+    const chart = read('../components/charts/PortfolioSeriesChart.tsx')
+    expect(chart).toMatch(/text-red-500/)
+    expect(chart).toMatch(/text-accent/)
+  })
+
   it('does not delete Money pages or the four-door fold', () => {
     expect(read('../pages/MoneyPage.tsx')).toMatch(/Money/)
     expect(read('../domain/hubPages.ts')).toMatch(/MONEY_DOORS/)

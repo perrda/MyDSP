@@ -9,6 +9,7 @@
 - **Honesty:** duplicate highlights (Top mover SI=F + Commodity mover SI=F) are de-duped. Unpriced movers stay — .
 - **Orange lock:** Light and Dark accents stay official BTC orange `#F7931A`. No muted brown. Negative P&L stays red.
 - **Phone-first:** sticky period + PDF controls so 390 does not scroll them away. 768 / 1280 / landscape stay readable.
+- **Orange lock complete:** 1.2.124 set Light `--accent` to `#F7931A` but leftover brown still sat on the logo tile path (`--accent-dim` `#c47210`, attention `#d97706`). 1.2.125 pins logo tile, primary buttons, DEBT/page titles, selected 12M chips, and Light+Dark `--accent` / `--accent-bright` / `--accent-dim` to `#F7931A`. No `#91591D` / `#A26A2F` / `#8c5d2e` / `#c47210` / `#d97706`. Adverse chart Δ is red (`#ef4444`), not orange.
 - **Draft only:** do not promote. Do not wrangler. Live mydspv1 stays 1.2.121. No `SYNC_KEY`.
 
 ## [1.2.124] - 2026-08-29

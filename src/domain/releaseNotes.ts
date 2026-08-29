@@ -41,6 +41,10 @@ export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
         to: '/?digest=1',
       },
       {
+        text: 'Light + Dark orange lock complete — logo tile #F7931A',
+        to: '/',
+      },
+      {
         text: 'Draft only — live stays 1.2.121',
         to: '/',
       },

@@ -90,8 +90,8 @@ select:focus-visible {
   --color-accent-dim: var(--accent-dim);
 
   --color-orange: #F7931A;
-  --color-orange-light: #f9a94b;
-  --color-orange-dark: #e07f00;
+  --color-orange-light: #F7931A;
+  --color-orange-dark: #F7931A;
   --color-black: #000000;
   --color-black-elevated: #0a0a0a;
   --color-black-card: #111111;
@@ -114,8 +114,8 @@ select:focus-visible {
   --text-muted: #f9fafb;
   --text-subtle: #e5e7eb;
   --accent: #F7931A;
-  --accent-bright: #f9a94b;
-  --accent-dim: #c47210;
+  --accent-bright: #F7931A;
+  --accent-dim: #F7931A;
   color-scheme: dark;
 
   /*
@@ -145,14 +145,15 @@ html.angular {
   --text-muted: #111827;
   --text-subtle: #374151;
   /*
-   * David lock 29 Aug 2026: Light must use the SAME BTC orange as Dark for ALL accents.
+   * David lock 29 Aug 2026 + 1.2.125 complete: Light must use the SAME BTC orange
+   * as Dark for ALL accents — logo tile, buttons, titles, selected chips, nav.
    * Official token: #F7931A (RGB 247 147 26). Do NOT revert Light to muted brown
-   * (#9a5500 / #7a4200 / #91591D / #A26A2F) or any brown fallback.
-   * Inter + Space Grotesk stay. No second orange.
+   * (#9a5500 / #7a4200 / #91591D / #A26A2F / #8c5d2e / #c47210 / #d97706)
+   * or any brown fallback. Inter + Space Grotesk stay. No second orange.
    */
   --accent: #F7931A;
-  --accent-bright: #f9a94b;
-  --accent-dim: #c47210;
+  --accent-bright: #F7931A;
+  --accent-dim: #F7931A;
   color-scheme: light;
 }
 
@@ -1074,12 +1075,12 @@ html.has-bottom-nav .floating-banner--toast {
 }
 
 .btn-primary {
-  background-color: var(--accent);
+  background-color: #F7931A;
   color: #ffffff;
   box-shadow: 0 4px 20px -6px rgba(247, 147, 26, 0.45);
 }
 .btn-primary:hover {
-  background-color: var(--accent-bright);
+  background-color: #F7931A;
   color: #ffffff;
   box-shadow: 0 8px 32px -6px rgba(247, 147, 26, 0.55);
   transform: translateY(-1px);
@@ -1251,7 +1252,7 @@ svg.lucide-square-pen {
 
 .eyebrow {
   display: inline-block;
-  color: var(--accent-bright);
+  color: #F7931A;
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.25em;
@@ -1384,7 +1385,7 @@ h1, h2, h3 {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  background: var(--accent);
+  background: #F7931A;
   color: #fff;
   line-height: 1;
   user-select: none;
@@ -1417,6 +1418,10 @@ h1, h2, h3 {
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
+.light .brand-mark,
+html.light .brand-mark {
+  background: #F7931A;
+}
 
 .w-8.brand-mark .brand-mark-my { font-size: 0.55rem; }
 .w-8.brand-mark .brand-mark-dsp { font-size: 0.5625rem; letter-spacing: 0.04em; }
@@ -1425,7 +1430,7 @@ h1, h2, h3 {
 .w-12.brand-mark .brand-mark-dsp { font-size: 0.8125rem; letter-spacing: 0.08em; }
 
 .gradient-text {
-  color: var(--accent-bright);
+  color: #F7931A;
 }
 
 .label-uppercase {
@@ -1949,9 +1954,9 @@ select:focus {
   border-color: var(--border-strong);
 }
 .chart-range-btn.is-active {
-  color: var(--bg);
-  background: var(--accent);
-  border-color: var(--accent);
+  color: #fff;
+  background: #F7931A;
+  border-color: #F7931A;
 }
 
 .chart-panel {
@@ -2212,11 +2217,11 @@ select:focus {
   background: #ef4444;
 }
 .sync-chip--attention {
-  color: #d97706;
-  border-color: #d97706;
+  color: #F7931A;
+  border-color: #F7931A;
 }
 .sync-chip--attention .sync-chip-dot {
-  background: #d97706;
+  background: #F7931A;
 }
 .sync-chip--flash {
   border-color: var(--accent);
@@ -2551,7 +2556,7 @@ html.glass .sync-chip:focus-visible {
 
 /* Markets holdings polish */
 .markets-row--stale {
-  box-shadow: inset 3px 0 0 color-mix(in srgb, #d97706 75%, transparent);
+  box-shadow: inset 3px 0 0 color-mix(in srgb, #F7931A 75%, transparent);
 }
 .markets-section {
   /* Do not use overflow:hidden — it clips sticky section headers and slices row chrome
@@ -3334,8 +3339,8 @@ html.success-haptic-flash::after {
   flex-shrink: 0;
 }
 .markets-jump-unavailable {
-  border-color: color-mix(in srgb, #d97706 55%, var(--border-strong));
-  color: color-mix(in srgb, #d97706 90%, var(--text-muted));
+  border-color: color-mix(in srgb, #F7931A 55%, var(--border-strong));
+  color: color-mix(in srgb, #F7931A 90%, var(--text-muted));
 }
 .markets-view-controls {
   max-width: 100%;

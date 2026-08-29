@@ -126,7 +126,7 @@ export function PortfolioSeriesChart({
                 className={`text-xs md:text-sm mt-2 tabular-nums font-semibold ${
                   (invertDelta ? delta.change <= 0 : delta.change >= 0)
                     ? 'text-accent'
-                    : 'text-text-muted'
+                    : 'text-red-500'
                 }`}
               >
                 {formatGBP(delta.change, { signed: true })} · {formatPct(delta.pct)} · {range}

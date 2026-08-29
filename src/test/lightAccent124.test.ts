@@ -35,9 +35,11 @@ describe('MyDSP 1.2.124 light-mode accent recut', () => {
     const darkBlock = css.match(/:root,\s*\.dark\s*\{([\s\S]*?)\n\}/)?.[1] ?? ''
     const lightBlock = css.match(/\.light\s*\{([\s\S]*?)\n\}/)?.[1] ?? ''
     expect(darkBlock).toMatch(/--accent:\s*#F7931A/)
+    expect(darkBlock).toMatch(/--accent-bright:\s*#F7931A/)
+    expect(darkBlock).toMatch(/--accent-dim:\s*#F7931A/)
     expect(lightBlock).toMatch(/--accent:\s*#F7931A/)
-    expect(lightBlock).toMatch(/--accent-bright:\s*#f9a94b/)
-    expect(lightBlock).toMatch(/--accent-dim:\s*#c47210/)
+    expect(lightBlock).toMatch(/--accent-bright:\s*#F7931A/)
+    expect(lightBlock).toMatch(/--accent-dim:\s*#F7931A/)
 
     for (const brown of MUTED_BROWNS) {
       expect(css).not.toMatch(new RegExp(`--accent(?:-bright|-dim)?:\\s*${brown}`, 'i'))
