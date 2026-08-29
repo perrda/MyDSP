@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.124**
+**Current version: 1.2.125**
 
-## Completed (through v1.2.124)
+## Completed (through v1.2.125)
 
+- Digest recut (v1.2.125): Daily (rolling 24h) / Weekly / Monthly / Quarterly / Annual in the existing Weekly digest modal · KPI chips · allocation donut · NW sparkline from real history · A4 PDF landscape+portrait · highlight de-dupe · honest — / Unpriced · BTC orange `#F7931A` lock complete (logo tile, Debt + ADD LOAN / MARK PAID / 12M, no leftover brown) · sticky 390 controls · draft only — live stays 1.2.121
 - Light-mode accent recut (v1.2.124): Light + Dark share official BTC orange `#F7931A` (RGB 247 147 26) for all accents · no muted brown fallback · chart brand slice uses the token · lock 29 Aug 2026 · draft only — live stays 1.2.121
 - Priced-book pack (v1.2.123): unpriced out of NW/mix/drift/Buy-Sell · cashflow Recurring vs Settings + stables + 0/1 month · leftover into FIRE/goals/MC (no silent £1,500) · one debt + descending pay-down · /money leftover+runway+four doors · News/YouTube chrome unread · Today one NW/action/risk · Markets Live/Fetching/Unpriced · monthly priced snapshots · Household whose book · 390 chips wrap clear of the bell · group change — / Unpriced (no fake 0.00%) · draft only — live stays 1.2.122
 - Cashflow page (v1.2.122): `/cashflow` · one leftover book · one stables÷bills runway (Today + hero) · income not a bill · honest two-month chart · draft only — live stays 1.2.121

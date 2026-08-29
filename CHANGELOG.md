@@ -1,5 +1,17 @@
 # MyDSP Changelog
 
+## [1.2.125] - 2026-08-29
+
+### Added — Digest recut (draft, no live)
+- **One modal:** the existing Weekly digest Preview/Share sheet — Daily / Weekly / Monthly / Quarterly / Annual. Daily is a **rolling last 24 hours** from now (not calendar-day-to-date). Labels, Δ, graph, highlights, HTML, and both A4 PDFs follow the selected window. No second digest product.
+- **Visual summary:** KPI chips (Net worth / period Δ / Assets / Liabilities), allocation donut, net-worth sparkline from real book history. Missing series is **— / Unpriced** — never invented points, never fake 0.00%.
+- **A4 PDF:** designed one-pager (not a print of the modal chrome) in landscape (default) and portrait. Filename includes period + date. Charts included. Share / Copy HTML / Download HTML stay; nothing is emailed.
+- **Honesty:** duplicate highlights (Top mover SI=F + Commodity mover SI=F) are de-duped. Unpriced movers stay — .
+- **Orange lock:** Light and Dark accents stay official BTC orange `#F7931A`. No muted brown. Negative P&L stays red.
+- **Phone-first:** sticky period + PDF controls so 390 does not scroll them away. 768 / 1280 / landscape stay readable.
+- **Orange lock complete:** 1.2.124 set Light `--accent` to `#F7931A` but leftover brown still sat on the logo tile path (`--accent-dim` `#c47210`, attention `#d97706`). 1.2.125 pins logo tile, primary buttons, DEBT/page titles, selected 12M chips, and Light+Dark `--accent` / `--accent-bright` / `--accent-dim` to `#F7931A`. No `#91591D` / `#A26A2F` / `#8c5d2e` / `#c47210` / `#d97706`. Adverse chart Δ is red (`#ef4444`), not orange.
+- **Draft only:** do not promote. Do not wrangler. Live mydspv1 stays 1.2.121. No `SYNC_KEY`.
+
 ## [1.2.124] - 2026-08-29
 
 ### Changed — Light-mode accent recut (draft, no live)

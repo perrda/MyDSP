@@ -328,9 +328,11 @@ export function ComparePage() {
 
   const exportWeeklyDigest = () => {
     let weekDelta: number | null = null
+    let history: Array<{ date: string; at?: string; netWorth: number }> = []
     try {
       const active = loadPortfolio(activeId)
-      weekDelta = weekDeltaFromHistory(active.history ?? [], totals.netWorth)
+      history = active.history ?? []
+      weekDelta = weekDeltaFromHistory(history, totals.netWorth)
     } catch {
       weekDelta = null
     }
@@ -342,6 +344,7 @@ export function ComparePage() {
       crypto: totals.crypto,
       equity: totals.equity,
       weekDelta,
+      history,
       privacy,
       portfolios: rows.map((r) => ({ name: r.name, netWorth: r.netWorth })),
       highlights: [

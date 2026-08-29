@@ -12,14 +12,14 @@ const MUTED_BROWNS = ['#9a5500', '#7a4200', '#91591D', '#A26A2F', '#91591d', '#a
 describe('MyDSP 1.2.124 light-mode accent recut', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(read('../../package.json'))
-    expect(pkg.version).toBe('1.2.124')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.124')
+    expect(pkg.version).toBe('1.2.125')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.125')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.125',
       '1.2.124',
       '1.2.123',
       '1.2.122',
       '1.2.121',
-      '1.2.120',
     ])
     expect(RELEASE_NOTES[0]?.bullets.map((b) => (typeof b === 'string' ? b : b.text)).join(' ')).toMatch(
       /#F7931A|muted brown|1\.2\.121/,
@@ -35,9 +35,11 @@ describe('MyDSP 1.2.124 light-mode accent recut', () => {
     const darkBlock = css.match(/:root,\s*\.dark\s*\{([\s\S]*?)\n\}/)?.[1] ?? ''
     const lightBlock = css.match(/\.light\s*\{([\s\S]*?)\n\}/)?.[1] ?? ''
     expect(darkBlock).toMatch(/--accent:\s*#F7931A/)
+    expect(darkBlock).toMatch(/--accent-bright:\s*#F7931A/)
+    expect(darkBlock).toMatch(/--accent-dim:\s*#F7931A/)
     expect(lightBlock).toMatch(/--accent:\s*#F7931A/)
-    expect(lightBlock).toMatch(/--accent-bright:\s*#f9a94b/)
-    expect(lightBlock).toMatch(/--accent-dim:\s*#c47210/)
+    expect(lightBlock).toMatch(/--accent-bright:\s*#F7931A/)
+    expect(lightBlock).toMatch(/--accent-dim:\s*#F7931A/)
 
     for (const brown of MUTED_BROWNS) {
       expect(css).not.toMatch(new RegExp(`--accent(?:-bright|-dim)?:\\s*${brown}`, 'i'))

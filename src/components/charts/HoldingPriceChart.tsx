@@ -94,7 +94,7 @@ export function HoldingPriceChart({ data, kind, symbol, seed = [], privacy, titl
               : ''}
           </p>
           {delta != null && (
-            <p className={`text-sm mt-2 tabular-nums ${delta >= 0 ? 'text-accent' : 'text-text-muted'}`}>
+            <p className={`text-sm mt-2 tabular-nums ${delta >= 0 ? 'text-accent' : 'text-red-500'}`}>
               {formatGBP(delta, { signed: true })} · {range}
             </p>
           )}
