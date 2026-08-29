@@ -28,11 +28,13 @@ interface ModalProps {
   title: string
   onClose: () => void
   children: ReactNode
-  /** Dialog sizing: default centered, full long-form, or phone bottom-sheet. */
-  size?: 'default' | 'full' | 'sheet'
+  /** Dialog sizing: default centered, full long-form, phone bottom-sheet, or wide sheet. */
+  size?: 'default' | 'full' | 'sheet' | 'wide'
+  /** Sticky controls under the title (period switcher, PDF) — stay on-screen while the body scrolls. */
+  toolbar?: ReactNode
 }
 
-export function Modal({ open, title, onClose, children, size = 'default' }: ModalProps) {
+export function Modal({ open, title, onClose, children, size = 'default', toolbar }: ModalProps) {
   const titleId = useId()
   const panelRef = useRef<HTMLDivElement>(null)
   const onCloseRef = useRef(onClose)
@@ -106,6 +108,8 @@ export function Modal({ open, title, onClose, children, size = 'default' }: Moda
   const panelClass =
     size === 'full'
       ? 'modal modal-enter modal-full relative z-10 w-full h-[100dvh] max-h-[100dvh] sm:h-auto sm:max-h-[min(92vh,56rem)] sm:max-w-3xl overflow-y-auto border border-border-strong'
+      : size === 'wide'
+        ? 'modal modal-enter modal-sheet modal-wide relative z-10 w-full sm:max-w-2xl max-h-[min(92dvh,90vh)] overflow-y-auto border border-border-strong rounded-t-2xl sm:rounded-none'
       : size === 'sheet'
         ? 'modal modal-enter modal-sheet relative z-10 w-full sm:max-w-lg max-h-[min(92dvh,90vh)] overflow-y-auto border border-border-strong rounded-t-2xl sm:rounded-none'
       : 'modal modal-enter relative z-10 w-full sm:max-w-lg max-h-[min(92dvh,90vh)] overflow-y-auto border border-border-strong'
@@ -130,13 +134,18 @@ export function Modal({ open, title, onClose, children, size = 'default' }: Moda
         className={panelClass}
         style={kbPad > 0 ? { paddingBottom: kbPad } : undefined}
       >
-        <div className="sticky top-0 z-10 modal-sticky-header flex items-center justify-between gap-4 px-4 sm:px-6 py-4 sm:py-5 border-b border-border bg-bg-elevated pt-[max(1rem,env(safe-area-inset-top,0px))] pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))]">
-          <h2 id={titleId} className="text-base sm:text-lg font-bold tracking-tight truncate">
-            {title}
-          </h2>
-          <button type="button" className="btn-ghost btn-sm shrink-0 min-h-11 min-w-11" onClick={onClose}>
-            Close
-          </button>
+        <div className="sticky top-0 z-10 modal-sticky-header border-b border-border bg-bg-elevated pt-[max(1rem,env(safe-area-inset-top,0px))] pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))]">
+          <div className="flex items-center justify-between gap-4 px-4 sm:px-6 py-4 sm:py-5">
+            <h2 id={titleId} className="text-base sm:text-lg font-bold tracking-tight min-w-0 break-words">
+              {title}
+            </h2>
+            <button type="button" className="btn-ghost btn-sm shrink-0 min-h-11 min-w-11" onClick={onClose}>
+              Close
+            </button>
+          </div>
+          {toolbar ? (
+            <div className="digest-modal-toolbar px-4 sm:px-6 pb-3">{toolbar}</div>
+          ) : null}
         </div>
         <div className="p-4 sm:p-6 pb-[max(1.5rem,env(safe-area-inset-bottom,0px))] pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))]">
           {children}

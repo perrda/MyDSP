@@ -343,7 +343,7 @@ export function SmokePage() {
       {
         id: 'weekly-digest',
         label: 'Weekly digest Share',
-        detail: 'Today opens WeeklyDigestModal for Preview/Share, editable highlights, copy, and download fallback',
+        detail: 'Today opens WeeklyDigestModal for period Preview/Share, editable highlights, copy, HTML, and A4 PDF',
         to: '/',
         done: true,
       },

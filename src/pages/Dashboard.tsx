@@ -685,32 +685,31 @@ export function Dashboard() {
   })()
 
   const digestHighlights = useMemo(() => {
+    const top = todayMovers[0]
+    const commodity = todayMovers.find((m) => m.kind === 'commodity')
     const lines = [
       todayTodos.length
         ? `${todayTodos.length} To Do${todayTodos.length === 1 ? '' : "'s"} due today`
         : "No To Do's due today",
-      todayMovers[0]
-        ? `Top mover ${todayMovers[0].symbol}${
-            todayMovers[0].kind === 'commodity' ? ' (commodity)' : ''
-          } ${formatPct(todayMovers[0].changePct)}${
-            todayMovers[0].fromSync ? ' (from other device)' : ''
+      top
+        ? `Top mover ${top.symbol}${
+            top.kind === 'commodity' ? ' (commodity)' : ''
+          } ${Number.isFinite(top.changePct) ? formatPct(top.changePct) : '—'}${
+            top.fromSync ? ' (from other device)' : ''
           }`
         : todayMoversEmptyCopy(marketsCount),
-      ...(todayMovers.some((m) => m.kind === 'commodity')
-        ? [
-            `Commodity mover ${
-              todayMovers.find((m) => m.kind === 'commodity')!.symbol
-            } ${formatPct(todayMovers.find((m) => m.kind === 'commodity')!.changePct)}`,
-          ]
-        : []),
     ]
+    if (commodity && commodity.symbol !== top?.symbol) {
+      lines.push(
+        `Commodity mover ${commodity.symbol} ${
+          Number.isFinite(commodity.changePct) ? formatPct(commodity.changePct) : '—'
+        }`,
+      )
+    }
     if (monthlyBudgetPulse) {
       lines.push(
         `Budget pulse ${formatGBP(monthlyBudgetPulse.spent)} / ${formatGBP(monthlyBudgetPulse.totalBudget)} (${Math.round(monthlyBudgetPulse.ratio * 100)}% used)`,
       )
-    }
-    if (weekToDateSpend.spent > 0) {
-      lines.push(`Week-to-date spend ${formatGBP(weekToDateSpend.spent)}`)
     }
     if (cashRunway) {
       lines.push(
@@ -732,7 +731,6 @@ export function Dashboard() {
     marketsCount,
     todayMovers,
     todayTodos.length,
-    weekToDateSpend.spent,
   ])
 
   const openWeeklyDigest = () => {
@@ -744,6 +742,8 @@ export function Dashboard() {
       crypto: crypto.value,
       equity: equity.value,
       weekDelta: weekDeltaFromHistory(data.history ?? [], netWorth),
+      history: data.history ?? [],
+      spending: data.spending ?? [],
       privacy,
       highlights: digestHighlights,
     })

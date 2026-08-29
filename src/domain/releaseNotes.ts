@@ -29,6 +29,24 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.125',
+    date: '2026-08-29',
+    bullets: [
+      {
+        text: 'Digest recut: Daily / Weekly / Monthly / Quarterly / Annual',
+        to: '/?digest=1',
+      },
+      {
+        text: 'KPI chips, allocation donut, NW graph, A4 PDF',
+        to: '/?digest=1',
+      },
+      {
+        text: 'Draft only — live stays 1.2.121',
+        to: '/',
+      },
+    ],
+  },
+  {
     version: '1.2.124',
     date: '2026-08-29',
     bullets: [

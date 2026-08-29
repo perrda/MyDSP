@@ -51,15 +51,15 @@ describe('next25c quality / ops (21–25)', () => {
 
   it('21: RELEASE_NOTES archive (5 versions) + UpdateBanner See all + Settings whats-new', () => {
     expect(RELEASE_NOTES.length).toBeGreaterThanOrEqual(5)
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.124')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.125')
     expect(releaseNotesBullets(3)).toHaveLength(3)
     expect(releaseNotesArchive(5)).toHaveLength(5)
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.125',
       '1.2.124',
       '1.2.123',
       '1.2.122',
       '1.2.121',
-      '1.2.120',
     ])
 
 
@@ -160,7 +160,7 @@ describe('next25c quality / ops (21–25)', () => {
     })
     expect(content).toMatch(/weekly digest/i)
     expect(content).toMatch(/Net worth/)
-    expect(content).toMatch(/Week change/)
+    expect(content).toMatch(/Week Δ|Week change/)
     expect(content).toMatch(/David/)
     expect(content).toMatch(/no email is sent/i)
 
@@ -203,6 +203,6 @@ describe('next25c quality / ops (21–25)', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8')) as {
       version: string
     }
-    expect(pkg.version).toBe('1.2.124')
+    expect(pkg.version).toBe('1.2.125')
   })
 })
