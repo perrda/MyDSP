@@ -158,14 +158,15 @@ describe('MyDSP 1.2.123 priced-book pack', () => {
     expect(read('../domain/marketsSectionTotals.ts')).toMatch(/never 0\.00%/)
   })
 
-  it('390 header: chips wrap below 768; bell keeps a reserved slot', () => {
+  it('390 header: chips live on their own row; bell keeps a reserved slot', () => {
     const css = read('../index.css')
     expect(css).toMatch(/@media \(max-width: 767px\)/)
-    expect(css).toMatch(/\.media-chrome-chips \{[\s\S]*?flex:\s*1 1 100%/)
-    expect(css).toMatch(/order:\s*10/)
+    expect(css).toMatch(/\.media-chrome-chips-phone/)
+    expect(css).toMatch(/\.toolbar-cluster \.media-chrome-chips \{[\s\S]*?display:\s*none/)
     expect(css).toMatch(/\.toolbar-bell-slot/)
     expect(css).not.toMatch(/\.app-header-row\s*\{[^}]*overflow:\s*hidden/s)
     expect(read('../components/SmartNotifications.tsx')).toMatch(/toolbar-bell-slot/)
+    expect(read('../components/layout/AppShell.tsx')).toMatch(/media-chrome-chips-phone/)
     expect(read('../components/layout/AppShell.tsx')).not.toMatch(
       /sm:hidden flex-1 min-w-0/,
     )

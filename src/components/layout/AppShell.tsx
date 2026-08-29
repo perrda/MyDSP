@@ -18,6 +18,7 @@ import { MenuButton, Sidebar } from './Sidebar'
 import { BottomNav } from './BottomNav'
 import { ToolbarControls } from './ToolbarControls'
 import { SyncStatusChip } from '../SyncStatusChip'
+import { MediaChromeChips } from '../MediaChromeChips'
 import { PullToRefresh } from '../ui/PullToRefresh'
 import { PageRouteTransition } from './PageRouteTransition'
 import { formatDateTime } from '../../utils/format'
@@ -350,6 +351,10 @@ export function AppShell() {
                 </label>
               }
             />
+          </div>
+          {/* Phone / small tablet: chips live on their own row — never under the bell. */}
+          <div className="media-chrome-chips-phone">
+            <MediaChromeChips />
           </div>
           {/* Phone sync strip — own row under the toolbar so it never covers the burger */}
           <div className="app-header-sync-strip sm:hidden empty:hidden">

@@ -394,18 +394,27 @@ html.theme-transitioning *::after {
   line-height: 1rem;
   text-align: center;
 }
+.media-chrome-chips-phone {
+  display: none;
+}
 @media (max-width: 767px) {
-  /* Phone / small tablet: chips on their own row so the bell keeps a reserved slot. */
+  /* Own header strip — chips never share a row (or sit under) the bell. */
   .toolbar-cluster {
     flex: 1 1 auto;
-    flex-wrap: wrap;
-    row-gap: 0.35rem;
-    align-content: flex-start;
+    flex-wrap: nowrap;
   }
-  .media-chrome-chips {
-    flex: 1 1 100%;
-    order: 10;
-    justify-content: flex-end;
+  .toolbar-cluster .media-chrome-chips {
+    display: none;
+  }
+  .media-chrome-chips-phone {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.25rem;
+    padding: 0 max(1.15rem, env(safe-area-inset-right, 0px)) 0.4rem
+      max(0.75rem, env(safe-area-inset-left, 0px));
+  }
+  .media-chrome-chips-phone .media-chrome-chips {
     flex-shrink: 0;
   }
   .media-chrome-chip {
@@ -1794,7 +1803,7 @@ select:focus {
     justify-content: flex-end;
     overflow: visible;
     gap: 0.25rem;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
   }
 
   .toolbar-select-portfolio {
