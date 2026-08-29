@@ -221,7 +221,14 @@ const SECTION_JUMP_LABEL: Record<SectionKey, string> = {
   crosses: 'Crosses',
 }
 
-function ChangeBadge({ pct }: { pct: number }) {
+function ChangeBadge({ pct }: { pct: number | null }) {
+  if (pct == null) {
+    return (
+      <span className="inline-flex min-w-[4.25rem] justify-center px-2 py-1 text-xs font-semibold tabular-nums rounded-md bg-surface-hover text-text-muted">
+        —
+      </span>
+    )
+  }
   const up = pct > 0
   const flat = Math.abs(pct) < 0.005
   const cls = flat
@@ -444,21 +451,6 @@ function seedQuotesFromPortfolio(
   return out
 }
 
-function ageLabel(iso: string): string | null {
-  try {
-    const t = new Date(iso).getTime()
-    if (!Number.isFinite(t)) return null
-    const mins = Math.round((Date.now() - t) / 60_000)
-    if (mins < 2) return 'just now'
-    if (mins < 60) return `${mins}m ago`
-    const hrs = Math.round(mins / 60)
-    if (hrs < 48) return `${hrs}h ago`
-  } catch {
-    /* ignore */
-  }
-  return null
-}
-
 function isStaleQuote(q: MarketQuote | undefined): boolean {
   if (!q) return false
   if (
@@ -478,41 +470,14 @@ function isStaleQuote(q: MarketQuote | undefined): boolean {
   return false
 }
 
-function freshnessLabel(q: MarketQuote | undefined): string | null {
-  if (!q || !(q.last > 0)) return null
-  const src = (q.source || '').toLowerCase()
-  if (src.startsWith('sync:')) {
-    const age = ageLabel(q.updatedAt)
-    return age ? `From other device · ${age}` : 'From other device'
-  }
-  if (isStaleQuote(q)) {
-    const age = ageLabel(q.updatedAt)
-    return age ? `Last synced · ${age}` : 'Last synced'
-  }
-  if (src.includes('yahoo') || src.includes('finnhub') || src.includes('coingecko') || src.includes('frankfurter')) {
-    return 'Live'
-  }
-  if (src.includes('exchangerate')) return 'Live · spot'
-  return null
-}
-
-/** Row status under price — avoid eternal “Fetching…” when Yahoo returned empty. */
+/** Row status — Live / Fetching / Unpriced only. No fake 0.00% elsewhere. */
 function quoteAvailabilityLabel(
   q: MarketQuote | undefined,
   opts: { refreshing: boolean },
 ): string | null {
-  const live = freshnessLabel(q)
-  if (live) return live
-  if (q && !(q.last > 0)) {
-    const src = (q.source || '').toLowerCase()
-    if (src === 'none' || src === 'error' || src === 'invalid' || src.startsWith('stale:')) {
-      return 'Unavailable'
-    }
-    if (opts.refreshing) return 'Fetching…'
-    return 'Unavailable'
-  }
-  if (opts.refreshing) return 'Fetching…'
-  return null
+  if (q && q.last > 0) return 'Live'
+  if (opts.refreshing) return 'Fetching'
+  return 'Unpriced'
 }
 
 function useMediaQuery(query: string): boolean {
@@ -1771,7 +1736,7 @@ export function MarketsPage() {
               >
                 {(t) => {
                   const q = quotes.get(t.id)
-                  const pct = q?.changePct ?? 0
+                  const pct = typeof q?.changePct === 'number' && Number.isFinite(q.changePct) ? q.changePct : null
                   const trend = sparklineTrendFromSeries(q?.sparkline ?? [])
                   const showSpark = Boolean(q && q.sparkline.length > 1)
                   const compact = density === 'compact'
@@ -1956,16 +1921,14 @@ export function MarketsPage() {
                             refreshing: sectionBusy && !(q != null && q.last > 0),
                           })
                           if (!label) return null
-                          const stale = isStaleQuote(q)
-                          const unavailable = label === 'Unavailable'
+                          const unpriced = label === 'Unpriced'
+                          const fetching = label === 'Fetching'
                           return (
                             <p
                               className={`text-[11px] mt-0.5 ${
-                                unavailable
+                                unpriced || fetching
                                   ? 'text-text-subtle'
-                                  : stale
-                                    ? 'text-amber-600 dark:text-amber-400 font-semibold'
-                                    : 'text-text-muted font-medium'
+                                  : 'text-text-muted font-medium'
                               }`}
                             >
                               {label}
@@ -3150,7 +3113,10 @@ export function MarketsPage() {
               <div className="surface p-3">
                 <p className="label-uppercase mb-1">Change</p>
                 <p className="text-lg font-bold tabular-nums">
-                  {formatPct(quoteDetail.quote?.changePct ?? 0, 2)}
+                  {typeof quoteDetail.quote?.changePct === 'number' &&
+                  Number.isFinite(quoteDetail.quote.changePct)
+                    ? formatPct(quoteDetail.quote.changePct, 2)
+                    : '—'}
                 </p>
               </div>
             </div>
@@ -3329,7 +3295,10 @@ export function MarketsPage() {
                 onClick={() => {
                   const sym = quoteDetail.ticker.symbol
                   const q = quotes.get(quoteDetail.ticker.id)
-                  const pct = formatPct(q?.changePct ?? 0, 2)
+                  const pct =
+                    typeof q?.changePct === 'number' && Number.isFinite(q.changePct)
+                      ? formatPct(q.changePct, 2)
+                      : '—'
                   const text = `${sym} ${pct} (${timeframe})`
                   void (async () => {
                     try {

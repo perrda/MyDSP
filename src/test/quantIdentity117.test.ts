@@ -58,14 +58,18 @@ describe('quant identity (v1.2.117)', () => {
     expect(equityNativeCurrency('VOD.L')).toBe('GBP')
   })
 
-  it('subtracts liability minPay from monthly surplus', () => {
+  it('uses cashflow leftover for monthly surplus — not Settings income', () => {
     const data = createEmptyPortfolio()
     data.monthlyIncome = 5000
     data.monthlyExpenses = 3000
+    data.recurringTransactions = [
+      { id: 1, name: 'Pay', amount: 5000, category: 'income', frequency: 'monthly', nextDue: '2026-07-01' },
+      { id: 2, name: 'Rent', amount: 3000, category: 'bills', frequency: 'monthly', nextDue: '2026-07-02' },
+    ]
     data.creditCards = [
       { id: 1, name: 'Card', balance: 500, apr: 20, minPay: 50, limit: 3000 },
     ]
     data.loans = [{ id: 1, name: 'Loan', balance: 3000, apr: 1.5, minPay: 50, original: 5000 }]
-    expect(estimateMonthlySurplus(data)).toBe(1900)
+    expect(estimateMonthlySurplus(data)).toBe(2000)
   })
 })

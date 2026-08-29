@@ -16,6 +16,7 @@ export const LAUNCH_PATH_OPTIONS: Array<{ path: string; label: string }> = [
   { path: '/goals', label: 'Goals' },
   { path: '/jobs', label: 'Job Tracker' },
   { path: '/news', label: 'News' },
+  { path: '/youtube', label: 'YouTube' },
   { path: '/settings', label: 'Settings' },
 ]
 

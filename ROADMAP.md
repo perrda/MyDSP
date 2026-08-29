@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.122**
+**Current version: 1.2.123**
 
-## Completed (through v1.2.122)
+## Completed (through v1.2.123)
 
+- Priced-book pack (v1.2.123): unpriced out of NW/mix/drift/Buy-Sell · cashflow Recurring vs Settings + stables + 0/1 month · leftover into FIRE/goals/MC (no silent £1,500) · one debt + descending pay-down · /money leftover+runway+four doors · News/YouTube chrome unread · Today one NW/action/risk · Markets Live/Fetching/Unpriced · monthly priced snapshots · Household whose book · draft only — live stays 1.2.122
 - Cashflow page (v1.2.122): `/cashflow` · one leftover book · one stables÷bills runway (Today + hero) · income not a bill · honest two-month chart · draft only — live stays 1.2.121
 - Today UX pack (v1.2.121): five-door nav · Today fold · alerts/scorebook/sync once · honest Markets/Timeline · Household page · jump rail · draft only — live stays 1.2.120
 - Bug hunt (v1.2.120): ISA crypto mark price · FIRE from net worth · Spending/Todos/Recurring hydrate deep-links · Cmd+K row links · history+CGT local calendar · API/PDF shared calc · hash #sync · display-CCY budget templates · route aliases

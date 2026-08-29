@@ -1,6 +1,5 @@
 import type { PortfolioData } from './types'
-import { cryptoMarkPrice } from './calc'
-import { equityUnitPriceGbp } from './migrateEquityGbp'
+import { hasLiveCryptoQuote, hasLiveEquityQuote } from './calc'
 
 export type PortfolioConcentrationKind = 'crypto' | 'equity'
 
@@ -117,13 +116,15 @@ export function includedPortfolioHoldingValue(
   if (wantCrypto) {
     for (const c of data.crypto) {
       if (c.includeInPortfolio === false) continue
-      total += c.qty * cryptoMarkPrice(c)
+      if (!hasLiveCryptoQuote(c)) continue
+      total += c.qty * c.price
     }
   }
   if (wantEquity) {
     for (const e of data.equities) {
       if (e.includeInPortfolio === false) continue
-      total += e.shares * equityUnitPriceGbp(e)
+      if (!hasLiveEquityQuote(e)) continue
+      total += e.shares * e.livePrice
     }
   }
   return total
@@ -143,7 +144,8 @@ export function portfolioConcentrationHits(
   if (wantCrypto) {
     for (const c of data.crypto) {
       if (c.includeInPortfolio === false) continue
-      const value = c.qty * cryptoMarkPrice(c)
+      if (!hasLiveCryptoQuote(c)) continue
+      const value = c.qty * c.price
       const weightPct = (value / total) * 100
       if (value > 0 && weightPct >= thresholdPct) {
         hits.push({ kind: 'crypto', id: c.id, symbol: c.symbol, name: c.name, value, weightPct })
@@ -153,7 +155,8 @@ export function portfolioConcentrationHits(
   if (wantEquity) {
     for (const e of data.equities) {
       if (e.includeInPortfolio === false) continue
-      const value = e.shares * equityUnitPriceGbp(e)
+      if (!hasLiveEquityQuote(e)) continue
+      const value = e.shares * e.livePrice
       const weightPct = (value / total) * 100
       if (value > 0 && weightPct >= thresholdPct) {
         hits.push({ kind: 'equity', id: e.id, symbol: e.symbol, name: e.name, value, weightPct })

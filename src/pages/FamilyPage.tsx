@@ -7,7 +7,7 @@ import { PagePrimaryActions } from '../components/ui/PagePrimaryActions'
 import { HOUSEHOLD_DOORS } from '../domain/hubPages'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
 import { usePortfolio } from '../context/PortfolioContext'
-import { calcFamilyTotals, type FamilyMemberType } from '../domain/family'
+import { calcFamilyTotals, memberBookLabel, type FamilyMemberType } from '../domain/family'
 import { calcBreakdownWithPaper } from '../domain/netWorthWithPaper'
 import type { FamilyMember } from '../domain/types'
 import { loadPortfolio } from '../storage/portfolioStore'
@@ -105,6 +105,7 @@ export function FamilyPage() {
       <PageHeader
         eyebrow="Household"
         title="Household"
+        description={`This book: ${portfolios.find((p) => p.id === activeId)?.name ?? 'You'}. Each profile shows its own NW. Family total counts each book once.`}
         action={
           <PagePrimaryActions
             primaryLabel="Add member"
@@ -167,7 +168,11 @@ export function FamilyPage() {
 
       {data.family.settings.combined && (
         <div className={`grid grid-cols-1 sm:grid-cols-3 gap-px mb-8 ${privacyClass(hideMoney)}`}>
-          <StatCard label="Household NW" value={formatGBP(totals.netWorth)} />
+          <StatCard
+            label="Family total"
+            value={formatGBP(totals.netWorth)}
+            hint="Each book once — no double-count"
+          />
           <StatCard label="Household assets" value={formatGBP(totals.assets)} />
           <StatCard label="Household debt" value={formatGBP(totals.debt)} tone="negative" />
         </div>
@@ -185,18 +190,16 @@ export function FamilyPage() {
                     {m.type}
                   </span>
                 </div>
-                <p className="text-sm text-text-subtle mb-3">{m.role}</p>
+                <p className="text-sm text-text-subtle mb-1">{m.role}</p>
+                <p className="text-xs text-text-subtle mb-3" data-testid="household-whose-book">
+                  {memberBookLabel(m, portfolios, activeId)}
+                </p>
                 <p className={`text-xl font-bold tabular-nums mb-4 ${privacyClass(hideMoney)}`}>
                   {formatGBP(c?.netWorth ?? 0)}
                   {c ? (
                     <span className="text-sm font-normal text-text-subtle"> · {c.pct.toFixed(0)}%</span>
                   ) : null}
                 </p>
-                {m.portfolioId && (
-                  <p className="text-xs text-text-subtle mb-3">
-                    Linked: {portfolios.find((p) => p.id === m.portfolioId)?.name ?? m.portfolioId}
-                  </p>
-                )}
                 <OverflowMenu
                   compact
                   label={`Actions for ${m.name}`}

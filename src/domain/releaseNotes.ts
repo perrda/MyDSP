@@ -29,6 +29,32 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.123',
+    date: '2026-08-29',
+    bullets: [
+      {
+        text: 'Unpriced holdings out of NW, mix, drift, Buy/Sell',
+        to: '/crypto',
+      },
+      {
+        text: 'Money cockpit: leftover, runway, four doors',
+        to: '/money',
+      },
+      {
+        text: 'FIRE uses cashflow leftover — no silent £1,500',
+        to: '/fire',
+      },
+      {
+        text: 'News / YouTube chips + honest Markets / history',
+        to: '/news',
+      },
+      {
+        text: 'Draft only — live stays 1.2.122',
+        to: '/',
+      },
+    ],
+  },
+  {
     version: '1.2.122',
     date: '2026-08-28',
     bullets: [

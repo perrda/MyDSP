@@ -6,6 +6,7 @@ import { EmptyState } from '../components/ui/EmptyState'
 import { MarketsHoldingsSkeleton } from '../components/ui/MarketsHoldingsSkeleton'
 import { OverflowMenu } from '../components/ui/OverflowMenu'
 import { PageHeader } from '../components/ui/PageHeader'
+import { UnpricedExclusionBanner } from '../components/UnpricedExclusionBanner'
 import { PagePrimaryActions } from '../components/ui/PagePrimaryActions'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
 import { TradeModal } from '../components/ui/TradeModal'
@@ -557,6 +558,7 @@ export function EquitiesPage() {
           </>
         }
       />
+      <UnpricedExclusionBanner data={data} />
 
       {brokerImportReport ? (
         <div

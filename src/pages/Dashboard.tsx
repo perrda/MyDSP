@@ -20,7 +20,8 @@ import {
   spendingCategoryUrl,
 } from '../domain/deepLinks'
 import { getTaxPack } from '../domain/taxPacks'
-import { calcFire, hasExplicitFireInputs } from '../domain/fire'
+import { calcFire, hasExplicitFireInputs, resolveFireSavings } from '../domain/fire'
+import { UnpricedExclusionBanner } from '../components/UnpricedExclusionBanner'
 import { appendManualSnapshot } from '../domain/history'
 import { monthKey } from '../domain/monthUtils'
 import { nearestGoalProjection, formatGoalProjectionLine } from '../domain/goalProjectedDate'
@@ -671,10 +672,11 @@ export function Dashboard() {
     }
   }, [data])
 
+  const fireSavings = useMemo(() => resolveFireSavings(data), [data])
   const fireChip = useMemo(() => {
-    if (!data.fireInputs || !hasExplicitFireInputs(data.fireInputs)) return null
-    return calcFire(netWorth, data.fireInputs, 'regular')
-  }, [data.fireInputs, netWorth])
+    if (!(fireSavings > 0) && !hasExplicitFireInputs(data.fireInputs)) return null
+    return calcFire(netWorth, { ...data.fireInputs, savings: fireSavings }, 'regular')
+  }, [data.fireInputs, fireSavings, netWorth])
 
   const isaRemainingLow = (() => {
     const remaining = loadIsaRemaining()
@@ -1315,7 +1317,7 @@ export function Dashboard() {
           : 'Cloud sync ready'
 
   const accordionJumpChips: Partial<Record<TodaySectionId, [string, string, string]>> = {
-    next: showNextCard ? ['today-next-action', 'To-dos', 'today-section-jump-next'] : undefined,
+    next: showNextCard ? ['today-next-action', 'Next', 'today-section-jump-next'] : undefined,
     dailyPlan: showDailyPlanCard
       ? ['today-daily-plan', 'Daily', 'today-section-jump-daily-plan']
       : undefined,
@@ -1544,6 +1546,7 @@ export function Dashboard() {
         <p className="text-sm text-text-muted font-light mb-4">
           Assets {formatGBP(assets)} · Liabilities {formatGBP(liabilities)}
         </p>
+        <UnpricedExclusionBanner data={data} />
         {((showBudgetPulseCards && (monthlyBudgetPulse || weekToDateSpend.spent > 0)) ||
           cashRunway ||
           fireChip) ? (
@@ -1609,7 +1612,7 @@ export function Dashboard() {
             {fireChip ? (
               <Link
                 id="today-fire-chip"
-                to={planningMonteCarloUrl(netWorth, data.fireInputs.savings || 0)}
+                to={planningMonteCarloUrl(netWorth, fireSavings)}
                 data-testid="today-fire-chip"
                 className={`today-fire-chip border border-border bg-surface-hover/60 px-3 py-2 text-xs hover:border-accent ${privacyClass(privacy)}`}
                 title="Regular FIRE from saved FIRE inputs"
@@ -1798,7 +1801,7 @@ export function Dashboard() {
       {showNextCard ? (
       <TodayAccordionSection
         id="today-next-action"
-        title="To-dos"
+        title="Next"
         enabled={todayAccordionEnabled}
         defaultOpen
         order={todaySectionOrder.indexOf('next')}
@@ -2543,7 +2546,7 @@ export function Dashboard() {
           id="today-alerts"
           className="today-alerts-card grid grid-cols-1 gap-3 md:gap-px mb-6"
         >
-          {alerts.slice(0, 3).map((a) => (
+          {alerts.slice(0, 1).map((a) => (
               <Link
                 key={a.id}
                 to={a.to}

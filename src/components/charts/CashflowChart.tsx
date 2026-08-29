@@ -12,6 +12,7 @@ import {
 } from 'recharts'
 import { formatChartMonthYear, formatChartYTick } from '../../domain/chartAxis'
 import type { CashflowMonth } from '../../domain/cashflow'
+import { ledgerMonthCountCopy } from '../../domain/cashflow'
 import { formatGBP, privacyClass } from '../../utils/format'
 
 const IN_COLOR = '#86efac'
@@ -41,7 +42,7 @@ export function CashflowChart({ months, privacy }: Props) {
         <p className="label-uppercase mb-2">Monthly</p>
         <h3 className="text-base sm:text-lg font-bold tracking-tight">In, out, leftover</h3>
         <p className="text-sm mt-2 text-text-muted font-light">
-          Ledger months only — no invented series.
+          {ledgerMonthCountCopy(months.length)} — ledger only, no invented series.
         </p>
       </div>
       <div className={`h-56 sm:h-64 lg:h-72 w-full ${privacyClass(privacy)}`}>

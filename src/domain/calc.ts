@@ -39,9 +39,18 @@ export function ownedHoldingSymbols(data: Pick<PortfolioData, 'crypto' | 'equiti
   return out
 }
 
+/** Live quote only — cost/qty is a display mark, not a live print. */
+export function hasLiveCryptoQuote(c: Pick<CryptoHolding, 'price'>): boolean {
+  return c.price > 0
+}
+
+export function hasLiveEquityQuote(e: { livePrice?: number }): boolean {
+  return (e.livePrice ?? 0) > 0
+}
+
 /**
- * Mark price for a crypto line. Equities already fall back to avgCost when
- * livePrice is 0; unquoted crypto used to drop the whole position from NW.
+ * Display mark for a crypto line (live, else cost/qty).
+ * Net worth / mix / drift use live quotes only — see `hasLiveCryptoQuote`.
  */
 export function cryptoMarkPrice(c: Pick<CryptoHolding, 'qty' | 'price' | 'cost'>): number {
   if (c.price > 0) return c.price
@@ -50,19 +59,37 @@ export function cryptoMarkPrice(c: Pick<CryptoHolding, 'qty' | 'price' | 'cost'>
 }
 
 /**
- * Fill leftover `price === 0` lines from cost/qty (equity parity).
- * USDC must not stay £0 / −100% / 0% weight after BTC/ETH hydrate.
+ * Do not write cost into `price`. That would fake a live quote and pull
+ * unpriced lines back into NW / mix / drift.
  */
 export function applyCryptoCostFallback(data: PortfolioData): PortfolioData {
-  let changed = false
-  const crypto = data.crypto.map((c) => {
-    if (c.price > 0) return c
-    const mark = cryptoMarkPrice(c)
-    if (!(mark > 0)) return c
-    changed = true
-    return { ...c, price: mark }
-  })
-  return changed ? { ...data, crypto } : data
+  return data
+}
+
+/** Included + unpriced (no live quote). Named so the UI can say the exclusion. */
+export function listUnpricedHoldings(data: PortfolioData): Array<{
+  kind: 'crypto' | 'equity'
+  id: number
+  symbol: string
+  name: string
+}> {
+  const out: Array<{ kind: 'crypto' | 'equity'; id: number; symbol: string; name: string }> = []
+  for (const c of included(data.crypto)) {
+    if (hasLiveCryptoQuote(c)) continue
+    if (!(c.qty > 0)) continue
+    out.push({ kind: 'crypto', id: c.id, symbol: c.symbol, name: c.name })
+  }
+  for (const e of included(data.equities)) {
+    if (hasLiveEquityQuote(e)) continue
+    if (!(e.shares > 0)) continue
+    out.push({ kind: 'equity', id: e.id, symbol: e.symbol, name: e.name })
+  }
+  return out
+}
+
+export function unpricedExclusionCopy(count: number): string | null {
+  if (!(count > 0)) return null
+  return `${count} holding${count === 1 ? '' : 's'} unpriced — excluded from net worth, mix, drift, and Buy/Sell`
 }
 
 export function isEmergencyFundGoal(goal: { name?: string }): boolean {
@@ -73,7 +100,7 @@ export function calcCrypto(data: PortfolioData): AssetTotals {
   let value = 0
   let cost = 0
   for (const c of included(data.crypto)) {
-    value += c.qty * cryptoMarkPrice(c)
+    if (hasLiveCryptoQuote(c)) value += c.qty * c.price
     cost += c.cost
   }
   const pnl = value - cost
@@ -93,12 +120,25 @@ export function calcEquity(data: PortfolioData): AssetTotals {
   let value = 0
   let cost = 0
   for (const e of included(data.equities)) {
-    const price = e.livePrice || e.avgCost
-    value += e.shares * price
+    if (hasLiveEquityQuote(e)) value += e.shares * e.livePrice
     cost += e.shares * e.avgCost
   }
   const pnl = value - cost
   return { value, cost, pnl, pct: cost > 0 ? (pnl / cost) * 100 : 0 }
+}
+
+/** One debt balance — cards + loans (included book). */
+export function calcDebtBalance(data: PortfolioData): number {
+  return calcLiabilities(data).total
+}
+
+/** Descending pay-down: paid / (start − target). */
+export function debtPaydownProgress(start: number, current: number, target: number): number {
+  if (start <= 0) return current <= target ? 100 : 0
+  const paid = start - current
+  const need = start - target
+  if (need <= 0) return 100
+  return Math.max(0, Math.min(100, (paid / need) * 100))
 }
 
 export function calcLiabilities(data: PortfolioData): LiabilityTotals {
@@ -145,7 +185,7 @@ export function goalCurrent(
     case 'cc':
       return calcLiabilities(data).cc
     case 'debt':
-      return calcLiabilities(data).total
+      return calcDebtBalance(data)
     case 'networth':
       return calcNetWorth(data)
     case 'equity':
@@ -162,13 +202,8 @@ export function goalCurrent(
 export function goalProgress(data: PortfolioData, goal: PortfolioData['goals'][number]): number {
   const current = goalCurrent(data, goal.metric, goal)
   if (goal.metric === 'cc' || goal.metric === 'debt') {
-    // Debt goals: target is usually 0 — progress = how much paid down from start
     const start = goal.startVal ?? current
-    if (start <= 0) return current <= goal.target ? 100 : 0
-    const paid = start - current
-    const need = start - goal.target
-    if (need <= 0) return 100
-    return Math.max(0, Math.min(100, (paid / need) * 100))
+    return debtPaydownProgress(start, current, goal.target)
   }
   if (goal.target <= 0) return 0
   return Math.max(0, Math.min(100, (current / goal.target) * 100))

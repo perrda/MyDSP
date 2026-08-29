@@ -84,3 +84,19 @@ export function calcFamilyTotals(
 
   return { netWorth, assets, debt, contributions }
 }
+
+export function memberBookLabel(
+  member: { id: string; type: string; portfolioId?: string; name: string },
+  portfolios: Array<{ id: string; name: string }>,
+  activeId: string,
+): string {
+  if (member.portfolioId) {
+    const named = portfolios.find((p) => p.id === member.portfolioId)?.name
+    return named ? `${member.name} · ${named}` : `${member.name} · linked book`
+  }
+  if (member.id === 'primary' || member.type === 'primary') {
+    const named = portfolios.find((p) => p.id === activeId)?.name
+    return named ? `${member.name} · ${named}` : `${member.name} · this book`
+  }
+  return `${member.name} · manual figures`
+}

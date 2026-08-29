@@ -1,5 +1,20 @@
 # MyDSP Changelog
 
+## [1.2.123] - 2026-08-29
+
+### Added — Priced book + money cockpit (draft, no live)
+- **Unpriced out of the book:** holdings without a live quote stay out of net worth, mix, drift, and Buy/Sell. The UI says the exclusion. Cost/qty is a display mark only — `applyCryptoCostFallback` no longer writes cost into `price`.
+- **Cashflow labels:** Recurring income vs Settings inflow (Settings is a label only). Stables listed by symbol. Chart copy says **0 months** or **1 month** — no invented series.
+- **FIRE / goals / Monte Carlo** use cashflow leftover. Silent £1,500 is gone.
+- **One debt balance** (cards + loans). Pay-down goals use the descending formula `(start − current) / (start − target)`.
+- **/money cockpit:** leftover + runway, then four doors — Spend, Holdings, Tax, Import.
+- **News / YouTube** back in header chrome. Unread on those chips only. `/youtube` in the launch picker. Five-door nav stays.
+- **Today fold:** one NW, one Next action, one risk. Landscape keeps the figure. No duplicate To-dos title on Next.
+- **Markets:** Live / Fetching / Unpriced only. No fake 0.00% when Finnhub is off.
+- **History:** one auto monthly snapshot from the priced book. No invented past months.
+- **Household:** names whose book, per-profile NW, honest family total (each book once).
+- **Draft only:** do not promote. Live mydspv1 stays 1.2.122.
+
 ## [1.2.122] - 2026-08-28
 
 ### Added — Cashflow page (draft, no live)

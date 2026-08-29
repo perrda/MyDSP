@@ -385,8 +385,9 @@ export function LiabilitiesPage() {
 
       <div className={`grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-px mb-6 ${privacyClass(privacy)}`}>
         <div className="surface p-6">
-          <p className="label-uppercase mb-2">Total debt</p>
+          <p className="label-uppercase mb-2">Debt</p>
           <p className="text-2xl font-bold tabular-nums">{formatGBP(liability.total)}</p>
+          <p className="text-xs text-text-subtle mt-1 font-light">One balance — cards + loans</p>
         </div>
         <div className="surface p-6">
           <p className="label-uppercase mb-2">Credit cards</p>

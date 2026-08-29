@@ -20,6 +20,9 @@ import {
   normalizeTargets,
 } from '../domain/rebalance'
 import { formatGBP, formatPct, privacyClass } from '../utils/format'
+import { resolveFireSavings } from '../domain/fire'
+import { UnpricedExclusionBanner } from '../components/UnpricedExclusionBanner'
+import { listUnpricedHoldings } from '../domain/calc'
 import { formatChartYTick } from '../domain/chartAxis'
 
 function nonNegativeParam(raw: string | null): number | null {
@@ -43,7 +46,8 @@ export function PlanningPage() {
     urlInflation !== null ||
     Boolean(scenarioSeed)
   const initialNetWorth = urlNetWorth ?? breakdown.netWorth
-  const initialSavings = urlSavings ?? data.fireInputs.savings ?? 0
+  const leftoverSavings = resolveFireSavings(data)
+  const initialSavings = urlSavings ?? leftoverSavings
   const initialMean = urlMean ?? (data.fireInputs.returnRate || 7)
   const [tab, setTab] = useState<'rebalance' | 'montecarlo'>(
     () => (searchParams.get('tab') === 'montecarlo' ? 'montecarlo' : 'rebalance'),
@@ -111,7 +115,7 @@ export function PlanningPage() {
     ]
 
   const resetMonteCarloToLive = () => {
-    const liveSavings = data.fireInputs.savings || 0
+    const liveSavings = leftoverSavings
     setMcCurrentValue(breakdown.netWorth)
     setMcMonthlyContribution(liveSavings)
     setMcInflation('0')
@@ -143,6 +147,7 @@ export function PlanningPage() {
         title="Rebalance & Monte Carlo"
         description="Target allocation drift and projected net-worth paths."
       />
+      <UnpricedExclusionBanner data={data} />
 
       <div className="flex gap-2 mb-8">
         {(['rebalance', 'montecarlo'] as const).map((t) => (
@@ -262,6 +267,11 @@ export function PlanningPage() {
                 </button>
               )}
             </div>
+            {listUnpricedHoldings(data).length > 0 && actions.length > 0 ? (
+              <p className="text-xs text-text-subtle font-light mb-3">
+                Buy/Sell uses the priced book only — unpriced lines are out.
+              </p>
+            ) : null}
             {actions.length === 0 ? (
               <p className="text-sm text-text-subtle">Within 1% of targets — no action needed.</p>
             ) : (

@@ -3,6 +3,7 @@
 import type { Goal, GoalMetric, PortfolioData, SpendingEntry } from './types'
 import { isBudgetSpend } from './budgetChart'
 import { calcLiabilities, goalCurrent } from './calc'
+import { cashflowLeftoverSavings } from './cashflow'
 
 function ymdLocal(d: Date): string {
   const y = d.getFullYear()
@@ -24,11 +25,8 @@ export function goalRemaining(goal: Goal, current: number): number {
 }
 
 /**
- * Monthly surplus estimate (after scheduled debt service):
- * 1) monthlyIncome − monthlyExpenses when income &gt; 0 and expenses set
- * 2) else monthlyIncome − avg monthly spend from spending entries (last ~3 months)
- * 3) minus liability minPay
- * 4) null when income unavailable or surplus ≤ 0
+ * Monthly surplus is the cashflow leftover (ledger month or recurring in − bills).
+ * Settings income is not a silent second book. Null when leftover ≤ 0.
  */
 /** Monthly expenses: Settings figure, else avg budget spend (income rows excluded). */
 export function estimateMonthlyExpenses(data: PortfolioData, now = new Date()): number {
@@ -38,13 +36,8 @@ export function estimateMonthlyExpenses(data: PortfolioData, now = new Date()): 
 }
 
 export function estimateMonthlySurplus(data: PortfolioData, now = new Date()): number | null {
-  const income = data.monthlyIncome ?? 0
-  if (!(income > 0)) return null
-
-  const expenses = estimateMonthlyExpenses(data, now)
-  const minPay = calcLiabilities(data).monthly
-  const surplus = income - expenses - minPay
-  return surplus > 0 ? surplus : null
+  const leftover = cashflowLeftoverSavings(data, now)
+  return leftover > 0 ? leftover : null
 }
 
 function avgMonthlySpend(spending: SpendingEntry[] | undefined, now = new Date()): number {

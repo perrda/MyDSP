@@ -5,6 +5,7 @@ import { ThemeToggle } from '../ThemeToggle'
 import { GlassToggle } from '../GlassToggle'
 import { GlobalSearch } from '../GlobalSearch'
 import { NotificationCenter } from '../SmartNotifications'
+import { MediaChromeChips } from '../MediaChromeChips'
 
 interface ToolbarControlsProps {
   portfolioSelect: ReactNode
@@ -56,6 +57,7 @@ export function ToolbarControls({
     <div className="toolbar-cluster" role="toolbar" aria-label="Workspace controls" ref={wrapRef}>
       {portfolioSelect}
       {currencySelect}
+      <MediaChromeChips />
 
       <NotificationCenter />
       <div className="toolbar-more-wrap">
