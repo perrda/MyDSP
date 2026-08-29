@@ -86,12 +86,15 @@ describe('next25g — sync prices polish tip (1–25 → v1.2.70)', () => {
     expect(prefetch).toMatch(/saveMarketQuotesCache\(merged, \{ markDirty: true \}\)/)
   })
 
-  it('3: sync-tagged quotes show From other device', () => {
+  it('3: sync-tagged quotes stay tagged; row status is Live / Fetching / Unpriced', () => {
     const tagged = tagQuoteFromSync(quote({ last: 10, updatedAt: new Date().toISOString(), source: 'yahoo' }))
     expect(isSyncedRemoteQuote(tagged)).toBe(true)
     expect(tagged.source).toBe('sync:yahoo')
     const page = readFileSync(resolve(__dirname, '../pages/MarketsPage.tsx'), 'utf8')
-    expect(page).toMatch(/From other device/)
+    expect(page).toMatch(/return 'Live'/)
+    expect(page).toMatch(/return 'Fetching'/)
+    expect(page).toMatch(/return 'Unpriced'/)
+    expect(page).not.toMatch(/From other device/)
   })
 
   it('4: prefsUpdatedAt LWW on Markets import', async () => {

@@ -65,16 +65,25 @@ describe('bug hunt leftovers (v1.2.120)', () => {
     expect(yearsFromNw).toBeGreaterThan(yearsFromAssets!)
   })
 
-  it('API export uses mark prices, not cost × qty', () => {
+  it('API export uses the priced book — unpriced lines are out', () => {
     const data = createEmptyPortfolio()
     data.crypto = [{ id: 1, symbol: 'USDC', name: 'USD Coin', qty: 1000, price: 0, cost: 1000 }]
     data.equities = [
       { id: 1, symbol: 'VWRL', name: 'Vanguard', shares: 10, avgCost: 80, livePrice: 0 },
     ]
-    const summary = exportPortfolioSummary(data)
-    expect(summary.data.assets.crypto).toBe(1000)
-    expect(summary.data.assets.equities).toBe(800)
-    expect(summary.data.netWorth).toBe(1800)
+    const unpriced = exportPortfolioSummary(data)
+    expect(unpriced.data.assets.crypto).toBe(0)
+    expect(unpriced.data.assets.equities).toBe(0)
+    expect(unpriced.data.netWorth).toBe(0)
+
+    data.crypto = [{ id: 1, symbol: 'USDC', name: 'USD Coin', qty: 1000, price: 1, cost: 1000 }]
+    data.equities = [
+      { id: 1, symbol: 'VWRL', name: 'Vanguard', shares: 10, avgCost: 80, livePrice: 80 },
+    ]
+    const live = exportPortfolioSummary(data)
+    expect(live.data.assets.crypto).toBe(1000)
+    expect(live.data.assets.equities).toBe(800)
+    expect(live.data.netWorth).toBe(1800)
   })
 
   it('history today key and CGT year bounds use the local calendar', () => {

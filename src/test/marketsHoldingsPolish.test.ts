@@ -9,7 +9,7 @@ describe('markets / holdings polish batch', () => {
     expect(src).toMatch(/quoteDetail/)
     expect(src).toMatch(/longPressTimer/)
     expect(src).toMatch(/\+ \{preset\.symbol\}/)
-    expect(src).toMatch(/text-amber-600/)
+    expect(src).toMatch(/markets-row--stale/)
     expect(src).toMatch(/4 \* 60 \* 60 \* 1000/)
   })
 

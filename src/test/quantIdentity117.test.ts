@@ -10,7 +10,17 @@ import { normalizePortfolio } from '../domain/normalize'
 describe('quant identity (v1.2.117)', () => {
   it('uses one asset engine: Analytics totals match calcBreakdown on seed prices', () => {
     const sample = normalizePortfolio(createSamplePortfolio())
-    const b = calcBreakdown(sample)
+    const unpriced = calcBreakdown(sample)
+    expect(unpriced.assets).toBe(0)
+    expect(unpriced.equity.value).toBe(0)
+    const live = normalizePortfolio({
+      ...sample,
+      crypto: sample.crypto.map((c) =>
+        c.symbol === 'BTC' ? { ...c, price: 40000 } : c.symbol === 'ETH' ? { ...c, price: 2000 } : c,
+      ),
+      equities: sample.equities.map((e) => ({ ...e, livePrice: e.avgCost })),
+    })
+    const b = calcBreakdown(live)
     expect(b.assets).toBeGreaterThan(0)
     expect(b.equity.value).toBe(50 * 95 + 30 * 75)
     const page = readFileSync(resolve(__dirname, '../pages/PredictiveAnalyticsPage.tsx'), 'utf8')

@@ -2,7 +2,7 @@
 
 import type { Goal, GoalMetric, PortfolioData, SpendingEntry } from './types'
 import { isBudgetSpend } from './budgetChart'
-import { calcLiabilities, goalCurrent } from './calc'
+import { goalCurrent } from './calc'
 import { cashflowLeftoverSavings } from './cashflow'
 
 function ymdLocal(d: Date): string {

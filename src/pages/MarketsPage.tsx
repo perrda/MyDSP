@@ -1020,7 +1020,7 @@ export function MarketsPage() {
       for (const t of list) {
         const q = latest.get(t.id) ?? quotesRef.current.get(t.id)
         if (q && q.last > 0) live++
-        if (quoteAvailabilityLabel(q, { refreshing: false }) === 'Unavailable') failed++
+        if (quoteAvailabilityLabel(q, { refreshing: false }) === 'Unpriced') failed++
       }
       const cfg = loadSyncConfig()
       if (cfg.enabled && cfg.remoteUrl.trim()) {
@@ -1050,7 +1050,7 @@ export function MarketsPage() {
     const unavailableKinds = new Set<MarketAssetKind>()
     for (const t of tickers) {
       const q = quotes.get(t.id)
-      if (quoteAvailabilityLabel(q, { refreshing: false }) === 'Unavailable') {
+      if (quoteAvailabilityLabel(q, { refreshing: false }) === 'Unpriced') {
         unavailableKinds.add(t.kind)
       }
     }
@@ -1094,7 +1094,7 @@ export function MarketsPage() {
       const hasUnavailable = tickersRef.current.some(
         (t) =>
           quoteAvailabilityLabel(quotesRef.current.get(t.id), { refreshing: false }) ===
-          'Unavailable',
+          'Unpriced',
       )
       if (hasUnavailable || wasPendingRetry) {
         pendingRetryOnline.current = false
@@ -1634,11 +1634,11 @@ export function MarketsPage() {
                   const liveCount = items.filter((item) => {
                     const q = quotes.get(item.id)
                     const label = quoteAvailabilityLabel(q, { refreshing: sectionBusy })
-                    return label === 'Live' || label === 'Live · spot'
+                    return label === 'Live'
                   }).length
                   const unavailableItems = items.filter((item) => {
                     const q = quotes.get(item.id)
-                    return quoteAvailabilityLabel(q, { refreshing: sectionBusy }) === 'Unavailable'
+                    return quoteAvailabilityLabel(q, { refreshing: sectionBusy }) === 'Unpriced'
                   })
                   const unavailableCount = unavailableItems.length
                   const reasonBits = unavailableItems
@@ -2193,7 +2193,7 @@ export function MarketsPage() {
       {!online ||
       tickers.some(
         (t) =>
-          quoteAvailabilityLabel(quotes.get(t.id), { refreshing: false }) === 'Unavailable',
+          quoteAvailabilityLabel(quotes.get(t.id), { refreshing: false }) === 'Unpriced',
       ) ? (
         <div className="markets-retry-row mb-3 flex flex-wrap items-center gap-2">
           <button
@@ -2379,7 +2379,7 @@ export function MarketsPage() {
               const unavailableCount = bySection[section].filter(
                 (t) =>
                   quoteAvailabilityLabel(quotes.get(t.id), { refreshing: false }) ===
-                  'Unavailable',
+                  'Unpriced',
               ).length
               const baseLabel = SECTION_JUMP_LABEL[section]
               const ariaLabel =
