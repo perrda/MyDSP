@@ -29,6 +29,24 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.124',
+    date: '2026-08-29',
+    bullets: [
+      {
+        text: 'Light + Dark share BTC orange #F7931A',
+        to: '/',
+      },
+      {
+        text: 'No muted brown in Light — lock 29 Aug 2026',
+        to: '/',
+      },
+      {
+        text: 'Draft only — live stays 1.2.121',
+        to: '/',
+      },
+    ],
+  },
+  {
     version: '1.2.123',
     date: '2026-08-29',
     bullets: [
