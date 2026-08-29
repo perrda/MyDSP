@@ -5,6 +5,7 @@ import {
   type DigestPdfOrientation,
   type DigestPeriod,
   type DigestViewModel,
+  digestChangeLabel,
   digestPdfFilename,
 } from './digestPeriod'
 
@@ -29,7 +30,6 @@ function winAnsi(s: string): string {
       '”': 0x94,
       '…': 0x85,
       '−': 0x2d,
-      'Δ': 0x44,
       '₿': 0x42,
       '·': 0xb7,
     }
@@ -282,7 +282,7 @@ export function buildDigestPdfBytes(
   const kpiW = (w - 56 - gap * 3) / 4
   const kpis = [
     { label: 'Net worth', value: model.netWorthLabel, tone: 'flat' as const },
-    { label: model.deltaLabel, value: model.deltaValue, tone: model.deltaTone },
+    { label: digestChangeLabel(model.period), value: model.deltaValue, tone: model.deltaTone },
     { label: 'Assets', value: model.assetsLabel, tone: 'flat' as const },
     { label: 'Liabilities', value: model.liabilitiesLabel, tone: 'flat' as const },
   ]

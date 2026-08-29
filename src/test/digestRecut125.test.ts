@@ -166,6 +166,18 @@ describe('MyDSP 1.2.125 digest recut', () => {
       'mydsp-monthly-digest-landscape-2026-08-29.pdf',
     )
     expect(digestHtmlFilename('daily', generatedAt)).toBe('mydsp-daily-digest-2026-08-29.html')
+    expect(landText).toMatch(/MONTH CHANGE/)
+    expect(landText).not.toMatch(/MONTH D/)
+    expect(read('../domain/digestPdf.ts')).not.toMatch(/'Δ':\s*0x44/)
+
+    const daily = buildDigestPdfBytes(
+      buildDigestViewModel({ ...sample, generatedAt }, 'daily', generatedAt),
+      'landscape',
+    )
+    const dailyText = new TextDecoder('latin1').decode(daily)
+    expect(dailyText).toMatch(/24H CHANGE/)
+    expect(dailyText).not.toMatch(/24H D/)
+    expect(dailyText).not.toMatch(/WEEK D/)
   })
 
   it('HTML share/copy keeps Share path and no-email copy; weekly default still works', () => {
