@@ -74,6 +74,7 @@ import {
 } from '../domain/quoteFreshnessSla'
 import { normalizeCommoditySymbol } from '../domain/commodities'
 import { shouldShowCachedMode } from '../domain/marketsCachedMode'
+import { sectionGroupChangeLabel, sectionTotals } from '../domain/marketsSectionTotals'
 import {
   loadShowMarketsTagYieldChips,
   subscribeShowMarketsTagYieldChips,
@@ -326,39 +327,6 @@ function formatMarketsAbsolute(iso: string): string {
     hour: '2-digit',
     minute: '2-digit',
   })
-}
-
-function sectionTotals(
-  tickers: MarketTicker[],
-  quotes: Map<string, MarketQuote>,
-  holdingsValueBySymbol: Map<string, number>,
-) {
-  let value = 0
-  let prevValue = 0
-  let matched = 0
-  let avgPct = 0
-  let pctCount = 0
-
-  for (const t of tickers) {
-    const q = quotes.get(t.id)
-    if (!q || !(q.last > 0)) continue
-    pctCount++
-    avgPct += q.changePct
-
-    if (t.kind === 'fx' || t.kind === 'cross' || t.kind === 'index') continue
-
-    const held = holdingsValueBySymbol.get(t.symbol.toUpperCase())
-    if (held != null && held > 0) {
-      matched++
-      const qtyImplied = held / q.last
-      value += held
-      prevValue += held - q.changeAbs * qtyImplied
-    }
-  }
-
-  const changeAbs = value - prevValue
-  const changePct = prevValue > 0 ? (changeAbs / prevValue) * 100 : pctCount ? avgPct / pctCount : 0
-  return { value, changeAbs, changePct, matched, avgPct: pctCount ? avgPct / pctCount : 0 }
 }
 
 function symbolPlaceholder(kind: MarketAssetKind): string {
@@ -1497,18 +1465,22 @@ export function MarketsPage() {
               </p>
               <p
                 className={`text-[11px] font-medium tabular-nums ${
-                  totals.changePct > 0
+                  (totals.changePct ?? totals.avgPct ?? 0) > 0
                     ? 'text-emerald-500'
-                    : totals.changePct < 0
+                    : (totals.changePct ?? totals.avgPct ?? 0) < 0
                       ? 'text-red-500'
                       : 'text-text-muted'
                 }`}
+                data-testid="markets-section-change"
               >
-                {isRateSection
-                  ? formatPct(totals.avgPct, 2)
-                  : totals.matched > 0
-                    ? `${formatGBP(totals.changeAbs, { signed: true })} (${formatPct(totals.changePct, 2)})`
-                    : formatPct(totals.avgPct, 2)}
+                {sectionGroupChangeLabel(
+                  totals,
+                  items.length,
+                  isRateSection,
+                  formatPct,
+                  (abs, pct) =>
+                    `${formatGBP(abs, { signed: true })} (${formatPct(pct, 2)})`,
+                )}
               </p>
             </div>
             </div>

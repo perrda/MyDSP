@@ -346,12 +346,20 @@ html.theme-transitioning *::after {
   flex-wrap: nowrap;
 }
 
+.toolbar-bell-slot {
+  position: relative;
+  flex-shrink: 0;
+  z-index: 2;
+}
+
 .media-chrome-chips {
   display: flex;
   align-items: center;
   gap: 0.25rem;
-  flex-shrink: 1;
+  flex-shrink: 0;
   min-width: 0;
+  position: relative;
+  z-index: 1;
 }
 .media-chrome-chip {
   position: relative;
@@ -385,6 +393,28 @@ html.theme-transitioning *::after {
   font-weight: 800;
   line-height: 1rem;
   text-align: center;
+}
+@media (max-width: 767px) {
+  /* Phone / small tablet: chips on their own row so the bell keeps a reserved slot. */
+  .toolbar-cluster {
+    flex: 1 1 auto;
+    flex-wrap: wrap;
+    row-gap: 0.35rem;
+    align-content: flex-start;
+  }
+  .media-chrome-chips {
+    flex: 1 1 100%;
+    order: 10;
+    justify-content: flex-end;
+    flex-shrink: 0;
+  }
+  .media-chrome-chip {
+    flex-shrink: 0;
+  }
+  .toolbar-bell-slot,
+  .toolbar-more-wrap {
+    flex-shrink: 0;
+  }
 }
 @media (max-width: 419px) {
   .media-chrome-chip {
@@ -1764,6 +1794,7 @@ select:focus {
     justify-content: flex-end;
     overflow: visible;
     gap: 0.25rem;
+    flex-wrap: wrap;
   }
 
   .toolbar-select-portfolio {

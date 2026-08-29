@@ -301,8 +301,9 @@ export function AppShell() {
                 </h1>
               </div>
             </div>
-            {/* Phone: title lives in PageHeader — keep row = menu + toolbar only (no overlap) */}
-            <div className="sm:hidden flex-1 min-w-0" aria-hidden />
+            {/* Phone: title lives in PageHeader. Do not steal flex from the toolbar
+                (a flex-1 spacer crushes NEWS/YOUTUBE into the bell at 390). */}
+            <div className="sm:hidden w-0 min-w-0 overflow-hidden" aria-hidden />
             {/* Tablet/desktop: sync chip sits beside title, never over the menu */}
             <div className="hidden sm:flex items-center justify-end shrink-0 min-w-0 max-w-[11rem] mr-1 empty:hidden">
               <SyncStatusChip />

@@ -224,7 +224,7 @@ export function NotificationCenter() {
   }
 
   return (
-    <div ref={wrapRef} className="relative">
+    <div ref={wrapRef} className="toolbar-bell-slot relative">
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}

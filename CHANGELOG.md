@@ -10,7 +10,8 @@
 - **/money cockpit:** leftover + runway, then four doors — Spend, Holdings, Tax, Import.
 - **News / YouTube** back in header chrome. Unread on those chips only. `/youtube` in the launch picker. Five-door nav stays.
 - **Today fold:** one NW, one Next action, one risk. Landscape keeps the figure. No duplicate To-dos title on Next.
-- **Markets:** Live / Fetching / Unpriced only. No fake 0.00% when Finnhub is off.
+- **Markets:** Live / Fetching / Unpriced only. No fake 0.00% when Finnhub is off. Group header change is **— / Unpriced** when the session print is missing (cached coalesced 0 does not print 0.00%).
+- **390 header:** NEWS / YouTube chips wrap under 768px so unread badges sit clear of the notification bell. 768+ stays one row.
 - **History:** one auto monthly snapshot from the priced book. No invented past months.
 - **Household:** names whose book, per-profile NW, honest family total (each book once).
 - **Draft only:** do not promote. Live mydspv1 stays 1.2.122.
