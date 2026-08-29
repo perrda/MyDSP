@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { PageHeader } from '../components/ui/PageHeader'
 import { Field, parseNum } from '../components/ui/Modal'
 import { usePortfolio } from '../context/PortfolioContext'
-import { calcFire, type FireType } from '../domain/fire'
+import { calcFire, hasExplicitFireInputs, resolveFireSavings, type FireType } from '../domain/fire'
 import { formatGBP, privacyClass } from '../utils/format'
 
 const TYPES: { id: FireType; label: string }[] = [
@@ -16,10 +16,12 @@ export function FirePage() {
   const { data, breakdown, setData, privacy } = usePortfolio()
   const [type, setType] = useState<FireType>('regular')
   const inputs = data.fireInputs
+  const leftoverSavings = useMemo(() => resolveFireSavings(data), [data])
+  const usingLeftover = !hasExplicitFireInputs(inputs)
 
   const result = useMemo(
-    () => calcFire(breakdown.netWorth, inputs, type),
-    [breakdown.netWorth, inputs, type],
+    () => calcFire(breakdown.netWorth, { ...inputs, savings: leftoverSavings }, type),
+    [breakdown.netWorth, inputs, leftoverSavings, type],
   )
 
   const update = (key: keyof typeof inputs, raw: string) => {
@@ -101,7 +103,13 @@ export function FirePage() {
           {(
             [
               ['expenses', 'Annual expenses (GBP)', inputs.expenses],
-              ['savings', 'Monthly savings (GBP)', inputs.savings],
+              [
+                'savings',
+                usingLeftover
+                  ? 'Monthly savings — cashflow leftover'
+                  : 'Monthly savings (GBP)',
+                leftoverSavings,
+              ],
               ['returnRate', 'Return rate %', inputs.returnRate],
               ['swr', 'Safe withdrawal %', inputs.swr],
               ['age', 'Current age', inputs.age],

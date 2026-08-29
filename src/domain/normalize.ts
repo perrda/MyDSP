@@ -665,7 +665,7 @@ function normalizeFireInputs(raw: unknown): FireInputsState {
   const r = (raw ?? {}) as Record<string, unknown>
   return {
     expenses: num(r.expenses, 30000),
-    savings: num(r.savings, 1500),
+    savings: num(r.savings, 0),
     returnRate: num(r.returnRate, 7),
     age: num(r.age, 40),
     swr: num(r.swr, 4),

@@ -11,23 +11,19 @@ const read = (rel: string) => readFileSync(resolve(__dirname, rel), 'utf8')
 describe('MyDSP 1.2.122 cashflow', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(read('../../package.json'))
-    expect(pkg.version).toBe('1.2.122')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.122')
+    expect(pkg.version).toBe('1.2.123')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.123')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.123',
       '1.2.122',
       '1.2.121',
       '1.2.120',
       '1.2.119',
-      '1.2.118',
     ])
   })
 
-  it('wires a real /cashflow page from the Money hub', () => {
-    expect(MONEY_DOORS[0]).toEqual({
-      to: '/cashflow',
-      label: 'Cashflow',
-      detail: 'In, out, leftover, runway',
-    })
+  it('wires a real /cashflow page (Money cockpit leftover opens it)', () => {
+    expect(MONEY_DOORS.map((d) => d.label)).toEqual(['Spend', 'Holdings', 'Tax', 'Import'])
     const app = read('../App.tsx')
     expect(app).toMatch(/path="cashflow" element=\{<CashflowPage/)
     expect(app).toMatch(/pages\/CashflowPage/)
@@ -36,7 +32,7 @@ describe('MyDSP 1.2.122 cashflow', () => {
     expect(page).toMatch(/hasCashflowSources/)
     expect(page).toMatch(/CashflowChart/)
     expect(page).toMatch(/data-testid="cashflow-story"/)
-    expect(page).toMatch(/Need two months/)
+    expect(page).toMatch(/need two months/i)
     expect(page).not.toMatch(/SYNC_KEY/)
     expect(page).not.toMatch(/thumb-cta-bar/)
   })

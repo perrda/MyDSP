@@ -42,6 +42,7 @@ import { useWindowedList } from '../hooks/useWindowedList'
 import { useCssVarFromElementSize } from '../hooks/useCssVarFromElementSize'
 import { formatGBP, formatGBPPrecise, formatPct, formatQty, privacyClass } from '../utils/format'
 import { useToasts } from '../components/ToastProvider'
+import { UnpricedExclusionBanner } from '../components/UnpricedExclusionBanner'
 
 function formatQuoteAgeShort(ms: number): string {
   const mins = Math.round(ms / 60_000)
@@ -427,6 +428,7 @@ export function CryptoPage() {
           />
         }
       />
+      <UnpricedExclusionBanner data={data} />
 
       <div
         className="surface p-4 mb-4 flex flex-wrap items-center justify-between gap-3"

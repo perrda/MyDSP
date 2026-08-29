@@ -74,6 +74,7 @@ import {
 } from '../domain/quoteFreshnessSla'
 import { normalizeCommoditySymbol } from '../domain/commodities'
 import { shouldShowCachedMode } from '../domain/marketsCachedMode'
+import { sectionGroupChangeLabel, sectionTotals } from '../domain/marketsSectionTotals'
 import {
   loadShowMarketsTagYieldChips,
   subscribeShowMarketsTagYieldChips,
@@ -221,7 +222,14 @@ const SECTION_JUMP_LABEL: Record<SectionKey, string> = {
   crosses: 'Crosses',
 }
 
-function ChangeBadge({ pct }: { pct: number }) {
+function ChangeBadge({ pct }: { pct: number | null }) {
+  if (pct == null) {
+    return (
+      <span className="inline-flex min-w-[4.25rem] justify-center px-2 py-1 text-xs font-semibold tabular-nums rounded-md bg-surface-hover text-text-muted">
+        —
+      </span>
+    )
+  }
   const up = pct > 0
   const flat = Math.abs(pct) < 0.005
   const cls = flat
@@ -321,39 +329,6 @@ function formatMarketsAbsolute(iso: string): string {
   })
 }
 
-function sectionTotals(
-  tickers: MarketTicker[],
-  quotes: Map<string, MarketQuote>,
-  holdingsValueBySymbol: Map<string, number>,
-) {
-  let value = 0
-  let prevValue = 0
-  let matched = 0
-  let avgPct = 0
-  let pctCount = 0
-
-  for (const t of tickers) {
-    const q = quotes.get(t.id)
-    if (!q || !(q.last > 0)) continue
-    pctCount++
-    avgPct += q.changePct
-
-    if (t.kind === 'fx' || t.kind === 'cross' || t.kind === 'index') continue
-
-    const held = holdingsValueBySymbol.get(t.symbol.toUpperCase())
-    if (held != null && held > 0) {
-      matched++
-      const qtyImplied = held / q.last
-      value += held
-      prevValue += held - q.changeAbs * qtyImplied
-    }
-  }
-
-  const changeAbs = value - prevValue
-  const changePct = prevValue > 0 ? (changeAbs / prevValue) * 100 : pctCount ? avgPct / pctCount : 0
-  return { value, changeAbs, changePct, matched, avgPct: pctCount ? avgPct / pctCount : 0 }
-}
-
 function symbolPlaceholder(kind: MarketAssetKind): string {
   if (kind === 'crypto') return 'BTC'
   if (kind === 'equity') return 'TSLA'
@@ -444,21 +419,6 @@ function seedQuotesFromPortfolio(
   return out
 }
 
-function ageLabel(iso: string): string | null {
-  try {
-    const t = new Date(iso).getTime()
-    if (!Number.isFinite(t)) return null
-    const mins = Math.round((Date.now() - t) / 60_000)
-    if (mins < 2) return 'just now'
-    if (mins < 60) return `${mins}m ago`
-    const hrs = Math.round(mins / 60)
-    if (hrs < 48) return `${hrs}h ago`
-  } catch {
-    /* ignore */
-  }
-  return null
-}
-
 function isStaleQuote(q: MarketQuote | undefined): boolean {
   if (!q) return false
   if (
@@ -478,41 +438,14 @@ function isStaleQuote(q: MarketQuote | undefined): boolean {
   return false
 }
 
-function freshnessLabel(q: MarketQuote | undefined): string | null {
-  if (!q || !(q.last > 0)) return null
-  const src = (q.source || '').toLowerCase()
-  if (src.startsWith('sync:')) {
-    const age = ageLabel(q.updatedAt)
-    return age ? `From other device · ${age}` : 'From other device'
-  }
-  if (isStaleQuote(q)) {
-    const age = ageLabel(q.updatedAt)
-    return age ? `Last synced · ${age}` : 'Last synced'
-  }
-  if (src.includes('yahoo') || src.includes('finnhub') || src.includes('coingecko') || src.includes('frankfurter')) {
-    return 'Live'
-  }
-  if (src.includes('exchangerate')) return 'Live · spot'
-  return null
-}
-
-/** Row status under price — avoid eternal “Fetching…” when Yahoo returned empty. */
+/** Row status — Live / Fetching / Unpriced only. No fake 0.00% elsewhere. */
 function quoteAvailabilityLabel(
   q: MarketQuote | undefined,
   opts: { refreshing: boolean },
 ): string | null {
-  const live = freshnessLabel(q)
-  if (live) return live
-  if (q && !(q.last > 0)) {
-    const src = (q.source || '').toLowerCase()
-    if (src === 'none' || src === 'error' || src === 'invalid' || src.startsWith('stale:')) {
-      return 'Unavailable'
-    }
-    if (opts.refreshing) return 'Fetching…'
-    return 'Unavailable'
-  }
-  if (opts.refreshing) return 'Fetching…'
-  return null
+  if (q && q.last > 0) return 'Live'
+  if (opts.refreshing) return 'Fetching'
+  return 'Unpriced'
 }
 
 function useMediaQuery(query: string): boolean {
@@ -1055,7 +988,7 @@ export function MarketsPage() {
       for (const t of list) {
         const q = latest.get(t.id) ?? quotesRef.current.get(t.id)
         if (q && q.last > 0) live++
-        if (quoteAvailabilityLabel(q, { refreshing: false }) === 'Unavailable') failed++
+        if (quoteAvailabilityLabel(q, { refreshing: false }) === 'Unpriced') failed++
       }
       const cfg = loadSyncConfig()
       if (cfg.enabled && cfg.remoteUrl.trim()) {
@@ -1085,7 +1018,7 @@ export function MarketsPage() {
     const unavailableKinds = new Set<MarketAssetKind>()
     for (const t of tickers) {
       const q = quotes.get(t.id)
-      if (quoteAvailabilityLabel(q, { refreshing: false }) === 'Unavailable') {
+      if (quoteAvailabilityLabel(q, { refreshing: false }) === 'Unpriced') {
         unavailableKinds.add(t.kind)
       }
     }
@@ -1129,7 +1062,7 @@ export function MarketsPage() {
       const hasUnavailable = tickersRef.current.some(
         (t) =>
           quoteAvailabilityLabel(quotesRef.current.get(t.id), { refreshing: false }) ===
-          'Unavailable',
+          'Unpriced',
       )
       if (hasUnavailable || wasPendingRetry) {
         pendingRetryOnline.current = false
@@ -1532,18 +1465,22 @@ export function MarketsPage() {
               </p>
               <p
                 className={`text-[11px] font-medium tabular-nums ${
-                  totals.changePct > 0
+                  (totals.changePct ?? totals.avgPct ?? 0) > 0
                     ? 'text-emerald-500'
-                    : totals.changePct < 0
+                    : (totals.changePct ?? totals.avgPct ?? 0) < 0
                       ? 'text-red-500'
                       : 'text-text-muted'
                 }`}
+                data-testid="markets-section-change"
               >
-                {isRateSection
-                  ? formatPct(totals.avgPct, 2)
-                  : totals.matched > 0
-                    ? `${formatGBP(totals.changeAbs, { signed: true })} (${formatPct(totals.changePct, 2)})`
-                    : formatPct(totals.avgPct, 2)}
+                {sectionGroupChangeLabel(
+                  totals,
+                  items.length,
+                  isRateSection,
+                  formatPct,
+                  (abs, pct) =>
+                    `${formatGBP(abs, { signed: true })} (${formatPct(pct, 2)})`,
+                )}
               </p>
             </div>
             </div>
@@ -1669,11 +1606,11 @@ export function MarketsPage() {
                   const liveCount = items.filter((item) => {
                     const q = quotes.get(item.id)
                     const label = quoteAvailabilityLabel(q, { refreshing: sectionBusy })
-                    return label === 'Live' || label === 'Live · spot'
+                    return label === 'Live'
                   }).length
                   const unavailableItems = items.filter((item) => {
                     const q = quotes.get(item.id)
-                    return quoteAvailabilityLabel(q, { refreshing: sectionBusy }) === 'Unavailable'
+                    return quoteAvailabilityLabel(q, { refreshing: sectionBusy }) === 'Unpriced'
                   })
                   const unavailableCount = unavailableItems.length
                   const reasonBits = unavailableItems
@@ -1771,7 +1708,7 @@ export function MarketsPage() {
               >
                 {(t) => {
                   const q = quotes.get(t.id)
-                  const pct = q?.changePct ?? 0
+                  const pct = typeof q?.changePct === 'number' && Number.isFinite(q.changePct) ? q.changePct : null
                   const trend = sparklineTrendFromSeries(q?.sparkline ?? [])
                   const showSpark = Boolean(q && q.sparkline.length > 1)
                   const compact = density === 'compact'
@@ -1956,16 +1893,14 @@ export function MarketsPage() {
                             refreshing: sectionBusy && !(q != null && q.last > 0),
                           })
                           if (!label) return null
-                          const stale = isStaleQuote(q)
-                          const unavailable = label === 'Unavailable'
+                          const unpriced = label === 'Unpriced'
+                          const fetching = label === 'Fetching'
                           return (
                             <p
                               className={`text-[11px] mt-0.5 ${
-                                unavailable
+                                unpriced || fetching
                                   ? 'text-text-subtle'
-                                  : stale
-                                    ? 'text-amber-600 dark:text-amber-400 font-semibold'
-                                    : 'text-text-muted font-medium'
+                                  : 'text-text-muted font-medium'
                               }`}
                             >
                               {label}
@@ -2230,7 +2165,7 @@ export function MarketsPage() {
       {!online ||
       tickers.some(
         (t) =>
-          quoteAvailabilityLabel(quotes.get(t.id), { refreshing: false }) === 'Unavailable',
+          quoteAvailabilityLabel(quotes.get(t.id), { refreshing: false }) === 'Unpriced',
       ) ? (
         <div className="markets-retry-row mb-3 flex flex-wrap items-center gap-2">
           <button
@@ -2416,7 +2351,7 @@ export function MarketsPage() {
               const unavailableCount = bySection[section].filter(
                 (t) =>
                   quoteAvailabilityLabel(quotes.get(t.id), { refreshing: false }) ===
-                  'Unavailable',
+                  'Unpriced',
               ).length
               const baseLabel = SECTION_JUMP_LABEL[section]
               const ariaLabel =
@@ -3150,7 +3085,10 @@ export function MarketsPage() {
               <div className="surface p-3">
                 <p className="label-uppercase mb-1">Change</p>
                 <p className="text-lg font-bold tabular-nums">
-                  {formatPct(quoteDetail.quote?.changePct ?? 0, 2)}
+                  {typeof quoteDetail.quote?.changePct === 'number' &&
+                  Number.isFinite(quoteDetail.quote.changePct)
+                    ? formatPct(quoteDetail.quote.changePct, 2)
+                    : '—'}
                 </p>
               </div>
             </div>
@@ -3329,7 +3267,10 @@ export function MarketsPage() {
                 onClick={() => {
                   const sym = quoteDetail.ticker.symbol
                   const q = quotes.get(quoteDetail.ticker.id)
-                  const pct = formatPct(q?.changePct ?? 0, 2)
+                  const pct =
+                    typeof q?.changePct === 'number' && Number.isFinite(q.changePct)
+                      ? formatPct(q.changePct, 2)
+                      : '—'
                   const text = `${sym} ${pct} (${timeframe})`
                   void (async () => {
                     try {

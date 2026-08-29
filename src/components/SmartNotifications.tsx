@@ -8,7 +8,6 @@ import { buildPriceAlertNotifications } from '../domain/priceAlerts'
 import { buildYoutubeUploadNotifications } from '../domain/youtubeUploadAlerts'
 import { needsFollowUp } from '../domain/jobs'
 import { calculateReminders } from './SmartReminders'
-import { newsUnreadFromCache } from '../storage/newsStore'
 import type { PortfolioData } from '../domain/types'
 import { notificationManager, type Notification } from '../utils/notifications'
 import { logger } from '../utils/logger'
@@ -129,7 +128,7 @@ export function useSmartNotifications() {
         'jobs',
         reminders.filter((reminder) => reminder.metadata?.reminderType === 'job'),
       )
-      notificationManager.syncCategory('news', buildNewsUnreadNotifications(newsUnreadFromCache()))
+      notificationManager.syncCategory('news', [])
       setNotifications(notificationManager.getAll())
     } catch (error) {
       logger.error('Failed to process smart notifications', error as Error, 'app')
@@ -225,7 +224,7 @@ export function NotificationCenter() {
   }
 
   return (
-    <div ref={wrapRef} className="relative">
+    <div ref={wrapRef} className="toolbar-bell-slot relative">
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}

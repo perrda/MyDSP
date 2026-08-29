@@ -2,6 +2,15 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { ToolbarControls } from '../components/layout/ToolbarControls'
 
+vi.mock('../components/MediaChromeChips', () => ({
+  MediaChromeChips: () => (
+    <nav aria-label="News and YouTube">
+      <a href="/news">News</a>
+      <a href="/youtube">YouTube</a>
+    </nav>
+  ),
+}))
+
 vi.mock('../components/SmartNotifications', () => ({
   NotificationCenter: () => (
     <button type="button" className="toolbar-icon" aria-label="Notifications">

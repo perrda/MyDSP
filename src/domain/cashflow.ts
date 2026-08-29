@@ -2,7 +2,7 @@
  *  Not a second ledger. No new sync key. Income rows stay off the spend side. */
 
 import { isBudgetSpend } from './budgetChart'
-import { calcCash } from './calc'
+import { calcCash, cryptoMarkPrice, isCashCryptoSymbol } from './calc'
 import { monthKey } from './monthUtils'
 import { monthlyRecurringIn, monthlyRecurringOut } from './recurringHelpers'
 import type { PortfolioData, SpendingEntry } from './types'
@@ -71,6 +71,38 @@ export function hasCashflowSources(data: Pick<PortfolioData, 'spending' | 'recur
 
 export function canPlotCashflowChart(months: CashflowMonth[]): boolean {
   return months.length >= 2
+}
+
+/** Honest chart copy — 0 or 1 month, never a padded series. */
+export function ledgerMonthCountCopy(count: number): string {
+  if (count === 0) return '0 months'
+  if (count === 1) return '1 month'
+  return `${count} months`
+}
+
+export type StableLine = { symbol: string; name: string; value: number }
+
+/** Stables used for runway — mark is OK here (cash-like), not NW mix. */
+export function stablesBreakdown(data: Pick<PortfolioData, 'crypto'>): StableLine[] {
+  const rows: StableLine[] = []
+  for (const c of data.crypto ?? []) {
+    if (c.includeInPortfolio === false) continue
+    if (!isCashCryptoSymbol(c.symbol)) continue
+    const value = c.qty * cryptoMarkPrice(c)
+    if (!(value > 0)) continue
+    rows.push({ symbol: c.symbol, name: c.name, value })
+  }
+  return rows.sort((a, b) => b.value - a.value)
+}
+
+/** Settings monthlyIncome is a label only — never mixed into leftover. */
+export function settingsMonthlyInflow(data: Pick<PortfolioData, 'monthlyIncome'>): number {
+  return Math.max(0, data.monthlyIncome ?? 0)
+}
+
+/** Leftover for FIRE / goals / Monte Carlo. Negative leftover is 0 — no silent £1,500. */
+export function cashflowLeftoverSavings(data: PortfolioData, now = new Date()): number {
+  return Math.max(0, buildCashflowStory(data, now).leftover)
 }
 
 /** Stables ÷ monthly bills. Null when there are no bills — same gate as Today. */

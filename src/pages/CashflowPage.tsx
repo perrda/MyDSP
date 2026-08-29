@@ -9,6 +9,10 @@ import {
   buildCashflowStory,
   formatRunwayMonths,
   hasCashflowSources,
+  ledgerMonthCountCopy,
+  monthlyRecurringIn,
+  settingsMonthlyInflow,
+  stablesBreakdown,
 } from '../domain/cashflow'
 import { formatMonthLabel } from '../domain/monthUtils'
 import { formatGBP, privacyClass } from '../utils/format'
@@ -42,6 +46,9 @@ export function CashflowPage() {
   }
 
   const leftoverTone = story.leftover > 0 ? 'positive' : story.leftover < 0 ? 'negative' : 'default'
+  const settingsIn = settingsMonthlyInflow(data)
+  const recurringIn = monthlyRecurringIn(data.recurringTransactions ?? [])
+  const stables = stablesBreakdown(data)
   const inHint =
     story.book === 'ledger'
       ? `${formatMonthLabel(story.focusMonth ?? '')} ledger`
@@ -57,6 +64,7 @@ export function CashflowPage() {
   const runwayHint = story.runway
     ? `Stables ${formatGBP(story.runway.cash)} ÷ bills ${formatGBP(story.runway.monthlyBills)}/mo`
     : 'No monthly bills — no runway'
+  const monthCopy = ledgerMonthCountCopy(story.months.length)
 
   return (
     <div>
@@ -91,11 +99,44 @@ export function CashflowPage() {
         <div className="surface mb-6" data-testid="cashflow-chart-empty">
           <EmptyStateInline
             illustration
-            message="Need two months of spend or income in the ledger before a plot. Recurring still sets the leftover book above."
+            message={`${monthCopy} in the ledger — need two months before a plot. Recurring still sets the leftover book above.`}
             action={{ label: 'Open Spending', to: '/spending' }}
           />
         </div>
       )}
+
+      <div className="surface p-4 mb-6 text-sm" data-testid="cashflow-inflow-labels">
+        <p className="label-uppercase mb-2">Inflow labels</p>
+        <p className={privacyClass(privacy)}>
+          Recurring income {formatGBP(recurringIn)}
+          {' · '}
+          Settings inflow {formatGBP(settingsIn)}
+          <span className="block text-xs text-text-subtle mt-1 font-light">
+            Settings inflow is a label only — leftover stays Recurring or the ledger month.
+          </span>
+        </p>
+      </div>
+
+      <div className="surface p-4 mb-6 text-sm" data-testid="cashflow-stables">
+        <p className="label-uppercase mb-2">Stables</p>
+        {stables.length === 0 ? (
+          <p className="text-text-subtle font-light">No crypto stables in the book.</p>
+        ) : (
+          <ul className={`space-y-1 ${privacyClass(privacy)}`}>
+            {stables.map((s) => (
+              <li key={s.symbol} className="flex justify-between gap-3 tabular-nums">
+                <span>
+                  {s.symbol}
+                  {s.name && s.name !== s.symbol ? (
+                    <span className="text-text-subtle font-light"> · {s.name}</span>
+                  ) : null}
+                </span>
+                <span>{formatGBP(s.value)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
 
       {budgetPulse ? (
         <Link

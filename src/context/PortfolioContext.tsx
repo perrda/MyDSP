@@ -11,7 +11,7 @@ import {
 import { applyCryptoCostFallback, goalCurrent, goalProgress } from '../domain/calc'
 import { calcBreakdownWithPaper } from '../domain/netWorthWithPaper'
 import { createEmptyPortfolio, createSamplePortfolio } from '../domain/defaults'
-import { upsertDailySnapshot } from '../domain/history'
+import { upsertDailySnapshot, upsertMonthlyPricedSnapshot } from '../domain/history'
 import { appendHoldingPrices } from '../domain/holdingHistory'
 import type { NetWorthBreakdown, PortfolioData, PortfolioMeta } from '../domain/types'
 import { fetchCryptoPricesGbp, fetchEquityPrices } from '../services/prices'
@@ -403,7 +403,7 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
             .map((e) => ({ kind: 'equity' as const, symbol: e.symbol, price: e.livePrice })),
         ]
         next = appendHoldingPrices(next, holdingUpdates, now)
-        return upsertDailySnapshot(next, 'auto', { forceIntraday: true })
+        return upsertMonthlyPricedSnapshot(upsertDailySnapshot(next, 'auto', { forceIntraday: true }))
       })
 
       lastRefreshAtRef.current = Date.now()
@@ -541,7 +541,7 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
     if (isApplyingRemote()) return
     setDataState((prev) => {
       try {
-        const next = upsertDailySnapshot(prev, 'auto')
+        const next = upsertMonthlyPricedSnapshot(upsertDailySnapshot(prev, 'auto'))
         if (next === prev || next.history === prev.history) {
           const today = new Date().toISOString().slice(0, 10)
           const before = prev.history.find((h) => (h.date ?? '').slice(0, 10) === today)

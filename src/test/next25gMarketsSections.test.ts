@@ -88,15 +88,17 @@ describe('next25g — Markets section reorder + commodity timeframe (6–8)', ()
     expect(quotes).toMatch(/fetchCommodityMarketQuote\(t\.symbol, timeframe\)/)
   })
 
-  it('8: unavailable commodity quotes show Unavailable not eternal Fetching', () => {
+  it('8: missing quotes show Unpriced — Live / Fetching / Unpriced only', () => {
     const page = readFileSync(resolve(__dirname, '../pages/MarketsPage.tsx'), 'utf8')
     expect(page).toMatch(/quoteAvailabilityLabel/)
-    expect(page).toMatch(/Unavailable/)
-    expect(page).toMatch(/src === 'none' \|\| src === 'error'/)
+    expect(page).toMatch(/Unpriced/)
+    expect(page).toMatch(/Fetching/)
+    expect(page).toMatch(/return 'Live'/)
+    expect(page).not.toMatch(/return 'Unavailable'/)
   })
 
   it('package version is 1.2.70', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.122')
+    expect(pkg.version).toBe('1.2.123')
   })
 })

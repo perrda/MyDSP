@@ -18,14 +18,14 @@ const read = (rel: string) => readFileSync(resolve(__dirname, rel), 'utf8')
 describe('bug hunt (v1.2.118)', () => {
   it('bumps package + release notes', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.122')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.122')
+    expect(pkg.version).toBe('1.2.123')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.123')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.123',
       '1.2.122',
       '1.2.121',
       '1.2.120',
       '1.2.119',
-      '1.2.118',
     ])
   })
 
@@ -45,9 +45,7 @@ describe('bug hunt (v1.2.118)', () => {
   it('uses Settings expenses (not income rows) and cash emergency coverage', () => {
     const data = normalizePortfolio(createSamplePortfolio())
     expect(estimateMonthlyExpenses(data)).toBe(2500)
-    expect(estimateMonthlySurplus(data)).toBe(
-      data.monthlyIncome - 2500 - calcLiabilities(data).monthly,
-    )
+    expect(estimateMonthlySurplus(data)).toBeNull()
 
     const incomeInflated = createEmptyPortfolio()
     incomeInflated.monthlyIncome = 4000

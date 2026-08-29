@@ -345,6 +345,92 @@ html.theme-transitioning *::after {
   justify-content: flex-end;
   flex-wrap: nowrap;
 }
+
+.toolbar-bell-slot {
+  position: relative;
+  flex-shrink: 0;
+  z-index: 2;
+}
+
+.media-chrome-chips {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+  min-width: 0;
+  position: relative;
+  z-index: 1;
+}
+.media-chrome-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.media-chrome-chip.is-active,
+.media-chrome-chip[aria-current='page'] {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.media-chrome-unread {
+  min-width: 1rem;
+  height: 1rem;
+  padding: 0 0.25rem;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #111;
+  font-size: 0.625rem;
+  font-weight: 800;
+  line-height: 1rem;
+  text-align: center;
+}
+.media-chrome-chips-phone {
+  display: none;
+}
+@media (max-width: 767px) {
+  /* Own header strip — chips never share a row (or sit under) the bell. */
+  .toolbar-cluster {
+    flex: 1 1 auto;
+    flex-wrap: nowrap;
+  }
+  .toolbar-cluster .media-chrome-chips {
+    display: none;
+  }
+  .media-chrome-chips-phone {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.25rem;
+    padding: 0 max(1.15rem, env(safe-area-inset-right, 0px)) 0.4rem
+      max(0.75rem, env(safe-area-inset-left, 0px));
+  }
+  .media-chrome-chips-phone .media-chrome-chips {
+    flex-shrink: 0;
+  }
+  .media-chrome-chip {
+    flex-shrink: 0;
+  }
+  .toolbar-bell-slot,
+  .toolbar-more-wrap {
+    flex-shrink: 0;
+  }
+}
+@media (max-width: 419px) {
+  .media-chrome-chip {
+    padding: 0.3rem 0.35rem;
+    font-size: 0.625rem;
+  }
+}
 @media (min-width: 640px) {
   .toolbar-cluster { gap: 0.5rem; }
 }
@@ -734,6 +820,13 @@ html.has-bottom-nav .floating-banner--toast {
 }
 
 /* Landscape phone: icon-only bottom nav */
+@media (orientation: landscape) {
+  .today-net-worth-value {
+    display: block;
+    font-size: clamp(1.75rem, 4.5vw, 2.5rem);
+  }
+}
+
 @media (orientation: landscape) and (max-height: 500px) {
   .bottom-nav .bottom-nav-link {
     min-height: 2.75rem;
@@ -1710,6 +1803,7 @@ select:focus {
     justify-content: flex-end;
     overflow: visible;
     gap: 0.25rem;
+    flex-wrap: nowrap;
   }
 
   .toolbar-select-portfolio {

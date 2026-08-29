@@ -1,20 +1,23 @@
 /** Portfolio allocation & rebalance suggestions. */
 
-import { cryptoMarkPrice, isCashCryptoSymbol } from './calc'
+import { hasLiveCryptoQuote, isCashCryptoSymbol } from './calc'
 import type { CryptoHolding, TargetAllocations } from './types'
 
+/** Mix / drift use live quotes only — unpriced lines stay out. */
 export function getCashValue(crypto: CryptoHolding[]): number {
   return crypto
     .filter((c) => c.includeInPortfolio !== false)
     .filter((c) => isCashCryptoSymbol(c.symbol))
-    .reduce((s, c) => s + c.qty * cryptoMarkPrice(c), 0)
+    .filter(hasLiveCryptoQuote)
+    .reduce((s, c) => s + c.qty * c.price, 0)
 }
 
 export function getInvestedCryptoValue(crypto: CryptoHolding[]): number {
   return crypto
     .filter((c) => c.includeInPortfolio !== false)
     .filter((c) => !isCashCryptoSymbol(c.symbol))
-    .reduce((s, c) => s + c.qty * cryptoMarkPrice(c), 0)
+    .filter(hasLiveCryptoQuote)
+    .reduce((s, c) => s + c.qty * c.price, 0)
 }
 
 export interface AllocationBreakdown {

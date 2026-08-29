@@ -56,7 +56,7 @@ describe('next25e Today / money / tax items 16-20', () => {
     expect(dashboard).toMatch(/hasExplicitFireInputs/)
     expect(dashboard).toMatch(/data\.fireInputs/)
     expect(dashboard).toMatch(/today-fire-chip/)
-    expect(dashboard).toMatch(/planningMonteCarloUrl\(netWorth,\s*data\.fireInputs\.savings/)
+    expect(dashboard).toMatch(/planningMonteCarloUrl\(netWorth,\s*fireSavings/)
     
     const fire = readFileSync(resolve(__dirname, '../domain/fire.ts'), 'utf8')
     expect(fire).toMatch(/hasExplicitFireInputs/)

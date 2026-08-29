@@ -148,17 +148,16 @@ describe('next25b today / planning (16–20)', () => {
     )
 
     const data = createEmptyPortfolio()
-    data.monthlyIncome = 5000
-    data.monthlyExpenses = 3000
+    data.recurringTransactions = [
+      { id: 1, name: 'Pay', amount: 5000, category: 'income', frequency: 'monthly', nextDue: '2026-07-01' },
+      { id: 2, name: 'Rent', amount: 3000, category: 'bills', frequency: 'monthly', nextDue: '2026-07-02' },
+    ]
     data.goals = [goal]
-    // empty portfolio net worth is typically 0 → remaining ≈ 50k → 25 months
     const nearest = nearestGoalProjection(data, new Date(2026, 6, 15))
     expect(nearest).not.toBeNull()
     expect(estimateMonthlySurplus(data)).toBe(2000)
 
     const incomeOnly = createEmptyPortfolio()
-    incomeOnly.monthlyIncome = 4000
-    incomeOnly.monthlyExpenses = 0
     incomeOnly.spending = [
       {
         id: 1,
@@ -177,7 +176,7 @@ describe('next25b today / planning (16–20)', () => {
         method: 'debit',
       },
     ]
-    expect(estimateMonthlySurplus(incomeOnly, new Date(2026, 6, 15))).toBe(3800)
+    expect(estimateMonthlySurplus(incomeOnly, new Date(2026, 6, 15))).toBe(3300)
 
     const goalsPage = readFileSync(resolve(__dirname, '../pages/Goals.tsx'), 'utf8')
     expect(goalsPage).toMatch(/goal-projection-line/)
@@ -207,6 +206,6 @@ describe('next25b today / planning (16–20)', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8')) as {
       version: string
     }
-    expect(pkg.version).toBe('1.2.122')
+    expect(pkg.version).toBe('1.2.123')
   })
 })

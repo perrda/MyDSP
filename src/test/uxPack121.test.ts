@@ -12,14 +12,14 @@ const read = (rel: string) => readFileSync(resolve(__dirname, rel), 'utf8')
 describe('MyDSP 1.2.121 UX pack', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(read('../../package.json'))
-    expect(pkg.version).toBe('1.2.122')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.122')
+    expect(pkg.version).toBe('1.2.123')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.123')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.123',
       '1.2.122',
       '1.2.121',
       '1.2.120',
       '1.2.119',
-      '1.2.118',
     ])
   })
 
@@ -49,7 +49,7 @@ describe('MyDSP 1.2.121 UX pack', () => {
     expect(sidebar).toMatch(/PRIMARY_NAV/)
     expect(sidebar).not.toMatch(/nav-others-toggle/)
     expect(sidebar).not.toMatch(/label: 'Overview'/)
-    expect(MONEY_DOORS.length).toBeGreaterThan(6)
+    expect(MONEY_DOORS.length).toBe(4)
     expect(PLAN_DOORS.length).toBeGreaterThan(5)
     expect(HOUSEHOLD_DOORS.length).toBeGreaterThan(3)
     expect(read('../App.tsx')).toMatch(/path="money"/)

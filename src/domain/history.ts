@@ -1,7 +1,9 @@
 /** Net worth history helpers + chart ranges + intraday snapshots. */
 
 import { todayKeyLocal } from './moneyPulse'
+import { calcBreakdown } from './calc'
 import { calcBreakdownWithPaper } from './netWorthWithPaper'
+import { monthKey } from './monthUtils'
 import type { HistoryPoint, PortfolioData } from './types'
 
 /** Legacy period union — kept for callers during migration. */
@@ -95,6 +97,37 @@ export function upsertDailySnapshot(
   } else {
     hist.push(row)
   }
+  return { ...data, history: hist.slice(-HISTORY_RETENTION) }
+}
+
+/**
+ * One priced-book snapshot per calendar month.
+ * Live quotes only (calcBreakdown) — no paper marks, no invented past months.
+ */
+export function upsertMonthlyPricedSnapshot(
+  data: PortfolioData,
+  now = new Date(),
+): PortfolioData {
+  const ym = monthKey(now)
+  const hist = [...data.history]
+    .map((h) => ({ ...h, date: normalizeHistoryDate(h.date) }))
+    .sort((a, b) => sortKey(a).localeCompare(sortKey(b)))
+  const already = hist.some((h) => (h.date ?? '').slice(0, 7) === ym)
+  if (already) return data
+
+  const b = calcBreakdown(data)
+  const when = now.toISOString()
+  hist.push({
+    date: todayKeyLocal(now),
+    at: when,
+    netWorth: b.netWorth,
+    assets: b.assets,
+    crypto: b.crypto.value,
+    equity: b.equity.value,
+    liabilities: b.liabilities,
+    source: 'auto',
+    notes: 'monthly priced',
+  })
   return { ...data, history: hist.slice(-HISTORY_RETENTION) }
 }
 

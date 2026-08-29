@@ -6,20 +6,12 @@ export type HubDoor = {
   detail: string
 }
 
+/** Four cockpit doors. Leftover + runway sit above these on /money. */
 export const MONEY_DOORS: readonly HubDoor[] = [
-  { to: '/cashflow', label: 'Cashflow', detail: 'In, out, leftover, runway' },
-  { to: '/spending', label: 'Spending', detail: 'Ledger and categories' },
-  { to: '/budgets', label: 'Budgets', detail: 'Monthly limits' },
-  { to: '/recurring', label: 'Recurring', detail: 'Bills and income' },
-  { to: '/liabilities', label: 'Liabilities', detail: 'Debt and cards' },
+  { to: '/spending', label: 'Spend', detail: 'Ledger, budgets, bills' },
+  { to: '/crypto', label: 'Holdings', detail: 'Crypto and equities' },
   { to: '/tax', label: 'Tax', detail: 'Capital gains pack' },
-  { to: '/journal', label: 'Journal', detail: 'Trades and notes' },
-  { to: '/crypto', label: 'Crypto', detail: 'Holdings' },
-  { to: '/equities', label: 'Equities', detail: 'Holdings' },
-  { to: '/commodities', label: 'Commodities', detail: 'Paper book' },
-  { to: '/staking', label: 'Staking', detail: 'Yield positions' },
   { to: '/import', label: 'Import', detail: 'CSV and opening balances' },
-  { to: '/rules', label: 'Merchant rules', detail: 'Spending aliases' },
 ]
 
 export const PLAN_DOORS: readonly HubDoor[] = [

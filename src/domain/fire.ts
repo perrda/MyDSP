@@ -1,3 +1,6 @@
+import type { PortfolioData } from './types'
+import { cashflowLeftoverSavings } from './cashflow'
+
 export interface FireInputs {
   expenses: number
   savings: number
@@ -9,9 +12,10 @@ export interface FireInputs {
 
 export type FireType = 'lean' | 'regular' | 'fat' | 'coast'
 
+/** Silent £1,500 is gone — savings come from cashflow leftover unless the user set them. */
 export const DEFAULT_FIRE: FireInputs = {
   expenses: 30000,
-  savings: 1500,
+  savings: 0,
   returnRate: 7,
   age: 40,
   swr: 4,
@@ -62,6 +66,15 @@ export function hasExplicitFireInputs(inputs: FireInputs | undefined): boolean {
   }
   
   return true
+}
+
+/**
+ * Monthly savings for FIRE / Monte Carlo.
+ * Explicit user inputs win. Otherwise cashflow leftover. Never a silent £1,500.
+ */
+export function resolveFireSavings(data: PortfolioData, inputs?: FireInputs): number {
+  if (hasExplicitFireInputs(inputs)) return Math.max(0, inputs!.savings)
+  return cashflowLeftoverSavings(data)
 }
 
 export function calcYearsToTarget(
@@ -115,7 +128,7 @@ function finite(n: number, fallback: number): number {
 
 export function calcFire(netWorth: number, inputs: FireInputs, type: FireType): FireResult {
   const expenses = Math.max(0, finite(inputs.expenses, DEFAULT_FIRE.expenses))
-  const savings = finite(inputs.savings, DEFAULT_FIRE.savings)
+  const savings = Math.max(0, finite(inputs.savings, 0))
   const returnRate = finite(inputs.returnRate, DEFAULT_FIRE.returnRate)
   const age = Math.max(0, finite(inputs.age, DEFAULT_FIRE.age))
   const swr = Math.max(0.01, finite(inputs.swr, DEFAULT_FIRE.swr))

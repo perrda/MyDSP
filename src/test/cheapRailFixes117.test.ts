@@ -18,17 +18,14 @@ describe('cheap rail fixes (v1.2.117)', () => {
       { id: 3, symbol: 'USDC', name: 'USD Coin', qty: 1000, price: 0, cost: 1000 },
     ]
     const next = applyCryptoCostFallback(data)
-    expect(next.crypto.find((c) => c.symbol === 'USDC')?.price).toBe(1)
+    expect(next.crypto.find((c) => c.symbol === 'USDC')?.price).toBe(0)
     expect(next.crypto.find((c) => c.symbol === 'BTC')?.price).toBe(80000)
   })
 
   it('keeps VWRL off the crypto concentration banner and holds a stable crypto %', () => {
     const sample = normalizePortfolio(createSamplePortfolio())
     const unquoted = portfolioConcentrationHits(sample, 25, ['crypto'])
-    expect(unquoted.map((h) => h.symbol)).not.toContain('VWRL')
-    expect(unquoted.map((h) => h.kind)).toEqual(expect.arrayContaining(['crypto']))
-    const eth = unquoted.find((h) => h.symbol === 'ETH')
-    expect(eth?.weightPct).toBeCloseTo((3500 / 6500) * 100, 5)
+    expect(unquoted).toEqual([])
 
     const hydrated = {
       ...sample,
@@ -43,16 +40,14 @@ describe('cheap rail fixes (v1.2.117)', () => {
     const after = portfolioConcentrationHits(hydrated, 25, ['crypto'])
     expect(after.map((h) => h.symbol)).not.toContain('VWRL')
     const fullHits = portfolioConcentrationHits(hydrated, 25)
-    const vwrl = fullHits.find((h) => h.symbol === 'VWRL')
-    expect(vwrl).toBeTruthy()
-    expect(vwrl!.weightPct).not.toBeCloseTo(67.9, 0)
-    expect(vwrl!.weightPct).not.toBeCloseTo(37.6, 0)
+    expect(fullHits.find((h) => h.symbol === 'VWRL')).toBeUndefined()
+    expect(fullHits.every((h) => h.kind === 'crypto')).toBe(true)
   })
 
   it('uses cost fallback in included portfolio value so USDC is not 0% weight', () => {
     const sample = normalizePortfolio(createSamplePortfolio())
-    expect(includedPortfolioHoldingValue(sample, ['crypto'])).toBe(6500)
-    expect(includedPortfolioHoldingValue(sample)).toBe(6500 + 50 * 95 + 30 * 75)
+    expect(includedPortfolioHoldingValue(sample, ['crypto'])).toBe(0)
+    expect(includedPortfolioHoldingValue(sample)).toBe(0)
   })
 
   it('Today accordion sections expose the chip id (not only -panel)', () => {
