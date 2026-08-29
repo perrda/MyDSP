@@ -25,7 +25,7 @@ Cursor agents (and future you) need a single source of truth for forms. The livi
 | TradeModal phone sheet | `TradeModal` + `Modal` `sheet` on &lt;640px |
 | Sell → Tax disposal CTA | TradeModal toast → `/tax?disposal=1&symbol=` |
 | Concentration banner | `domain/portfolioConcentration.ts` + Settings threshold |
-| Weekly digest Preview/Share | `WeeklyDigestModal` — Daily/Weekly/Monthly/Quarterly/Annual, KPI+donut+spark, Share/copy/HTML/PDF |
+| Weekly digest Preview/Share | `WeeklyDigestModal` — Daily/Weekly/Monthly/Quarterly/Annual, KPI+donut+spark, native Share/copy/download fallback + A4 PDF |
 
 ## Form recipe
 
