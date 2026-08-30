@@ -89,10 +89,23 @@ export function setSessionSyncPassphrase(
 ): void {
   const p = normalize(passphrase)
   sessionPassphrase = p
-  const mode = opts?.rememberMode ?? (opts?.remember ? 'forever' : 'session')
-  const remember = opts?.remember === true || (mode !== 'session' && opts?.remember !== false)
 
-  if (remember && p && mode !== 'session') {
+  // pushSync / previewPull call this with no opts. That must NOT wipe a
+  // remembered passphrase — otherwise refresh hydrates nothing and the chip
+  // stays Unlock sync after Last Sync is set.
+  if (opts?.remember === false || opts?.rememberMode === 'session') {
+    clearRememberedStorage()
+    return
+  }
+
+  const mode: Exclude<RememberPassphraseMode, 'session'> | null =
+    opts?.rememberMode === '7d' || opts?.rememberMode === 'forever'
+      ? opts.rememberMode
+      : opts?.remember
+        ? 'forever'
+        : null
+
+  if (p && mode) {
     try {
       localStorage.setItem(REMEMBER_KEY, p)
       const expiresAt =
@@ -101,8 +114,6 @@ export function setSessionSyncPassphrase(
     } catch {
       /* quota / private mode */
     }
-  } else if (opts?.remember === false || mode === 'session') {
-    clearRememberedStorage()
   }
 }
 

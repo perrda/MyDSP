@@ -29,6 +29,28 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.128',
+    date: '2026-08-30',
+    bullets: [
+      {
+        text: 'Mini always PUTs the book — last Sync does not skip',
+        to: '/settings#sync',
+      },
+      {
+        text: 'Satellite Sync replaces local leftover with Mini’s book',
+        to: '/settings#sync',
+      },
+      {
+        text: 'Remember + Automatic stick after unlock — chip shows Synced',
+        to: '/settings#sync',
+      },
+      {
+        text: 'Draft only — live stays 1.2.127',
+        to: '/',
+      },
+    ],
+  },
+  {
     version: '1.2.127',
     date: '2026-08-30',
     bullets: [

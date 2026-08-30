@@ -1,5 +1,15 @@
 # MyDSP Changelog
 
+## [1.2.128] - 2026-08-30
+
+### Fixed — Satellite REPLACE Mini book + remember hydrate (draft, no live)
+- **Book-on always PUT:** Mini (`thisDeviceIsTheBook`) always pushes the full book on Sync and auto-sync. `lastSyncAt` never skips a book-device PUT.
+- **Satellite always REPLACE:** Book-off devices pull Mini and **replace** local portfolios (especially DAVID). Leftover holdings are not union-merged local-first. After Sync, NW is Mini’s book, not a leftover ~£2,811.
+- **Leftover never seeds cloud:** A satellite must not PUT a leftover book. Cloud 404 may seed only an empty/sample slate. Mini remains the book.
+- **Remember + Automatic stick:** After a successful unlock/Sync, Remember passphrase (forever) and Automatic sync stay on across refresh. The header chip hydrates the passphrase and shows Synced — not Unlock sync — when Last Sync is set.
+- **Keep:** origin-lock on mydsp-sync (mydspv1 + localhost http + `*-mydspv1` preview; curl without key still 401). No access key on the baked URL. Money 12-tile + `#F7931A`.
+- **Draft only:** do not promote. Do not wrangler. Live mydspv1 stays 1.2.127. No access key in the app URL.
+
 ## [1.2.127] - 2026-08-30
 
 ### Fixed — Book device + satellite Cloud Sync (draft, no live)

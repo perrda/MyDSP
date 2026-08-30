@@ -233,6 +233,8 @@ export interface MergePreview {
     conflicts: SyncConflict[]
   }>
   registryPortfolios: PortfolioMeta[]
+  /** Remote envelope registry with local id remaps — satellite REPLACE uses this, not a local-first union. */
+  remoteRegistry?: PortfolioMeta[]
   activePortfolioId?: string
   documentBlobs?: DocumentBlobPayload[]
   documentBlobsSkipped?: number[]
@@ -807,6 +809,10 @@ function buildMergePreview(
 
   // Registry: keep local names unique when combining with remote metadata
   const registryPortfolios = mergeRegistryUnique(localList, envelope.portfolios)
+  const remoteRegistry = envelope.portfolios.map((meta) => {
+    const mappedId = resolveLocalPortfolioId(meta) ?? meta.id
+    return { ...meta, id: mappedId }
+  })
   const remoteHadDuplicateNames =
     hasDuplicatePortfolioNames(envelope.portfolios) ||
     envelope.portfolios.length > MAX_PORTFOLIOS
@@ -815,6 +821,7 @@ function buildMergePreview(
     source,
     portfolios,
     registryPortfolios,
+    remoteRegistry,
     activePortfolioId: envelope.activePortfolioId,
     documentBlobs,
     documentBlobsSkipped: envelope.documentBlobsSkipped,
@@ -1089,15 +1096,61 @@ export async function applyWorkspaceExtrasFromPreview(
 }
 
 /**
- * Satellite take-remote: write Mini’s portfolios as this device’s book.
- * Does not park DAVID behind a conflict review. YouTube/News extras still apply.
+ * Satellite REPLACE: write Mini’s portfolios as this device’s book.
+ * Does not union/merge leftover holdings (local-first pickById would keep £2,811 DAVID).
+ * Local-only leftover portfolios are dropped. YouTube/News extras still apply.
  */
 export async function applyRemoteAsBook(
   preview: MergePreview,
 ): Promise<{ merged: number; conflicts: SyncConflict[]; removedDupes: number }> {
-  const resolutions: Record<string, ConflictChoice> = {}
-  for (const c of preview.conflicts) resolutions[conflictKey(c)] = 'remote'
-  return applyMergePreview(preview, resolutions)
+  const localIds = listPortfolios().map((p) => p.id)
+  const keepIds = new Set<string>()
+  let merged = 0
+
+  for (const plan of preview.portfolios) {
+    savePortfolioImmediate(plan.remote, plan.portfolioId)
+    keepIds.add(plan.portfolioId)
+    merged++
+  }
+
+  const registry = (preview.remoteRegistry ?? preview.registryPortfolios).filter((p) =>
+    keepIds.has(p.id),
+  )
+  localStorage.setItem(STORAGE.PORTFOLIOS, JSON.stringify(registry))
+
+  for (const id of localIds) {
+    if (keepIds.has(id)) continue
+    try {
+      flushSave(id)
+    } catch {
+      /* ignore */
+    }
+    try {
+      localStorage.removeItem(STORAGE.dataKey(id))
+    } catch {
+      /* ignore */
+    }
+  }
+
+  const { removed } = dedupePortfoliosByName()
+  if (preview.activePortfolioId) {
+    const ids = new Set(listPortfolios().map((p) => p.id))
+    if (ids.has(preview.activePortfolioId)) {
+      setActivePortfolioId(preview.activePortfolioId)
+    } else {
+      const remapped = preview.portfolios.find((p) => p.portfolioId)?.portfolioId
+      if (remapped && ids.has(remapped)) setActivePortfolioId(remapped)
+    }
+  }
+
+  if (preview.documentBlobs && preview.documentBlobs.length > 0) {
+    const { importDocumentBlobs } = await import('../../storage/documentBlobStore')
+    await importDocumentBlobs(preview.documentBlobs)
+  }
+
+  await applyWorkspaceExtrasFromPreview(preview)
+
+  return { merged, conflicts: preview.conflicts, removedDupes: removed.length }
 }
 
 /** Persist a reviewed merge plan. Uses resolutions for same-id conflicts. */

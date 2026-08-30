@@ -1,12 +1,12 @@
 /**
  * One-button Cloud Sync: passphrase once, then Sync.
  * Book device (Mini) always pushes. Satellites pull Mini as the book whenever
- * the cloud has an envelope. Push on satellite only if the cloud is empty (404).
+ * the cloud has an envelope. Satellite 404 may seed only an empty/sample slate.
  * Remember-passphrase and Automatic sync turn on after a successful unlock.
  * Do not put an access key in the baked URL.
  */
 
-import { chooseFirstSyncAction, localBookIsSourceOfTruth } from './localBook'
+import { chooseFirstSyncAction, localBookIsSourceOfTruth, mayPushOnEmptyCloud } from './localBook'
 import {
   applyRemoteAsBook,
   applyWorkspaceExtrasFromPreview,
@@ -20,6 +20,7 @@ import {
   type SyncConfig,
 } from './syncService'
 import { setSessionSyncPassphrase } from './sessionPassphrase'
+import { noteSuccessfulUnlock } from './autoSyncService'
 
 export type OneButtonSyncResult = {
   action: 'push' | 'pull' | 'conflict'
@@ -82,19 +83,22 @@ export async function runOneButtonSync(passphrase: string): Promise<OneButtonSyn
   persistUrl(url)
 
   const book = isBookDevice()
+  const localHasBook = localBookIsSourceOfTruth()
   const action = chooseFirstSyncAction({
-    localHasBook: localBookIsSourceOfTruth(),
+    localHasBook,
     alreadySynced: Boolean(loadSyncConfig().lastSyncAt),
     isBookDevice: book,
   })
 
   if (action === 'push') {
-    return pushThisBook(
+    const pushed = await pushThisBook(
       url,
       passphrase,
       'Pushed this book to cloud. Other devices will pull it.',
       true,
     )
+    noteSuccessfulUnlock()
+    return pushed
   }
 
   let preview: MergePreview
@@ -103,7 +107,19 @@ export async function runOneButtonSync(passphrase: string): Promise<OneButtonSyn
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Pull failed'
     if (/404/.test(msg)) {
-      return pushThisBook(url, passphrase, 'Cloud empty — pushed this book.', book)
+      if (
+        !mayPushOnEmptyCloud({
+          isBookDevice: book,
+          localHasRealBook: localHasBook,
+        })
+      ) {
+        throw new Error(
+          'Cloud empty — leftover book was not uploaded. Only Mini (This device is the book) may push a real book.',
+        )
+      }
+      const seeded = await pushThisBook(url, passphrase, 'Cloud empty — pushed this book.', book)
+      noteSuccessfulUnlock()
+      return seeded
     }
     throw e
   }
@@ -120,6 +136,7 @@ export async function runOneButtonSync(passphrase: string): Promise<OneButtonSyn
     thisDeviceIsTheBook: false,
     autoResolveConflicts: loadSyncConfig().autoResolveConflicts === true,
   })
+  noteSuccessfulUnlock()
   return {
     action: 'pull',
     message: `Pulled the book — ${result.merged} portfolio(s) from Mini.`,
@@ -127,4 +144,9 @@ export async function runOneButtonSync(passphrase: string): Promise<OneButtonSyn
   }
 }
 
-export { chooseSyncAction, chooseFirstSyncAction, localBookIsSourceOfTruth } from './localBook'
+export {
+  chooseSyncAction,
+  chooseFirstSyncAction,
+  localBookIsSourceOfTruth,
+  mayPushOnEmptyCloud,
+} from './localBook'
