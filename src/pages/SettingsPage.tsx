@@ -1049,8 +1049,8 @@ export function SettingsPage() {
                 className="text-sm text-text-muted font-light mb-4"
                 data-testid="sync-satellite-copy"
               >
-                This device pulls the book. Sync and pull-to-refresh apply Mini as the book — they
-                will not push a local DAVID over it.
+                This device pulls the book. Sync and pull-to-refresh replace local portfolios with
+                Mini — they will not push a leftover DAVID over it.
               </p>
             ) : (
               <p className="text-sm text-text-muted font-light mb-4" data-testid="sync-book-copy">

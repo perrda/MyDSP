@@ -221,6 +221,7 @@ export function AppShell() {
       try {
         if (isBookDevice(cfg)) {
           if (cfg.enabled) await syncNow()
+          else await runOneButtonSync(pass)
         } else {
           await runOneButtonSync(pass)
         }

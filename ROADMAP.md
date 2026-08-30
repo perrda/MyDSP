@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.127**
+**Current version: 1.2.128**
 
-## Completed (through v1.2.127)
+## Completed (through v1.2.128)
 
+- Satellite REPLACE Mini book (v1.2.128): Mini always PUTs · satellites replace leftover local DAVID with Mini · leftover never seeds a 404 store · Remember + Automatic hydrate across refresh so the chip shows Synced · origin-lock unchanged · draft only — live stays 1.2.127
 - Book device + satellite Cloud Sync (v1.2.127): Mini is the book (always push) · MacBook/iPhone/iPad pull Mini and apply it · passphrase once then Sync · remember + automatic after first unlock · PTR satellite pull · Worker origin-lock in repo only (mydspv1 + localhost + preview hosts; curl still needs the access key) · no access key on the baked URL · `#F7931A` · Money 12-tile kept · draft only — live stays 1.2.126
 - Money directory + one-button Sync (v1.2.126): restore 1.2.121 twelve tiles on `/money` (cockpit leftover/runway/four doors kept above) · Settings Sync is passphrase + Sync with baked `mydsp-sync` Worker URL · first Sync pushes a real book, pulls empty/sample · conflicts never auto-wipe Mini DAVID · DIY/Remote URL/setup card behind Advanced · `#F7931A` · 390 grid does not clip · draft only — live stays 1.2.125
 - Digest recut (v1.2.125): Daily (rolling 24h) / Weekly / Monthly / Quarterly / Annual in the existing Weekly digest modal · KPI chips · allocation donut · NW sparkline from real history · A4 PDF landscape+portrait · highlight de-dupe · honest — / Unpriced · BTC orange `#F7931A` lock complete (logo tile, Debt + ADD LOAN / MARK PAID / 12M, no leftover brown) · sticky 390 controls · draft only — live stays 1.2.121

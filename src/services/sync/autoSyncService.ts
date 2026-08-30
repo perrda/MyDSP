@@ -27,7 +27,11 @@ import {
 } from './syncService'
 import { getLocalDeviceHint } from './deviceNickname'
 import { conflictKey, type ConflictChoice } from './conflicts'
-import { getSessionSyncPassphrase, hydrateSessionSyncPassphrase } from './sessionPassphrase'
+import {
+  getSessionSyncPassphrase,
+  hydrateSessionSyncPassphrase,
+  setSessionSyncPassphrase,
+} from './sessionPassphrase'
 import {
   announceWhatArrived,
   collectSyncHighlights,
@@ -233,6 +237,44 @@ export function armPauseAutoResumeIfNeeded(): void {
     return
   }
   schedulePauseAutoResume(cfg.pausedUntil)
+}
+
+/**
+ * After a successful one-button unlock/Sync: keep Remember + Automatic,
+ * hydrate the passphrase, and show Synced (not Unlock sync).
+ */
+export function noteSuccessfulUnlock(lastAt?: string): void {
+  hydrateSessionSyncPassphrase()
+  const pass = getSessionSyncPassphrase()
+  if (pass) setSessionSyncPassphrase(pass, { remember: true })
+  const cfg = loadSyncConfig()
+  if (!cfg.enabled || !cfg.remoteUrl.trim()) {
+    emit({
+      state: 'disabled',
+      message: 'Automatic sync is off',
+      lastAt: lastAt ?? cfg.lastSyncAt ?? status.lastAt,
+    })
+    return
+  }
+  if (!pass) {
+    emit({
+      state: 'needs-passphrase',
+      message: 'Enter passphrase in Settings (enable Remember for auto-sync)',
+      lastAt: lastAt ?? cfg.lastSyncAt ?? status.lastAt,
+    })
+    return
+  }
+  emit({
+    state: 'idle',
+    message: 'Synced',
+    lastAt: lastAt ?? cfg.lastSyncAt ?? new Date().toISOString(),
+  })
+}
+
+/** Refresh-hydrate: remembered passphrase + lastSyncAt → idle/Synced, not Unlock sync. */
+export function emitHydratedAutoSyncStatus(): void {
+  hydrateSessionSyncPassphrase()
+  noteSuccessfulUnlock(loadSyncConfig().lastSyncAt)
 }
 
 export function getAutoSyncStatus(): AutoSyncStatus {
@@ -641,6 +683,8 @@ export async function runAutoSyncCycle(reason: CycleReason = 'manual'): Promise<
       }
       return
     }
+    // Book device always PUT — lastSyncAt / a clean dirty flag must not skip Mini.
+    dirty = true
     if (reason === 'edit' || reason === 'hide') {
       // Pull-before-push when another device wrote cloud — then upload our merge
       await pullBeforePushIfNeeded(cfg, pass)
@@ -686,6 +730,7 @@ export function startAutoSync(): void {
   started = true
   hydrateSessionSyncPassphrase()
   armPauseAutoResumeIfNeeded()
+  emitHydratedAutoSyncStatus()
 
   document.addEventListener('visibilitychange', onVisibility)
   window.addEventListener('focus', onFocus)
