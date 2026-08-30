@@ -728,6 +728,10 @@ export function EquitiesPage() {
                   setTradeFor(e)
                   setTradeSide('buy')
                 }}
+                onSell={() => {
+                  setTradeFor(e)
+                  setTradeSide('sell')
+                }}
                 onToggleNw={() => toggle(e.id)}
                 included={included}
               >

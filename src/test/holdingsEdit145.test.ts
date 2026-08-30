@@ -17,10 +17,10 @@ describe('MyDSP 1.2.145 holdings ⋯ Edit menu', () => {
     expect(RELEASE_NOTES[0]?.version).toBe('1.2.145')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
       '1.2.145',
+      '1.2.144',
       '1.2.143',
       '1.2.141',
       '1.2.140',
-      '1.2.139',
     ])
     const changelog = read('../../CHANGELOG.md')
     const section = changelog.match(/## \[1\.2\.145\][\s\S]*?(?=## \[)/)?.[0] ?? ''
@@ -32,13 +32,31 @@ describe('MyDSP 1.2.145 holdings ⋯ Edit menu', () => {
     expect(section).toMatch(/ADA/)
     expect(section).toMatch(/#F7931A/)
     expect(section).toMatch(/draft only|Draft only/)
+    expect(section).toMatch(/1\.2\.144/)
     expect(section).toMatch(/1\.2\.143/)
-    expect(section).toMatch(/index-CxpikgZP\.js/)
+    expect(section).toMatch(/index-BS8ANJ_Z\.js/)
+    expect(section).toMatch(/onSell/)
     expect(section).not.toMatch(/SYNC_KEY/)
     expect(read('../../ROADMAP.md')).toMatch(/Holdings ⋯ Edit \(v1\.2\.145\)/)
-    const shipped = changelog.match(/## \[1\.2\.143\][\s\S]*?(?=## \[)/)?.[0] ?? ''
-    expect(shipped).toMatch(/Thomas \+ Rebecca/)
+    const shipped = changelog.match(/## \[1\.2\.144\][\s\S]*?(?=## \[)/)?.[0] ?? ''
+    expect(shipped).toMatch(/capital window labels/)
     expect(shipped).not.toMatch(/overflow: hidden/)
+    const family = changelog.match(/## \[1\.2\.143\][\s\S]*?(?=## \[)/)?.[0] ?? ''
+    expect(family).toMatch(/Thomas \+ Rebecca/)
+    expect(family).not.toMatch(/overflow: hidden/)
+  })
+
+  it('Equities SwipeHoldingRow passes onSell like Crypto', () => {
+    const swipeBlock = (src: string) => src.match(/<SwipeHoldingRow[\s\S]*?<\/SwipeHoldingRow>/)?.[0] ?? ''
+    const equities = swipeBlock(read('../pages/EquitiesPage.tsx'))
+    const crypto = swipeBlock(read('../pages/CryptoPage.tsx'))
+    for (const block of [equities, crypto]) {
+      expect(block).toMatch(/onBuy=\{\(\) => \{/)
+      expect(block).toMatch(/setTradeSide\('buy'\)/)
+      expect(block).toMatch(/onSell=\{\(\) => \{/)
+      expect(block).toMatch(/setTradeSide\('sell'\)/)
+      expect(block).toMatch(/onToggleNw/)
+    }
   })
 
   it('OverflowMenu portals a fixed sheet so swipe overflow cannot clip it', () => {
