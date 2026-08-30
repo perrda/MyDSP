@@ -32,7 +32,8 @@ describe('next25d mobile / tablet items', () => {
     const menu = readFileSync(resolve(__dirname, '../components/ui/OverflowMenu.tsx'), 'utf8')
     expect(menu).toMatch(/overflow-menu-sheet/)
     expect(menu).toMatch(/fixed inset-0/)
-    expect(menu).toMatch(/sm:absolute/)
+    expect(menu).toMatch(/createPortal/)
+    expect(menu).toMatch(/overflow-menu-sheet--anchored/)
     expect(menu).toMatch(/Close/)
   })
 

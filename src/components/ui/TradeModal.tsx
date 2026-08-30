@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Field, Modal, parseNum } from '../ui/Modal'
 import type { TradeKind, TradeSide } from '../../domain/trades'
 import { lookupPriceOnDate } from '../../domain/staticPrices'
@@ -21,6 +21,8 @@ interface Props {
     platform?: string
   }
   data?: PortfolioData
+  /** Sticky Edit / Buy / Sell switcher under the title. */
+  toolbar?: ReactNode
   /** Called on dismiss; `saved: true` after a successful journal save. */
   onClose: (opts?: { saved?: boolean }) => void
   onSave: (values: {
@@ -42,6 +44,7 @@ export function TradeModal({
   defaultSide = 'buy',
   initial,
   data,
+  toolbar,
   onClose,
   onSave,
 }: Props) {
@@ -76,6 +79,11 @@ export function TradeModal({
     setPriceHint(null)
   }, [open]) // form reset on open; parent remounts via key when switching edit target
 
+  useEffect(() => {
+    if (!open) return
+    setSide(defaultSide)
+  }, [defaultSide, open])
+
   const fillFromMarket = async (day: string) => {
     const hit = await lookupPriceOnDate(kind, symbol, day, data)
     if (!hit) {
@@ -96,6 +104,7 @@ export function TradeModal({
       title={`${initial ? 'Edit' : side === 'buy' ? 'Buy' : 'Sell'} ${symbol}`}
       onClose={() => onClose()}
       size="sheet"
+      toolbar={toolbar}
     >
       <form
         className="space-y-5"
@@ -121,18 +130,20 @@ export function TradeModal({
           Records a dated {kind} trade in the journal and rebuilds this holding&apos;s quantity and
           average cost from all buys/sells.
         </p>
-        <div className="flex gap-2">
-          {(['buy', 'sell'] as TradeSide[]).map((s) => (
-            <button
-              key={s}
-              type="button"
-              className={`btn-sm flex-1 ${side === s ? 'btn-primary' : 'btn-ghost'}`}
-              onClick={() => setSide(s)}
-            >
-              {s === 'buy' ? 'Buy' : 'Sell'}
-            </button>
-          ))}
-        </div>
+        {toolbar ? null : (
+          <div className="flex gap-2">
+            {(['buy', 'sell'] as TradeSide[]).map((s) => (
+              <button
+                key={s}
+                type="button"
+                className={`btn-sm flex-1 ${side === s ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => setSide(s)}
+              >
+                {s === 'buy' ? 'Buy' : 'Sell'}
+              </button>
+            ))}
+          </div>
+        )}
         <Field label="Date" hint="Change date then tap “Fill market price” for TSLA / MSTR / BTC.">
           <div className="flex flex-wrap gap-2">
             <input

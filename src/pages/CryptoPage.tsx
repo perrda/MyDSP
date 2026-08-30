@@ -4,6 +4,7 @@ import { AllocationRing } from '../components/charts/AllocationRing'
 import { PortfolioSeriesChart } from '../components/charts/PortfolioSeriesChart'
 import { EmptyState } from '../components/ui/EmptyState'
 import { MarketsHoldingsSkeleton } from '../components/ui/MarketsHoldingsSkeleton'
+import { HoldingActionModeBar, type HoldingActionMode } from '../components/ui/HoldingActionModeBar'
 import { OverflowMenu } from '../components/ui/OverflowMenu'
 import { PageHeader } from '../components/ui/PageHeader'
 import { PagePrimaryActions } from '../components/ui/PagePrimaryActions'
@@ -13,6 +14,7 @@ import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
 import { SwipeHoldingRow } from '../components/ui/SwipeHoldingRow'
 import { usePortfolio } from '../context/PortfolioContext'
 import { cryptoMarkPrice } from '../domain/calc'
+import { nextCommentaryId } from '../domain/liabilityHelpers'
 import { applyTrade } from '../domain/trades'
 import { buildTaxDisposalHref } from '../domain/taxDisposalLink'
 import { applyLastSyncedQuotesToHoldings } from '../domain/lastSyncedHoldings'
@@ -112,6 +114,8 @@ type CryptoForm = {
   chain: string
   includeInPortfolio: boolean
   ragStatus: RagStatus | ''
+  asOfDate: string
+  commentary: string
 }
 
 const emptyForm: CryptoForm = {
@@ -125,6 +129,8 @@ const emptyForm: CryptoForm = {
   chain: '',
   includeInPortfolio: true,
   ragStatus: '',
+  asOfDate: '',
+  commentary: '',
 }
 
 export function CryptoPage() {
@@ -292,11 +298,33 @@ export function CryptoPage() {
       chain: c.chain ?? '',
       includeInPortfolio: c.includeInPortfolio !== false,
       ragStatus: c.ragStatus ?? '',
+      asOfDate: new Date().toISOString().slice(0, 10),
+      commentary: '',
     })
     setOpen(true)
   }
 
+  const switchHoldingAction = (mode: HoldingActionMode, holding: CryptoHolding | null) => {
+    if (!holding || mode === 'edit') {
+      return
+    }
+    setOpen(false)
+    setTradeFor(holding)
+    setTradeSide(mode)
+  }
+
   const save = () => {
+    const now = new Date().toISOString()
+    let commentaries = editing?.commentaries ?? []
+    const note = [form.asOfDate.trim() ? `As of ${form.asOfDate.trim()}` : '', form.commentary.trim()]
+      .filter(Boolean)
+      .join(' — ')
+    if (note) {
+      commentaries = [
+        ...commentaries,
+        { id: nextCommentaryId(commentaries), text: note, createdAt: now, updatedAt: now },
+      ]
+    }
     const holding: CryptoHolding = {
       id: editing?.id ?? nextId(data.crypto),
       symbol: form.symbol.trim().toUpperCase() || '???',
@@ -307,7 +335,7 @@ export function CryptoPage() {
       includeInPortfolio: form.includeInPortfolio,
       sortOrder: editing?.sortOrder,
       ragStatus: form.ragStatus || undefined,
-      commentaries: editing?.commentaries,
+      commentaries,
       platform: form.platform.trim() || undefined,
       contactUrl: form.contactUrl.trim() || undefined,
       chain: form.chain.trim() || undefined,
@@ -381,7 +409,7 @@ export function CryptoPage() {
         description={
           sorting
             ? 'Drag ⋮⋮ to reorder — order is saved with this portfolio.'
-            : 'Open ⋯ for Sort / Weight % / fill prices. Totals respect include/exclude.'
+            : 'Open ⋯ on a holding to Edit — Buy, Sell, or update qty / price / date / commentary.'
         }
         action={
           <PagePrimaryActions
@@ -589,28 +617,6 @@ export function CryptoPage() {
                     compact
                     label={`More actions for ${c.symbol}`}
                     items={[
-                      {
-                        id: 'buy',
-                        label: 'Buy',
-                        onClick: () => {
-                          setTradeFor(c)
-                          setTradeSide('buy')
-                        },
-                      },
-                      {
-                        id: 'sell',
-                        label: 'Sell',
-                        onClick: () => {
-                          setTradeFor(c)
-                          setTradeSide('sell')
-                        },
-                      },
-                      {
-                        id: 'nw',
-                        label: included ? 'In net worth' : 'Excluded from NW',
-                        active: included,
-                        onClick: () => toggle(c.id),
-                      },
                       { id: 'edit', label: 'Edit', onClick: () => openEdit(c) },
                       {
                         id: 'delete',
@@ -713,12 +719,9 @@ export function CryptoPage() {
                     <button
                       type="button"
                       className="btn-secondary btn-sm"
-                      onClick={() => {
-                        setTradeFor(selectedHolding)
-                        setTradeSide('sell')
-                      }}
+                      onClick={() => openEdit(selectedHolding)}
                     >
-                      Sell
+                      Edit
                     </button>
                   </div>
                 </div>
@@ -849,7 +852,20 @@ export function CryptoPage() {
         </div>
       ) : null}
 
-      <Modal open={open} size="full" title={editing ? 'Edit crypto' : 'Add crypto'} onClose={() => setOpen(false)}>
+      <Modal
+        open={open}
+        size="full"
+        title={editing ? `Edit ${editing.symbol}` : 'Add crypto'}
+        onClose={() => setOpen(false)}
+        toolbar={
+          editing ? (
+            <HoldingActionModeBar
+              mode="edit"
+              onChange={(mode) => switchHoldingAction(mode, editing)}
+            />
+          ) : undefined
+        }
+      >
         <form
           className="space-y-5"
           onSubmit={(e) => {
@@ -939,6 +955,23 @@ export function CryptoPage() {
               </select>
             </Field>
           </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field label="As-of date" hint="Optional. Saved with the commentary.">
+              <input
+                type="date"
+                value={form.asOfDate}
+                onChange={(e) => setForm({ ...form, asOfDate: e.target.value })}
+              />
+            </Field>
+            <Field label="Commentary">
+              <textarea
+                rows={2}
+                value={form.commentary}
+                onChange={(e) => setForm({ ...form, commentary: e.target.value })}
+                placeholder="Bought / sold note, lot, or reminder"
+              />
+            </Field>
+          </div>
           <label className="flex items-center gap-2 text-sm text-text-muted">
             <input
               type="checkbox"
@@ -965,6 +998,21 @@ export function CryptoPage() {
         defaultPrice={tradeFor?.price}
         defaultSide={tradeSide}
         data={data}
+        toolbar={
+          tradeFor ? (
+            <HoldingActionModeBar
+              mode={tradeSide === 'sell' ? 'sell' : 'buy'}
+              onChange={(mode) => {
+                if (mode === 'edit') {
+                  openEdit(tradeFor)
+                  setTradeFor(null)
+                  return
+                }
+                setTradeSide(mode)
+              }}
+            />
+          ) : undefined
+        }
         onClose={(opts) => {
           const holding = tradeFor
           setTradeFor(null)
