@@ -48,14 +48,14 @@ describe('next25k — sync / Markets / Today polish tip (1–25 → v1.2.80)', (
 
   it('25: package + release notes are 1.2.80', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.131')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.131')
+    expect(pkg.version).toBe('1.2.132')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.132')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.132',
       '1.2.131',
       '1.2.130',
       '1.2.129',
       '1.2.128',
-      '1.2.127',
     ])
   })
 
@@ -162,8 +162,8 @@ describe('next25k — sync / Markets / Today polish tip (1–25 → v1.2.80)', (
 
   it('15: Today prices trust chips consolidate', () => {
     const dash = readFileSync(resolve(__dirname, '../pages/Dashboard.tsx'), 'utf8')
-    expect(dash).toMatch(/today-prices-trust/)
-    expect(dash).toMatch(/aria-label=\"Prices trust\"/)
+    expect(dash).not.toMatch(/today-prices-trust/)
+    expect(dash).not.toMatch(/aria-label=\"Prices trust\"/)
   })
 
   it('16–17: Focus deep-links exist', () => {

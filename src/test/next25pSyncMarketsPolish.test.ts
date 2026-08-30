@@ -71,14 +71,14 @@ describe('next25p — sync / Markets / Today polish tip (1–25 → v1.2.81)', (
 
   it('25: package + release notes are 1.2.81', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.131')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.131')
+    expect(pkg.version).toBe('1.2.132')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.132')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.132',
       '1.2.131',
       '1.2.130',
       '1.2.129',
       '1.2.128',
-      '1.2.127',
     ])
   })
 
@@ -210,9 +210,10 @@ describe('next25p — sync / Markets / Today polish tip (1–25 → v1.2.81)', (
     expect(settings).toMatch(/smoke checklist/i)
     expect(settings).not.toMatch(/settings-sync-thumb/)
     const dash = readFileSync(resolve(__dirname, '../pages/Dashboard.tsx'), 'utf8')
-    expect(dash).toMatch(/today-markets-pane|today-section-jump-markets/)
+    expect(dash).toMatch(/today-main-column/)
+    expect(dash).not.toMatch(/today-markets-pane|today-section-jump-markets/)
     expect(dash).not.toMatch(/^\s*Sync now\s*$/m)
-    expect(dash).toMatch(/>\s*Markets\s*</)
+    expect(dash).not.toMatch(/Markets snapshot/)
     expect(dash).not.toMatch(/today-digest-thumb/)
     expect(dash).toMatch(/To Do/)
     const staking = readFileSync(resolve(__dirname, '../pages/StakingPage.tsx'), 'utf8')

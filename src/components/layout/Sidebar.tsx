@@ -97,41 +97,6 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           </button>
         </div>
 
-        <div className="px-3 pt-3 pb-1 space-y-1 border-b border-border">
-          <button
-            type="button"
-            className="nav-link nav-link-flex w-full text-left"
-            onClick={() => {
-              onClose()
-              if (pathname === '/' || pathname.startsWith('/compare')) {
-                window.dispatchEvent(new CustomEvent('mydsp-open-weekly-digest'))
-                return
-              }
-              window.location.assign('/?digest=1')
-            }}
-          >
-            <Newspaper size={16} strokeWidth={1.5} />
-            Weekly digest
-          </button>
-          <NavLink
-            to="/settings#sync"
-            onClick={onClose}
-            className={`nav-link nav-link-flex ${syncActive ? 'active' : ''}`}
-          >
-            <RefreshCw size={16} strokeWidth={1.5} />
-            Cloud Sync
-          </NavLink>
-          <NavLink
-            to="/settings"
-            end
-            onClick={onClose}
-            className={`nav-link nav-link-flex ${settingsActive ? 'active' : ''}`}
-          >
-            <Settings size={16} strokeWidth={1.5} />
-            Settings
-          </NavLink>
-        </div>
-
         <nav className="flex-1 py-1 overflow-y-auto" role="navigation" aria-label="Primary">
           <div className="px-3 pt-3 pb-1">
             <p className="nav-section-label">Menu</p>
@@ -175,6 +140,40 @@ export function Sidebar({ open, onClose }: SidebarProps) {
               )
             })}
           </ul>
+          <div className="px-3 pt-3 pb-1 space-y-1 border-t border-border mt-2">
+            <button
+              type="button"
+              className="nav-link nav-link-flex w-full text-left"
+              onClick={() => {
+                onClose()
+                if (pathname === '/' || pathname.startsWith('/compare')) {
+                  window.dispatchEvent(new CustomEvent('mydsp-open-weekly-digest'))
+                  return
+                }
+                window.location.assign('/?digest=1')
+              }}
+            >
+              <Newspaper size={16} strokeWidth={1.5} />
+              Weekly digest
+            </button>
+            <NavLink
+              to="/settings#sync"
+              onClick={onClose}
+              className={`nav-link nav-link-flex ${syncActive ? 'active' : ''}`}
+            >
+              <RefreshCw size={16} strokeWidth={1.5} />
+              Cloud Sync
+            </NavLink>
+            <NavLink
+              to="/settings"
+              end
+              onClick={onClose}
+              className={`nav-link nav-link-flex ${settingsActive ? 'active' : ''}`}
+            >
+              <Settings size={16} strokeWidth={1.5} />
+              Settings
+            </NavLink>
+          </div>
         </nav>
 
         <div className="px-5 py-4 border-t border-border">

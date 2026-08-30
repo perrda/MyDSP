@@ -6,6 +6,7 @@ import {
   calcDebtBalance,
   calcEquity,
   calcNetWorth,
+  calcSipp,
   cryptoMarkPrice,
   debtPaydownProgress,
   goalCurrent,
@@ -50,6 +51,41 @@ describe('calc — priced book vs display mark', () => {
     const next = applyCryptoCostFallback(data)
     expect(next).toBe(data)
     expect(next.crypto.find((c) => c.symbol === 'USDC')?.price).toBe(0)
+  })
+
+  it('SIPP value is the live-quoted sipp sleeve of equities', () => {
+    const data = createEmptyPortfolio()
+    data.equities = [
+      {
+        id: 1,
+        symbol: 'VWRL',
+        name: 'VWRL SIPP',
+        shares: 10,
+        avgCost: 80,
+        livePrice: 100,
+        accountType: 'sipp',
+      },
+      {
+        id: 2,
+        symbol: 'AAPL',
+        name: 'Apple',
+        shares: 5,
+        avgCost: 150,
+        livePrice: 190,
+        accountType: 'general',
+      },
+      {
+        id: 3,
+        symbol: 'VUSA',
+        name: 'Unpriced SIPP',
+        shares: 8,
+        avgCost: 70,
+        livePrice: 0,
+        accountType: 'sipp',
+      },
+    ]
+    expect(calcSipp(data)).toBe(1000)
+    expect(calcEquity(data).value).toBe(1000 + 950)
   })
 
   it('one debt balance and descending pay-down', () => {

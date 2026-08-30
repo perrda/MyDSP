@@ -6,14 +6,14 @@ import { RELEASE_NOTES, releaseNotesArchive } from '../domain/releaseNotes'
 describe('next25w — responsive / landscape polish tip (1–25 → v1.2.88)', () => {
   it('25: package + release notes are 1.2.88', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.131')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.131')
+    expect(pkg.version).toBe('1.2.132')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.132')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.132',
       '1.2.131',
       '1.2.130',
       '1.2.129',
       '1.2.128',
-      '1.2.127',
     ])
   })
 
@@ -71,7 +71,7 @@ describe('next25w — responsive / landscape polish tip (1–25 → v1.2.88)', (
     const dash = readFileSync(resolve(__dirname, '../pages/Dashboard.tsx'), 'utf8')
     expect(dash).toMatch(/today-offline-queue-retry/)
     expect(dash).toMatch(/data-testid="today-offline-queue-retry"/)
-    expect(dash).toMatch(/orientation: landscape\) and \(min-width: 1024px\)/)
+    expect(dash).toMatch(/today-main-column/)
   })
 
   it('21–24: axe sticky + landscape · smoke Sync + sticky + landscape', () => {

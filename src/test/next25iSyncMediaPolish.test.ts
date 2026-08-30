@@ -38,14 +38,14 @@ describe('next25i — sync / media / polish tip (1–25 → v1.2.80)', () => {
 
   it('package + release notes are 1.2.80', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.131')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.131')
+    expect(pkg.version).toBe('1.2.132')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.132')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.132',
       '1.2.131',
       '1.2.130',
       '1.2.129',
       '1.2.128',
-      '1.2.127',
     ])
   })
 
@@ -185,7 +185,8 @@ describe('next25i — sync / media / polish tip (1–25 → v1.2.80)', () => {
   it('15: privacy mask Markets/Today movers', () => {
     const dash = readFileSync(resolve(__dirname, '../pages/Dashboard.tsx'), 'utf8')
     expect(dash).toMatch(/privacyClass\(privacy\)/)
-    expect(dash).toMatch(/todayMovers\.map/)
+    expect(dash).toMatch(/todayMovers/)
+    expect(dash).not.toMatch(/todayMovers\.map/)
   })
 
   it('16: recurring commentary on Today bills', () => {

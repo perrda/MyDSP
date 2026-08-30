@@ -49,14 +49,14 @@ describe('next25j — sync / Today polish tip (1–25 → v1.2.80)', () => {
 
   it('package + release notes are 1.2.80', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.131')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.131')
+    expect(pkg.version).toBe('1.2.132')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.132')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.132',
       '1.2.131',
       '1.2.130',
       '1.2.129',
       '1.2.128',
-      '1.2.127',
     ])
   })
 
@@ -142,8 +142,8 @@ describe('next25j — sync / Today polish tip (1–25 → v1.2.80)', () => {
 
   it('8–9: Today SLA + Finnhub 429 chips', () => {
     const dash = readFileSync(resolve(__dirname, '../pages/Dashboard.tsx'), 'utf8')
-    expect(dash).toMatch(/today-quote-sla-chip/)
-    expect(dash).toMatch(/today-finnhub-quota-chip/)
+    expect(dash).not.toMatch(/today-quote-sla-chip/)
+    expect(dash).not.toMatch(/today-finnhub-quota-chip/)
     const compare = readFileSync(resolve(__dirname, '../pages/ComparePage.tsx'), 'utf8')
     expect(compare).toMatch(/compare-quote-sla-chip/)
   })
@@ -180,7 +180,7 @@ describe('next25j — sync / Today polish tip (1–25 → v1.2.80)', () => {
     const dash = readFileSync(resolve(__dirname, '../pages/Dashboard.tsx'), 'utf8')
     expect(dash).toMatch(/today-bill-commentary/)
     expect(dash).toMatch(/to=\"\/recurring\"/)
-    expect(dash).toMatch(/today-quote-partial-chip/)
+    expect(dash).not.toMatch(/today-quote-partial-chip/)
     const compare = readFileSync(resolve(__dirname, '../pages/ComparePage.tsx'), 'utf8')
     expect(compare).toMatch(/compareSelectionPrefs/)
     expect(compare).toMatch(/loadCompareSelectedIds/)

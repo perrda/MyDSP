@@ -17,11 +17,12 @@ describe('next25f mobile / tablet items 11-15', () => {
     expect(sidebar).toMatch(/Weekly digest/)
   })
 
-  it('12: Today two-pane Markets rail stays sticky without a digest Preview button', () => {
+  it('12: Today is one column without a digest Preview button', () => {
     const dashboard = readFileSync(resolve(__dirname, '../pages/Dashboard.tsx'), 'utf8')
     const css = readFileSync(resolve(__dirname, '../index.css'), 'utf8')
 
-    expect(dashboard).toMatch(/twoPane/)
+    expect(dashboard).toMatch(/today-main-column/)
+    expect(dashboard).not.toMatch(/today-two-pane/)
     expect(dashboard).not.toMatch(/today-two-pane-digest-preview/)
     expect(dashboard).not.toMatch(/Digest Preview/)
     expect(css).toMatch(/\.today-two-pane \.today-markets-pane/)

@@ -58,14 +58,14 @@ describe('next25g — sync prices polish tip (1–25 → v1.2.70)', () => {
 
   it('package + release notes tip is current (1.2.80+)', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.131')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.131')
+    expect(pkg.version).toBe('1.2.132')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.132')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.132',
       '1.2.131',
       '1.2.130',
       '1.2.129',
       '1.2.128',
-      '1.2.127',
     ])
   })
 
@@ -210,8 +210,8 @@ describe('next25g — sync prices polish tip (1–25 → v1.2.70)', () => {
   it('16–17: Today movers age gate + cross-device lag chip', () => {
     const dash = readFileSync(resolve(__dirname, '../pages/Dashboard.tsx'), 'utf8')
     expect(dash).toMatch(/MOVER_MAX_AGE_MS/)
-    expect(dash).toMatch(/today-price-lag-chip/)
-    expect(dash).toMatch(/Prices from other device/)
+    expect(dash).not.toMatch(/today-price-lag-chip/)
+    expect(dash).not.toMatch(/Prices from other device/)
     expect(dash).toMatch(/isSyncedRemoteQuote/)
   })
 

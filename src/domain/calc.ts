@@ -127,6 +127,16 @@ export function calcEquity(data: PortfolioData): AssetTotals {
   return { value, cost, pnl, pct: cost > 0 ? (pnl / cost) * 100 : 0 }
 }
 
+/** SIPP sleeve of the equity book — same live-quote rule as `calcEquity`. */
+export function calcSipp(data: PortfolioData): number {
+  let value = 0
+  for (const e of included(data.equities)) {
+    if (e.accountType !== 'sipp') continue
+    if (hasLiveEquityQuote(e)) value += e.shares * e.livePrice
+  }
+  return value
+}
+
 /** One debt balance — cards + loans (included book). */
 export function calcDebtBalance(data: PortfolioData): number {
   return calcLiabilities(data).total

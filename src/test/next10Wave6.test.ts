@@ -23,21 +23,22 @@ describe('next10 wave 6 tip harness (v1.2.117)', () => {
 
   it('0: package + release notes tip', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.131')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.131')
+    expect(pkg.version).toBe('1.2.132')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.132')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.132',
       '1.2.131',
       '1.2.130',
       '1.2.129',
       '1.2.128',
-      '1.2.127',
     ])
   })
 
   it('1: Today Work/Money/Quiet presets + Reset', () => {
     expect(Object.keys(TODAY_LAYOUT_PRESETS)).toEqual(['work', 'money', 'quiet'])
     applyTodayLayoutPreset('quiet')
-    expect(loadTodayLayout().hidden).toContain('markets')
+    expect(loadTodayLayout().hidden).toContain('charts')
+    expect(loadTodayLayout().hidden).not.toContain('markets')
     expect(readPage('Dashboard.tsx')).toMatch(/today-layout-preset-\$\{id\}/)
     expect(readPage('Dashboard.tsx')).toMatch(/Show all \/ Reset/)
   })

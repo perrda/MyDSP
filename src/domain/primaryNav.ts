@@ -29,7 +29,8 @@ export const PRIMARY_NAV: readonly PrimaryNavItem[] = [
   { to: '/household', label: 'Household', icon: Users },
 ]
 
-/** Desktop sidebar + phone hamburger MENU — five doors then News · YouTube. */
+/** Desktop sidebar + phone hamburger MENU — five doors then News · YouTube.
+ *  Weekly Digest / Cloud Sync / Settings sit below YouTube (not above MENU). */
 export const SIDEBAR_NAV: readonly PrimaryNavItem[] = [
   ...PRIMARY_NAV,
   { to: '/news', label: 'News', icon: Newspaper },
