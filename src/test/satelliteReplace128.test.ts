@@ -146,10 +146,10 @@ describe('MyDSP 1.2.128 satellite replace Mini book', () => {
     expect(RELEASE_NOTES[0]?.version).toBe('1.2.141')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
       '1.2.141',
+      '1.2.140',
       '1.2.139',
       '1.2.137',
       '1.2.135',
-      '1.2.134',
     ])
     const notes128 = RELEASE_NOTES.find((e) => e.version === '1.2.128')
     const tip = notes128?.bullets.map((b) => (typeof b === 'string' ? b : b.text)).join(' ')

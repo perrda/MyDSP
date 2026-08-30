@@ -7,7 +7,16 @@
 - **Markets detail:** click a `.markets-row` always opens `aside.markets-master-detail-panel` with a 176px `[data-testid=markets-trend-chart]` — even while the list says Fetching. The selected-quote trend is no longer gated on `sparkline.length ≥ 2`. Empty or last-good series pad the same way Today ALL/5Y pads a single year, so X labels (24H / 1W / 1M / 12M / YTD / ALL) and display-CCY Y ticks still paint.
 - **List rows stay compact:** Markets row sparklines and holding-day stubs do not grow axes (they would overlap). Today Assets TREND from 1.2.137 is unchanged.
 - **Today TREND chrome:** first visit defaults to **30D**. The selected window (30D until the user picks another) is BTC orange `#F7931A` text so the active range is obvious — `.btn-ghost` no longer paints every chip the same muted colour.
-- **Keep:** Mini-as-book sync (satellites REPLACE), Today one-column + Assets hero, utilities under YouTube, product copy, Light+Dark `#F7931A`, 1.2.139 Reset/Delete, 1.2.137 Today windows, 1.2.135 data-above-help, 1.2.134 SIPP = Equities, 1.2.133 fluid-fit.
+- **Keep:** Mini-as-book sync (satellites REPLACE), Today one-column + Assets hero, utilities under YouTube, product copy, Light+Dark `#F7931A`, 1.2.140 6m/YTD TREND, 1.2.139 Reset/Delete, 1.2.137 Today windows, 1.2.135 data-above-help, 1.2.134 SIPP = Equities, 1.2.133 fluid-fit.
+- **Draft only:** do not promote. Do not wrangler production. Live mydspv1 stays 1.2.137 / `index-CxpikgZP.js`. Leftover preview worker only (`cursor-…-mydsp.dave-perry.workers.dev`).
+
+## [1.2.140] - 2026-08-30
+
+### Changed — Today TREND adds 6m and YTD (draft, no live)
+- **Ranges:** 24H · 7D · 30D · 6M · YTD · 12M · 5Y · ALL. 6m sits between 30D and 12M. YTD sits after 6m.
+- **6M:** last 6 calendar months. X ticks are MMM (`Mar` … `Aug` when today is 30 Aug).
+- **YTD:** 1 Jan through today. X ticks are MMM from January through the current month. In January, X ticks are DD/MM days so the line still has points.
+- **Keep:** Mini-as-book sync (satellites REPLACE), Today one-column + Assets hero, full-width TREND + axes, utilities under YouTube, product copy, Light+Dark `#F7931A`, 1.2.139 profile reset/delete, 1.2.137 Today TREND, 1.2.135 data-above-help, 1.2.134 SIPP = Equities.
 - **Draft only:** do not promote. Do not wrangler production. Live mydspv1 stays 1.2.137 / `index-CxpikgZP.js`. Leftover preview worker only (`cursor-…-mydsp.dave-perry.workers.dev`).
 
 ## [1.2.139] - 2026-08-30

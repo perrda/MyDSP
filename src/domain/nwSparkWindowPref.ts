@@ -16,6 +16,8 @@ export function normalizeNwSparkWindow(raw: string | number | null | undefined):
   if (raw === 30 || raw === '30' || raw === '30D' || raw === '30d') return '30D'
   if (raw === 7 || raw === '7' || raw === '7D' || raw === '7d') return '7D'
   if (raw === '24H' || raw === '24h') return '24H'
+  if (raw === '6M' || raw === '6m') return '6M'
+  if (raw === 'YTD' || raw === 'ytd') return 'YTD'
   if (raw === '12M' || raw === '12m') return '12M'
   if (raw === '5Y' || raw === '5y') return '5Y'
   if (raw === 'ALL' || raw === 'all') return 'ALL'

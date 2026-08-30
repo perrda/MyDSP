@@ -10,10 +10,10 @@ describe('Mobile / tablet / landscape QA (v1.2.98)', () => {
     expect(RELEASE_NOTES[0]?.version).toBe('1.2.141')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
       '1.2.141',
+      '1.2.140',
       '1.2.139',
       '1.2.137',
       '1.2.135',
-      '1.2.134',
     ])
   })
 

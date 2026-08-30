@@ -27,10 +27,10 @@ describe('next10 wave 6 tip harness (v1.2.117)', () => {
     expect(RELEASE_NOTES[0]?.version).toBe('1.2.141')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
       '1.2.141',
+      '1.2.140',
       '1.2.139',
       '1.2.137',
       '1.2.135',
-      '1.2.134',
     ])
   })
 

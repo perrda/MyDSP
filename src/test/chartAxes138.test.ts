@@ -23,10 +23,10 @@ describe('MyDSP 1.2.141 chart axes follow display CCY', () => {
     expect(RELEASE_NOTES[0]?.version).toBe('1.2.141')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
       '1.2.141',
+      '1.2.140',
       '1.2.139',
       '1.2.137',
       '1.2.135',
-      '1.2.134',
     ])
     const changelog = read('../../CHANGELOG.md')
     const section = changelog.match(/## \[1\.2\.141\][\s\S]*?(?=## \[)/)?.[0] ?? ''

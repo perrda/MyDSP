@@ -51,6 +51,24 @@ export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
     ],
   },
   {
+    version: '1.2.140',
+    date: '2026-08-30',
+    bullets: [
+      {
+        text: 'Today TREND adds 6m and YTD between 30D and 12M',
+        to: '/',
+      },
+      {
+        text: '6M months and YTD Jan→now — January uses days',
+        to: '/',
+      },
+      {
+        text: 'Draft only — live stays 1.2.137',
+        to: '/',
+      },
+    ],
+  },
+  {
     version: '1.2.139',
     date: '2026-08-30',
     bullets: [
