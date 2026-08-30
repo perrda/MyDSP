@@ -1,5 +1,14 @@
 # MyDSP Changelog
 
+## [1.2.137] - 2026-08-30
+
+### Changed — Today Assets trend fills the card with axes (draft, no live)
+- **Full width:** the Today Assets TREND line spans the card to the right edge — no `max-w-xs` stub.
+- **Ranges:** 24H · 7D · 30D · 12M · 5Y · ALL. 24H is the last 24 clock hours (01…23, 00). 7D uses weekday names. 30D uses DD/MM (01/12). 12M uses MMM. 5Y and ALL are annual.
+- **Axes:** X ticks use those labels. Y ticks use the display CCY (`formatChartYTick`).
+- **Keep:** Mini-as-book sync (satellites REPLACE), Today one-column + Assets hero, utilities under YouTube, product copy, Light+Dark `#F7931A`, 1.2.134 SIPP = Equities.
+- **Draft only:** do not promote. Do not wrangler production. Live mydspv1 stays 1.2.132 / `index-ClzYneLT.js`. Leftover preview worker only (`cursor-…-mydsp.dave-perry.workers.dev`).
+
 ## [1.2.134] - 2026-08-30
 
 ### Fixed — Today SIPP line is the Equities sleeve (draft, no live)

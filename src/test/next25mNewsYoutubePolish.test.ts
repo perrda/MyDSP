@@ -42,14 +42,14 @@ describe('next25m — News / YouTube polish tip (1–25 → v1.2.80)', () => {
 
   it('25: package + release notes are 1.2.80', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.134')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.134')
+    expect(pkg.version).toBe('1.2.137')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.137')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.137',
       '1.2.134',
       '1.2.133',
       '1.2.132',
       '1.2.131',
-      '1.2.130',
     ])
   })
 
