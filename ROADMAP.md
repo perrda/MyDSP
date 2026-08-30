@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.137**
+**Current version: 1.2.138**
 
-## Completed (through v1.2.137)
+## Completed (through v1.2.138)
 
+- Chart axes + display CCY (v1.2.138): full money/time charts show X + Y · Y ticks follow toolbar CCY · Markets detail trend uses 24H / 1W / 1M / 12M / YTD / ALL labels · list-row sparklines stay compact · draft only — live stays 1.2.132
 - Today trend axes (v1.2.137): Assets TREND fills the card · 24H / 7D / 30D / 12M / 5Y / ALL · weekday + DD/MM + MMM + year X ticks · Y follows display CCY · draft only — live stays 1.2.132
 - SIPP = Equities (v1.2.134): Today SIPP line is the priced equity sleeve (TSLA / MSTR / all included live quotes) · not `accountType === 'sipp'` only · Equities VALUE and goal `sipp` match · Liabilities line/figure red · Money/Plan/Household tiles drag-reorder and sync · News/YouTube extras stay in the envelope · hourly Yes/No manual backup prompt · draft only — live stays 1.2.132
 - Fluid-fit (v1.2.133): long display-CCY figures stay inside KPI / holding-detail / money / chart boxes at 390 · 768 · 1280 and landscape · container-query type + wrap, not clip · Mini-as-book + Today one-column / Assets hero + `#F7931A` kept · draft only — live stays 1.2.132

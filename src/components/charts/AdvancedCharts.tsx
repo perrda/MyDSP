@@ -20,7 +20,7 @@ import {
   Radar,
 } from 'recharts'
 import { formatGBP } from '../../utils/format'
-import { formatChartYTick } from '../../domain/chartAxis'
+import { formatChartMonthYear, formatChartYTick } from '../../domain/chartAxis'
 
 interface Spending {
   date: string
@@ -62,6 +62,7 @@ export function MonthlySpendingTrend({ spending, privacy }: SpendingTrendsProps)
               dataKey="month" 
               stroke="var(--text-muted)"
               tick={{ fill: 'var(--text-muted)', fontSize: 12 }}
+              tickFormatter={(m: string) => formatChartMonthYear(`${m}-01`)}
             />
             <YAxis 
               stroke="var(--text-muted)"

@@ -267,3 +267,137 @@ export function formatChartYTick(gbpAmount: number): string {
 export function formatChartPctTick(v: number, digits = 0): string {
   return `${v.toFixed(digits)}%`
 }
+
+/** Windows that can label an unlabeled close series (Markets / Today-style). */
+export type SeriesAxisWindow =
+  | '24H'
+  | '7D'
+  | '1W'
+  | '30D'
+  | '1M'
+  | '12M'
+  | '5Y'
+  | 'YTD'
+  | 'ALL'
+
+export type LabeledSeriesPoint = {
+  value: number
+  label: string
+  key: string
+}
+
+export type ChartQuoteKind = 'crypto' | 'equity' | 'commodity' | 'fx' | 'cross' | 'index'
+
+function pad2(n: number): string {
+  return String(n).padStart(2, '0')
+}
+
+function ymdLocal(d: Date): string {
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
+}
+
+function interpolateDate(start: Date, end: Date, t: number): Date {
+  const a = start.getTime()
+  const b = end.getTime()
+  return new Date(a + (b - a) * t)
+}
+
+/**
+ * X labels for a bare number[] series.
+ * 24H → 01…23, 00 · 7D/1W → weekdays · 30D/1M → DD/MM · 12M/YTD → MMM · 5Y/ALL → years
+ */
+export function labeledSeriesFromValues(
+  values: number[],
+  window: SeriesAxisWindow,
+  now = new Date(),
+): LabeledSeriesPoint[] {
+  const clean = values.filter((n) => typeof n === 'number' && Number.isFinite(n))
+  const n = clean.length
+  if (n === 0) return []
+
+  return clean.map((value, i) => {
+    const t = n === 1 ? 1 : i / (n - 1)
+    const { label, key } = labelAtFraction(window, t, now)
+    return { value, label, key: `${key}#${i}` }
+  })
+}
+
+function labelAtFraction(
+  window: SeriesAxisWindow,
+  t: number,
+  now: Date,
+): { label: string; key: string } {
+  if (window === '24H') {
+    const end = new Date(now)
+    end.setMinutes(0, 0, 0)
+    const start = new Date(end)
+    start.setHours(start.getHours() - 23)
+    const d = interpolateDate(start, end, t)
+    const label = pad2(d.getHours())
+    return { label, key: `${ymdLocal(d)}T${label}` }
+  }
+
+  if (window === '7D' || window === '1W') {
+    const end = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const start = new Date(end)
+    start.setDate(start.getDate() - 6)
+    const d = interpolateDate(start, end, t)
+    return { label: WEEKDAY_SHORT[d.getDay()]!, key: ymdLocal(d) }
+  }
+
+  if (window === '30D' || window === '1M') {
+    const end = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const start = new Date(end)
+    start.setDate(start.getDate() - 29)
+    const d = interpolateDate(start, end, t)
+    return { label: `${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}`, key: ymdLocal(d) }
+  }
+
+  if (window === '12M') {
+    const end = new Date(now.getFullYear(), now.getMonth(), 1)
+    const start = new Date(end.getFullYear(), end.getMonth() - 11, 1)
+    const months = Math.round(11 * t)
+    const d = new Date(start.getFullYear(), start.getMonth() + months, 1)
+    return { label: MONTHS_SHORT[d.getMonth()]!, key: `${d.getFullYear()}-${pad2(d.getMonth() + 1)}` }
+  }
+
+  if (window === 'YTD') {
+    const start = new Date(now.getFullYear(), 0, 1)
+    const end = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const d = interpolateDate(start, end.getTime() >= start.getTime() ? end : start, t)
+    const days = Math.max(0, (end.getTime() - start.getTime()) / 86_400_000)
+    if (days <= 90) {
+      return { label: `${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}`, key: ymdLocal(d) }
+    }
+    return { label: MONTHS_SHORT[d.getMonth()]!, key: `${d.getFullYear()}-${pad2(d.getMonth() + 1)}` }
+  }
+
+  const thisYear = now.getFullYear()
+  const span = window === '5Y' ? 4 : 9
+  const firstYear = thisYear - span
+  const year = Math.round(firstYear + t * span)
+  return { label: String(year), key: String(year) }
+}
+
+const WEEKDAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const
+
+/**
+ * Y tick for Markets quotes: GBP-stored kinds follow display CCY;
+ * index / FX / cross stay in native units (not converted as money).
+ */
+export function formatChartQuoteYTick(value: number, kind: ChartQuoteKind): string {
+  if (kind === 'crypto' || kind === 'equity' || kind === 'commodity') {
+    return formatChartYTick(value)
+  }
+  if (!Number.isFinite(value)) return '—'
+  const abs = Math.abs(value)
+  if (abs >= 10_000) {
+    return new Intl.NumberFormat('en-GB', { notation: 'compact', maximumFractionDigits: 1 }).format(value)
+  }
+  if (abs >= 100) {
+    return value.toLocaleString('en-GB', { maximumFractionDigits: 0 })
+  }
+  return value.toLocaleString('en-GB', {
+    maximumFractionDigits: abs >= 1 ? 2 : 4,
+  })
+}

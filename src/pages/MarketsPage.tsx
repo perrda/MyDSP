@@ -20,6 +20,7 @@ import {
   Trash2,
   UnfoldVertical,
 } from 'lucide-react'
+import { LabeledTrendChart } from '../components/charts/LabeledTrendChart'
 import { Sparkline } from '../components/charts/Sparkline'
 import { useToasts } from '../components/ToastProvider'
 import { PageHeader } from '../components/ui/PageHeader'
@@ -81,6 +82,7 @@ import {
 } from '../domain/marketsTagYieldPref'
 import { mergeMarketQuotes } from '../domain/marketQuotesCache'
 import { isOnline } from '../services/offlineQueue'
+import { formatChartQuoteYTick, labeledSeriesFromValues } from '../domain/chartAxis'
 import { sparklineTrendFromSeries } from '../domain/sparklineSeries'
 import { refreshMarketQuotes } from '../services/marketsQuotes'
 import { getMarketsProviderHealth } from '../services/marketsProviderHealth'
@@ -254,6 +256,44 @@ function formatLastDisplay(q: MarketQuote | undefined): string {
   }
   // Crypto + equity quotes are stored in GBP — convert to the toolbar display CCY
   return formatGBPMarket(q.last)
+}
+
+function formatQuoteSeriesTip(quote: MarketQuote, value: number): string {
+  if (quote.kind === 'crypto' || quote.kind === 'equity' || quote.kind === 'commodity') {
+    return formatGBPMarket(value)
+  }
+  if (quote.kind === 'index') {
+    return value.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  }
+  const body = value.toLocaleString('en-GB', {
+    minimumFractionDigits: quote.decimals,
+    maximumFractionDigits: quote.decimals,
+  })
+  return `${body} ${quote.unit}`
+}
+
+function QuoteDetailTrend({
+  quote,
+  timeframe,
+  privacy,
+}: {
+  quote: MarketQuote
+  timeframe: MarketTimeframe
+  privacy: boolean
+}) {
+  const points = labeledSeriesFromValues(quote.sparkline, timeframe)
+  return (
+    <LabeledTrendChart
+      points={points}
+      trend={sparklineTrendFromSeries(quote.sparkline)}
+      privacy={privacy}
+      height={176}
+      name={quote.symbol}
+      yTick={(v) => formatChartQuoteYTick(v, quote.kind)}
+      tooltipValue={(v) => formatQuoteSeriesTip(quote, v)}
+      testId="markets-trend-chart"
+    />
+  )
 }
 
 function normPortfolioSymbol(symbol: string): string {
@@ -2809,11 +2849,10 @@ export function MarketsPage() {
                     ))}
                   </div>
                 </div>
-                <Sparkline
-                  data={quoteDetail.quote.sparkline}
-                  height={56}
-                  showGradient
-                  trend={sparklineTrendFromSeries(quoteDetail.quote.sparkline)}
+                <QuoteDetailTrend
+                  quote={quoteDetail.quote}
+                  timeframe={timeframe}
+                  privacy={privacy}
                 />
               </div>
             ) : null}
@@ -3115,11 +3154,10 @@ export function MarketsPage() {
                     ))}
                   </div>
                 </div>
-                <Sparkline
-                  data={quoteDetail.quote.sparkline}
-                  height={56}
-                  showGradient
-                  trend={sparklineTrendFromSeries(quoteDetail.quote.sparkline)}
+                <QuoteDetailTrend
+                  quote={quoteDetail.quote}
+                  timeframe={timeframe}
+                  privacy={privacy}
                 />
               </div>
             ) : null}

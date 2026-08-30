@@ -15,14 +15,14 @@ function day(y: number, m: number, d: number, nw: number): HistoryPoint {
 describe('MyDSP 1.2.137 Today trend axes', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(read('../../package.json'))
-    expect(pkg.version).toBe('1.2.137')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.137')
+    expect(pkg.version).toBe('1.2.138')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.138')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.138',
       '1.2.137',
       '1.2.134',
       '1.2.133',
       '1.2.132',
-      '1.2.131',
     ])
     const changelog = read('../../CHANGELOG.md')
     const section = changelog.match(/## \[1\.2\.137\][\s\S]*?(?=## \[)/)?.[0] ?? ''
@@ -41,11 +41,12 @@ describe('MyDSP 1.2.137 Today trend axes', () => {
     expect(dash).not.toMatch(/max-w-xs/)
     expect(dash).toMatch(/NW_SPARK_WINDOWS/)
     expect(read('../domain/netWorthSparkline.ts')).toMatch(/'24H'/)
-    const chart = read('../components/charts/TodayTrendChart.tsx')
+    expect(read('../components/charts/TodayTrendChart.tsx')).toMatch(/today-trend-chart/)
+    const chart = read('../components/charts/LabeledTrendChart.tsx')
     expect(chart).toMatch(/<XAxis/)
     expect(chart).toMatch(/<YAxis/)
     expect(chart).toMatch(/formatChartYTick/)
-    expect(chart).toMatch(/today-trend-chart/)
+    expect(chart).toMatch(/labeled-trend-chart/)
   })
 
   it('7D labels are weekdays and 30D labels are DD/MM', () => {

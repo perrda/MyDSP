@@ -1,5 +1,14 @@
 # MyDSP Changelog
 
+## [1.2.138] - 2026-08-30
+
+### Changed — Chart axes use X labels + display-CCY Y ticks (draft, no live)
+- **Every full chart:** money/time series already on Portfolio, Spending, Holdings, Cashflow, Plan Monte Carlo, Predictive, Jobs salary, and Advanced spend charts keep visible X and Y ticks. Y money ticks go through `formatChartYTick` so GBP / USD / THB / BTC stay readable.
+- **Markets detail:** the selected-quote trend is no longer a 56px stub. It fills the pane with the same X windows as the timeframe chips — 24H hours (01…23, 00), 1W weekdays, 1M DD/MM, 12M MMM, YTD days or months, ALL years. Y follows display CCY for crypto / equity / commodity; index / FX / cross stay native.
+- **List rows stay compact:** Markets row sparklines and holding-day stubs do not grow axes (they would overlap). Today Assets TREND from 1.2.137 is unchanged.
+- **Keep:** Mini-as-book sync (satellites REPLACE), Today one-column + Assets hero, utilities under YouTube, product copy, Light+Dark `#F7931A`, 1.2.137 Today windows.
+- **Draft only:** do not promote. Do not wrangler production. Live mydspv1 stays 1.2.132 / `index-ClzYneLT.js`. Leftover preview worker only (`cursor-…-mydsp.dave-perry.workers.dev`).
+
 ## [1.2.137] - 2026-08-30
 
 ### Changed — Today Assets trend fills the card with axes (draft, no live)
