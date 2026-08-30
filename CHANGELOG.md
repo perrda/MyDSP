@@ -9,6 +9,7 @@
 - **Money / Plan / Household grab:** Spend · Holdings · Tax · Import, every Directory tile, every Plan door, and the six Household doors can be dragged to a new spot. Order saves locally and syncs LWW in `fullArchive` / `workspaceExtras` (same book as portfolio values). Leftover + runway stay pinned.
 - **News / YouTube extras:** favourite channels, News tags, and last-good headlines stay in the encrypted envelope and apply even when a portfolio conflict is parked — same Mini-as-book path as holdings.
 - **Hourly manual backup:** after one hour, a Yes / No popup asks “Create Manual Backup now?”. Yes writes a local full snapshot. No (or a successful Yes) snoozes one hour. Device-local — not a second Sync now.
+- **Data above help chrome:** Crypto / Equities / Holding detail / Staking / Tax / Plan / Compare show VALUE · mix · charts · lists first. Connect-exchange, ledger notes, search, included-value bar, concentration, tax disclaimers, and week-Δ copy sit below. Locked in `.cursor/rules/data-above-help-chrome.mdc`.
 - **Keep:** Mini-as-book sync (satellites REPLACE), Today one-column + Assets hero, utilities under YouTube, product copy, Light+Dark `#F7931A`, 1.2.133 fluid-fit.
 - **Draft only:** do not promote. Do not wrangler production. Live mydspv1 stays 1.2.132 / `index-ClzYneLT.js`. Leftover preview worker only (`cursor-…-mydsp.dave-perry.workers.dev`).
 

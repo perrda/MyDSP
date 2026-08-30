@@ -53,6 +53,10 @@ export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
         to: '/settings#full-backup',
       },
       {
+        text: 'Values, charts, and lists sit above help boxes',
+        to: '/crypto',
+      },
+      {
         text: 'Draft only — live stays 1.2.132',
         to: '/',
       },
