@@ -98,10 +98,14 @@ export function setSessionSyncPassphrase(
     return
   }
 
-  const mode = opts?.rememberMode ?? (opts?.remember ? 'forever' : null)
-  const remember = opts?.remember === true || (mode !== null && mode !== 'session')
+  const mode: Exclude<RememberPassphraseMode, 'session'> | null =
+    opts?.rememberMode === '7d' || opts?.rememberMode === 'forever'
+      ? opts.rememberMode
+      : opts?.remember
+        ? 'forever'
+        : null
 
-  if (remember && p && mode && mode !== 'session') {
+  if (p && mode) {
     try {
       localStorage.setItem(REMEMBER_KEY, p)
       const expiresAt =

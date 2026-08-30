@@ -11,7 +11,6 @@ import {
   mayPushOnEmptyCloud,
 } from '../services/sync/localBook'
 import { mergePortfolio } from '../services/sync/merge'
-import { runOneButtonSync } from '../services/sync/oneButtonSync'
 import {
   applyRemoteAsBook,
   DEFAULT_SYNC_REMOTE_URL,
@@ -19,6 +18,19 @@ import {
   saveSyncConfig,
   type MergePreview,
 } from '../services/sync/syncService'
+
+import { runOneButtonSync } from '../services/sync/oneButtonSync'
+
+vi.mock('../services/sync/syncService', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../services/sync/syncService')>()
+  return {
+    ...actual,
+    pushSync: vi.fn(async () => ({
+      exportedAt: '2026-08-30T10:31:34.643Z',
+      bytes: 122831,
+    })),
+  }
+})
 import {
   clearSessionSyncPassphrase,
   getSessionSyncPassphrase,
@@ -245,17 +257,6 @@ describe('MyDSP 1.2.128 satellite replace Mini book', () => {
       rememberPassphrase: false,
     })
 
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async (_url: string, init?: RequestInit) => {
-        const method = (init?.method ?? 'GET').toUpperCase()
-        if (method === 'PUT' || method === 'POST') {
-          return new Response('{"ok":true}', { status: 200 })
-        }
-        return new Response('Not found', { status: 404 })
-      }),
-    )
-
     const result = await runOneButtonSync(PASS)
     expect(result.action).toBe('push')
     const cfg = loadSyncConfig()
@@ -280,7 +281,6 @@ describe('MyDSP 1.2.128 satellite replace Mini book', () => {
     expect(getAutoSyncStatus().message).toBe('Synced')
 
     stopAutoSync()
-    vi.unstubAllGlobals()
   })
 })
 
