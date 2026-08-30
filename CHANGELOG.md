@@ -1,12 +1,20 @@
 # MyDSP Changelog
 
+## [1.2.134] - 2026-08-30
+
+### Fixed — Today SIPP line is the Equities sleeve (draft, no live)
+- **SIPP = Equities:** Today’s SIPP row is the priced equity sleeve (`calcEquity`) — TSLA / MSTR / every included live-quoted equity on DAVID (and every other book). It is not filtered to `accountType === 'sipp'`. That is why live 1.2.132 showed SIPP USD 0.00 while Net Worth already included those names.
+- **Same number:** Equities page VALUE and goal metric `sipp` use `calcEquity`. Unpriced stay excluded. SIPP still opens `/equities`. No `/sipp` route. Account-type chips (ISA / SIPP / general) on a holding stay as labels only.
+- **Liabilities in red:** Today’s Liabilities label and figure (and the matching digest / Analytics / Liabilities total) use red — they are a negative sleeve, not an asset.
+- **Keep:** Mini-as-book sync (satellites REPLACE), Today one-column + Assets hero, utilities under YouTube, product copy, Light+Dark `#F7931A`, 1.2.133 fluid-fit.
+- **Draft only:** do not promote. Do not wrangler production. Live mydspv1 stays 1.2.132 / `index-ClzYneLT.js`. Leftover preview worker only (`cursor-…-mydsp.dave-perry.workers.dev`).
+
 ## [1.2.133] - 2026-08-30
 
 ### Fixed — Fluid-fit figures, charts, and KPI cards (draft, no live)
 - **Lock:** every figure, label, graphic, and chart stays fully inside its box when the window is resized, and on tablet and phone in portrait and landscape. Full-width desktop can look fine while a narrower pane clips — 390 / 768 / 1280 and landscape are first-class.
 - **Holding detail four-up:** VALUE / COST / P&L / QTY·PRICE use a `minmax(0, 1fr)` grid + container-query type so long display-CCY strings (e.g. `USD 1,098,213.75`) wrap or scale instead of crowding the card edge. Live price, Markets-day sparkline, and 1D…ALL range chips wrap inside the card — they do not start a page-wide scroll.
 - **App-wide:** the same fluid-metric / fluid-figure pattern covers Today hero + book rows, Money StatCards, Equities / Crypto / Liabilities / FIRE / Tax / Budgets / Optimizer KPI strips, Markets selected last, Weekly Digest KPIs, holdings-list money cells, and chart headers. Large tabular figures get `overflow-wrap` + `min-width: 0`. Sparklines and Recharts panels are `max-width: 100%`.
-- **SIPP = Equities:** Today’s SIPP line is the priced equity sleeve (`calcEquity`) — TSLA / MSTR / every included live-quoted equity, not only `accountType === 'sipp'`. That is why DAVID showed SIPP USD 0.00 while Net Worth already included those names. Equities page VALUE and goal metric `sipp` use the same number. Unpriced stay excluded. No `/sipp` route.
 - **Keep:** Mini-as-book sync (satellites REPLACE), Today one-column + Assets hero, utilities under YouTube, product copy, Light+Dark `#F7931A`.
 - **Draft only:** do not promote. Do not wrangler production. Live mydspv1 stays 1.2.132 / `index-ClzYneLT.js`. Rollback of live remains 1.2.131 / `index-oymrpnal.js`. Leftover preview worker only (`cursor-…-mydsp.dave-perry.workers.dev`).
 

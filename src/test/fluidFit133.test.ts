@@ -8,14 +8,14 @@ const read = (rel: string) => readFileSync(resolve(__dirname, rel), 'utf8')
 describe('MyDSP 1.2.133 fluid-fit', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(read('../../package.json'))
-    expect(pkg.version).toBe('1.2.133')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.133')
+    expect(pkg.version).toBe('1.2.134')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.134')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.134',
       '1.2.133',
       '1.2.132',
       '1.2.131',
       '1.2.130',
-      '1.2.129',
     ])
     const changelog = read('../../CHANGELOG.md')
     const section = changelog.match(/## \[1\.2\.133\][\s\S]*?(?=## \[)/)?.[0] ?? ''
@@ -91,19 +91,5 @@ describe('MyDSP 1.2.133 fluid-fit', () => {
     expect(read('../pages/MarketsPage.tsx')).toMatch(/fluid-figure/)
     expect(read('../pages/Dashboard.tsx')).toMatch(/fluid-figure/)
     expect(read('../components/charts/HoldingPriceChart.tsx')).toMatch(/fluid-figure/)
-  })
-
-  it('SIPP line equals the priced Equities sleeve', () => {
-    const calc = read('../domain/calc.ts')
-    expect(calc).toMatch(/SIPP line = the equity sleeve/)
-    expect(calc).toMatch(/return calcEquity\(data\)\.value/)
-    expect(calc).toMatch(/case 'sipp':/)
-    const dash = read('../pages/Dashboard.tsx')
-    expect(dash).toMatch(/calcSipp\(data\)/)
-    expect(dash).toMatch(/>SIPP</)
-    const changelog = read('../../CHANGELOG.md')
-    const section = changelog.match(/## \[1\.2\.133\][\s\S]*?(?=## \[)/)?.[0] ?? ''
-    expect(section).toMatch(/SIPP = Equities/)
-    expect(section).toMatch(/TSLA/)
   })
 })

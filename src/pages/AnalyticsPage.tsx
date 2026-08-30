@@ -238,8 +238,8 @@ export function AnalyticsPage() {
       </div>
 
       <div className="surface p-5 sm:p-6 mb-8">
-        <p className="label-uppercase mb-2">Liabilities</p>
-        <p className={`text-xl font-bold tabular-nums ${privacyClass(privacy)}`}>
+        <p className="label-uppercase mb-2 text-red-500">Liabilities</p>
+        <p className={`text-xl font-bold tabular-nums text-red-500 ${privacyClass(privacy)}`}>
           {formatGBP(liabilities)}
         </p>
         <p className="text-sm text-text-muted mt-1">

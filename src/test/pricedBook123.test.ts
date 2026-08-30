@@ -33,14 +33,14 @@ const read = (rel: string) => readFileSync(resolve(__dirname, rel), 'utf8')
 describe('MyDSP 1.2.123 priced-book pack', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(read('../../package.json'))
-    expect(pkg.version).toBe('1.2.133')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.133')
+    expect(pkg.version).toBe('1.2.134')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.134')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.134',
       '1.2.133',
       '1.2.132',
       '1.2.131',
       '1.2.130',
-      '1.2.129',
     ])
   })
 

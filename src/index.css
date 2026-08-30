@@ -923,6 +923,11 @@ html.has-bottom-nav .floating-banner--toast {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.today-hero-book-row--liabilities,
+.today-hero-book-row--liabilities:hover,
+.today-hero-book-row--liabilities:focus-visible {
+  color: #ef4444;
+}
 
 @media (orientation: landscape) and (max-height: 500px) {
   .bottom-nav .bottom-nav-link {
@@ -3882,6 +3887,8 @@ html.success-haptic-flash::after {
 }
 .digest-kpi--up .digest-kpi__value { color: #F7931A; }
 .digest-kpi--down .digest-kpi__value { color: #ef4444; }
+.digest-kpi--liabilities .digest-kpi__label,
+.digest-kpi--liabilities .digest-kpi__value { color: #ef4444; }
 .digest-chart-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
