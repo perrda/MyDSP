@@ -35,6 +35,21 @@ export function hasStaleSyncedQuotes(
   return false
 }
 
+/** Mini (book) should fetch live marks instead of sitting on other-device prints. */
+export function bookDeviceNeedsLiveQuotes(
+  quotes: Iterable<MarketQuote>,
+  nowMs = Date.now(),
+): boolean {
+  let usable = 0
+  for (const q of quotes) {
+    if (!(q.last > 0)) continue
+    usable += 1
+    if (isSyncedRemoteQuote(q)) return true
+    if (isPastQuoteFreshnessSla(q, nowMs)) return true
+  }
+  return usable === 0
+}
+
 export function formatSlaAge(ms: number): string {
   const mins = Math.round(ms / 60_000)
   if (mins < 1) return 'just now'

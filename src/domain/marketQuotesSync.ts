@@ -16,6 +16,14 @@ export function isSyncedRemoteQuote(q: MarketQuote | undefined): boolean {
 }
 
 /**
+ * Mini is the book: it fetches live marks. Satellites may LWW Mini’s quote
+ * cache. Do not let a satellite envelope overwrite Mini’s live book.
+ */
+export function shouldImportSyncedMarketQuotes(isBookDevice: boolean): boolean {
+  return !isBookDevice
+}
+
+/**
  * Prefer the newer print by `updatedAt` when both sides have a usable last.
  * Remote-winning quotes are tagged `sync:` so UI can show “From other device”.
  */

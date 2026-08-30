@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.129**
+**Current version: 1.2.130**
 
-## Completed (through v1.2.129)
+## Completed (through v1.2.130)
 
+- Leftovers (v1.2.130): Unlock chip hydrates after a working session · Mini fetches live quotes (skip satellite LWW) · phone News + YouTube compact cluster on bottom nav · satellite PTR/Refresh REPLACE without Settings/Automatic · 1.2.128 sync lock unchanged · draft only — live stays 1.2.129
 - Nav + header chrome (v1.2.129): News + YouTube under Household in MENU (sidebar / hamburger) · header chips removed · Refresh visible in the old bell slot (`#F7931A`) · bell inside icon-only … · five-door bottom nav kept · 1.2.128 sync lock unchanged · draft only — live stays 1.2.128
 - Satellite REPLACE Mini book (v1.2.128): Mini always PUTs · satellites replace leftover local DAVID with Mini · leftover never seeds a 404 store · Remember + Automatic hydrate across refresh so the chip shows Synced · origin-lock unchanged · draft only — live stays 1.2.127
 - Book device + satellite Cloud Sync (v1.2.127): Mini is the book (always push) · MacBook/iPhone/iPad pull Mini and apply it · passphrase once then Sync · remember + automatic after first unlock · PTR satellite pull · Worker origin-lock in repo only (mydspv1 + localhost + preview hosts; curl still needs the access key) · no access key on the baked URL · `#F7931A` · Money 12-tile kept · draft only — live stays 1.2.126

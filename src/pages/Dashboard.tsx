@@ -44,6 +44,7 @@ import { isDueToday, isOverdue } from '../domain/todos'
 import { snoozeDueDateOneDay } from '../domain/todoSnooze'
 import { sparklineTrendFromSeries } from '../domain/sparklineSeries'
 import {
+  displayAutoSyncStatus,
   getAutoSyncStatus,
   getLastSyncLatencyKind,
   subscribeAutoSync,
@@ -412,7 +413,7 @@ export function Dashboard() {
     )
   }
 
-  useEffect(() => subscribeAutoSync(setSyncStatus), [])
+  useEffect(() => subscribeAutoSync((next) => setSyncStatus(displayAutoSyncStatus(next))), [])
   useEffect(() => subscribeTodayLayout(() => setTodayLayout(loadTodayLayout())), [])
   useEffect(() => {
     const id = window.setInterval(() => setRelativeTick((n) => n + 1), 30_000)
@@ -1289,7 +1290,7 @@ export function Dashboard() {
     ? ''
     : !syncEnabled
     ? 'Cloud sync off — enable in Settings'
-    : syncStatus.state === 'needs-passphrase'
+    : displayAutoSyncStatus(syncStatus).state === 'needs-passphrase'
       ? 'Cloud sync locked — unlock in Settings'
     : syncStatus.state === 'pulling' || syncStatus.state === 'pushing'
       ? syncStatus.state === 'pulling'

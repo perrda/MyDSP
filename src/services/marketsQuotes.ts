@@ -364,6 +364,29 @@ export async function refreshMarketQuotes(
   return out
 }
 
+/** Book-device live fetch — writes fresh marks so Mini is not stuck on sync: cache. */
+let bookLiveInFlight: Promise<void> | null = null
+
+export async function refreshLiveQuotesForBookDevice(opts?: {
+  finnhubKey?: string
+  manualCryptoPrices?: Record<string, number>
+}): Promise<void> {
+  if (bookLiveInFlight) return bookLiveInFlight
+  const list = listMarketTickers()
+  if (list.length === 0) return
+  bookLiveInFlight = (async () => {
+    try {
+      const next = await refreshMarketQuotes(list, opts)
+      const merged = mergeMarketQuotes(loadMarketQuotesCache(), next)
+      saveMarketQuotesCache(merged, { markDirty: true })
+      setMarketsLastRefresh(new Date().toISOString())
+    } finally {
+      bookLiveInFlight = null
+    }
+  })()
+  return bookLiveInFlight
+}
+
 /** Light prefetch for nav hover/focus — warms quote cache without blocking UI. */
 let prefetchInFlight: Promise<void> | null = null
 

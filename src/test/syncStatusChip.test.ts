@@ -9,6 +9,8 @@ describe('SyncStatusChip', () => {
     expect(src).not.toMatch(/forceSyncNow/)
     expect(src).not.toMatch(/Long-press to sync now/)
     expect(src).toMatch(/Tap to open Settings/)
+    expect(src).toMatch(/displayAutoSyncStatus/)
+    expect(src).toMatch(/emitHydratedAutoSyncStatus/)
     expect(src).not.toMatch(/aria-label="Sync now"/)
     expect(src).not.toMatch(/>\{syncing \? '…' : 'Now'\}</)
   })

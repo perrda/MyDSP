@@ -29,6 +29,7 @@ import { getLocalDeviceHint } from './deviceNickname'
 import { conflictKey, type ConflictChoice } from './conflicts'
 import {
   getSessionSyncPassphrase,
+  hasRememberedSyncPassphrase,
   hydrateSessionSyncPassphrase,
   setSessionSyncPassphrase,
 } from './sessionPassphrase'
@@ -248,11 +249,12 @@ export function noteSuccessfulUnlock(lastAt?: string): void {
   const pass = getSessionSyncPassphrase()
   if (pass) setSessionSyncPassphrase(pass, { remember: true })
   const cfg = loadSyncConfig()
+  const at = lastAt ?? cfg.lastSyncAt ?? status.lastAt
   if (!cfg.enabled || !cfg.remoteUrl.trim()) {
     emit({
       state: 'disabled',
       message: 'Automatic sync is off',
-      lastAt: lastAt ?? cfg.lastSyncAt ?? status.lastAt,
+      lastAt: at,
     })
     return
   }
@@ -260,14 +262,14 @@ export function noteSuccessfulUnlock(lastAt?: string): void {
     emit({
       state: 'needs-passphrase',
       message: 'Enter passphrase in Settings (enable Remember for auto-sync)',
-      lastAt: lastAt ?? cfg.lastSyncAt ?? status.lastAt,
+      lastAt: at,
     })
     return
   }
   emit({
     state: 'idle',
     message: 'Synced',
-    lastAt: lastAt ?? cfg.lastSyncAt ?? new Date().toISOString(),
+    lastAt: at ?? new Date().toISOString(),
   })
 }
 
@@ -275,6 +277,31 @@ export function noteSuccessfulUnlock(lastAt?: string): void {
 export function emitHydratedAutoSyncStatus(): void {
   hydrateSessionSyncPassphrase()
   noteSuccessfulUnlock(loadSyncConfig().lastSyncAt)
+}
+
+/**
+ * Header chip / Today line: never show Unlock when a remembered passphrase
+ * exists. Opening Settings must not be required to dismiss Unlock.
+ */
+export function displayAutoSyncStatus(s: AutoSyncStatus = status): AutoSyncStatus {
+  hydrateSessionSyncPassphrase()
+  if (s.state !== 'needs-passphrase') return s
+  if (!getSessionSyncPassphrase() && !hasRememberedSyncPassphrase()) return s
+  const cfg = loadSyncConfig()
+  if (!cfg.enabled || !cfg.remoteUrl.trim()) {
+    return {
+      ...s,
+      state: 'disabled',
+      message: 'Automatic sync is off',
+      lastAt: s.lastAt ?? cfg.lastSyncAt,
+    }
+  }
+  return {
+    ...s,
+    state: 'idle',
+    message: 'Synced',
+    lastAt: s.lastAt ?? cfg.lastSyncAt,
+  }
 }
 
 export function getAutoSyncStatus(): AutoSyncStatus {
@@ -665,6 +692,7 @@ export async function runAutoSyncCycle(reason: CycleReason = 'manual'): Promise<
     emit({
       state: 'needs-passphrase',
       message: 'Enter passphrase in Settings (enable Remember for auto-sync)',
+      lastAt: cfg.lastSyncAt ?? status.lastAt,
     })
     return
   }

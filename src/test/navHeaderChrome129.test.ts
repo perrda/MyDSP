@@ -10,14 +10,14 @@ const read = (rel: string) => readFileSync(resolve(__dirname, rel), 'utf8')
 describe('MyDSP 1.2.129 nav + header chrome', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(read('../../package.json'))
-    expect(pkg.version).toBe('1.2.129')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.129')
+    expect(pkg.version).toBe('1.2.130')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.130')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.130',
       '1.2.129',
       '1.2.128',
       '1.2.127',
       '1.2.126',
-      '1.2.125',
     ])
   })
 
@@ -49,7 +49,7 @@ describe('MyDSP 1.2.129 nav + header chrome', () => {
     expect(sidebar).not.toMatch(/nav-others-toggle/)
   })
 
-  it('bottom nav stays five-door — News / YouTube are hamburger MENU items', () => {
+  it('bottom nav doors stay five — News / YouTube are a compact media cluster', () => {
     expect(PRIMARY_NAV.map((i) => i.label)).toEqual([
       'Today',
       'Markets',
@@ -64,6 +64,9 @@ describe('MyDSP 1.2.129 nav + header chrome', () => {
       '/plan',
       '/household',
     ])
+    const nav = read('../components/layout/BottomNav.tsx')
+    expect(nav).toMatch(/PHONE_MEDIA_NAV/)
+    expect(nav).toMatch(/bottom-nav-media/)
   })
 
   it('header Refresh is visible and orange; bell is only inside …', () => {
