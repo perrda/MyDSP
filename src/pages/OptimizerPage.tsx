@@ -125,22 +125,22 @@ export function OptimizerPage() {
         </p>
       </div>
 
-      <div className={`grid grid-cols-1 sm:grid-cols-4 gap-px mb-8 ${privacyClass(privacy)}`}>
-        <div className="surface p-6">
+      <div className={`fluid-metric-grid fluid-metric-grid--4 mb-8 ${privacyClass(privacy)}`}>
+        <div className="surface fluid-metric p-6">
           <p className="label-uppercase mb-2">Payoff</p>
-          <p className="text-2xl font-bold">{result.months} mo</p>
+          <p className="fluid-figure text-2xl font-bold tabular-nums">{result.months} mo</p>
         </div>
-        <div className="surface p-6">
+        <div className="surface fluid-metric p-6">
           <p className="label-uppercase mb-2">Total interest</p>
-          <p className="text-2xl font-bold">{formatGBP(result.totalInt)}</p>
+          <p className="fluid-figure text-2xl font-bold tabular-nums">{formatGBP(result.totalInt)}</p>
         </div>
-        <div className="surface p-6">
+        <div className="surface fluid-metric p-6">
           <p className="label-uppercase mb-2">Months saved</p>
-          <p className="text-2xl font-bold text-accent">{monthsSaved}</p>
+          <p className="fluid-figure text-2xl font-bold tabular-nums text-accent">{monthsSaved}</p>
         </div>
-        <div className="surface p-6">
+        <div className="surface fluid-metric p-6">
           <p className="label-uppercase mb-2">Interest saved</p>
-          <p className="text-2xl font-bold text-accent">{formatGBP(interestSaved)}</p>
+          <p className="fluid-figure text-2xl font-bold tabular-nums text-accent">{formatGBP(interestSaved)}</p>
         </div>
       </div>
 

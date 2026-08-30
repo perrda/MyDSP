@@ -77,10 +77,10 @@ export function StatCard({ label, value, hint, tone = 'default' }: StatCardProps
         : 'text-text'
 
   return (
-    <div className="surface p-5 sm:p-6 lg:p-8 h-full min-w-0">
+    <div className="surface fluid-metric p-5 sm:p-6 lg:p-8 h-full min-w-0">
       <p className="label-uppercase mb-3 sm:mb-4">{label}</p>
       <p
-        className={`text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight tabular-nums break-words ${valueClass}`}
+        className={`fluid-figure text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight tabular-nums ${valueClass}`}
       >
         {value}
       </p>

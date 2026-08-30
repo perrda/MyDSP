@@ -29,6 +29,28 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.133',
+    date: '2026-08-30',
+    bullets: [
+      {
+        text: 'Figures and charts stay inside their boxes when you resize',
+        to: '/',
+      },
+      {
+        text: 'Holding VALUE / COST / P&L cards no longer clip long amounts',
+        to: '/equities',
+      },
+      {
+        text: 'Same fit on Today, Money, Markets, and Plan tiles',
+        to: '/money',
+      },
+      {
+        text: 'Draft only — live stays 1.2.132',
+        to: '/',
+      },
+    ],
+  },
+  {
     version: '1.2.132',
     date: '2026-08-30',
     bullets: [

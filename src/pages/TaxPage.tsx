@@ -616,22 +616,22 @@ export function TaxPage() {
       </div>
 
       {isUkTax ? (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px mb-6">
-        <div className="surface p-6">
+      <div className="fluid-metric-grid fluid-metric-grid--4 mb-6">
+        <div className="surface fluid-metric p-6">
           <p className="label-uppercase mb-2">Same-day</p>
-          <p className="text-2xl font-bold tabular-nums">{s104.byRule.sameDay}</p>
+          <p className="fluid-figure text-2xl font-bold tabular-nums">{s104.byRule.sameDay}</p>
         </div>
-        <div className="surface p-6">
+        <div className="surface fluid-metric p-6">
           <p className="label-uppercase mb-2">Bed & breakfast</p>
-          <p className="text-2xl font-bold tabular-nums">{s104.byRule.bedAndBreakfast}</p>
+          <p className="fluid-figure text-2xl font-bold tabular-nums">{s104.byRule.bedAndBreakfast}</p>
         </div>
-        <div className="surface p-6">
+        <div className="surface fluid-metric p-6">
           <p className="label-uppercase mb-2">Section 104</p>
-          <p className="text-2xl font-bold tabular-nums">{s104.byRule.section104}</p>
+          <p className="fluid-figure text-2xl font-bold tabular-nums">{s104.byRule.section104}</p>
         </div>
-        <div className="surface p-6">
+        <div className="surface fluid-metric p-6">
           <p className="label-uppercase mb-2">Unpooled</p>
-          <p className="text-2xl font-bold tabular-nums">{s104.byRule.unpooled}</p>
+          <p className="fluid-figure text-2xl font-bold tabular-nums">{s104.byRule.unpooled}</p>
         </div>
       </div>
       ) : pack.hasCgt ? (

@@ -46,18 +46,18 @@ export function FirePage() {
         description="Lean, regular, fat, and coast FIRE from your live net worth."
       />
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-px mb-8">
+      <div className="fluid-metric-grid fluid-metric-grid--4 mb-8">
         {TYPES.map((t) => (
           <button
             key={t.id}
             type="button"
             onClick={() => setType(t.id)}
-            className={`surface p-5 text-left border ${
+            className={`surface fluid-metric p-5 text-left border ${
               type === t.id ? 'border-accent' : 'border-transparent'
             }`}
           >
             <p className="eyebrow mb-2">{t.label}</p>
-            <p className={`text-xl font-bold tabular-nums ${privacyClass(privacy)}`}>
+            <p className={`fluid-figure text-xl font-bold tabular-nums ${privacyClass(privacy)}`}>
               {formatGBP(
                 t.id === 'lean'
                   ? result.leanTarget
@@ -85,7 +85,7 @@ export function FirePage() {
 
       <div className={`surface p-6 sm:p-10 mb-px ${privacyClass(privacy)}`}>
         <p className="label-uppercase mb-2">FIRE number ({type})</p>
-        <p className="text-4xl font-bold tracking-tight text-accent mb-4">
+        <p className="fluid-figure text-4xl font-bold tracking-tight text-accent mb-4 tabular-nums">
           {formatGBP(result.currentTarget)}
         </p>
         <div className="progress-track mb-3">

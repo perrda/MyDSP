@@ -546,22 +546,22 @@ export function LiabilityDetailPage() {
         </div>
       </div>
 
-      <div className={`grid grid-cols-2 lg:grid-cols-4 gap-px mb-6 sm:mb-8 ${privacyClass(privacy)}`}>
-        <div className="surface p-4 sm:p-6">
+      <div className={`fluid-metric-grid fluid-metric-grid--4 mb-6 sm:mb-8 ${privacyClass(privacy)}`}>
+        <div className="surface fluid-metric p-4 sm:p-6">
           <p className="label-uppercase mb-2">Balance</p>
-          <p className="text-xl sm:text-2xl font-bold tabular-nums">{formatGBP(item.balance)}</p>
+          <p className="fluid-figure text-xl sm:text-2xl font-bold tabular-nums">{formatGBP(item.balance)}</p>
         </div>
-        <div className="surface p-4 sm:p-6">
+        <div className="surface fluid-metric p-4 sm:p-6">
           <p className="label-uppercase mb-2">APR</p>
-          <p className="text-xl sm:text-2xl font-bold tabular-nums">{item.apr.toFixed(2)}%</p>
+          <p className="fluid-figure text-xl sm:text-2xl font-bold tabular-nums">{item.apr.toFixed(2)}%</p>
         </div>
-        <div className="surface p-4 sm:p-6">
+        <div className="surface fluid-metric p-4 sm:p-6">
           <p className="label-uppercase mb-2">Interest / day</p>
-          <p className="text-xl sm:text-2xl font-bold tabular-nums text-accent">{formatGBP(dayInt)}</p>
+          <p className="fluid-figure text-xl sm:text-2xl font-bold tabular-nums text-accent">{formatGBP(dayInt)}</p>
         </div>
-        <div className="surface p-4 sm:p-6">
+        <div className="surface fluid-metric p-4 sm:p-6">
           <p className="label-uppercase mb-2">Portfolio debt</p>
-          <p className="text-xl sm:text-2xl font-bold tabular-nums">{formatGBP(breakdown.liability.total)}</p>
+          <p className="fluid-figure text-xl sm:text-2xl font-bold tabular-nums">{formatGBP(breakdown.liability.total)}</p>
         </div>
       </div>
 

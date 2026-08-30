@@ -2780,7 +2780,7 @@ export function MarketsPage() {
             <h2 className="text-xl font-bold tracking-tight mb-1">{quoteDetail.ticker.symbol}</h2>
             <p className="text-sm text-text-muted mb-3">{quoteDetail.ticker.name}</p>
             {quoteDetail.quote && quoteDetail.quote.last > 0 ? (
-              <p className={`text-2xl font-bold tabular-nums mb-2 ${privacyClass(privacy)}`}>
+              <p className={`fluid-figure text-2xl font-bold tabular-nums mb-2 ${privacyClass(privacy)}`}>
                 {formatMarketLast(quoteDetail.quote)}
               </p>
             ) : (

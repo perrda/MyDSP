@@ -1329,6 +1329,8 @@ svg.lucide-square-pen {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   transition: background-color 0.25s ease, border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+  min-width: 0;
+  max-width: 100%;
 }
 .surface-interactive {
   cursor: pointer;
@@ -2011,14 +2013,13 @@ select:focus {
 
 .chart-range-scroll {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.25rem;
   max-width: 100%;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
+  min-width: 0;
+  overflow-x: visible;
   padding-bottom: 1px;
-  mask-image: linear-gradient(to right, #000 92%, transparent);
 }
 .chart-range-scroll::-webkit-scrollbar {
   display: none;
@@ -3253,9 +3254,9 @@ html.success-haptic-flash::after {
   justify-self: end;
 }
 .holdings-list-row__metrics p {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
   max-width: 100%;
 }
 .holdings-list-row__change {
@@ -4033,4 +4034,99 @@ html.success-haptic-flash::after {
 }
 .sync-advanced[open] > summary {
   margin-bottom: 1rem;
+}
+
+/* ============================================================================
+   1.2.133 fluid-fit — figures, labels, charts stay inside their box.
+   Designer scores 390 portrait, 768, 1280, plus landscape.
+   Do not overflow:hidden on sticky-header sections (clips row chrome).
+   ============================================================================ */
+.fluid-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+.fluid-metric-grid--3 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+@media (min-width: 768px) {
+  .fluid-metric-grid--3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1024px) {
+  .fluid-metric-grid--4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.fluid-metric,
+.fluid-metric-grid > .surface,
+.grid.gap-px > .surface:not(.markets-detail-sticky):not(.markets-section-sticky),
+.grid.gap-3 > .surface:not(.markets-detail-sticky):not(.markets-section-sticky) {
+  container-type: inline-size;
+  container-name: fluid-metric;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.fluid-figure {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+@container fluid-metric (max-width: 14rem) {
+  .fluid-figure,
+  .surface :is(.text-xl, .text-2xl, .text-3xl).tabular-nums {
+    font-size: clamp(0.75rem, 8.6cqi, 1.15rem) !important;
+  }
+}
+
+/* App-wide safety net: large money figures in cards never escape the box. */
+.surface :is(.text-xl, .text-2xl, .text-3xl, .text-4xl).tabular-nums,
+.today-net-worth-value,
+.today-hero-assets-value {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.today-hero-book-row :is(span, p).tabular-nums {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  flex: 0 1 auto;
+}
+
+.sparkline-draw-on,
+.holding-markets-sparkline,
+.today-nw-sparkline,
+.chart-panel .recharts-responsive-container,
+.chart-panel svg {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.holding-price-strip {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.app-content,
+.today-main-column,
+.money-home,
+.liability-workspace,
+.markets-master-detail-panel {
+  min-width: 0;
+  max-width: 100%;
 }

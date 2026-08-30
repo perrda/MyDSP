@@ -79,26 +79,26 @@ export function JobAnalytics({ applications, privacy }: JobAnalyticsProps) {
   return (
     <div className="space-y-6">
       {/* Summary Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="surface p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none">
+      <div className="fluid-metric-grid fluid-metric-grid--4">
+        <div className="surface fluid-metric p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none">
           <p className="text-xs uppercase tracking-wider text-text-subtle mb-1 font-semibold">Avg Salary</p>
-          <p className={`text-2xl font-bold tabular-nums ${privacy ? 'blur-md' : ''}`}>
+          <p className={`fluid-figure text-2xl font-bold tabular-nums ${privacy ? 'blur-md' : ''}`}>
             {analytics.avgSalary > 0 ? formatGBP(analytics.avgSalary) : 'N/A'}
           </p>
         </div>
-        <div className="surface p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none">
+        <div className="surface fluid-metric p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none">
           <p className="text-xs uppercase tracking-wider text-text-subtle mb-1 font-semibold">Median</p>
-          <p className={`text-2xl font-bold tabular-nums ${privacy ? 'blur-md' : ''}`}>
+          <p className={`fluid-figure text-2xl font-bold tabular-nums ${privacy ? 'blur-md' : ''}`}>
             {analytics.medianSalary > 0 ? formatGBP(analytics.medianSalary) : 'N/A'}
           </p>
         </div>
-        <div className="surface p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none">
+        <div className="surface fluid-metric p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none">
           <p className="text-xs uppercase tracking-wider text-text-subtle mb-1 font-semibold">Total Apps</p>
-          <p className="text-2xl font-bold tabular-nums">{applications.length}</p>
+          <p className="fluid-figure text-2xl font-bold tabular-nums">{applications.length}</p>
         </div>
-        <div className="surface p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none">
+        <div className="surface fluid-metric p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none">
           <p className="text-xs uppercase tracking-wider text-text-subtle mb-1 font-semibold">Remote</p>
-          <p className="text-2xl font-bold tabular-nums">
+          <p className="fluid-figure text-2xl font-bold tabular-nums">
             {Math.round((analytics.remoteData.find((d) => d.name === 'Remote')?.value || 0) / applications.length * 100)}%
           </p>
         </div>

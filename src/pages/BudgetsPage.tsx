@@ -237,30 +237,30 @@ export function BudgetsPage() {
       />
 
       {/* Overall Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <div className="surface p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none">
+      <div className="fluid-metric-grid fluid-metric-grid--4 mb-6">
+        <div className="surface fluid-metric p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none">
           <p className="text-xs uppercase tracking-wider text-text-subtle mb-1 font-semibold">Total Budget</p>
-          <p className={`text-2xl font-bold tabular-nums ${privacyClass(privacy)}`}>
+          <p className={`fluid-figure text-2xl font-bold tabular-nums ${privacyClass(privacy)}`}>
             {formatGBP(totalBudget)}
           </p>
         </div>
-        <div className="surface p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none">
+        <div className="surface fluid-metric p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none">
           <p className="text-xs uppercase tracking-wider text-text-subtle mb-1 font-semibold">Spent</p>
-          <p className={`text-2xl font-bold tabular-nums ${privacyClass(privacy)}`}>
+          <p className={`fluid-figure text-2xl font-bold tabular-nums ${privacyClass(privacy)}`}>
             {formatGBP(totalSpent)}
           </p>
           <p className="text-xs text-text-muted mt-1">{overallProgress}% of budget</p>
         </div>
-        <div className="surface p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none">
+        <div className="surface fluid-metric p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none">
           <p className="text-xs uppercase tracking-wider text-text-subtle mb-1 font-semibold">Remaining</p>
-          <p className={`text-2xl font-bold tabular-nums ${totalRemaining < 0 ? 'text-red-500' : 'text-green-500'} ${privacyClass(privacy)}`}>
+          <p className={`fluid-figure text-2xl font-bold tabular-nums ${totalRemaining < 0 ? 'text-red-500' : 'text-green-500'} ${privacyClass(privacy)}`}>
             {formatGBP(Math.abs(totalRemaining))}
           </p>
           {totalRemaining < 0 && <p className="text-xs text-red-500 mt-1">Over budget</p>}
         </div>
-        <div className="surface p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none">
+        <div className="surface fluid-metric p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none">
           <p className="text-xs uppercase tracking-wider text-text-subtle mb-1 font-semibold">Categories</p>
-          <p className="text-2xl font-bold tabular-nums">{rows.length}</p>
+          <p className="fluid-figure text-2xl font-bold tabular-nums">{rows.length}</p>
           <p className="text-xs text-text-muted mt-1">{alerts.length} need attention</p>
         </div>
       </div>

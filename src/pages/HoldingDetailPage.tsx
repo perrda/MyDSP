@@ -491,17 +491,17 @@ export function HoldingDetailPage() {
         </div>
       </div>
 
-      <div className={`holding-price-strip surface p-5 sm:p-6 mb-6 ${privacyClass(privacy)}`}>
+      <div className={`holding-price-strip fluid-metric surface p-5 sm:p-6 mb-6 ${privacyClass(privacy)}`}>
         <p className="label-uppercase mb-2">Live price</p>
-        <p className="text-3xl sm:text-4xl font-bold tabular-nums tracking-tight">
+        <p className="fluid-figure text-3xl sm:text-4xl font-bold tabular-nums tracking-tight">
           {formatGBPPrecise(price)}
         </p>
         <p className={`mt-1 text-sm font-semibold tabular-nums ${pnl >= 0 ? 'text-accent' : 'text-text-muted'}`}>
           {formatGBP(pnl, { signed: true })} · {formatPct(cost > 0 ? (pnl / cost) * 100 : 0)}
         </p>
         {marketQuote ? (
-          <div className="holding-markets-quote-cache mt-4 flex flex-wrap items-center gap-3">
-            <div>
+          <div className="holding-markets-quote-cache mt-4 flex flex-wrap items-center gap-3 min-w-0">
+            <div className="min-w-0">
               <p className="text-[10px] uppercase tracking-wider text-text-subtle font-semibold">
                 Markets day
               </p>
@@ -518,7 +518,7 @@ export function HoldingDetailPage() {
               </p>
             </div>
             {marketQuote.sparkline.length > 1 ? (
-              <div className="holding-markets-sparkline w-24 sm:w-32" aria-label={`${item.symbol} Markets quote cache sparkline`}>
+              <div className="holding-markets-sparkline min-w-0 w-24 sm:w-32 max-w-full" aria-label={`${item.symbol} Markets quote cache sparkline`}>
                 <Sparkline
                   data={marketQuote.sparkline}
                   height={36}
@@ -560,24 +560,27 @@ export function HoldingDetailPage() {
         ) : null}
       </div>
 
-      <div className={`grid grid-cols-2 lg:grid-cols-4 gap-px mb-6 ${privacyClass(privacy)}`}>
-        <div className="surface p-4 sm:p-6">
+      <div
+        className={`fluid-metric-grid fluid-metric-grid--4 mb-6 ${privacyClass(privacy)}`}
+        data-testid="holding-metric-grid"
+      >
+        <div className="surface fluid-metric p-4 sm:p-6">
           <p className="label-uppercase mb-2">Value</p>
-          <p className="text-xl sm:text-2xl font-bold tabular-nums">{formatGBP(value)}</p>
+          <p className="fluid-figure text-xl sm:text-2xl font-bold tabular-nums">{formatGBP(value)}</p>
         </div>
-        <div className="surface p-4 sm:p-6">
+        <div className="surface fluid-metric p-4 sm:p-6">
           <p className="label-uppercase mb-2">Cost</p>
-          <p className="text-xl sm:text-2xl font-bold tabular-nums">{formatGBP(cost)}</p>
+          <p className="fluid-figure text-xl sm:text-2xl font-bold tabular-nums">{formatGBP(cost)}</p>
         </div>
-        <div className="surface p-4 sm:p-6">
+        <div className="surface fluid-metric p-4 sm:p-6">
           <p className="label-uppercase mb-2">P&amp;L</p>
-          <p className={`text-xl sm:text-2xl font-bold tabular-nums ${pnl >= 0 ? 'text-accent' : ''}`}>
+          <p className={`fluid-figure text-xl sm:text-2xl font-bold tabular-nums ${pnl >= 0 ? 'text-accent' : ''}`}>
             {formatGBP(pnl, { signed: true })}
           </p>
         </div>
-        <div className="surface p-4 sm:p-6">
+        <div className="surface fluid-metric p-4 sm:p-6">
           <p className="label-uppercase mb-2">Qty · Price</p>
-          <p className="text-lg sm:text-xl font-bold tabular-nums">
+          <p className="fluid-figure text-lg sm:text-xl font-bold tabular-nums">
             {formatQty(qty)} · {formatGBPPrecise(price)}
           </p>
           <p className="text-xs text-text-subtle mt-1">{formatPct(pnlPct)}</p>
