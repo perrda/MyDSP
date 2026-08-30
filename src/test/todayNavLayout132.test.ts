@@ -20,10 +20,10 @@ describe('MyDSP 1.2.132 Today layout + left-nav order', () => {
     expect(RELEASE_NOTES[0]?.version).toBe('1.2.137')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
       '1.2.137',
+      '1.2.135',
       '1.2.134',
       '1.2.133',
       '1.2.132',
-      '1.2.131',
     ])
     const changelog = read('../../CHANGELOG.md')
     const section = changelog.match(/## \[1\.2\.132\][\s\S]*?(?=## \[)/)?.[0] ?? ''

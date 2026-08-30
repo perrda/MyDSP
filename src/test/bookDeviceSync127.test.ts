@@ -20,10 +20,10 @@ describe('MyDSP 1.2.127 book device + satellite pull + origin-lock', () => {
     expect(RELEASE_NOTES[0]?.version).toBe('1.2.137')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
       '1.2.137',
+      '1.2.135',
       '1.2.134',
       '1.2.133',
       '1.2.132',
-      '1.2.131',
     ])
     const notes127 = RELEASE_NOTES.find((e) => e.version === '1.2.127')
     const tip = notes127?.bullets.map((b) => (typeof b === 'string' ? b : b.text)).join(' ')

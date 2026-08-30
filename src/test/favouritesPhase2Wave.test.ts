@@ -10,10 +10,10 @@ describe('Favourites phase 2 wave (v1.2.106)', () => {
     expect(RELEASE_NOTES[0]?.version).toBe('1.2.137')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
       '1.2.137',
+      '1.2.135',
       '1.2.134',
       '1.2.133',
       '1.2.132',
-      '1.2.131',
     ])
   })
 

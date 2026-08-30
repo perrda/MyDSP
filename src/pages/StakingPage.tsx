@@ -205,71 +205,6 @@ export function StakingPage() {
         }
       />
 
-      <div
-        className="surface border-l-2 border-l-accent px-5 py-4 mb-6"
-        data-testid="staking-manual-ledger-note"
-      >
-        <p className="text-sm font-semibold">Manual ledger — no automatic accounting</p>
-        <p className="text-xs text-text-subtle mt-1">
-          Rewards and APY entered here do not change crypto holding quantity or cost basis, add
-          trade-journal rows, or book P&amp;L. Record any holding or tax changes separately.
-        </p>
-      </div>
-
-      {csvMsg && (
-        <div className="surface border-l-2 border-l-accent px-5 py-4 mb-6" role="status">
-          <p className="text-sm">{csvMsg}</p>
-        </div>
-      )}
-
-      <div className="surface p-6 sm:p-8 mb-px">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl mb-6">
-          <Field label="Pool name">
-            <input
-              type="text"
-              value={data.staking.pool.name}
-              onChange={(e) =>
-                setData((prev) => ({
-                  ...prev,
-                  staking: {
-                    ...prev.staking,
-                    pool: { ...prev.staking.pool, name: e.target.value },
-                  },
-                }))
-              }
-            />
-          </Field>
-          <Field label="Ticker">
-            <input
-              type="text"
-              value={data.staking.pool.ticker ?? ''}
-              onChange={(e) =>
-                setData((prev) => ({
-                  ...prev,
-                  staking: {
-                    ...prev.staking,
-                    pool: { ...prev.staking.pool, ticker: e.target.value },
-                  },
-                }))
-              }
-            />
-          </Field>
-        </div>
-        <p className="eyebrow mb-2">Import CSV</p>
-        <p className="text-sm text-text-subtle mb-3 font-light">
-          Headers: epoch, amount, date, stake, priceAtTime
-        </p>
-        <input
-          type="file"
-          accept=".csv,text/csv"
-          onChange={(e) => {
-            const f = e.target.files?.[0]
-            if (f) void importCsv(f)
-            e.target.value = ''
-          }}
-        />
-      </div>
-
       <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px mb-8 ${privacyClass(privacy)}`}>
         <StatCard label="Total rewards" value={`${formatQty(summary.totalAda)} ADA`} hint={formatGBP(summary.totalGbp)} />
         <StatCard label="Est. APY" value={`${summary.estimatedApy.toFixed(1)}%`} hint={`${formatQty(summary.avgMonthlyAda)} ADA / mo`} />
@@ -335,6 +270,71 @@ export function StakingPage() {
             </ReorderList>
           )}
         </div>
+      </div>
+
+      <div
+        className="surface border-l-2 border-l-accent px-5 py-4 mb-6 mt-8"
+        data-testid="staking-manual-ledger-note"
+      >
+        <p className="text-sm font-semibold">Manual ledger — no automatic accounting</p>
+        <p className="text-xs text-text-subtle mt-1">
+          Rewards and APY entered here do not change crypto holding quantity or cost basis, add
+          trade-journal rows, or book P&amp;L. Record any holding or tax changes separately.
+        </p>
+      </div>
+
+      {csvMsg && (
+        <div className="surface border-l-2 border-l-accent px-5 py-4 mb-6" role="status">
+          <p className="text-sm">{csvMsg}</p>
+        </div>
+      )}
+
+      <div className="surface p-6 sm:p-8 mb-px">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl mb-6">
+          <Field label="Pool name">
+            <input
+              type="text"
+              value={data.staking.pool.name}
+              onChange={(e) =>
+                setData((prev) => ({
+                  ...prev,
+                  staking: {
+                    ...prev.staking,
+                    pool: { ...prev.staking.pool, name: e.target.value },
+                  },
+                }))
+              }
+            />
+          </Field>
+          <Field label="Ticker">
+            <input
+              type="text"
+              value={data.staking.pool.ticker ?? ''}
+              onChange={(e) =>
+                setData((prev) => ({
+                  ...prev,
+                  staking: {
+                    ...prev.staking,
+                    pool: { ...prev.staking.pool, ticker: e.target.value },
+                  },
+                }))
+              }
+            />
+          </Field>
+        </div>
+        <p className="eyebrow mb-2">Import CSV</p>
+        <p className="text-sm text-text-subtle mb-3 font-light">
+          Headers: epoch, amount, date, stake, priceAtTime
+        </p>
+        <input
+          type="file"
+          accept=".csv,text/csv"
+          onChange={(e) => {
+            const f = e.target.files?.[0]
+            if (f) void importCsv(f)
+            e.target.value = ''
+          }}
+        />
       </div>
 
       <Modal open={open} title={editingKey !== null ? 'Edit reward' : 'Add reward'} onClose={() => setOpen(false)}>

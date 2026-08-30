@@ -1,0 +1,27 @@
+---
+description: Useful figures, charts, and lists sit above help / import / search chrome
+alwaysApply: true
+---
+
+# Data above help chrome
+
+Owner lock (30 Aug 2026): **values, donuts, charts, and listed holdings come first.** Help copy, “coming soon”, search chrome, included-count bars, and concentration/drift notes sit **below** that book.
+
+## Never
+
+- Do **not** park Connect-exchange / CSV-coming, “transfers stay separate”, disclaimer rails, or a search box **above** VALUE / COST / P&L, mix donuts, series charts, or the holdings list.
+- Do **not** bury the book under a stack of instructional surfaces on Crypto, Equities, Holding detail, Staking, Tax, Plan, Compare, or similar list pages.
+
+## Required order (holdings-style pages)
+
+1. PageHeader (title + Add / ⋯)
+2. KPI strip (Value / Cost / P&L or equivalent)
+3. Mix donut + value chart
+4. Holdings list + selected pane (or empty state)
+5. Then: Unpriced banner, Connect exchange, ledger notes, search, included-value bar, drift / concentration
+
+Search may still filter the list above it. Sticky search/totals are not required once that chrome is below the list — keep `--holdings-search-height` / `--holdings-totals-height` at ~0 so the selected pane sticks under the app header only.
+
+## Apply elsewhere
+
+Same rule on any page with a KPI / chart / table plus a help rail: **book first, explanation second.** Tax disclaimers / export explainers, Plan unpriced notes, and Compare week-Δ copy sit after the figures and tables.
