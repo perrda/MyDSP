@@ -258,7 +258,7 @@ async function fetchGeckoJson<T>(url: string, timeoutMs = 10000): Promise<T | nu
 export interface CryptoPriceUpdate {
   symbol: string
   price: number
-  source: 'coingecko' | 'manual' | 'default'
+  source: 'coingecko' | 'yahoo' | 'coincap' | 'coinbase' | 'manual' | 'default'
 }
 
 export async function fetchCryptoPricesGbp(
@@ -272,13 +272,21 @@ export async function fetchCryptoPricesGbp(
   return quotes.map((q) => ({
     symbol: q.symbol,
     price: q.priceGbp,
-    source:
-      q.source === 'coingecko' || q.source === 'yahoo'
-        ? 'coingecko'
-        : q.source === 'default'
-          ? 'default'
-          : 'manual',
+    source: q.source,
   }))
+}
+
+/** Same CORS-proxy list equity holdings use for Yahoo chart (quote worker → /api/quote → relays → direct). */
+export function holdingsQuoteProxyCandidates(url: string): string[] {
+  return proxyCandidatesFor(url)
+}
+
+/** Holdings Yahoo/Gecko fallback fetch — first JSON object from that candidate list. */
+export async function fetchViaHoldingsProxies<T>(
+  url: string,
+  timeoutMs = 10000,
+): Promise<T | null> {
+  return fetchViaProxies<T>(url, timeoutMs)
 }
 
 /** Raw market quote in the venue’s native currency (USD for US equities). */
@@ -1301,4 +1309,192 @@ export async function fetchCryptoGbpSparkline(
 /** @deprecated use fetchYahooSparkline — kept for callers expecting intraday */
 export async function fetchEquitySparkline(symbol: string, _days = SPARKLINE_HOURS): Promise<number[]> {
   return fetchYahooSparkline(normalizeYahooEquitySymbol(symbol))
+}
+
+export type ProviderProbeResult = { ok: boolean; skipped?: boolean; detail?: string }
+
+/** Cheap CoinGecko ping — bitcoin GBP via existing simple/price. Honours 429 backoff. */
+export async function probeCoinGeckoBitcoinGbp(): Promise<ProviderProbeResult> {
+  if (geckoCoolingDown()) {
+    return { ok: false, skipped: true, detail: 'CoinGecko 429 backoff' }
+  }
+  try {
+    const url = 'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=gbp'
+    const data = await fetchGeckoJson<{ bitcoin?: { gbp?: number } }>(url)
+    const gbp = data?.bitcoin?.gbp
+    if (typeof gbp === 'number' && gbp > 0) return { ok: true, detail: `OK · BTC ${gbp}` }
+    // Empty / 429 body is not a live miss to storm — honour backoff as skip.
+    return {
+      ok: false,
+      skipped: true,
+      detail: geckoCoolingDown() ? 'CoinGecko 429 backoff' : 'CoinGecko empty body',
+    }
+  } catch (e) {
+    return { ok: false, skipped: true, detail: e instanceof Error ? e.message : 'CoinGecko probe failed' }
+  }
+}
+
+/** Last print from a Yahoo chart — regular, previous close, or last series close (weekend OK). */
+function lastCloseFromYahooResult(result: YahooChartResult | undefined | null): number | null {
+  if (!result) return null
+  const meta = result.meta
+  for (const n of [
+    meta?.regularMarketPrice,
+    meta?.chartPreviousClose,
+    meta?.previousClose,
+    meta?.postMarketPrice,
+  ]) {
+    if (typeof n === 'number' && n > 0) return n
+  }
+  const closes = result.indicators?.quote?.[0]?.close ?? []
+  for (let i = closes.length - 1; i >= 0; i--) {
+    const n = closes[i]
+    if (typeof n === 'number' && n > 0) return n
+  }
+  return null
+}
+
+/** Yahoo chart last, including CORS-ok wrappers (jina `data.content`, allorigins `contents`). */
+function lastCloseFromUnknownYahooBody(data: unknown): number | null {
+  if (!data || typeof data !== 'object') return null
+  const rec = data as {
+    chart?: { result?: YahooChartResult[] }
+    data?: { content?: string }
+    contents?: string
+  }
+  const direct = lastCloseFromYahooResult(rec.chart?.result?.[0])
+  if (direct && direct > 0) return direct
+  for (const raw of [rec.data?.content, rec.contents]) {
+    if (typeof raw !== 'string' || !raw.trim()) continue
+    try {
+      const inner = JSON.parse(raw) as { chart?: { result?: YahooChartResult[] } }
+      const last = lastCloseFromYahooResult(inner.chart?.result?.[0])
+      if (last && last > 0) return last
+    } catch {
+      /* next wrapper */
+    }
+  }
+  return null
+}
+
+function yahooChartUrl(symbol: string, host: 'query1' | 'query2', range: string, interval: string): string {
+  return `https://${host}.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=${encodeURIComponent(interval)}&range=${encodeURIComponent(range)}`
+}
+
+/**
+ * CORS-ok Yahoo AAPL lasts — jina first (Chrome from mydsp worker origin,
+ * same class as CoinCap GraphQL / Coinbase spot), then holdings relays.
+ */
+export function yahooAaplCorsUrls(range = '5d', interval = '1d'): string[] {
+  const q1 = yahooChartUrl('AAPL', 'query1', range, interval)
+  const q2 = yahooChartUrl('AAPL', 'query2', range, interval)
+  return [`https://r.jina.ai/${q1}`, `https://r.jina.ai/${q2}`, ...holdingsQuoteProxyCandidates(q1)]
+}
+
+export const YAHOO_AAPL_CORS_URLS = yahooAaplCorsUrls()
+
+/** Walk CORS-ok Yahoo URLs until a numeric last. Empty/blocked = next URL, not skip. */
+export async function fetchYahooLastCloseViaHoldingsProxies(
+  symbol: string,
+  range = '5d',
+  interval = '1d',
+): Promise<number | null> {
+  const q1 = yahooChartUrl(symbol, 'query1', range, interval)
+  const urls = [
+    `https://r.jina.ai/${q1}`,
+    `https://r.jina.ai/${yahooChartUrl(symbol, 'query2', range, interval)}`,
+    ...holdingsQuoteProxyCandidates(q1),
+  ]
+  for (const url of urls) {
+    try {
+      const { data } = await fetchJson<unknown>(url, 6000)
+      const last = lastCloseFromUnknownYahooBody(data)
+      if (last && last > 0) return last
+    } catch {
+      /* empty / blocked / non-JSON — try the next CORS-ok Yahoo URL */
+    }
+  }
+  return null
+}
+
+/** Cheap Yahoo ping — walk CORS-ok Yahoo URLs until a numeric AAPL last. Weekend last close counts. */
+export async function probeYahooAapl(): Promise<ProviderProbeResult> {
+  const last = await fetchYahooLastCloseViaHoldingsProxies('AAPL')
+  if (last && last > 0) return { ok: true, detail: `OK · AAPL ${last}` }
+  return { ok: false, detail: 'Yahoo empty quote' }
+}
+
+function priceUsdFromCoinCapBody(data: unknown): number | null {
+  if (!data || typeof data !== 'object') return null
+  const rec = data as {
+    data?: {
+      priceUsd?: string | number
+      rateUsd?: string | number
+      asset?: { priceUsd?: string | number }
+    }
+    priceUsd?: string | number
+    rateUsd?: string | number
+  }
+  const raw =
+    rec.data?.asset?.priceUsd ??
+    rec.data?.priceUsd ??
+    rec.data?.rateUsd ??
+    rec.priceUsd ??
+    rec.rateUsd
+  const n = Number(raw)
+  return n > 0 ? n : null
+}
+
+/**
+ * CORS-ok CoinCap BTC lasts — GraphQL first (Chrome from mydsp worker origin,
+ * same class as Coinbase spot), then retired v2 hosts / holdings relays.
+ */
+export const COINCAP_BTC_CORS_URLS = [
+  `https://graphql.coincap.io/?query=${encodeURIComponent('{asset(id:"bitcoin"){priceUsd}}')}`,
+  'https://api.coincap.io/v2/assets/bitcoin',
+  'https://api.coincap.io/v2/rates/bitcoin',
+] as const
+
+/** Cheap CoinCap ping — walk CORS-ok CoinCap URLs until a numeric BTC last. */
+export async function probeCoinCapBtc(): Promise<ProviderProbeResult> {
+  for (const url of COINCAP_BTC_CORS_URLS) {
+    try {
+      const { data } = await fetchJson<unknown>(url, 8000)
+      const last = priceUsdFromCoinCapBody(data)
+      if (last && last > 0) return { ok: true, detail: `OK · BTC ${last}` }
+    } catch {
+      /* empty / blocked / non-JSON — try the next CORS-ok CoinCap URL */
+    }
+  }
+  try {
+    const cap = await fetchCoinCapUsd('BTC')
+    if (cap && cap.priceUsd > 0) return { ok: true, detail: `OK · BTC ${cap.priceUsd}` }
+  } catch {
+    /* v2 helper empty */
+  }
+  return { ok: false, detail: 'CoinCap empty quote' }
+}
+
+/** Cheap Coinbase ping — BTC USD spot. */
+export async function probeCoinbaseBtc(): Promise<ProviderProbeResult> {
+  try {
+    const cb = await fetchCoinbaseUsd('BTC')
+    if (cb && cb > 0) return { ok: true, detail: `OK · BTC ${cb}` }
+    return { ok: false, detail: 'Coinbase empty quote' }
+  } catch (e) {
+    return { ok: false, detail: e instanceof Error ? e.message : 'Coinbase probe failed' }
+  }
+}
+
+/** Cheap FX ping — Frankfurter GBP/USD, then exchangerate-api. */
+export async function probeFxGbp(): Promise<ProviderProbeResult> {
+  try {
+    const frank = await fetchFrankfurterFxQuote('GBP', 'USD')
+    if (frank && frank.last > 0) return { ok: true, detail: `OK · GBP/USD ${frank.last}` }
+    const spot = await fetchExchangerateApiSpot('GBP', 'USD')
+    if (spot && spot > 0) return { ok: true, detail: `OK · GBP/USD ${spot}` }
+    return { ok: false, detail: 'FX empty quote' }
+  } catch (e) {
+    return { ok: false, detail: e instanceof Error ? e.message : 'FX probe failed' }
+  }
 }

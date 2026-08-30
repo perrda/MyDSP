@@ -86,7 +86,12 @@ interface PortfolioContextValue {
   privacy: boolean
   setPrivacy: (v: boolean) => void
   refreshing: boolean
-  refreshPrices: () => Promise<{ crypto: number; equities: number; skipped?: string }>
+  refreshPrices: () => Promise<{
+    crypto: number
+    equities: number
+    skipped?: string
+    quotes?: Array<{ source: string; last: number; kind: string }>
+  }>
   lastPriceError: string | null
   lastPriceThrottleUntil: number | null
   fxRates: FxRates
@@ -328,19 +333,19 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
     const snapshot = dataRef.current
     if (snapshot.settings.privacy) {
       setLastPriceError('Price refresh blocked while privacy mode is on.')
-      return { crypto: 0, equities: 0, skipped: 'privacy' }
+      return { crypto: 0, equities: 0, skipped: 'privacy', quotes: [] }
     }
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       enqueueOfflineJob('quote_refresh', { note: 'Queued while offline' })
       setLastPriceError('Offline — quote refresh queued.')
-      return { crypto: 0, equities: 0, skipped: 'offline' }
+      return { crypto: 0, equities: 0, skipped: 'offline', quotes: [] }
     }
     const nowMs = Date.now()
     if (nowMs - lastRefreshAtRef.current < PRICE_THROTTLE_MS) {
       const until = lastRefreshAtRef.current + PRICE_THROTTLE_MS
       setLastPriceThrottleUntil(until)
       setLastPriceError(`Wait ${Math.ceil((until - nowMs) / 1000)}s before refreshing again.`)
-      return { crypto: 0, equities: 0, skipped: 'throttle' }
+      return { crypto: 0, equities: 0, skipped: 'throttle', quotes: [] }
     }
 
     const startedOn = activeIdRef.current
@@ -362,7 +367,7 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
       )
 
       if (activeIdRef.current !== startedOn) {
-        return { crypto: 0, equities: 0 }
+        return { crypto: 0, equities: 0, quotes: [] }
       }
 
       const now = new Date().toISOString()
@@ -415,6 +420,9 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
       return {
         crypto: cryptoUpdates.filter((u) => u.price > 0).length,
         equities: Object.keys(equityMap).length,
+        quotes: cryptoUpdates
+          .filter((u) => u.price > 0)
+          .map((u) => ({ source: u.source, last: u.price, kind: 'crypto' })),
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Price refresh failed'
@@ -422,7 +430,7 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
       if (typeof navigator !== 'undefined' && !navigator.onLine) {
         enqueueOfflineJob('quote_refresh', { note: msg })
       }
-      return { crypto: 0, equities: 0 }
+      return { crypto: 0, equities: 0, quotes: [] }
     } finally {
       setRefreshing(false)
     }

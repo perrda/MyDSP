@@ -160,6 +160,124 @@ export function recordMarketsRefreshHealth(
   }
 }
 
+export type ProviderPingOutcome = 'ok' | 'fail' | 'skip'
+
+export type MarketsProviderProbes = {
+  coingecko: () => Promise<{ ok: boolean; skipped?: boolean; detail?: string }>
+  yahoo: () => Promise<{ ok: boolean; detail?: string }>
+  finnhub: (key: string) => Promise<{ ok: boolean; detail: string }>
+  coincap: () => Promise<{ ok: boolean; detail?: string }>
+  coinbase: () => Promise<{ ok: boolean; detail?: string }>
+  fx: () => Promise<{ ok: boolean; detail?: string }>
+}
+
+async function defaultProbes(): Promise<MarketsProviderProbes> {
+  const prices = await import('./prices')
+  return {
+    coingecko: prices.probeCoinGeckoBitcoinGbp,
+    yahoo: prices.probeYahooAapl,
+    finnhub: prices.probeFinnhubKey,
+    coincap: prices.probeCoinCapBtc,
+    coinbase: prices.probeCoinbaseBtc,
+    fx: prices.probeFxGbp,
+  }
+}
+
+function resolveFinnhubKey(explicit?: string): string {
+  const fromArg = (explicit ?? '').trim()
+  if (fromArg) return fromArg
+  try {
+    return (typeof localStorage !== 'undefined' && localStorage.getItem('finnhub_key')) || ''
+  } catch {
+    return ''
+  }
+}
+
+/**
+ * One cheap quote per provider id (not the holdings cascade).
+ * Missing Finnhub key is a skip — not OK and not a failure storm.
+ * CoinGecko 429 backoff is a skip so we do not pile onto a cooling-down feed.
+ */
+export async function pingAllMarketsProviders(opts?: {
+  finnhubKey?: string
+  probes?: Partial<MarketsProviderProbes>
+  /** Quote results already fetched this Refresh tick (`source` + last). */
+  sampledThisTick?: Array<{ source: string; last: number }>
+}): Promise<Record<MarketsProviderId, ProviderPingOutcome>> {
+  const probes = { ...(await defaultProbes()), ...opts?.probes }
+  const finnhubKey = resolveFinnhubKey(opts?.finnhubKey)
+  const outcomes = {} as Record<MarketsProviderId, ProviderPingOutcome>
+  const alreadyOk = new Set<MarketsProviderId>()
+
+  for (const q of opts?.sampledThisTick ?? []) {
+    if (!(q.last > 0) || !q.source) continue
+    const id = providerFromQuoteSource(q.source)
+    if (!id) continue
+    recordProviderSuccess(id)
+    outcomes[id] = 'ok'
+    alreadyOk.add(id)
+  }
+
+  const record = (id: MarketsProviderId, result: { ok: boolean; skipped?: boolean; detail?: string }) => {
+    if (result.skipped) {
+      outcomes[id] = 'skip'
+      return
+    }
+    if (result.ok) {
+      recordProviderSuccess(id)
+      outcomes[id] = 'ok'
+      return
+    }
+    recordProviderFailure(id, result.detail || 'Ping failed')
+    outcomes[id] = 'fail'
+  }
+
+  const run = (id: MarketsProviderId, fn: () => Promise<{ ok: boolean; skipped?: boolean; detail?: string }>) => {
+    if (alreadyOk.has(id)) return Promise.resolve()
+    return fn()
+      .then((r) => record(id, r))
+      .catch((e) =>
+        record(id, { ok: false, skipped: true, detail: e instanceof Error ? e.message : 'Ping failed' }),
+      )
+  }
+
+  // Yahoo + CoinCap start together so a long CoinCap walk cannot starve Yahoo.
+  const yahooAndCoinCap = Promise.all([
+    run('yahoo', probes.yahoo),
+    run('coincap', probes.coincap),
+  ])
+  await Promise.all([
+    yahooAndCoinCap,
+    run('coingecko', probes.coingecko),
+    (async () => {
+      if (alreadyOk.has('finnhub')) return
+      if (!finnhubKey) {
+        outcomes.finnhub = 'skip'
+        return
+      }
+      try {
+        record('finnhub', await probes.finnhub(finnhubKey))
+      } catch (e) {
+        record('finnhub', {
+          ok: false,
+          skipped: true,
+          detail: e instanceof Error ? e.message : 'Ping failed',
+        })
+      }
+    })(),
+    run('coinbase', probes.coinbase),
+    run('fx', probes.fx),
+  ])
+
+  try {
+    window.dispatchEvent(new CustomEvent('mydsp-markets-quotes'))
+  } catch {
+    /* ignore */
+  }
+
+  return outcomes
+}
+
 /** One-line status for Markets page when providers are degraded. */
 export function formatMarketsProviderHealthHint(minFailures = 2): string | null {
   const bad = getMarketsProviderHealth().filter((p) => p.consecutiveFailures >= minFailures)
