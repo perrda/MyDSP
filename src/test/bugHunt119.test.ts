@@ -28,14 +28,14 @@ function breakdown(assets: number, liabilities: number): NetWorthBreakdown {
 describe('bug hunt (v1.2.119)', () => {
   it('bumps package + release notes', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.134')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.134')
+    expect(pkg.version).toBe('1.2.136')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.136')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.136',
       '1.2.134',
       '1.2.133',
       '1.2.132',
       '1.2.131',
-      '1.2.130',
     ])
   })
 

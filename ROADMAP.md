@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.134**
+**Current version: 1.2.136**
 
-## Completed (through v1.2.134)
+## Completed (through v1.2.136)
 
+- Profile reset and delete (v1.2.136): Reset zeros any profile book · Delete removes non-default profiles only (David stays) · both ask “Are you sure?” · draft only — live stays 1.2.132
 - SIPP = Equities (v1.2.134): Today SIPP line is the priced equity sleeve (TSLA / MSTR / all included live quotes) · not `accountType === 'sipp'` only · Equities VALUE and goal `sipp` match · Liabilities line/figure red · Money/Plan/Household tiles drag-reorder and sync · News/YouTube extras stay in the envelope · hourly Yes/No manual backup prompt · draft only — live stays 1.2.132
 - Fluid-fit (v1.2.133): long display-CCY figures stay inside KPI / holding-detail / money / chart boxes at 390 · 768 · 1280 and landscape · container-query type + wrap, not clip · Mini-as-book + Today one-column / Assets hero + `#F7931A` kept · draft only — live stays 1.2.132
 - Today layout + left-nav order (v1.2.132): Weekly Digest / Cloud Sync / Settings sit below YouTube on the desktop rail · Today drops the RHS Markets card so remaining cards fill one full-width column · hero big figure is Assets with Net Worth / Crypto / SIPP / Liabilities rows · Markets stays in MENU and `/markets` · phone five doors + News/YouTube cluster unchanged · `#F7931A` + Mini-as-book + 1.2.131 ping-all kept · draft only — live stays 1.2.131

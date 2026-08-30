@@ -290,7 +290,7 @@ const SETTINGS_SECTION_SEARCH: Record<(typeof SETTINGS_SECTION_IDS)[number], str
   devices: 'Devices sync activity log smoke checklist install PWA nickname',
   account: 'Cloud account OAuth identity',
   'open-banking': 'Open banking PSD2 bank feed',
-  portfolios: 'Create rename delete portfolios',
+  portfolios: 'Create rename reset delete portfolios profiles',
   'full-backup': 'Full backup local JSON download restore',
   export: 'Export data CSV JSON',
   reports: 'PDF financial report',
@@ -320,6 +320,7 @@ export function SettingsPage() {
     createPortfolio,
     renamePortfolio,
     deletePortfolio,
+    resetPortfolio,
     switchPortfolio,
     resetToSample,
     clearAll,
@@ -4015,7 +4016,8 @@ export function SettingsPage() {
         <SettingsSection id="portfolios" eyebrow="Portfolios" title="Family portfolios">
           <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
             Up to {maxPortfolios} workspaces — <strong className="text-text">David</strong>{' '}
-            plus {maxPortfolios - 1} others. Names must be unique. New portfolios start empty so you
+            plus {maxPortfolios - 1} others. Names must be unique. Reset zeros a profile’s book.
+            David cannot be deleted — other profiles can. New portfolios start empty so you
             can enter data manually. Set currency / tax residency per active portfolio above.{' '}
             <Link to="/setup/opening" className="text-accent hover:underline">
               Opening wizard
@@ -4075,7 +4077,7 @@ export function SettingsPage() {
                         <span className="text-text-subtle font-light"> · primary</span>
                       ) : null}
                     </button>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <button
                         type="button"
                         className="btn-ghost btn-sm"
@@ -4086,17 +4088,40 @@ export function SettingsPage() {
                       >
                         Rename
                       </button>
-                      {p.id !== 'default' && (
+                      <button
+                        type="button"
+                        className="btn-ghost btn-sm"
+                        data-testid={`portfolio-reset-${p.id}`}
+                        onClick={() => {
+                          setConfirmState({
+                            title: 'Reset profile',
+                            body: `Are you sure? Reset “${p.name}” to zero? Holdings, history, and ledgers in that profile will be cleared. The profile name stays.`,
+                            confirmLabel: 'Reset profile',
+                            onConfirm: () => {
+                              resetPortfolio(p.id)
+                              flash(`Reset ${p.name} to zero.`)
+                            },
+                          })
+                        }}
+                      >
+                        Reset
+                      </button>
+                      {p.id !== 'default' ? (
                         <button
                           type="button"
                           className="btn-ghost btn-sm"
+                          data-testid={`portfolio-delete-${p.id}`}
                           onClick={() => {
                             setConfirmState({
-                              title: 'Delete portfolio',
-                              body: `Delete “${p.name}”? All holdings and history in that portfolio will be removed.`,
-                              confirmLabel: 'Delete portfolio',
+                              title: 'Delete profile',
+                              body: `Are you sure? Delete “${p.name}”? This profile and all of its data will be removed. The default profile cannot be deleted.`,
+                              confirmLabel: 'Delete profile',
                               onConfirm: () => {
-                                deletePortfolio(p.id)
+                                const r = deletePortfolio(p.id)
+                                if (!r.ok) {
+                                  flash(r.error ?? 'Could not delete')
+                                  return
+                                }
                                 flash(`Deleted ${p.name}.`)
                               },
                             })
@@ -4104,6 +4129,10 @@ export function SettingsPage() {
                         >
                           Delete
                         </button>
+                      ) : (
+                        <span className="text-[11px] text-text-subtle self-center" data-testid="portfolio-default-no-delete">
+                          Cannot delete
+                        </span>
                       )}
                     </div>
                   </>
@@ -4519,17 +4548,17 @@ export function SettingsPage() {
               className="btn-ghost"
               onClick={() => {
                 setConfirmState({
-                  title: 'Clear portfolio',
-                  body: 'Clear all holdings and history on this portfolio?',
-                  confirmLabel: 'Clear portfolio',
+                  title: 'Reset profile',
+                  body: 'Are you sure? Reset the active profile to zero? Holdings, history, and ledgers will be cleared.',
+                  confirmLabel: 'Reset profile',
                   onConfirm: () => {
                     clearAll()
-                    flash('Portfolio cleared.')
+                    flash('Profile reset to zero.')
                   },
                 })
               }}
             >
-              Clear portfolio
+              Reset profile
             </button>
           </div>
         </SettingsSection>

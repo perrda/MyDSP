@@ -29,6 +29,28 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.136',
+    date: '2026-08-30',
+    bullets: [
+      {
+        text: 'Reset a profile to zero — David included',
+        to: '/settings#portfolios',
+      },
+      {
+        text: 'Delete other profiles — David cannot be deleted',
+        to: '/settings#portfolios',
+      },
+      {
+        text: 'Both ask “Are you sure?” first',
+        to: '/settings#portfolios',
+      },
+      {
+        text: 'Draft only — live stays 1.2.132',
+        to: '/',
+      },
+    ],
+  },
+  {
     version: '1.2.134',
     date: '2026-08-30',
     bullets: [

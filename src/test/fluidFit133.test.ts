@@ -8,14 +8,14 @@ const read = (rel: string) => readFileSync(resolve(__dirname, rel), 'utf8')
 describe('MyDSP 1.2.133 fluid-fit', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(read('../../package.json'))
-    expect(pkg.version).toBe('1.2.134')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.134')
+    expect(pkg.version).toBe('1.2.136')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.136')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.136',
       '1.2.134',
       '1.2.133',
       '1.2.132',
       '1.2.131',
-      '1.2.130',
     ])
     const changelog = read('../../CHANGELOG.md')
     const section = changelog.match(/## \[1\.2\.133\][\s\S]*?(?=## \[)/)?.[0] ?? ''
