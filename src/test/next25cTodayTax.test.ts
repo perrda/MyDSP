@@ -172,10 +172,11 @@ describe('next25c today / money / tax (16–20)', () => {
 
     const dash = readFileSync(resolve(__dirname, '../pages/Dashboard.tsx'), 'utf8')
     expect(dash).toMatch(/today-nw-sparkline/)
-    expect(dash).toMatch(/netWorthSparkSeries/)
+    expect(dash).toMatch(/netWorthTrendSeries/)
     expect(dash).toMatch(/nwSparkDays/)
     expect(dash).toMatch(/7d/)
     expect(dash).toMatch(/30d/)
+    expect(dash).toMatch(/NW_SPARK_WINDOWS/)
   })
 
   it('20: Compare local family workspace setup sheet', () => {
@@ -192,6 +193,6 @@ describe('next25c today / money / tax (16–20)', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8')) as {
       version: string
     }
-    expect(pkg.version).toBe('1.2.135')
+    expect(pkg.version).toBe('1.2.137')
   })
 })

@@ -4132,10 +4132,17 @@ html.success-haptic-flash::after {
 .sparkline-draw-on,
 .holding-markets-sparkline,
 .today-nw-sparkline,
+.today-trend-chart,
+.today-trend-chart .recharts-responsive-container,
 .chart-panel .recharts-responsive-container,
 .chart-panel svg {
   min-width: 0;
   max-width: 100%;
+}
+
+.today-nw-sparkline,
+.today-trend-chart {
+  width: 100%;
 }
 
 .holding-price-strip {

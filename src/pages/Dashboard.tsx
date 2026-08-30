@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { GettingStartedChecklist } from '../components/GettingStartedChecklist'
 import { AllocationRing, NetWorthChart } from '../components/charts/LazyCharts'
 import { BudgetSparkline } from '../components/charts/BudgetSparkline'
-import { Sparkline } from '../components/charts/Sparkline'
+import { TodayTrendChart } from '../components/charts/TodayTrendChart'
 import { SwipeBillRow } from '../components/ui/SwipeBillRow'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
 import { RemindersPanel, useSmartReminders } from '../components/SmartReminders'
@@ -30,7 +30,8 @@ import { formatMoneyPulseLine, moneyPulseDelta } from '../domain/moneyPulse'
 import { buildNextActionStack, stackIncludesBill } from '../domain/nextActionStack'
 import { ensureFinnhubSetupTodo } from '../domain/finnhubReminder'
 import {
-  netWorthSparkSeries,
+  netWorthTrendSeries,
+  NW_SPARK_WINDOWS,
   type NwSparkWindow,
 } from '../domain/netWorthSparkline'
 import {
@@ -1046,10 +1047,13 @@ export function Dashboard() {
   const sippValue = useMemo(() => calcSipp(data), [data])
 
   const nwSpark = useMemo(
-    () => netWorthSparkSeries(data.history, netWorth, nwSparkDays),
+    () => netWorthTrendSeries(data.history, netWorth, nwSparkDays),
     [data.history, netWorth, nwSparkDays],
   )
-  const nwSparkTrend = useMemo(() => sparklineTrendFromSeries(nwSpark), [nwSpark])
+  const nwSparkTrend = useMemo(
+    () => sparklineTrendFromSeries(nwSpark.map((p) => p.value)),
+    [nwSpark],
+  )
 
   const billsDueSoon = useMemo(
     () => dueWithinDays(data.recurringTransactions, 7).slice(0, 4),
@@ -1387,17 +1391,17 @@ export function Dashboard() {
           </Link>
         ) : null}
         {nwSpark.length >= 2 ? (
-          <div className="today-nw-sparkline mb-3">
-            <div className="flex items-center justify-between gap-2 mb-1">
+          <div className="today-nw-sparkline mb-3 w-full min-w-0">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
               <p className="text-[11px] uppercase tracking-wider text-text-subtle font-semibold">
                 Trend
               </p>
               <div
-                className="flex gap-1"
+                className="flex flex-wrap gap-1 justify-end"
                 role="group"
-                aria-label="Net worth sparkline window"
+                aria-label="Assets trend window"
               >
-                {([7, 30] as const).map((d) => (
+                {NW_SPARK_WINDOWS.map((d) => (
                   <button
                     key={d}
                     type="button"
@@ -1410,14 +1414,12 @@ export function Dashboard() {
                       saveNwSparkWindowPref(d)
                     }}
                   >
-                    {d === 7 ? '7d' : '30d'}
+                    {d === '7D' ? '7d' : d === '30D' ? '30d' : d}
                   </button>
                 ))}
               </div>
             </div>
-            <div className="h-10 w-full max-w-xs" aria-hidden>
-              <Sparkline data={nwSpark} height={40} trend={nwSparkTrend} showGradient />
-            </div>
+            <TodayTrendChart points={nwSpark} trend={nwSparkTrend} privacy={privacy} />
           </div>
         ) : null}
         <div
