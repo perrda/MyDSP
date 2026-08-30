@@ -4,7 +4,7 @@
 
 ### Changed — Today one column + left-nav utilities below YouTube (draft, no live)
 - **Left nav:** MENU stays Today → Markets → Money → Plan → Household → News → YouTube. Weekly Digest, Cloud Sync, and Settings move **below YouTube** (same destinations). They are not put back above MENU. Phone keeps the 1.2.130 five doors + News/YouTube cluster — Weekly Digest / Sync / Settings stay off the bottom bar.
-- **Today:** the RHS Markets card is gone. Open Markets from the left nav. The Markets page and MENU item stay. Remaining Today cards (Net Worth, Next, Bills, Tax, Media, …) fill the width the RHS column used — one column at 1280 and 768. Phone 390 stays a single stack; no second column.
+- **Today:** the RHS Markets card is gone. Open Markets from the left nav. The Markets page and MENU item stay. Remaining Today cards (Net Worth, Next, Bills, Tax, Media, …) fill the width the RHS column used — one column at 1280 and 768. Phone 390 stays a single stack; no second column. Customize no longer lists a Markets checkbox — hide/show would be a no-op. Work/Quiet presets no longer hide a `markets` card id.
 - **Keep:** Mini-as-book sync, `#F7931A` Light+Dark, header Refresh + icon-only …, 1.2.131 Provider health ping-all, News/YouTube under Household.
 - **Draft only:** do not promote. Do not wrangler. Live mydspv1 stays 1.2.131 / `index-oymrpnal.js`. Rollback of live remains 1.2.130 / `index-DITvY3te.js`.
 

@@ -4,6 +4,11 @@ import { describe, expect, it } from 'vitest'
 import { PHONE_MEDIA_NAV, PRIMARY_NAV, SIDEBAR_NAV } from '../domain/primaryNav'
 import { resolveBottomNavItems } from '../domain/bottomNav'
 import { RELEASE_NOTES, releaseNotesArchive } from '../domain/releaseNotes'
+import {
+  loadTodayLayout,
+  TODAY_LAYOUT_CARD_OPTIONS,
+  TODAY_LAYOUT_PRESETS,
+} from '../storage/todayLayoutStore'
 
 const read = (rel: string) => readFileSync(resolve(__dirname, rel), 'utf8')
 
@@ -102,6 +107,33 @@ describe('MyDSP 1.2.132 Today layout + left-nav order', () => {
     const marketsPage = read('../pages/MarketsPage.tsx')
     expect(marketsPage.length).toBeGreaterThan(100)
     expect(SIDEBAR_NAV.some((i) => i.to === '/markets')).toBe(true)
+  })
+
+  it('Customize options do not include a markets card id', () => {
+    expect(TODAY_LAYOUT_CARD_OPTIONS.map((o) => o.id)).not.toContain('markets')
+    expect(TODAY_LAYOUT_CARD_OPTIONS.some((o) => o.label === 'Markets')).toBe(false)
+    expect(TODAY_LAYOUT_PRESETS.work.hidden).not.toContain('markets')
+    expect(TODAY_LAYOUT_PRESETS.quiet.hidden).not.toContain('markets')
+    expect(TODAY_LAYOUT_PRESETS.money.hidden).not.toContain('markets')
+    const store = read('../storage/todayLayoutStore.ts')
+    expect(store).not.toMatch(/id: 'markets'/)
+    expect(store).not.toMatch(/label: 'Markets'/)
+    expect(store).not.toMatch(/'markets'/)
+    const dash = read('../pages/Dashboard.tsx')
+    expect(dash).toMatch(/TODAY_LAYOUT_CARD_OPTIONS/)
+    expect(dash).not.toMatch(/id: 'markets'/)
+    expect(dash).not.toMatch(/today-markets/)
+    localStorage.setItem(
+      'mydsp.today.layout.v1',
+      JSON.stringify({
+        order: ['next'],
+        hidden: ['markets', 'charts'],
+        updatedAt: '2026-08-30T00:00:00.000Z',
+      }),
+    )
+    const layout = loadTodayLayout()
+    expect(layout.hidden).not.toContain('markets')
+    expect(layout.hidden).toContain('charts')
   })
 
   it('does not change Mini-as-book sync, orange lock, header Refresh, or 1.2.131 ping-all', () => {

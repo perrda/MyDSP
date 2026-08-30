@@ -41,6 +41,10 @@ export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
         to: '/markets',
       },
       {
+        text: 'Customize no longer lists a Markets checkbox',
+        to: '/',
+      },
+      {
         text: 'Draft only — live stays 1.2.131',
         to: '/',
       },

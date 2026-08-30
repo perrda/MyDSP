@@ -15,7 +15,6 @@ export const TODAY_LAYOUT_CARD_OPTIONS = [
   ...TODAY_ACCORDION_OPTIONS,
   { id: 'tax', label: 'Tax' },
   { id: 'media', label: 'Media' },
-  { id: 'markets', label: 'Markets' },
   { id: 'budget', label: 'Budget' },
   { id: 'gettingStarted', label: 'Getting started' },
   { id: 'alerts', label: 'Alerts' },
@@ -122,7 +121,7 @@ export const TODAY_LAYOUT_PRESETS: Record<
   work: {
     label: 'Work',
     order: ['next', 'dailyPlan', 'careerPulse', 'goals', 'bills'],
-    hidden: ['markets', 'charts', 'activity', 'gettingStarted'],
+    hidden: ['charts', 'activity', 'gettingStarted'],
   },
   money: {
     label: 'Money',
@@ -135,7 +134,6 @@ export const TODAY_LAYOUT_PRESETS: Record<
     hidden: [
       'tax',
       'media',
-      'markets',
       'budget',
       'gettingStarted',
       'alerts',
