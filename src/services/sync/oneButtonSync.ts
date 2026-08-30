@@ -1,22 +1,25 @@
 /**
- * One-button Cloud Sync: passphrase + Sync.
- * Mini DAVID book is source of truth — first Sync on a device that already has
- * the book pushes. Empty / FCC-sample devices pull. Conflicts never auto-wipe
- * a real local book.
+ * One-button Cloud Sync: passphrase once, then Sync.
+ * Book device (Mini) always pushes. Satellites pull Mini as the book whenever
+ * the cloud has an envelope. Push on satellite only if the cloud is empty (404).
+ * Remember-passphrase and Automatic sync turn on after a successful unlock.
+ * Do not put an access key in the baked URL.
  */
 
-import { chooseFirstSyncAction, localBookIsSourceOfTruth } from './localBook'
-import { conflictKey, type ConflictChoice } from './conflicts'
+import { chooseSyncAction } from './localBook'
 import {
-  applyMergePreview,
+  applyRemoteAsBook,
   applyWorkspaceExtrasFromPreview,
+  isBookDevice,
   loadSyncConfig,
   previewPull,
   pushSync,
   resolveSyncRemoteUrl,
   saveSyncConfig,
   type MergePreview,
+  type SyncConfig,
 } from './syncService'
+import { setSessionSyncPassphrase } from './sessionPassphrase'
 
 export type OneButtonSyncResult = {
   action: 'push' | 'pull' | 'conflict'
@@ -25,35 +28,48 @@ export type OneButtonSyncResult = {
   preview?: MergePreview
 }
 
-function remoteWins(preview: MergePreview): Record<string, ConflictChoice> {
-  const resolutions: Record<string, ConflictChoice> = {}
-  for (const c of preview.conflicts) resolutions[conflictKey(c)] = 'remote'
-  return resolutions
+function persistUrl(url: string): SyncConfig {
+  const cfg = loadSyncConfig()
+  if (cfg.remoteUrl === url) return cfg
+  const next = { ...cfg, remoteUrl: url }
+  saveSyncConfig(next)
+  return next
 }
 
-function persistUrl(url: string): void {
+function rememberPassAndMaybeAuto(patch: Partial<SyncConfig>): SyncConfig {
   const cfg = loadSyncConfig()
-  if (cfg.remoteUrl === url) return
-  saveSyncConfig({ ...cfg, remoteUrl: url })
-}
-
-function markPushed(url: string, exportedAt: string, bytes: number): void {
-  const cfg = loadSyncConfig()
-  saveSyncConfig({
+  const next: SyncConfig = {
     ...cfg,
+    ...patch,
+    rememberPassphrase: true,
+    enabled: patch.enabled === undefined ? true : patch.enabled,
+  }
+  saveSyncConfig(next)
+  return next
+}
+
+function markPushed(url: string, exportedAt: string, bytes: number, asBook: boolean): void {
+  rememberPassAndMaybeAuto({
     remoteUrl: url,
     lastSyncAt: new Date().toISOString(),
     lastSyncError: undefined,
     lastRemoteExportedAt: exportedAt,
     lastRemoteBlobBytes: bytes,
     lastPushBytes: bytes,
-    autoResolveConflicts: cfg.autoResolveConflicts === true,
+    enabled: true,
+    thisDeviceIsTheBook: asBook,
+    autoResolveConflicts: loadSyncConfig().autoResolveConflicts === true,
   })
 }
 
-async function pushThisBook(url: string, passphrase: string, message: string): Promise<OneButtonSyncResult> {
+async function pushThisBook(
+  url: string,
+  passphrase: string,
+  message: string,
+  asBook: boolean,
+): Promise<OneButtonSyncResult> {
   const pushed = await pushSync(url, passphrase)
-  markPushed(url, pushed.exportedAt, pushed.bytes)
+  markPushed(url, pushed.exportedAt, pushed.bytes, asBook)
   return { action: 'push', message }
 }
 
@@ -61,15 +77,20 @@ export async function runOneButtonSync(passphrase: string): Promise<OneButtonSyn
   if (!passphrase || passphrase.trim().length < 8) {
     throw new Error('Use a passphrase of at least 8 characters.')
   }
+  setSessionSyncPassphrase(passphrase, { remember: true })
   const url = resolveSyncRemoteUrl(loadSyncConfig().remoteUrl)
   persistUrl(url)
 
-  const localHasBook = localBookIsSourceOfTruth()
-  const alreadySynced = Boolean(loadSyncConfig().lastSyncAt)
-  const action = chooseFirstSyncAction({ localHasBook, alreadySynced })
+  const book = isBookDevice()
+  const action = chooseSyncAction({ isBookDevice: book })
 
   if (action === 'push') {
-    return pushThisBook(url, passphrase, 'Pushed this book to cloud. Other devices can pull it.')
+    return pushThisBook(
+      url,
+      passphrase,
+      'Pushed this book to cloud. Other devices will pull it.',
+      true,
+    )
   }
 
   let preview: MergePreview
@@ -77,39 +98,29 @@ export async function runOneButtonSync(passphrase: string): Promise<OneButtonSyn
     preview = await previewPull(url, passphrase)
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Pull failed'
-    if (localHasBook && /404/.test(msg)) {
-      return pushThisBook(url, passphrase, 'Cloud empty — pushed this book.')
+    if (/404/.test(msg)) {
+      return pushThisBook(url, passphrase, 'Cloud empty — pushed this book.', book)
     }
     throw e
   }
 
   await applyWorkspaceExtrasFromPreview(preview)
 
-  if (preview.conflicts.length > 0 && localHasBook) {
-    return {
-      action: 'conflict',
-      message: `${preview.conflicts.length} conflict(s) — this book was kept. Review below; nothing was overwritten.`,
-      conflicts: preview.conflicts.length,
-      preview,
-    }
-  }
-
-  const resolutions = preview.conflicts.length > 0 ? remoteWins(preview) : {}
-  const result = await applyMergePreview(preview, resolutions)
-  const cfg = loadSyncConfig()
-  saveSyncConfig({
-    ...cfg,
+  const result = await applyRemoteAsBook(preview)
+  rememberPassAndMaybeAuto({
     remoteUrl: url,
     lastSyncAt: new Date().toISOString(),
     lastSyncError: undefined,
     lastMergeCount: result.merged,
-    autoResolveConflicts: cfg.autoResolveConflicts === true,
+    enabled: true,
+    thisDeviceIsTheBook: false,
+    autoResolveConflicts: loadSyncConfig().autoResolveConflicts === true,
   })
   return {
     action: 'pull',
-    message: `Pulled & merged ${result.merged} portfolio(s).`,
+    message: `Pulled the book — ${result.merged} portfolio(s) from Mini.`,
     preview,
   }
 }
 
-export { chooseFirstSyncAction, localBookIsSourceOfTruth }
+export { chooseSyncAction, chooseFirstSyncAction, localBookIsSourceOfTruth } from './localBook'

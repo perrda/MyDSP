@@ -2,6 +2,8 @@
 
 Encrypted envelopes only — passphrase crypto stays in the browser.
 
+**Origin-lock (1.2.127, repo only — deploy out of band):** browser `Origin` on the allowlist (`https://mydspv1.dave-perry.workers.dev`, `http://localhost:*` / `http://127.0.0.1:*`, `https://<anything>-mydspv1.dave-perry.workers.dev`) skips the client access key. CORS echoes that Origin (never `*`). Curl / missing Origin still needs the Worker access key. Do not wrangler from this PR.
+
 **Full walkthrough:** [SYNC_SETUP.md](../SYNC_SETUP.md)
 
 ## Quick deploy (Dashboard)

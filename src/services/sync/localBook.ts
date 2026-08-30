@@ -67,7 +67,15 @@ export function localBookIsSourceOfTruth(): boolean {
 export function chooseFirstSyncAction(input: {
   localHasBook: boolean
   alreadySynced: boolean
+  isBookDevice?: boolean
 }): 'push' | 'pull' {
+  if (input.isBookDevice === true) return 'push'
+  if (input.isBookDevice === false) return 'pull'
   if (!input.alreadySynced && input.localHasBook) return 'push'
   return 'pull'
+}
+
+/** 1.2.127 — book device always pushes; satellite always pulls. */
+export function chooseSyncAction(input: { isBookDevice: boolean }): 'push' | 'pull' {
+  return input.isBookDevice ? 'push' : 'pull'
 }

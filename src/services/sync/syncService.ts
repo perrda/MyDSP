@@ -53,6 +53,12 @@ export interface SyncConfig {
   /** Persist passphrase in localStorage on this device (needed for auto-sync after reload). */
   rememberPassphrase?: boolean
   /**
+   * Mini (source of truth) turns this on. Sync always PUSHES this device.
+   * Off (MacBook / iPhone / iPad satellite): Sync and pull-to-refresh always PULL
+   * the remote book. Satellites never push a local book.
+   */
+  thisDeviceIsTheBook?: boolean
+  /**
    * When auto-pull finds same-id conflicts, prefer remote (other device).
    * Default true. Set false to pause and review in Settings.
    */
@@ -347,6 +353,7 @@ export function loadSyncConfig(): SyncConfig {
       ),
       enabled: Boolean(parsed.enabled),
       rememberPassphrase: Boolean(parsed.rememberPassphrase),
+      thisDeviceIsTheBook: Boolean(parsed.thisDeviceIsTheBook),
       autoResolveConflicts:
         parsed.autoResolveConflicts === undefined ? false : Boolean(parsed.autoResolveConflicts),
       lastSyncAt: parsed.lastSyncAt,
@@ -373,11 +380,16 @@ export function saveSyncConfig(cfg: SyncConfig): void {
   localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg))
 }
 
+/** Mini turns this on. Satellites (MacBook / iPhone / iPad) leave it off. */
+export function isBookDevice(cfg: SyncConfig = loadSyncConfig()): boolean {
+  return cfg.thisDeviceIsTheBook === true
+}
+
 /**
  * Ensure Remote URL is absolute https. Without a scheme, browsers treat it as a
  * path on the app host → Push hits mydspv1…/mydsp-sync… and returns 405.
  */
-/** Existing mydsp-sync Worker host from this repo. Never append SYNC_KEY here. */
+/** Existing mydsp-sync Worker host from this repo. Never append an access key here. */
 export const DEFAULT_SYNC_REMOTE_URL = 'https://mydsp-sync.dave-perry.workers.dev'
 
 /** Use a stored Remote URL when set; otherwise the baked mydsp-sync Worker. */
@@ -457,7 +469,10 @@ function pushFailureMessage(url: string, putStatus: number, postStatus: number):
     )
   }
   if (putStatus === 401 || postStatus === 401) {
-    return 'Push unauthorized (401) — check SYNC_KEY matches ?key= in the Remote URL.'
+    return (
+      'Push unauthorized (401) — the Worker rejected this request. ' +
+      'The live app host should not need an access key on the URL after the Worker allowlist is deployed.'
+    )
   }
   return `Push failed (${putStatus}/${postStatus})`
 }
@@ -1071,6 +1086,18 @@ export async function applyWorkspaceExtrasFromPreview(
   if (shouldStampMediaSync) {
     rememberSyncPayloadStats({ lastWorkspaceExtrasSyncAt: new Date().toISOString() })
   }
+}
+
+/**
+ * Satellite take-remote: write Mini’s portfolios as this device’s book.
+ * Does not park DAVID behind a conflict review. YouTube/News extras still apply.
+ */
+export async function applyRemoteAsBook(
+  preview: MergePreview,
+): Promise<{ merged: number; conflicts: SyncConflict[]; removedDupes: number }> {
+  const resolutions: Record<string, ConflictChoice> = {}
+  for (const c of preview.conflicts) resolutions[conflictKey(c)] = 'remote'
+  return applyMergePreview(preview, resolutions)
 }
 
 /** Persist a reviewed merge plan. Uses resolutions for same-id conflicts. */

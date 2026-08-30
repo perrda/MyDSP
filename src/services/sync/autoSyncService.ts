@@ -14,8 +14,10 @@ import {
   allConflictsResolved,
   applyMergePreview,
   applyWorkspaceExtrasFromPreview,
+  applyRemoteAsBook,
   fetchRemoteMeta,
   getLocalDeviceId,
+  isBookDevice,
   loadSyncConfig,
   previewPull,
   pushSync,
@@ -295,6 +297,7 @@ export function markLocalDataChanged(): void {
   }
   const cfg = loadSyncConfig()
   if (!cfg.enabled || !cfg.remoteUrl) return
+  if (!isBookDevice(cfg)) return
   dirty = true
   schedulePush()
 }
@@ -392,8 +395,41 @@ async function doPull(cfg: SyncConfig, pass: string, reason: CycleReason): Promi
     return false
   }
 
+  const satellite = !isBookDevice(cfg)
   const autoResolve = cfg.autoResolveConflicts === true
   let resolutions: Record<string, ConflictChoice> = {}
+
+  if (satellite) {
+    beginApplyingRemote()
+    try {
+      await applyWorkspaceExtrasFromPreview(preview)
+      const result = await applyRemoteAsBook(preview)
+      const at = new Date().toISOString()
+      const pullMs = Date.now() - pullStarted
+      updateCfg({
+        lastSyncAt: at,
+        lastSyncError: undefined,
+        lastMergeCount: result.merged,
+        lastRemoteExportedAt: meta.exportedAt,
+        ...(meta.encryptedBytes !== undefined ? { lastRemoteBlobBytes: meta.encryptedBytes } : {}),
+      })
+      pendingConflictPreview = null
+      emit({
+        state: 'idle',
+        message: `Pulled the book — ${result.merged} portfolio(s)`,
+        lastAt: at,
+        lastPullMs: pullMs,
+      })
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Merge failed'
+      updateCfg({ lastSyncError: msg })
+      emit({ state: 'error', message: msg, lastAt: status.lastAt })
+      return false
+    } finally {
+      endApplyingRemote()
+    }
+    return true
+  }
 
   if (preview.conflicts.length > 0) {
     if (autoResolve) {
@@ -598,6 +634,13 @@ export async function runAutoSyncCycle(reason: CycleReason = 'manual'): Promise<
   }
   busy = true
   try {
+    if (!isBookDevice(cfg)) {
+      await doPull(cfg, pass, reason)
+      if (status.state === 'pulling' || status.state === 'pushing') {
+        emit({ state: 'idle', lastAt: loadSyncConfig().lastSyncAt })
+      }
+      return
+    }
     if (reason === 'edit' || reason === 'hide') {
       // Pull-before-push when another device wrote cloud — then upload our merge
       await pullBeforePushIfNeeded(cfg, pass)
@@ -671,9 +714,9 @@ export function stopAutoSync(): void {
   clearPauseTimers()
 }
 
-/** Force an immediate sync cycle (Settings “Sync now”). */
+/** Force an immediate sync cycle (Settings “Sync now”). Satellites pull only. */
 export async function forceSyncNow(): Promise<void> {
-  dirty = true
+  if (isBookDevice()) dirty = true
   await runAutoSyncCycle('manual')
 }
 
