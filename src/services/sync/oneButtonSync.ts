@@ -6,7 +6,7 @@
  * Do not put an access key in the baked URL.
  */
 
-import { chooseSyncAction } from './localBook'
+import { chooseFirstSyncAction, localBookIsSourceOfTruth } from './localBook'
 import {
   applyRemoteAsBook,
   applyWorkspaceExtrasFromPreview,
@@ -82,7 +82,11 @@ export async function runOneButtonSync(passphrase: string): Promise<OneButtonSyn
   persistUrl(url)
 
   const book = isBookDevice()
-  const action = chooseSyncAction({ isBookDevice: book })
+  const action = chooseFirstSyncAction({
+    localHasBook: localBookIsSourceOfTruth(),
+    alreadySynced: Boolean(loadSyncConfig().lastSyncAt),
+    isBookDevice: book,
+  })
 
   if (action === 'push') {
     return pushThisBook(

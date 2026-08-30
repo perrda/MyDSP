@@ -107,12 +107,18 @@ describe('MyDSP 1.2.126 Money directory + one-button Sync', () => {
     const real = createEmptyPortfolio()
     real.crypto = [{ id: 1, symbol: 'BTC', name: 'Bitcoin', qty: 1.25, price: 0, cost: 10_000 }]
     expect(isEmptyOrSampleBook(real)).toBe(false)
-    expect(chooseFirstSyncAction({ localHasBook: true, alreadySynced: false })).toBe('push')
+    expect(chooseFirstSyncAction({ localHasBook: true, alreadySynced: false })).toBe('pull')
     expect(chooseFirstSyncAction({ localHasBook: false, alreadySynced: false })).toBe('pull')
     expect(chooseFirstSyncAction({ localHasBook: true, alreadySynced: true })).toBe('pull')
     expect(chooseFirstSyncAction({ localHasBook: false, alreadySynced: true })).toBe('pull')
+    expect(
+      chooseFirstSyncAction({ localHasBook: true, alreadySynced: false, isBookDevice: true }),
+    ).toBe('push')
+    expect(
+      chooseFirstSyncAction({ localHasBook: true, alreadySynced: false, isBookDevice: false }),
+    ).toBe('pull')
     const one = read('../services/sync/oneButtonSync.ts')
-    expect(one).toMatch(/chooseSyncAction/)
+    expect(one).toMatch(/chooseFirstSyncAction/)
     expect(one).toMatch(/Pushed this book/)
     expect(typeof localBookIsSourceOfTruth).toBe('function')
     const auto = read('../services/sync/autoSyncService.ts')

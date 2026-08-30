@@ -3,7 +3,7 @@ import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { MONEY_DIRECTORY, MONEY_DOORS } from '../domain/hubPages'
 import { RELEASE_NOTES, releaseNotesArchive } from '../domain/releaseNotes'
-import { chooseSyncAction } from '../services/sync/localBook'
+import { chooseFirstSyncAction, chooseSyncAction } from '../services/sync/localBook'
 import {
   DEFAULT_SYNC_REMOTE_URL,
   isBookDevice,
@@ -63,11 +63,15 @@ describe('MyDSP 1.2.127 book device + satellite pull + origin-lock', () => {
   it('book device always pushes; satellite always pulls when cloud has an envelope', () => {
     expect(chooseSyncAction({ isBookDevice: true })).toBe('push')
     expect(chooseSyncAction({ isBookDevice: false })).toBe('pull')
+    expect(chooseFirstSyncAction({ localHasBook: true, alreadySynced: false })).toBe('pull')
+    expect(
+      chooseFirstSyncAction({ localHasBook: true, alreadySynced: false, isBookDevice: true }),
+    ).toBe('push')
     expect(isBookDevice({ remoteUrl: '', enabled: false, thisDeviceIsTheBook: true })).toBe(true)
     expect(isBookDevice({ remoteUrl: '', enabled: false })).toBe(false)
     expect(loadSyncConfig().thisDeviceIsTheBook).toBeFalsy()
     const one = read('../services/sync/oneButtonSync.ts')
-    expect(one).toMatch(/chooseSyncAction/)
+    expect(one).toMatch(/chooseFirstSyncAction/)
     expect(one).toMatch(/applyRemoteAsBook/)
     expect(one).toMatch(/Cloud empty/)
     expect(one).toMatch(/enabled: true/)
@@ -80,6 +84,10 @@ describe('MyDSP 1.2.127 book device + satellite pull + origin-lock', () => {
     expect(shell).toMatch(/runOneButtonSync/)
     expect(shell).toMatch(/isBookDevice/)
     expect(shell).toMatch(/Pulling the book/)
+    expect(shell).toMatch(/const onRefresh = async/)
+    const toolbar = read('../components/layout/ToolbarControls.tsx')
+    expect(toolbar).toMatch(/data-testid="toolbar-desktop-sync"/)
+    expect(toolbar).toMatch(/onRefresh\(\)/)
   })
 
   it('passphrase field hides after an unlocked session', () => {
