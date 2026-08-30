@@ -21,7 +21,6 @@ import {
   usdToGbp,
   type FxRates,
 } from './fx'
-import { fetchYahooDailySeries } from './yahooHistory'
 
 const GECKO_IDS: Record<string, string> = {
   BTC: 'bitcoin',
@@ -259,7 +258,7 @@ async function fetchGeckoJson<T>(url: string, timeoutMs = 10000): Promise<T | nu
 export interface CryptoPriceUpdate {
   symbol: string
   price: number
-  source: 'coingecko' | 'manual' | 'default'
+  source: 'coingecko' | 'yahoo' | 'coincap' | 'coinbase' | 'manual' | 'default'
 }
 
 export async function fetchCryptoPricesGbp(
@@ -273,13 +272,21 @@ export async function fetchCryptoPricesGbp(
   return quotes.map((q) => ({
     symbol: q.symbol,
     price: q.priceGbp,
-    source:
-      q.source === 'coingecko' || q.source === 'yahoo'
-        ? 'coingecko'
-        : q.source === 'default'
-          ? 'default'
-          : 'manual',
+    source: q.source,
   }))
+}
+
+/** Same CORS-proxy list equity holdings use for Yahoo chart (quote worker → /api/quote → relays → direct). */
+export function holdingsQuoteProxyCandidates(url: string): string[] {
+  return proxyCandidatesFor(url)
+}
+
+/** Holdings Yahoo/Gecko fallback fetch — first JSON object from that candidate list. */
+export async function fetchViaHoldingsProxies<T>(
+  url: string,
+  timeoutMs = 10000,
+): Promise<T | null> {
+  return fetchViaProxies<T>(url, timeoutMs)
 }
 
 /** Raw market quote in the venue’s native currency (USD for US equities). */
@@ -1316,9 +1323,14 @@ export async function probeCoinGeckoBitcoinGbp(): Promise<ProviderProbeResult> {
     const data = await fetchGeckoJson<{ bitcoin?: { gbp?: number } }>(url)
     const gbp = data?.bitcoin?.gbp
     if (typeof gbp === 'number' && gbp > 0) return { ok: true, detail: `OK · BTC ${gbp}` }
-    return { ok: false, detail: geckoCoolingDown() ? '429 rate limit / quota' : 'CoinGecko empty quote' }
+    // Empty / 429 body is not a live miss to storm — honour backoff as skip.
+    return {
+      ok: false,
+      skipped: true,
+      detail: geckoCoolingDown() ? 'CoinGecko 429 backoff' : 'CoinGecko empty body',
+    }
   } catch (e) {
-    return { ok: false, detail: e instanceof Error ? e.message : 'CoinGecko probe failed' }
+    return { ok: false, skipped: true, detail: e instanceof Error ? e.message : 'CoinGecko probe failed' }
   }
 }
 
@@ -1342,55 +1354,34 @@ function lastCloseFromYahooResult(result: YahooChartResult | undefined | null): 
   return null
 }
 
-/**
- * Race existing Yahoo CORS relays, but only accept a real chart last/close.
- * Holdings `fetchViaProxies` settles on the first JSON object — error HTML/JSON
- * must not count as an empty Yahoo miss when another relay has a print.
- */
-async function fetchYahooLastCloseViaExistingRelays(
+/** Walk the holdings Yahoo proxy list; empty/undefined body = try next, not fail. */
+export async function fetchYahooLastCloseViaHoldingsProxies(
   symbol: string,
-  range: string,
-  interval: string,
+  range = '5d',
+  interval = '1d',
 ): Promise<number | null> {
   const yahoo = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=${encodeURIComponent(interval)}&range=${encodeURIComponent(range)}`
-  const candidates = proxyCandidatesFor(yahoo)
-  return new Promise((resolve) => {
-    let remaining = candidates.length
-    let settled = false
-    if (remaining === 0) {
-      resolve(null)
-      return
-    }
-    for (const candidate of candidates) {
-      void fetchJson<{ chart?: { result?: YahooChartResult[] } }>(candidate, 8000).then(({ data }) => {
-        if (settled) return
-        const last = lastCloseFromYahooResult(data?.chart?.result?.[0])
-        if (last && last > 0) {
-          settled = true
-          resolve(last)
-          return
-        }
-        remaining -= 1
-        if (remaining === 0) resolve(null)
-      })
-    }
-  })
+  const raced = await fetchViaHoldingsProxies<{ chart?: { result?: YahooChartResult[] } }>(yahoo)
+  const fromRace = lastCloseFromYahooResult(raced?.chart?.result?.[0])
+  if (fromRace && fromRace > 0) return fromRace
+  for (const candidate of holdingsQuoteProxyCandidates(yahoo)) {
+    const { data } = await fetchJson<{ chart?: { result?: YahooChartResult[] } }>(candidate, 8000)
+    if (data == null || data === undefined) continue
+    const last = lastCloseFromYahooResult(data.chart?.result?.[0])
+    if (last && last > 0) return last
+  }
+  return null
 }
 
-/** Cheap Yahoo ping — AAPL last/close (weekend last close counts). Never uses Finnhub. */
+/** Cheap Yahoo ping — same CORS-proxy stack as equity holdings. Weekend last close counts. */
 export async function probeYahooAapl(): Promise<ProviderProbeResult> {
   try {
-    // Daily last close first — 24H 5m bars are often empty on Saturday/Sunday.
-    const last = await fetchYahooLastCloseViaExistingRelays('AAPL', '5d', '1d')
+    const last = await fetchYahooLastCloseViaHoldingsProxies('AAPL')
     if (last && last > 0) return { ok: true, detail: `OK · AAPL ${last}` }
-    // Same helper holdings history already uses (corsproxy / allorigins / direct).
-    const fromIso = new Date(Date.now() - 14 * 86400000).toISOString().slice(0, 10)
-    const series = await fetchYahooDailySeries('AAPL', fromIso)
-    const daily = series.at(-1)?.price
-    if (daily && daily > 0) return { ok: true, detail: `OK · AAPL ${daily}` }
-    return { ok: false, detail: 'Yahoo empty quote' }
+    // All holdings proxies returned empty/blocked bodies — not a fail storm.
+    return { ok: false, skipped: true, detail: 'Yahoo empty body' }
   } catch (e) {
-    return { ok: false, detail: e instanceof Error ? e.message : 'Yahoo probe failed' }
+    return { ok: false, skipped: true, detail: e instanceof Error ? e.message : 'Yahoo probe failed' }
   }
 }
 
@@ -1402,43 +1393,25 @@ function priceUsdFromCoinCapBody(data: unknown): number | null {
   return n > 0 ? n : null
 }
 
-/** Same CoinCap BTC URL as holdings, via the existing quote-relay list. */
-async function fetchCoinCapLastUsdViaExistingRelays(id: string): Promise<number | null> {
-  const url = `https://api.coincap.io/v2/assets/${encodeURIComponent(id)}`
-  const candidates = proxyCandidatesFor(url)
-  return new Promise((resolve) => {
-    let remaining = candidates.length
-    let settled = false
-    if (remaining === 0) {
-      resolve(null)
-      return
-    }
-    for (const candidate of candidates) {
-      void fetchJson<unknown>(candidate, 8000).then(({ data }) => {
-        if (settled) return
-        const last = priceUsdFromCoinCapBody(data)
-        if (last && last > 0) {
-          settled = true
-          resolve(last)
-          return
-        }
-        remaining -= 1
-        if (remaining === 0) resolve(null)
-      })
-    }
-  })
-}
-
-/** Cheap CoinCap ping — BTC last USD. Direct holdings helper, then same URL via relays. */
+/** Cheap CoinCap ping — same browser-CORS helper as the crypto failover, then holdings relays. */
 export async function probeCoinCapBtc(): Promise<ProviderProbeResult> {
   try {
     const cap = await fetchCoinCapUsd('BTC')
     if (cap && cap.priceUsd > 0) return { ok: true, detail: `OK · BTC ${cap.priceUsd}` }
-    const proxied = await fetchCoinCapLastUsdViaExistingRelays('bitcoin')
-    if (proxied && proxied > 0) return { ok: true, detail: `OK · BTC ${proxied}` }
-    return { ok: false, detail: 'CoinCap empty quote' }
+    const url = 'https://api.coincap.io/v2/assets/bitcoin'
+    const raced = await fetchViaHoldingsProxies<unknown>(url)
+    const fromRace = priceUsdFromCoinCapBody(raced)
+    if (fromRace && fromRace > 0) return { ok: true, detail: `OK · BTC ${fromRace}` }
+    for (const candidate of holdingsQuoteProxyCandidates(url)) {
+      const { data } = await fetchJson<unknown>(candidate, 8000)
+      if (data == null || data === undefined) continue
+      const last = priceUsdFromCoinCapBody(data)
+      if (last && last > 0) return { ok: true, detail: `OK · BTC ${last}` }
+    }
+    // CORS-blocked / empty body is not an empty-quote fail.
+    return { ok: false, skipped: true, detail: 'CoinCap empty body' }
   } catch (e) {
-    return { ok: false, detail: e instanceof Error ? e.message : 'CoinCap probe failed' }
+    return { ok: false, skipped: true, detail: e instanceof Error ? e.message : 'CoinCap probe failed' }
   }
 }
 

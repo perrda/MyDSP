@@ -242,11 +242,14 @@ export function AppShell() {
 
     const r = await refreshPrices()
     if (!r.skipped) await refreshFx()
-    // Session provider health — one cheap quote per id. Cascade skips stay as designed.
+    const sampledThisTick = [...(r.quotes ?? [])]
+    if (!r.skipped) sampledThisTick.push({ source: 'exchangerate-api', last: 1, kind: 'fx' })
+    // Record this-tick holdings sources first — do not second-fetch CoinGecko.
     await pingAllMarketsProviders({
       finnhubKey:
         data.settings.finnhubKey ||
         (typeof localStorage !== 'undefined' ? localStorage.getItem('finnhub_key') || '' : ''),
+      sampledThisTick,
     })
     if (r.skipped === 'privacy') {
       setPriceMsg('Feeds updated · turn off privacy to refresh live prices')

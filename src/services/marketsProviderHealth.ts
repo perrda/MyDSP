@@ -201,10 +201,22 @@ function resolveFinnhubKey(explicit?: string): string {
 export async function pingAllMarketsProviders(opts?: {
   finnhubKey?: string
   probes?: Partial<MarketsProviderProbes>
+  /** Quote results already fetched this Refresh tick (`source` + last). */
+  sampledThisTick?: Array<{ source: string; last: number }>
 }): Promise<Record<MarketsProviderId, ProviderPingOutcome>> {
   const probes = { ...(await defaultProbes()), ...opts?.probes }
   const finnhubKey = resolveFinnhubKey(opts?.finnhubKey)
   const outcomes = {} as Record<MarketsProviderId, ProviderPingOutcome>
+  const alreadyOk = new Set<MarketsProviderId>()
+
+  for (const q of opts?.sampledThisTick ?? []) {
+    if (!(q.last > 0) || !q.source) continue
+    const id = providerFromQuoteSource(q.source)
+    if (!id) continue
+    recordProviderSuccess(id)
+    outcomes[id] = 'ok'
+    alreadyOk.add(id)
+  }
 
   const record = (id: MarketsProviderId, result: { ok: boolean; skipped?: boolean; detail?: string }) => {
     if (result.skipped) {
@@ -220,14 +232,20 @@ export async function pingAllMarketsProviders(opts?: {
     outcomes[id] = 'fail'
   }
 
+  const run = (id: MarketsProviderId, fn: () => Promise<{ ok: boolean; skipped?: boolean; detail?: string }>) => {
+    if (alreadyOk.has(id)) return Promise.resolve()
+    return fn()
+      .then((r) => record(id, r))
+      .catch((e) =>
+        record(id, { ok: false, skipped: true, detail: e instanceof Error ? e.message : 'Ping failed' }),
+      )
+  }
+
   await Promise.all([
-    probes.coingecko().then((r) => record('coingecko', r)).catch((e) =>
-      record('coingecko', { ok: false, detail: e instanceof Error ? e.message : 'Ping failed' }),
-    ),
-    probes.yahoo().then((r) => record('yahoo', r)).catch((e) =>
-      record('yahoo', { ok: false, detail: e instanceof Error ? e.message : 'Ping failed' }),
-    ),
+    run('coingecko', probes.coingecko),
+    run('yahoo', probes.yahoo),
     (async () => {
+      if (alreadyOk.has('finnhub')) return
       if (!finnhubKey) {
         outcomes.finnhub = 'skip'
         return
@@ -235,18 +253,16 @@ export async function pingAllMarketsProviders(opts?: {
       try {
         record('finnhub', await probes.finnhub(finnhubKey))
       } catch (e) {
-        record('finnhub', { ok: false, detail: e instanceof Error ? e.message : 'Ping failed' })
+        record('finnhub', {
+          ok: false,
+          skipped: true,
+          detail: e instanceof Error ? e.message : 'Ping failed',
+        })
       }
     })(),
-    probes.coincap().then((r) => record('coincap', r)).catch((e) =>
-      record('coincap', { ok: false, detail: e instanceof Error ? e.message : 'Ping failed' }),
-    ),
-    probes.coinbase().then((r) => record('coinbase', r)).catch((e) =>
-      record('coinbase', { ok: false, detail: e instanceof Error ? e.message : 'Ping failed' }),
-    ),
-    probes.fx().then((r) => record('fx', r)).catch((e) =>
-      record('fx', { ok: false, detail: e instanceof Error ? e.message : 'Ping failed' }),
-    ),
+    run('coincap', probes.coincap),
+    run('coinbase', probes.coinbase),
+    run('fx', probes.fx),
   ])
 
   try {
