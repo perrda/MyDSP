@@ -162,8 +162,8 @@ describe('next25k — sync / Markets / Today polish tip (1–25 → v1.2.80)', (
 
   it('15: Today prices trust chips consolidate', () => {
     const dash = readFileSync(resolve(__dirname, '../pages/Dashboard.tsx'), 'utf8')
-    expect(dash).toMatch(/today-prices-trust/)
-    expect(dash).toMatch(/aria-label=\"Prices trust\"/)
+    expect(dash).not.toMatch(/today-prices-trust/)
+    expect(dash).not.toMatch(/aria-label=\"Prices trust\"/)
   })
 
   it('16–17: Focus deep-links exist', () => {

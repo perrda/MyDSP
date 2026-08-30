@@ -210,8 +210,8 @@ describe('next25g — sync prices polish tip (1–25 → v1.2.70)', () => {
   it('16–17: Today movers age gate + cross-device lag chip', () => {
     const dash = readFileSync(resolve(__dirname, '../pages/Dashboard.tsx'), 'utf8')
     expect(dash).toMatch(/MOVER_MAX_AGE_MS/)
-    expect(dash).toMatch(/today-price-lag-chip/)
-    expect(dash).toMatch(/Prices from other device/)
+    expect(dash).not.toMatch(/today-price-lag-chip/)
+    expect(dash).not.toMatch(/Prices from other device/)
     expect(dash).toMatch(/isSyncedRemoteQuote/)
   })
 

@@ -32,7 +32,7 @@ describe('favourites Overview + predictive analytics fixes', () => {
     expect(dashboard).toMatch(/hiddenCards/)
     expect(dashboard).toMatch(/showBillsCard[\s\S]*today-section-jump-bills/)
     expect(dashboard).toMatch(/showGoalsCard[\s\S]*today-section-jump-goals/)
-    expect(dashboard).toMatch(/today-trust-strip/)
+    expect(dashboard).not.toMatch(/today-trust-strip/)
     expect(css).toMatch(/\.today-trust-strip/)
     expect(dashboard).toMatch(/\.slice\(0, 5\)/)
   })

@@ -185,7 +185,8 @@ describe('next25i — sync / media / polish tip (1–25 → v1.2.80)', () => {
   it('15: privacy mask Markets/Today movers', () => {
     const dash = readFileSync(resolve(__dirname, '../pages/Dashboard.tsx'), 'utf8')
     expect(dash).toMatch(/privacyClass\(privacy\)/)
-    expect(dash).toMatch(/todayMovers\.map/)
+    expect(dash).toMatch(/todayMovers/)
+    expect(dash).not.toMatch(/todayMovers\.map/)
   })
 
   it('16: recurring commentary on Today bills', () => {
