@@ -7,6 +7,7 @@ import {
   importMarketQuotesFromBackup,
   importMarketsFromBackup,
 } from '../../storage/marketsStore'
+import { shouldImportSyncedMarketQuotes } from '../../domain/marketQuotesSync'
 import {
   importNewsArticlesFromBackup,
   importNewsFromBackup,
@@ -927,7 +928,10 @@ export async function applyWorkspaceExtrasFromPreview(
   if (preview.workspaceExtras?.markets != null) {
     importMarketsFromBackup(preview.workspaceExtras.markets)
   }
-  if (preview.workspaceExtras?.marketQuotes != null) {
+  if (
+    preview.workspaceExtras?.marketQuotes != null &&
+    shouldImportSyncedMarketQuotes(isBookDevice())
+  ) {
     importMarketQuotesFromBackup(preview.workspaceExtras.marketQuotes)
   }
   if (preview.workspaceExtras?.news != null) {

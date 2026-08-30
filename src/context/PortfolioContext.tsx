@@ -27,7 +27,10 @@ import {
   type FxRates,
 } from '../services/fx'
 import { getSessionSyncPassphrase } from '../services/sync/sessionPassphrase'
-import { pushSync } from '../services/sync/syncService'
+import { isBookDevice, pushSync } from '../services/sync/syncService'
+import { refreshLiveQuotesForBookDevice } from '../services/marketsQuotes'
+import { bookDeviceNeedsLiveQuotes } from '../domain/quoteFreshnessSla'
+import { loadMarketQuotesCache } from '../storage/marketsStore'
 import {
   markLocalDataChanged,
   runAutoSyncCycle,
@@ -436,6 +439,25 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
     }
     window.addEventListener('focus', onFocus)
     return () => window.removeEventListener('focus', onFocus)
+  }, [refreshPrices])
+
+  // Mini is the book: fetch live marks when the cache is sync-tagged or past SLA.
+  // Do not sit on 37-minute other-device quotes until the user hits Refresh.
+  const bookLiveAttempted = useRef(false)
+  useEffect(() => {
+    if (bookLiveAttempted.current) return
+    if (!isBookDevice()) return
+    if (dataRef.current.settings.privacy) return
+    const quotes = loadMarketQuotesCache()
+    if (!bookDeviceNeedsLiveQuotes(quotes.values())) return
+    bookLiveAttempted.current = true
+    void refreshPrices()
+    void refreshLiveQuotesForBookDevice({
+      finnhubKey:
+        dataRef.current.settings.finnhubKey ||
+        (typeof localStorage !== 'undefined' ? localStorage.getItem('finnhub_key') || '' : ''),
+      manualCryptoPrices: dataRef.current.settings.manualCryptoPrices,
+    })
   }, [refreshPrices])
 
   // Automatic Cloudflare sync: pull on resume, push after local edits

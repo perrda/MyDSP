@@ -1,4 +1,5 @@
-/** Bottom bar = Today · Markets · Money · Plan · Household (fixed).
+/** Bottom bar doors = Today · Markets · Money · Plan · Household (fixed).
+ *  Phone/tablet also render a compact News + YouTube cluster (PHONE_MEDIA_NAV).
  *  Settings stays at `/settings` in the header / sidebar pin. */
 
 import { PRIMARY_NAV, type PrimaryNavItem } from './primaryNav'

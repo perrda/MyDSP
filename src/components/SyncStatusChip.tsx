@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
+  displayAutoSyncStatus,
+  emitHydratedAutoSyncStatus,
   getAutoSyncStatus,
   subscribeAutoSync,
   type AutoSyncStatus,
@@ -77,12 +79,19 @@ interface SyncStatusChipProps {
 }
 
 export function SyncStatusChip({ compact = false }: SyncStatusChipProps) {
-  const [status, setStatus] = useState<AutoSyncStatus>(() => getAutoSyncStatus())
+  const [status, setStatus] = useState<AutoSyncStatus>(() =>
+    displayAutoSyncStatus(getAutoSyncStatus()),
+  )
   const [queueLen, setQueueLen] = useState(() => loadOfflineQueue().length)
   const cfg = loadSyncConfig()
   const configured = Boolean(cfg.enabled && cfg.remoteUrl.trim())
 
-  useEffect(() => subscribeAutoSync(setStatus), [])
+  useEffect(() => {
+    emitHydratedAutoSyncStatus()
+    return subscribeAutoSync((next) => setStatus(displayAutoSyncStatus(next)))
+  }, [])
+
+  const shown = displayAutoSyncStatus(status)
   useEffect(() => {
     const refresh = () => setQueueLen(loadOfflineQueue().length)
     window.addEventListener('mydsp-offline-queue', refresh)
@@ -96,14 +105,14 @@ export function SyncStatusChip({ compact = false }: SyncStatusChipProps) {
   }, [])
 
   if (!configured) return null
-  const label = chipLabel(status, queueLen, compact)
+  const label = chipLabel(shown, queueLen, compact)
   if (!label) return null
 
   const detailParts = [
-    status.state === 'needs-passphrase'
+    shown.state === 'needs-passphrase'
       ? 'Cloud sync is waiting for your passphrase — Markets prices still work. Tap to unlock in Settings → Sync.'
-      : status.message,
-    status.lastAt ? `Last sync ${new Date(status.lastAt).toLocaleString()}` : null,
+      : shown.message,
+    shown.lastAt ? `Last sync ${new Date(shown.lastAt).toLocaleString()}` : null,
     queueLen > 0 ? `${queueLen} offline job(s)` : null,
     'Tap for Settings → Sync',
   ].filter(Boolean)
@@ -112,10 +121,10 @@ export function SyncStatusChip({ compact = false }: SyncStatusChipProps) {
   return (
     <Link
       to="/settings#sync"
-      className={`${chipTone(status.state, queueLen)}${compact ? ' sync-chip--compact' : ''}`}
+      className={`${chipTone(shown.state, queueLen)}${compact ? ' sync-chip--compact' : ''}`}
       title={detail}
       aria-label={
-        status.state === 'needs-passphrase'
+        shown.state === 'needs-passphrase'
           ? 'Cloud sync needs passphrase unlock. Markets prices are separate. Tap Settings to unlock.'
           : `Cloud sync: ${label}. Tap to open Settings.`
       }

@@ -793,6 +793,28 @@ html.has-bottom-nav .floating-banner--toast {
   background: color-mix(in srgb, var(--accent) 10%, transparent);
 }
 
+/* Compact News + YouTube pair — not seven equal tabs */
+.bottom-nav-media {
+  display: flex;
+  flex-shrink: 0;
+  align-items: stretch;
+  margin-left: 0.15rem;
+  padding-left: 0.15rem;
+  border-left: 1px solid var(--border);
+}
+.bottom-nav-media-link {
+  min-width: 2.65rem;
+  max-width: 3.25rem;
+  padding-left: 0.3rem;
+  padding-right: 0.3rem;
+}
+.bottom-nav--tablet .bottom-nav-media-link {
+  min-width: 3.25rem;
+  max-width: 4rem;
+  padding-left: 0.45rem;
+  padding-right: 0.45rem;
+}
+
 .bottom-nav-unread,
 .bottom-nav-bills-due,
 .sidebar-unread {
@@ -866,6 +888,12 @@ html.has-bottom-nav .floating-banner--toast {
     padding-top: 0.35rem;
     padding-bottom: 0.35rem;
     gap: 0;
+  }
+  .bottom-nav-media-link {
+    min-width: 2.25rem;
+    max-width: 2.75rem;
+    padding-left: 0.2rem;
+    padding-right: 0.2rem;
   }
   .bottom-nav .bottom-nav-link-label {
     position: absolute;

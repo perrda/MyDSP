@@ -4,8 +4,10 @@ import { useLayoutMode, useShowBottomNav } from '../../hooks/useShowBottomNav'
 import { prefetchRouteChunk } from '../../hooks/useIdlePrefetch'
 import { prefetchMarketQuotes } from '../../services/marketsQuotes'
 import { resolveBottomNavItems, type BottomNavItem } from '../../domain/bottomNav'
+import { PHONE_MEDIA_NAV } from '../../domain/primaryNav'
 import { dueWithinDays } from '../../domain/recurringDueStrip'
 import { usePortfolio } from '../../context/PortfolioContext'
+import { newsUnreadFromCache } from '../../storage/newsStore'
 
 function prefetchMarketsNav(): void {
   prefetchRouteChunk('/markets')
@@ -30,10 +32,22 @@ export function BottomNav() {
     [data.recurringTransactions],
   )
   const [moneyPulse, setMoneyPulse] = useState(billsDueSoon)
+  const [newsUnread, setNewsUnread] = useState(() => newsUnreadFromCache())
 
   useEffect(() => {
     setMoneyPulse(billsDueSoon)
   }, [billsDueSoon])
+
+  useEffect(() => {
+    const refresh = () => setNewsUnread(newsUnreadFromCache())
+    window.addEventListener('mydsp-news-articles', refresh)
+    window.addEventListener('mydsp-news-changed', refresh)
+    refresh()
+    return () => {
+      window.removeEventListener('mydsp-news-articles', refresh)
+      window.removeEventListener('mydsp-news-changed', refresh)
+    }
+  }, [])
 
   const clearLongPress = () => {
     if (longPressTimer.current) {
@@ -76,73 +90,114 @@ export function BottomNav() {
       role="navigation"
     >
       <div
-        className={`flex items-center justify-around px-1 pt-1.5 ${
-          tablet ? 'max-w-3xl mx-auto px-4 gap-1' : ''
+        className={`bottom-nav-inner flex items-stretch px-1 pt-1.5 ${
+          tablet ? 'max-w-3xl mx-auto px-3 gap-1' : 'gap-0'
         }`}
       >
-        {items.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.to === '/'}
-            onMouseEnter={item.to === '/markets' ? prefetchMarketsNav : undefined}
-            onFocus={item.to === '/markets' ? prefetchMarketsNav : undefined}
-            onTouchStart={() => startLongPress(item)}
-            onTouchEnd={clearLongPress}
-            onTouchMove={clearLongPress}
-            onTouchCancel={clearLongPress}
-            onContextMenu={(e) => {
-              if (!isDigestLongPressItem(item)) return
-              e.preventDefault()
-              e.stopPropagation()
-              longPressFired.current = true
-              clearLongPress()
-              dispatchWeeklyDigestOpen()
-            }}
-            onClick={(e) => {
-              if (longPressFired.current) {
+        <div className="bottom-nav-doors flex min-w-0 flex-1 items-stretch justify-around">
+          {items.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.to === '/'}
+              onMouseEnter={item.to === '/markets' ? prefetchMarketsNav : undefined}
+              onFocus={item.to === '/markets' ? prefetchMarketsNav : undefined}
+              onTouchStart={() => startLongPress(item)}
+              onTouchEnd={clearLongPress}
+              onTouchMove={clearLongPress}
+              onTouchCancel={clearLongPress}
+              onContextMenu={(e) => {
+                if (!isDigestLongPressItem(item)) return
                 e.preventDefault()
-                longPressFired.current = false
-                return
-              }
-              if (item.to === '/') {
-                const now = Date.now()
-                if (pathname === '/' && now - lastOverviewTap.current < 450) {
+                e.stopPropagation()
+                longPressFired.current = true
+                clearLongPress()
+                dispatchWeeklyDigestOpen()
+              }}
+              onClick={(e) => {
+                if (longPressFired.current) {
                   e.preventDefault()
-                  scrollTodayToTop()
+                  longPressFired.current = false
+                  return
                 }
-                lastOverviewTap.current = now
+                if (item.to === '/') {
+                  const now = Date.now()
+                  if (pathname === '/' && now - lastOverviewTap.current < 450) {
+                    e.preventDefault()
+                    scrollTodayToTop()
+                  }
+                  lastOverviewTap.current = now
+                }
+              }}
+              className={({ isActive }) =>
+                `bottom-nav-link relative flex min-w-0 flex-1 flex-col items-center gap-0.5 py-2 min-h-11 transition-colors ${
+                  tablet ? 'px-2' : 'px-1'
+                } ${isActive ? 'text-accent bottom-nav-link--active' : 'text-text-muted'}`
               }
-            }}
-            className={({ isActive }) =>
-              `bottom-nav-link relative flex flex-col items-center gap-0.5 py-2 min-h-11 transition-colors ${
-                tablet ? 'px-4 min-w-[4.5rem] flex-1' : 'px-2 min-w-[3.5rem]'
-              } ${isActive ? 'text-accent bottom-nav-link--active' : 'text-text-muted'}`
-            }
-          >
-            {({ isActive }) => (
-              <>
-                <span className="relative inline-flex">
-                  <item.icon size={tablet ? 22 : 20} strokeWidth={isActive ? 2.25 : 1.75} />
-                  {item.to === '/money' && moneyPulse ? (
-                    <span
-                      className="bottom-nav-bills-due bottom-nav-unread"
-                      aria-label="Bills due within 7 days"
-                    />
-                  ) : null}
-                </span>
-                <span
-                  className={`bottom-nav-link-label font-semibold leading-tight tracking-tight ${
-                    tablet ? 'text-xs' : 'text-[11px]'
-                  }`}
-                  title={item.label}
-                >
-                  {item.label}
-                </span>
-              </>
-            )}
-          </NavLink>
-        ))}
+            >
+              {({ isActive }) => (
+                <>
+                  <span className="relative inline-flex">
+                    <item.icon size={tablet ? 22 : 20} strokeWidth={isActive ? 2.25 : 1.75} />
+                    {item.to === '/money' && moneyPulse ? (
+                      <span
+                        className="bottom-nav-bills-due bottom-nav-unread"
+                        aria-label="Bills due within 7 days"
+                      />
+                    ) : null}
+                  </span>
+                  <span
+                    className={`bottom-nav-link-label font-semibold leading-tight tracking-tight ${
+                      tablet ? 'text-xs' : 'text-[11px]'
+                    }`}
+                    title={item.label}
+                  >
+                    {item.label}
+                  </span>
+                </>
+              )}
+            </NavLink>
+          ))}
+        </div>
+        <div className="bottom-nav-media" aria-label="News and YouTube">
+          {PHONE_MEDIA_NAV.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              onMouseEnter={() => prefetchRouteChunk(item.to)}
+              onFocus={() => prefetchRouteChunk(item.to)}
+              className={({ isActive }) =>
+                `bottom-nav-link bottom-nav-media-link relative flex flex-col items-center gap-0.5 py-2 min-h-11 transition-colors ${
+                  isActive ? 'text-accent bottom-nav-link--active' : 'text-text-muted'
+                }`
+              }
+              data-testid={item.to === '/news' ? 'bottom-nav-news' : 'bottom-nav-youtube'}
+            >
+              {({ isActive }) => (
+                <>
+                  <span className="relative inline-flex">
+                    <item.icon size={tablet ? 20 : 18} strokeWidth={isActive ? 2.25 : 1.75} />
+                    {item.to === '/news' && newsUnread > 0 ? (
+                      <span
+                        className="bottom-nav-unread"
+                        aria-label={`${newsUnread} unread`}
+                        data-testid="bottom-nav-news-unread"
+                      />
+                    ) : null}
+                  </span>
+                  <span
+                    className={`bottom-nav-link-label font-semibold leading-tight tracking-tight ${
+                      tablet ? 'text-xs' : 'text-[10px]'
+                    }`}
+                    title={item.label}
+                  >
+                    {item.label}
+                  </span>
+                </>
+              )}
+            </NavLink>
+          ))}
+        </div>
       </div>
     </nav>
   )

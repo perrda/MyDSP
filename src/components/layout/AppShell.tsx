@@ -8,7 +8,10 @@ import {
   subscribeAutoSync,
   syncNow,
 } from '../../services/sync/autoSyncService'
-import { getSessionSyncPassphrase } from '../../services/sync/sessionPassphrase'
+import {
+  getSessionSyncPassphrase,
+  hydrateSessionSyncPassphrase,
+} from '../../services/sync/sessionPassphrase'
 import { runOneButtonSync } from '../../services/sync/oneButtonSync'
 import {
   checkTodoReminders,
@@ -203,33 +206,38 @@ export function AppShell() {
     }
   }, [])
 
+  /** Satellite REPLACE Mini’s book — remembered passphrase, no Settings / Automatic required. */
+  const replaceOrPushBook = useCallback(async (): Promise<'ok' | 'needs-pass' | 'error'> => {
+    hydrateSessionSyncPassphrase()
+    const pass = getSessionSyncPassphrase()
+    if (!pass) return 'needs-pass'
+    const cfg = loadSyncConfig()
+    try {
+      if (isBookDevice(cfg)) {
+        if (cfg.enabled) await syncNow()
+        else await runOneButtonSync(pass)
+      } else {
+        await runOneButtonSync(pass)
+      }
+      setSyncCfg(loadSyncConfig())
+      return 'ok'
+    } catch {
+      return 'error'
+    }
+  }, [])
+
   const onRefresh = async () => {
     // Manual refresh lives in the header Refresh control (1.2.129).
     // Always refresh Markets / News / YouTube feeds — even when prices are
     // gated by privacy mode or throttle (those pages do not need holdings prices).
-    // Satellite pull on 1.2.128 is unchanged (Mini is the book; satellites REPLACE).
+    // Satellite REPLACE on 1.2.128 is unchanged (Mini is the book).
     try {
       window.dispatchEvent(new CustomEvent('mydsp-global-refresh'))
     } catch {
       /* ignore */
     }
     void refreshMediaFeeds()
-
-    const cfg = loadSyncConfig()
-    const pass = getSessionSyncPassphrase()
-    if (pass) {
-      try {
-        if (isBookDevice(cfg)) {
-          if (cfg.enabled) await syncNow()
-          else await runOneButtonSync(pass)
-        } else {
-          await runOneButtonSync(pass)
-        }
-        setSyncCfg(loadSyncConfig())
-      } catch {
-        /* price refresh still runs below */
-      }
-    }
+    await replaceOrPushBook()
 
     const r = await refreshPrices()
     if (r.skipped === 'privacy') {
@@ -251,7 +259,7 @@ export function AppShell() {
     return candidates.sort((a, b) => a.localeCompare(b)).at(-1) ?? null
   })()
 
-  /** Pull-down on iPhone/iPad → refresh feeds + cloud sync when configured. */
+  /** Pull-down on iPhone/iPad → same satellite REPLACE as Sync (no Automatic required). */
   const onPullToSync = useCallback(async () => {
     try {
       window.dispatchEvent(new CustomEvent('mydsp-global-refresh'))
@@ -261,28 +269,16 @@ export function AppShell() {
     void refreshMediaFeeds()
 
     const cfg = loadSyncConfig()
-    const pass = getSessionSyncPassphrase()
     const satellite = !isBookDevice(cfg)
-    if (!pass) {
+    setPriceMsg(satellite ? 'Pulling the book…' : 'Syncing across devices…')
+    const outcome = await replaceOrPushBook()
+    if (outcome === 'needs-pass') {
       const r = await refreshPrices()
       if (!r.skipped) await refreshFx()
       setPriceMsg('Feeds refreshed · enter sync passphrase in Settings')
       window.setTimeout(() => setPriceMsg(null), 4500)
       return
     }
-    setPriceMsg(satellite ? 'Pulling the book…' : 'Syncing across devices…')
-    try {
-      if (satellite) {
-        await runOneButtonSync(pass)
-      } else if (cfg.enabled) {
-        await syncNow()
-      } else {
-        await runOneButtonSync(pass)
-      }
-    } catch {
-      /* status read below */
-    }
-    setSyncCfg(loadSyncConfig())
     const st = getAutoSyncStatus()
     if (st.state === 'error' || st.state === 'needs-passphrase' || st.state === 'conflict') {
       setPriceMsg(
@@ -295,7 +291,7 @@ export function AppShell() {
       triggerSuccessFlash()
     }
     window.setTimeout(() => setPriceMsg(null), 4500)
-  }, [refreshPrices, refreshFx])
+  }, [refreshPrices, refreshFx, replaceOrPushBook])
 
   return (
     <div className="app-shell">

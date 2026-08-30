@@ -1,6 +1,7 @@
 /** Primary information architecture — Today · Markets · Money · Plan · Household.
  *  Settings is always `/settings` (header / sidebar pin), never a sixth tab.
- *  Sidebar MENU also lists News + YouTube after Household (1.2.129). Bottom nav stays five-door. */
+ *  Sidebar MENU lists News + YouTube after Household. Phone/tablet bottom nav
+ *  keeps the five doors and adds a compact News + YouTube cluster (not seven equal tabs). */
 
 import {
   LayoutDashboard,
@@ -31,6 +32,12 @@ export const PRIMARY_NAV: readonly PrimaryNavItem[] = [
 /** Desktop sidebar + phone hamburger MENU — five doors then News · YouTube. */
 export const SIDEBAR_NAV: readonly PrimaryNavItem[] = [
   ...PRIMARY_NAV,
+  { to: '/news', label: 'News', icon: Newspaper },
+  { to: '/youtube', label: 'YouTube', icon: Video },
+]
+
+/** Phone/tablet bottom-nav media pair — compact, not equal-width doors. */
+export const PHONE_MEDIA_NAV: readonly PrimaryNavItem[] = [
   { to: '/news', label: 'News', icon: Newspaper },
   { to: '/youtube', label: 'YouTube', icon: Video },
 ]

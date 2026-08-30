@@ -29,6 +29,28 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.130',
+    date: '2026-08-30',
+    bullets: [
+      {
+        text: 'Unlock Sync goes away after a working session',
+        to: '/settings#sync',
+      },
+      {
+        text: 'Mini fetches live prices — not 37-minute other-device quotes',
+        to: '/markets',
+      },
+      {
+        text: 'Phone News and YouTube sit on the bottom bar',
+        to: '/news',
+      },
+      {
+        text: 'Pull-to-refresh replaces Mini’s book on iPhone/iPad',
+        to: '/settings#sync',
+      },
+    ],
+  },
+  {
     version: '1.2.129',
     date: '2026-08-30',
     bullets: [
