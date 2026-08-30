@@ -34,14 +34,14 @@ const sample = {
 describe('MyDSP 1.2.125 digest recut', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(read('../../package.json'))
-    expect(pkg.version).toBe('1.2.143')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.143')
+    expect(pkg.version).toBe('1.2.144')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.144')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.144',
       '1.2.143',
       '1.2.141',
       '1.2.140',
       '1.2.139',
-      '1.2.137',
     ])
     const digestTip = RELEASE_NOTES.find((e) => e.version === '1.2.125')
     expect(digestTip?.bullets.map((b) => (typeof b === 'string' ? b : b.text)).join(' ')).toMatch(

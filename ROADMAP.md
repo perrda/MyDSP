@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.143**
+**Current version: 1.2.144**
 
-## Completed (through v1.2.143)
+## Completed (through v1.2.144)
 
+- Today TREND chip capitals (v1.2.144): 24H · 7D · 30D · 6M · YTD · 12M · 5Y · ALL — 7D / 30D / 6M match the other capital chips · default 30D + `#F7931A` active stay · draft only — live stays 1.2.141
 - Family TSLA / MSTR / ADA sleeves (v1.2.143): Thomas + Rebecca 100 TSLA / 97 MSTR · Mum 109 TSLA / 108 MSTR · James King 182 TSLA / 90 MSTR / 3,000 ADA · one-shot on the book so Reset stays empty · David and Andrew unchanged · draft only — live stays 1.2.137
 - Chart axes + display CCY (v1.2.141): full money/time charts show X + Y · Y ticks follow toolbar CCY · Markets detail trend always mounts at 176px on row click (Fetching leftover pads empty/last-good series like Today ALL/5Y) · 24H / 1W / 1M / 12M / YTD / ALL labels · list-row sparklines stay compact · draft only — live stays 1.2.137
 - Today TREND 6m + YTD (v1.2.140): 6M and YTD sit between 30D and 12M · 6M is last 6 months as MMM · YTD is Jan→now as MMM (January uses DD/MM) · draft only — live stays 1.2.137

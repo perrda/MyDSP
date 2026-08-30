@@ -1412,7 +1412,7 @@ export function Dashboard() {
                       saveNwSparkWindowPref(d)
                     }}
                   >
-                    {d === '7D' ? '7d' : d === '30D' ? '30d' : d === '6M' ? '6m' : d === 'YTD' ? 'YTD' : d}
+                    {d}
                   </button>
                 ))}
               </div>
