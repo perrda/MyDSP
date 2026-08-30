@@ -1,4 +1,4 @@
-/** Today net-worth spark window (7d / 30d) — syncs via fullArchive (LWW by updatedAt). */
+/** Today net-worth trend window — syncs via fullArchive (LWW by updatedAt). */
 
 import type { NwSparkWindow } from './netWorthSparkline'
 
@@ -6,33 +6,49 @@ const KEY = 'mydsp_nw_spark_window_v1'
 const META_KEY = 'mydsp_nw_spark_window_meta_v1'
 
 export type NwSparkWindowBackup = {
-  days: NwSparkWindow
+  /** Legacy 7 / 30, or a canonical window id. */
+  days: number | NwSparkWindow
+  window?: NwSparkWindow
   updatedAt: string
 }
 
-function normalize(raw: string | number | null | undefined): NwSparkWindow {
-  if (raw === 30 || raw === '30') return 30
-  return 7
+export function normalizeNwSparkWindow(raw: string | number | null | undefined): NwSparkWindow {
+  if (raw === 30 || raw === '30' || raw === '30D' || raw === '30d') return '30D'
+  if (raw === 7 || raw === '7' || raw === '7D' || raw === '7d') return '7D'
+  if (raw === '24H' || raw === '24h') return '24H'
+  if (raw === '12M' || raw === '12m') return '12M'
+  if (raw === '5Y' || raw === '5y') return '5Y'
+  if (raw === 'ALL' || raw === 'all') return 'ALL'
+  return '7D'
+}
+
+function backupDays(window: NwSparkWindow): number | NwSparkWindow {
+  if (window === '7D') return 7
+  if (window === '30D') return 30
+  return window
 }
 
 export function loadNwSparkWindowPref(): NwSparkWindow {
   try {
-    return normalize(localStorage.getItem(KEY))
+    return normalizeNwSparkWindow(localStorage.getItem(KEY))
   } catch {
-    return 7
+    return '7D'
   }
 }
 
 export function saveNwSparkWindowPref(
-  days: NwSparkWindow,
+  days: NwSparkWindow | 7 | 30,
   opts?: { markDirty?: boolean; fromSync?: boolean },
 ): void {
-  const next = normalize(days)
+  const next = normalizeNwSparkWindow(days)
   const updatedAt = new Date().toISOString()
   try {
-    localStorage.setItem(KEY, String(next))
+    localStorage.setItem(KEY, next)
     if (!opts?.fromSync) {
-      localStorage.setItem(META_KEY, JSON.stringify({ days: next, updatedAt }))
+      localStorage.setItem(
+        META_KEY,
+        JSON.stringify({ days: backupDays(next), window: next, updatedAt }),
+      )
     }
   } catch {
     /* ignore */
@@ -47,14 +63,17 @@ export function exportNwSparkWindowForBackup(): NwSparkWindowBackup | null {
     const metaRaw = localStorage.getItem(META_KEY)
     if (metaRaw) {
       const parsed = JSON.parse(metaRaw) as NwSparkWindowBackup
+      const window = normalizeNwSparkWindow(parsed.window ?? parsed.days)
       return {
-        days: normalize(parsed.days),
+        days: parsed.days ?? backupDays(window),
+        window,
         updatedAt:
           typeof parsed.updatedAt === 'string' ? parsed.updatedAt : new Date(0).toISOString(),
       }
     }
     if (localStorage.getItem(KEY) == null) return null
-    return { days: loadNwSparkWindowPref(), updatedAt: new Date(0).toISOString() }
+    const window = loadNwSparkWindowPref()
+    return { days: backupDays(window), window, updatedAt: new Date(0).toISOString() }
   } catch {
     return null
   }
@@ -67,13 +86,14 @@ export function importNwSparkWindowFromBackup(raw: unknown): void {
   const remoteAt = Date.parse(remote.updatedAt || '') || 0
   const localAt = Date.parse(local?.updatedAt || '') || 0
   if (local && localAt > remoteAt) return
-  const days = normalize(remote.days)
+  const window = normalizeNwSparkWindow(remote.window ?? remote.days)
   try {
-    localStorage.setItem(KEY, String(days))
+    localStorage.setItem(KEY, window)
     localStorage.setItem(
       META_KEY,
       JSON.stringify({
-        days,
+        days: remote.days ?? backupDays(window),
+        window,
         updatedAt: remote.updatedAt || new Date().toISOString(),
       }),
     )

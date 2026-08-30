@@ -29,7 +29,7 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
-    version: '1.2.136',
+    version: '1.2.139',
     date: '2026-08-30',
     bullets: [
       {
@@ -43,6 +43,38 @@ export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
       {
         text: 'Both ask “Are you sure?” first',
         to: '/settings#portfolios',
+      },
+    ],
+  },
+  {
+    version: '1.2.137',
+    date: '2026-08-30',
+    bullets: [
+      {
+        text: 'Today trend fills the card — 24H / 7D / 30D / 12M / 5Y / ALL',
+        to: '/',
+      },
+      {
+        text: 'X-axis weekdays, DD/MM, months, and years — Y follows CCY',
+        to: '/',
+      },
+      {
+        text: 'Draft only — live stays 1.2.132',
+        to: '/',
+      },
+    ],
+  },
+  {
+    version: '1.2.135',
+    date: '2026-08-30',
+    bullets: [
+      {
+        text: 'Values, charts, and lists sit above help boxes',
+        to: '/crypto',
+      },
+      {
+        text: 'Same order on Equities, Tax, Plan, and Compare',
+        to: '/equities',
       },
       {
         text: 'Draft only — live stays 1.2.132',

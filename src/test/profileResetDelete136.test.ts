@@ -25,29 +25,30 @@ function mockLocalStorage() {
   return mem
 }
 
-describe('MyDSP 1.2.136 profile reset and delete', () => {
+describe('MyDSP 1.2.139 profile reset and delete', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(read('../../package.json'))
-    expect(pkg.version).toBe('1.2.136')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.136')
+    expect(pkg.version).toBe('1.2.139')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.139')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
-      '1.2.136',
+      '1.2.139',
+      '1.2.137',
+      '1.2.135',
       '1.2.134',
       '1.2.133',
-      '1.2.132',
-      '1.2.131',
     ])
     const changelog = read('../../CHANGELOG.md')
-    const section = changelog.match(/## \[1\.2\.136\][\s\S]*?(?=## \[)/)?.[0] ?? ''
+    const section = changelog.match(/## \[1\.2\.139\][\s\S]*?(?=## \[)/)?.[0] ?? ''
     expect(section).toMatch(/Reset/)
     expect(section).toMatch(/Delete/)
     expect(section).toMatch(/Are you sure/)
     expect(section).toMatch(/David|default/)
     expect(section).toMatch(/#F7931A/)
     expect(section).toMatch(/draft only|Draft only/)
-    expect(section).toMatch(/1\.2\.132/)
+    expect(section).toMatch(/1\.2\.137/)
+    expect(section).toMatch(/index-CxpikgZP\.js/)
     expect(section).not.toMatch(/SYNC_KEY/)
-    expect(read('../../ROADMAP.md')).toMatch(/Profile reset and delete \(v1\.2\.136\)/)
+    expect(read('../../ROADMAP.md')).toMatch(/Profile reset and delete \(v1\.2\.139\)/)
     const shipped = changelog.match(/## \[1\.2\.134\][\s\S]*?(?=## \[)/)?.[0] ?? ''
     expect(shipped).toMatch(/SIPP = Equities/)
     expect(shipped).not.toMatch(/Reset profile/)

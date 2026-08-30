@@ -67,14 +67,14 @@ describe('next25r — sync / Markets / Today polish tip (1–25 → v1.2.87)', (
 
   it('25: package + release notes are 1.2.87', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.136')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.136')
+    expect(pkg.version).toBe('1.2.139')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.139')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
-      '1.2.136',
+      '1.2.139',
+      '1.2.137',
+      '1.2.135',
       '1.2.134',
       '1.2.133',
-      '1.2.132',
-      '1.2.131',
     ])
   })
 
@@ -141,6 +141,7 @@ describe('next25r — sync / Markets / Today polish tip (1–25 → v1.2.87)', (
     saveNwSparkWindowPref(30)
     const local = exportNwSparkWindowForBackup()
     expect(local?.days).toBe(30)
+    expect(local?.window).toBe('30D')
 
     mem.clear()
     saveNwSparkWindowPref(7)
@@ -148,7 +149,7 @@ describe('next25r — sync / Markets / Today polish tip (1–25 → v1.2.87)', (
       days: 30,
       updatedAt: new Date(Date.now() + 60_000).toISOString(),
     })
-    expect(loadNwSparkWindowPref()).toBe(30)
+    expect(loadNwSparkWindowPref()).toBe('30D')
 
     const sync = readFileSync(resolve(__dirname, '../services/sync/syncService.ts'), 'utf8')
     expect(sync).toMatch(/importNwSparkWindowFromBackup/)

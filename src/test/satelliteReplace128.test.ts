@@ -142,14 +142,14 @@ function replacePreview(): MergePreview {
 describe('MyDSP 1.2.128 satellite replace Mini book', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(read('../../package.json'))
-    expect(pkg.version).toBe('1.2.136')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.136')
+    expect(pkg.version).toBe('1.2.139')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.139')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
-      '1.2.136',
+      '1.2.139',
+      '1.2.137',
+      '1.2.135',
       '1.2.134',
       '1.2.133',
-      '1.2.132',
-      '1.2.131',
     ])
     const notes128 = RELEASE_NOTES.find((e) => e.version === '1.2.128')
     const tip = notes128?.bullets.map((b) => (typeof b === 'string' ? b : b.text)).join(' ')
