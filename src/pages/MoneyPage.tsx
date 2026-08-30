@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { PageHeader, StatCard } from '../components/ui/PageHeader'
 import { buildCashflowStory, formatRunwayMonths } from '../domain/cashflow'
-import { MONEY_DOORS } from '../domain/hubPages'
+import { MONEY_DIRECTORY, MONEY_DOORS } from '../domain/hubPages'
 import { usePortfolio } from '../context/PortfolioContext'
 import { formatGBP, privacyClass } from '../utils/format'
 
@@ -12,11 +12,11 @@ export function MoneyPage() {
   const leftoverTone = story.leftover > 0 ? 'positive' : story.leftover < 0 ? 'negative' : 'default'
 
   return (
-    <div>
+    <div className="money-home">
       <PageHeader
         eyebrow="Money"
         title="Money"
-        description="Leftover and stables runway — then Spend, Holdings, Tax, Import."
+        description="Leftover and stables runway — then every Money page."
       />
       <div
         className={`grid grid-cols-1 sm:grid-cols-2 gap-px mb-8 ${privacyClass(privacy)}`}
@@ -42,15 +42,28 @@ export function MoneyPage() {
           />
         </Link>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-px">
+      <div className="money-cockpit-doors grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-px mb-8">
         {MONEY_DOORS.map((door) => (
           <Link
-            key={door.to}
+            key={`cockpit-${door.to}`}
             to={door.to}
             className="surface surface-interactive p-4 md:p-5 rounded-xl md:rounded-none shadow-sm md:shadow-none block min-w-0"
           >
             <p className="text-sm font-semibold tracking-tight truncate">{door.label}</p>
             <p className="text-xs text-text-muted font-light mt-1">{door.detail}</p>
+          </Link>
+        ))}
+      </div>
+      <h2 className="text-xs font-bold uppercase tracking-widest text-text-subtle mb-3">Directory</h2>
+      <div className="money-directory" data-testid="money-directory">
+        {MONEY_DIRECTORY.map((tile) => (
+          <Link
+            key={tile.to}
+            to={tile.to}
+            className="money-directory-tile surface surface-interactive p-4 md:p-5 rounded-xl shadow-sm block min-w-0"
+          >
+            <p className="text-sm font-semibold tracking-tight truncate">{tile.label}</p>
+            <p className="text-xs text-text-muted font-light mt-1">{tile.detail}</p>
           </Link>
         ))}
       </div>

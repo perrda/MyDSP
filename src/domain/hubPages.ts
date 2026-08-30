@@ -14,6 +14,25 @@ export const MONEY_DOORS: readonly HubDoor[] = [
   { to: '/import', label: 'Import', detail: 'CSV and opening balances' },
 ]
 
+/**
+ * 1.2.121 Money home tiles — restored on /money in 1.2.126.
+ * Names/descriptions match the live 1.2.121 directory. Routes are existing pages.
+ */
+export const MONEY_DIRECTORY: readonly HubDoor[] = [
+  { to: '/spending', label: 'Spending', detail: 'Ledger and categories' },
+  { to: '/budgets', label: 'Budgets', detail: 'Monthly limits' },
+  { to: '/recurring', label: 'Recurring', detail: 'Bills and income' },
+  { to: '/liabilities', label: 'Liabilities', detail: 'Debt and cards' },
+  { to: '/tax', label: 'Tax', detail: 'Capital gains pack' },
+  { to: '/journal', label: 'Journal', detail: 'Trades and notes' },
+  { to: '/crypto', label: 'Crypto', detail: 'Holdings' },
+  { to: '/equities', label: 'Equities', detail: 'Holdings' },
+  { to: '/commodities', label: 'Commodities', detail: 'Paper book' },
+  { to: '/staking', label: 'Staking', detail: 'Yield positions' },
+  { to: '/import', label: 'Import', detail: 'CSV and opening balances' },
+  { to: '/rules', label: 'Merchant rules', detail: 'Spending aliases' },
+]
+
 export const PLAN_DOORS: readonly HubDoor[] = [
   { to: '/goals', label: 'Goals', detail: 'Targets and surplus' },
   { to: '/fire', label: 'FIRE', detail: 'Independence inputs' },

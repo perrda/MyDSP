@@ -1,7 +1,9 @@
 # MyDSP encrypted sync — automatic multi-device (Cloudflare)
 
 Your data stays **encrypted on your device**. Cloudflare only stores a locked blob.
-Same **Remote URL** + same **passphrase** on every device.
+Same **passphrase** on every device.
+
+**In-app default (1.2.126+):** Settings → Sync is one passphrase field and one **Sync** button. The existing `mydsp-sync` Worker URL is already baked. You do **not** need to create a Worker, bind KV, or paste `worker.js`. First Sync on a device that already has the book **pushes**. Empty or sample books **pull**. Conflicts never auto-overwrite Mini DAVID. Worker DIY, Remote URL paste, and setup-card tools stay under **Advanced**.
 
 **You do not need iCloud.** Automatic sync uses your Cloudflare Worker.
 

@@ -392,7 +392,7 @@ async function doPull(cfg: SyncConfig, pass: string, reason: CycleReason): Promi
     return false
   }
 
-  const autoResolve = cfg.autoResolveConflicts !== false
+  const autoResolve = cfg.autoResolveConflicts === true
   let resolutions: Record<string, ConflictChoice> = {}
 
   if (preview.conflicts.length > 0) {

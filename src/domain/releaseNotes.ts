@@ -29,6 +29,28 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.126',
+    date: '2026-08-30',
+    bullets: [
+      {
+        text: 'Money home: 12 tiles back — Spending through Merchant rules',
+        to: '/money',
+      },
+      {
+        text: 'Cockpit leftover + runway + four doors kept above the grid',
+        to: '/money',
+      },
+      {
+        text: 'Cloud Sync: passphrase + Sync — baked mydsp-sync Worker',
+        to: '/settings#sync',
+      },
+      {
+        text: 'Draft only — live stays 1.2.125',
+        to: '/',
+      },
+    ],
+  },
+  {
     version: '1.2.125',
     date: '2026-08-29',
     bullets: [

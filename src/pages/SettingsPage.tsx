@@ -103,12 +103,14 @@ import {
   downloadEncryptedBackup,
   formatRemoteBlobAge,
   formatSyncPayloadBytes,
+  DEFAULT_SYNC_REMOTE_URL,
   getSyncRemoteUrlWarning,
   loadSyncConfig,
   normalizeSyncRemoteUrl,
   previewImport,
   previewPull,
   pushSync,
+  resolveSyncRemoteUrl,
   restoreMergeUndoSnapshot,
   saveSyncConfig,
   shareSyncDiagnostics,
@@ -205,6 +207,7 @@ import {
   downloadSyncSetupUrl,
   drawSyncSetupCard,
 } from '../services/sync/syncSetupExport'
+import { runOneButtonSync } from '../services/sync/oneButtonSync'
 import {
   loadRecentSettingsJumps,
   rankSettingsSections,
@@ -269,7 +272,7 @@ const SETTINGS_SECTION_IDS = [
 ] as const
 
 const SETTINGS_SECTION_SEARCH: Record<(typeof SETTINGS_SECTION_IDS)[number], string> = {
-  sync: 'Encrypted cloud sync passphrase remote url push pull dry-run device nickname setup url',
+  sync: 'Encrypted cloud sync passphrase one-button sync remote url push pull dry-run device nickname setup url advanced',
   appearance: 'Light dark glass mode theme larger text accessibility',
   accessibility:
     'Accessibility larger text reduced motion high contrast colour blind chart palette a11y',
@@ -423,6 +426,7 @@ export function SettingsPage() {
   const [rotatePassOpen, setRotatePassOpen] = useState(false)
   const [rotatePass, setRotatePass] = useState('')
   const [rotateBusy, setRotateBusy] = useState(false)
+  const [syncBusy, setSyncBusy] = useState(false)
   const setupCanvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => subscribeAutoSync(setAutoSyncStatus), [])
@@ -579,10 +583,12 @@ export function SettingsPage() {
   }
 
   const currentSyncPassphrase = () => syncPass || getSessionSyncPassphrase() || ''
+  const effectiveSyncUrl = () => resolveSyncRemoteUrl(syncCfg.remoteUrl)
 
   const pullWorkspaceMediaFromCloud = async () => {
     const passphrase = currentSyncPassphrase()
-    if (!syncCfg.remoteUrl.trim()) {
+    const remoteUrl = effectiveSyncUrl()
+    if (!remoteUrl) {
       flash('Set Remote URL before pulling media from cloud.')
       return
     }
@@ -598,7 +604,7 @@ export function SettingsPage() {
       setSessionSyncPassphrase(passphrase, {
         remember: Boolean(syncCfg.rememberPassphrase),
       })
-      const preview = await previewPull(syncCfg.remoteUrl, passphrase)
+      const preview = await previewPull(remoteUrl, passphrase)
       setPendingMerge(preview)
       setConflicts(preview.conflicts)
       setConflictChoices({})
@@ -777,25 +783,26 @@ export function SettingsPage() {
   }
 
   const testSyncEndpoint = async () => {
-    if (!syncCfg.remoteUrl) {
+    const remoteUrl = effectiveSyncUrl()
+    if (!remoteUrl) {
       flash('Enter a remote URL first.')
       return
     }
-    const warn = getSyncRemoteUrlWarning(syncCfg.remoteUrl)
+    const warn = getSyncRemoteUrlWarning(remoteUrl)
     if (warn) {
       flash(warn)
       return
     }
     try {
       const t0 = performance.now()
-      const res = await fetch(syncCfg.remoteUrl, { method: 'GET' })
+      const res = await fetch(remoteUrl, { method: 'GET' })
       const ms = Math.round(performance.now() - t0)
       if (res.status === 404) {
         flash(`Endpoint OK (${ms}ms) — empty store (404). Push from a device with data next.`)
         return
       }
       if (res.status === 401) {
-        flash('Unauthorized (401) — check SYNC_KEY matches ?key= in the URL.')
+        flash('Unauthorized (401) — check the Worker access key on the Remote URL in Advanced.')
         return
       }
       if (res.ok) {
@@ -954,13 +961,10 @@ export function SettingsPage() {
         <div className="settings-split-content grid grid-cols-1 gap-px">
         <SettingsSection id="sync" eyebrow="Sync" title="Encrypted cloud sync">
           <p className="text-sm text-text-muted font-light mb-4 max-w-2xl">
-            On iPhone / iPad: pull down on Today or Markets to sync across devices. Same Remote URL +
-            passphrase on Mac, iPhone, and iPad. Turn on{' '}
-            <span className="text-text font-medium">Automatic sync</span> and{' '}
-            <span className="text-text font-medium">Remember passphrase</span> so sync works after
-            you close the tab. Sync is encrypted batch sync (not live WebSockets): expect ~8s after
-            an edit to push (~4s), and a pull when you open/focus the app, pull-to-refresh, or about
-            every 30 seconds while it stays open.
+            Enter the same passphrase on every device, then tap <span className="text-text font-medium">Sync</span>.
+            This device already has the book? First Sync pushes it. Empty or sample books pull.
+            Conflicts never overwrite Mini DAVID — review them. Automatic sync can stay on under
+            the button. Worker DIY and Remote URL live under Advanced.
           </p>
           <div
             className={`quote-worker-health mb-4 inline-flex items-center gap-2 px-2.5 py-1.5 text-xs border max-w-2xl ${
@@ -1012,6 +1016,156 @@ export function SettingsPage() {
               . Expect Worker mydsp-quote, not mydspv1.
             </p>
           ) : null}
+          <div className="sync-simple mb-6" data-testid="sync-simple">
+            <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle mb-2">
+              Passphrase
+            </label>
+            <div className="flex flex-wrap gap-2 mb-1 items-stretch">
+              <input
+                type={showSyncPass ? 'text' : 'password'}
+                className="flex-1 min-w-0 min-h-11"
+                autoComplete="new-password"
+                placeholder="Sync passphrase (min 8 chars)"
+                value={syncPass}
+                data-testid="sync-passphrase"
+                onChange={(e) => {
+                  const v = e.target.value
+                  setSyncPass(v)
+                  setSessionSyncPassphrase(v, { remember: Boolean(syncCfg.rememberPassphrase) })
+                }}
+              />
+              <button
+                type="button"
+                className="btn-ghost btn-sm min-h-11 shrink-0"
+                aria-pressed={showSyncPass}
+                onClick={() => setShowSyncPass((v) => !v)}
+              >
+                {showSyncPass ? 'Hide' : 'Show'}
+              </button>
+            </div>
+            {(() => {
+              const strength = scorePassphraseStrength(syncPass)
+              const pct = (strength.score / 4) * 100
+              return (
+                <div className="passphrase-strength mb-3" aria-live="polite">
+                  <div
+                    className="h-1.5 w-full bg-border/60 overflow-hidden"
+                    role="meter"
+                    aria-label="Passphrase strength"
+                    aria-valuemin={0}
+                    aria-valuemax={4}
+                    aria-valuenow={strength.score}
+                    aria-valuetext={strength.label}
+                  >
+                    <div
+                      className={`h-full transition-[width] duration-200 ${
+                        strength.score <= 1
+                          ? 'bg-accent/70'
+                          : strength.score === 2
+                            ? 'bg-amber-500'
+                            : 'bg-emerald-500'
+                      }`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                  {syncPass ? (
+                    <p className="text-[10px] text-text-subtle mt-1 font-medium tracking-wide uppercase">
+                      Strength: {strength.label}
+                    </p>
+                  ) : null}
+                </div>
+              )
+            })()}
+            <div className="sync-simple__actions">
+              <button
+                type="button"
+                className="btn-primary min-h-12 w-full"
+                data-testid="sync-one-button"
+                disabled={syncBusy}
+                onClick={() => {
+                  void (async () => {
+                    if (!syncPass || syncPass.length < 8) {
+                      flash('Use a passphrase of at least 8 characters.')
+                      return
+                    }
+                    const url = resolveSyncRemoteUrl(syncCfg.remoteUrl)
+                    if (!syncCfg.remoteUrl.trim()) {
+                      const baked = { ...syncCfg, remoteUrl: url }
+                      setSyncCfg(baked)
+                      saveSyncConfig(baked)
+                    }
+                    setSessionSyncPassphrase(syncPass, {
+                      remember: Boolean(syncCfg.rememberPassphrase) || Boolean(syncCfg.enabled),
+                    })
+                    setSyncBusy(true)
+                    try {
+                      const result = await runOneButtonSync(syncPass)
+                      setSyncCfg(loadSyncConfig())
+                      if (result.preview && result.action === 'conflict') {
+                        setPendingMerge(result.preview)
+                        setConflicts(result.preview.conflicts)
+                      } else if (result.action === 'pull') {
+                        reload()
+                      }
+                      flash(result.message)
+                    } catch (e) {
+                      flash(e instanceof Error ? e.message : 'Sync failed')
+                    } finally {
+                      setSyncBusy(false)
+                    }
+                  })()
+                }}
+              >
+                {syncBusy ? 'Syncing…' : 'Sync'}
+              </button>
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="mt-1"
+                  data-testid="sync-automatic"
+                  checked={Boolean(syncCfg.enabled)}
+                  onChange={(e) => {
+                    const on = e.target.checked
+                    if (on) {
+                      const url = resolveSyncRemoteUrl(syncCfg.remoteUrl)
+                      if (!syncPass || syncPass.length < 8) {
+                        flash('Enter a passphrase (min 8 chars) before enabling automatic sync.')
+                        return
+                      }
+                      setSessionSyncPassphrase(syncPass, {
+                        remember: Boolean(syncCfg.rememberPassphrase),
+                      })
+                      const next = { ...syncCfg, remoteUrl: url, enabled: true }
+                      setSyncCfg(next)
+                      saveSyncConfig(next)
+                      void syncNow().then(() => {
+                        setSyncCfg(loadSyncConfig())
+                        flash('Automatic sync on — devices will stay in sync.')
+                      })
+                      return
+                    }
+                    const next = { ...syncCfg, enabled: false }
+                    setSyncCfg(next)
+                    saveSyncConfig(next)
+                    flash('Automatic sync off — tap Sync when you want an update.')
+                  }}
+                />
+                <span>
+                  <span className="text-sm font-medium text-text">Automatic sync</span>
+                  <span className="block text-xs text-text-muted font-light mt-0.5">
+                    Pull when you open the app; push a few seconds after you edit. Same passphrase
+                    on every device.
+                  </span>
+                </span>
+              </label>
+            </div>
+          </div>
+          <details
+            className="sync-advanced mb-6"
+            data-testid="sync-advanced"
+            {...(conflicts.length > 0 || pendingMerge ? { open: true } : {})}
+          >
+            <summary>Advanced — Worker URL, setup card, Push / Pull</summary>
           <div className="border border-border p-4 mb-6 max-w-2xl space-y-4">
             <div>
               <p className="text-[11px] font-bold uppercase tracking-widest text-text-subtle mb-3">
@@ -1029,8 +1183,8 @@ export function SettingsPage() {
                   Paste <code className="text-accent">sync-endpoint/worker.js</code> → Deploy
                 </li>
                 <li>
-                  (Recommended) Add secret <code className="text-accent">SYNC_KEY</code>, then use
-                  URL with <code className="text-accent">?key=…</code>
+                  Optional Worker access key belongs on the URL as <code className="text-accent">?key=…</code> —
+                  never in git, never in this screen’s copy
                 </li>
               </ol>
             </div>
@@ -1058,7 +1212,7 @@ export function SettingsPage() {
             <input
               type="url"
               className="flex-1 min-w-[12rem] min-h-12 text-sm break-all"
-              placeholder="https://mydsp-sync.YOUR_SUBDOMAIN.workers.dev?key=YOUR_SECRET"
+              placeholder={DEFAULT_SYNC_REMOTE_URL}
               value={syncCfg.remoteUrl}
               onChange={(e) => {
                 const next = { ...syncCfg, remoteUrl: e.target.value }
@@ -1281,10 +1435,6 @@ export function SettingsPage() {
                 onChange={(e) => {
                   const on = e.target.checked
                   if (on) {
-                    if (!syncCfg.remoteUrl.trim()) {
-                      flash('Set Remote URL before enabling automatic sync.')
-                      return
-                    }
                     if (!syncPass || syncPass.length < 8) {
                       flash('Enter a passphrase (min 8 chars) before enabling automatic sync.')
                       return
@@ -1293,7 +1443,11 @@ export function SettingsPage() {
                       remember: Boolean(syncCfg.rememberPassphrase),
                     })
                   }
-                  const next = { ...syncCfg, enabled: on }
+                  const next = {
+                    ...syncCfg,
+                    remoteUrl: resolveSyncRemoteUrl(syncCfg.remoteUrl),
+                    enabled: on,
+                  }
                   setSyncCfg(next)
                   saveSyncConfig(next)
                   if (on) {
@@ -1528,7 +1682,7 @@ export function SettingsPage() {
               <input
                 type="checkbox"
                 className="mt-1"
-                checked={syncCfg.autoResolveConflicts !== false}
+                checked={syncCfg.autoResolveConflicts === true}
                 onChange={(e) => {
                   const next = { ...syncCfg, autoResolveConflicts: e.target.checked }
                   setSyncCfg(next)
@@ -1540,8 +1694,8 @@ export function SettingsPage() {
                   Auto-resolve conflicts (prefer cloud)
                 </span>
                 <span className="block text-xs text-text-muted font-light mt-0.5">
-                  If the same item was edited on two devices, keep the cloud version on pull. Turn off
-                  to review conflicts manually.
+                  Off by default so Mini DAVID is never auto-overwritten. Turn on only if you want
+                  the cloud copy to win without review.
                 </span>
               </span>
             </label>
@@ -1730,16 +1884,17 @@ export function SettingsPage() {
                     flash('Use a passphrase of at least 8 characters.')
                     return
                   }
-                  if (!syncCfg.remoteUrl) {
+                  if (!effectiveSyncUrl()) {
                     flash('Set a remote URL first (or use encrypted file download).')
                     return
                   }
+                  const remoteUrl = effectiveSyncUrl()
                   setSessionSyncPassphrase(syncPass, {
                     remember: Boolean(syncCfg.rememberPassphrase),
                   })
                   if (!isOnline()) {
                     enqueueOfflineJob('sync_push', {
-                      remoteUrl: syncCfg.remoteUrl,
+                      remoteUrl,
                       note: 'Will push when online using session passphrase',
                     })
                     setQueue(loadOfflineQueue())
@@ -1747,9 +1902,10 @@ export function SettingsPage() {
                     return
                   }
                   try {
-                    const pushed = await pushSync(syncCfg.remoteUrl, syncPass)
+                    const pushed = await pushSync(remoteUrl, syncPass)
                     const next = {
                       ...syncCfg,
+                      remoteUrl,
                       enabled: true,
                       lastSyncAt: new Date().toISOString(),
                       lastSyncError: undefined,
@@ -1910,7 +2066,7 @@ export function SettingsPage() {
                     flash('Enter passphrase first.')
                     return
                   }
-                  if (!syncCfg.remoteUrl) {
+                  if (!effectiveSyncUrl()) {
                     flash('Set Remote URL first.')
                     return
                   }
@@ -2328,6 +2484,7 @@ export function SettingsPage() {
               </ul>
             </div>
           )}
+          </details>
 
           {conflicts.length > 0 && (
             <div id="sync-conflicts-panel" className="mt-6 border border-border p-4 space-y-3" tabIndex={-1}>

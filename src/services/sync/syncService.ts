@@ -339,7 +339,7 @@ export function restoreMergeUndoSnapshot(snapshot: MergeUndoSnapshot): void {
 export function loadSyncConfig(): SyncConfig {
   try {
     const raw = localStorage.getItem(CONFIG_KEY)
-    if (!raw) return { remoteUrl: '', enabled: false }
+    if (!raw) return { remoteUrl: '', enabled: false, autoResolveConflicts: false }
     const parsed = JSON.parse(raw) as Partial<SyncConfig>
     return {
       remoteUrl: normalizeSyncRemoteUrl(
@@ -348,7 +348,7 @@ export function loadSyncConfig(): SyncConfig {
       enabled: Boolean(parsed.enabled),
       rememberPassphrase: Boolean(parsed.rememberPassphrase),
       autoResolveConflicts:
-        parsed.autoResolveConflicts === undefined ? true : Boolean(parsed.autoResolveConflicts),
+        parsed.autoResolveConflicts === undefined ? false : Boolean(parsed.autoResolveConflicts),
       lastSyncAt: parsed.lastSyncAt,
       lastSyncError: parsed.lastSyncError,
       lastMergeCount:
@@ -365,7 +365,7 @@ export function loadSyncConfig(): SyncConfig {
       pausedUntil: typeof parsed.pausedUntil === 'string' ? parsed.pausedUntil : undefined,
     }
   } catch {
-    return { remoteUrl: '', enabled: false }
+    return { remoteUrl: '', enabled: false, autoResolveConflicts: false }
   }
 }
 
@@ -377,6 +377,15 @@ export function saveSyncConfig(cfg: SyncConfig): void {
  * Ensure Remote URL is absolute https. Without a scheme, browsers treat it as a
  * path on the app host → Push hits mydspv1…/mydsp-sync… and returns 405.
  */
+/** Existing mydsp-sync Worker host from this repo. Never append SYNC_KEY here. */
+export const DEFAULT_SYNC_REMOTE_URL = 'https://mydsp-sync.dave-perry.workers.dev'
+
+/** Use a stored Remote URL when set; otherwise the baked mydsp-sync Worker. */
+export function resolveSyncRemoteUrl(stored?: string): string {
+  const normalized = normalizeSyncRemoteUrl(stored ?? '')
+  return normalized || normalizeSyncRemoteUrl(DEFAULT_SYNC_REMOTE_URL)
+}
+
 export function normalizeSyncRemoteUrl(url: string): string {
   let raw = url.trim()
   if (!raw) return ''
