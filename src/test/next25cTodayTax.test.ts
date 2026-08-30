@@ -174,8 +174,7 @@ describe('next25c today / money / tax (16–20)', () => {
     expect(dash).toMatch(/today-nw-sparkline/)
     expect(dash).toMatch(/netWorthTrendSeries/)
     expect(dash).toMatch(/nwSparkDays/)
-    expect(dash).toMatch(/7d/)
-    expect(dash).toMatch(/30d/)
+    expect(dash).toMatch(/today-trend-window/)
     expect(dash).toMatch(/NW_SPARK_WINDOWS/)
   })
 
