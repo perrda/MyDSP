@@ -118,7 +118,7 @@ describe('MyDSP 1.2.134 Money / Plan hub reorder', () => {
     const highlights = read('../services/sync/syncHighlights.ts')
     expect(highlights).toMatch(/Money \/ Plan layout/)
     const setup = read('../../SYNC_SETUP.md')
-    expect(setup).toMatch(/Money \/ Plan hub tile order/)
+    expect(setup).toMatch(/Money \/ Plan \/ Household hub tile order/)
     const changelog = read('../../CHANGELOG.md')
     const section = changelog.match(/## \[1\.2\.134\][\s\S]*?(?=## \[)/)?.[0] ?? ''
     expect(section).toMatch(/Money \/ Plan \/ Household grab/)
