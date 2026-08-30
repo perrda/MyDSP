@@ -6,6 +6,8 @@
 - **SIPP = Equities:** Today’s SIPP row is the priced equity sleeve (`calcEquity`) — TSLA / MSTR / every included live-quoted equity on DAVID (and every other book). It is not filtered to `accountType === 'sipp'`. That is why live 1.2.132 showed SIPP USD 0.00 while Net Worth already included those names.
 - **Same number:** Equities page VALUE and goal metric `sipp` use `calcEquity`. Unpriced stay excluded. SIPP still opens `/equities`. No `/sipp` route. Account-type chips (ISA / SIPP / general) on a holding stay as labels only.
 - **Liabilities in red:** Today’s Liabilities label and figure (and the matching digest / Analytics / Liabilities total) use red — they are a negative sleeve, not an asset.
+- **Money / Plan / Household grab:** Spend · Holdings · Tax · Import, every Directory tile, every Plan door, and the six Household doors can be dragged to a new spot. Order saves locally and syncs LWW in `fullArchive` / `workspaceExtras` (same book as portfolio values). Leftover + runway stay pinned.
+- **News / YouTube extras:** favourite channels, News tags, and last-good headlines stay in the encrypted envelope and apply even when a portfolio conflict is parked — same Mini-as-book path as holdings.
 - **Keep:** Mini-as-book sync (satellites REPLACE), Today one-column + Assets hero, utilities under YouTube, product copy, Light+Dark `#F7931A`, 1.2.133 fluid-fit.
 - **Draft only:** do not promote. Do not wrangler production. Live mydspv1 stays 1.2.132 / `index-ClzYneLT.js`. Leftover preview worker only (`cursor-…-mydsp.dave-perry.workers.dev`).
 

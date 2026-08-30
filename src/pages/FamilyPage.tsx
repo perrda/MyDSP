@@ -1,10 +1,17 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AllocationRing } from '../components/charts/AllocationRing'
 import { OverflowMenu } from '../components/ui/OverflowMenu'
 import { PageHeader, StatCard } from '../components/ui/PageHeader'
 import { PagePrimaryActions } from '../components/ui/PagePrimaryActions'
+import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
 import { HOUSEHOLD_DOORS } from '../domain/hubPages'
+import {
+  loadHubLayout,
+  orderHubDoors,
+  saveHubLayout,
+  subscribeHubLayout,
+} from '../storage/hubLayoutStore'
 import { ConfirmDialog, Field, Modal, parseNum } from '../components/ui/Modal'
 import { usePortfolio } from '../context/PortfolioContext'
 import { calcFamilyTotals, memberBookLabel, type FamilyMemberType } from '../domain/family'
@@ -27,6 +34,12 @@ const empty = {
 
 export function FamilyPage() {
   const { data, setData, breakdown, privacy, portfolios, activeId } = usePortfolio()
+  const [hubLayout, setHubLayout] = useState(loadHubLayout)
+  useEffect(() => subscribeHubLayout(() => setHubLayout(loadHubLayout())), [])
+  const householdDoors = useMemo(
+    () => orderHubDoors(HOUSEHOLD_DOORS, hubLayout.householdDoors),
+    [hubLayout.householdDoors],
+  )
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<FamilyMember | null>(null)
   const [form, setForm] = useState(empty)
@@ -247,18 +260,25 @@ export function FamilyPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-px mb-8">
-        {HOUSEHOLD_DOORS.map((door) => (
-          <Link
-            key={door.to}
-            to={door.to}
-            className="surface surface-interactive p-4 md:p-5 rounded-xl md:rounded-none shadow-sm md:shadow-none block min-w-0"
-          >
-            <p className="text-sm font-semibold tracking-tight truncate">{door.label}</p>
-            <p className="text-xs text-text-muted font-light mt-1">{door.detail}</p>
-          </Link>
-        ))}
-      </div>
+      <ReorderList
+        items={householdDoors}
+        getId={(door) => door.to}
+        onReorder={(next) => {
+          setHubLayout(saveHubLayout({ householdDoors: next.map((d) => d.to) }))
+        }}
+        className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-px mb-8"
+        itemClassName="min-w-0"
+      >
+        {(door) => (
+          <div className="hub-tile surface surface-interactive p-4 md:p-5 rounded-xl md:rounded-none shadow-sm md:shadow-none min-w-0">
+            <ReorderHandle label={`Reorder ${door.label}`} />
+            <Link to={door.to} className="hub-tile__link min-w-0 flex-1 block">
+              <p className="text-sm font-semibold tracking-tight truncate">{door.label}</p>
+              <p className="text-xs text-text-muted font-light mt-1">{door.detail}</p>
+            </Link>
+          </div>
+        )}
+      </ReorderList>
 
       <Modal open={open} title={editing ? 'Edit member' : 'Add member'} onClose={() => setOpen(false)}>
         <form

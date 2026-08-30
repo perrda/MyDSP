@@ -33,6 +33,10 @@ import {
   importTodayLayoutFromBackup,
 } from './todayLayoutStore'
 import {
+  exportHubLayoutForBackup,
+  importHubLayoutFromBackup,
+} from './hubLayoutStore'
+import {
   exportLaunchPathForBackup,
   importLaunchPathFromBackup,
 } from './launchPathStore'
@@ -255,6 +259,8 @@ export interface FullBackupRecord extends FullBackupMeta {
   bottomNavSlots?: unknown
   /** Optional Today card order and visibility */
   todayLayout?: unknown
+  /** Optional Money / Plan hub tile order */
+  hubLayout?: unknown
   /** Optional on-launch home path */
   launchPath?: unknown
   /** Optional UI panel open/collapsed map */
@@ -332,6 +338,7 @@ function backupCanonical(record: Pick<
   | 'navLayout'
   | 'bottomNavSlots'
   | 'todayLayout'
+  | 'hubLayout'
   | 'launchPath'
   | 'uiPanels'
   | 'settingsSections'
@@ -381,6 +388,7 @@ function backupCanonical(record: Pick<
     navLayout: record.navLayout ?? null,
     bottomNavSlots: record.bottomNavSlots ?? null,
     todayLayout: record.todayLayout ?? null,
+    hubLayout: record.hubLayout ?? null,
     launchPath: record.launchPath ?? null,
     uiPanels: record.uiPanels ?? null,
     settingsSections: record.settingsSections ?? null,
@@ -435,6 +443,7 @@ export async function computeFullBackupChecksum(
     | 'navLayout'
     | 'bottomNavSlots'
     | 'todayLayout'
+    | 'hubLayout'
     | 'launchPath'
     | 'uiPanels'
     | 'settingsSections'
@@ -527,6 +536,7 @@ export function captureFullWorkspace(): Omit<
     navLayout: exportNavLayoutForBackup() ?? undefined,
     bottomNavSlots: exportBottomNavSlotsForBackup() ?? undefined,
     todayLayout: exportTodayLayoutForBackup() ?? undefined,
+    hubLayout: exportHubLayoutForBackup() ?? undefined,
     launchPath: exportLaunchPathForBackup() ?? undefined,
     uiPanels: exportUiPanelsForBackup() ?? undefined,
     settingsSections: exportSettingsSectionsForBackup() ?? undefined,
@@ -790,6 +800,9 @@ export async function restoreFullWorkspace(record: FullBackupRecord): Promise<vo
   if (record.todayLayout) {
     importTodayLayoutFromBackup(record.todayLayout)
   }
+  if (record.hubLayout) {
+    importHubLayoutFromBackup(record.hubLayout)
+  }
   if (record.launchPath) {
     importLaunchPathFromBackup(record.launchPath)
   }
@@ -907,6 +920,7 @@ function fullBackupPayload(record: FullBackupRecord) {
     ...(record.navLayout ? { navLayout: record.navLayout } : {}),
     ...(record.bottomNavSlots ? { bottomNavSlots: record.bottomNavSlots } : {}),
     ...(record.todayLayout ? { todayLayout: record.todayLayout } : {}),
+    ...(record.hubLayout ? { hubLayout: record.hubLayout } : {}),
     ...(record.launchPath ? { launchPath: record.launchPath } : {}),
     ...(record.uiPanels ? { uiPanels: record.uiPanels } : {}),
     ...(record.settingsSections ? { settingsSections: record.settingsSections } : {}),
@@ -1094,6 +1108,7 @@ export function parseFullBackupFile(raw: unknown): FullBackupRecord | null {
     navLayout: o.navLayout,
     bottomNavSlots: o.bottomNavSlots,
     todayLayout: o.todayLayout,
+    hubLayout: o.hubLayout,
     launchPath: o.launchPath,
     uiPanels: o.uiPanels,
     settingsSections: o.settingsSections,

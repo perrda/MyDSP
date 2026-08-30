@@ -45,6 +45,10 @@ export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
         to: '/liabilities',
       },
       {
+        text: 'Drag Money, Plan, and Household tiles — order syncs',
+        to: '/money',
+      },
+      {
         text: 'Draft only — live stays 1.2.132',
         to: '/',
       },
