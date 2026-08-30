@@ -29,6 +29,24 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.145',
+    date: '2026-08-30',
+    bullets: [
+      {
+        text: 'Holding ⋯ is Edit + Delete — the sheet is no longer clipped',
+        to: '/equities',
+      },
+      {
+        text: 'Edit opens Edit / Buy / Sell — qty, price, date, commentary',
+        to: '/equities',
+      },
+      {
+        text: 'Same Edit sheet on Crypto (BTC, ADA, …)',
+        to: '/crypto',
+      },
+    ],
+  },
+  {
     version: '1.2.144',
     date: '2026-08-30',
     bullets: [

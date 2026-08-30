@@ -4,6 +4,7 @@ import { AllocationRing } from '../components/charts/AllocationRing'
 import { PortfolioSeriesChart } from '../components/charts/PortfolioSeriesChart'
 import { EmptyState } from '../components/ui/EmptyState'
 import { MarketsHoldingsSkeleton } from '../components/ui/MarketsHoldingsSkeleton'
+import { HoldingActionModeBar, type HoldingActionMode } from '../components/ui/HoldingActionModeBar'
 import { OverflowMenu } from '../components/ui/OverflowMenu'
 import { PageHeader } from '../components/ui/PageHeader'
 import { UnpricedExclusionBanner } from '../components/UnpricedExclusionBanner'
@@ -13,6 +14,7 @@ import { TradeModal } from '../components/ui/TradeModal'
 import { ReorderHandle, ReorderList } from '../components/ui/Reorderable'
 import { SwipeHoldingRow } from '../components/ui/SwipeHoldingRow'
 import { usePortfolio } from '../context/PortfolioContext'
+import { nextCommentaryId } from '../domain/liabilityHelpers'
 import { applyTrade, applyTradesBatch } from '../domain/trades'
 import { buildTaxDisposalHref } from '../domain/taxDisposalLink'
 import { equityNeedsUsdToGbp } from '../domain/equityCurrency'
@@ -71,6 +73,8 @@ type EquityForm = {
   includeInPortfolio: boolean
   ragStatus: RagStatus | ''
   accountType: EquityAccountType
+  asOfDate: string
+  commentary: string
 }
 
 interface BrokerImportReport {
@@ -91,6 +95,8 @@ const emptyForm: EquityForm = {
   includeInPortfolio: true,
   ragStatus: '',
   accountType: 'general',
+  asOfDate: '',
+  commentary: '',
 }
 
 function accountTypeLabel(accountType?: EquityAccountType): string {
@@ -399,11 +405,33 @@ export function EquitiesPage() {
       includeInPortfolio: e.includeInPortfolio !== false,
       ragStatus: e.ragStatus ?? '',
       accountType: e.accountType ?? 'general',
+      asOfDate: new Date().toISOString().slice(0, 10),
+      commentary: '',
     })
     setOpen(true)
   }
 
+  const switchHoldingAction = (mode: HoldingActionMode, holding: EquityHolding | null) => {
+    if (!holding || mode === 'edit') {
+      return
+    }
+    setOpen(false)
+    setTradeFor(holding)
+    setTradeSide(mode)
+  }
+
   const save = () => {
+    const now = new Date().toISOString()
+    let commentaries = editing?.commentaries ?? []
+    const note = [form.asOfDate.trim() ? `As of ${form.asOfDate.trim()}` : '', form.commentary.trim()]
+      .filter(Boolean)
+      .join(' — ')
+    if (note) {
+      commentaries = [
+        ...commentaries,
+        { id: nextCommentaryId(commentaries), text: note, createdAt: now, updatedAt: now },
+      ]
+    }
     const holding: EquityHolding = {
       id: editing?.id ?? nextId(data.equities),
       symbol: form.symbol.trim().toUpperCase() || '???',
@@ -414,7 +442,7 @@ export function EquitiesPage() {
       includeInPortfolio: form.includeInPortfolio,
       sortOrder: editing?.sortOrder,
       ragStatus: form.ragStatus || undefined,
-      commentaries: editing?.commentaries,
+      commentaries,
       platform: form.platform.trim() || undefined,
       contactUrl: form.contactUrl.trim() || undefined,
       accountType: form.accountType === 'general' ? undefined : form.accountType,
@@ -492,7 +520,7 @@ export function EquitiesPage() {
         description={
           sorting
             ? 'Drag ⋮⋮ to reorder — order is saved with this portfolio.'
-            : 'Open ⋯ for Sort / Weight % / import. Use Buy/Sell for dated trades.'
+            : 'Open ⋯ on a holding to Edit — Buy, Sell, or update qty / price / date / commentary.'
         }
         action={
           <>
@@ -700,6 +728,10 @@ export function EquitiesPage() {
                   setTradeFor(e)
                   setTradeSide('buy')
                 }}
+                onSell={() => {
+                  setTradeFor(e)
+                  setTradeSide('sell')
+                }}
                 onToggleNw={() => toggle(e.id)}
                 included={included}
               >
@@ -791,28 +823,6 @@ export function EquitiesPage() {
                     compact
                     label={`More actions for ${e.symbol}`}
                     items={[
-                      {
-                        id: 'buy',
-                        label: 'Buy',
-                        onClick: () => {
-                          setTradeFor(e)
-                          setTradeSide('buy')
-                        },
-                      },
-                      {
-                        id: 'sell',
-                        label: 'Sell',
-                        onClick: () => {
-                          setTradeFor(e)
-                          setTradeSide('sell')
-                        },
-                      },
-                      {
-                        id: 'nw',
-                        label: included ? 'In net worth' : 'Excluded from NW',
-                        active: included,
-                        onClick: () => toggle(e.id),
-                      },
                       { id: 'edit', label: 'Edit', onClick: () => openEdit(e) },
                       {
                         id: 'delete',
@@ -917,12 +927,9 @@ export function EquitiesPage() {
                     <button
                       type="button"
                       className="btn-secondary btn-sm"
-                      onClick={() => {
-                        setTradeFor(selectedHolding)
-                        setTradeSide('sell')
-                      }}
+                      onClick={() => openEdit(selectedHolding)}
                     >
-                      Sell
+                      Edit
                     </button>
                   </div>
                 </div>
@@ -1055,7 +1062,20 @@ export function EquitiesPage() {
         </div>
       ) : null}
 
-      <Modal open={open} size="full" title={editing ? 'Edit equity' : 'Add equity'} onClose={() => setOpen(false)}>
+      <Modal
+        open={open}
+        size="full"
+        title={editing ? `Edit ${editing.symbol}` : 'Add equity'}
+        onClose={() => setOpen(false)}
+        toolbar={
+          editing ? (
+            <HoldingActionModeBar
+              mode="edit"
+              onChange={(mode) => switchHoldingAction(mode, editing)}
+            />
+          ) : undefined
+        }
+      >
         <form
           className="space-y-5"
           onSubmit={(e) => {
@@ -1152,6 +1172,23 @@ export function EquitiesPage() {
               />
             </Field>
           </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field label="As-of date" hint="Optional. Saved with the commentary.">
+              <input
+                type="date"
+                value={form.asOfDate}
+                onChange={(e) => setForm({ ...form, asOfDate: e.target.value })}
+              />
+            </Field>
+            <Field label="Commentary">
+              <textarea
+                rows={2}
+                value={form.commentary}
+                onChange={(e) => setForm({ ...form, commentary: e.target.value })}
+                placeholder="Bought / sold note, lot, or reminder"
+              />
+            </Field>
+          </div>
           <label className="flex items-center gap-2 text-sm text-text-muted">
             <input
               type="checkbox"
@@ -1178,6 +1215,21 @@ export function EquitiesPage() {
         defaultPrice={tradeFor ? equityUnitPriceGbp(tradeFor) : 0}
         defaultSide={tradeSide}
         data={data}
+        toolbar={
+          tradeFor ? (
+            <HoldingActionModeBar
+              mode={tradeSide === 'sell' ? 'sell' : 'buy'}
+              onChange={(mode) => {
+                if (mode === 'edit') {
+                  openEdit(tradeFor)
+                  setTradeFor(null)
+                  return
+                }
+                setTradeSide(mode)
+              }}
+            />
+          ) : undefined
+        }
         onClose={(opts) => {
           const holding = tradeFor
           setTradeFor(null)

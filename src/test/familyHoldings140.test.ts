@@ -44,15 +44,15 @@ function qty(data: { crypto: { symbol: string; qty: number }[] }, symbol: string
 describe('MyDSP 1.2.143 family TSLA / MSTR / ADA sleeves', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(read('../../package.json'))
-    expect(pkg.version).toBe('1.2.144')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.144')
+    expect(pkg.version).toBe('1.2.145')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.145')
     expect(RELEASE_NOTES.some((e) => e.version === '1.2.143')).toBe(true)
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.145',
       '1.2.144',
       '1.2.143',
       '1.2.141',
       '1.2.140',
-      '1.2.139',
     ])
     const changelog = read('../../CHANGELOG.md')
     const section = changelog.match(/## \[1\.2\.143\][\s\S]*?(?=## \[)/)?.[0] ?? ''

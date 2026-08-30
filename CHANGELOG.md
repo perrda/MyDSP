@@ -1,5 +1,16 @@
 # MyDSP Changelog
 
+## [1.2.145] - 2026-08-30
+
+### Changed — Holdings ⋯ Edit (draft, no live)
+- **Visible menu:** Equity and Crypto list ⋯ menus portal to `document.body` (fixed sheet). Swipe-row `overflow: hidden` no longer clips Buy/Sell halfway through the TSLA box.
+- **⋯ items:** Edit and Delete only. Buy / Sell / NW stay on swipe (phone) and on the holding detail header — not inside the cramped list ⋯.
+- **Edit sheet:** Edit / Buy / Sell tabs. Edit updates qty, price, as-of date, and commentary. Buy / Sell open the existing trade journal (qty, price, date, notes).
+- **Crypto matches Equities:** BTC, ADA, and the rest use the same ⋯ → Edit → Edit / Buy / Sell path.
+- **Equities swipe Sell:** phone `SwipeHoldingRow` wires `onSell` the same as Crypto — opens the trade journal sell.
+- **Keep:** Mini-as-book sync (satellites REPLACE), Today one-column + Assets hero, utilities under YouTube, product copy, Light+Dark `#F7931A`, 1.2.144 capital TREND chips, 1.2.143 family sleeves, 1.2.141 Markets detail axes, 1.2.140 6m/YTD TREND, 1.2.139 Reset/Delete, 1.2.137 Today TREND, 1.2.135 data-above-help, 1.2.134 SIPP = Equities, 1.2.133 fluid-fit.
+- **Draft only:** do not promote. Do not wrangler production. Live mydspv1 stays 1.2.144 / `index-BS8ANJ_Z.js`. Leftover preview worker only (`cursor-…-mydsp.dave-perry.workers.dev`).
+
 ## [1.2.144] - 2026-08-30
 
 ### Changed — Today TREND chips use capital window labels (draft, no live)

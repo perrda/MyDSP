@@ -10,14 +10,14 @@ const readPage = (name: string) =>
 describe('next10 wave 4 (v1.2.113)', () => {
   it('0: package + release notes tip', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.144')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.144')
+    expect(pkg.version).toBe('1.2.145')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.145')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.145',
       '1.2.144',
       '1.2.143',
       '1.2.141',
       '1.2.140',
-      '1.2.139',
     ])
   })
 
