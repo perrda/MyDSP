@@ -1,4 +1,10 @@
 import { createEmptyPortfolio, createSamplePortfolio } from '../domain/defaults'
+import {
+  applyNamedFamilyHoldings,
+  familyHoldingSleeveFor,
+  hasFamilySleevesApplied,
+  markFamilySleevesAppliedOnData,
+} from '../domain/familyHoldingSleeves'
 import { normalizePortfolio, toStorageShape } from '../domain/normalize'
 import type { PortfolioData, PortfolioMeta } from '../domain/types'
 import { STORAGE } from './keys'
@@ -338,8 +344,28 @@ export function createPortfolio(
   list.push(meta)
   writeJson(STORAGE.PORTFOLIOS, list)
   const seed = opts?.empty === false ? createSamplePortfolio() : createEmptyPortfolio()
-  savePortfolioImmediate(seed, id)
+  const { data: withSleeve } = applyNamedFamilyHoldings(seed, trimmed)
+  const toSave = familyHoldingSleeveFor(trimmed)
+    ? markFamilySleevesAppliedOnData(withSleeve)
+    : withSleeve
+  savePortfolioImmediate(toSave, id)
   return meta
+}
+
+/** Write TSLA / MSTR / ADA sleeves onto existing Mum / Thomas / Rebecca / James King books (once). */
+export function applyFamilyHoldingsToNamedBooks(): string[] {
+  const updated: string[] = []
+  for (const meta of listPortfolios()) {
+    if (!familyHoldingSleeveFor(meta.name)) continue
+    const key = STORAGE.dataKey(meta.id)
+    const raw = readJson<unknown>(key)
+    const current = raw ? normalizePortfolio(raw) : createEmptyPortfolio()
+    if (hasFamilySleevesApplied(current)) continue
+    const { data, changed } = applyNamedFamilyHoldings(current, meta.name)
+    savePortfolioImmediate(markFamilySleevesAppliedOnData(data), meta.id)
+    if (changed) updated.push(meta.name)
+  }
+  return updated
 }
 
 /**
@@ -400,7 +426,10 @@ export const PRIMARY_PORTFOLIO_DELETE_MSG = 'The default profile cannot be delet
 /** Zero a profile’s book. The profile name stays. David can be reset. */
 export function resetPortfolio(id: string): void {
   flushSave(id)
-  savePortfolioImmediate(createEmptyPortfolio(), id)
+  const name = listPortfolios().find((p) => p.id === id)?.name ?? ''
+  const empty = createEmptyPortfolio()
+  const stamped = familyHoldingSleeveFor(name) ? markFamilySleevesAppliedOnData(empty) : empty
+  savePortfolioImmediate(stamped, id)
 }
 
 export function deletePortfolio(id: string): void {
@@ -475,6 +504,7 @@ export function bootstrapFamilyPortfolios(): { renamed: boolean; created: string
   // Final hygiene
   repairDuplicatePortfolioIds()
   const again = dedupePortfoliosByName()
+  applyFamilyHoldingsToNamedBooks()
 
   return { renamed, created, removedDupes: [...removed, ...again.removed] }
 }

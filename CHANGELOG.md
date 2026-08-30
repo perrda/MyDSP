@@ -1,5 +1,16 @@
 # MyDSP Changelog
 
+## [1.2.143] - 2026-08-30
+
+### Added — Family TSLA / MSTR / ADA sleeves (draft, no live)
+- **Thomas + Rebecca:** 100 TSLA and 97 MSTR each.
+- **Mum:** 109 TSLA and 108 MSTR.
+- **James King:** 182 TSLA, 90 MSTR, and 3,000 ADA.
+- **Once per book:** applied on first boot of this build (or when that named profile is created). Cost / live marks start at 0 until Refresh prices. David and Andrew are unchanged.
+- **Reset stays empty:** Reset still zeros the book. The one-shot flag lives on the book so a refresh or backup does not refill those shares.
+- **Keep:** Mini-as-book sync (satellites REPLACE), Today one-column + Assets hero, utilities under YouTube, product copy, Light+Dark `#F7931A`, 1.2.141 Markets detail axes, 1.2.140 6m/YTD TREND, 1.2.139 Reset/Delete, 1.2.137 Today TREND, 1.2.135 data-above-help, 1.2.134 SIPP = Equities, 1.2.133 fluid-fit.
+- **Draft only:** do not promote. Do not wrangler production. Live mydspv1 stays 1.2.137 / `index-CxpikgZP.js`. Leftover preview worker only (`cursor-…-mydsp.dave-perry.workers.dev`).
+
 ## [1.2.141] - 2026-08-30
 
 ### Changed — Chart axes use X labels + display-CCY Y ticks (draft, no live)

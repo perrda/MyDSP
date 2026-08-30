@@ -196,6 +196,6 @@ describe('next25c today / money / tax (16–20)', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8')) as {
       version: string
     }
-    expect(pkg.version).toBe('1.2.141')
+    expect(pkg.version).toBe('1.2.143')
   })
 })
