@@ -29,14 +29,14 @@ describe('Markets 24H default · 60s poll · edit pencil (v1.2.93)', () => {
 
   it('package + release notes tip', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.125')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.125')
+    expect(pkg.version).toBe('1.2.126')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.126')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.126',
       '1.2.125',
       '1.2.124',
       '1.2.123',
       '1.2.122',
-      '1.2.121',
     ])
   })
 

@@ -1,5 +1,16 @@
 # MyDSP Changelog
 
+## [1.2.126] - 2026-08-30
+
+### Added — Money 12-tile directory + one-button Cloud Sync (draft, no live)
+- **Money directory restored:** `/money` shows the 1.2.121 twelve tiles again — Spending, Budgets, Recurring, Liabilities, Tax, Journal, Crypto, Equities, Commodities, Staking, Import, Merchant rules — same names and descriptions. Each tile still opens the existing page (Liabilities → `/liabilities`). Nothing deleted.
+- **Cockpit kept:** leftover + runway + four doors stay above the directory. Cashflow and every Money route stay.
+- **One-button Sync:** Settings → Sync is passphrase + **Sync**. The existing `mydsp-sync` Worker URL is baked from the repo (`https://mydsp-sync.dave-perry.workers.dev`). No Worker create / KV bind / paste `worker.js` in the default view.
+- **First Sync:** a device that already has the book pushes. Empty or FCC-sample books pull. Conflicts never auto-destroy Mini DAVID — they park for review. Auto-resolve defaults off.
+- **Advanced fold:** Cloudflare DIY, Remote URL paste, and setup-card plumbing stay behind Advanced. Automatic sync is a simple toggle under the button.
+- **Orange lock:** Light + Dark accents stay official BTC orange `#F7931A`. 390 does not clip the Money grid.
+- **Draft only:** do not promote. Do not wrangler. Live mydspv1 stays 1.2.125. No `SYNC_KEY`.
+
 ## [1.2.125] - 2026-08-29
 
 ### Added — Digest recut (draft, no live)

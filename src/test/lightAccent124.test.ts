@@ -12,16 +12,17 @@ const MUTED_BROWNS = ['#9a5500', '#7a4200', '#91591D', '#A26A2F', '#91591d', '#a
 describe('MyDSP 1.2.124 light-mode accent recut', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(read('../../package.json'))
-    expect(pkg.version).toBe('1.2.125')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.125')
+    expect(pkg.version).toBe('1.2.126')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.126')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.126',
       '1.2.125',
       '1.2.124',
       '1.2.123',
       '1.2.122',
-      '1.2.121',
     ])
-    expect(RELEASE_NOTES[0]?.bullets.map((b) => (typeof b === 'string' ? b : b.text)).join(' ')).toMatch(
+    const accentTip = RELEASE_NOTES.find((e) => e.version === '1.2.124')
+    expect(accentTip?.bullets.map((b) => (typeof b === 'string' ? b : b.text)).join(' ')).toMatch(
       /#F7931A|muted brown|1\.2\.121/,
     )
   })
