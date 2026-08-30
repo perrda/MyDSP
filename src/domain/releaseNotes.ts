@@ -29,6 +29,28 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.131',
+    date: '2026-08-30',
+    bullets: [
+      {
+        text: 'Header Refresh samples all six quote providers',
+        to: '/settings#prices',
+      },
+      {
+        text: 'Settings Provider health shows OK · time after Refresh',
+        to: '/settings#prices',
+      },
+      {
+        text: 'Missing Finnhub key is not marked OK',
+        to: '/settings#prices',
+      },
+      {
+        text: 'Draft only — live stays 1.2.130',
+        to: '/',
+      },
+    ],
+  },
+  {
     version: '1.2.130',
     date: '2026-08-30',
     bullets: [

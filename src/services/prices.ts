@@ -1302,3 +1302,67 @@ export async function fetchCryptoGbpSparkline(
 export async function fetchEquitySparkline(symbol: string, _days = SPARKLINE_HOURS): Promise<number[]> {
   return fetchYahooSparkline(normalizeYahooEquitySymbol(symbol))
 }
+
+export type ProviderProbeResult = { ok: boolean; skipped?: boolean; detail?: string }
+
+/** Cheap CoinGecko ping — bitcoin GBP via existing simple/price. Honours 429 backoff. */
+export async function probeCoinGeckoBitcoinGbp(): Promise<ProviderProbeResult> {
+  if (geckoCoolingDown()) {
+    return { ok: false, skipped: true, detail: 'CoinGecko 429 backoff' }
+  }
+  try {
+    const url = 'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=gbp'
+    const data = await fetchGeckoJson<{ bitcoin?: { gbp?: number } }>(url)
+    const gbp = data?.bitcoin?.gbp
+    if (typeof gbp === 'number' && gbp > 0) return { ok: true, detail: `OK · BTC ${gbp}` }
+    return { ok: false, detail: geckoCoolingDown() ? '429 rate limit / quota' : 'CoinGecko empty quote' }
+  } catch (e) {
+    return { ok: false, detail: e instanceof Error ? e.message : 'CoinGecko probe failed' }
+  }
+}
+
+/** Cheap Yahoo ping — AAPL chart quote (empty Finnhub key so cascade does not steal the sample). */
+export async function probeYahooAapl(): Promise<ProviderProbeResult> {
+  try {
+    const q = await fetchEquityMarketQuote('AAPL', '')
+    if (q && q.price > 0 && q.source === 'yahoo') return { ok: true, detail: `OK · AAPL ${q.price}` }
+    return { ok: false, detail: 'Yahoo empty quote' }
+  } catch (e) {
+    return { ok: false, detail: e instanceof Error ? e.message : 'Yahoo probe failed' }
+  }
+}
+
+/** Cheap CoinCap ping — BTC USD spot. */
+export async function probeCoinCapBtc(): Promise<ProviderProbeResult> {
+  try {
+    const cap = await fetchCoinCapUsd('BTC')
+    if (cap && cap.priceUsd > 0) return { ok: true, detail: `OK · BTC ${cap.priceUsd}` }
+    return { ok: false, detail: 'CoinCap empty quote' }
+  } catch (e) {
+    return { ok: false, detail: e instanceof Error ? e.message : 'CoinCap probe failed' }
+  }
+}
+
+/** Cheap Coinbase ping — BTC USD spot. */
+export async function probeCoinbaseBtc(): Promise<ProviderProbeResult> {
+  try {
+    const cb = await fetchCoinbaseUsd('BTC')
+    if (cb && cb > 0) return { ok: true, detail: `OK · BTC ${cb}` }
+    return { ok: false, detail: 'Coinbase empty quote' }
+  } catch (e) {
+    return { ok: false, detail: e instanceof Error ? e.message : 'Coinbase probe failed' }
+  }
+}
+
+/** Cheap FX ping — Frankfurter GBP/USD, then exchangerate-api. */
+export async function probeFxGbp(): Promise<ProviderProbeResult> {
+  try {
+    const frank = await fetchFrankfurterFxQuote('GBP', 'USD')
+    if (frank && frank.last > 0) return { ok: true, detail: `OK · GBP/USD ${frank.last}` }
+    const spot = await fetchExchangerateApiSpot('GBP', 'USD')
+    if (spot && spot > 0) return { ok: true, detail: `OK · GBP/USD ${spot}` }
+    return { ok: false, detail: 'FX empty quote' }
+  } catch (e) {
+    return { ok: false, detail: e instanceof Error ? e.message : 'FX probe failed' }
+  }
+}

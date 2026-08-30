@@ -31,6 +31,7 @@ import { useCssVarFromElementSize } from '../../hooks/useCssVarFromElementSize'
 import { usePublishThumbCtaHeight } from '../../hooks/usePublishThumbCtaHeight'
 import { triggerSuccessFlash } from '../../utils/successFlash'
 import { refreshMediaFeeds } from '../../services/mediaRefresh'
+import { pingAllMarketsProviders } from '../../services/marketsProviderHealth'
 
 /** Pull-to-refresh on approved primary/detail routes (no page jump). */
 function allowPullToRefresh(pathname: string): boolean {
@@ -240,12 +241,18 @@ export function AppShell() {
     await replaceOrPushBook()
 
     const r = await refreshPrices()
+    if (!r.skipped) await refreshFx()
+    // Session provider health — one cheap quote per id. Cascade skips stay as designed.
+    await pingAllMarketsProviders({
+      finnhubKey:
+        data.settings.finnhubKey ||
+        (typeof localStorage !== 'undefined' ? localStorage.getItem('finnhub_key') || '' : ''),
+    })
     if (r.skipped === 'privacy') {
       setPriceMsg('Feeds updated · turn off privacy to refresh live prices')
     } else if (r.skipped === 'throttle') {
       setPriceMsg(lastPriceError ?? 'Feeds updated · please wait before refreshing prices again')
     } else {
-      await refreshFx()
       setPriceMsg(`Updated ${r.crypto} crypto · ${r.equities} equities · FX`)
     }
     window.setTimeout(() => setPriceMsg(null), 4000)

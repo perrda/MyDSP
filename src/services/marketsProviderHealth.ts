@@ -160,6 +160,104 @@ export function recordMarketsRefreshHealth(
   }
 }
 
+export type ProviderPingOutcome = 'ok' | 'fail' | 'skip'
+
+export type MarketsProviderProbes = {
+  coingecko: () => Promise<{ ok: boolean; skipped?: boolean; detail?: string }>
+  yahoo: () => Promise<{ ok: boolean; detail?: string }>
+  finnhub: (key: string) => Promise<{ ok: boolean; detail: string }>
+  coincap: () => Promise<{ ok: boolean; detail?: string }>
+  coinbase: () => Promise<{ ok: boolean; detail?: string }>
+  fx: () => Promise<{ ok: boolean; detail?: string }>
+}
+
+async function defaultProbes(): Promise<MarketsProviderProbes> {
+  const prices = await import('./prices')
+  return {
+    coingecko: prices.probeCoinGeckoBitcoinGbp,
+    yahoo: prices.probeYahooAapl,
+    finnhub: prices.probeFinnhubKey,
+    coincap: prices.probeCoinCapBtc,
+    coinbase: prices.probeCoinbaseBtc,
+    fx: prices.probeFxGbp,
+  }
+}
+
+function resolveFinnhubKey(explicit?: string): string {
+  const fromArg = (explicit ?? '').trim()
+  if (fromArg) return fromArg
+  try {
+    return (typeof localStorage !== 'undefined' && localStorage.getItem('finnhub_key')) || ''
+  } catch {
+    return ''
+  }
+}
+
+/**
+ * One cheap quote per provider id (not the holdings cascade).
+ * Missing Finnhub key is a skip — not OK and not a failure storm.
+ * CoinGecko 429 backoff is a skip so we do not pile onto a cooling-down feed.
+ */
+export async function pingAllMarketsProviders(opts?: {
+  finnhubKey?: string
+  probes?: Partial<MarketsProviderProbes>
+}): Promise<Record<MarketsProviderId, ProviderPingOutcome>> {
+  const probes = { ...(await defaultProbes()), ...opts?.probes }
+  const finnhubKey = resolveFinnhubKey(opts?.finnhubKey)
+  const outcomes = {} as Record<MarketsProviderId, ProviderPingOutcome>
+
+  const record = (id: MarketsProviderId, result: { ok: boolean; skipped?: boolean; detail?: string }) => {
+    if (result.skipped) {
+      outcomes[id] = 'skip'
+      return
+    }
+    if (result.ok) {
+      recordProviderSuccess(id)
+      outcomes[id] = 'ok'
+      return
+    }
+    recordProviderFailure(id, result.detail || 'Ping failed')
+    outcomes[id] = 'fail'
+  }
+
+  await Promise.all([
+    probes.coingecko().then((r) => record('coingecko', r)).catch((e) =>
+      record('coingecko', { ok: false, detail: e instanceof Error ? e.message : 'Ping failed' }),
+    ),
+    probes.yahoo().then((r) => record('yahoo', r)).catch((e) =>
+      record('yahoo', { ok: false, detail: e instanceof Error ? e.message : 'Ping failed' }),
+    ),
+    (async () => {
+      if (!finnhubKey) {
+        outcomes.finnhub = 'skip'
+        return
+      }
+      try {
+        record('finnhub', await probes.finnhub(finnhubKey))
+      } catch (e) {
+        record('finnhub', { ok: false, detail: e instanceof Error ? e.message : 'Ping failed' })
+      }
+    })(),
+    probes.coincap().then((r) => record('coincap', r)).catch((e) =>
+      record('coincap', { ok: false, detail: e instanceof Error ? e.message : 'Ping failed' }),
+    ),
+    probes.coinbase().then((r) => record('coinbase', r)).catch((e) =>
+      record('coinbase', { ok: false, detail: e instanceof Error ? e.message : 'Ping failed' }),
+    ),
+    probes.fx().then((r) => record('fx', r)).catch((e) =>
+      record('fx', { ok: false, detail: e instanceof Error ? e.message : 'Ping failed' }),
+    ),
+  ])
+
+  try {
+    window.dispatchEvent(new CustomEvent('mydsp-markets-quotes'))
+  } catch {
+    /* ignore */
+  }
+
+  return outcomes
+}
+
 /** One-line status for Markets page when providers are degraded. */
 export function formatMarketsProviderHealthHint(minFailures = 2): string | null {
   const bad = getMarketsProviderHealth().filter((p) => p.consecutiveFailures >= minFailures)
