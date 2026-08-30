@@ -6,7 +6,7 @@ import { RELEASE_NOTES, releaseNotesArchive } from '../domain/releaseNotes'
 const read = (rel: string) => readFileSync(resolve(__dirname, rel), 'utf8')
 
 function overflowItems(src: string): string {
-  const block = src.match(/<OverflowMenu[\s\S]*?<\/OverflowMenu>/)?.[0] ?? ''
+  const block = src.match(/<OverflowMenu[\s\S]*?\/>/)?.[0] ?? ''
   return block
 }
 
@@ -72,9 +72,9 @@ describe('MyDSP 1.2.145 holdings ⋯ Edit menu', () => {
 
   it('Edit sheet has Edit / Buy / Sell plus qty, price, date, commentary', () => {
     const bar = read('../components/ui/HoldingActionModeBar.tsx')
-    expect(bar).toMatch(/holding-action-edit/)
-    expect(bar).toMatch(/holding-action-buy/)
-    expect(bar).toMatch(/holding-action-sell/)
+    expect(bar).toMatch(/data-testid=\{`holding-action-\$\{item\}`\}/)
+    expect(bar).toMatch(/item === 'edit' \? 'Edit'/)
+    expect(bar).toMatch(/'buy' \? 'Buy'/)
     expect(bar).toMatch(/'edit' \| 'buy' \| 'sell'/)
     const trade = read('../components/ui/TradeModal.tsx')
     expect(trade).toMatch(/toolbar\?: ReactNode/)
