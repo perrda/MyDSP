@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.131**
+**Current version: 1.2.132**
 
-## Completed (through v1.2.131)
+## Completed (through v1.2.132)
 
+- Today layout + left-nav order (v1.2.132): Weekly Digest / Cloud Sync / Settings sit below YouTube on the desktop rail · Today drops the RHS Markets card so Net Worth / Next / Bills / Tax / Media fill one full-width column · Markets stays in MENU and `/markets` · phone five doors + News/YouTube cluster unchanged · `#F7931A` + Mini-as-book + 1.2.131 ping-all kept · draft only — live stays 1.2.131
 - Provider health ping-all (v1.2.131): header Refresh samples one cheap quote per provider (CoinGecko / Yahoo CORS last / Finnhub-if-keyed / CoinCap GraphQL BTC last / Coinbase / FX) after prices+FX · Yahoo + CoinCap in parallel · Settings OK · hh:mm:ss · CoinGecko holdings fill does not count as Yahoo or CoinCap · missing Finnhub key is not OK · cascade failovers stay unforced · `#F7931A` + 1.2.129/130 nav + Mini-as-book lock unchanged · draft only — live stays 1.2.130
 - Leftovers (v1.2.130): Unlock chip hydrates after a working session · Mini fetches live quotes (skip satellite LWW) · phone News + YouTube compact cluster on bottom nav · satellite PTR/Refresh REPLACE without Settings/Automatic · 1.2.128 sync lock unchanged · draft only — live stays 1.2.129
 - Nav + header chrome (v1.2.129): News + YouTube under Household in MENU (sidebar / hamburger) · header chips removed · Refresh visible in the old bell slot (`#F7931A`) · bell inside icon-only … · five-door bottom nav kept · 1.2.128 sync lock unchanged · draft only — live stays 1.2.128

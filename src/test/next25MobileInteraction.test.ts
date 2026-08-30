@@ -73,12 +73,12 @@ describe('next25 mobile interaction', () => {
     expect(snoozeDueDateOneDay('2026-12-31')).toBe('2027-01-01')
   })
 
-  it('14: Dashboard two-pane Today | Markets at min-width 900', () => {
+  it('14: Dashboard Today is one full-width column — no Markets aside', () => {
     const src = readFileSync(resolve(__dirname, '../pages/Dashboard.tsx'), 'utf8')
-    expect(src).toMatch(/today-two-pane/)
-    expect(src).toMatch(/min-width: 900px/)
-    expect(src).toMatch(/today-markets-pane/)
-    expect(src).toMatch(/Markets snapshot/)
+    expect(src).toMatch(/today-main-column/)
+    expect(src).not.toMatch(/today-two-pane/)
+    expect(src).not.toMatch(/today-markets-pane/)
+    expect(src).not.toMatch(/Markets snapshot/)
   })
 
   it('15: large text persists mydsp_large_text and toggles html.large-text', () => {
@@ -104,6 +104,6 @@ describe('next25 mobile interaction', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8')) as {
       version: string
     }
-    expect(pkg.version).toBe('1.2.131')
+    expect(pkg.version).toBe('1.2.132')
   })
 })

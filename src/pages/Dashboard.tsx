@@ -82,12 +82,6 @@ import {
   isAlertDismissed,
 } from '../domain/alertDismiss'
 import { isSyncedRemoteQuote } from '../domain/marketQuotesSync'
-import {
-  formatSlaAge,
-  hasStaleSyncedQuotes,
-  quoteAgeMs as quoteSlaAgeMs,
-  QUOTE_FRESHNESS_SLA_MS,
-} from '../domain/quoteFreshnessSla'
 import { listMarketTickers, loadMarketQuotesCache } from '../storage/marketsStore'
 import { todayMoversEmptyCopy } from '../domain/todayMarketsCopy'
 import {
@@ -98,8 +92,6 @@ import {
   loadYoutubeVideosCache,
   youtubeUnreadFromCache,
 } from '../storage/youtubeStore'
-import { getMarketsProviderHealth } from '../services/marketsProviderHealth'
-import type { MarketQuote } from '../domain/markets'
 import type { RecurringTransaction } from '../domain/types'
 
 /** Today movers ignore prints older than this (ms). */
@@ -110,32 +102,6 @@ function quoteAgeMs(updatedAt: string | undefined): number | null {
   const t = Date.parse(updatedAt)
   if (!Number.isFinite(t)) return null
   return Math.max(0, Date.now() - t)
-}
-
-function formatQuoteAgeShort(ms: number): string {
-  const mins = Math.round(ms / 60_000)
-  if (mins < 1) return 'just now'
-  if (mins < 60) return `${mins}m ago`
-  const hours = Math.round(mins / 60)
-  if (hours < 48) return `${hours}h ago`
-  return `${Math.round(hours / 24)}d ago`
-}
-
-function todayQuoteAvailabilityLabel(q: MarketQuote | undefined): string | null {
-  if (!q) return null
-  const src = (q.source || '').toLowerCase()
-  if (q.last > 0) {
-    if (src.includes('yahoo') || src.includes('finnhub') || src.includes('coingecko') || src.includes('frankfurter')) {
-      return 'Live'
-    }
-    if (src.includes('exchangerate')) return 'Live · spot'
-    if (src.startsWith('sync:')) return 'Live'
-    return 'Live'
-  }
-  if (src === 'none' || src === 'error' || src === 'invalid' || src.startsWith('stale:')) {
-    return 'Unavailable'
-  }
-  return null
 }
 
 function latestRecurringCommentary(r: RecurringTransaction): string | null {
@@ -333,13 +299,6 @@ export function Dashboard() {
   const [syncStatus, setSyncStatus] = useState<AutoSyncStatus>(() => getAutoSyncStatus())
   const [queueLen, setQueueLen] = useState(() => loadOfflineQueue().length)
   const [nwSparkDays, setNwSparkDays] = useState<NwSparkWindow>(() => loadNwSparkWindowPref())
-  /** iPad / wide Stage Manager: Today | Markets two-pane when ≥900px (incl. landscape tablets). */
-  const [twoPane, setTwoPane] = useState(() =>
-    typeof window !== 'undefined'
-      ? window.matchMedia('(min-width: 900px), (orientation: landscape) and (min-width: 1024px)')
-          .matches
-      : false,
-  )
   const todayAccordionEnabled = useTodayAccordionEnabled()
   const [, setYoutubeUnread] = useState(() => youtubeUnreadFromCache())
   const [, setNewsUnread] = useState(() => newsUnreadFromCache())
@@ -450,15 +409,6 @@ export function Dashboard() {
     window.addEventListener('mydsp-offline-queue', refresh)
     return () => window.removeEventListener('mydsp-offline-queue', refresh)
   }, [])
-  useEffect(() => {
-    const mq = window.matchMedia(
-      '(min-width: 900px), (orientation: landscape) and (min-width: 1024px)',
-    )
-    const sync = () => setTwoPane(mq.matches)
-    sync()
-    mq.addEventListener('change', sync)
-    return () => mq.removeEventListener('change', sync)
-  }, [])
   /** High-priority Finnhub API key reminder — once per browser session when no key. */
   useEffect(() => {
     try {
@@ -505,75 +455,6 @@ export function Dashboard() {
       .filter((x): x is NonNullable<typeof x> => !!x)
       .sort((a, b) => Math.abs(b.changePct) - Math.abs(a.changePct))
       .slice(0, 5)
-  }, [syncStatus.lastAt, marketsCount])
-
-  const todayWatchlistPreview = useMemo(() => {
-    const quotes = loadMarketQuotesCache()
-    return listMarketTickers()
-      .map((t) => {
-        const q = quotes.get(t.id)
-        const changePct =
-          q && Number.isFinite(q.changePct) && (quoteAgeMs(q.updatedAt) ?? Infinity) <= MOVER_MAX_AGE_MS
-            ? q.changePct
-            : null
-        return { id: t.id, symbol: t.symbol, changePct }
-      })
-      .slice(0, 5)
-  }, [syncStatus.lastAt, marketsCount])
-
-  /** Cross-device quote lag — when last-good prints arrived via sync before this device refreshed. */
-  const priceLagChip = useMemo(() => {
-    const quotes = loadMarketQuotesCache()
-    let newest = 0
-    let count = 0
-    for (const q of quotes.values()) {
-      if (!isSyncedRemoteQuote(q) || !(q.last > 0)) continue
-      count += 1
-      const t = Date.parse(q.updatedAt) || 0
-      if (t > newest) newest = t
-    }
-    if (count === 0 || newest <= 0) return null
-    const age = Math.max(0, Date.now() - newest)
-    return {
-      count,
-      label: `Prices from other device · ${formatQuoteAgeShort(age)}`,
-    }
-  }, [syncStatus.lastAt, marketsCount])
-
-  const providerHealth = useMemo(() => getMarketsProviderHealth(), [syncStatus.lastAt, marketsCount])
-
-  const finnhubQuotaLimited = useMemo(() => {
-    const fh = providerHealth.find((p) => p.id === 'finnhub')
-    if (!fh?.lastError || !/429|quota/i.test(fh.lastError)) return false
-    return true
-  }, [providerHealth])
-
-  const quoteSlaChip = useMemo(() => {
-    const quotes = loadMarketQuotesCache()
-    const list = [...quotes.values()].filter((q) => q.last > 0)
-    if (!hasStaleSyncedQuotes(list)) return null
-    let oldest = 0
-    for (const q of list) {
-      if (!isSyncedRemoteQuote(q)) continue
-      const age = quoteSlaAgeMs(q)
-      if (age != null && age > oldest) oldest = age
-    }
-    if (oldest <= QUOTE_FRESHNESS_SLA_MS) return null
-    return `Synced quotes past ${formatSlaAge(QUOTE_FRESHNESS_SLA_MS)} SLA · oldest ${formatSlaAge(oldest)}`
-  }, [syncStatus.lastAt, marketsCount])
-
-  const quotePartialChip = useMemo(() => {
-    const quotes = loadMarketQuotesCache()
-    const tickers = listMarketTickers()
-    let live = 0
-    let unavailable = 0
-    for (const t of tickers) {
-      const label = todayQuoteAvailabilityLabel(quotes.get(t.id))
-      if (label === 'Live' || label === 'Live · spot') live++
-      else if (label === 'Unavailable') unavailable++
-    }
-    if (unavailable <= 0) return null
-    return `${live} live · ${unavailable} unavailable`
   }, [syncStatus.lastAt, marketsCount])
 
   const budgetPulse = useMemo(
@@ -1099,7 +980,6 @@ export function Dashboard() {
       'today-cash-runway',
       'today-fire-chip',
       'today-media',
-      'today-markets',
     ]
     const elements = sectionIds
       .map((id) => document.getElementById(id))
@@ -1269,7 +1149,6 @@ export function Dashboard() {
   const showGoalsCard = isTodayCardVisible('goals') && Boolean(soonGoal || goalProjection)
   const showTaxCard = isTodayCardVisible('tax')
   const showMediaCard = isTodayCardVisible('media')
-  const showMarketsCard = isTodayCardVisible('markets')
   const showBudgetPulseCards = isTodayCardVisible('budget')
   const showBudgetCard = false
   const showGettingStartedCard = isTodayCardVisible('gettingStarted')
@@ -1278,7 +1157,6 @@ export function Dashboard() {
     isTodayCardVisible('reminders') && reminders.length > 0 && !showAlertsCard
   const showChartsCard = isTodayCardVisible('charts')
   const showActivityCard = isTodayCardVisible('activity')
-  const useTodayTwoPane = twoPane && showMarketsCard
 
   const gettingStartedStep1Done = (() => {
     const cfg = loadSyncConfig()
@@ -1335,9 +1213,6 @@ export function Dashboard() {
     }),
     ...(showTaxCard ? [['today-tax', 'Tax', 'today-section-jump-tax'] as [string, string, string]] : []),
     ...(showMediaCard ? [['today-media', 'Media', 'today-section-jump-media'] as [string, string, string]] : []),
-    ...(showMarketsCard
-      ? [['today-markets', 'Markets', 'today-section-jump-markets'] as [string, string, string]]
-      : []),
     ...(showAlertsCard
       ? [['today-alerts', 'Alerts', 'today-section-jump-alerts'] as [string, string, string]]
       : []),
@@ -1474,8 +1349,7 @@ export function Dashboard() {
         </p>
       ) : null}
 
-      <div className={useTodayTwoPane ? 'today-two-pane grid grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)] gap-4 mb-4 items-start' : ''}>
-        <div className={useTodayTwoPane ? 'min-w-0' : ''}>
+      <div className="today-main-column w-full min-w-0">
       <div className={`surface p-5 md:p-6 mb-4 rounded-xl md:rounded-none shadow-sm md:shadow-none ${privacyClass(privacy)}`}>
         <p className="text-xs uppercase tracking-wider text-text-subtle mb-1 font-semibold">Net worth</p>
         <p className="today-net-worth-value text-3xl md:text-4xl font-bold tabular-nums tracking-tight mb-1 break-words">
@@ -2376,169 +2250,6 @@ export function Dashboard() {
         </div>
       </div>
       ) : null}
-
-        </div>
-
-        {useTodayTwoPane ? (
-          <aside
-            id="today-markets"
-            className="today-markets-pane surface p-4 rounded-xl md:rounded-none shadow-sm md:shadow-none sticky"
-            aria-label="Markets snapshot"
-          >
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-xs uppercase tracking-wider text-text-subtle font-semibold">Markets</p>
-              <Link to="/markets" className="text-xs text-accent font-semibold">
-                Open
-              </Link>
-            </div>
-            {priceLagChip || finnhubQuotaLimited || quoteSlaChip || quotePartialChip ? (
-              <div
-                className="today-trust-strip today-prices-trust mb-2 space-y-1.5"
-                role="status"
-                aria-label="Prices trust"
-              >
-                {priceLagChip ? (
-                  <p className="today-price-lag-chip text-[11px] text-accent font-medium">
-                    {priceLagChip.label}
-                  </p>
-                ) : null}
-                {finnhubQuotaLimited ? (
-                  <div className="today-finnhub-quota-chip px-2.5 py-1.5 text-[11px] border border-amber-500/45 bg-amber-500/10 text-amber-900 dark:text-amber-100 rounded-lg">
-                    Finnhub rate-limited (429) — using Yahoo until quota resets
-                  </div>
-                ) : null}
-                {quoteSlaChip ? (
-                  <div className="today-quote-sla-chip px-2.5 py-1.5 text-[11px] border border-border bg-surface/50 rounded-lg">
-                    {quoteSlaChip}
-                  </div>
-                ) : null}
-                {quotePartialChip ? (
-                  <div className="today-quote-partial-chip px-2.5 py-1.5 text-[11px] border border-amber-500/45 bg-amber-500/10 text-amber-900 dark:text-amber-100 rounded-lg">
-                    {quotePartialChip}
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
-            {todayMovers.length === 0 ? (
-              <div>
-                <p className="text-sm text-text-muted font-light">
-                  {todayMoversEmptyCopy(marketsCount)}
-                </p>
-                {todayWatchlistPreview.length > 0 ? (
-                  <ul className="space-y-2 mt-2">
-                    {todayWatchlistPreview.map((m) => (
-                      <li key={m.id}>
-                        <Link
-                          to={`/markets?symbol=${encodeURIComponent(m.symbol)}`}
-                          className="flex items-baseline justify-between gap-2 hover:text-accent"
-                        >
-                          <span className="font-semibold tracking-tight">{m.symbol}</span>
-                          <span className={`tabular-nums text-sm ${privacyClass(privacy)}`}>
-                            {m.changePct == null
-                              ? '—'
-                              : `${m.changePct >= 0 ? '+' : ''}${m.changePct.toFixed(2)}%`}
-                          </span>
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-              </div>
-            ) : (
-              <ul className="space-y-2">
-                {todayMovers.map((m) => (
-                  <li key={m.id}>
-                    <Link
-                      to={`/markets?symbol=${encodeURIComponent(m.symbol)}`}
-                      className="flex items-baseline justify-between gap-2 hover:text-accent"
-                    >
-                      <span className="font-semibold tracking-tight">
-                        {m.symbol}
-                        {m.fromSync ? (
-                          <span className="ml-1 text-[10px] font-medium text-text-subtle">sync</span>
-                        ) : null}
-                      </span>
-                      <span
-                        className={`tabular-nums text-sm markets-quote-price ${privacyClass(privacy)} ${
-                          m.changePct >= 0 ? 'text-emerald-500' : 'text-red-500'
-                        }`}
-                      >
-                        {m.changePct >= 0 ? '+' : ''}
-                        {m.changePct.toFixed(2)}%
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <p className="text-[11px] text-text-subtle mt-3 font-light">
-              {marketsCount} ticker{marketsCount === 1 ? '' : 's'} watched · movers use quotes from the last 24h
-            </p>
-          </aside>
-        ) : showMarketsCard ? (
-          <section
-            id="today-markets"
-            className="today-markets-pane surface p-4 mb-6 rounded-xl shadow-sm"
-            aria-label="Markets snapshot"
-          >
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-xs uppercase tracking-wider text-text-subtle font-semibold">Markets</p>
-              <Link to="/markets" className="text-xs text-accent font-semibold">
-                Open
-              </Link>
-            </div>
-            {todayMovers.length === 0 ? (
-              <div>
-                <p className="text-sm text-text-muted font-light">
-                  {todayMoversEmptyCopy(marketsCount)}
-                </p>
-                {todayWatchlistPreview.length > 0 ? (
-                  <ul className="space-y-2 mt-2">
-                    {todayWatchlistPreview.map((m) => (
-                      <li key={m.id}>
-                        <Link
-                          to={`/markets?symbol=${encodeURIComponent(m.symbol)}`}
-                          className="flex items-baseline justify-between gap-2 hover:text-accent"
-                        >
-                          <span className="font-semibold tracking-tight">{m.symbol}</span>
-                          <span className={`tabular-nums text-sm ${privacyClass(privacy)}`}>
-                            {m.changePct == null
-                              ? '—'
-                              : `${m.changePct >= 0 ? '+' : ''}${m.changePct.toFixed(2)}%`}
-                          </span>
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-              </div>
-            ) : (
-              <ul className="space-y-2">
-                {todayMovers.slice(0, 5).map((m) => (
-                  <li key={m.id}>
-                    <Link
-                      to={`/markets?symbol=${encodeURIComponent(m.symbol)}`}
-                      className="flex items-baseline justify-between gap-2 hover:text-accent"
-                    >
-                      <span className="font-semibold tracking-tight">{m.symbol}</span>
-                      <span
-                        className={`tabular-nums text-sm markets-quote-price ${privacyClass(privacy)} ${
-                          m.changePct >= 0 ? 'text-emerald-500' : 'text-red-500'
-                        }`}
-                      >
-                        {m.changePct >= 0 ? '+' : ''}
-                        {m.changePct.toFixed(2)}%
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <p className="text-[11px] text-text-subtle mt-3 font-light">
-              {marketsCount} ticker{marketsCount === 1 ? '' : 's'} watched · movers use quotes from the last 24h
-            </p>
-          </section>
-        ) : null}
       </div>
 
       {/* Alerts - mobile optimized */}

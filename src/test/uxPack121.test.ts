@@ -12,14 +12,14 @@ const read = (rel: string) => readFileSync(resolve(__dirname, rel), 'utf8')
 describe('MyDSP 1.2.121 UX pack', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(read('../../package.json'))
-    expect(pkg.version).toBe('1.2.131')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.131')
+    expect(pkg.version).toBe('1.2.132')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.132')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.132',
       '1.2.131',
       '1.2.130',
       '1.2.129',
       '1.2.128',
-      '1.2.127',
     ])
   })
 
@@ -94,7 +94,7 @@ describe('MyDSP 1.2.121 UX pack', () => {
     expect(dash).not.toMatch(/No fresh movers \(last 24h\)/)
     expect(dash).toMatch(/Need two snapshots before a timeline/)
     expect(dash).toMatch(/data\.history\.length >= 2/)
-    expect(dash).toMatch(/todayWatchlistPreview[\s\S]*MOVER_MAX_AGE_MS/)
+    expect(dash).toMatch(/todayMovers[\s\S]*MOVER_MAX_AGE_MS/)
   })
 
   it('7: First-device sync is one card — no SYNC_KEY', () => {
@@ -107,9 +107,10 @@ describe('MyDSP 1.2.121 UX pack', () => {
     expect(dash).not.toMatch(/today-finnhub-missing-chip/)
   })
 
-  it('8: One Markets door — card Open, no header Markets CTA', () => {
+  it('8: Markets door is left nav — no Today Markets card or header CTA', () => {
     const dash = read('../pages/Dashboard.tsx')
-    expect(dash).toMatch(/today-markets-pane/)
+    expect(dash).toMatch(/today-main-column/)
+    expect(dash).not.toMatch(/today-markets-pane/)
     expect(dash).not.toMatch(/page-primary-actions/)
     expect(dash).not.toMatch(/to="\/markets" className="btn-secondary/)
   })
@@ -118,7 +119,7 @@ describe('MyDSP 1.2.121 UX pack', () => {
     const dash = read('../pages/Dashboard.tsx')
     expect(dash).toMatch(/today-section-jump-chips flex flex-wrap/)
     expect(dash).toMatch(/today-section-jump-tax/)
-    expect(dash).toMatch(/today-section-jump-markets/)
+    expect(dash).not.toMatch(/today-section-jump-markets/)
     expect(dash).not.toMatch(/today-section-jump-budget/)
     const css = read('../index.css')
     expect(css).toMatch(/#today-tax,/)
