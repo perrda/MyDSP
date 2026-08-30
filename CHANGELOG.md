@@ -1,5 +1,14 @@
 # MyDSP Changelog
 
+## [1.2.140] - 2026-08-30
+
+### Changed — Today TREND adds 6m and YTD (draft, no live)
+- **Ranges:** 24H · 7D · 30D · 6M · YTD · 12M · 5Y · ALL. 6m sits between 30D and 12M. YTD sits after 6m.
+- **6M:** last 6 calendar months. X ticks are MMM (`Mar` … `Aug` when today is 30 Aug).
+- **YTD:** 1 Jan through today. X ticks are MMM from January through the current month. In January, X ticks are DD/MM days so the line still has points.
+- **Keep:** Mini-as-book sync (satellites REPLACE), Today one-column + Assets hero, full-width TREND + axes, utilities under YouTube, product copy, Light+Dark `#F7931A`, 1.2.139 profile reset/delete, 1.2.137 Today TREND, 1.2.135 data-above-help, 1.2.134 SIPP = Equities.
+- **Draft only:** do not promote. Do not wrangler production. Live mydspv1 stays 1.2.137 / `index-CxpikgZP.js`. Leftover preview worker only (`cursor-…-mydsp.dave-perry.workers.dev`).
+
 ## [1.2.139] - 2026-08-30
 
 ### Added — Reset and delete family profiles (draft, no live)
