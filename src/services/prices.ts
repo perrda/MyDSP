@@ -21,6 +21,7 @@ import {
   usdToGbp,
   type FxRates,
 } from './fx'
+import { fetchYahooDailySeries } from './yahooHistory'
 
 const GECKO_IDS: Record<string, string> = {
   BTC: 'bitcoin',
@@ -1321,22 +1322,120 @@ export async function probeCoinGeckoBitcoinGbp(): Promise<ProviderProbeResult> {
   }
 }
 
-/** Cheap Yahoo ping — AAPL chart quote (empty Finnhub key so cascade does not steal the sample). */
+/** Last print from a Yahoo chart — regular, previous close, or last series close (weekend OK). */
+function lastCloseFromYahooResult(result: YahooChartResult | undefined | null): number | null {
+  if (!result) return null
+  const meta = result.meta
+  for (const n of [
+    meta?.regularMarketPrice,
+    meta?.chartPreviousClose,
+    meta?.previousClose,
+    meta?.postMarketPrice,
+  ]) {
+    if (typeof n === 'number' && n > 0) return n
+  }
+  const closes = result.indicators?.quote?.[0]?.close ?? []
+  for (let i = closes.length - 1; i >= 0; i--) {
+    const n = closes[i]
+    if (typeof n === 'number' && n > 0) return n
+  }
+  return null
+}
+
+/**
+ * Race existing Yahoo CORS relays, but only accept a real chart last/close.
+ * Holdings `fetchViaProxies` settles on the first JSON object — error HTML/JSON
+ * must not count as an empty Yahoo miss when another relay has a print.
+ */
+async function fetchYahooLastCloseViaExistingRelays(
+  symbol: string,
+  range: string,
+  interval: string,
+): Promise<number | null> {
+  const yahoo = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=${encodeURIComponent(interval)}&range=${encodeURIComponent(range)}`
+  const candidates = proxyCandidatesFor(yahoo)
+  return new Promise((resolve) => {
+    let remaining = candidates.length
+    let settled = false
+    if (remaining === 0) {
+      resolve(null)
+      return
+    }
+    for (const candidate of candidates) {
+      void fetchJson<{ chart?: { result?: YahooChartResult[] } }>(candidate, 8000).then(({ data }) => {
+        if (settled) return
+        const last = lastCloseFromYahooResult(data?.chart?.result?.[0])
+        if (last && last > 0) {
+          settled = true
+          resolve(last)
+          return
+        }
+        remaining -= 1
+        if (remaining === 0) resolve(null)
+      })
+    }
+  })
+}
+
+/** Cheap Yahoo ping — AAPL last/close (weekend last close counts). Never uses Finnhub. */
 export async function probeYahooAapl(): Promise<ProviderProbeResult> {
   try {
-    const q = await fetchEquityMarketQuote('AAPL', '')
-    if (q && q.price > 0 && q.source === 'yahoo') return { ok: true, detail: `OK · AAPL ${q.price}` }
+    // Daily last close first — 24H 5m bars are often empty on Saturday/Sunday.
+    const last = await fetchYahooLastCloseViaExistingRelays('AAPL', '5d', '1d')
+    if (last && last > 0) return { ok: true, detail: `OK · AAPL ${last}` }
+    // Same helper holdings history already uses (corsproxy / allorigins / direct).
+    const fromIso = new Date(Date.now() - 14 * 86400000).toISOString().slice(0, 10)
+    const series = await fetchYahooDailySeries('AAPL', fromIso)
+    const daily = series.at(-1)?.price
+    if (daily && daily > 0) return { ok: true, detail: `OK · AAPL ${daily}` }
     return { ok: false, detail: 'Yahoo empty quote' }
   } catch (e) {
     return { ok: false, detail: e instanceof Error ? e.message : 'Yahoo probe failed' }
   }
 }
 
-/** Cheap CoinCap ping — BTC USD spot. */
+function priceUsdFromCoinCapBody(data: unknown): number | null {
+  if (!data || typeof data !== 'object') return null
+  const rec = data as { data?: { priceUsd?: string | number }; priceUsd?: string | number }
+  const raw = rec.data?.priceUsd ?? rec.priceUsd
+  const n = Number(raw)
+  return n > 0 ? n : null
+}
+
+/** Same CoinCap BTC URL as holdings, via the existing quote-relay list. */
+async function fetchCoinCapLastUsdViaExistingRelays(id: string): Promise<number | null> {
+  const url = `https://api.coincap.io/v2/assets/${encodeURIComponent(id)}`
+  const candidates = proxyCandidatesFor(url)
+  return new Promise((resolve) => {
+    let remaining = candidates.length
+    let settled = false
+    if (remaining === 0) {
+      resolve(null)
+      return
+    }
+    for (const candidate of candidates) {
+      void fetchJson<unknown>(candidate, 8000).then(({ data }) => {
+        if (settled) return
+        const last = priceUsdFromCoinCapBody(data)
+        if (last && last > 0) {
+          settled = true
+          resolve(last)
+          return
+        }
+        remaining -= 1
+        if (remaining === 0) resolve(null)
+      })
+    }
+  })
+}
+
+/** Cheap CoinCap ping — BTC last USD. Direct holdings helper, then same URL via relays. */
 export async function probeCoinCapBtc(): Promise<ProviderProbeResult> {
   try {
     const cap = await fetchCoinCapUsd('BTC')
     if (cap && cap.priceUsd > 0) return { ok: true, detail: `OK · BTC ${cap.priceUsd}` }
+    const proxied = await fetchCoinCapLastUsdViaExistingRelays('bitcoin')
+    if (proxied && proxied > 0) return { ok: true, detail: `OK · BTC ${proxied}` }
     return { ok: false, detail: 'CoinCap empty quote' }
   } catch (e) {
     return { ok: false, detail: e instanceof Error ? e.message : 'CoinCap probe failed' }

@@ -6,6 +6,7 @@
 - **Ping-all:** Header Refresh probes one cheap quote per provider after holdings prices + FX — CoinGecko bitcoin GBP, Yahoo AAPL, Finnhub AAPL when a key is saved, CoinCap BTC, Coinbase BTC, FX Frankfurter or exchangerate GBP. Each hit records session health. CoinGecko 429 backoff is honoured (skip, not a pile-on).
 - **Settings:** After Refresh, sampled healthy providers show **OK · hh:mm:ss** under Provider health (this session), same shape as the Finnhub blur probe. Failures keep the existing fail(s) copy. A missing Finnhub key is left as No hits yet — not OK, not a failure storm.
 - **Cascade unchanged:** Holdings / Markets still skip failovers when the primary fills (Finnhub success skips Yahoo; CoinGecko filling cryptos skips Yahoo / CoinCap / Coinbase). Ping-all is a separate health sample — it does not fail a primary to reach a failover.
+- **Yahoo / CoinCap last print:** Probes record OK on a real last/close (weekend last close counts). Yahoo accepts previousClose / last series close via existing relays, then holdings `fetchYahooDailySeries`. CoinCap uses the holdings BTC helper, then the same `/v2/assets/bitcoin` URL via existing relays. Missing Finnhub key stays a skip.
 - **Keep:** Mini-as-book sync, REPLACE satellites, origin-allow mydsp-sync, BTC orange `#F7931A`, nav 1.2.129 / 1.2.130 (News / YouTube under Household, header Refresh, icon-only …, phone News / YouTube cluster).
 - **Draft only:** do not promote. Do not wrangler. Live mydspv1 stays 1.2.130 / `index-DITvY3te.js`. Rollback of live remains 1.2.129 / `index-safax7ZW.js`.
 
