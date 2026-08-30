@@ -322,6 +322,56 @@ export function labeledSeriesFromValues(
   })
 }
 
+/** Expected point count for a Markets / Today-style window. */
+export function seriesWindowLength(window: SeriesAxisWindow): number {
+  switch (window) {
+    case '24H':
+      return 24
+    case '7D':
+    case '1W':
+      return 7
+    case '30D':
+    case '1M':
+      return 30
+    case '12M':
+    case 'YTD':
+      return 12
+    case '5Y':
+      return 5
+    case 'ALL':
+      return 10
+  }
+}
+
+/**
+ * Pad an empty or last-good close series so a full chart can paint.
+ * Same idea as Today ALL/5Y duplicating a single year — Recharts needs ≥ 2 points.
+ * Live sparklines with 2+ prints stay as-is (list-row compact sparks are separate).
+ */
+export function padLabeledSeriesFromValues(
+  values: number[],
+  window: SeriesAxisWindow,
+  lastGood?: number,
+  now = new Date(),
+): LabeledSeriesPoint[] {
+  const clean = values.filter((n) => typeof n === 'number' && Number.isFinite(n))
+  if (clean.length >= 2) return labeledSeriesFromValues(clean, window, now)
+
+  const fill =
+    clean.length === 1
+      ? clean[0]!
+      : typeof lastGood === 'number' && Number.isFinite(lastGood)
+        ? lastGood
+        : 0
+  const target = Math.max(2, seriesWindowLength(window))
+  const padded = Array.from({ length: target }, () => fill)
+  const points = labeledSeriesFromValues(padded, window, now)
+  if (points.length >= 2) return points
+  // Today ALL/5Y: duplicate a single year so Recharts can draw
+  const only = points[0] ?? { value: fill, label: String(now.getFullYear()), key: 'pad' }
+  return [{ ...only, key: `${only.key}-pre` }, only]
+}
+
 function labelAtFraction(
   window: SeriesAxisWindow,
   t: number,

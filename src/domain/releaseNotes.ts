@@ -29,7 +29,7 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
-    version: '1.2.138',
+    version: '1.2.141',
     date: '2026-08-30',
     bullets: [
       {
@@ -37,7 +37,7 @@ export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
         to: '/',
       },
       {
-        text: 'Markets detail trend uses 24H / 1W / 12M / ALL axes',
+        text: 'Markets detail trend opens on Fetching rows — 176px axes',
         to: '/markets',
       },
       {
@@ -45,8 +45,26 @@ export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
         to: '/',
       },
       {
-        text: 'Draft only — live stays 1.2.132',
+        text: 'Draft only — live stays 1.2.137',
         to: '/',
+      },
+    ],
+  },
+  {
+    version: '1.2.139',
+    date: '2026-08-30',
+    bullets: [
+      {
+        text: 'Reset a profile to zero — David included',
+        to: '/settings#portfolios',
+      },
+      {
+        text: 'Delete other profiles — David cannot be deleted',
+        to: '/settings#portfolios',
+      },
+      {
+        text: 'Both ask “Are you sure?” first',
+        to: '/settings#portfolios',
       },
     ],
   },
@@ -61,6 +79,24 @@ export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
       {
         text: 'X-axis weekdays, DD/MM, months, and years — Y follows CCY',
         to: '/',
+      },
+      {
+        text: 'Draft only — live stays 1.2.132',
+        to: '/',
+      },
+    ],
+  },
+  {
+    version: '1.2.135',
+    date: '2026-08-30',
+    bullets: [
+      {
+        text: 'Values, charts, and lists sit above help boxes',
+        to: '/crypto',
+      },
+      {
+        text: 'Same order on Equities, Tax, Plan, and Compare',
+        to: '/equities',
       },
       {
         text: 'Draft only — live stays 1.2.132',

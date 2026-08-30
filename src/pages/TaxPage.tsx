@@ -308,91 +308,6 @@ export function TaxPage() {
         </Link>
       </div>
 
-      <div className="surface border border-border px-4 py-3 mb-6">
-        <button
-          type="button"
-          className="w-full flex items-center justify-between gap-3 text-left min-h-11"
-          aria-expanded={exportsExplainerOpen}
-          onClick={() => setExportsExplainerOpen((v) => !v)}
-        >
-          <span className="text-sm font-semibold tracking-tight">What these exports mean</span>
-          <span className="text-xs text-text-subtle shrink-0">
-            {exportsExplainerOpen ? 'Hide' : 'Show'}
-          </span>
-        </button>
-        {exportsExplainerOpen ? (
-          <div className="tax-exports-explainer mt-3 space-y-2 text-sm text-text-muted font-light leading-relaxed border-t border-border pt-3">
-            <p>
-              Residency pack: <strong className="text-text font-medium">{pack.label}</strong> ({pack.code}
-              ). Export buttons above produce worksheets and journals for this pack — not a filed return.
-            </p>
-            <p>{pack.disclaimer}</p>
-            {pack.remittanceBasisGuidance ? <p>{pack.remittanceBasisGuidance}</p> : null}
-            {isUkTax ? (
-              <p>
-                UK CGT / SA108 CSV and the transaction log are working papers for Self Assessment or your
-                adviser. Figures use §104 pooling when journal buys exist.
-              </p>
-            ) : pack.hasCgt ? (
-              <p>
-                “{pack.exportLabel}” is a simplified estimate export for {pack.label}. Use it with tax
-                software or a preparer — MyDSP does not submit forms.
-              </p>
-            ) : (
-              <p>
-                This residency has no personal CGT computed here. Exports are disposal / journal records
-                only.
-              </p>
-            )}
-            <p>
-              Change residency in{' '}
-              <Link to="/settings#display" className="text-accent hover:underline">
-                Settings → Display
-              </Link>
-              .
-            </p>
-          </div>
-        ) : null}
-      </div>
-
-      <div className="surface border-l-2 border-l-accent px-5 py-4 mb-6">
-        <p className="text-sm text-text-muted font-light">
-          {pack.disclaimer}{' '}
-          {!isUkTax ? (
-            <>
-              Update residency in{' '}
-              <Link to="/settings#display" className="text-accent hover:underline">
-                Settings → Display
-              </Link>
-              .
-            </>
-          ) : null}
-        </p>
-        {pack.remittanceBasisGuidance ? (
-          <p className="text-sm text-text-muted font-light mt-2">
-            {pack.remittanceBasisGuidance}
-          </p>
-        ) : null}
-      </div>
-
-      {pack.code === 'US' ? (
-        <section
-          className="surface border-l-2 border-l-border-strong px-5 py-4 mb-6"
-          aria-labelledby="us-8949-heading"
-        >
-          <h2 id="us-8949-heading" className="text-sm font-bold tracking-tight mb-2">
-            US Form 8949 / wash-sale (informational)
-          </h2>
-          <p className="text-sm text-text-muted font-light leading-relaxed max-w-3xl">
-            MyDSP does <strong className="text-text font-medium">not</strong> generate Form 8949 or
-            apply IRS wash-sale adjustments. The US pack uses a simplified FIFO-style cost basis and
-            a flat long-term reference rate for estimates only. Export your journal CSV and complete
-            Form 8949 (and Schedule D) in tax software or with a qualified preparer. Wash-sale
-            tracking across accounts is out of scope here.
-          </p>
-        </section>
-      ) : null}
-
       {!pack.hasCgt ? (
         <div className="surface p-8 sm:p-10 text-center mb-8">
           <p className="text-lg font-semibold mb-2">No CGT computed for {pack.label}</p>
@@ -792,6 +707,91 @@ export function TaxPage() {
           </tbody>
         </table>
       </div>
+
+      <div className="surface border border-border px-4 py-3 mb-6 mt-8">
+        <button
+          type="button"
+          className="w-full flex items-center justify-between gap-3 text-left min-h-11"
+          aria-expanded={exportsExplainerOpen}
+          onClick={() => setExportsExplainerOpen((v) => !v)}
+        >
+          <span className="text-sm font-semibold tracking-tight">What these exports mean</span>
+          <span className="text-xs text-text-subtle shrink-0">
+            {exportsExplainerOpen ? 'Hide' : 'Show'}
+          </span>
+        </button>
+        {exportsExplainerOpen ? (
+          <div className="tax-exports-explainer mt-3 space-y-2 text-sm text-text-muted font-light leading-relaxed border-t border-border pt-3">
+            <p>
+              Residency pack: <strong className="text-text font-medium">{pack.label}</strong> ({pack.code}
+              ). Export buttons above produce worksheets and journals for this pack — not a filed return.
+            </p>
+            <p>{pack.disclaimer}</p>
+            {pack.remittanceBasisGuidance ? <p>{pack.remittanceBasisGuidance}</p> : null}
+            {isUkTax ? (
+              <p>
+                UK CGT / SA108 CSV and the transaction log are working papers for Self Assessment or your
+                adviser. Figures use §104 pooling when journal buys exist.
+              </p>
+            ) : pack.hasCgt ? (
+              <p>
+                “{pack.exportLabel}” is a simplified estimate export for {pack.label}. Use it with tax
+                software or a preparer — MyDSP does not submit forms.
+              </p>
+            ) : (
+              <p>
+                This residency has no personal CGT computed here. Exports are disposal / journal records
+                only.
+              </p>
+            )}
+            <p>
+              Change residency in{' '}
+              <Link to="/settings#display" className="text-accent hover:underline">
+                Settings → Display
+              </Link>
+              .
+            </p>
+          </div>
+        ) : null}
+      </div>
+
+      <div className="surface border-l-2 border-l-accent px-5 py-4 mb-6">
+        <p className="text-sm text-text-muted font-light">
+          {pack.disclaimer}{' '}
+          {!isUkTax ? (
+            <>
+              Update residency in{' '}
+              <Link to="/settings#display" className="text-accent hover:underline">
+                Settings → Display
+              </Link>
+              .
+            </>
+          ) : null}
+        </p>
+        {pack.remittanceBasisGuidance ? (
+          <p className="text-sm text-text-muted font-light mt-2">
+            {pack.remittanceBasisGuidance}
+          </p>
+        ) : null}
+      </div>
+
+      {pack.code === 'US' ? (
+        <section
+          className="surface border-l-2 border-l-border-strong px-5 py-4 mb-6"
+          aria-labelledby="us-8949-heading"
+        >
+          <h2 id="us-8949-heading" className="text-sm font-bold tracking-tight mb-2">
+            US Form 8949 / wash-sale (informational)
+          </h2>
+          <p className="text-sm text-text-muted font-light leading-relaxed max-w-3xl">
+            MyDSP does <strong className="text-text font-medium">not</strong> generate Form 8949 or
+            apply IRS wash-sale adjustments. The US pack uses a simplified FIFO-style cost basis and
+            a flat long-term reference rate for estimates only. Export your journal CSV and complete
+            Form 8949 (and Schedule D) in tax software or with a qualified preparer. Wash-sale
+            tracking across accounts is out of scope here.
+          </p>
+        </section>
+      ) : null}
 
       <Modal open={open} title="Add disposal" onClose={() => setOpen(false)}>
         <form

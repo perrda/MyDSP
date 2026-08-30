@@ -1,14 +1,23 @@
 # MyDSP Changelog
 
-## [1.2.138] - 2026-08-30
+## [1.2.141] - 2026-08-30
 
 ### Changed — Chart axes use X labels + display-CCY Y ticks (draft, no live)
 - **Every full chart:** money/time series already on Portfolio, Spending, Holdings, Cashflow, Plan Monte Carlo, Predictive, Jobs salary, and Advanced spend charts keep visible X and Y ticks. Y money ticks go through `formatChartYTick` so GBP / USD / THB / BTC stay readable.
-- **Markets detail:** the selected-quote trend is no longer a 56px stub. It fills the pane with the same X windows as the timeframe chips — 24H hours (01…23, 00), 1W weekdays, 1M DD/MM, 12M MMM, YTD days or months, ALL years. Y follows display CCY for crypto / equity / commodity; index / FX / cross stay native.
+- **Markets detail:** click a `.markets-row` always opens `aside.markets-master-detail-panel` with a 176px `[data-testid=markets-trend-chart]` — even while the list says Fetching. The selected-quote trend is no longer gated on `sparkline.length ≥ 2`. Empty or last-good series pad the same way Today ALL/5Y pads a single year, so X labels (24H / 1W / 1M / 12M / YTD / ALL) and display-CCY Y ticks still paint.
 - **List rows stay compact:** Markets row sparklines and holding-day stubs do not grow axes (they would overlap). Today Assets TREND from 1.2.137 is unchanged.
 - **Today TREND chrome:** first visit defaults to **30D**. The selected window (30D until the user picks another) is BTC orange `#F7931A` text so the active range is obvious — `.btn-ghost` no longer paints every chip the same muted colour.
-- **Keep:** Mini-as-book sync (satellites REPLACE), Today one-column + Assets hero, utilities under YouTube, product copy, Light+Dark `#F7931A`, 1.2.137 Today windows.
-- **Draft only:** do not promote. Do not wrangler production. Live mydspv1 stays 1.2.132 / `index-ClzYneLT.js`. Leftover preview worker only (`cursor-…-mydsp.dave-perry.workers.dev`).
+- **Keep:** Mini-as-book sync (satellites REPLACE), Today one-column + Assets hero, utilities under YouTube, product copy, Light+Dark `#F7931A`, 1.2.139 Reset/Delete, 1.2.137 Today windows, 1.2.135 data-above-help, 1.2.134 SIPP = Equities, 1.2.133 fluid-fit.
+- **Draft only:** do not promote. Do not wrangler production. Live mydspv1 stays 1.2.137 / `index-CxpikgZP.js`. Leftover preview worker only (`cursor-…-mydsp.dave-perry.workers.dev`).
+
+## [1.2.139] - 2026-08-30
+
+### Added — Reset and delete family profiles (draft, no live)
+- **Reset:** Settings → Family portfolios has **Reset** on every profile, including David. Reset zeros that book (holdings, history, ledgers) and keeps the profile name.
+- **Delete:** Mum / Andrew / other profiles can be deleted. The default profile (David) cannot.
+- **Are you sure?** Reset and Delete open a confirm dialog before the action runs.
+- **Keep:** Mini-as-book sync (satellites REPLACE), Today one-column + Assets hero, utilities under YouTube, product copy, Light+Dark `#F7931A`, 1.2.137 Today TREND, 1.2.135 data-above-help, 1.2.134 SIPP = Equities, 1.2.133 fluid-fit.
+- **Draft only:** do not promote. Do not wrangler production. Live mydspv1 stays 1.2.137 / `index-CxpikgZP.js`. Leftover preview worker only (`cursor-…-mydsp.dave-perry.workers.dev`).
 
 ## [1.2.137] - 2026-08-30
 
@@ -16,6 +25,14 @@
 - **Full width:** the Today Assets TREND line spans the card to the right edge — no `max-w-xs` stub.
 - **Ranges:** 24H · 7D · 30D · 12M · 5Y · ALL. 24H is the last 24 clock hours (01…23, 00). 7D uses weekday names. 30D uses DD/MM (01/12). 12M uses MMM. 5Y and ALL are annual.
 - **Axes:** X ticks use those labels. Y ticks use the display CCY (`formatChartYTick`).
+- **Keep:** Mini-as-book sync (satellites REPLACE), Today one-column + Assets hero, utilities under YouTube, product copy, Light+Dark `#F7931A`, 1.2.135 data-above-help, 1.2.134 SIPP = Equities.
+- **Draft only:** do not promote. Do not wrangler production. Live mydspv1 stays 1.2.132 / `index-ClzYneLT.js`. Leftover preview worker only (`cursor-…-mydsp.dave-perry.workers.dev`).
+
+## [1.2.135] - 2026-08-30
+
+### Changed — Data above help chrome (draft, no live)
+- **Book first:** Crypto / Equities / Holding detail / Staking / Tax / Plan / Compare show VALUE · mix · charts · lists first. Connect-exchange, ledger notes, search, included-value bar, concentration, tax disclaimers, and week-Δ copy sit below.
+- **Memory:** locked in `.cursor/rules/data-above-help-chrome.mdc` so later work does not bury figures under help rails.
 - **Keep:** Mini-as-book sync (satellites REPLACE), Today one-column + Assets hero, utilities under YouTube, product copy, Light+Dark `#F7931A`, 1.2.134 SIPP = Equities.
 - **Draft only:** do not promote. Do not wrangler production. Live mydspv1 stays 1.2.132 / `index-ClzYneLT.js`. Leftover preview worker only (`cursor-…-mydsp.dave-perry.workers.dev`).
 
