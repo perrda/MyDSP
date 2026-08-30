@@ -587,49 +587,6 @@ export function HoldingDetailPage() {
         </div>
       </div>
 
-      {showOpening && (
-        <div className="surface border-l-2 border-l-accent px-5 py-4 mb-6">
-          <p className="text-sm font-semibold uppercase tracking-wider mb-1">Opening balance</p>
-          <p className="text-sm text-text-muted font-light mb-3">
-            This holding has quantity from an import, but no dated buys/sells yet. Create an opening
-            balance trade so future edits recalculate cost correctly — or import your full history.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              className="btn-primary btn-sm"
-              onClick={() =>
-                setData((prev) =>
-                  applyOpeningBalance(prev, item.symbol, isCrypto ? 'crypto' : 'equity'),
-                )
-              }
-            >
-              Create opening balance
-            </button>
-            <button type="button" className="btn-secondary btn-sm" onClick={() => setHistoryOpen(true)}>
-              Import full history
-            </button>
-          </div>
-        </div>
-      )}
-
-      {isCrypto ? (
-        <div
-          className="surface p-5 sm:p-6 mb-6 flex flex-wrap items-center justify-between gap-3"
-          data-testid="crypto-exchange-stub"
-        >
-          <div>
-            <p className="text-sm font-semibold">Connect exchange (coming via CSV import)</p>
-            <p className="text-xs text-text-subtle">
-              No OAuth flow here. Import exchange CSV history to update the journal and cost basis.
-            </p>
-          </div>
-          <button type="button" className="btn-secondary btn-sm" onClick={() => setHistoryOpen(true)}>
-            Import exchange CSV
-          </button>
-        </div>
-      ) : null}
-
       <div className="mb-6">
         <HoldingPriceChart
           data={data}
@@ -819,6 +776,49 @@ export function HoldingDetailPage() {
           </>
         )}
       </div>
+
+      {showOpening && (
+        <div className="surface border-l-2 border-l-accent px-5 py-4 mb-6">
+          <p className="text-sm font-semibold uppercase tracking-wider mb-1">Opening balance</p>
+          <p className="text-sm text-text-muted font-light mb-3">
+            This holding has quantity from an import, but no dated buys/sells yet. Create an opening
+            balance trade so future edits recalculate cost correctly — or import your full history.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="btn-primary btn-sm"
+              onClick={() =>
+                setData((prev) =>
+                  applyOpeningBalance(prev, item.symbol, isCrypto ? 'crypto' : 'equity'),
+                )
+              }
+            >
+              Create opening balance
+            </button>
+            <button type="button" className="btn-secondary btn-sm" onClick={() => setHistoryOpen(true)}>
+              Import full history
+            </button>
+          </div>
+        </div>
+      )}
+
+      {isCrypto ? (
+        <div
+          className="surface p-5 sm:p-6 mb-6 flex flex-wrap items-center justify-between gap-3"
+          data-testid="crypto-exchange-stub"
+        >
+          <div>
+            <p className="text-sm font-semibold">Connect exchange (coming via CSV import)</p>
+            <p className="text-xs text-text-subtle">
+              No OAuth flow here. Import exchange CSV history to update the journal and cost basis.
+            </p>
+          </div>
+          <button type="button" className="btn-secondary btn-sm" onClick={() => setHistoryOpen(true)}>
+            Import exchange CSV
+          </button>
+        </div>
+      ) : null}
 
       {!isCrypto ? (
         <section className="surface p-5 sm:p-6 mb-6" data-testid="equity-tax-lots">

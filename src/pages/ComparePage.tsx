@@ -452,23 +452,6 @@ export function ComparePage() {
         </p>
       ) : null}
 
-      <p
-        className="compare-week-delta-note text-xs text-text-muted font-light mb-3"
-        data-testid="compare-week-delta-note"
-      >
-        Week Δ compares each portfolio to its previous-week snapshot
-        {weekSnap?.capturedAt
-          ? ` (baseline captured ${new Date(weekSnap.capturedAt).toLocaleString('en-GB', {
-              day: 'numeric',
-              month: 'short',
-              year: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-            })})`
-          : ''}
-        — not live week-over-week market moves.
-      </p>
-
       <div className="table-wrap surface overflow-x-auto mb-8">
         <table className="w-full text-sm min-w-[40rem]" aria-label="Portfolio comparison">
           <caption className="sr-only">
@@ -639,6 +622,23 @@ export function ComparePage() {
           })}
         </ul>
       </div>
+
+      <p
+        className="compare-week-delta-note text-xs text-text-muted font-light mb-3"
+        data-testid="compare-week-delta-note"
+      >
+        Week Δ compares each portfolio to its previous-week snapshot
+        {weekSnap?.capturedAt
+          ? ` (baseline captured ${new Date(weekSnap.capturedAt).toLocaleString('en-GB', {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+            })})`
+          : ''}
+        — not live week-over-week market moves.
+      </p>
 
       <p className="text-sm text-text-muted font-light">
         Need opening balances or trade history?{' '}

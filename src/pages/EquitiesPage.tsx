@@ -558,41 +558,8 @@ export function EquitiesPage() {
           </>
         }
       />
-      <UnpricedExclusionBanner data={data} />
-
-      {brokerImportReport ? (
-        <div
-          className={`mb-4 border px-4 py-3 text-sm rounded-lg md:rounded-none ${
-            brokerImportReport.skipReasons.length > 0
-              ? 'border-amber-500/45 bg-amber-500/10 text-amber-900 dark:text-amber-100'
-              : 'border-accent/30 bg-accent/5'
-          }`}
-          role="status"
-          data-testid="import-honesty-banner"
-        >
-          <p className="font-semibold">
-            Broker import report — {brokerImportReport.importedCount} trade
-            {brokerImportReport.importedCount === 1 ? '' : 's'} imported
-          </p>
-          <p className="text-xs mt-1 opacity-80">
-            {brokerImportReport.broker} · {brokerImportReport.fileName}
-          </p>
-          {brokerImportReport.skipReasons.length > 0 ? (
-            <>
-              <p className="text-xs font-semibold mt-3">
-                Skipped / not imported ({brokerImportReport.skipReasons.length})
-              </p>
-              <ul className="mt-1 space-y-1 text-xs list-disc pl-5">
-                {brokerImportReport.skipReasons.map((reason, index) => (
-                  <li key={`${reason}-${index}`}>{reason}</li>
-                ))}
-              </ul>
-            </>
-          ) : (
-            <p className="text-xs mt-2">No rows were skipped.</p>
-          )}
-        </div>
-      ) : null}
+      <div ref={holdingsSearchRef} className="h-0 overflow-hidden" aria-hidden />
+      <div ref={holdingsTotalsRef} className="h-0 overflow-hidden" aria-hidden />
 
       {dueCorporateActions.length > 0 ? (
         <section
@@ -631,96 +598,6 @@ export function EquitiesPage() {
             ))}
           </ul>
         </section>
-      ) : null}
-
-      <div
-        ref={holdingsSearchRef}
-        className="holdings-in-list-search holdings-sticky-search sticky z-[9] -mx-1 mb-4 bg-bg/95 px-1 py-2 backdrop-blur supports-[backdrop-filter]:bg-bg/80"
-      >
-        <div className="surface border border-border-strong px-3 py-2.5">
-          <label className="sr-only" htmlFor="equities-search-input">
-            Search equity holdings
-          </label>
-          <div className="flex flex-wrap items-center gap-2">
-            <input
-              id="equities-search-input"
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              placeholder="Search equity holdings by symbol or name"
-              aria-label="Search equity holdings by symbol or name"
-              className="min-w-0 w-full flex-1"
-            />
-            {searchText ? (
-              <button type="button" className="btn-ghost btn-sm" onClick={() => setSearchText('')}>
-                Clear
-              </button>
-            ) : null}
-          </div>
-          <p className="mt-1.5 text-[11px] text-text-subtle">
-            {searchQuery
-              ? `${filteredHoldings.length}/${holdings.length} equity holding match${filteredHoldings.length === 1 ? '' : 'es'}`
-              : `${holdings.length} equity holding${holdings.length === 1 ? '' : 's'}`}
-          </p>
-        </div>
-      </div>
-
-      <div
-        ref={holdingsTotalsRef}
-        className={`holdings-included-value-bar holdings-sticky-totals sticky z-[8] -mx-1 mb-4 border border-border bg-bg-elevated px-3 py-2 text-xs text-text-muted shadow-sm ${privacyClass(privacy)}`}
-        role="status"
-      >
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="font-semibold text-text">
-            Included equity value {formatGBP(holdingsIncludedSummary.includedValue)}
-          </span>
-          <span className="tabular-nums">
-            {holdingsIncludedSummary.includedCount} in NW · {holdingsIncludedSummary.excludedCount} excluded
-            {weightSort ? ' · sorted by portfolio weight %' : ''}
-          </span>
-        </div>
-      </div>
-
-      {driftHits.length > 0 ? (
-        <div className="mb-4" role="status">
-          <div className="px-4 py-3 border border-amber-500/40 bg-amber-500/10 text-sm text-amber-800 dark:text-amber-200 flex flex-wrap items-center justify-between gap-3">
-            <span>
-              Markets live ≠ holding price by &gt;{driftThreshold}% on{' '}
-              {driftHits.map((h) => h.symbol).join(', ')}. Refresh Markets or fill last synced.
-            </span>
-            <button type="button" className="btn-secondary btn-sm bg-bg-elevated/80" onClick={fillFromLastSynced}>
-              Use Markets prices
-            </button>
-          </div>
-          {fromOtherDeviceAge ? (
-            <p className="holdings-from-other-device mt-1.5 px-1 text-[11px] text-text-subtle">
-              From other device · {fromOtherDeviceAge}
-            </p>
-          ) : null}
-        </div>
-      ) : null}
-
-      {concentrationHits.length > 0 ? (
-        <div
-          className="portfolio-concentration-banner mb-4 px-4 py-3 border border-amber-500/40 bg-amber-500/10 text-sm text-amber-800 dark:text-amber-200 flex flex-wrap items-center justify-between gap-3"
-          role="status"
-        >
-          <span>
-            Concentration: {concentrationHits[0]!.symbol} is{' '}
-            {concentrationHits[0]!.weightPct.toFixed(1)}% of included portfolio value (threshold{' '}
-            {concentrationThreshold}%)
-            {concentrationHits.length > 1 ? ` · +${concentrationHits.length - 1} more` : ''}.
-          </span>
-          <Link
-            to={`/${concentrationHits[0]!.kind === 'equity' ? 'equities' : 'crypto'}/${concentrationHits[0]!.id}`}
-            className="btn-secondary btn-sm bg-bg-elevated/80"
-            onClick={() => {
-              dismissAlertForCalendarMonth(concentrationDismissId(concentrationHits[0]!.symbol))
-              setDismissTick((n) => n + 1)
-            }}
-          >
-            Review holding
-          </Link>
-        </div>
       ) : null}
 
       <div className={`fluid-metric-grid fluid-metric-grid--3 mb-6 ${privacyClass(privacy)}`}>
@@ -1055,6 +932,128 @@ export function EquitiesPage() {
         ) : null}
         </div>
       )}
+
+      <UnpricedExclusionBanner data={data} />
+
+      {brokerImportReport ? (
+        <div
+          className={`mb-4 border px-4 py-3 text-sm rounded-lg md:rounded-none ${
+            brokerImportReport.skipReasons.length > 0
+              ? 'border-amber-500/45 bg-amber-500/10 text-amber-900 dark:text-amber-100'
+              : 'border-accent/30 bg-accent/5'
+          }`}
+          role="status"
+          data-testid="import-honesty-banner"
+        >
+          <p className="font-semibold">
+            Broker import report — {brokerImportReport.importedCount} trade
+            {brokerImportReport.importedCount === 1 ? '' : 's'} imported
+          </p>
+          <p className="text-xs mt-1 opacity-80">
+            {brokerImportReport.broker} · {brokerImportReport.fileName}
+          </p>
+          {brokerImportReport.skipReasons.length > 0 ? (
+            <>
+              <p className="text-xs font-semibold mt-3">
+                Skipped / not imported ({brokerImportReport.skipReasons.length})
+              </p>
+              <ul className="mt-1 space-y-1 text-xs list-disc pl-5">
+                {brokerImportReport.skipReasons.map((reason, index) => (
+                  <li key={`${reason}-${index}`}>{reason}</li>
+                ))}
+              </ul>
+            </>
+          ) : (
+            <p className="text-xs mt-2">No rows were skipped.</p>
+          )}
+        </div>
+      ) : null}
+
+      <div className="holdings-in-list-search holdings-sticky-search mb-4">
+        <div className="surface border border-border-strong px-3 py-2.5">
+          <label className="sr-only" htmlFor="equities-search-input">
+            Search equity holdings
+          </label>
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              id="equities-search-input"
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              placeholder="Search equity holdings by symbol or name"
+              aria-label="Search equity holdings by symbol or name"
+              className="min-w-0 w-full flex-1"
+            />
+            {searchText ? (
+              <button type="button" className="btn-ghost btn-sm" onClick={() => setSearchText('')}>
+                Clear
+              </button>
+            ) : null}
+          </div>
+          <p className="mt-1.5 text-[11px] text-text-subtle">
+            {searchQuery
+              ? `${filteredHoldings.length}/${holdings.length} equity holding match${filteredHoldings.length === 1 ? '' : 'es'}`
+              : `${holdings.length} equity holding${holdings.length === 1 ? '' : 's'}`}
+          </p>
+        </div>
+      </div>
+
+      <div
+        className={`holdings-included-value-bar holdings-sticky-totals mb-4 border border-border bg-bg-elevated px-3 py-2 text-xs text-text-muted shadow-sm ${privacyClass(privacy)}`}
+        role="status"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="font-semibold text-text">
+            Included equity value {formatGBP(holdingsIncludedSummary.includedValue)}
+          </span>
+          <span className="tabular-nums">
+            {holdingsIncludedSummary.includedCount} in NW · {holdingsIncludedSummary.excludedCount} excluded
+            {weightSort ? ' · sorted by portfolio weight %' : ''}
+          </span>
+        </div>
+      </div>
+
+      {driftHits.length > 0 ? (
+        <div className="mb-4" role="status">
+          <div className="px-4 py-3 border border-amber-500/40 bg-amber-500/10 text-sm text-amber-800 dark:text-amber-200 flex flex-wrap items-center justify-between gap-3">
+            <span>
+              Markets live ≠ holding price by &gt;{driftThreshold}% on{' '}
+              {driftHits.map((h) => h.symbol).join(', ')}. Refresh Markets or fill last synced.
+            </span>
+            <button type="button" className="btn-secondary btn-sm bg-bg-elevated/80" onClick={fillFromLastSynced}>
+              Use Markets prices
+            </button>
+          </div>
+          {fromOtherDeviceAge ? (
+            <p className="holdings-from-other-device mt-1.5 px-1 text-[11px] text-text-subtle">
+              From other device · {fromOtherDeviceAge}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
+      {concentrationHits.length > 0 ? (
+        <div
+          className="portfolio-concentration-banner mb-4 px-4 py-3 border border-amber-500/40 bg-amber-500/10 text-sm text-amber-800 dark:text-amber-200 flex flex-wrap items-center justify-between gap-3"
+          role="status"
+        >
+          <span>
+            Concentration: {concentrationHits[0]!.symbol} is{' '}
+            {concentrationHits[0]!.weightPct.toFixed(1)}% of included portfolio value (threshold{' '}
+            {concentrationThreshold}%)
+            {concentrationHits.length > 1 ? ` · +${concentrationHits.length - 1} more` : ''}.
+          </span>
+          <Link
+            to={`/${concentrationHits[0]!.kind === 'equity' ? 'equities' : 'crypto'}/${concentrationHits[0]!.id}`}
+            className="btn-secondary btn-sm bg-bg-elevated/80"
+            onClick={() => {
+              dismissAlertForCalendarMonth(concentrationDismissId(concentrationHits[0]!.symbol))
+              setDismissTick((n) => n + 1)
+            }}
+          >
+            Review holding
+          </Link>
+        </div>
+      ) : null}
 
       <Modal open={open} size="full" title={editing ? 'Edit equity' : 'Add equity'} onClose={() => setOpen(false)}>
         <form
