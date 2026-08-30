@@ -25,6 +25,7 @@ describe('MyDSP 1.2.134 SIPP = Equities sleeve', () => {
     expect(section).toMatch(/accountType === 'sipp'/)
     expect(section).toMatch(/Liabilities in red/)
     expect(section).toMatch(/Money \/ Plan \/ Household grab/)
+    expect(section).toMatch(/Hourly manual backup/)
     expect(section).toMatch(/#F7931A/)
     expect(section).toMatch(/draft only|Draft only/)
     expect(section).toMatch(/1\.2\.132/)

@@ -202,6 +202,7 @@ const STORE = 'backups'
 const DB_VERSION = 1
 export const MAX_BACKUPS = 10
 export const LAST_BACKUP_KEY = 'mydsp_last_full_backup_day'
+export const LAST_MANUAL_BACKUP_AT_KEY = 'mydsp_last_manual_backup_at'
 
 export interface FullBackupMeta {
   id: string
@@ -630,6 +631,9 @@ export async function createFullBackup(
   await pruneOldBackups()
   try {
     localStorage.setItem(LAST_BACKUP_KEY, createdAt.slice(0, 10))
+    if (source === 'manual') {
+      localStorage.setItem(LAST_MANUAL_BACKUP_AT_KEY, createdAt)
+    }
   } catch {
     /* ignore */
   }

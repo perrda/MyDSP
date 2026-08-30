@@ -49,6 +49,10 @@ export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
         to: '/money',
       },
       {
+        text: 'Hourly Yes/No popup to create a manual backup',
+        to: '/settings#full-backup',
+      },
+      {
         text: 'Draft only — live stays 1.2.132',
         to: '/',
       },
