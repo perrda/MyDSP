@@ -171,6 +171,8 @@ export function BottomNav() {
                   isActive ? 'text-accent bottom-nav-link--active' : 'text-text-muted'
                 }`
               }
+              aria-label={item.label}
+              title={item.label}
               data-testid={item.to === '/news' ? 'bottom-nav-news' : 'bottom-nav-youtube'}
             >
               {({ isActive }) => (

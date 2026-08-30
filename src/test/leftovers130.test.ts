@@ -205,6 +205,7 @@ describe('Job 4 — phone News and YouTube first-class', () => {
     const css = read('../index.css')
     expect(css).toMatch(/\.bottom-nav-media/)
     expect(css).toMatch(/not seven equal tabs/)
+    expect(css).toMatch(/bottom-nav-media-link \.bottom-nav-link-label/)
     expect(css).toMatch(/#f7931a|#F7931A/)
   })
 })
