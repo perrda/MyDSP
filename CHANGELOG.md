@@ -7,7 +7,7 @@
 - **Mini owns live quotes:** Book device skips LWW import of satellite quote cache. Mini fetches live marks (existing Yahoo / quote worker / Finnhub-if-already-configured) when the cache is sync-tagged or past the 30m SLA. Satellites still receive Mini’s quote cache. Honest SLA chip if still stale. No new bank plugin. No new Finnhub key.
 - **Phone News + YouTube:** Bottom nav keeps the five doors and adds a compact News + YouTube cluster (not seven equal tabs). Unread badge on News. Desktop sidebar stays Today · Markets · Money · Plan · Household · News · YouTube.
 - **Satellite PTR / Refresh:** iPhone/iPad pull-to-refresh and header Refresh REPLACE Mini’s book from a remembered passphrase — no Settings visit, no Automatic checkbox first. PTR stays disabled on non-touch.
-- **Keep:** Money 12-tile Directory. `#F7931A`. 1.2.129 header Refresh + icon-only … + bell inside …. 1.2.128 Cloud Sync lock (Mini is the book, satellites REPLACE including MUM/ANDREW, cap 6, origin-lock, no merge-local-first, no client SYNC_KEY).
+- **Keep:** Money 12-tile Directory. `#F7931A`. 1.2.129 header Refresh + icon-only … + bell inside …. 1.2.128 Cloud Sync lock (Mini is the book, satellites REPLACE including MUM/ANDREW, cap 6, origin-lock, no merge-local-first, no client access key).
 - **Draft only:** do not promote. Do not wrangler. Live mydspv1 stays 1.2.129.
 
 ## [1.2.129] - 2026-08-30
