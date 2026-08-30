@@ -29,6 +29,28 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.141',
+    date: '2026-08-30',
+    bullets: [
+      {
+        text: 'Charts show X labels and Y in the toolbar CCY',
+        to: '/',
+      },
+      {
+        text: 'Markets detail trend opens on Fetching rows — 176px axes',
+        to: '/markets',
+      },
+      {
+        text: 'Today TREND defaults to 30D — active window is BTC orange',
+        to: '/',
+      },
+      {
+        text: 'Draft only — live stays 1.2.137',
+        to: '/',
+      },
+    ],
+  },
+  {
     version: '1.2.140',
     date: '2026-08-30',
     bullets: [

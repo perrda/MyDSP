@@ -20,6 +20,7 @@ import {
   Trash2,
   UnfoldVertical,
 } from 'lucide-react'
+import { LabeledTrendChart } from '../components/charts/LabeledTrendChart'
 import { Sparkline } from '../components/charts/Sparkline'
 import { useToasts } from '../components/ToastProvider'
 import { PageHeader } from '../components/ui/PageHeader'
@@ -81,6 +82,7 @@ import {
 } from '../domain/marketsTagYieldPref'
 import { mergeMarketQuotes } from '../domain/marketQuotesCache'
 import { isOnline } from '../services/offlineQueue'
+import { formatChartQuoteYTick, padLabeledSeriesFromValues } from '../domain/chartAxis'
 import { sparklineTrendFromSeries } from '../domain/sparklineSeries'
 import { refreshMarketQuotes } from '../services/marketsQuotes'
 import { getMarketsProviderHealth } from '../services/marketsProviderHealth'
@@ -254,6 +256,52 @@ function formatLastDisplay(q: MarketQuote | undefined): string {
   }
   // Crypto + equity quotes are stored in GBP — convert to the toolbar display CCY
   return formatGBPMarket(q.last)
+}
+
+function formatQuoteSeriesTip(quote: MarketQuote, value: number): string {
+  if (quote.kind === 'crypto' || quote.kind === 'equity' || quote.kind === 'commodity') {
+    return formatGBPMarket(value)
+  }
+  if (quote.kind === 'index') {
+    return value.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  }
+  const body = value.toLocaleString('en-GB', {
+    minimumFractionDigits: quote.decimals,
+    maximumFractionDigits: quote.decimals,
+  })
+  return `${body} ${quote.unit}`
+}
+
+function QuoteDetailTrend({
+  quote,
+  kind,
+  symbol,
+  timeframe,
+  privacy,
+}: {
+  quote: MarketQuote | undefined
+  kind: MarketAssetKind
+  symbol: string
+  timeframe: MarketTimeframe
+  privacy: boolean
+}) {
+  const spark = quote?.sparkline ?? []
+  const lastGood = quote && Number.isFinite(quote.last) && quote.last > 0 ? quote.last : undefined
+  const points = padLabeledSeriesFromValues(spark, timeframe, lastGood)
+  return (
+    <LabeledTrendChart
+      points={points}
+      trend={sparklineTrendFromSeries(spark.length >= 2 ? spark : points.map((p) => p.value))}
+      privacy={privacy}
+      height={176}
+      name={symbol}
+      yTick={(v) => formatChartQuoteYTick(v, kind)}
+      tooltipValue={(v) =>
+        quote ? formatQuoteSeriesTip(quote, v) : formatChartQuoteYTick(v, kind)
+      }
+      testId="markets-trend-chart"
+    />
+  )
 }
 
 function normPortfolioSymbol(symbol: string): string {
@@ -2786,37 +2834,36 @@ export function MarketsPage() {
             ) : (
               <p className="text-sm text-text-subtle mb-2">No live print</p>
             )}
-            {quoteDetail.quote && quoteDetail.quote.sparkline.length > 1 ? (
-              <div className="surface p-3 mb-3">
-                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                  <p className="label-uppercase mb-0">Sparkline</p>
-                  <div className="ui-seg-group ui-seg-group--tight" role="tablist" aria-label="Quote timeframe">
-                    {MARKET_TIMEFRAMES.map((tf) => (
-                      <button
-                        key={tf}
-                        type="button"
-                        role="tab"
-                        className={`ui-seg markets-timeframe${timeframe === tf ? ' is-active' : ''}`}
-                        aria-selected={timeframe === tf}
-                        onClick={() => {
-                          if (tf === timeframe) return
-                          setMarketsTimeframe(tf)
-                          setTimeframe(tf)
-                        }}
-                      >
-                        {tf}
-                      </button>
-                    ))}
-                  </div>
+            <div className="surface p-3 mb-3">
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <p className="label-uppercase mb-0">Sparkline</p>
+                <div className="ui-seg-group ui-seg-group--tight" role="tablist" aria-label="Quote timeframe">
+                  {MARKET_TIMEFRAMES.map((tf) => (
+                    <button
+                      key={tf}
+                      type="button"
+                      role="tab"
+                      className={`ui-seg markets-timeframe${timeframe === tf ? ' is-active' : ''}`}
+                      aria-selected={timeframe === tf}
+                      onClick={() => {
+                        if (tf === timeframe) return
+                        setMarketsTimeframe(tf)
+                        setTimeframe(tf)
+                      }}
+                    >
+                      {tf}
+                    </button>
+                  ))}
                 </div>
-                <Sparkline
-                  data={quoteDetail.quote.sparkline}
-                  height={56}
-                  showGradient
-                  trend={sparklineTrendFromSeries(quoteDetail.quote.sparkline)}
-                />
               </div>
-            ) : null}
+              <QuoteDetailTrend
+                quote={quoteDetail.quote}
+                kind={quoteDetail.ticker.kind}
+                symbol={quoteDetail.ticker.symbol}
+                timeframe={timeframe}
+                privacy={privacy}
+              />
+            </div>
             {quoteDetail.ticker.kind === 'commodity' &&
             quoteDetail.ticker.quantity != null &&
             quoteDetail.ticker.quantity > 0 &&
@@ -3092,37 +3139,36 @@ export function MarketsPage() {
                 </p>
               </div>
             </div>
-            {quoteDetail.quote && quoteDetail.quote.sparkline.length > 1 ? (
-              <div className="surface p-3">
-                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                  <p className="label-uppercase mb-0">Sparkline</p>
-                  <div className="ui-seg-group ui-seg-group--tight" role="tablist" aria-label="Quote timeframe">
-                    {MARKET_TIMEFRAMES.map((tf) => (
-                      <button
-                        key={tf}
-                        type="button"
-                        role="tab"
-                        className={`ui-seg markets-timeframe${timeframe === tf ? ' is-active' : ''}`}
-                        aria-selected={timeframe === tf}
-                        onClick={() => {
-                          if (tf === timeframe) return
-                          setMarketsTimeframe(tf)
-                          setTimeframe(tf)
-                        }}
-                      >
-                        {tf}
-                      </button>
-                    ))}
-                  </div>
+            <div className="surface p-3">
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <p className="label-uppercase mb-0">Sparkline</p>
+                <div className="ui-seg-group ui-seg-group--tight" role="tablist" aria-label="Quote timeframe">
+                  {MARKET_TIMEFRAMES.map((tf) => (
+                    <button
+                      key={tf}
+                      type="button"
+                      role="tab"
+                      className={`ui-seg markets-timeframe${timeframe === tf ? ' is-active' : ''}`}
+                      aria-selected={timeframe === tf}
+                      onClick={() => {
+                        if (tf === timeframe) return
+                        setMarketsTimeframe(tf)
+                        setTimeframe(tf)
+                      }}
+                    >
+                      {tf}
+                    </button>
+                  ))}
                 </div>
-                <Sparkline
-                  data={quoteDetail.quote.sparkline}
-                  height={56}
-                  showGradient
-                  trend={sparklineTrendFromSeries(quoteDetail.quote.sparkline)}
-                />
               </div>
-            ) : null}
+              <QuoteDetailTrend
+                quote={quoteDetail.quote}
+                kind={quoteDetail.ticker.kind}
+                symbol={quoteDetail.ticker.symbol}
+                timeframe={timeframe}
+                privacy={privacy}
+              />
+            </div>
             <p className="text-xs text-text-subtle">
               Source: {quoteDetail.quote?.source ?? '—'}
               {quoteDetail.quote?.updatedAt

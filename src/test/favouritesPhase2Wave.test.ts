@@ -6,14 +6,14 @@ import { RELEASE_NOTES, releaseNotesArchive } from '../domain/releaseNotes'
 describe('Favourites phase 2 wave (v1.2.106)', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.140')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.140')
+    expect(pkg.version).toBe('1.2.141')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.141')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.141',
       '1.2.140',
       '1.2.139',
       '1.2.137',
       '1.2.135',
-      '1.2.134',
     ])
   })
 

@@ -15,14 +15,14 @@ function day(y: number, m: number, d: number, nw: number): HistoryPoint {
 describe('MyDSP 1.2.137 Today trend axes', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(read('../../package.json'))
-    expect(pkg.version).toBe('1.2.140')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.140')
+    expect(pkg.version).toBe('1.2.141')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.141')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.141',
       '1.2.140',
       '1.2.139',
       '1.2.137',
       '1.2.135',
-      '1.2.134',
     ])
     const changelog = read('../../CHANGELOG.md')
     const section = changelog.match(/## \[1\.2\.137\][\s\S]*?(?=## \[)/)?.[0] ?? ''
@@ -40,12 +40,15 @@ describe('MyDSP 1.2.137 Today trend axes', () => {
     expect(dash).toMatch(/TodayTrendChart/)
     expect(dash).not.toMatch(/max-w-xs/)
     expect(dash).toMatch(/NW_SPARK_WINDOWS/)
+    expect(dash).toMatch(/today-trend-window/)
+    expect(dash).toMatch(/is-active/)
     expect(read('../domain/netWorthSparkline.ts')).toMatch(/'24H'/)
-    const chart = read('../components/charts/TodayTrendChart.tsx')
+    expect(read('../components/charts/TodayTrendChart.tsx')).toMatch(/today-trend-chart/)
+    const chart = read('../components/charts/LabeledTrendChart.tsx')
     expect(chart).toMatch(/<XAxis/)
     expect(chart).toMatch(/<YAxis/)
     expect(chart).toMatch(/formatChartYTick/)
-    expect(chart).toMatch(/today-trend-chart/)
+    expect(chart).toMatch(/labeled-trend-chart/)
   })
 
   it('7D labels are weekdays and 30D labels are DD/MM', () => {

@@ -18,7 +18,7 @@ import {
 } from '../domain/advancedAnalytics'
 import { compareDebtStrategies } from '../domain/debtStrategies'
 import { formatGBP, privacyClass } from '../utils/format'
-import { formatChartYTick, formatChartPctTick } from '../domain/chartAxis'
+import { formatChartMonthYear, formatChartPctTick, formatChartYTick } from '../domain/chartAxis'
 import {
   deleteAnalyticsScenario,
   loadAnalyticsScenarios,
@@ -515,7 +515,11 @@ export function PredictiveAnalyticsPage() {
           <ResponsiveContainer width="100%" height={300}>
             <AreaChart data={netWorthForecast}>
               <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
-              <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+              <XAxis
+                dataKey="month"
+                tick={{ fontSize: 12 }}
+                tickFormatter={(m: string) => formatChartMonthYear(`${m}-01`)}
+              />
               <YAxis tick={{ fontSize: 12 }} tickFormatter={(val) => formatChartYTick(val)} width={56} />
               <Tooltip
                 formatter={(val: any) => formatGBP(Number(val))}
@@ -650,7 +654,11 @@ export function PredictiveAnalyticsPage() {
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={savingsRateTrend}>
               <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
-              <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+              <XAxis
+                dataKey="month"
+                tick={{ fontSize: 12 }}
+                tickFormatter={(m: string) => formatChartMonthYear(`${m}-01`)}
+              />
               <YAxis tick={{ fontSize: 12 }} tickFormatter={(val) => formatChartPctTick(val)} />
               <Tooltip
                 formatter={(val: any) => `${Number(val)}%`}

@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import type { JobApplication } from '../domain/job-types'
+import { formatChartYTick } from '../domain/chartAxis'
 import { formatGBP } from '../utils/format'
 
 interface JobAnalyticsProps {
@@ -112,7 +113,12 @@ export function JobAnalytics({ applications, privacy }: JobAnalyticsProps) {
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={analytics.salaryData} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.3} />
-                <XAxis type="number" stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)', fontSize: 12 }} />
+                <XAxis
+                  type="number"
+                  stroke="var(--text-muted)"
+                  tick={{ fill: 'var(--text-muted)', fontSize: 12 }}
+                  tickFormatter={(v: number) => formatChartYTick(v)}
+                />
                 <YAxis
                   dataKey="company"
                   type="category"

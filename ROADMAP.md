@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.140**
+**Current version: 1.2.141**
 
-## Completed (through v1.2.140)
+## Completed (through v1.2.141)
 
+- Chart axes + display CCY (v1.2.141): full money/time charts show X + Y · Y ticks follow toolbar CCY · Markets detail trend always mounts at 176px on row click (Fetching leftover pads empty/last-good series like Today ALL/5Y) · 24H / 1W / 1M / 12M / YTD / ALL labels · list-row sparklines stay compact · draft only — live stays 1.2.137
 - Today TREND 6m + YTD (v1.2.140): 6M and YTD sit between 30D and 12M · 6M is last 6 months as MMM · YTD is Jan→now as MMM (January uses DD/MM) · draft only — live stays 1.2.137
 - Profile reset and delete (v1.2.139): Reset zeros any profile book · Delete removes non-default profiles only (David stays) · both ask “Are you sure?” · draft only — live stays 1.2.137
 - Today trend axes (v1.2.137): Assets TREND fills the card · 24H / 7D / 30D / 12M / 5Y / ALL · weekday + DD/MM + MMM + year X ticks · Y follows display CCY · draft only — live stays 1.2.132

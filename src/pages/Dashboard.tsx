@@ -1405,9 +1405,7 @@ export function Dashboard() {
                   <button
                     key={d}
                     type="button"
-                    className={`btn-ghost btn-sm !min-h-8 !px-2 text-[11px] ${
-                      nwSparkDays === d ? 'text-accent font-bold' : ''
-                    }`}
+                    className={`today-trend-window${nwSparkDays === d ? ' is-active' : ''}`}
                     aria-pressed={nwSparkDays === d}
                     onClick={() => {
                       setNwSparkDays(d)

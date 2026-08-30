@@ -4133,7 +4133,9 @@ html.success-haptic-flash::after {
 .holding-markets-sparkline,
 .today-nw-sparkline,
 .today-trend-chart,
+.labeled-trend-chart,
 .today-trend-chart .recharts-responsive-container,
+.labeled-trend-chart .recharts-responsive-container,
 .chart-panel .recharts-responsive-container,
 .chart-panel svg {
   min-width: 0;
@@ -4141,8 +4143,30 @@ html.success-haptic-flash::after {
 }
 
 .today-nw-sparkline,
-.today-trend-chart {
+.today-trend-chart,
+.labeled-trend-chart {
   width: 100%;
+}
+
+.today-trend-window {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  min-height: 2rem;
+  padding: 0.25rem 0.5rem;
+}
+
+.today-trend-window:hover {
+  color: #F7931A;
+}
+
+.today-trend-window.is-active {
+  color: #F7931A;
+  font-weight: 700;
 }
 
 .holding-price-strip {
