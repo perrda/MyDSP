@@ -1,5 +1,14 @@
 # MyDSP Changelog
 
+## [1.2.139] - 2026-08-30
+
+### Added — Reset and delete family profiles (draft, no live)
+- **Reset:** Settings → Family portfolios has **Reset** on every profile, including David. Reset zeros that book (holdings, history, ledgers) and keeps the profile name.
+- **Delete:** Mum / Andrew / other profiles can be deleted. The default profile (David) cannot.
+- **Are you sure?** Reset and Delete open a confirm dialog before the action runs.
+- **Keep:** Mini-as-book sync (satellites REPLACE), Today one-column + Assets hero, utilities under YouTube, product copy, Light+Dark `#F7931A`, 1.2.137 Today TREND, 1.2.135 data-above-help, 1.2.134 SIPP = Equities, 1.2.133 fluid-fit.
+- **Draft only:** do not promote. Do not wrangler production. Live mydspv1 stays 1.2.137 / `index-CxpikgZP.js`. Leftover preview worker only (`cursor-…-mydsp.dave-perry.workers.dev`).
+
 ## [1.2.137] - 2026-08-30
 
 ### Changed — Today Assets trend fills the card with axes (draft, no live)

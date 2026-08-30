@@ -390,13 +390,29 @@ export function renamePortfolio(id: string, name: string): void {
   writeJson(STORAGE.PORTFOLIOS, list)
 }
 
+/** David / default is the primary book — it can be reset, never deleted. */
+export function isPrimaryPortfolioId(id: string): boolean {
+  return id === 'default'
+}
+
+export const PRIMARY_PORTFOLIO_DELETE_MSG = 'The default profile cannot be deleted.'
+
+/** Zero a profile’s book. The profile name stays. David can be reset. */
+export function resetPortfolio(id: string): void {
+  flushSave(id)
+  savePortfolioImmediate(createEmptyPortfolio(), id)
+}
+
 export function deletePortfolio(id: string): void {
-  if (id === 'default') return
+  if (isPrimaryPortfolioId(id)) {
+    throw new Error(PRIMARY_PORTFOLIO_DELETE_MSG)
+  }
   flushSave(id)
   const list = listPortfolios().filter((p) => p.id !== id)
   writeJson(STORAGE.PORTFOLIOS, list)
   localStorage.removeItem(STORAGE.dataKey(id))
   if (getActivePortfolioId() === id) setActivePortfolioId('default')
+  notifyDataChanged()
 }
 
 export function duplicatePortfolio(id: string, name: string): PortfolioMeta {

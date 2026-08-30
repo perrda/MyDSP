@@ -48,6 +48,7 @@ import {
   canCreatePortfolio,
   createPortfolio as createPortfolioMeta,
   deletePortfolio as deletePortfolioMeta,
+  resetPortfolio as resetPortfolioMeta,
   exportRawPortfolio,
   getActivePortfolioId,
   hasFccData,
@@ -72,7 +73,8 @@ interface PortfolioContextValue {
   switchPortfolio: (id: string) => void
   createPortfolio: (name: string) => { ok: boolean; error?: string }
   renamePortfolio: (id: string, name: string) => { ok: boolean; error?: string }
-  deletePortfolio: (id: string) => void
+  deletePortfolio: (id: string) => { ok: boolean; error?: string }
+  resetPortfolio: (id: string) => void
   maxPortfolios: number
   canAddPortfolio: boolean
   reload: () => void
@@ -284,13 +286,31 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const deletePortfolio = useCallback(
+    (id: string): { ok: boolean; error?: string } => {
+      try {
+        savePortfolioImmediate(dataRef.current, activeId)
+        deletePortfolioMeta(id)
+        const nextId = getActivePortfolioId()
+        setPortfolios(listPortfolios())
+        setActiveId(nextId)
+        setDataState(loadPortfolio(nextId))
+        return { ok: true }
+      } catch (e) {
+        return { ok: false, error: e instanceof Error ? e.message : 'Could not delete profile' }
+      }
+    },
+    [activeId],
+  )
+
+  const resetPortfolio = useCallback(
     (id: string) => {
       savePortfolioImmediate(dataRef.current, activeId)
-      deletePortfolioMeta(id)
-      const nextId = getActivePortfolioId()
-      setPortfolios(listPortfolios())
-      setActiveId(nextId)
-      setDataState(loadPortfolio(nextId))
+      resetPortfolioMeta(id)
+      if (id === activeId) {
+        const empty = loadPortfolio(id)
+        setDataState(empty)
+        setDisplayCurrency(empty.settings.currency || 'GBP', loadCachedFxRates())
+      }
     },
     [activeId],
   )
@@ -621,6 +641,7 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
     createPortfolio,
     renamePortfolio,
     deletePortfolio,
+    resetPortfolio,
     maxPortfolios: MAX_PORTFOLIOS,
     canAddPortfolio: portfolios.length < MAX_PORTFOLIOS,
     reload,
