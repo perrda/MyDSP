@@ -1,13 +1,15 @@
-/** Today Assets trend series — 24H / 7D / 30D / 12M / 5Y / ALL. */
+/** Today Assets trend series — 24H / 7D / 30D / 6M / YTD / 12M / 5Y / ALL. */
 
 import type { HistoryPoint } from './types'
 
-export type NwSparkWindow = '24H' | '7D' | '30D' | '12M' | '5Y' | 'ALL'
+export type NwSparkWindow = '24H' | '7D' | '30D' | '6M' | 'YTD' | '12M' | '5Y' | 'ALL'
 
 export const NW_SPARK_WINDOWS: readonly NwSparkWindow[] = [
   '24H',
   '7D',
   '30D',
+  '6M',
+  'YTD',
   '12M',
   '5Y',
   'ALL',
@@ -130,11 +132,56 @@ export function netWorthSparkSeries(
   return netWorthTrendSeries(history, currentNw, days === 7 ? '7D' : '30D', now).map((p) => p.value)
 }
 
+function dailySeries(
+  history: HistoryPoint[] | undefined,
+  currentNw: number,
+  start: Date,
+  days: number,
+  labelFor: (d: Date) => string,
+): NwTrendPoint[] {
+  const last = { current: null as number | null }
+  const out: NwTrendPoint[] = []
+  const today = ymdLocal(new Date(start.getFullYear(), start.getMonth(), start.getDate() + (days - 1)))
+  const byDay = dailyMap(history)
+  byDay.set(today, currentNw)
+  for (let i = 0; i < days; i++) {
+    const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i)
+    const key = ymdLocal(d)
+    pushFilled(out, last, lastOnDay(byDay, key), labelFor(d), key)
+  }
+  return out
+}
+
+function monthlySeries(
+  allPoints: HistoryPoint[],
+  currentNw: number,
+  start: Date,
+  count: number,
+): NwTrendPoint[] {
+  const last = { current: null as number | null }
+  const out: NwTrendPoint[] = []
+  for (let i = 0; i < count; i++) {
+    const d = new Date(start.getFullYear(), start.getMonth() + i, 1)
+    const key = `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`
+    const isLast = i === count - 1
+    pushFilled(
+      out,
+      last,
+      isLast ? currentNw : lastInMonth(allPoints, d.getFullYear(), d.getMonth()),
+      MONTHS_SHORT[d.getMonth()]!,
+      key,
+    )
+  }
+  return out
+}
+
 /**
  * Labeled Assets trend for Today.
  * 24H → last 24 clock hours as 01…23, 00
  * 7D → last 7 weekdays (Mon…Sun)
  * 30D → last 30 days as DD/MM
+ * 6M → last 6 months as MMM
+ * YTD → Jan…current month as MMM (January uses DD/MM days)
  * 12M → last 12 months as MMM
  * 5Y / ALL → annual calendar years
  */
@@ -166,17 +213,10 @@ export function netWorthTrendSeries(
 
   if (window === '7D' || window === '30D') {
     const days = window === '7D' ? 7 : 30
-    const today = ymdLocal(now)
     const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (days - 1))
-    const byDay = dailyMap(history)
-    byDay.set(today, currentNw)
-    for (let i = 0; i < days; i++) {
-      const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i)
-      const key = ymdLocal(d)
-      const label =
-        window === '7D' ? WEEKDAYS[d.getDay()]! : `${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}`
-      pushFilled(out, last, lastOnDay(byDay, key), label, key)
-    }
+    out = dailySeries(history, currentNw, start, days, (d) =>
+      window === '7D' ? WEEKDAYS[d.getDay()]! : `${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}`,
+    )
     return out.length >= 2 ? out : []
   }
 
@@ -184,20 +224,29 @@ export function netWorthTrendSeries(
     .filter((h) => finiteNw(h.netWorth))
     .sort((a, b) => sortKey(a).localeCompare(sortKey(b)))
 
-  if (window === '12M') {
-    const start = new Date(now.getFullYear(), now.getMonth() - 11, 1)
-    for (let i = 0; i < 12; i++) {
-      const d = new Date(start.getFullYear(), start.getMonth() + i, 1)
-      const key = `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`
-      const isLast = i === 11
-      pushFilled(
-        out,
-        last,
-        isLast ? currentNw : lastInMonth(allPoints, d.getFullYear(), d.getMonth()),
-        MONTHS_SHORT[d.getMonth()]!,
-        key,
-      )
+  if (window === 'YTD' && now.getMonth() === 0) {
+    const start = new Date(now.getFullYear(), 0, 1)
+    out = dailySeries(
+      history,
+      currentNw,
+      start,
+      now.getDate(),
+      (d) => `${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}`,
+    )
+    if (out.length === 1) {
+      const only = out[0]!
+      out = [{ ...only, key: `${only.key}-pre` }, only]
     }
+    return out.length >= 2 ? out : []
+  }
+
+  if (window === '6M' || window === 'YTD' || window === '12M') {
+    const count = window === '6M' ? 6 : window === '12M' ? 12 : now.getMonth() + 1
+    const start =
+      window === 'YTD'
+        ? new Date(now.getFullYear(), 0, 1)
+        : new Date(now.getFullYear(), now.getMonth() - (count - 1), 1)
+    out = monthlySeries(allPoints, currentNw, start, count)
     return out.length >= 2 ? out : []
   }
 

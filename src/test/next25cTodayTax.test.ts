@@ -176,6 +176,8 @@ describe('next25c today / money / tax (16–20)', () => {
     expect(dash).toMatch(/nwSparkDays/)
     expect(dash).toMatch(/7d/)
     expect(dash).toMatch(/30d/)
+    expect(dash).toMatch(/6m/)
+    expect(dash).toMatch(/YTD/)
     expect(dash).toMatch(/NW_SPARK_WINDOWS/)
   })
 
@@ -193,6 +195,6 @@ describe('next25c today / money / tax (16–20)', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8')) as {
       version: string
     }
-    expect(pkg.version).toBe('1.2.139')
+    expect(pkg.version).toBe('1.2.140')
   })
 })

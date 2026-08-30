@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.139**
+**Current version: 1.2.140**
 
-## Completed (through v1.2.139)
+## Completed (through v1.2.140)
 
+- Today TREND 6m + YTD (v1.2.140): 6M and YTD sit between 30D and 12M · 6M is last 6 months as MMM · YTD is Jan→now as MMM (January uses DD/MM) · draft only — live stays 1.2.137
 - Profile reset and delete (v1.2.139): Reset zeros any profile book · Delete removes non-default profiles only (David stays) · both ask “Are you sure?” · draft only — live stays 1.2.137
 - Today trend axes (v1.2.137): Assets TREND fills the card · 24H / 7D / 30D / 12M / 5Y / ALL · weekday + DD/MM + MMM + year X ticks · Y follows display CCY · draft only — live stays 1.2.132
 - Data above help chrome (v1.2.135): Crypto / Equities / Holding detail / Staking / Tax / Plan / Compare show values, donuts, charts, and lists first · Connect-exchange / ledger notes / search / concentration / tax disclaimers sit below · locked in `.cursor/rules/data-above-help-chrome.mdc` · draft only — live stays 1.2.132

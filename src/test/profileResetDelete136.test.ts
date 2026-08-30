@@ -28,14 +28,14 @@ function mockLocalStorage() {
 describe('MyDSP 1.2.139 profile reset and delete', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(read('../../package.json'))
-    expect(pkg.version).toBe('1.2.139')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.139')
+    expect(pkg.version).toBe('1.2.140')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.140')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.140',
       '1.2.139',
       '1.2.137',
       '1.2.135',
       '1.2.134',
-      '1.2.133',
     ])
     const changelog = read('../../CHANGELOG.md')
     const section = changelog.match(/## \[1\.2\.139\][\s\S]*?(?=## \[)/)?.[0] ?? ''
