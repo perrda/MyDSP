@@ -95,7 +95,7 @@ describe('provider probes (1.2.131 this-tick + holdings proxies)', () => {
 
   it('CoinCap walks CORS-ok GraphQL then v2 until a numeric last', () => {
     expect(COINCAP_BTC_CORS_URLS[0]).toMatch(/graphql\.coincap\.io/)
-    expect(COINCAP_BTC_CORS_URLS[0]).toMatch(/asset\(id:"bitcoin"\)/)
+    expect(decodeURIComponent(COINCAP_BTC_CORS_URLS[0])).toMatch(/asset\(id:"bitcoin"\)/)
     expect(COINCAP_BTC_CORS_URLS.some((u) => u.includes('api.coincap.io/v2/assets/bitcoin'))).toBe(true)
   })
 
