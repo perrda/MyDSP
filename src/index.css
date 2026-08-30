@@ -427,7 +427,7 @@ html.theme-transitioning *::after {
   .media-chrome-chip {
     flex-shrink: 0;
   }
-  .toolbar-bell-slot,
+  .toolbar-refresh,
   .toolbar-more-wrap {
     flex-shrink: 0;
   }
@@ -452,17 +452,23 @@ html.theme-transitioning *::after {
   position: relative;
   flex-shrink: 0;
 }
+/* Bell lives inside … — keep the notification sheet aligned to the More control,
+   not the first icon, so 390 does not clip a 24rem panel off the left. */
+.toolbar-more-menu .toolbar-bell-slot {
+  position: static;
+}
 
 .toolbar-more-menu {
   position: absolute;
   top: calc(100% + 0.4rem);
   right: 0;
   z-index: 60;
-  min-width: 12rem;
-  padding: 0.65rem 0.75rem 0.55rem;
+  min-width: 0;
+  padding: 0.5rem 0.55rem;
   background: var(--bg-elevated);
   border: 1px solid var(--border-strong);
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+  overflow: visible;
 }
 .toolbar-more-row {
   display: flex;
@@ -471,11 +477,7 @@ html.theme-transitioning *::after {
   gap: 0.5rem;
 }
 .toolbar-more-hint {
-  margin: 0.55rem 0 0;
-  font-size: 0.625rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-subtle);
+  display: none;
 }
 .toolbar-more-action {
   display: flex;
@@ -659,6 +661,15 @@ html.theme-transitioning *::after {
   right: 0.3rem;
   border-width: 1.5px;
 }
+.toolbar-refresh {
+  color: #f7931a;
+  border-color: #f7931a;
+}
+.toolbar-refresh:hover:not(:disabled) {
+  color: #f7931a;
+  border-color: #f7931a;
+  background: color-mix(in srgb, #f7931a 12%, transparent);
+}
 .toolbar-icon:hover {
   color: var(--accent);
   border-color: var(--accent);
@@ -796,6 +807,21 @@ html.has-bottom-nav .floating-banner--toast {
   border: 1.5px solid var(--bg-elevated, #0a0a0a);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
   pointer-events: none;
+}
+.sidebar-nav-unread {
+  margin-left: auto;
+  min-width: 1.15rem;
+  height: 1.15rem;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  background: var(--accent, #f7931a);
+  color: #111;
+  font-size: 0.625rem;
+  font-weight: 800;
+  line-height: 1.15rem;
+  text-align: center;
+  letter-spacing: 0;
+  flex-shrink: 0;
 }
 
 

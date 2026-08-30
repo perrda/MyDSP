@@ -29,6 +29,28 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.129',
+    date: '2026-08-30',
+    bullets: [
+      {
+        text: 'MENU: News and YouTube sit under Household',
+        to: '/news',
+      },
+      {
+        text: 'Header Refresh is orange — bell lives in …',
+        to: '/',
+      },
+      {
+        text: '… menu is icon-only (bell, Privacy, Theme, Glass, Search)',
+        to: '/',
+      },
+      {
+        text: 'Draft only — live stays 1.2.128',
+        to: '/',
+      },
+    ],
+  },
+  {
     version: '1.2.128',
     date: '2026-08-30',
     bullets: [

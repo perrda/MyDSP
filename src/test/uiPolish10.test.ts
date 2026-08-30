@@ -4,13 +4,15 @@ import { describe, expect, it } from 'vitest'
 import { titleCaseHeader } from '../components/ui/PageHeader'
 
 describe('UI polish Top 10 chrome', () => {
-  it('surfaces More-menu toolbar controls on all viewports (manual Refresh only there)', () => {
+  it('surfaces header Refresh plus an icon-only More menu on all viewports', () => {
     const toolbar = readFileSync(
       resolve(__dirname, '../components/layout/ToolbarControls.tsx'),
       'utf8',
     )
-    expect(toolbar).toMatch(/Refresh · Privacy · Theme · Glass · Search/)
+    expect(toolbar).toMatch(/toolbar-refresh/)
+    expect(toolbar).toMatch(/NotificationCenter/)
     expect(toolbar).toMatch(/More workspace controls/)
+    expect(toolbar).not.toMatch(/Refresh · Privacy · Theme · Glass · Search/)
     expect(toolbar).not.toMatch(/toolbar-actions-desktop/)
   })
 

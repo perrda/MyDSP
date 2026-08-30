@@ -6,14 +6,14 @@ import { RELEASE_NOTES, releaseNotesArchive } from '../domain/releaseNotes'
 describe('Clean sync / digest chrome (v1.2.91)', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.128')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.128')
+    expect(pkg.version).toBe('1.2.129')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.129')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.129',
       '1.2.128',
       '1.2.127',
       '1.2.126',
       '1.2.125',
-      '1.2.124',
     ])
   })
 
@@ -36,14 +36,17 @@ describe('Clean sync / digest chrome (v1.2.91)', () => {
     expect(compare).not.toMatch(/weekly-digest-btn/)
   })
 
-  it('Manual refresh only via toolbar More menu', () => {
+  it('Manual refresh only via header Refresh control', () => {
     const toolbar = readFileSync(
       resolve(__dirname, '../components/layout/ToolbarControls.tsx'),
       'utf8',
     )
-    expect(toolbar).toMatch(/Refresh · Privacy · Theme · Glass · Search/)
+    expect(toolbar).toMatch(/toolbar-refresh/)
     expect(toolbar).toMatch(/Refresh all data/)
+    expect(toolbar).not.toMatch(/toolbar-more-hint/)
+    expect(toolbar).not.toMatch(/Refresh · Privacy · Theme · Glass · Search/)
     expect(toolbar).not.toMatch(/toolbar-actions-desktop/)
+    expect(toolbar).toMatch(/NotificationCenter/)
 
     const chip = readFileSync(resolve(__dirname, '../components/SyncStatusChip.tsx'), 'utf8')
     expect(chip).not.toMatch(/forceSyncNow/)

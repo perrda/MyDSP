@@ -23,14 +23,14 @@ describe('next10 wave 6 tip harness (v1.2.117)', () => {
 
   it('0: package + release notes tip', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.128')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.128')
+    expect(pkg.version).toBe('1.2.129')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.129')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.129',
       '1.2.128',
       '1.2.127',
       '1.2.126',
       '1.2.125',
-      '1.2.124',
     ])
   })
 
@@ -46,7 +46,7 @@ describe('next10 wave 6 tip harness (v1.2.117)', () => {
     const css = readFileSync(resolve(__dirname, '../index.css'), 'utf8')
     expect(css).toMatch(/nav-favourites-list/)
     const sidebar = readFileSync(resolve(__dirname, '../components/layout/Sidebar.tsx'), 'utf8')
-    expect(sidebar).toMatch(/PRIMARY_NAV/)
+    expect(sidebar).toMatch(/SIDEBAR_NAV/)
     expect(sidebar).not.toMatch(/nav-others-toggle/)
   })
 

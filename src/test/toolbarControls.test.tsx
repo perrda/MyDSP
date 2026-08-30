@@ -2,18 +2,9 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { ToolbarControls } from '../components/layout/ToolbarControls'
 
-vi.mock('../components/MediaChromeChips', () => ({
-  MediaChromeChips: () => (
-    <nav aria-label="News and YouTube">
-      <a href="/news">News</a>
-      <a href="/youtube">YouTube</a>
-    </nav>
-  ),
-}))
-
 vi.mock('../components/SmartNotifications', () => ({
   NotificationCenter: () => (
-    <button type="button" className="toolbar-icon" aria-label="Notifications">
+    <button type="button" className="toolbar-icon" aria-label="Notifications" title="Notifications">
       Bell
     </button>
   ),
@@ -67,7 +58,7 @@ describe('ToolbarControls', () => {
     </label>
   )
 
-  it('keeps portfolio, currency, notifications and More on the primary strip', () => {
+  it('keeps portfolio, currency, Refresh and More on the primary strip', () => {
     render(
       <ToolbarControls
         portfolioSelect={portfolio}
@@ -81,11 +72,13 @@ describe('ToolbarControls', () => {
 
     expect(screen.getByLabelText('Active portfolio')).toBeInTheDocument()
     expect(screen.getByLabelText('Display currency')).toBeInTheDocument()
-    expect(screen.getAllByLabelText('Notifications').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByLabelText('Refresh all data')).toBeInTheDocument()
     expect(screen.getByLabelText('More workspace controls')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Notifications')).toBeNull()
+    expect(screen.queryByLabelText('News and YouTube')).toBeNull()
   })
 
-  it('puts Refresh inside the More menu (not a fifth primary icon)', () => {
+  it('puts the bell inside the More menu as the first icon (no caption row)', () => {
     const onRefresh = vi.fn()
     render(
       <ToolbarControls
@@ -98,16 +91,15 @@ describe('ToolbarControls', () => {
       />,
     )
 
-    // Primary strip should not expose Refresh until More is opened (mobile path
-    // still mounts the desktop refresh in a display:none container in jsdom —
-    // assert via the menu instead).
     fireEvent.click(screen.getByLabelText('More workspace controls'))
     expect(screen.getByRole('menu', { name: 'Workspace actions' })).toBeInTheDocument()
-    expect(screen.getByText(/Refresh · Privacy · Theme · Glass · Search/i)).toBeInTheDocument()
+    expect(screen.queryByText(/Refresh · Privacy · Theme · Glass · Search/i)).toBeNull()
+    expect(screen.queryByText(/PRIVACY/i)).toBeNull()
+    expect(screen.queryByText(/NOTIFICATIONS/i)).toBeNull()
 
-    const refreshButtons = screen.getAllByLabelText('Refresh all data')
-    expect(refreshButtons.length).toBeGreaterThanOrEqual(1)
-    fireEvent.click(refreshButtons[refreshButtons.length - 1])
+    expect(screen.getByLabelText('Notifications')).toBeInTheDocument()
+    expect(screen.getByLabelText('Refresh all data')).toBeInTheDocument()
+    fireEvent.click(screen.getByLabelText('Refresh all data'))
     expect(onRefresh).toHaveBeenCalledTimes(1)
   })
 

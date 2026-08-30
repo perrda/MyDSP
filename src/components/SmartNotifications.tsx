@@ -229,6 +229,7 @@ export function NotificationCenter() {
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className="toolbar-icon relative"
+        title="Notifications"
         aria-label={
           unreadCount > 0
             ? `Notifications, ${unreadCount} unread`
@@ -236,6 +237,7 @@ export function NotificationCenter() {
         }
         aria-expanded={isOpen}
         aria-controls={menuId}
+        role="menuitem"
       >
         <BellIcon size={18} strokeWidth={1.75} />
         {unreadCount > 0 && (
