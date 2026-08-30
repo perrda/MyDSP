@@ -25,7 +25,8 @@ describe('MyDSP 1.2.127 book device + satellite pull + origin-lock', () => {
       '1.2.126',
       '1.2.125',
     ])
-    const tip = RELEASE_NOTES[0]?.bullets.map((b) => (typeof b === 'string' ? b : b.text)).join(' ')
+    const notes127 = RELEASE_NOTES.find((e) => e.version === '1.2.127')
+    const tip = notes127?.bullets.map((b) => (typeof b === 'string' ? b : b.text)).join(' ')
     expect(tip).toMatch(/book|satellite|pull/i)
     expect(read('../domain/releaseNotes.ts')).not.toMatch(/SYNC_KEY/)
     const changelog = read('../../CHANGELOG.md')

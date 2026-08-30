@@ -151,7 +151,8 @@ describe('MyDSP 1.2.128 satellite replace Mini book', () => {
       '1.2.126',
       '1.2.125',
     ])
-    const tip = RELEASE_NOTES[0]?.bullets.map((b) => (typeof b === 'string' ? b : b.text)).join(' ')
+    const notes128 = RELEASE_NOTES.find((e) => e.version === '1.2.128')
+    const tip = notes128?.bullets.map((b) => (typeof b === 'string' ? b : b.text)).join(' ')
     expect(tip).toMatch(/replace|PUT|Remember/i)
     expect(read('../domain/releaseNotes.ts')).not.toMatch(/SYNC_KEY/)
     const changelog = read('../../CHANGELOG.md')

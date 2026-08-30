@@ -8,7 +8,8 @@ alwaysApply: true
 ## Manual refresh — one place only
 
 - **Only** the header **Refresh** control (BTC orange `#F7931A`, where the bell used to sit) may trigger a user-initiated full refresh (prices, media feeds, and cloud sync when configured).
-- Do **not** add page-level **Sync now**, **Sync prices**, **Cloud Sync →**, or **Refresh** buttons/thumbs anywhere else in the product chrome. Do **not** put Refresh back inside the `…` menu.
+- The header `…` (More) menu is icon-only: Notifications, Privacy, Theme, Glass, Search. Do **not** put Refresh back inside More.
+- Do **not** add page-level **Sync now**, **Sync prices**, **Cloud Sync →**, or extra **Refresh** buttons/thumbs anywhere else in the product chrome.
 - Do **not** restore long-press force-sync on the sync status chip or bottom-nav items.
 - Auto-refresh when quotes are stale (and brief non-interactive “Refreshing data” status) is encouraged.
 - **Settings → Sync** may keep setup controls (Remote URL, passphrase, Automatic sync, and a Sync now for first-device setup). That is configuration, not Overview chrome.

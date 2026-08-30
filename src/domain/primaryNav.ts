@@ -9,7 +9,7 @@ import {
   Target,
   Users,
   Newspaper,
-  Youtube,
+  Video,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -32,7 +32,7 @@ export const PRIMARY_NAV: readonly PrimaryNavItem[] = [
 export const SIDEBAR_NAV: readonly PrimaryNavItem[] = [
   ...PRIMARY_NAV,
   { to: '/news', label: 'News', icon: Newspaper },
-  { to: '/youtube', label: 'YouTube', icon: Youtube },
+  { to: '/youtube', label: 'YouTube', icon: Video },
 ]
 
 export const PRIMARY_NAV_PATHS = PRIMARY_NAV.map((item) => item.to)

@@ -70,6 +70,7 @@ describe('MyDSP 1.2.129 nav + header chrome', () => {
     const toolbar = read('../components/layout/ToolbarControls.tsx')
     expect(toolbar).toMatch(/toolbar-refresh/)
     expect(toolbar).toMatch(/Refresh all data/)
+    expect(toolbar).toMatch(/data-testid="toolbar-desktop-sync"/)
     expect(toolbar).toMatch(/<NotificationCenter/)
     expect(toolbar).not.toMatch(/MediaChromeChips/)
     expect(toolbar).not.toMatch(/toolbar-more-hint/)
