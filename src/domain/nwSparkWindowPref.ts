@@ -19,7 +19,7 @@ export function normalizeNwSparkWindow(raw: string | number | null | undefined):
   if (raw === '12M' || raw === '12m') return '12M'
   if (raw === '5Y' || raw === '5y') return '5Y'
   if (raw === 'ALL' || raw === 'all') return 'ALL'
-  return '7D'
+  return '30D'
 }
 
 function backupDays(window: NwSparkWindow): number | NwSparkWindow {
@@ -32,7 +32,7 @@ export function loadNwSparkWindowPref(): NwSparkWindow {
   try {
     return normalizeNwSparkWindow(localStorage.getItem(KEY))
   } catch {
-    return '7D'
+    return '30D'
   }
 }
 

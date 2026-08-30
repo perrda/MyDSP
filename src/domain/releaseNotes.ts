@@ -41,6 +41,10 @@ export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
         to: '/markets',
       },
       {
+        text: 'Today TREND defaults to 30D — active window is BTC orange',
+        to: '/',
+      },
+      {
         text: 'Draft only — live stays 1.2.132',
         to: '/',
       },

@@ -5,6 +5,7 @@ import {
   formatChartQuoteYTick,
   labeledSeriesFromValues,
 } from '../domain/chartAxis'
+import { loadNwSparkWindowPref, normalizeNwSparkWindow } from '../domain/nwSparkWindowPref'
 import { RELEASE_NOTES, releaseNotesArchive } from '../domain/releaseNotes'
 import { setDisplayCurrency } from '../utils/format'
 
@@ -30,6 +31,7 @@ describe('MyDSP 1.2.138 chart axes follow display CCY', () => {
     const section = changelog.match(/## \[1\.2\.138\][\s\S]*?(?=## \[)/)?.[0] ?? ''
     expect(section).toMatch(/formatChartYTick|display CCY|CCY/)
     expect(section).toMatch(/#F7931A/)
+    expect(section).toMatch(/30D/)
     expect(section).toMatch(/draft only|Draft only/)
     expect(read('../../ROADMAP.md')).toMatch(/Chart axes \+ display CCY \(v1\.2\.138\)/)
   })
@@ -77,6 +79,22 @@ describe('MyDSP 1.2.138 chart axes follow display CCY', () => {
     expect(formatChartQuoteYTick(1.27, 'fx')).not.toMatch(/USD/)
     setDisplayCurrency('BTC', { GBP: 1, USD: 1.27, THB: 45, BTC: 0.000012 })
     expect(formatChartQuoteYTick(160_000, 'equity')).toMatch(/₿/)
+  })
+
+  it('Today TREND defaults to 30D and marks the active window', () => {
+    expect(normalizeNwSparkWindow(null)).toBe('30D')
+    expect(normalizeNwSparkWindow(undefined)).toBe('30D')
+    try {
+      localStorage.removeItem('mydsp_nw_spark_window_v1')
+    } catch {
+      /* node */
+    }
+    expect(loadNwSparkWindowPref()).toBe('30D')
+    const dash = read('../pages/Dashboard.tsx')
+    expect(dash).toMatch(/today-trend-window/)
+    expect(dash).toMatch(/is-active/)
+    expect(read('../../src/index.css')).toMatch(/\.today-trend-window\.is-active/)
+    expect(read('../../src/index.css')).toMatch(/#F7931A/)
   })
 
   it('full-size charts use labeled X/Y — list-row Sparkline stays compact', () => {

@@ -40,6 +40,8 @@ describe('MyDSP 1.2.137 Today trend axes', () => {
     expect(dash).toMatch(/TodayTrendChart/)
     expect(dash).not.toMatch(/max-w-xs/)
     expect(dash).toMatch(/NW_SPARK_WINDOWS/)
+    expect(dash).toMatch(/today-trend-window/)
+    expect(dash).toMatch(/is-active/)
     expect(read('../domain/netWorthSparkline.ts')).toMatch(/'24H'/)
     expect(read('../components/charts/TodayTrendChart.tsx')).toMatch(/today-trend-chart/)
     const chart = read('../components/charts/LabeledTrendChart.tsx')
