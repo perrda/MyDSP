@@ -8,7 +8,7 @@ import {
 import { categorySparklinesForMonth } from '../domain/spendingCategorySparkline'
 import { taxYearProgress } from '../domain/taxYearProgress'
 import { getTaxPack } from '../domain/taxPacks'
-import { netWorthSparkSeries } from '../domain/netWorthSparkline'
+import { NW_SPARK_WINDOWS, netWorthSparkSeries } from '../domain/netWorthSparkline'
 import type { HistoryPoint, RecurringTransaction } from '../domain/types'
 import type { TodoItem } from '../domain/todo-types'
 
@@ -175,11 +175,12 @@ describe('next25c today / money / tax (16–20)', () => {
     expect(dash).toMatch(/netWorthTrendSeries/)
     expect(dash).toMatch(/nwSparkDays/)
     expect(dash).toMatch(/today-trend-window/)
-    expect(dash).toMatch(/7D/)
-    expect(dash).toMatch(/30D/)
-    expect(dash).toMatch(/6M/)
-    expect(dash).toMatch(/YTD/)
     expect(dash).toMatch(/NW_SPARK_WINDOWS/)
+    expect(dash).toMatch(/\{d\}/)
+    expect(dash).not.toMatch(/'7d'/)
+    expect(dash).not.toMatch(/'30d'/)
+    expect(dash).not.toMatch(/'6m'/)
+    expect(NW_SPARK_WINDOWS).toEqual(['24H', '7D', '30D', '6M', 'YTD', '12M', '5Y', 'ALL'])
   })
 
   it('20: Compare local family workspace setup sheet', () => {

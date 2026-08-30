@@ -56,7 +56,6 @@ describe('MyDSP 1.2.140 Today TREND 6m + YTD', () => {
     expect(NW_SPARK_WINDOWS).toEqual(['24H', '7D', '30D', '6M', 'YTD', '12M', '5Y', 'ALL'])
     const dash = read('../pages/Dashboard.tsx')
     expect(dash).toMatch(/\{d\}/)
-    expect(dash).toMatch(/YTD/)
     expect(dash).not.toMatch(/'7d'/)
     expect(dash).not.toMatch(/'30d'/)
     expect(dash).not.toMatch(/'6m'/)
