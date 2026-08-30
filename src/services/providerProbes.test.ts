@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  COINCAP_BTC_CORS_URLS,
   holdingsQuoteProxyCandidates,
   probeCoinCapBtc,
   probeYahooAapl,
@@ -92,14 +93,21 @@ describe('provider probes (1.2.131 this-tick + holdings proxies)', () => {
     expect(r.detail).not.toMatch(/empty quote/)
   })
 
-  it('CoinCap probe OK on BTC last via holdings failover helper', async () => {
+  it('CoinCap walks CORS-ok GraphQL then v2 until a numeric last', () => {
+    expect(COINCAP_BTC_CORS_URLS[0]).toMatch(/graphql\.coincap\.io/)
+    expect(COINCAP_BTC_CORS_URLS[0]).toMatch(/asset\(id:"bitcoin"\)/)
+    expect(COINCAP_BTC_CORS_URLS.some((u) => u.includes('api.coincap.io/v2/assets/bitcoin'))).toBe(true)
+  })
+
+  it('CoinCap probe OK on GraphQL priceUsd when v2 is blocked', async () => {
     globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
       const url = urlOf(input)
-      if (url.includes('coincap.io') && url.includes('bitcoin')) {
+      if (url.includes('api.coincap.io')) {
+        throw new TypeError('Failed to fetch')
+      }
+      if (url.includes('graphql.coincap.io')) {
         return new Response(
-          JSON.stringify({
-            data: { id: 'bitcoin', priceUsd: '65123.45', changePercent24Hr: '1.2' },
-          }),
+          JSON.stringify({ data: { asset: { priceUsd: '78806.25' } } }),
           { status: 200, headers: { 'Content-Type': 'application/json' } },
         )
       }
@@ -108,17 +116,72 @@ describe('provider probes (1.2.131 this-tick + holdings proxies)', () => {
 
     const r = await probeCoinCapBtc()
     expect(r.ok).toBe(true)
-    expect(r.detail).toMatch(/65123/)
+    expect(r.skipped).toBeFalsy()
+    expect(r.detail).toMatch(/78806/)
   })
 
-  it('CoinCap CORS-blocked / empty body is skip, not empty-quote fail', async () => {
-    globalThis.fetch = vi.fn(async () => {
-      throw new TypeError('Failed to fetch')
+  it('CoinCap walks past empty GraphQL body to the next CORS URL last', async () => {
+    globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = urlOf(input)
+      if (url.includes('graphql.coincap.io')) {
+        return new Response('', { status: 200 })
+      }
+      if (url.includes('api.coincap.io/v2/assets/bitcoin')) {
+        return new Response(
+          JSON.stringify({ data: { priceUsd: '79111.0' } }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        )
+      }
+      return new Response('{}', { status: 404 })
     }) as typeof fetch
+
+    const r = await probeCoinCapBtc()
+    expect(r.ok).toBe(true)
+    expect(r.skipped).toBeFalsy()
+    expect(r.detail).toMatch(/79111/)
+  })
+
+  it('CoinCap empty after every URL is a fail, not a skip', async () => {
+    globalThis.fetch = vi.fn(async () => new Response('', { status: 200 })) as typeof fetch
     const r = await probeCoinCapBtc()
     expect(r.ok).toBe(false)
-    expect(r.skipped).toBe(true)
-    expect(r.detail).not.toMatch(/empty quote/)
+    expect(r.skipped).toBeFalsy()
+    expect(r.detail).toMatch(/empty quote/)
+  })
+
+  it('CoinCap BTC last records OK even when CoinGecko already filled this tick', async () => {
+    let geckoProbeCalls = 0
+    globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = urlOf(input)
+      if (url.includes('graphql.coincap.io') || (url.includes('coincap') && url.includes('bitcoin'))) {
+        return new Response(
+          JSON.stringify({ data: { asset: { priceUsd: '79000.5' } } }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        )
+      }
+      return new Response('{}', { status: 404 })
+    }) as typeof fetch
+
+    const outcomes = await pingAllMarketsProviders({
+      finnhubKey: '',
+      sampledThisTick: [{ source: 'coingecko', last: 50000 }],
+      probes: {
+        coingecko: async () => {
+          geckoProbeCalls += 1
+          return { ok: true, detail: 'must not run' }
+        },
+        yahoo: async () => ({ ok: true }),
+        coincap: probeCoinCapBtc,
+        coinbase: async () => ({ ok: true }),
+        fx: async () => ({ ok: true }),
+      },
+    })
+    expect(geckoProbeCalls).toBe(0)
+    expect(outcomes.coingecko).toBe('ok')
+    expect(outcomes.coincap).toBe('ok')
+    const cap = getMarketsProviderHealth().find((p) => p.id === 'coincap')!
+    expect(cap.lastSuccessAt).toBeTruthy()
+    expect(cap.consecutiveFailures).toBe(0)
   })
 
   it('missing Finnhub key still skip', async () => {

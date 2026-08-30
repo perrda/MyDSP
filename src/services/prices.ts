@@ -1387,32 +1387,67 @@ export async function probeYahooAapl(): Promise<ProviderProbeResult> {
 
 function priceUsdFromCoinCapBody(data: unknown): number | null {
   if (!data || typeof data !== 'object') return null
-  const rec = data as { data?: { priceUsd?: string | number }; priceUsd?: string | number }
-  const raw = rec.data?.priceUsd ?? rec.priceUsd
+  const rec = data as {
+    data?: {
+      priceUsd?: string | number
+      rateUsd?: string | number
+      asset?: { priceUsd?: string | number }
+    }
+    priceUsd?: string | number
+    rateUsd?: string | number
+  }
+  const raw =
+    rec.data?.asset?.priceUsd ??
+    rec.data?.priceUsd ??
+    rec.data?.rateUsd ??
+    rec.priceUsd ??
+    rec.rateUsd
   const n = Number(raw)
   return n > 0 ? n : null
 }
 
-/** Cheap CoinCap ping — same browser-CORS helper as the crypto failover, then holdings relays. */
+/**
+ * CORS-ok CoinCap BTC lasts — GraphQL first (Chrome from mydsp worker origin,
+ * same class as Coinbase spot), then retired v2 hosts / holdings relays.
+ */
+export const COINCAP_BTC_CORS_URLS = [
+  `https://graphql.coincap.io/?query=${encodeURIComponent('{asset(id:"bitcoin"){priceUsd}}')}`,
+  'https://api.coincap.io/v2/assets/bitcoin',
+  'https://api.coincap.io/v2/rates/bitcoin',
+] as const
+
+/** Cheap CoinCap ping — walk CORS-ok CoinCap URLs until a numeric BTC last. */
 export async function probeCoinCapBtc(): Promise<ProviderProbeResult> {
+  for (const url of COINCAP_BTC_CORS_URLS) {
+    try {
+      const { data } = await fetchJson<unknown>(url, 8000)
+      const last = priceUsdFromCoinCapBody(data)
+      if (last && last > 0) return { ok: true, detail: `OK · BTC ${last}` }
+    } catch {
+      /* empty / blocked / non-JSON — try the next CORS-ok CoinCap URL */
+    }
+  }
   try {
     const cap = await fetchCoinCapUsd('BTC')
     if (cap && cap.priceUsd > 0) return { ok: true, detail: `OK · BTC ${cap.priceUsd}` }
-    const url = 'https://api.coincap.io/v2/assets/bitcoin'
-    const raced = await fetchViaHoldingsProxies<unknown>(url)
+    const v2 = 'https://api.coincap.io/v2/assets/bitcoin'
+    const raced = await fetchViaHoldingsProxies<unknown>(v2)
     const fromRace = priceUsdFromCoinCapBody(raced)
     if (fromRace && fromRace > 0) return { ok: true, detail: `OK · BTC ${fromRace}` }
-    for (const candidate of holdingsQuoteProxyCandidates(url)) {
-      const { data } = await fetchJson<unknown>(candidate, 8000)
-      if (data == null || data === undefined) continue
-      const last = priceUsdFromCoinCapBody(data)
-      if (last && last > 0) return { ok: true, detail: `OK · BTC ${last}` }
+    for (const candidate of holdingsQuoteProxyCandidates(v2)) {
+      try {
+        const { data } = await fetchJson<unknown>(candidate, 8000)
+        if (data == null || data === undefined) continue
+        const last = priceUsdFromCoinCapBody(data)
+        if (last && last > 0) return { ok: true, detail: `OK · BTC ${last}` }
+      } catch {
+        /* try next relay */
+      }
     }
-    // CORS-blocked / empty body is not an empty-quote fail.
-    return { ok: false, skipped: true, detail: 'CoinCap empty body' }
-  } catch (e) {
-    return { ok: false, skipped: true, detail: e instanceof Error ? e.message : 'CoinCap probe failed' }
+  } catch {
+    /* holdings fallbacks exhausted */
   }
+  return { ok: false, detail: 'CoinCap empty quote' }
 }
 
 /** Cheap Coinbase ping — BTC USD spot. */

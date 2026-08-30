@@ -4,7 +4,7 @@
 
 ## Completed (through v1.2.131)
 
-- Provider health ping-all (v1.2.131): header Refresh samples one cheap quote per provider (CoinGecko / Yahoo / Finnhub-if-keyed / CoinCap / Coinbase / FX) after prices+FX · Settings OK · hh:mm:ss · missing Finnhub key is not OK · cascade failovers stay unforced · `#F7931A` + 1.2.129/130 nav + Mini-as-book lock unchanged · draft only — live stays 1.2.130
+- Provider health ping-all (v1.2.131): header Refresh samples one cheap quote per provider (CoinGecko / Yahoo / Finnhub-if-keyed / CoinCap GraphQL BTC last / Coinbase / FX) after prices+FX · Settings OK · hh:mm:ss · CoinGecko holdings fill does not count as CoinCap · missing Finnhub key is not OK · cascade failovers stay unforced · `#F7931A` + 1.2.129/130 nav + Mini-as-book lock unchanged · draft only — live stays 1.2.130
 - Leftovers (v1.2.130): Unlock chip hydrates after a working session · Mini fetches live quotes (skip satellite LWW) · phone News + YouTube compact cluster on bottom nav · satellite PTR/Refresh REPLACE without Settings/Automatic · 1.2.128 sync lock unchanged · draft only — live stays 1.2.129
 - Nav + header chrome (v1.2.129): News + YouTube under Household in MENU (sidebar / hamburger) · header chips removed · Refresh visible in the old bell slot (`#F7931A`) · bell inside icon-only … · five-door bottom nav kept · 1.2.128 sync lock unchanged · draft only — live stays 1.2.128
 - Satellite REPLACE Mini book (v1.2.128): Mini always PUTs · satellites replace leftover local DAVID with Mini · leftover never seeds a 404 store · Remember + Automatic hydrate across refresh so the chip shows Synced · origin-lock unchanged · draft only — live stays 1.2.127
