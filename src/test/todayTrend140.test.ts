@@ -26,14 +26,14 @@ function monthlyHistory(fromY: number, toY: number): HistoryPoint[] {
 describe('MyDSP 1.2.140 Today TREND 6m + YTD', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(read('../../package.json'))
-    expect(pkg.version).toBe('1.2.143')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.143')
+    expect(pkg.version).toBe('1.2.144')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.144')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.144',
       '1.2.143',
       '1.2.141',
       '1.2.140',
       '1.2.139',
-      '1.2.137',
     ])
     const changelog = read('../../CHANGELOG.md')
     const section = changelog.match(/## \[1\.2\.140\][\s\S]*?(?=## \[)/)?.[0] ?? ''
@@ -55,8 +55,10 @@ describe('MyDSP 1.2.140 Today TREND 6m + YTD', () => {
   it('6m and YTD sit between 30D and 12M on Today chips', () => {
     expect(NW_SPARK_WINDOWS).toEqual(['24H', '7D', '30D', '6M', 'YTD', '12M', '5Y', 'ALL'])
     const dash = read('../pages/Dashboard.tsx')
-    expect(dash).toMatch(/d === '6M' \? '6m'/)
-    expect(dash).toMatch(/YTD/)
+    expect(dash).toMatch(/\{d\}/)
+    expect(dash).not.toMatch(/'7d'/)
+    expect(dash).not.toMatch(/'30d'/)
+    expect(dash).not.toMatch(/'6m'/)
     const spark = read('../domain/netWorthSparkline.ts')
     expect(spark.indexOf("'6M'")).toBeLessThan(spark.indexOf("'YTD'"))
     expect(spark.indexOf("'30D'")).toBeLessThan(spark.indexOf("'6M'"))

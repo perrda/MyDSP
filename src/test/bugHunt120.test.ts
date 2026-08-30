@@ -18,14 +18,14 @@ const src = (rel: string) => readFileSync(resolve(__dirname, rel), 'utf8')
 describe('bug hunt leftovers (v1.2.120)', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.143')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.143')
+    expect(pkg.version).toBe('1.2.144')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.144')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.144',
       '1.2.143',
       '1.2.141',
       '1.2.140',
       '1.2.139',
-      '1.2.137',
     ])
   })
 

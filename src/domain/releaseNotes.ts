@@ -29,6 +29,24 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.144',
+    date: '2026-08-30',
+    bullets: [
+      {
+        text: 'Today TREND chips: 24H, 7D, 30D, 6M, YTD, 12M, 5Y, ALL',
+        to: '/',
+      },
+      {
+        text: '7D / 30D / 6M now match the other capital labels',
+        to: '/',
+      },
+      {
+        text: 'Draft only — live stays 1.2.141',
+        to: '/',
+      },
+    ],
+  },
+  {
     version: '1.2.143',
     date: '2026-08-30',
     bullets: [

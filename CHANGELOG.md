@@ -1,5 +1,13 @@
 # MyDSP Changelog
 
+## [1.2.144] - 2026-08-30
+
+### Changed — Today TREND chips use capital window labels (draft, no live)
+- **Labels:** Today Assets TREND chips read **24H · 7D · 30D · 6M · YTD · 12M · 5Y · ALL** — same capitalisation as Markets / holding charts. 7D, 30D, and 6M no longer render as 7d / 30d / 6m.
+- **Windows unchanged:** same eight ranges and axes as 1.2.140 / 1.2.141. Active chip stays BTC orange `#F7931A`. Default remains 30D.
+- **Keep:** Mini-as-book sync (satellites REPLACE), Today one-column + Assets hero, utilities under YouTube, product copy, Light+Dark `#F7931A`, 1.2.143 family sleeves, 1.2.141 chart axes, 1.2.140 6M/YTD TREND, 1.2.139 Reset/Delete, 1.2.137 Today windows, 1.2.135 data-above-help, 1.2.134 SIPP = Equities.
+- **Draft only:** do not promote. Do not wrangler production. Live mydspv1 stays 1.2.141 / `index-DGB5GGns.js`. Leftover preview worker only (`cursor-…-mydsp.dave-perry.workers.dev`).
+
 ## [1.2.143] - 2026-08-30
 
 ### Added — Family TSLA / MSTR / ADA sleeves (draft, no live)
