@@ -188,6 +188,10 @@ describe('MyDSP 1.2.132 Today layout + left-nav order', () => {
     expect(app).toMatch(/path="liabilities"/)
     expect(app).not.toMatch(/path="sipp"/)
     expect(dash).toMatch(/calcSipp/)
+    const calc = read('../domain/calc.ts')
+    expect(calc).toMatch(/export function calcSipp/)
+    expect(calc).toMatch(/return calcEquity\(data\)\.value/)
+    expect(calc).not.toMatch(/if \(e\.accountType !== 'sipp'\) continue/)
   })
 
   it('does not change Mini-as-book sync, orange lock, header Refresh, or 1.2.131 ping-all', () => {

@@ -45,6 +45,10 @@ export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
         to: '/money',
       },
       {
+        text: 'SIPP is the Equities total (TSLA / MSTR included)',
+        to: '/',
+      },
+      {
         text: 'Draft only — live stays 1.2.132',
         to: '/',
       },

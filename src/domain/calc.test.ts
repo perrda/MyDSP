@@ -53,39 +53,43 @@ describe('calc — priced book vs display mark', () => {
     expect(next.crypto.find((c) => c.symbol === 'USDC')?.price).toBe(0)
   })
 
-  it('SIPP value is the live-quoted sipp sleeve of equities', () => {
+  it('SIPP line is the full priced equity sleeve — not accountType sipp-only', () => {
     const data = createEmptyPortfolio()
     data.equities = [
       {
         id: 1,
-        symbol: 'VWRL',
-        name: 'VWRL SIPP',
-        shares: 10,
-        avgCost: 80,
-        livePrice: 100,
-        accountType: 'sipp',
+        symbol: 'TSLA',
+        name: 'Tesla',
+        shares: 3149,
+        avgCost: 51.5,
+        livePrice: 348.75,
+        accountType: 'general',
       },
       {
         id: 2,
-        symbol: 'AAPL',
-        name: 'Apple',
-        shares: 5,
-        avgCost: 150,
-        livePrice: 190,
-        accountType: 'general',
+        symbol: 'MSTR',
+        name: 'MicroStrategy',
+        shares: 10,
+        avgCost: 200,
+        livePrice: 400,
+        accountType: 'isa',
       },
       {
         id: 3,
         symbol: 'VUSA',
-        name: 'Unpriced SIPP',
+        name: 'Unpriced',
         shares: 8,
         avgCost: 70,
         livePrice: 0,
         accountType: 'sipp',
       },
     ]
-    expect(calcSipp(data)).toBe(1000)
-    expect(calcEquity(data).value).toBe(1000 + 950)
+    const priced = 3149 * 348.75 + 10 * 400
+    expect(calcEquity(data).value).toBe(priced)
+    expect(calcSipp(data)).toBe(priced)
+    expect(calcSipp(data)).toBe(calcEquity(data).value)
+    expect(goalCurrent(data, 'sipp')).toBe(priced)
+    expect(goalCurrent(data, 'equity')).toBe(priced)
   })
 
   it('one debt balance and descending pay-down', () => {

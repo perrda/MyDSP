@@ -92,4 +92,18 @@ describe('MyDSP 1.2.133 fluid-fit', () => {
     expect(read('../pages/Dashboard.tsx')).toMatch(/fluid-figure/)
     expect(read('../components/charts/HoldingPriceChart.tsx')).toMatch(/fluid-figure/)
   })
+
+  it('SIPP line equals the priced Equities sleeve', () => {
+    const calc = read('../domain/calc.ts')
+    expect(calc).toMatch(/SIPP line = the equity sleeve/)
+    expect(calc).toMatch(/return calcEquity\(data\)\.value/)
+    expect(calc).toMatch(/case 'sipp':/)
+    const dash = read('../pages/Dashboard.tsx')
+    expect(dash).toMatch(/calcSipp\(data\)/)
+    expect(dash).toMatch(/>SIPP</)
+    const changelog = read('../../CHANGELOG.md')
+    const section = changelog.match(/## \[1\.2\.133\][\s\S]*?(?=## \[)/)?.[0] ?? ''
+    expect(section).toMatch(/SIPP = Equities/)
+    expect(section).toMatch(/TSLA/)
+  })
 })
