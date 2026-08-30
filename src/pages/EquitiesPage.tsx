@@ -723,18 +723,18 @@ export function EquitiesPage() {
         </div>
       ) : null}
 
-      <div className={`grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-px mb-6 ${privacyClass(privacy)}`}>
-        <div className="surface p-4 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
+      <div className={`fluid-metric-grid fluid-metric-grid--3 mb-6 ${privacyClass(privacy)}`}>
+        <div className="surface fluid-metric p-4 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
           <p className="text-xs uppercase tracking-wider text-text-subtle mb-2 font-semibold">Value</p>
-          <p className="text-xl md:text-2xl font-bold tabular-nums">{formatGBP(equity.value)}</p>
+          <p className="fluid-figure text-xl md:text-2xl font-bold tabular-nums">{formatGBP(equity.value)}</p>
         </div>
-        <div className="surface p-4 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
+        <div className="surface fluid-metric p-4 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
           <p className="text-xs uppercase tracking-wider text-text-subtle mb-2 font-semibold">Cost basis</p>
-          <p className="text-xl md:text-2xl font-bold tabular-nums">{formatGBP(equity.cost)}</p>
+          <p className="fluid-figure text-xl md:text-2xl font-bold tabular-nums">{formatGBP(equity.cost)}</p>
         </div>
-        <div className="surface p-4 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none col-span-2 md:col-span-1">
+        <div className="surface fluid-metric p-4 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
           <p className="text-xs uppercase tracking-wider text-text-subtle mb-2 font-semibold">P&amp;L</p>
-          <p className={`text-xl md:text-2xl font-bold tabular-nums ${equity.pnl >= 0 ? 'text-accent' : 'text-text-muted'}`}>
+          <p className={`fluid-figure text-xl md:text-2xl font-bold tabular-nums ${equity.pnl >= 0 ? 'text-accent' : 'text-text-muted'}`}>
             {formatGBP(equity.pnl, { signed: true })}{' '}
             <span className="text-base font-semibold">({formatPct(equity.pct)})</span>
           </p>

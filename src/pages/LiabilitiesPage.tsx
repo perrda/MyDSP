@@ -383,23 +383,23 @@ export function LiabilitiesPage() {
         </section>
       ) : null}
 
-      <div className={`grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-px mb-6 ${privacyClass(privacy)}`}>
-        <div className="surface p-6">
+      <div className={`fluid-metric-grid fluid-metric-grid--4 mb-6 ${privacyClass(privacy)}`}>
+        <div className="surface fluid-metric p-6">
           <p className="label-uppercase mb-2">Debt</p>
-          <p className="text-2xl font-bold tabular-nums">{formatGBP(liability.total)}</p>
+          <p className="fluid-figure text-2xl font-bold tabular-nums">{formatGBP(liability.total)}</p>
           <p className="text-xs text-text-subtle mt-1 font-light">One balance — cards + loans</p>
         </div>
-        <div className="surface p-6">
+        <div className="surface fluid-metric p-6">
           <p className="label-uppercase mb-2">Credit cards</p>
-          <p className="text-2xl font-bold tabular-nums">{formatGBP(liability.cc)}</p>
+          <p className="fluid-figure text-2xl font-bold tabular-nums">{formatGBP(liability.cc)}</p>
         </div>
-        <div className="surface p-6">
+        <div className="surface fluid-metric p-6">
           <p className="label-uppercase mb-2">Min payments / mo</p>
-          <p className="text-2xl font-bold tabular-nums text-accent">{formatGBP(liability.monthly)}</p>
+          <p className="fluid-figure text-2xl font-bold tabular-nums text-accent">{formatGBP(liability.monthly)}</p>
         </div>
-        <div className="surface p-6">
+        <div className="surface fluid-metric p-6">
           <p className="label-uppercase mb-2">Interest / day</p>
-          <p className="text-2xl font-bold tabular-nums">{formatGBP(dailyBurn)}</p>
+          <p className="fluid-figure text-2xl font-bold tabular-nums">{formatGBP(dailyBurn)}</p>
         </div>
       </div>
 

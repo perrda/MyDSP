@@ -1354,7 +1354,7 @@ export function Dashboard() {
       <div className="today-main-column w-full min-w-0">
       <div className={`surface p-5 md:p-6 mb-4 rounded-xl md:rounded-none shadow-sm md:shadow-none ${privacyClass(privacy)}`}>
         <p className="text-xs uppercase tracking-wider text-text-subtle mb-1 font-semibold">Assets</p>
-        <p className="today-net-worth-value today-hero-assets-value text-3xl md:text-4xl font-bold tabular-nums tracking-tight mb-1 break-words">
+        <p className="today-net-worth-value today-hero-assets-value fluid-figure text-3xl md:text-4xl font-bold tabular-nums tracking-tight mb-1">
           {formatGBP(assets)}
         </p>
         {showBackupNudge ? (
@@ -1430,7 +1430,7 @@ export function Dashboard() {
             className="today-hero-book-row flex items-baseline justify-between gap-3 min-w-0 py-1.5 border-b border-border hover:text-accent"
           >
             <span className="text-sm text-text-muted min-w-0">Net Worth</span>
-            <span className={`text-sm font-semibold tabular-nums shrink-0 ${privacyClass(privacy)}`}>
+            <span className={`text-sm font-semibold tabular-nums min-w-0 text-right ${privacyClass(privacy)}`}>
               {formatGBP(netWorth)}
             </span>
           </Link>
@@ -1440,7 +1440,7 @@ export function Dashboard() {
             className="today-hero-book-row flex items-baseline justify-between gap-3 min-w-0 py-1.5 border-b border-border hover:text-accent"
           >
             <span className="text-sm text-text-muted min-w-0">Crypto Assets</span>
-            <span className={`text-sm font-semibold tabular-nums shrink-0 ${privacyClass(privacy)}`}>
+            <span className={`text-sm font-semibold tabular-nums min-w-0 text-right ${privacyClass(privacy)}`}>
               {formatGBP(crypto.value)}
             </span>
           </Link>
@@ -1450,7 +1450,7 @@ export function Dashboard() {
             className="today-hero-book-row flex items-baseline justify-between gap-3 min-w-0 py-1.5 border-b border-border hover:text-accent"
           >
             <span className="text-sm text-text-muted min-w-0">SIPP</span>
-            <span className={`text-sm font-semibold tabular-nums shrink-0 ${privacyClass(privacy)}`}>
+            <span className={`text-sm font-semibold tabular-nums min-w-0 text-right ${privacyClass(privacy)}`}>
               {formatGBP(sippValue)}
             </span>
           </Link>
@@ -1460,7 +1460,7 @@ export function Dashboard() {
             className="today-hero-book-row flex items-baseline justify-between gap-3 min-w-0 py-1.5 hover:text-accent"
           >
             <span className="text-sm text-text-muted min-w-0">Liabilities</span>
-            <span className={`text-sm font-semibold tabular-nums shrink-0 ${privacyClass(privacy)}`}>
+            <span className={`text-sm font-semibold tabular-nums min-w-0 text-right ${privacyClass(privacy)}`}>
               {formatGBP(liabilities)}
             </span>
           </Link>
@@ -2412,7 +2412,7 @@ export function Dashboard() {
         <p className="text-xs uppercase tracking-wider text-text-subtle mb-2 font-semibold">
           Scorebook
         </p>
-        <p className={`text-3xl md:text-2xl font-bold tabular-nums mb-1 ${privacyClass(privacy)}`}>
+        <p className={`fluid-figure text-3xl md:text-2xl font-bold tabular-nums mb-1 ${privacyClass(privacy)}`}>
           {achievements.xp} XP
         </p>
         <p className="text-sm text-text-muted font-light">
@@ -2424,7 +2424,7 @@ export function Dashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-px mb-6">
         <Link to="/crypto" className="surface surface-interactive p-5 md:p-8 block rounded-xl md:rounded-none shadow-sm md:shadow-none">
           <p className="text-xs uppercase tracking-wider text-text-subtle mb-2 font-semibold">Crypto</p>
-          <p className={`text-3xl md:text-2xl font-bold tabular-nums mb-1 ${privacyClass(privacy)}`}>
+          <p className={`fluid-figure text-3xl md:text-2xl font-bold tabular-nums mb-1 ${privacyClass(privacy)}`}>
             {formatGBP(crypto.value)}
           </p>
           <p className={`text-sm font-light ${crypto.pnl >= 0 ? 'text-accent' : 'text-text-muted'}`}>
@@ -2433,7 +2433,7 @@ export function Dashboard() {
         </Link>
         <Link to="/equities" className="surface surface-interactive p-5 md:p-8 block rounded-xl md:rounded-none shadow-sm md:shadow-none">
           <p className="text-xs uppercase tracking-wider text-text-subtle mb-2 font-semibold">Equities</p>
-          <p className={`text-3xl md:text-2xl font-bold tabular-nums mb-1 ${privacyClass(privacy)}`}>
+          <p className={`fluid-figure text-3xl md:text-2xl font-bold tabular-nums mb-1 ${privacyClass(privacy)}`}>
             {formatGBP(equity.value)}
           </p>
           <p className={`text-sm font-light ${equity.pnl >= 0 ? 'text-accent' : 'text-text-muted'}`}>
