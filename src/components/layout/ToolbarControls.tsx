@@ -92,6 +92,7 @@ export function ToolbarControls({
                 className="toolbar-icon"
                 title="Refresh all live data"
                 aria-label={refreshing ? 'Refreshing data' : 'Refresh all data'}
+                data-testid="toolbar-desktop-sync"
                 role="menuitem"
               >
                 <RefreshCw

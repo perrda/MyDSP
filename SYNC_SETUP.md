@@ -3,7 +3,9 @@
 Your data stays **encrypted on your device**. Cloudflare only stores a locked blob.
 Same **passphrase** on every device.
 
-**In-app default (1.2.126+):** Settings → Sync is one passphrase field and one **Sync** button. The existing `mydsp-sync` Worker URL is already baked. You do **not** need to create a Worker, bind KV, or paste `worker.js`. First Sync on a device that already has the book **pushes**. Empty or sample books **pull**. Conflicts never auto-overwrite Mini DAVID. Worker DIY, Remote URL paste, and setup-card tools stay under **Advanced**.
+**In-app default (1.2.127+):** Settings → Sync is passphrase once, then **Sync**. Turn on **This device is the book** on Mini (always push). MacBook / iPhone / iPad leave it off — Sync and pull-to-refresh **pull** Mini as the book. The existing `mydsp-sync` Worker URL is already baked (no access key on the URL). Worker DIY, Remote URL paste, and setup-card tools stay under **Advanced**.
+
+**Worker origin-lock (repo source; deploy out of band):** browser requests from `https://mydspv1.dave-perry.workers.dev`, localhost / 127.0.0.1 (http, any port), and `https://<anything>-mydspv1.dave-perry.workers.dev` do not need a client access key. Curl / non-browser still does. Do **not** wrangler from a draft PR — Developer on Mini deploys after Designer paint-PASS.
 
 **You do not need iCloud.** Automatic sync uses your Cloudflare Worker.
 

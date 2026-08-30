@@ -1,28 +1,81 @@
 /**
  * Minimal MyDSP sync store — Cloudflare Worker + KV binding `STORE`.
- * Requires env SYNC_KEY: all routes require ?key= or header X-MyDSP-Key.
- * GET ?meta=1 returns lightweight { exportedAt, deviceId, checksum } without the full blob body size win when possible.
+ *
+ * Browser requests from an allowlisted Origin succeed without a client access
+ * key. Curl / non-browser still must send the Worker access key
+ * (`?key=` or `X-MyDSP-Key`). The access-key env must be set on the Worker;
+ * deploy is out of band (Developer on Mini). Do not wrangler from this PR.
+ *
+ * GET ?meta=1 returns { exportedAt, deviceId, checksum } without the full blob.
  */
+
+const LIVE_APP_ORIGIN = 'https://mydspv1.dave-perry.workers.dev'
+const PREVIEW_HOST_SUFFIX = '-mydspv1.dave-perry.workers.dev'
+
+/**
+ * Exact allowlist (David origin-lock):
+ * 1. https://mydspv1.dave-perry.workers.dev
+ * 2. http://localhost:* and http://127.0.0.1:* (any port, http only)
+ * 3. https://<anything>-mydspv1.dave-perry.workers.dev (Designer preview scores)
+ */
+export function isOriginAllowed(origin) {
+  if (!origin || typeof origin !== 'string') return false
+  try {
+    const url = new URL(origin)
+    if (url.username || url.password) return false
+
+    if (url.protocol === 'https:' && url.hostname === 'mydspv1.dave-perry.workers.dev') {
+      return url.origin === LIVE_APP_ORIGIN
+    }
+
+    if (url.protocol === 'https:' && url.hostname.endsWith(PREVIEW_HOST_SUFFIX)) {
+      const prefix = url.hostname.slice(0, -PREVIEW_HOST_SUFFIX.length)
+      return prefix.length > 0 && !prefix.includes('.') && url.port === ''
+    }
+
+    if (url.protocol === 'http:' && (url.hostname === 'localhost' || url.hostname === '127.0.0.1')) {
+      return true
+    }
+
+    return false
+  } catch {
+    return false
+  }
+}
+
+function corsHeaders(origin) {
+  const allowed = Boolean(origin && isOriginAllowed(origin))
+  return {
+    'Access-Control-Allow-Origin': allowed ? origin : 'null',
+    'Access-Control-Allow-Methods': 'GET, PUT, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, X-MyDSP-Key',
+    Vary: 'Origin',
+  }
+}
+
+function browserOriginSkipsClientKey(request) {
+  return isOriginAllowed(request.headers.get('Origin'))
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url)
-    const cors = {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, PUT, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, X-MyDSP-Key',
-    }
+    const origin = request.headers.get('Origin')
+    const cors = corsHeaders(origin)
 
     if (request.method === 'OPTIONS') {
       return new Response(null, { status: 204, headers: cors })
     }
 
-    // Auth required for all routes
     if (!env.SYNC_KEY) {
       return new Response('Server misconfigured', { status: 500, headers: cors })
     }
-    const key = url.searchParams.get('key') || request.headers.get('X-MyDSP-Key')
-    if (!key || key !== env.SYNC_KEY) {
-      return new Response('Unauthorized', { status: 401, headers: cors })
+
+    if (!browserOriginSkipsClientKey(request)) {
+      const key = url.searchParams.get('key') || request.headers.get('X-MyDSP-Key')
+      if (!key || key !== env.SYNC_KEY) {
+        return new Response('Unauthorized', { status: 401, headers: cors })
+      }
     }
 
     if (request.method === 'GET') {

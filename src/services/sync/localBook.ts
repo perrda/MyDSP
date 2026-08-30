@@ -64,10 +64,26 @@ export function localBookIsSourceOfTruth(): boolean {
   }
 }
 
+/**
+ * 1.2.127 — do not infer “this is Mini” from a real local DAVID.
+ * A MacBook with a wrong book and empty lastSyncAt used to PUSH and overwrite Mini.
+ * Push only when this device is the book. Satellites always choose pull;
+ * `runOneButtonSync` may still push on cloud 404 (empty store).
+ */
 export function chooseFirstSyncAction(input: {
   localHasBook: boolean
   alreadySynced: boolean
+  isBookDevice?: boolean
 }): 'push' | 'pull' {
-  if (!input.alreadySynced && input.localHasBook) return 'push'
+  if (input.isBookDevice === true) return 'push'
   return 'pull'
+}
+
+/** Alias: book device always pushes; satellite always pulls when cloud has an envelope. */
+export function chooseSyncAction(input: { isBookDevice: boolean }): 'push' | 'pull' {
+  return chooseFirstSyncAction({
+    localHasBook: false,
+    alreadySynced: false,
+    isBookDevice: input.isBookDevice,
+  })
 }

@@ -2,13 +2,14 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { usePortfolio } from '../../context/PortfolioContext'
 import { DISPLAY_CURRENCIES } from '../../services/fx'
-import { loadSyncConfig } from '../../services/sync/syncService'
+import { isBookDevice, loadSyncConfig } from '../../services/sync/syncService'
 import {
   getAutoSyncStatus,
   subscribeAutoSync,
   syncNow,
 } from '../../services/sync/autoSyncService'
 import { getSessionSyncPassphrase } from '../../services/sync/sessionPassphrase'
+import { runOneButtonSync } from '../../services/sync/oneButtonSync'
 import {
   checkTodoReminders,
   markReminderFired,
@@ -215,9 +216,14 @@ export function AppShell() {
     void refreshMediaFeeds()
 
     const cfg = loadSyncConfig()
-    if (cfg.remoteUrl.trim() && cfg.enabled && getSessionSyncPassphrase()) {
+    const pass = getSessionSyncPassphrase()
+    if (pass) {
       try {
-        await syncNow()
+        if (isBookDevice(cfg)) {
+          if (cfg.enabled) await syncNow()
+        } else {
+          await runOneButtonSync(pass)
+        }
         setSyncCfg(loadSyncConfig())
       } catch {
         /* price refresh still runs below */
@@ -254,22 +260,27 @@ export function AppShell() {
     void refreshMediaFeeds()
 
     const cfg = loadSyncConfig()
-    if (!cfg.remoteUrl.trim() || !cfg.enabled || !getSessionSyncPassphrase()) {
-      // Still refresh prices/FX locally when sync isn't ready
+    const pass = getSessionSyncPassphrase()
+    const satellite = !isBookDevice(cfg)
+    if (!pass) {
       const r = await refreshPrices()
       if (!r.skipped) await refreshFx()
-      setPriceMsg(
-        !cfg.remoteUrl.trim()
-          ? 'Feeds refreshed · set Remote URL in Cloud Sync'
-          : !cfg.enabled
-            ? 'Feeds refreshed · turn on Automatic sync'
-            : 'Feeds refreshed · enter sync passphrase in Settings',
-      )
+      setPriceMsg('Feeds refreshed · enter sync passphrase in Settings')
       window.setTimeout(() => setPriceMsg(null), 4500)
       return
     }
-    setPriceMsg('Syncing across devices…')
-    await syncNow()
+    setPriceMsg(satellite ? 'Pulling the book…' : 'Syncing across devices…')
+    try {
+      if (satellite) {
+        await runOneButtonSync(pass)
+      } else if (cfg.enabled) {
+        await syncNow()
+      } else {
+        await runOneButtonSync(pass)
+      }
+    } catch {
+      /* status read below */
+    }
     setSyncCfg(loadSyncConfig())
     const st = getAutoSyncStatus()
     if (st.state === 'error' || st.state === 'needs-passphrase' || st.state === 'conflict') {

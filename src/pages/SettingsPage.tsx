@@ -105,6 +105,7 @@ import {
   formatSyncPayloadBytes,
   DEFAULT_SYNC_REMOTE_URL,
   getSyncRemoteUrlWarning,
+  isBookDevice,
   loadSyncConfig,
   normalizeSyncRemoteUrl,
   previewImport,
@@ -177,6 +178,7 @@ import {
   getRememberPassphraseMode,
   getSessionSyncPassphrase,
   hasRememberedSyncPassphrase,
+  hasSessionSyncPassphrase,
   rememberPassphraseExpiresAt,
   setSessionSyncPassphrase,
   type RememberPassphraseMode,
@@ -961,10 +963,10 @@ export function SettingsPage() {
         <div className="settings-split-content grid grid-cols-1 gap-px">
         <SettingsSection id="sync" eyebrow="Sync" title="Encrypted cloud sync">
           <p className="text-sm text-text-muted font-light mb-4 max-w-2xl">
-            Enter the same passphrase on every device, then tap <span className="text-text font-medium">Sync</span>.
-            This device already has the book? First Sync pushes it. Empty or sample books pull.
-            Conflicts never overwrite Mini DAVID — review them. Automatic sync can stay on under
-            the button. Worker DIY and Remote URL live under Advanced.
+            Enter the passphrase once, then tap <span className="text-text font-medium">Sync</span>.
+            Mini turns on <span className="text-text font-medium">This device is the book</span> and
+            always pushes. MacBook, iPhone, and iPad leave it off — Sync and pull-to-refresh pull
+            Mini as the book. Worker URL and DIY stay under Advanced.
           </p>
           <div
             className={`quote-worker-health mb-4 inline-flex items-center gap-2 px-2.5 py-1.5 text-xs border max-w-2xl ${
@@ -1017,65 +1019,111 @@ export function SettingsPage() {
             </p>
           ) : null}
           <div className="sync-simple mb-6" data-testid="sync-simple">
-            <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle mb-2">
-              Passphrase
-            </label>
-            <div className="flex flex-wrap gap-2 mb-1 items-stretch">
+            <label className="flex items-start gap-3 cursor-pointer mb-4">
               <input
-                type={showSyncPass ? 'text' : 'password'}
-                className="flex-1 min-w-0 min-h-11"
-                autoComplete="new-password"
-                placeholder="Sync passphrase (min 8 chars)"
-                value={syncPass}
-                data-testid="sync-passphrase"
+                type="checkbox"
+                className="mt-1"
+                data-testid="sync-book-device"
+                checked={isBookDevice(syncCfg)}
                 onChange={(e) => {
-                  const v = e.target.value
-                  setSyncPass(v)
-                  setSessionSyncPassphrase(v, { remember: Boolean(syncCfg.rememberPassphrase) })
+                  const on = e.target.checked
+                  const next = { ...syncCfg, thisDeviceIsTheBook: on }
+                  setSyncCfg(next)
+                  saveSyncConfig(next)
+                  flash(
+                    on
+                      ? 'This device is the book — Sync always pushes.'
+                      : 'This device pulls the book — Sync will not push a local book.',
+                  )
                 }}
               />
-              <button
-                type="button"
-                className="btn-ghost btn-sm min-h-11 shrink-0"
-                aria-pressed={showSyncPass}
-                onClick={() => setShowSyncPass((v) => !v)}
+              <span>
+                <span className="text-sm font-medium text-text">This device is the book</span>
+                <span className="block text-xs text-text-muted font-light mt-0.5">
+                  Mini: on. MacBook, iPhone, iPad: off.
+                </span>
+              </span>
+            </label>
+            {!isBookDevice(syncCfg) ? (
+              <p
+                className="text-sm text-text-muted font-light mb-4"
+                data-testid="sync-satellite-copy"
               >
-                {showSyncPass ? 'Hide' : 'Show'}
-              </button>
-            </div>
-            {(() => {
-              const strength = scorePassphraseStrength(syncPass)
-              const pct = (strength.score / 4) * 100
-              return (
-                <div className="passphrase-strength mb-3" aria-live="polite">
-                  <div
-                    className="h-1.5 w-full bg-border/60 overflow-hidden"
-                    role="meter"
-                    aria-label="Passphrase strength"
-                    aria-valuemin={0}
-                    aria-valuemax={4}
-                    aria-valuenow={strength.score}
-                    aria-valuetext={strength.label}
+                This device pulls the book. Sync and pull-to-refresh apply Mini as the book — they
+                will not push a local DAVID over it.
+              </p>
+            ) : (
+              <p className="text-sm text-text-muted font-light mb-4" data-testid="sync-book-copy">
+                This device is the book. Sync always pushes Mini DAVID. Automatic sync turns on
+                after the first successful push.
+              </p>
+            )}
+            {!(hasSessionSyncPassphrase() || hasRememberedSyncPassphrase()) ? (
+              <>
+                <label className="block text-xs font-bold uppercase tracking-widest text-text-subtle mb-2">
+                  Passphrase
+                </label>
+                <div className="flex flex-wrap gap-2 mb-1 items-stretch">
+                  <input
+                    type={showSyncPass ? 'text' : 'password'}
+                    className="flex-1 min-w-0 min-h-11"
+                    autoComplete="new-password"
+                    placeholder="Sync passphrase (min 8 chars)"
+                    value={syncPass}
+                    data-testid="sync-passphrase"
+                    onChange={(e) => {
+                      const v = e.target.value
+                      setSyncPass(v)
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="btn-ghost btn-sm min-h-11 shrink-0"
+                    aria-pressed={showSyncPass}
+                    onClick={() => setShowSyncPass((v) => !v)}
                   >
-                    <div
-                      className={`h-full transition-[width] duration-200 ${
-                        strength.score <= 1
-                          ? 'bg-accent/70'
-                          : strength.score === 2
-                            ? 'bg-amber-500'
-                            : 'bg-emerald-500'
-                      }`}
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                  {syncPass ? (
-                    <p className="text-[10px] text-text-subtle mt-1 font-medium tracking-wide uppercase">
-                      Strength: {strength.label}
-                    </p>
-                  ) : null}
+                    {showSyncPass ? 'Hide' : 'Show'}
+                  </button>
                 </div>
-              )
-            })()}
+                {(() => {
+                  const strength = scorePassphraseStrength(syncPass)
+                  const pct = (strength.score / 4) * 100
+                  return (
+                    <div className="passphrase-strength mb-3" aria-live="polite">
+                      <div
+                        className="h-1.5 w-full bg-border/60 overflow-hidden"
+                        role="meter"
+                        aria-label="Passphrase strength"
+                        aria-valuemin={0}
+                        aria-valuemax={4}
+                        aria-valuenow={strength.score}
+                        aria-valuetext={strength.label}
+                      >
+                        <div
+                          className={`h-full transition-[width] duration-200 ${
+                            strength.score <= 1
+                              ? 'bg-accent/70'
+                              : strength.score === 2
+                                ? 'bg-amber-500'
+                                : 'bg-emerald-500'
+                          }`}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      {syncPass ? (
+                        <p className="text-[10px] text-text-subtle mt-1 font-medium tracking-wide uppercase">
+                          Strength: {strength.label}
+                        </p>
+                      ) : null}
+                    </div>
+                  )
+                })()}
+              </>
+            ) : (
+              <p className="text-xs text-text-subtle mb-3" data-testid="sync-passphrase-unlocked">
+                Passphrase unlocked on this device — tap Sync.
+              </p>
+            )}
             <div className="sync-simple__actions">
               <button
                 type="button"
@@ -1084,22 +1132,21 @@ export function SettingsPage() {
                 disabled={syncBusy}
                 onClick={() => {
                   void (async () => {
-                    if (!syncPass || syncPass.length < 8) {
+                    const pass = currentSyncPassphrase()
+                    if (!pass || pass.length < 8) {
                       flash('Use a passphrase of at least 8 characters.')
                       return
                     }
                     const url = resolveSyncRemoteUrl(syncCfg.remoteUrl)
                     if (!syncCfg.remoteUrl.trim()) {
-                      const baked = { ...syncCfg, remoteUrl: url }
+                      const baked = { ...syncCfg, remoteUrl: url, rememberPassphrase: true }
                       setSyncCfg(baked)
                       saveSyncConfig(baked)
                     }
-                    setSessionSyncPassphrase(syncPass, {
-                      remember: Boolean(syncCfg.rememberPassphrase) || Boolean(syncCfg.enabled),
-                    })
+                    setSessionSyncPassphrase(pass, { remember: true })
                     setSyncBusy(true)
                     try {
-                      const result = await runOneButtonSync(syncPass)
+                      const result = await runOneButtonSync(pass)
                       setSyncCfg(loadSyncConfig())
                       if (result.preview && result.action === 'conflict') {
                         setPendingMerge(result.preview)
@@ -1128,14 +1175,18 @@ export function SettingsPage() {
                     const on = e.target.checked
                     if (on) {
                       const url = resolveSyncRemoteUrl(syncCfg.remoteUrl)
-                      if (!syncPass || syncPass.length < 8) {
+                      const pass = currentSyncPassphrase()
+                      if (!pass || pass.length < 8) {
                         flash('Enter a passphrase (min 8 chars) before enabling automatic sync.')
                         return
                       }
-                      setSessionSyncPassphrase(syncPass, {
-                        remember: Boolean(syncCfg.rememberPassphrase),
-                      })
-                      const next = { ...syncCfg, remoteUrl: url, enabled: true }
+                      setSessionSyncPassphrase(pass, { remember: true })
+                      const next = {
+                        ...syncCfg,
+                        remoteUrl: url,
+                        enabled: true,
+                        rememberPassphrase: true,
+                      }
                       setSyncCfg(next)
                       saveSyncConfig(next)
                       void syncNow().then(() => {
@@ -1153,8 +1204,9 @@ export function SettingsPage() {
                 <span>
                   <span className="text-sm font-medium text-text">Automatic sync</span>
                   <span className="block text-xs text-text-muted font-light mt-0.5">
-                    Pull when you open the app; push a few seconds after you edit. Same passphrase
-                    on every device.
+                    {isBookDevice(syncCfg)
+                      ? 'Turns on after the first Mini push. Pushes a few seconds after you edit.'
+                      : 'Pull when you open the app or pull-to-refresh. This device will not push.'}
                   </span>
                 </span>
               </label>

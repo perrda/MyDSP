@@ -1,5 +1,15 @@
 # MyDSP Changelog
 
+## [1.2.127] - 2026-08-30
+
+### Fixed — Book device + satellite Cloud Sync (draft, no live)
+- **This device is the book:** Mini turns the toggle on. Sync always pushes that book. MacBook, iPhone, and iPad leave it off — Sync and pull-to-refresh always pull Mini and apply it as the book. A satellite never pushes a local DAVID over Mini, and never parks Mini behind a conflict review.
+- **Passphrase once:** default Sync shows the field until this device has an unlocked session, then one orange **Sync** button. Remember-passphrase turns on after the first successful unlock. Automatic sync turns on after the first Mini push and after a successful satellite pull.
+- **Baked Worker URL:** still `https://mydsp-sync.dave-perry.workers.dev` with no access key on the URL. Default path never asks for a Worker URL. Advanced (URL, Push/Pull, DIY) stays collapsed.
+- **Worker origin-lock (repo only, no deploy):** browser requests from `https://mydspv1.dave-perry.workers.dev`, `http://localhost:*` / `http://127.0.0.1:*`, and `https://<anything>-mydspv1.dave-perry.workers.dev` succeed without a client access key. CORS echoes the matching Origin (not `*`). Curl / non-browser still needs the Worker access key. Deploy is out of band (Developer on Mini after Designer paint-PASS).
+- **Keep:** Money 12-tile Directory + cockpit from 1.2.126. Light+Dark accent `#F7931A`. E2E passphrase encryption of the blob.
+- **Draft only:** do not promote. Do not wrangler. Live mydspv1 stays 1.2.126 until CoS paint-PASS. Rollback is 1.2.126.
+
 ## [1.2.126] - 2026-08-30
 
 ### Added — Money 12-tile directory + one-button Cloud Sync (draft, no live)

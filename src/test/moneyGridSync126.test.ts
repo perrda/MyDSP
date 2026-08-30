@@ -20,16 +20,17 @@ const read = (rel: string) => readFileSync(resolve(__dirname, rel), 'utf8')
 describe('MyDSP 1.2.126 Money directory + one-button Sync', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(read('../../package.json'))
-    expect(pkg.version).toBe('1.2.126')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.126')
+    expect(pkg.version).toBe('1.2.127')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.127')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.127',
       '1.2.126',
       '1.2.125',
       '1.2.124',
       '1.2.123',
-      '1.2.122',
     ])
-    expect(RELEASE_NOTES[0]?.bullets.map((b) => (typeof b === 'string' ? b : b.text)).join(' ')).toMatch(
+    const moneyTip = RELEASE_NOTES.find((e) => e.version === '1.2.126')
+    expect(moneyTip?.bullets.map((b) => (typeof b === 'string' ? b : b.text)).join(' ')).toMatch(
       /12 tiles|passphrase \+ Sync|1\.2\.125/,
     )
   })
@@ -106,13 +107,18 @@ describe('MyDSP 1.2.126 Money directory + one-button Sync', () => {
     const real = createEmptyPortfolio()
     real.crypto = [{ id: 1, symbol: 'BTC', name: 'Bitcoin', qty: 1.25, price: 0, cost: 10_000 }]
     expect(isEmptyOrSampleBook(real)).toBe(false)
-    expect(chooseFirstSyncAction({ localHasBook: true, alreadySynced: false })).toBe('push')
+    expect(chooseFirstSyncAction({ localHasBook: true, alreadySynced: false })).toBe('pull')
     expect(chooseFirstSyncAction({ localHasBook: false, alreadySynced: false })).toBe('pull')
     expect(chooseFirstSyncAction({ localHasBook: true, alreadySynced: true })).toBe('pull')
     expect(chooseFirstSyncAction({ localHasBook: false, alreadySynced: true })).toBe('pull')
+    expect(
+      chooseFirstSyncAction({ localHasBook: true, alreadySynced: false, isBookDevice: true }),
+    ).toBe('push')
+    expect(
+      chooseFirstSyncAction({ localHasBook: true, alreadySynced: false, isBookDevice: false }),
+    ).toBe('pull')
     const one = read('../services/sync/oneButtonSync.ts')
-    expect(one).toMatch(/localBookIsSourceOfTruth/)
-    expect(one).toMatch(/this book was kept/)
+    expect(one).toMatch(/chooseFirstSyncAction/)
     expect(one).toMatch(/Pushed this book/)
     expect(typeof localBookIsSourceOfTruth).toBe('function')
     const auto = read('../services/sync/autoSyncService.ts')
