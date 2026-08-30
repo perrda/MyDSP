@@ -1,5 +1,13 @@
 # MyDSP Changelog
 
+## [1.2.135] - 2026-08-30
+
+### Changed — Data above help chrome (draft, no live)
+- **Book first:** Crypto / Equities / Holding detail / Staking / Tax / Plan / Compare show VALUE · mix · charts · lists first. Connect-exchange, ledger notes, search, included-value bar, concentration, tax disclaimers, and week-Δ copy sit below.
+- **Memory:** locked in `.cursor/rules/data-above-help-chrome.mdc` so later work does not bury figures under help rails.
+- **Keep:** Mini-as-book sync (satellites REPLACE), Today one-column + Assets hero, utilities under YouTube, product copy, Light+Dark `#F7931A`, 1.2.134 SIPP = Equities.
+- **Draft only:** do not promote. Do not wrangler production. Live mydspv1 stays 1.2.132 / `index-ClzYneLT.js`. Leftover preview worker only (`cursor-…-mydsp.dave-perry.workers.dev`).
+
 ## [1.2.134] - 2026-08-30
 
 ### Fixed — Today SIPP line is the Equities sleeve (draft, no live)

@@ -147,7 +147,6 @@ export function PlanningPage() {
         title="Rebalance & Monte Carlo"
         description="Target allocation drift and projected net-worth paths."
       />
-      <UnpricedExclusionBanner data={data} />
 
       <div className="flex gap-2 mb-8">
         {(['rebalance', 'montecarlo'] as const).map((t) => (
@@ -437,6 +436,8 @@ export function PlanningPage() {
           </div>
         </>
       )}
+
+      <UnpricedExclusionBanner data={data} />
     </div>
   )
 }

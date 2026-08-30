@@ -428,129 +428,8 @@ export function CryptoPage() {
           />
         }
       />
-      <UnpricedExclusionBanner data={data} />
-
-      <div
-        className="surface p-4 mb-4 flex flex-wrap items-center justify-between gap-3"
-        data-testid="crypto-exchange-stub"
-      >
-        <div>
-          <p className="text-sm font-semibold">Connect exchange (coming via CSV import)</p>
-          <p className="text-xs text-text-subtle">
-            No OAuth yet — use the holding trade-history CSV importer for exchange exports.
-          </p>
-        </div>
-        {selectedHolding ? (
-          <Link to={`/crypto/${selectedHolding.id}?import=1`} className="btn-secondary btn-sm">
-            Open CSV import
-          </Link>
-        ) : (
-          <button type="button" className="btn-secondary btn-sm" disabled>
-            Open CSV import
-          </button>
-        )}
-      </div>
-
-      <div
-        className="surface border-l-2 border-l-accent px-4 py-3 mb-4"
-        data-testid="crypto-manual-ledgers-note"
-      >
-        <p className="text-sm font-semibold">Transfers and staking stay separate</p>
-        <p className="text-xs text-text-subtle mt-1">
-          Transfer records are manual notes and never change quantity, cost basis, the trade
-          journal, or P&amp;L. Staking APY and rewards are also manual and do not book P&amp;L.
-        </p>
-      </div>
-
-      <div
-        ref={holdingsSearchRef}
-        className="holdings-in-list-search holdings-sticky-search sticky z-[9] -mx-1 mb-4 bg-bg/95 px-1 py-2 backdrop-blur supports-[backdrop-filter]:bg-bg/80"
-      >
-        <div className="surface border border-border-strong px-3 py-2.5">
-          <label className="sr-only" htmlFor="crypto-search-input">
-            Search crypto holdings
-          </label>
-          <div className="flex flex-wrap items-center gap-2">
-            <input
-              id="crypto-search-input"
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              placeholder="Search crypto holdings by symbol or name"
-              aria-label="Search crypto holdings by symbol or name"
-              className="min-w-0 w-full flex-1"
-            />
-            {searchText ? (
-              <button type="button" className="btn-ghost btn-sm" onClick={() => setSearchText('')}>
-                Clear
-              </button>
-            ) : null}
-          </div>
-          <p className="mt-1.5 text-[11px] text-text-subtle">
-            {searchQuery
-              ? `${filteredHoldings.length}/${holdings.length} crypto holding match${filteredHoldings.length === 1 ? '' : 'es'}`
-              : `${holdings.length} crypto holding${holdings.length === 1 ? '' : 's'}`}
-          </p>
-        </div>
-      </div>
-
-      <div
-        ref={holdingsTotalsRef}
-        className={`holdings-included-value-bar holdings-sticky-totals sticky z-[8] -mx-1 mb-4 border border-border bg-bg-elevated px-3 py-2 text-xs text-text-muted shadow-sm ${privacyClass(privacy)}`}
-        role="status"
-      >
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="font-semibold text-text">
-            Included crypto value {formatGBP(holdingsIncludedSummary.includedValue)}
-          </span>
-          <span className="tabular-nums">
-            {holdingsIncludedSummary.includedCount} in NW · {holdingsIncludedSummary.excludedCount} excluded
-            {weightSort ? ' · sorted by portfolio weight %' : ''}
-          </span>
-        </div>
-      </div>
-
-      {driftHits.length > 0 ? (
-        <div className="mb-4" role="status">
-          <div className="px-4 py-3 border border-amber-500/40 bg-amber-500/10 text-sm text-amber-800 dark:text-amber-200 flex flex-wrap items-center justify-between gap-3">
-            <span>
-              Markets live ≠ holding price by &gt;{driftThreshold}% on{' '}
-              {driftHits.map((h) => h.symbol).join(', ')}. Refresh Markets or fill last synced.
-            </span>
-            <button type="button" className="btn-secondary btn-sm bg-bg-elevated/80" onClick={fillFromLastSynced}>
-              Use Markets prices
-            </button>
-          </div>
-          {fromOtherDeviceAge ? (
-            <p className="holdings-from-other-device mt-1.5 px-1 text-[11px] text-text-subtle">
-              From other device · {fromOtherDeviceAge}
-            </p>
-          ) : null}
-        </div>
-      ) : null}
-
-      {concentrationHits.length > 0 ? (
-        <div
-          className="portfolio-concentration-banner mb-4 px-4 py-3 border border-amber-500/40 bg-amber-500/10 text-sm text-amber-800 dark:text-amber-200 flex flex-wrap items-center justify-between gap-3"
-          role="status"
-        >
-          <span>
-            Concentration: {concentrationHits[0]!.symbol} is{' '}
-            {concentrationHits[0]!.weightPct.toFixed(1)}% of included crypto value (threshold{' '}
-            {concentrationThreshold}%)
-            {concentrationHits.length > 1 ? ` · +${concentrationHits.length - 1} more` : ''}.
-          </span>
-          <Link
-            to={`/${concentrationHits[0]!.kind === 'equity' ? 'equities' : 'crypto'}/${concentrationHits[0]!.id}`}
-            className="btn-secondary btn-sm bg-bg-elevated/80"
-            onClick={() => {
-              dismissAlertForCalendarMonth(concentrationDismissId(concentrationHits[0]!.symbol))
-              setDismissTick((n) => n + 1)
-            }}
-          >
-            Review holding
-          </Link>
-        </div>
-      ) : null}
+      <div ref={holdingsSearchRef} className="h-0 overflow-hidden" aria-hidden />
+      <div ref={holdingsTotalsRef} className="h-0 overflow-hidden" aria-hidden />
 
       <div className={`fluid-metric-grid fluid-metric-grid--3 mb-6 ${privacyClass(privacy)}`}>
         <div className="surface fluid-metric p-4 md:p-6 rounded-xl md:rounded-none shadow-sm md:shadow-none">
@@ -849,6 +728,126 @@ export function CryptoPage() {
         ) : null}
         </div>
       )}
+
+      <UnpricedExclusionBanner data={data} />
+
+      <div
+        className="surface p-4 mb-4 flex flex-wrap items-center justify-between gap-3"
+        data-testid="crypto-exchange-stub"
+      >
+        <div>
+          <p className="text-sm font-semibold">Connect exchange (coming via CSV import)</p>
+          <p className="text-xs text-text-subtle">
+            No OAuth yet — use the holding trade-history CSV importer for exchange exports.
+          </p>
+        </div>
+        {selectedHolding ? (
+          <Link to={`/crypto/${selectedHolding.id}?import=1`} className="btn-secondary btn-sm">
+            Open CSV import
+          </Link>
+        ) : (
+          <button type="button" className="btn-secondary btn-sm" disabled>
+            Open CSV import
+          </button>
+        )}
+      </div>
+
+      <div
+        className="surface border-l-2 border-l-accent px-4 py-3 mb-4"
+        data-testid="crypto-manual-ledgers-note"
+      >
+        <p className="text-sm font-semibold">Transfers and staking stay separate</p>
+        <p className="text-xs text-text-subtle mt-1">
+          Transfer records are manual notes and never change quantity, cost basis, the trade
+          journal, or P&amp;L. Staking APY and rewards are also manual and do not book P&amp;L.
+        </p>
+      </div>
+
+      <div className="holdings-in-list-search holdings-sticky-search mb-4">
+        <div className="surface border border-border-strong px-3 py-2.5">
+          <label className="sr-only" htmlFor="crypto-search-input">
+            Search crypto holdings
+          </label>
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              id="crypto-search-input"
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              placeholder="Search crypto holdings by symbol or name"
+              aria-label="Search crypto holdings by symbol or name"
+              className="min-w-0 w-full flex-1"
+            />
+            {searchText ? (
+              <button type="button" className="btn-ghost btn-sm" onClick={() => setSearchText('')}>
+                Clear
+              </button>
+            ) : null}
+          </div>
+          <p className="mt-1.5 text-[11px] text-text-subtle">
+            {searchQuery
+              ? `${filteredHoldings.length}/${holdings.length} crypto holding match${filteredHoldings.length === 1 ? '' : 'es'}`
+              : `${holdings.length} crypto holding${holdings.length === 1 ? '' : 's'}`}
+          </p>
+        </div>
+      </div>
+
+      <div
+        className={`holdings-included-value-bar holdings-sticky-totals mb-4 border border-border bg-bg-elevated px-3 py-2 text-xs text-text-muted shadow-sm ${privacyClass(privacy)}`}
+        role="status"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="font-semibold text-text">
+            Included crypto value {formatGBP(holdingsIncludedSummary.includedValue)}
+          </span>
+          <span className="tabular-nums">
+            {holdingsIncludedSummary.includedCount} in NW · {holdingsIncludedSummary.excludedCount} excluded
+            {weightSort ? ' · sorted by portfolio weight %' : ''}
+          </span>
+        </div>
+      </div>
+
+      {driftHits.length > 0 ? (
+        <div className="mb-4" role="status">
+          <div className="px-4 py-3 border border-amber-500/40 bg-amber-500/10 text-sm text-amber-800 dark:text-amber-200 flex flex-wrap items-center justify-between gap-3">
+            <span>
+              Markets live ≠ holding price by &gt;{driftThreshold}% on{' '}
+              {driftHits.map((h) => h.symbol).join(', ')}. Refresh Markets or fill last synced.
+            </span>
+            <button type="button" className="btn-secondary btn-sm bg-bg-elevated/80" onClick={fillFromLastSynced}>
+              Use Markets prices
+            </button>
+          </div>
+          {fromOtherDeviceAge ? (
+            <p className="holdings-from-other-device mt-1.5 px-1 text-[11px] text-text-subtle">
+              From other device · {fromOtherDeviceAge}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
+      {concentrationHits.length > 0 ? (
+        <div
+          className="portfolio-concentration-banner mb-4 px-4 py-3 border border-amber-500/40 bg-amber-500/10 text-sm text-amber-800 dark:text-amber-200 flex flex-wrap items-center justify-between gap-3"
+          role="status"
+        >
+          <span>
+            Concentration: {concentrationHits[0]!.symbol} is{' '}
+            {concentrationHits[0]!.weightPct.toFixed(1)}% of included crypto value (threshold{' '}
+            {concentrationThreshold}%)
+            {concentrationHits.length > 1 ? ` · +${concentrationHits.length - 1} more` : ''}.
+          </span>
+          <Link
+            to={`/${concentrationHits[0]!.kind === 'equity' ? 'equities' : 'crypto'}/${concentrationHits[0]!.id}`}
+            className="btn-secondary btn-sm bg-bg-elevated/80"
+            onClick={() => {
+              dismissAlertForCalendarMonth(concentrationDismissId(concentrationHits[0]!.symbol))
+              setDismissTick((n) => n + 1)
+            }}
+          >
+            Review holding
+          </Link>
+        </div>
+      ) : null}
 
       <Modal open={open} size="full" title={editing ? 'Edit crypto' : 'Add crypto'} onClose={() => setOpen(false)}>
         <form
