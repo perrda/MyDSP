@@ -29,6 +29,24 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.143',
+    date: '2026-08-30',
+    bullets: [
+      {
+        text: 'Thomas + Rebecca: 100 TSLA and 97 MSTR each',
+        to: '/equities',
+      },
+      {
+        text: 'Mum: 109 TSLA and 108 MSTR',
+        to: '/equities',
+      },
+      {
+        text: 'James King: 182 TSLA, 90 MSTR, and 3,000 ADA',
+        to: '/crypto',
+      },
+    ],
+  },
+  {
     version: '1.2.141',
     date: '2026-08-30',
     bullets: [

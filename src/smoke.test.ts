@@ -639,7 +639,10 @@ describe('portfolios + full backup', () => {
     expect(mum.id).not.toBe(andrew.id)
     const data = store.loadPortfolio(mum.id)
     expect(data.crypto).toHaveLength(0)
-    expect(data.equities).toHaveLength(0)
+    expect(data.equities.map((e) => [e.symbol, e.shares])).toEqual([
+      ['TSLA', 109],
+      ['MSTR', 108],
+    ])
     expect(data.loans).toHaveLength(0)
   })
 
