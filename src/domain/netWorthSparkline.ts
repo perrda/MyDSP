@@ -145,7 +145,7 @@ export function netWorthTrendSeries(
   now = new Date(),
 ): NwTrendPoint[] {
   const last = { current: null as number | null }
-  const out: NwTrendPoint[] = []
+  let out: NwTrendPoint[] = []
 
   if (window === '24H') {
     const end = new Date(now)
