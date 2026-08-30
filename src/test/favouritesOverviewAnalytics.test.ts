@@ -16,7 +16,7 @@ describe('favourites Overview + predictive analytics fixes', () => {
     const dashboard = readFileSync(resolve(__dirname, '../pages/Dashboard.tsx'), 'utf8')
 
     expect(shell).toMatch(/'\/': \{ eyebrow: 'Portfolio', title: 'Today' \}/)
-    expect(sidebar).toMatch(/PRIMARY_NAV/)
+    expect(sidebar).toMatch(/SIDEBAR_NAV/)
     expect(readFileSync(resolve(__dirname, '../domain/primaryNav.ts'), 'utf8')).toMatch(
       /label: 'Today'/,
     )

@@ -1,5 +1,15 @@
 # MyDSP Changelog
 
+## [1.2.129] - 2026-08-30
+
+### Changed — News / YouTube in MENU; header Refresh; icon-only … (draft, no live)
+- **MENU:** News and YouTube sit directly under Household (Today · Markets · Money · Plan · Household · News · YouTube). Same `/news` and `/youtube` destinations as the old header chips, including the News 9+ unread badge. Weekly Digest / Cloud Sync / Settings stay above MENU.
+- **Header:** NEWS / YOUTUBE chips leave the top bar. Refresh takes the old bell slot — visible, BTC orange `#F7931A`, same behaviour as … → Refresh (feeds + 1.2.128 satellite REPLACE pull). Bell / notifications move into … as the first icon; 9+ stays on the bell.
+- **… menu:** icon-only. No REFRESH / PRIVACY / THEME / GLASS / SEARCH (or Notifications) captions. aria-label / title remain. After Refresh moved out: bell, Privacy, Theme, Glass, Search.
+- **Phone / tablet:** hamburger sidebar uses the same MENU (News and YouTube under Household). Bottom nav stays the five-door Today · Markets · Money · Plan · Household. Refresh stays in the top bar. Media card NEWS / YOUTUBE buttons stay.
+- **Keep:** Cloud Sync protocol from 1.2.128 (Mini is the book, satellites REPLACE, cap 6, origin-lock, no merge-local-first). Light + Dark `#F7931A`.
+- **Draft only:** do not promote. Do not wrangler. Live mydspv1 stays 1.2.128.
+
 ## [1.2.128] - 2026-08-30
 
 ### Fixed — Satellite REPLACE Mini book + remember hydrate (draft, no live)

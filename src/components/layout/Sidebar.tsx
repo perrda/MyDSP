@@ -4,8 +4,10 @@ import { Settings, Menu, X, RefreshCw, Newspaper } from 'lucide-react'
 import { usePortfolio } from '../../context/PortfolioContext'
 import { BrandMark } from '../BrandMark'
 import { dueWithinDays } from '../../domain/recurringDueStrip'
-import { PRIMARY_NAV } from '../../domain/primaryNav'
+import { SIDEBAR_NAV } from '../../domain/primaryNav'
 import { prefetchRouteChunk } from '../../hooks/useIdlePrefetch'
+import { newsUnreadFromCache } from '../../storage/newsStore'
+import { youtubeUnreadFromCache } from '../../storage/youtubeStore'
 
 interface SidebarProps {
   open: boolean
@@ -22,10 +24,30 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const syncActive = pathname === '/settings' && hash === '#sync'
   const settingsActive = pathname === '/settings' && hash !== '#sync'
   const [moneyPulse, setMoneyPulse] = useState(billsDueSoon)
+  const [newsUnread, setNewsUnread] = useState(() => newsUnreadFromCache())
+  const [youtubeUnread, setYoutubeUnread] = useState(() => youtubeUnreadFromCache())
 
   useEffect(() => {
     setMoneyPulse(billsDueSoon)
   }, [billsDueSoon])
+
+  useEffect(() => {
+    const refresh = () => {
+      setNewsUnread(newsUnreadFromCache())
+      setYoutubeUnread(youtubeUnreadFromCache())
+    }
+    window.addEventListener('mydsp-news-articles', refresh)
+    window.addEventListener('mydsp-news-changed', refresh)
+    window.addEventListener('mydsp-youtube-videos', refresh)
+    window.addEventListener('mydsp-youtube-changed', refresh)
+    refresh()
+    return () => {
+      window.removeEventListener('mydsp-news-articles', refresh)
+      window.removeEventListener('mydsp-news-changed', refresh)
+      window.removeEventListener('mydsp-youtube-videos', refresh)
+      window.removeEventListener('mydsp-youtube-changed', refresh)
+    }
+  }, [])
 
   return (
     <>
@@ -115,8 +137,10 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             <p className="nav-section-label">Menu</p>
           </div>
           <ul className="flex flex-col nav-favourites-list">
-            {PRIMARY_NAV.map((link) => {
+            {SIDEBAR_NAV.map((link) => {
               const Icon = link.icon
+              const unread =
+                link.to === '/news' ? newsUnread : link.to === '/youtube' ? youtubeUnread : 0
               return (
                 <li key={link.to}>
                   <NavLink
@@ -136,7 +160,16 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                         />
                       ) : null}
                     </span>
-                    {link.label}
+                    <span className="min-w-0 truncate">{link.label}</span>
+                    {unread > 0 ? (
+                      <span
+                        className="sidebar-nav-unread"
+                        aria-label={`${unread} unread`}
+                        data-testid={link.to === '/news' ? 'sidebar-news-unread' : 'sidebar-youtube-unread'}
+                      >
+                        {unread > 9 ? '9+' : unread}
+                      </span>
+                    ) : null}
                   </NavLink>
                 </li>
               )

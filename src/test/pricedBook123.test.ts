@@ -33,14 +33,14 @@ const read = (rel: string) => readFileSync(resolve(__dirname, rel), 'utf8')
 describe('MyDSP 1.2.123 priced-book pack', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(read('../../package.json'))
-    expect(pkg.version).toBe('1.2.128')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.128')
+    expect(pkg.version).toBe('1.2.129')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.129')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.129',
       '1.2.128',
       '1.2.127',
       '1.2.126',
       '1.2.125',
-      '1.2.124',
     ])
   })
 
@@ -105,7 +105,7 @@ describe('MyDSP 1.2.123 priced-book pack', () => {
     expect(money).toMatch(/buildCashflowStory/)
   })
 
-  it('News / YouTube chrome chips hold unread; launch picker has /youtube', () => {
+  it('News / YouTube live in sidebar MENU; launch picker has /youtube', () => {
     expect(PRIMARY_NAV.map((i) => i.label)).toEqual([
       'Today',
       'Markets',
@@ -121,14 +121,14 @@ describe('MyDSP 1.2.123 priced-book pack', () => {
       '/household',
     ])
     expect(LAUNCH_PATH_OPTIONS.some((o) => o.path === '/youtube')).toBe(true)
-    const chips = read('../components/MediaChromeChips.tsx')
-    expect(chips).toMatch(/chrome-news-chip/)
-    expect(chips).toMatch(/chrome-youtube-chip/)
-    expect(chips).toMatch(/newsUnreadFromCache/)
-    expect(chips).toMatch(/youtubeUnreadFromCache/)
+    const sidebar = read('../components/layout/Sidebar.tsx')
+    expect(sidebar).toMatch(/SIDEBAR_NAV/)
+    expect(sidebar).toMatch(/newsUnreadFromCache/)
+    expect(sidebar).toMatch(/youtubeUnreadFromCache/)
+    expect(sidebar).toMatch(/sidebar-news-unread/)
     const smart = read('../components/SmartNotifications.tsx')
     expect(smart).toMatch(/syncCategory\('news', \[\]\)/)
-    expect(read('../components/layout/ToolbarControls.tsx')).toMatch(/MediaChromeChips/)
+    expect(read('../components/layout/ToolbarControls.tsx')).not.toMatch(/MediaChromeChips/)
   })
 
   it('Today fold: one NW, one action, one risk; landscape keeps the figure', () => {
@@ -158,18 +158,18 @@ describe('MyDSP 1.2.123 priced-book pack', () => {
     expect(read('../domain/marketsSectionTotals.ts')).toMatch(/never 0\.00%/)
   })
 
-  it('390 header: chips live on their own row; bell keeps a reserved slot', () => {
+  it('390 header: Refresh is on the strip; no header NEWS/YOUTUBE chips', () => {
     const css = read('../index.css')
     expect(css).toMatch(/@media \(max-width: 767px\)/)
-    expect(css).toMatch(/\.media-chrome-chips-phone/)
-    expect(css).toMatch(/\.toolbar-cluster \.media-chrome-chips \{[\s\S]*?display:\s*none/)
+    expect(css).toMatch(/\.toolbar-refresh/)
     expect(css).toMatch(/\.toolbar-bell-slot/)
     expect(css).not.toMatch(/\.app-header-row\s*\{[^}]*overflow:\s*hidden/s)
     expect(read('../components/SmartNotifications.tsx')).toMatch(/toolbar-bell-slot/)
-    expect(read('../components/layout/AppShell.tsx')).toMatch(/media-chrome-chips-phone/)
-    expect(read('../components/layout/AppShell.tsx')).not.toMatch(
-      /sm:hidden flex-1 min-w-0/,
-    )
+    const shell = read('../components/layout/AppShell.tsx')
+    expect(shell).not.toMatch(/MediaChromeChips/)
+    expect(shell).not.toMatch(/media-chrome-chips-phone/)
+    expect(shell).not.toMatch(/sm:hidden flex-1 min-w-0/)
+    expect(read('../components/layout/ToolbarControls.tsx')).toMatch(/toolbar-refresh/)
   })
 
   it('auto monthly NW snapshots from the priced book — no invented months', () => {

@@ -5,7 +5,6 @@ import { ThemeToggle } from '../ThemeToggle'
 import { GlassToggle } from '../GlassToggle'
 import { GlobalSearch } from '../GlobalSearch'
 import { NotificationCenter } from '../SmartNotifications'
-import { MediaChromeChips } from '../MediaChromeChips'
 
 interface ToolbarControlsProps {
   portfolioSelect: ReactNode
@@ -19,8 +18,8 @@ interface ToolbarControlsProps {
 /**
  * Workspace controls — designed so a ~390px phone header never overflows.
  *
- * All viewports: Portfolio · Currency · Notifications · More
- * More menu (only place for manual refresh): Refresh · Privacy · Theme · Glass · Search · Edit tabs
+ * All viewports: Portfolio · Currency · Refresh · More
+ * More menu (icon-only): Notifications · Privacy · Theme · Glass · Search
  */
 export function ToolbarControls({
   portfolioSelect,
@@ -57,9 +56,23 @@ export function ToolbarControls({
     <div className="toolbar-cluster" role="toolbar" aria-label="Workspace controls" ref={wrapRef}>
       {portfolioSelect}
       {currencySelect}
-      <MediaChromeChips />
 
-      <NotificationCenter />
+      <button
+        type="button"
+        onClick={() => onRefresh()}
+        disabled={refreshing}
+        className="toolbar-icon toolbar-refresh"
+        title="Refresh all live data"
+        aria-label={refreshing ? 'Refreshing data' : 'Refresh all data'}
+        data-testid="toolbar-desktop-sync"
+      >
+        <RefreshCw
+          size={16}
+          strokeWidth={1.5}
+          className={refreshing ? 'animate-spin' : ''}
+        />
+      </button>
+
       <div className="toolbar-more-wrap">
         <button
           type="button"
@@ -82,31 +95,12 @@ export function ToolbarControls({
             className="toolbar-more-menu"
           >
             <div className="toolbar-more-row" role="none">
-              <button
-                type="button"
-                onClick={() => {
-                  onRefresh()
-                  setMoreOpen(false)
-                }}
-                disabled={refreshing}
-                className="toolbar-icon"
-                title="Refresh all live data"
-                aria-label={refreshing ? 'Refreshing data' : 'Refresh all data'}
-                data-testid="toolbar-desktop-sync"
-                role="menuitem"
-              >
-                <RefreshCw
-                  size={16}
-                  strokeWidth={1.5}
-                  className={refreshing ? 'animate-spin' : ''}
-                />
-              </button>
+              <NotificationCenter />
               <PrivacyToggle privacy={privacy} onToggle={onPrivacyToggle} />
               <ThemeToggle />
               <GlassToggle />
               <GlobalSearch />
             </div>
-            <p className="toolbar-more-hint">Refresh · Privacy · Theme · Glass · Search</p>
           </div>
         ) : null}
       </div>
