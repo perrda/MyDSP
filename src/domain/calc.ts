@@ -127,14 +127,14 @@ export function calcEquity(data: PortfolioData): AssetTotals {
   return { value, cost, pnl, pct: cost > 0 ? (pnl / cost) * 100 : 0 }
 }
 
-/** SIPP sleeve of the equity book — same live-quote rule as `calcEquity`. */
+/**
+ * SIPP line = the equity sleeve.
+ * Same included + live-quoted book as `calcEquity` — TSLA / MSTR / VWRL count
+ * whether `accountType` is sipp, isa, general, or unset. Unpriced stay out
+ * (same as Net Worth). There is no separate `/sipp` book.
+ */
 export function calcSipp(data: PortfolioData): number {
-  let value = 0
-  for (const e of included(data.equities)) {
-    if (e.accountType !== 'sipp') continue
-    if (hasLiveEquityQuote(e)) value += e.shares * e.livePrice
-  }
-  return value
+  return calcEquity(data).value
 }
 
 /** One debt balance — cards + loans (included book). */
@@ -199,6 +199,7 @@ export function goalCurrent(
     case 'networth':
       return calcNetWorth(data)
     case 'equity':
+    case 'sipp':
       return calcEquity(data).value
     case 'crypto':
       return calcCrypto(data).value

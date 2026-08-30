@@ -29,6 +29,36 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.134',
+    date: '2026-08-30',
+    bullets: [
+      {
+        text: 'SIPP is the Equities total (TSLA / MSTR included)',
+        to: '/',
+      },
+      {
+        text: 'Same number as Equities VALUE — not account-type SIPP only',
+        to: '/equities',
+      },
+      {
+        text: 'Liabilities line and figure are red (negatives)',
+        to: '/liabilities',
+      },
+      {
+        text: 'Drag Money, Plan, and Household tiles — order syncs',
+        to: '/money',
+      },
+      {
+        text: 'Hourly Yes/No popup to create a manual backup',
+        to: '/settings#full-backup',
+      },
+      {
+        text: 'Draft only — live stays 1.2.132',
+        to: '/',
+      },
+    ],
+  },
+  {
     version: '1.2.133',
     date: '2026-08-30',
     bullets: [

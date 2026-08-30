@@ -1457,9 +1457,9 @@ export function Dashboard() {
           <Link
             to="/liabilities"
             data-testid="today-hero-row-liabilities"
-            className="today-hero-book-row flex items-baseline justify-between gap-3 min-w-0 py-1.5 hover:text-accent"
+            className="today-hero-book-row today-hero-book-row--liabilities flex items-baseline justify-between gap-3 min-w-0 py-1.5"
           >
-            <span className="text-sm text-text-muted min-w-0">Liabilities</span>
+            <span className="text-sm min-w-0">Liabilities</span>
             <span className={`text-sm font-semibold tabular-nums min-w-0 text-right ${privacyClass(privacy)}`}>
               {formatGBP(liabilities)}
             </span>

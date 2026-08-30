@@ -32,6 +32,7 @@ import { usePublishThumbCtaHeight } from '../../hooks/usePublishThumbCtaHeight'
 import { triggerSuccessFlash } from '../../utils/successFlash'
 import { refreshMediaFeeds } from '../../services/mediaRefresh'
 import { pingAllMarketsProviders } from '../../services/marketsProviderHealth'
+import { ManualBackupReminder } from '../ManualBackupReminder'
 
 /** Pull-to-refresh on approved primary/detail routes (no page jump). */
 function allowPullToRefresh(pathname: string): boolean {
@@ -418,6 +419,7 @@ export function AppShell() {
 
         <BottomNav />
       </div>
+      <ManualBackupReminder />
     </div>
   )
 }

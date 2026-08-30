@@ -149,7 +149,7 @@ export function WeeklyDigestModal({ open, input, onClose, onFlash }: Props) {
             <span className="digest-kpi__label">Assets</span>
             <strong className="digest-kpi__value">{model.assetsLabel}</strong>
           </div>
-          <div className="digest-kpi">
+          <div className="digest-kpi digest-kpi--liabilities">
             <span className="digest-kpi__label">Liabilities</span>
             <strong className="digest-kpi__value">{model.liabilitiesLabel}</strong>
           </div>

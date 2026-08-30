@@ -160,6 +160,7 @@ interface ConfirmProps {
   title: string
   body: string
   confirmLabel?: string
+  cancelLabel?: string
   /** Use for destructive actions (delete, clear, overwrite). */
   variant?: 'default' | 'danger'
   /** On phone, require a press-and-hold before confirming (ms). */
@@ -173,6 +174,7 @@ export function ConfirmDialog({
   title,
   body,
   confirmLabel = 'Delete',
+  cancelLabel = 'Cancel',
   variant = 'danger',
   holdMs = 0,
   onConfirm,
@@ -224,7 +226,7 @@ export function ConfirmDialog({
       ) : null}
       <div className="flex gap-3 pt-4 border-t border-border">
         <button type="button" className="btn-ghost flex-1 min-h-11" onClick={onClose}>
-          Cancel
+          {cancelLabel}
         </button>
         <button
           type="button"

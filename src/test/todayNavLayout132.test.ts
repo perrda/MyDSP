@@ -16,14 +16,14 @@ const read = (rel: string) => readFileSync(resolve(__dirname, rel), 'utf8')
 describe('MyDSP 1.2.132 Today layout + left-nav order', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(read('../../package.json'))
-    expect(pkg.version).toBe('1.2.133')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.133')
+    expect(pkg.version).toBe('1.2.134')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.134')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.134',
       '1.2.133',
       '1.2.132',
       '1.2.131',
       '1.2.130',
-      '1.2.129',
     ])
     const changelog = read('../../CHANGELOG.md')
     const section = changelog.match(/## \[1\.2\.132\][\s\S]*?(?=## \[)/)?.[0] ?? ''
@@ -188,6 +188,10 @@ describe('MyDSP 1.2.132 Today layout + left-nav order', () => {
     expect(app).toMatch(/path="liabilities"/)
     expect(app).not.toMatch(/path="sipp"/)
     expect(dash).toMatch(/calcSipp/)
+    const calc = read('../domain/calc.ts')
+    expect(calc).toMatch(/export function calcSipp/)
+    expect(calc).toMatch(/return calcEquity\(data\)\.value/)
+    expect(calc).not.toMatch(/if \(e\.accountType !== 'sipp'\) continue/)
   })
 
   it('does not change Mini-as-book sync, orange lock, header Refresh, or 1.2.131 ping-all', () => {

@@ -385,8 +385,8 @@ export function LiabilitiesPage() {
 
       <div className={`fluid-metric-grid fluid-metric-grid--4 mb-6 ${privacyClass(privacy)}`}>
         <div className="surface fluid-metric p-6">
-          <p className="label-uppercase mb-2">Debt</p>
-          <p className="fluid-figure text-2xl font-bold tabular-nums">{formatGBP(liability.total)}</p>
+          <p className="label-uppercase mb-2 text-red-500">Debt</p>
+          <p className="fluid-figure text-2xl font-bold tabular-nums text-red-500">{formatGBP(liability.total)}</p>
           <p className="text-xs text-text-subtle mt-1 font-light">One balance — cards + loans</p>
         </div>
         <div className="surface fluid-metric p-6">
