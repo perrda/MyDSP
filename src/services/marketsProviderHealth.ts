@@ -241,9 +241,14 @@ export async function pingAllMarketsProviders(opts?: {
       )
   }
 
-  await Promise.all([
-    run('coingecko', probes.coingecko),
+  // Yahoo + CoinCap start together so a long CoinCap walk cannot starve Yahoo.
+  const yahooAndCoinCap = Promise.all([
     run('yahoo', probes.yahoo),
+    run('coincap', probes.coincap),
+  ])
+  await Promise.all([
+    yahooAndCoinCap,
+    run('coingecko', probes.coingecko),
     (async () => {
       if (alreadyOk.has('finnhub')) return
       if (!finnhubKey) {
@@ -260,7 +265,6 @@ export async function pingAllMarketsProviders(opts?: {
         })
       }
     })(),
-    run('coincap', probes.coincap),
     run('coinbase', probes.coinbase),
     run('fx', probes.fx),
   ])

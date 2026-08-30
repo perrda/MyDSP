@@ -1354,35 +1354,74 @@ function lastCloseFromYahooResult(result: YahooChartResult | undefined | null): 
   return null
 }
 
-/** Walk the holdings Yahoo proxy list; empty/undefined body = try next, not fail. */
+/** Yahoo chart last, including CORS-ok wrappers (jina `data.content`, allorigins `contents`). */
+function lastCloseFromUnknownYahooBody(data: unknown): number | null {
+  if (!data || typeof data !== 'object') return null
+  const rec = data as {
+    chart?: { result?: YahooChartResult[] }
+    data?: { content?: string }
+    contents?: string
+  }
+  const direct = lastCloseFromYahooResult(rec.chart?.result?.[0])
+  if (direct && direct > 0) return direct
+  for (const raw of [rec.data?.content, rec.contents]) {
+    if (typeof raw !== 'string' || !raw.trim()) continue
+    try {
+      const inner = JSON.parse(raw) as { chart?: { result?: YahooChartResult[] } }
+      const last = lastCloseFromYahooResult(inner.chart?.result?.[0])
+      if (last && last > 0) return last
+    } catch {
+      /* next wrapper */
+    }
+  }
+  return null
+}
+
+function yahooChartUrl(symbol: string, host: 'query1' | 'query2', range: string, interval: string): string {
+  return `https://${host}.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=${encodeURIComponent(interval)}&range=${encodeURIComponent(range)}`
+}
+
+/**
+ * CORS-ok Yahoo AAPL lasts — jina first (Chrome from mydsp worker origin,
+ * same class as CoinCap GraphQL / Coinbase spot), then holdings relays.
+ */
+export function yahooAaplCorsUrls(range = '5d', interval = '1d'): string[] {
+  const q1 = yahooChartUrl('AAPL', 'query1', range, interval)
+  const q2 = yahooChartUrl('AAPL', 'query2', range, interval)
+  return [`https://r.jina.ai/${q1}`, `https://r.jina.ai/${q2}`, ...holdingsQuoteProxyCandidates(q1)]
+}
+
+export const YAHOO_AAPL_CORS_URLS = yahooAaplCorsUrls()
+
+/** Walk CORS-ok Yahoo URLs until a numeric last. Empty/blocked = next URL, not skip. */
 export async function fetchYahooLastCloseViaHoldingsProxies(
   symbol: string,
   range = '5d',
   interval = '1d',
 ): Promise<number | null> {
-  const yahoo = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=${encodeURIComponent(interval)}&range=${encodeURIComponent(range)}`
-  const raced = await fetchViaHoldingsProxies<{ chart?: { result?: YahooChartResult[] } }>(yahoo)
-  const fromRace = lastCloseFromYahooResult(raced?.chart?.result?.[0])
-  if (fromRace && fromRace > 0) return fromRace
-  for (const candidate of holdingsQuoteProxyCandidates(yahoo)) {
-    const { data } = await fetchJson<{ chart?: { result?: YahooChartResult[] } }>(candidate, 8000)
-    if (data == null || data === undefined) continue
-    const last = lastCloseFromYahooResult(data.chart?.result?.[0])
-    if (last && last > 0) return last
+  const q1 = yahooChartUrl(symbol, 'query1', range, interval)
+  const urls = [
+    `https://r.jina.ai/${q1}`,
+    `https://r.jina.ai/${yahooChartUrl(symbol, 'query2', range, interval)}`,
+    ...holdingsQuoteProxyCandidates(q1),
+  ]
+  for (const url of urls) {
+    try {
+      const { data } = await fetchJson<unknown>(url, 6000)
+      const last = lastCloseFromUnknownYahooBody(data)
+      if (last && last > 0) return last
+    } catch {
+      /* empty / blocked / non-JSON — try the next CORS-ok Yahoo URL */
+    }
   }
   return null
 }
 
-/** Cheap Yahoo ping — same CORS-proxy stack as equity holdings. Weekend last close counts. */
+/** Cheap Yahoo ping — walk CORS-ok Yahoo URLs until a numeric AAPL last. Weekend last close counts. */
 export async function probeYahooAapl(): Promise<ProviderProbeResult> {
-  try {
-    const last = await fetchYahooLastCloseViaHoldingsProxies('AAPL')
-    if (last && last > 0) return { ok: true, detail: `OK · AAPL ${last}` }
-    // All holdings proxies returned empty/blocked bodies — not a fail storm.
-    return { ok: false, skipped: true, detail: 'Yahoo empty body' }
-  } catch (e) {
-    return { ok: false, skipped: true, detail: e instanceof Error ? e.message : 'Yahoo probe failed' }
-  }
+  const last = await fetchYahooLastCloseViaHoldingsProxies('AAPL')
+  if (last && last > 0) return { ok: true, detail: `OK · AAPL ${last}` }
+  return { ok: false, detail: 'Yahoo empty quote' }
 }
 
 function priceUsdFromCoinCapBody(data: unknown): number | null {
@@ -1430,22 +1469,8 @@ export async function probeCoinCapBtc(): Promise<ProviderProbeResult> {
   try {
     const cap = await fetchCoinCapUsd('BTC')
     if (cap && cap.priceUsd > 0) return { ok: true, detail: `OK · BTC ${cap.priceUsd}` }
-    const v2 = 'https://api.coincap.io/v2/assets/bitcoin'
-    const raced = await fetchViaHoldingsProxies<unknown>(v2)
-    const fromRace = priceUsdFromCoinCapBody(raced)
-    if (fromRace && fromRace > 0) return { ok: true, detail: `OK · BTC ${fromRace}` }
-    for (const candidate of holdingsQuoteProxyCandidates(v2)) {
-      try {
-        const { data } = await fetchJson<unknown>(candidate, 8000)
-        if (data == null || data === undefined) continue
-        const last = priceUsdFromCoinCapBody(data)
-        if (last && last > 0) return { ok: true, detail: `OK · BTC ${last}` }
-      } catch {
-        /* try next relay */
-      }
-    }
   } catch {
-    /* holdings fallbacks exhausted */
+    /* v2 helper empty */
   }
   return { ok: false, detail: 'CoinCap empty quote' }
 }
