@@ -911,6 +911,19 @@ html.has-bottom-nav .floating-banner--toast {
   }
 }
 
+.today-hero-book-rows {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+.today-hero-book-row {
+  min-width: 0;
+}
+.today-hero-book-row span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 @media (orientation: landscape) and (max-height: 500px) {
   .bottom-nav .bottom-nav-link {
     min-height: 2.75rem;

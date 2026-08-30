@@ -45,6 +45,10 @@ export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
         to: '/',
       },
       {
+        text: 'Today hero shows Assets, then Net Worth / Crypto / SIPP / Liabilities',
+        to: '/',
+      },
+      {
         text: 'Draft only — live stays 1.2.131',
         to: '/',
       },

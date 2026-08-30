@@ -20,6 +20,7 @@ import {
   spendingCategoryUrl,
 } from '../domain/deepLinks'
 import { getTaxPack } from '../domain/taxPacks'
+import { calcSipp } from '../domain/calc'
 import { calcFire, hasExplicitFireInputs, resolveFireSavings } from '../domain/fire'
 import { UnpricedExclusionBanner } from '../components/UnpricedExclusionBanner'
 import { appendManualSnapshot } from '../domain/history'
@@ -1042,6 +1043,7 @@ export function Dashboard() {
     if (!hit) return null
     return formatMoneyPulseLine(hit.delta, formatGBP)
   }, [data.history, netWorth])
+  const sippValue = useMemo(() => calcSipp(data), [data])
 
   const nwSpark = useMemo(
     () => netWorthSparkSeries(data.history, netWorth, nwSparkDays),
@@ -1351,9 +1353,9 @@ export function Dashboard() {
 
       <div className="today-main-column w-full min-w-0">
       <div className={`surface p-5 md:p-6 mb-4 rounded-xl md:rounded-none shadow-sm md:shadow-none ${privacyClass(privacy)}`}>
-        <p className="text-xs uppercase tracking-wider text-text-subtle mb-1 font-semibold">Net worth</p>
-        <p className="today-net-worth-value text-3xl md:text-4xl font-bold tabular-nums tracking-tight mb-1 break-words">
-          {formatGBP(netWorth)}
+        <p className="text-xs uppercase tracking-wider text-text-subtle mb-1 font-semibold">Assets</p>
+        <p className="today-net-worth-value today-hero-assets-value text-3xl md:text-4xl font-bold tabular-nums tracking-tight mb-1 break-words">
+          {formatGBP(assets)}
         </p>
         {showBackupNudge ? (
           <p className="backup-nudge text-xs text-text-muted mt-2 mb-1">
@@ -1418,9 +1420,51 @@ export function Dashboard() {
             </div>
           </div>
         ) : null}
-        <p className="text-sm text-text-muted font-light mb-4">
-          Assets {formatGBP(assets)} · Liabilities {formatGBP(liabilities)}
-        </p>
+        <div
+          className="today-hero-book-rows mb-4"
+          data-testid="today-hero-book-rows"
+        >
+          <Link
+            to="/money"
+            data-testid="today-hero-row-net-worth"
+            className="today-hero-book-row flex items-baseline justify-between gap-3 min-w-0 py-1.5 border-b border-border hover:text-accent"
+          >
+            <span className="text-sm text-text-muted min-w-0">Net Worth</span>
+            <span className={`text-sm font-semibold tabular-nums shrink-0 ${privacyClass(privacy)}`}>
+              {formatGBP(netWorth)}
+            </span>
+          </Link>
+          <Link
+            to="/crypto"
+            data-testid="today-hero-row-crypto"
+            className="today-hero-book-row flex items-baseline justify-between gap-3 min-w-0 py-1.5 border-b border-border hover:text-accent"
+          >
+            <span className="text-sm text-text-muted min-w-0">Crypto Assets</span>
+            <span className={`text-sm font-semibold tabular-nums shrink-0 ${privacyClass(privacy)}`}>
+              {formatGBP(crypto.value)}
+            </span>
+          </Link>
+          <Link
+            to="/equities"
+            data-testid="today-hero-row-sipp"
+            className="today-hero-book-row flex items-baseline justify-between gap-3 min-w-0 py-1.5 border-b border-border hover:text-accent"
+          >
+            <span className="text-sm text-text-muted min-w-0">SIPP</span>
+            <span className={`text-sm font-semibold tabular-nums shrink-0 ${privacyClass(privacy)}`}>
+              {formatGBP(sippValue)}
+            </span>
+          </Link>
+          <Link
+            to="/liabilities"
+            data-testid="today-hero-row-liabilities"
+            className="today-hero-book-row flex items-baseline justify-between gap-3 min-w-0 py-1.5 hover:text-accent"
+          >
+            <span className="text-sm text-text-muted min-w-0">Liabilities</span>
+            <span className={`text-sm font-semibold tabular-nums shrink-0 ${privacyClass(privacy)}`}>
+              {formatGBP(liabilities)}
+            </span>
+          </Link>
+        </div>
         <UnpricedExclusionBanner data={data} />
         {((showBudgetPulseCards && (monthlyBudgetPulse || weekToDateSpend.spent > 0)) ||
           cashRunway ||

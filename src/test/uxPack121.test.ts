@@ -65,7 +65,9 @@ describe('MyDSP 1.2.121 UX pack', () => {
 
   it('4: One money story — no Budget 0% restatement card', () => {
     const dash = read('../pages/Dashboard.tsx')
-    expect(dash).toMatch(/Assets \{formatGBP\(assets\)\} · Liabilities \{formatGBP\(liabilities\)\}/)
+    expect(dash).toMatch(/today-hero-book-rows/)
+    expect(dash).toMatch(/today-hero-row-net-worth/)
+    expect(dash).toMatch(/today-hero-row-liabilities/)
     expect(dash).toMatch(/const showBudgetCard = false/)
     expect(dash).toMatch(/title="Allocation"/)
   })

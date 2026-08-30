@@ -3,6 +3,7 @@ import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { PHONE_MEDIA_NAV, PRIMARY_NAV, SIDEBAR_NAV } from '../domain/primaryNav'
 import { resolveBottomNavItems } from '../domain/bottomNav'
+import { MONEY_DIRECTORY } from '../domain/hubPages'
 import { RELEASE_NOTES, releaseNotesArchive } from '../domain/releaseNotes'
 import {
   loadTodayLayout,
@@ -32,6 +33,9 @@ describe('MyDSP 1.2.132 Today layout + left-nav order', () => {
     expect(section).toMatch(/below YouTube|after YouTube/)
     expect(section).toMatch(/Markets/)
     expect(section).toMatch(/full width|one column/)
+    expect(section).toMatch(/Today hero/)
+    expect(section).toMatch(/Assets/)
+    expect(section).toMatch(/SIPP/)
     expect(section).toMatch(/#F7931A/)
     expect(section).toMatch(/draft only|Draft only/)
     expect(section).toMatch(/1\.2\.131/)
@@ -134,6 +138,56 @@ describe('MyDSP 1.2.132 Today layout + left-nav order', () => {
     const layout = loadTodayLayout()
     expect(layout.hidden).not.toContain('markets')
     expect(layout.hidden).toContain('charts')
+  })
+
+  it('Today hero shows Assets as the big figure and four book rows', () => {
+    const dash = read('../pages/Dashboard.tsx')
+    const label = dash.indexOf('>Assets</')
+    const assetsValue = dash.indexOf('today-hero-assets-value')
+    const pulse = dash.indexOf('today-money-pulse')
+    const spark = dash.indexOf('today-nw-sparkline')
+    const rows = dash.indexOf('today-hero-book-rows')
+    expect(label).toBeGreaterThan(-1)
+    expect(assetsValue).toBeGreaterThan(label)
+    expect(dash).toMatch(/formatGBP\(assets\)/)
+    expect(dash).toMatch(/today-money-pulse/)
+    expect(dash).toMatch(/formatMoneyPulseLine/)
+    expect(pulse).toBeGreaterThan(assetsValue)
+    expect(spark).toBeGreaterThan(pulse)
+    expect(rows).toBeGreaterThan(spark)
+    expect(dash).toMatch(/today-hero-row-net-worth/)
+    expect(dash).toMatch(/today-hero-row-crypto/)
+    expect(dash).toMatch(/today-hero-row-sipp/)
+    expect(dash).toMatch(/today-hero-row-liabilities/)
+    expect(dash).toMatch(/Crypto Assets/)
+    expect(dash).toMatch(/>SIPP</)
+    expect(dash).not.toMatch(/Assets \{formatGBP\(assets\)\} · Liabilities/)
+    expect(dash).toMatch(/today-cash-runway/)
+    expect(dash).not.toMatch(/today-markets-pane/)
+  })
+
+  it('hero crypto / SIPP / liabilities rows use existing Money-tile routes', () => {
+    const dash = read('../pages/Dashboard.tsx')
+    const around = (id: string) => {
+      const i = dash.indexOf(id)
+      expect(i).toBeGreaterThan(-1)
+      return dash.slice(Math.max(0, i - 80), i + 80)
+    }
+    expect(around('today-hero-row-crypto')).toMatch(/to="\/crypto"/)
+    expect(around('today-hero-row-sipp')).toMatch(/to="\/equities"/)
+    expect(around('today-hero-row-liabilities')).toMatch(/to="\/liabilities"/)
+    expect(around('today-hero-row-net-worth')).toMatch(/to="\/money"/)
+    expect(MONEY_DIRECTORY.some((d) => d.to === '/crypto' && d.label === 'Crypto')).toBe(true)
+    expect(MONEY_DIRECTORY.some((d) => d.to === '/equities' && d.label === 'Equities')).toBe(true)
+    expect(MONEY_DIRECTORY.some((d) => d.to === '/liabilities' && d.label === 'Liabilities')).toBe(
+      true,
+    )
+    const app = read('../App.tsx')
+    expect(app).toMatch(/path="crypto"/)
+    expect(app).toMatch(/path="equities"/)
+    expect(app).toMatch(/path="liabilities"/)
+    expect(app).not.toMatch(/path="sipp"/)
+    expect(dash).toMatch(/calcSipp/)
   })
 
   it('does not change Mini-as-book sync, orange lock, header Refresh, or 1.2.131 ping-all', () => {
