@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.145**
+**Current version: 1.2.146**
 
-## Completed (through v1.2.145)
+## Completed (through v1.2.146)
 
+- Family sleeves land on live (v1.2.146): v2 one-shot refills Mum / Andrew / Thomas / Rebecca / James King after Mini REPLACE or leftover Reset ate the v1 flag · Andrew SIPP + Fund & Share TSLA/MSTR + 14,285 ADA · BTC 0 · Refresh prices every named book · SW cache `mydsp-v1.2.146` · Reset after v2 stays empty · David unchanged
 - Holdings ⋯ Edit (v1.2.145): list ⋯ portals above swipe overflow · Edit + Delete only · Edit sheet has Edit / Buy / Sell plus qty, price, date, commentary · Equities and Crypto · draft only — live stays 1.2.144
 - Today TREND chip capitals (v1.2.144): 24H · 7D · 30D · 6M · YTD · 12M · 5Y · ALL — 7D / 30D / 6M match the other capital chips · default 30D + `#F7931A` active stay · draft only — live stays 1.2.141
 - Family TSLA / MSTR / ADA sleeves (v1.2.143): Thomas + Rebecca 100 TSLA / 97 MSTR · Mum 109 TSLA / 108 MSTR · James King 182 TSLA / 90 MSTR / 3,000 ADA · one-shot on the book so Reset stays empty · David and Andrew unchanged · draft only — live stays 1.2.137
