@@ -8,7 +8,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { applyCryptoCostFallback, goalCurrent, goalProgress } from '../domain/calc'
+import { applyCryptoCostFallback, goalCurrent, goalProgress, listUnpricedHoldings } from '../domain/calc'
 import { calcBreakdownWithPaper } from '../domain/netWorthWithPaper'
 import { createEmptyPortfolio, createSamplePortfolio } from '../domain/defaults'
 import { upsertDailySnapshot, upsertMonthlyPricedSnapshot } from '../domain/history'
@@ -42,8 +42,10 @@ import {
 import { setDisplayCurrency } from '../utils/format'
 import { migrateEquityLivePricesToGbp, repairEquityLivePricesToGbp, EQUITY_GBP_VERSION } from '../domain/migrateEquityGbp'
 import { equityNeedsUsdToGbp } from '../domain/equityCurrency'
+import { familyHoldingSleeveFor } from '../domain/familyHoldingSleeves'
 import { applyLastSyncedQuotesToHoldings } from '../domain/lastSyncedHoldings'
 import {
+  applyFamilyHoldingsToNamedBooks,
   bootstrapFamilyPortfolios,
   canCreatePortfolio,
   createPortfolio as createPortfolioMeta,
@@ -376,12 +378,25 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
       setFxRates(rates)
       setDisplayCurrency(dataRef.current.settings.currency || 'GBP', rates)
 
+      const cryptoSymbols = new Set(snapshot.crypto.map((c) => c.symbol))
+      const equitySymbols = new Set(snapshot.equities.map((e) => e.symbol))
+      for (const p of listPortfolios()) {
+        if (p.id === startedOn) continue
+        try {
+          const other = loadPortfolio(p.id)
+          for (const c of other.crypto) cryptoSymbols.add(c.symbol)
+          for (const e of other.equities) equitySymbols.add(e.symbol)
+        } catch {
+          /* skip */
+        }
+      }
+
       const cryptoUpdates = await fetchCryptoPricesGbp(
-        snapshot.crypto.map((c) => c.symbol),
+        [...cryptoSymbols],
         snapshot.settings.manualCryptoPrices ?? {},
       )
       const equityMap = await fetchEquityPrices(
-        snapshot.equities.map((e) => e.symbol),
+        [...equitySymbols],
         snapshot.settings.finnhubKey || localStorage.getItem('finnhub_key') || '',
         rates,
       )
@@ -391,17 +406,35 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
       }
 
       const now = new Date().toISOString()
-      setData((prev) => {
-        const crypto = prev.crypto.map((c) => {
+      const applyQuoteMaps = (book: PortfolioData): PortfolioData => {
+        const crypto = book.crypto.map((c) => {
           const u = cryptoUpdates.find((x) => x.symbol === c.symbol)
           if (u && u.price > 0) return { ...c, price: u.price }
           return c
         })
-        const equities = prev.equities.map((e) => {
+        const equities = book.equities.map((e) => {
           const p = equityMap[e.symbol.toUpperCase()]
           if (p && p > 0) return { ...e, livePrice: p }
           return e
         })
+        return { ...book, crypto, equities }
+      }
+
+      for (const p of listPortfolios()) {
+        if (p.id === startedOn) continue
+        try {
+          const other = applyQuoteMaps(loadPortfolio(p.id))
+          const filled = applyLastSyncedQuotesToHoldings(other, { overwrite: false })
+          savePortfolioImmediate(applyCryptoCostFallback(filled.data), p.id)
+        } catch {
+          /* skip */
+        }
+      }
+
+      setData((prev) => {
+        const quoted = applyQuoteMaps(prev)
+        const crypto = quoted.crypto
+        const equities = quoted.equities
         // Only mark GBP-normalized when every US listing received a converted quote
         const usSymbols = prev.equities
           .map((e) => e.symbol.toUpperCase())
@@ -467,6 +500,30 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
     }
     window.addEventListener('focus', onFocus)
     return () => window.removeEventListener('focus', onFocus)
+  }, [refreshPrices])
+
+  // Gifted family sleeves land at livePrice 0 — unpriced lines are excluded from NW.
+  // Price every named book on first load so Mum / Thomas / Rebecca / James King report GBP.
+  const familyPriceAttempted = useRef(false)
+  useEffect(() => {
+    if (familyPriceAttempted.current) return
+    applyFamilyHoldingsToNamedBooks()
+    let needs = false
+    for (const p of listPortfolios()) {
+      if (!familyHoldingSleeveFor(p.name)) continue
+      try {
+        const d = p.id === activeIdRef.current ? dataRef.current : loadPortfolio(p.id)
+        if (listUnpricedHoldings(d).length > 0) {
+          needs = true
+          break
+        }
+      } catch {
+        /* skip */
+      }
+    }
+    if (!needs) return
+    familyPriceAttempted.current = true
+    void refreshPrices()
   }, [refreshPrices])
 
   // Mini is the book: fetch live marks when the cache is sync-tagged or past SLA.

@@ -1,10 +1,11 @@
 /** Named family books — gifted TSLA / MSTR / ADA sleeves. */
 
-import type { CryptoHolding, EquityHolding, PortfolioData } from './types'
+import type { CryptoHolding, EquityAccountType, EquityHolding, PortfolioData } from './types'
 
 /** Persists on the book (syncs) so Reset stays empty and a backup carries the one-shot. */
 export const FAMILY_SLEEVES_APPLIED_EXTRA = 'familySleevesApplied'
-export const FAMILY_SLEEVES_APPLIED_VERSION = 'v1'
+/** v2 re-applies once after Mini REPLACE / leftover Reset ate the v1 one-shot. */
+export const FAMILY_SLEEVES_APPLIED_VERSION = 'v2'
 
 export function hasFamilySleevesApplied(data: PortfolioData): boolean {
   return data.extras?.[FAMILY_SLEEVES_APPLIED_EXTRA] === FAMILY_SLEEVES_APPLIED_VERSION
@@ -22,6 +23,7 @@ export type FamilyEquitySleeve = {
   symbol: string
   name: string
   shares: number
+  accountType?: EquityAccountType
 }
 
 export type FamilyCryptoSleeve = {
@@ -71,6 +73,15 @@ export const FAMILY_HOLDING_SLEEVES: Readonly<Record<string, FamilyHoldingSleeve
     ],
     crypto: [{ symbol: 'ADA', name: 'Cardano', qty: 3000 }],
   },
+  andrew: {
+    equities: [
+      { ...TSLA, shares: 295, accountType: 'sipp' },
+      { ...MSTR, shares: 197, accountType: 'sipp' },
+      { ...TSLA, shares: 135, accountType: 'general' },
+      { ...MSTR, shares: 112, accountType: 'general' },
+    ],
+    crypto: [{ symbol: 'ADA', name: 'Cardano', qty: 14285 }],
+  },
 }
 
 export function familyHoldingSleeveKey(name: string): string {
@@ -85,13 +96,26 @@ function nextId(items: { id: number }[]): number {
   return items.reduce((max, item) => Math.max(max, item.id), 0) + 1
 }
 
+function accountKey(accountType?: EquityAccountType): EquityAccountType {
+  return accountType ?? 'general'
+}
+
 function upsertEquity(list: EquityHolding[], spec: FamilyEquitySleeve): EquityHolding[] {
-  const i = list.findIndex((e) => e.symbol.trim().toUpperCase() === spec.symbol)
+  const want = accountKey(spec.accountType)
+  const i = list.findIndex(
+    (e) => e.symbol.trim().toUpperCase() === spec.symbol && accountKey(e.accountType) === want,
+  )
+  const storedType: EquityAccountType | undefined = want === 'general' ? undefined : want
   if (i >= 0) {
     const cur = list[i]!
-    if (cur.shares === spec.shares) return list
+    if (cur.shares === spec.shares && accountKey(cur.accountType) === want) return list
     const next = [...list]
-    next[i] = { ...cur, shares: spec.shares, includeInPortfolio: cur.includeInPortfolio !== false }
+    next[i] = {
+      ...cur,
+      shares: spec.shares,
+      accountType: storedType,
+      includeInPortfolio: cur.includeInPortfolio !== false,
+    }
     return next
   }
   return [
@@ -104,6 +128,7 @@ function upsertEquity(list: EquityHolding[], spec: FamilyEquitySleeve): EquityHo
       avgCost: 0,
       livePrice: 0,
       includeInPortfolio: true,
+      accountType: storedType,
     },
   ]
 }
@@ -131,7 +156,7 @@ function upsertCrypto(list: CryptoHolding[], spec: FamilyCryptoSleeve): CryptoHo
   ]
 }
 
-/** Set the named family book’s TSLA / MSTR / ADA quantities. No-op for David / Andrew / unknown. */
+/** Set the named family book’s TSLA / MSTR / ADA quantities. No-op for David / unknown. */
 export function applyNamedFamilyHoldings(
   data: PortfolioData,
   name: string,

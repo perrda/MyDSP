@@ -29,6 +29,24 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.146',
+    date: '2026-08-31',
+    bullets: [
+      {
+        text: 'Mum / Andrew / Thomas / Rebecca / James King gifted shares land again',
+        to: '/equities',
+      },
+      {
+        text: 'Refresh prices every family book — unpriced lines were hidden from NW',
+        to: '/equities',
+      },
+      {
+        text: 'Mini REPLACE no longer wipes those sleeves on this device',
+        to: '/settings#sync',
+      },
+    ],
+  },
+  {
     version: '1.2.145',
     date: '2026-08-30',
     bullets: [

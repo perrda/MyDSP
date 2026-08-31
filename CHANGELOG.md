@@ -1,5 +1,14 @@
 # MyDSP Changelog
 
+## [1.2.146] - 2026-08-31
+
+### Fixed — Family sleeves land on live (Mum / Andrew / Thomas / Rebecca / James King)
+- **Why they were blank:** 1.2.143 writes TSLA / MSTR / ADA once, then stamps `extras.familySleevesApplied`. Mini-as-book **REPLACE** and leftover **Reset** left the named books empty with the v1 flag, so a refresh never refilled. Marks also started at 0, so unpriced lines were excluded from net worth even when shares existed.
+- **v2 one-shot:** Mum (109 TSLA / 108 MSTR), Thomas + Rebecca (100 TSLA / 97 MSTR), James King (182 TSLA / 90 MSTR / 3,000 ADA). **Andrew** (from the holdings shot): SIPP 295 TSLA / 197 MSTR, Fund & Share 135 TSLA / 112 MSTR, 14,285 ADA, BTC 0. Reset after v2 still stays empty. David stays unchanged.
+- **After REPLACE:** satellite pull / merge re-runs the apply so Mini’s empty family books do not wipe the gifted sleeves on this device.
+- **Prices on every family book:** header Refresh quotes TSLA / MSTR / ADA across all named books (not only the open profile). Last-synced Markets marks fill on apply. Service worker cache is `mydsp-v1.2.146`.
+- **Keep:** Mini-as-book sync (satellites REPLACE), Today one-column + Assets hero, utilities under YouTube, `#F7931A`, 1.2.145 holdings ⋯ Edit, 1.2.144 capital TREND chips, 1.2.143 sleeve table, 1.2.139 Reset/Delete.
+
 ## [1.2.145] - 2026-08-30
 
 ### Changed — Holdings ⋯ Edit (draft, no live)

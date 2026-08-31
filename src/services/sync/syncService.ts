@@ -17,6 +17,7 @@ import { importPriceAlertThresholdsFromBackup } from '../../domain/priceAlerts'
 import { importNavLayoutFromBackup } from '../../storage/navOrder'
 import { importYoutubeFromBackup, importYoutubeVideosFromBackup } from '../../storage/youtubeStore'
 import {
+  applyFamilyHoldingsToNamedBooks,
   flushSave,
   getActivePortfolioId,
   listPortfolios,
@@ -1159,6 +1160,7 @@ export async function applyRemoteAsBook(
   }
 
   await applyWorkspaceExtrasFromPreview(preview)
+  applyFamilyHoldingsToNamedBooks()
 
   return { merged, conflicts: preview.conflicts, removedDupes: removed.length }
 }
@@ -1201,7 +1203,7 @@ export async function applyMergePreview(
   }
 
   await applyWorkspaceExtrasFromPreview(preview)
-
+  applyFamilyHoldingsToNamedBooks()
 
   return { merged, conflicts: preview.conflicts, removedDupes: removed.length }
 }

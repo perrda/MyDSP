@@ -5,6 +5,7 @@ import {
   hasFamilySleevesApplied,
   markFamilySleevesAppliedOnData,
 } from '../domain/familyHoldingSleeves'
+import { applyLastSyncedQuotesToHoldings } from '../domain/lastSyncedHoldings'
 import { normalizePortfolio, toStorageShape } from '../domain/normalize'
 import type { PortfolioData, PortfolioMeta } from '../domain/types'
 import { STORAGE } from './keys'
@@ -352,7 +353,27 @@ export function createPortfolio(
   return meta
 }
 
-/** Write TSLA / MSTR / ADA sleeves onto existing Mum / Thomas / Rebecca / James King books (once). */
+/** Fill zero marks on named family books from the last Markets quote cache. */
+export function priceNamedFamilyBooksFromLastSynced(): string[] {
+  const priced: string[] = []
+  for (const meta of listPortfolios()) {
+    if (!familyHoldingSleeveFor(meta.name)) continue
+    const key = STORAGE.dataKey(meta.id)
+    const raw = readJson<unknown>(key)
+    if (!raw) continue
+    const current = normalizePortfolio(raw)
+    const filled = applyLastSyncedQuotesToHoldings(current, { overwrite: false })
+    if (filled.crypto === 0 && filled.equities === 0) continue
+    savePortfolioImmediate(filled.data, meta.id)
+    priced.push(meta.name)
+  }
+  return priced
+}
+
+/**
+ * Write TSLA / MSTR / ADA sleeves onto existing Mum / Thomas / Rebecca / James King books (once per version).
+ * Re-run after satellite REPLACE so Mini’s empty v1 books do not stay blank on this device.
+ */
 export function applyFamilyHoldingsToNamedBooks(): string[] {
   const updated: string[] = []
   for (const meta of listPortfolios()) {
@@ -362,7 +383,9 @@ export function applyFamilyHoldingsToNamedBooks(): string[] {
     const current = raw ? normalizePortfolio(raw) : createEmptyPortfolio()
     if (hasFamilySleevesApplied(current)) continue
     const { data, changed } = applyNamedFamilyHoldings(current, meta.name)
-    savePortfolioImmediate(markFamilySleevesAppliedOnData(data), meta.id)
+    const stamped = markFamilySleevesAppliedOnData(data)
+    const filled = applyLastSyncedQuotesToHoldings(stamped, { overwrite: false })
+    savePortfolioImmediate(filled.data, meta.id)
     if (changed) updated.push(meta.name)
   }
   return updated

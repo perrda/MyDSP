@@ -44,15 +44,15 @@ function qty(data: { crypto: { symbol: string; qty: number }[] }, symbol: string
 describe('MyDSP 1.2.143 family TSLA / MSTR / ADA sleeves', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(read('../../package.json'))
-    expect(pkg.version).toBe('1.2.145')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.145')
+    expect(pkg.version).toBe('1.2.146')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.146')
     expect(RELEASE_NOTES.some((e) => e.version === '1.2.143')).toBe(true)
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.146',
       '1.2.145',
       '1.2.144',
       '1.2.143',
       '1.2.141',
-      '1.2.140',
     ])
     const changelog = read('../../CHANGELOG.md')
     const section = changelog.match(/## \[1\.2\.143\][\s\S]*?(?=## \[)/)?.[0] ?? ''
@@ -78,7 +78,7 @@ describe('MyDSP 1.2.143 family TSLA / MSTR / ADA sleeves', () => {
     expect(shipped).not.toMatch(/3,000 ADA/)
   })
 
-  it('maps the four named books and skips David / Andrew', () => {
+  it('maps the five named books and skips David', () => {
     expect(familyHoldingSleeveFor('THOMAS')?.equities.map((e) => [e.symbol, e.shares])).toEqual([
       ['TSLA', 100],
       ['MSTR', 97],
@@ -97,8 +97,16 @@ describe('MyDSP 1.2.143 family TSLA / MSTR / ADA sleeves', () => {
       ['MSTR', 90],
     ])
     expect(james?.crypto.map((c) => [c.symbol, c.qty])).toEqual([['ADA', 3000]])
+    const andrew = familyHoldingSleeveFor('Andrew')
+    expect(andrew?.equities.map((e) => [e.symbol, e.shares, e.accountType ?? 'general'])).toEqual([
+      ['TSLA', 295, 'sipp'],
+      ['MSTR', 197, 'sipp'],
+      ['TSLA', 135, 'general'],
+      ['MSTR', 112, 'general'],
+    ])
+    expect(andrew?.crypto.map((c) => [c.symbol, c.qty])).toEqual([['ADA', 14285]])
+    expect(andrew?.crypto.some((c) => c.symbol === 'BTC')).toBe(false)
     expect(familyHoldingSleeveFor('David')).toBeNull()
-    expect(familyHoldingSleeveFor('Andrew')).toBeNull()
   })
 
   it('upserts by symbol and is a no-op when quantities already match', () => {
@@ -146,7 +154,7 @@ describe('family sleeve bootstrap / reset', () => {
     mem.clear()
   })
 
-  it('writes the four books on bootstrap and skips David / Andrew', async () => {
+  it('writes the five books on bootstrap and skips David', async () => {
     const store = await import('../storage/portfolioStore')
     store.bootstrapFamilyPortfolios()
     const byName = Object.fromEntries(store.listPortfolios().map((p) => [p.name, p.id]))
@@ -169,8 +177,15 @@ describe('family sleeve bootstrap / reset', () => {
     expect(shares(james, 'MSTR')).toBe(90)
     expect(qty(james, 'ADA')).toBe(3000)
 
-    expect(store.loadPortfolio(byName.Andrew).equities).toHaveLength(0)
-    expect(store.loadPortfolio(byName.Andrew).crypto).toHaveLength(0)
+    const andrew = store.loadPortfolio(byName.Andrew)
+    expect(andrew.equities.map((e) => [e.symbol, e.shares, e.accountType ?? 'general'])).toEqual([
+      ['TSLA', 295, 'sipp'],
+      ['MSTR', 197, 'sipp'],
+      ['TSLA', 135, 'general'],
+      ['MSTR', 112, 'general'],
+    ])
+    expect(qty(andrew, 'ADA')).toBe(14285)
+    expect(qty(andrew, 'BTC')).toBeUndefined()
     expect(store.applyFamilyHoldingsToNamedBooks()).toEqual([])
   })
 
@@ -179,6 +194,21 @@ describe('family sleeve bootstrap / reset', () => {
     store.ensurePortfolioRegistry()
     const meta = store.createPortfolio('Mum', { empty: true })
     expect(shares(store.loadPortfolio(meta.id), 'TSLA')).toBe(109)
+    expect(store.applyFamilyHoldingsToNamedBooks()).toEqual([])
+  })
+
+  it('refills once when a named book still has the v1 flag but no gifted shares', async () => {
+    const store = await import('../storage/portfolioStore')
+    store.bootstrapFamilyPortfolios()
+    const mum = store.listPortfolios().find((p) => p.name === 'Mum')!
+    const empty = createEmptyPortfolio()
+    empty.extras = { [FAMILY_SLEEVES_APPLIED_EXTRA]: 'v1' }
+    store.savePortfolioImmediate(empty, mum.id)
+    expect(store.loadPortfolio(mum.id).equities).toHaveLength(0)
+    expect(store.applyFamilyHoldingsToNamedBooks()).toContain('Mum')
+    expect(shares(store.loadPortfolio(mum.id), 'TSLA')).toBe(109)
+    expect(shares(store.loadPortfolio(mum.id), 'MSTR')).toBe(108)
+    expect(hasFamilySleevesApplied(store.loadPortfolio(mum.id))).toBe(true)
     expect(store.applyFamilyHoldingsToNamedBooks()).toEqual([])
   })
 
