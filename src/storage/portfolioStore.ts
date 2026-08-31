@@ -263,7 +263,7 @@ export function loadPortfolio(portfolioId = getActivePortfolioId()): PortfolioDa
   }
 
   // First run for David (default): seed sample so Overview isn't blank.
-  // Additional portfolios start empty.
+  // Additional portfolios start empty — except named family books, which get gifted sleeves.
   if (portfolioId === 'default') {
     const sample = createSamplePortfolio()
     savePortfolioImmediate(sample, portfolioId)
@@ -272,6 +272,14 @@ export function loadPortfolio(portfolioId = getActivePortfolioId()): PortfolioDa
   }
 
   const empty = createEmptyPortfolio()
+  const name = listPortfolios().find((p) => p.id === portfolioId)?.name ?? ''
+  if (familyHoldingSleeveFor(name)) {
+    const { data: withSleeve } = applyNamedFamilyHoldings(empty, name)
+    const stamped = markFamilySleevesAppliedOnData(withSleeve)
+    const filled = applyLastSyncedQuotesToHoldings(stamped, { overwrite: false }).data
+    savePortfolioImmediate(filled, portfolioId)
+    return filled
+  }
   savePortfolioImmediate(empty, portfolioId)
   return empty
 }
@@ -289,6 +297,28 @@ export function savePortfolioImmediate(
   const key = STORAGE.dataKey(portfolioId)
   writeJson(key, toStorageShape(data))
   notifyDataChanged()
+}
+
+/**
+ * Persist the open book when switching away — do not overwrite gifted family
+ * rows already on disk with a stale empty React snapshot.
+ */
+export function savePortfolioPreservingFamilySleeve(
+  data: PortfolioData,
+  portfolioId = getActivePortfolioId(),
+): void {
+  const name = listPortfolios().find((p) => p.id === portfolioId)?.name ?? ''
+  if (familyHoldingSleeveFor(name)) {
+    const key = STORAGE.dataKey(portfolioId)
+    const raw = readJson<unknown>(key)
+    if (raw) {
+      const disk = normalizePortfolio(raw)
+      const reactN = (data.equities?.length ?? 0) + (data.crypto?.length ?? 0)
+      const diskN = (disk.equities?.length ?? 0) + (disk.crypto?.length ?? 0)
+      if (diskN > reactN) return
+    }
+  }
+  savePortfolioImmediate(data, portfolioId)
 }
 
 /** Flush any pending debounced save for a portfolio (writes immediately). */
@@ -371,8 +401,9 @@ export function priceNamedFamilyBooksFromLastSynced(): string[] {
 }
 
 /**
- * Write TSLA / MSTR / ADA sleeves onto existing Mum / Thomas / Rebecca / James King books (once per version).
- * Re-run after satellite REPLACE so Mini’s empty v1 books do not stay blank on this device.
+ * Write TSLA / MSTR / ADA sleeves onto existing named family books (once per version).
+ * Re-run after satellite REPLACE so Mini’s empty v1/v2 books do not stay blank.
+ * Always fills last-synced marks afterwards — a v2 stamp must not leave Andrew at £0.
  */
 export function applyFamilyHoldingsToNamedBooks(): string[] {
   const updated: string[] = []
@@ -388,6 +419,7 @@ export function applyFamilyHoldingsToNamedBooks(): string[] {
     savePortfolioImmediate(filled.data, meta.id)
     if (changed) updated.push(meta.name)
   }
+  priceNamedFamilyBooksFromLastSynced()
   return updated
 }
 
