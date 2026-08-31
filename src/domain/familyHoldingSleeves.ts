@@ -4,8 +4,8 @@ import type { CryptoHolding, EquityAccountType, EquityHolding, PortfolioData } f
 
 /** Persists on the book (syncs) so Reset stays empty and a backup carries the one-shot. */
 export const FAMILY_SLEEVES_APPLIED_EXTRA = 'familySleevesApplied'
-/** v2 re-applies once after Mini REPLACE / leftover Reset ate the v1 one-shot. */
-export const FAMILY_SLEEVES_APPLIED_VERSION = 'v2'
+/** v3 re-applies once — Andrew stayed blank after the v2 leftover stamp. */
+export const FAMILY_SLEEVES_APPLIED_VERSION = 'v3'
 
 export function hasFamilySleevesApplied(data: PortfolioData): boolean {
   return data.extras?.[FAMILY_SLEEVES_APPLIED_EXTRA] === FAMILY_SLEEVES_APPLIED_VERSION
@@ -154,6 +154,29 @@ function upsertCrypto(list: CryptoHolding[], spec: FamilyCryptoSleeve): CryptoHo
       includeInPortfolio: true,
     },
   ]
+}
+
+function accountOf(holding: { accountType?: EquityAccountType }): EquityAccountType {
+  return accountKey(holding.accountType)
+}
+
+/** True when the gifted TSLA / MSTR / ADA rows are missing or the quantities do not match. */
+export function familyBookMissingGiftedRows(data: PortfolioData, name: string): boolean {
+  const sleeve = familyHoldingSleeveFor(name)
+  if (!sleeve) return false
+  const equities = data.equities ?? []
+  const crypto = data.crypto ?? []
+  for (const spec of sleeve.equities) {
+    const row = equities.find(
+      (e) => e.symbol.trim().toUpperCase() === spec.symbol && accountOf(e) === accountKey(spec.accountType),
+    )
+    if (!row || row.shares !== spec.shares) return true
+  }
+  for (const spec of sleeve.crypto) {
+    const row = crypto.find((c) => c.symbol.trim().toUpperCase() === spec.symbol)
+    if (!row || row.qty !== spec.qty) return true
+  }
+  return false
 }
 
 /** Set the named family book’s TSLA / MSTR / ADA quantities. No-op for David / unknown. */

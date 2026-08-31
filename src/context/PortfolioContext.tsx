@@ -58,9 +58,11 @@ import {
   listPortfolios,
   loadPortfolio,
   MAX_PORTFOLIOS,
+  priceNamedFamilyBooksFromLastSynced,
   renamePortfolio as renamePortfolioMeta,
   savePortfolio,
   savePortfolioImmediate,
+  savePortfolioPreservingFamilySleeve,
   setActivePortfolioId,
   setOnPortfolioDataChanged,
 } from '../storage/portfolioStore'
@@ -220,12 +222,15 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
       if (safeId !== id) setActivePortfolioId(safeId)
       setPortfolios(portfolios)
       setActiveId(safeId)
+      applyFamilyHoldingsToNamedBooks()
+      priceNamedFamilyBooksFromLastSynced()
       const loaded = loadPortfolio(safeId)
       const rates = loadCachedFxRates()
       const { data: migrated, migrated: didMigrate } = migrateEquityLivePricesToGbp(loaded, rates)
-      if (didMigrate) savePortfolioImmediate(migrated, safeId)
-      setDataState(migrated)
-      setDisplayCurrency(migrated.settings.currency || 'GBP', rates)
+      const filled = applyLastSyncedQuotesToHoldings(migrated, { overwrite: false }).data
+      if (didMigrate || filled !== migrated) savePortfolioImmediate(filled, safeId)
+      setDataState(filled)
+      setDisplayCurrency(filled.settings.currency || 'GBP', rates)
       setFccDataPresent(hasFccData())
     } catch (e) {
       console.warn('[portfolio] reload after sync failed:', e)
@@ -241,15 +246,18 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
 
   const switchPortfolio = useCallback(
     (id: string) => {
-      savePortfolioImmediate(dataRef.current, activeId)
+      savePortfolioPreservingFamilySleeve(dataRef.current, activeId)
+      applyFamilyHoldingsToNamedBooks()
+      priceNamedFamilyBooksFromLastSynced()
       setActivePortfolioId(id)
       setActiveId(id)
       const loaded = loadPortfolio(id)
       const rates = loadCachedFxRates()
       const { data: migrated, migrated: didMigrate } = migrateEquityLivePricesToGbp(loaded, rates)
-      if (didMigrate) savePortfolioImmediate(migrated, id)
-      setDataState(migrated)
-      setDisplayCurrency(migrated.settings.currency || 'GBP', rates)
+      const filled = applyLastSyncedQuotesToHoldings(migrated, { overwrite: false }).data
+      if (didMigrate || filled !== migrated) savePortfolioImmediate(filled, id)
+      setDataState(filled)
+      setDisplayCurrency(filled.settings.currency || 'GBP', rates)
     },
     [activeId],
   )
@@ -503,11 +511,12 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
   }, [refreshPrices])
 
   // Gifted family sleeves land at livePrice 0 — unpriced lines are excluded from NW.
-  // Price every named book on first load so Mum / Thomas / Rebecca / James King report GBP.
+  // Price every named book on first load so Mum / Andrew / Thomas / Rebecca / James King report GBP.
   const familyPriceAttempted = useRef(false)
   useEffect(() => {
     if (familyPriceAttempted.current) return
     applyFamilyHoldingsToNamedBooks()
+    priceNamedFamilyBooksFromLastSynced()
     let needs = false
     for (const p of listPortfolios()) {
       if (!familyHoldingSleeveFor(p.name)) continue

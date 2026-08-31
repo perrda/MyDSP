@@ -29,6 +29,24 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.147',
+    date: '2026-08-31',
+    bullets: [
+      {
+        text: 'Andrew gifted shares and prices land — SIPP + Fund & Share TSLA/MSTR + ADA',
+        to: '/equities',
+      },
+      {
+        text: 'Refresh and profile switch fill family-book marks so NW is not £0',
+        to: '/equities',
+      },
+      {
+        text: 'Switching profiles no longer wipes Andrew’s gifted rows',
+        to: '/equities',
+      },
+    ],
+  },
+  {
     version: '1.2.146',
     date: '2026-08-31',
     bullets: [

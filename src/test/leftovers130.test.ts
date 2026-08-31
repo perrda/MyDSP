@@ -45,14 +45,14 @@ function quote(partial: Partial<MarketQuote>): MarketQuote {
 describe('MyDSP 1.2.130 leftovers', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(read('../../package.json'))
-    expect(pkg.version).toBe('1.2.146')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.146')
+    expect(pkg.version).toBe('1.2.147')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.147')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.147',
       '1.2.146',
       '1.2.145',
       '1.2.144',
       '1.2.143',
-      '1.2.141',
     ])
     const changelog = read('../../CHANGELOG.md')
     const section = changelog.match(/## \[1\.2\.130\][\s\S]*?(?=## \[)/)?.[0] ?? ''

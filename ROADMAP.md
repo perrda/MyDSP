@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.146**
+**Current version: 1.2.147**
 
-## Completed (through v1.2.146)
+## Completed (through v1.2.147)
 
+- Andrew gifted figures land (v1.2.147): v3 one-shot refills Andrew after a leftover v2 empty stamp · SIPP + Fund & Share TSLA/MSTR + 14,285 ADA · last-synced marks on every named book including already-stamped · switch profile does not wipe Andrew · Reset after v3 stays empty · David unchanged
 - Family sleeves land on live (v1.2.146): v2 one-shot refills Mum / Andrew / Thomas / Rebecca / James King after Mini REPLACE or leftover Reset ate the v1 flag · Andrew SIPP + Fund & Share TSLA/MSTR + 14,285 ADA · BTC 0 · Refresh prices every named book · SW cache `mydsp-v1.2.146` · Reset after v2 stays empty · David unchanged
 - Holdings ⋯ Edit (v1.2.145): list ⋯ portals above swipe overflow · Edit + Delete only · Edit sheet has Edit / Buy / Sell plus qty, price, date, commentary · Equities and Crypto · draft only — live stays 1.2.144
 - Today TREND chip capitals (v1.2.144): 24H · 7D · 30D · 6M · YTD · 12M · 5Y · ALL — 7D / 30D / 6M match the other capital chips · default 30D + `#F7931A` active stay · draft only — live stays 1.2.141

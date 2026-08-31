@@ -1,5 +1,13 @@
 # MyDSP Changelog
 
+## [1.2.147] - 2026-08-31
+
+### Fixed — Andrew gifted shares and prices land
+- **Why Andrew stayed blank:** 1.2.146’s v2 one-shot skipped books already stamped `familySleevesApplied=v2`. Leftover Reset / Mini REPLACE left **Andrew** empty (or TSLA / MSTR / ADA at £0). Mum / Rebecca / Thomas / James King had v1 stamps so they refilled and priced; Andrew did not.
+- **v3 one-shot:** refills Andrew — SIPP 295 TSLA / 197 MSTR, Fund & Share 135 TSLA / 112 MSTR, 14,285 ADA, BTC 0 — and re-applies last-synced Markets marks on every named book, even if already stamped. Header Refresh and profile switch fill those marks so Today NW is not £0.
+- **Do not clobber:** switching away from Andrew no longer writes a stale empty React snapshot over gifted rows already on disk. Reset after v3 still stays empty. David unchanged.
+- **Keep:** Mini-as-book sync (satellites REPLACE), Today one-column + Assets hero, utilities under YouTube, `#F7931A`, 1.2.146 v2 family sleeves, 1.2.145 holdings ⋯ Edit. Service worker cache is `mydsp-v1.2.147`.
+
 ## [1.2.146] - 2026-08-31
 
 ### Fixed — Family sleeves land on live (Mum / Andrew / Thomas / Rebecca / James King)
