@@ -23,6 +23,7 @@ import {
   deletePortfolio,
   listPortfolios,
   loadPortfolio,
+  renamePortfolio,
   savePortfolioImmediate,
 } from '../storage/portfolioStore'
 import { addYoutubeChannel, listYoutubeChannels } from '../storage/youtubeStore'
@@ -663,6 +664,65 @@ describe('Mini ↔ satellite extras Worker round-trip (1.2.158)', () => {
 
     const afterMini = await previewPull(URL, PASS)
     expect(afterMini.registryPortfolios.map((p) => p.name)).toEqual(['David'])
+  })
+
+  it('Mini boot/Backup pushSync absorbs a portfolio renamed on the satellite after Unlock', async () => {
+    const cloud = installMockSyncCloud()
+
+    localStorage.setItem('mydsp_device_id', 'dev_mini')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    setSessionSyncPassphrase(PASS, { remember: true })
+    seedPortfolio('default', 'David', miniBook())
+    const kids = createPortfolio('Kids', { empty: true })
+    await pushSync(URL, PASS)
+    const miniSnap = snapshotStorage()
+
+    localStorage.clear()
+    clearSessionSyncPassphrase()
+    localStorage.setItem('mydsp_device_id', 'dev_macbook')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: false,
+    })
+    seedPortfolio('default', 'David', leftoverBook())
+    await unlockAndPullFromCloud(PASS)
+    const kidsId = listPortfolios().find((p) => p.name === 'Kids')?.id
+    expect(kidsId).toBeTruthy()
+    renamePortfolio(kidsId!, 'Children')
+    vi.useFakeTimers({ toFake: ['setTimeout', 'setInterval'] })
+    markLocalDataChanged()
+    await vi.advanceTimersByTimeAsync(4_000)
+    vi.useRealTimers()
+    await vi.waitFor(() => {
+      expect(
+        cloud.fetchMock.mock.calls.filter((c) => String(c[1]?.method ?? 'GET').toUpperCase() === 'PUT')
+          .length,
+      ).toBeGreaterThan(1)
+    })
+    expect(listPortfolios().map((p) => p.name).sort()).toEqual(['Children', 'David'])
+
+    stopAutoSync()
+    restoreStorage(miniSnap)
+    setSessionSyncPassphrase(PASS, { remember: true })
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    expect(listPortfolios().map((p) => p.name).sort()).toEqual(['David', 'Kids'])
+
+    await pushSync(URL, PASS)
+    expect(listPortfolios().map((p) => p.name).sort()).toEqual(['Children', 'David'])
+
+    const afterMini = await previewPull(URL, PASS)
+    expect(afterMini.registryPortfolios.map((p) => p.name).sort()).toEqual(['Children', 'David'])
   })
 
   it('Mini open + Automatic off absorbs a satellite channel on the interval cycle', async () => {

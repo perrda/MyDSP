@@ -19,6 +19,7 @@ import {
   overlayDirtyLocalHoldings,
   dropSatelliteDeletedBooks,
   restoreSatelliteCreatedBooks,
+  restoreSatelliteRenamedBooks,
   snapshotSatelliteCreatedBooks,
   stampLastPulledHoldings,
   fetchRemoteMeta,
@@ -547,12 +548,13 @@ async function doPull(cfg: SyncConfig, pass: string, reason: CycleReason): Promi
     try {
       await applyWorkspaceExtrasFromPreview(preview)
       const createdBooks = dirty ? snapshotSatelliteCreatedBooks() : []
-      const localIdsBefore = dirty ? listPortfolios().map((p) => p.id) : []
+      const metasBefore = dirty ? listPortfolios() : []
       const result = await applyRemoteAsBook(preview, { stampHoldings: false })
       if (dirty) {
         overlayDirtyLocalHoldings(preview)
         restoreSatelliteCreatedBooks(createdBooks)
-        dropSatelliteDeletedBooks(localIdsBefore)
+        dropSatelliteDeletedBooks(metasBefore.map((p) => p.id))
+        restoreSatelliteRenamedBooks(metasBefore)
       }
       stampLastPulledHoldings()
       const at = new Date().toISOString()

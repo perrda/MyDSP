@@ -1341,6 +1341,21 @@ export function dropSatelliteDeletedBooks(localIdsBefore: string[]): void {
   }
 }
 
+/** After REPLACE, put back local portfolio names this satellite edited. */
+export function restoreSatelliteRenamedBooks(before: PortfolioMeta[]): void {
+  if (before.length === 0) return
+  const byId = new Map(before.map((p) => [p.id, p]))
+  const list = listPortfolios()
+  let changed = false
+  const next = list.map((p) => {
+    const prev = byId.get(p.id)
+    if (!prev || prev.name === p.name) return p
+    changed = true
+    return { ...p, name: prev.name }
+  })
+  if (changed) localStorage.setItem(STORAGE.PORTFOLIOS, JSON.stringify(next))
+}
+
 export function restoreSatelliteCreatedBooks(
   created: Array<{ meta: PortfolioMeta; data: PortfolioData }>,
 ): void {
