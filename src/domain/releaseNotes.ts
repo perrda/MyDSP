@@ -49,6 +49,10 @@ export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
         to: '/settings#sync',
       },
       {
+        text: 'Backup on Mini pushes even if Automatic sync is off — same passphrase',
+        to: '/settings#sync',
+      },
+      {
         text: 'MacBook Settings Sync / Refresh pull Mini — they never overwrite the book',
         to: '/settings#sync',
       },

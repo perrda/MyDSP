@@ -209,7 +209,11 @@ import {
   downloadSyncSetupUrl,
   drawSyncSetupCard,
 } from '../services/sync/syncSetupExport'
-import { runOneButtonSync, unlockAndPullFromCloud } from '../services/sync/oneButtonSync'
+import {
+  flushQueuedSyncPush,
+  runOneButtonSync,
+  unlockAndPullFromCloud,
+} from '../services/sync/oneButtonSync'
 import {
   loadRecentSettingsJumps,
   rankSettingsSections,
@@ -1950,13 +1954,25 @@ export function SettingsPage() {
                   if (!isOnline()) {
                     enqueueOfflineJob('sync_push', {
                       remoteUrl,
-                      note: 'Will push when online using session passphrase',
+                      note: isBookDevice(syncCfg)
+                        ? 'Will push when online using session passphrase'
+                        : 'Will pull Mini when online using session passphrase',
                     })
                     setQueue(loadOfflineQueue())
-                    flash('Offline — push queued. Come online and press Flush queue.')
+                    flash(
+                      isBookDevice(syncCfg)
+                        ? 'Offline — push queued. Come online and press Flush queue.'
+                        : 'Offline — pull queued. Come online and press Flush queue.',
+                    )
                     return
                   }
                   try {
+                    if (!isBookDevice(syncCfg)) {
+                      const pulled = await unlockAndPullFromCloud(syncPass)
+                      setSyncCfg(loadSyncConfig())
+                      flash(pulled.message)
+                      return
+                    }
                     const pushed = await pushSync(remoteUrl, syncPass)
                     const next = {
                       ...syncCfg,
@@ -2445,7 +2461,7 @@ export function SettingsPage() {
                               break
                             }
                             try {
-                              await pushSync(job.remoteUrl, pass)
+                              await flushQueuedSyncPush(job.remoteUrl, pass)
                               removeOfflineJob(job.id)
                               flushed++
                             } catch (e) {
@@ -4222,7 +4238,8 @@ export function SettingsPage() {
             Snapshots <strong className="text-text">every portfolio</strong> automatically once per
             day (keeps the last {MAX_BACKUPS}). You can also back up manually, download a file, or
             restore. On Mini (this device is the book), Backup now also pushes YouTube channels,
-            News, Markets, prices, and the portfolio book to the cloud when Sync is unlocked.
+            News, Markets, prices, FX, and the portfolio book to the cloud when the passphrase
+            is unlocked — Automatic sync can be off. Satellites never push from Backup.
             Active-portfolio JSON export remains below for single-workspace copies.
           </p>
           <div className="flex flex-wrap gap-3 mb-6">

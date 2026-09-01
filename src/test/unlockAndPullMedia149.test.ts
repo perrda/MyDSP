@@ -39,6 +39,29 @@ describe('satelliteNeedsMediaUnlock', () => {
       }),
     ).toBe(true)
   })
+
+  it('shows when the passphrase is remembered but this Mac has never pulled', () => {
+    expect(
+      satelliteNeedsMediaUnlock(
+        cfg({ remoteUrl: 'https://mydsp-sync.dave-perry.workers.dev' }),
+        { state: 'idle' },
+        true,
+      ),
+    ).toBe(true)
+  })
+
+  it('hides after a successful pull even with the passphrase remembered', () => {
+    expect(
+      satelliteNeedsMediaUnlock(
+        cfg({
+          remoteUrl: 'https://mydsp-sync.dave-perry.workers.dev',
+          lastSyncAt: '2026-09-01T12:00:00.000Z',
+        }),
+        { state: 'idle' },
+        true,
+      ),
+    ).toBe(false)
+  })
 })
 
 describe('unlockAndPullFromCloud never PUTs', () => {

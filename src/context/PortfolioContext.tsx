@@ -26,7 +26,8 @@ import {
   type FxRates,
 } from '../services/fx'
 import { getSessionSyncPassphrase } from '../services/sync/sessionPassphrase'
-import { isBookDevice, pushSync } from '../services/sync/syncService'
+import { isBookDevice } from '../services/sync/syncService'
+import { flushQueuedSyncPush } from '../services/sync/oneButtonSync'
 import { refreshLiveQuotesForBookDevice } from '../services/marketsQuotes'
 import { bookDeviceNeedsLiveQuotes } from '../domain/quoteFreshnessSla'
 import { loadMarketQuotesCache } from '../storage/marketsStore'
@@ -620,7 +621,7 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
         if (job.type === 'sync_push' && job.remoteUrl) {
           const pass = getSessionSyncPassphrase()
           if (!pass) continue
-          void pushSync(job.remoteUrl, pass)
+          void flushQueuedSyncPush(job.remoteUrl, pass)
             .then(() => removeOfflineJob(job.id))
             .catch(() => {
               /* keep queued */

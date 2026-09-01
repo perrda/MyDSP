@@ -53,7 +53,8 @@ import {
   syncNow,
   type AutoSyncStatus,
 } from '../services/sync/autoSyncService'
-import { loadSyncConfig, pushSync } from '../services/sync/syncService'
+import { loadSyncConfig } from '../services/sync/syncService'
+import { flushQueuedSyncPush } from '../services/sync/oneButtonSync'
 import { satelliteNeedsMediaUnlock } from '../services/sync/mediaUnlock'
 import { UnlockSyncMediaBanner } from '../components/UnlockSyncMediaBanner'
 import {
@@ -718,11 +719,11 @@ export function Dashboard() {
       if (job.type === 'sync_push' && job.remoteUrl) {
         const pass = getSessionSyncPassphrase()
         if (!pass) continue
-        void pushSync(job.remoteUrl, pass)
-          .then(() => removeOfflineJob(job.id))
-          .catch(() => {
-            /* keep queued */
-          })
+        void flushQueuedSyncPush(job.remoteUrl, pass)
+            .then(() => removeOfflineJob(job.id))
+            .catch(() => {
+              /* keep queued */
+            })
       }
     }
     void syncNow().then(() => toastSuccess('Offline queue retry started'))

@@ -58,6 +58,8 @@ export interface MarketTicker {
   /** When true, Finnhub must not overwrite yieldPct on refresh */
   yieldManual?: boolean
   createdAt: string
+  /** Last local edit — LWW on sync so Mini notes/yield/tag beat a stale satellite row. */
+  updatedAt?: string
   sortOrder: number
 }
 

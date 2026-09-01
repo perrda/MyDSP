@@ -11,7 +11,11 @@ export function satelliteNeedsMediaUnlock(
   status?: { state: string },
   unlocked: boolean = hasSessionSyncPassphrase(),
 ): boolean {
-  if (isBookDevice(cfg) || unlocked) return false
+  if (isBookDevice(cfg)) return false
+  const pulled = Boolean(cfg.lastSyncAt || cfg.lastWorkspaceExtrasSyncAt)
+  // Passphrase remembered is not the same as a successful pull. Show Unlock
+  // until lastSyncAt so a MacBook with an empty leftover list still pulls Mini.
+  if (unlocked && pulled) return false
   // Any sync footprint — including Automatic off — still needs Unlock & pull.
   // First-run empty slate (no URL / lastSync) stays quiet.
   void status

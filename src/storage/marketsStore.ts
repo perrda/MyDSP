@@ -243,6 +243,7 @@ export function addMarketTicker(input: {
     includeInNetWorth: input.kind === 'commodity' ? Boolean(input.includeInNetWorth) : undefined,
     yieldManual: input.kind === 'equity' ? Boolean(input.yieldManual) : undefined,
     createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
     sortOrder: maxOrder + 1,
   }
   const tombKey = `${input.kind}:${symbol}`
@@ -326,6 +327,7 @@ export function updateMarketTicker(
         : patch.yieldManual !== undefined
           ? Boolean(patch.yieldManual)
           : current.yieldManual,
+    updatedAt: new Date().toISOString(),
   }
   state.tickers[idx] = updated
   saveMarketsState(state)
@@ -531,9 +533,12 @@ export function importMarketsFromBackup(raw: unknown): void {
   }
   const isTombstoned = (k: string) => tombByKey.has(k)
 
-  // Union watchlists: keep local ticker when both have the same kind+symbol;
-  // append remote-only tickers so a phone wipe cannot drop Mac-only crosses.
+  // Union watchlists. Same kind+symbol: last-write-wins on updatedAt/createdAt
+  // so Mini notes / yield / tag land on a satellite (not local-first forever).
+  // Append remote-only tickers so a phone wipe cannot drop Mac-only crosses.
   // Skip keys with deletion tombstones so removals sync across devices.
+  const rowMs = (t: MarketTicker) =>
+    Date.parse(t.updatedAt || t.createdAt || '') || 0
   const byKey = new Map<string, MarketTicker>()
   const localList = local?.tickers?.map(normalizeTicker) ?? []
   for (const t of localList) {
@@ -546,7 +551,13 @@ export function importMarketsFromBackup(raw: unknown): void {
   for (const t of remoteTickers) {
     const k = keyOf(t)
     if (isTombstoned(k)) continue
-    if (byKey.has(k)) continue
+    const prev = byKey.get(k)
+    if (prev) {
+      if (rowMs(t) > rowMs(prev)) {
+        byKey.set(k, { ...t, sortOrder: prev.sortOrder, id: prev.id })
+      }
+      continue
+    }
     byKey.set(k, { ...t, sortOrder: nextOrder++ })
   }
 

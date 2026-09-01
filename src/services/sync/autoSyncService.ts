@@ -635,6 +635,19 @@ async function doPush(cfg: SyncConfig, pass: string): Promise<void> {
     return
   }
 
+  // Satellite must not seed an empty store with leftover DAVID / YouTube.
+  if (!isBookDevice(cfg)) {
+    const meta = await fetchRemoteMeta(cfg.remoteUrl).catch(() => null)
+    if (!meta) {
+      emit({
+        state: 'idle',
+        message: 'Cloud empty — waiting for Mini',
+        lastAt: status.lastAt,
+      })
+      return
+    }
+  }
+
   const pushStarted = Date.now()
   emit({ state: 'pushing', message: 'Pushing to cloud…', lastAt: status.lastAt })
   try {
@@ -780,9 +793,22 @@ export function startAutoSync(): void {
     void runAutoSyncCycle('interval')
   }, PERIODIC_MS)
 
-  // Initial pull/push after UI settles
+  // Initial pull/push after UI settles. Satellites pull Mini even when
+  // Automatic sync is off (remembered passphrase + Remote URL).
   window.setTimeout(() => {
-    void runAutoSyncCycle('start')
+    void (async () => {
+      const cfg = loadSyncConfig()
+      const pass = getSessionSyncPassphrase()
+      if (!isBookDevice(cfg) && pass && cfg.remoteUrl.trim()) {
+        try {
+          const { unlockAndPullFromCloud } = await import('./oneButtonSync')
+          await unlockAndPullFromCloud(pass)
+        } catch {
+          /* banner / Settings still available */
+        }
+      }
+      void runAutoSyncCycle('start')
+    })()
   }, 2_000)
 }
 

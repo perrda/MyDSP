@@ -191,6 +191,24 @@ export async function unlockAndPullFromCloud(passphrase: string): Promise<OneBut
   }
 }
 
+/**
+ * Offline queue / Advanced Push flush.
+ * Mini may PUT. Satellites pull only — never seed leftover YouTube or DAVID.
+ */
+export async function flushQueuedSyncPush(
+  remoteUrl: string,
+  passphrase: string,
+): Promise<void> {
+  if (!passphrase || passphrase.trim().length < 8) {
+    throw new Error('Use a passphrase of at least 8 characters.')
+  }
+  if (isBookDevice()) {
+    await pushSync(remoteUrl, passphrase)
+    return
+  }
+  await unlockAndPullFromCloud(passphrase)
+}
+
 export {
   chooseSyncAction,
   chooseFirstSyncAction,

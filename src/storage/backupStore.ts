@@ -1168,8 +1168,22 @@ export async function ensureDailyBackup(): Promise<FullBackupMeta | null> {
 }
 
 /**
+ * Mini Backup now / daily must PUT even when Automatic sync is off.
+ * Satellites never push from Backup. Passphrase must already be unlocked.
+ */
+export function shouldPushCloudAfterBackup(
+  cfg: { remoteUrl?: string; thisDeviceIsTheBook?: boolean } | null | undefined,
+  pass: string | null | undefined,
+): boolean {
+  if (!cfg?.remoteUrl?.trim()) return false
+  if (cfg.thisDeviceIsTheBook !== true) return false
+  return Boolean(pass && pass.length >= 8)
+}
+
+/**
  * Attempt auto-sync push after backup (daily or Backup now).
  * Book device only — a satellite leftover must not overwrite Mini.
+ * Automatic sync can be off — Backup is explicit user intent on Mini.
  * Silent — errors logged but not thrown.
  */
 async function attemptAutoSync(): Promise<void> {
@@ -1177,11 +1191,8 @@ async function attemptAutoSync(): Promise<void> {
   if (!_loadSyncConfigLazy || !_pushSyncLazy || !_getSessionPassphraseLazy) return
 
   const cfg = _loadSyncConfigLazy()
-  if (!cfg || !cfg.enabled || !cfg.remoteUrl) return
-  if (cfg.thisDeviceIsTheBook !== true) return
-
   const pass = _getSessionPassphraseLazy()
-  if (!pass) return
+  if (!cfg || !shouldPushCloudAfterBackup(cfg, pass) || !pass) return
 
   try {
     await _pushSyncLazy(cfg.remoteUrl, pass)
