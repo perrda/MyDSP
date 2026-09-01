@@ -15,14 +15,14 @@ function day(y: number, m: number, d: number, nw: number): HistoryPoint {
 describe('MyDSP 1.2.137 Today trend axes', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(read('../../package.json'))
-    expect(pkg.version).toBe('1.2.150')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.150')
+    expect(pkg.version).toBe('1.2.151')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.151')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.151',
       '1.2.150',
       '1.2.149',
       '1.2.148',
       '1.2.147',
-      '1.2.146',
     ])
     const changelog = read('../../CHANGELOG.md')
     const section = changelog.match(/## \[1\.2\.137\][\s\S]*?(?=## \[)/)?.[0] ?? ''

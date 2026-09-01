@@ -1,5 +1,12 @@
 # MyDSP Changelog
 
+## [1.2.151] - 2026-09-01
+
+### Fixed — satellite pull heals empty YouTube after a skipped envelope
+- **Why channels could stay empty after Unlock:** a satellite that already recorded `lastRemoteExportedAt` skipped the next download. If YouTube / News / Markets never stamped `lastWorkspaceExtrasSyncAt` (book-only pull, failed extras apply), MacBook kept a leftover or empty list while Mini’s envelope sat in the cloud.
+- **Heal:** satellites with no extras stamp always download again. Mini is unchanged. Unlock & pull still pull-only.
+- **Keep:** Mini-as-book, Automatic-off edit push (1.2.150), Unlock on Today / YouTube / News / Markets, `#F7931A`. Service worker cache is `mydsp-v1.2.151`.
+
 ## [1.2.150] - 2026-09-01
 
 ### Fixed — Mini channel and book edits push with Automatic off

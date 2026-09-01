@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.150**
+**Current version: 1.2.151**
 
-## Completed (through v1.2.150)
+## Completed (through v1.2.151)
 
+- Satellite extras heal (v1.2.151): if YouTube / News / Markets never stamped lastWorkspaceExtrasSyncAt, the next pull downloads Mini again instead of skipping a matching envelope · Unlock stays pull-only · `#F7931A` + Mini-as-book kept
 - Mini edits push with Automatic off (v1.2.150): YouTube / News / Markets / holding changes on Mini schedule a cloud push whenever the passphrase is unlocked · satellites still wait for lastSyncAt · interval pulls stay off when Automatic is off · book-device checkbox confirms · `#F7931A` + Mini-as-book kept
 - YouTube channels unlock-and-pull (v1.2.149): satellite Unlock & pull on Today / YouTube / News / Markets runs `unlockAndPullFromCloud` (pull only) · Mini Backup now pushes extras even when Automatic is off · remembered passphrase still shows Unlock until lastSyncAt · satellite boot pull · Advanced Push / offline flush pull-only · satellite never seeds empty cloud · Markets ticker LWW · unlocked satellite extras pull-then-push · display FX in the envelope · 1.2.148 live Refresh FX included · Mini favourites + book land · `#F7931A` + Mini-as-book kept
 - Refresh fetches live FX (v1.2.148): header Refresh calls `fetchFxRates` before TSLA/MSTR/BTC/ADA quotes · Markets + Yahoo crypto leftovers use that live FX · Markets cache refreshes even off the Markets page · last-synced fills leftover £0 · Finnhub/Yahoo/CoinGecko cascade unchanged · Cloudflare $5 is not a data feed
