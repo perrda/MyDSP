@@ -216,6 +216,7 @@ describe('Media cross-device sync (v1.2.95)', () => {
     expect(rule).toMatch(/refreshLiveMarksAfterUnlock/)
     expect(rule).toMatch(/Mini boot push/)
     expect(rule).toMatch(/applyReviewedPull/)
+    expect(rule).toMatch(/Draft Worker previews/)
     const smoke = readFileSync(resolve(__dirname, '../../scripts/SYNC_SMOKE.md'), 'utf8')
     expect(smoke).toMatch(/deletion tombstones/)
     expect(smoke).toMatch(/web \/ tablet \/ mobile/)

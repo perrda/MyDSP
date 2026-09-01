@@ -41,7 +41,7 @@ export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
         to: '/settings#sync',
       },
       {
-        text: 'Rotate passphrase stays on Mini — a MacBook will not push leftovers under a new key',
+        text: 'Draft preview addresses will not push — keep Mini on main preview or Live',
         to: '/settings#sync',
       },
     ],

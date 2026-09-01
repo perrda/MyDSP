@@ -106,6 +106,7 @@ import {
   DEFAULT_SYNC_REMOTE_URL,
   getSyncRemoteUrlWarning,
   isBookDevice,
+  isDraftWorkerPreview,
   loadSyncConfig,
   normalizeSyncRemoteUrl,
   previewImport,
@@ -1024,6 +1025,20 @@ export function SettingsPage() {
             </p>
           ) : null}
           <div className="sync-simple mb-6" data-testid="sync-simple">
+            {isDraftWorkerPreview() ? (
+              <p
+                className="text-sm text-amber-700 dark:text-amber-400 mb-4"
+                data-testid="sync-draft-preview-warn"
+                role="status"
+              >
+                This address is a draft copy with its own empty book. It will not push over Mini.
+                Stay on{' '}
+                <a className="underline" href="https://main-mydspv1.dave-perry.workers.dev">
+                  main-mydspv1.dave-perry.workers.dev
+                </a>{' '}
+                or Live until this change is merged.
+              </p>
+            ) : null}
             <label className="flex items-start gap-3 cursor-pointer mb-4">
               <input
                 type="checkbox"

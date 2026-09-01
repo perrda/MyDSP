@@ -395,6 +395,18 @@ export function isBookDevice(cfg: SyncConfig = loadSyncConfig()): boolean {
 }
 
 /**
+ * Cloudflare branch previews (`cursor-*-mydspv1…`) are a new origin with empty
+ * localStorage. Pushing from them would overwrite Mini’s cloud book.
+ * Live (`mydspv1…`) and main preview (`main-mydspv1…`) are allowed.
+ */
+export function isDraftWorkerPreview(hostname?: string): boolean {
+  const host =
+    hostname ??
+    (typeof window !== 'undefined' && window.location?.hostname ? window.location.hostname : '')
+  return host.startsWith('cursor-') && host.includes('-mydspv1.')
+}
+
+/**
  * Ensure Remote URL is absolute https. Without a scheme, browsers treat it as a
  * path on the app host → Push hits mydspv1…/mydsp-sync… and returns 405.
  */
@@ -618,6 +630,11 @@ export async function buildEnvelope(
 }
 
 export async function pushSync(url: string, passphrase: string): Promise<SyncPushResult> {
+  if (isDraftWorkerPreview()) {
+    throw new Error(
+      'This draft preview will not push over Mini. Use https://main-mydspv1.dave-perry.workers.dev or Live.',
+    )
+  }
   setSessionSyncPassphrase(passphrase)
   const remote = normalizeSyncRemoteUrl(url)
   const envelope = await buildEnvelope(passphrase, { includeFullArchive: true })

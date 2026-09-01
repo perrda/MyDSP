@@ -8,6 +8,7 @@ import { mergePortfolio } from '../services/sync/merge'
 import {
   applyMergePreview,
   applyReviewedPull,
+  isDraftWorkerPreview,
   saveSyncConfig,
   type MergePreview,
 } from '../services/sync/syncService'
@@ -114,6 +115,8 @@ describe('MyDSP 1.2.158 satellite Advanced Pull replaces leftover holdings', () 
     expect(section).toMatch(/applyMergePreview/)
     expect(section).toMatch(/Rotate/)
     expect(section).toMatch(/go-live\.sh/)
+    expect(section).toMatch(/Draft previews/)
+    expect(section).toMatch(/pushSync/)
     expect(section).toMatch(/#F7931A/)
     expect(section).not.toMatch(/SYNC_KEY/)
     expect(read('../../ROADMAP.md')).toMatch(/Satellite Advanced Pull REPLACE \(v1\.2\.158\)/)
@@ -127,6 +130,9 @@ describe('MyDSP 1.2.158 satellite Advanced Pull replaces leftover holdings', () 
     expect(settings).not.toMatch(/applyMergePreview/)
     expect(settings).toMatch(/Pull book from Mini/)
     expect(settings).toMatch(/Rotate the passphrase on the Mini/)
+    expect(settings).toMatch(/sync-draft-preview-warn/)
+    expect(settings).toMatch(/isDraftWorkerPreview/)
+    expect(sync).toMatch(/isDraftWorkerPreview\(\)/)
     const rotateAt = settings.indexOf('Re-encrypt & push')
     expect(rotateAt).toBeGreaterThan(0)
     expect(settings.slice(settings.lastIndexOf('if (!isBookDevice(syncCfg))', rotateAt), rotateAt)).toMatch(
@@ -135,6 +141,7 @@ describe('MyDSP 1.2.158 satellite Advanced Pull replaces leftover holdings', () 
     expect(read('../components/SyncConflictSheet.tsx')).toMatch(/applyReviewedPull/)
     expect(read('../../.cursor/rules/media-cross-device-sync.mdc')).toMatch(/applyReviewedPull/)
     expect(read('../../.cursor/rules/media-cross-device-sync.mdc')).toMatch(/Rotate passphrase/)
+    expect(read('../../.cursor/rules/media-cross-device-sync.mdc')).toMatch(/Draft Worker previews/)
     const live = read('../../scripts/go-live.sh')
     expect(live).toMatch(/npx wrangler whoami/)
     expect(live).toMatch(/Live service worker/)
@@ -156,6 +163,15 @@ describe('MyDSP 1.2.158 satellite Advanced Pull replaces leftover holdings', () 
     expect(david.crypto.find((c) => c.id === 1)?.qty).toBe(12.5)
     expect(david.crypto.find((c) => c.id === 1)?.cost).toBe(400_000)
     expect(listPortfolios().map((p) => p.name)).not.toContain('Leftover Extra')
+  })
+
+  it('draft cursor-*-mydspv1 hosts must not push; Live and main preview may', () => {
+    expect(
+      isDraftWorkerPreview('cursor-satellite-advanced-replace-6f30-mydspv1.dave-perry.workers.dev'),
+    ).toBe(true)
+    expect(isDraftWorkerPreview('main-mydspv1.dave-perry.workers.dev')).toBe(false)
+    expect(isDraftWorkerPreview('mydspv1.dave-perry.workers.dev')).toBe(false)
+    expect(isDraftWorkerPreview('localhost')).toBe(false)
   })
 
   it('Mini book Advanced apply still unions via applyMergePreview', async () => {
