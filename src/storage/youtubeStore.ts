@@ -236,10 +236,27 @@ export function exportYoutubeForBackup(): YoutubeState {
   return loadYoutubeState()
 }
 
-export function importYoutubeFromBackup(raw: unknown): void {
+export function importYoutubeFromBackup(raw: unknown, opts?: { replace?: boolean }): void {
   if (!raw || typeof raw !== 'object') return
   const parsed = raw as YoutubeState
   if (parsed.version !== 1 || !Array.isArray(parsed.channels)) return
+  if (opts?.replace) {
+    const deletedChannels = (parsed.deletedChannels ?? []).filter(
+      (d) => d && typeof d.channelId === 'string' && typeof d.deletedAt === 'string',
+    )
+    writeState(
+      {
+        version: 1,
+        channels: parsed.channels.map(normalizeChannel).slice(0, MAX_YOUTUBE_CHANNELS),
+        deletedChannels,
+        lastRefreshAt: parsed.lastRefreshAt,
+        seenAt: typeof parsed.seenAt === 'string' ? parsed.seenAt : undefined,
+        prefsUpdatedAt: parsed.prefsUpdatedAt,
+      },
+      { fromSync: true },
+    )
+    return
+  }
   const local = loadYoutubeState()
   const remotePrefsAt = Date.parse(parsed.prefsUpdatedAt || '') || 0
   const localPrefsAt = Date.parse(local.prefsUpdatedAt || '') || 0
@@ -374,9 +391,21 @@ export function exportYoutubeVideosForBackup(): YoutubeVideosCache {
   return loadYoutubeVideosCache()
 }
 
-export function importYoutubeVideosFromBackup(raw: unknown): void {
+export function importYoutubeVideosFromBackup(raw: unknown, opts?: { replace?: boolean }): void {
   if (!raw || typeof raw !== 'object') return
   const remote = raw as YoutubeVideosCache
+  if (opts?.replace) {
+    saveYoutubeVideosCache({
+      videos: filterOutYoutubeShorts(Array.isArray(remote.videos) ? remote.videos : []).slice(0, 60),
+      fetchedAt: remote.fetchedAt,
+    })
+    try {
+      window.dispatchEvent(new CustomEvent('mydsp-youtube-videos'))
+    } catch {
+      /* ignore */
+    }
+    return
+  }
   const local = loadYoutubeVideosCache()
   const remoteAt = Date.parse(remote.fetchedAt || '') || 0
   const localAt = Date.parse(local.fetchedAt || '') || 0

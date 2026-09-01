@@ -17,6 +17,7 @@ import { importIsaRemainingFromBackup } from '../../domain/isaPrefs'
 import { importPriceAlertThresholdsFromBackup } from '../../domain/priceAlerts'
 import { importNavLayoutFromBackup } from '../../storage/navOrder'
 import { importYoutubeFromBackup, importYoutubeVideosFromBackup } from '../../storage/youtubeStore'
+import { satelliteShouldReplaceExtrasOnImport } from './satelliteFactorySeed'
 import {
   applyFamilyHoldingsToNamedBooks,
   flushSave,
@@ -937,8 +938,9 @@ export async function applyWorkspaceExtrasFromPreview(
     const { importHubLayoutFromBackup } = await import('../../storage/hubLayoutStore')
     importHubLayoutFromBackup(preview.workspaceExtras.hubLayout)
   }
+  const replaceLeftovers = satelliteShouldReplaceExtrasOnImport()
   if (preview.workspaceExtras?.markets != null) {
-    importMarketsFromBackup(preview.workspaceExtras.markets)
+    importMarketsFromBackup(preview.workspaceExtras.markets, { replace: replaceLeftovers })
   }
   if (
     preview.workspaceExtras?.marketQuotes != null &&
@@ -953,16 +955,16 @@ export async function applyWorkspaceExtrasFromPreview(
     importFxRatesFromBackup(preview.workspaceExtras.fxRates)
   }
   if (preview.workspaceExtras?.news != null) {
-    importNewsFromBackup(preview.workspaceExtras.news)
+    importNewsFromBackup(preview.workspaceExtras.news, { replace: replaceLeftovers })
   }
   if (preview.workspaceExtras?.newsArticles != null) {
     importNewsArticlesFromBackup(preview.workspaceExtras.newsArticles)
   }
   if (preview.workspaceExtras?.youtube != null) {
-    importYoutubeFromBackup(preview.workspaceExtras.youtube)
+    importYoutubeFromBackup(preview.workspaceExtras.youtube, { replace: replaceLeftovers })
   }
   if (preview.workspaceExtras?.youtubeVideos != null) {
-    importYoutubeVideosFromBackup(preview.workspaceExtras.youtubeVideos)
+    importYoutubeVideosFromBackup(preview.workspaceExtras.youtubeVideos, { replace: replaceLeftovers })
   }
   if (preview.workspaceExtras?.isaRemaining != null) {
     importIsaRemainingFromBackup(preview.workspaceExtras.isaRemaining)

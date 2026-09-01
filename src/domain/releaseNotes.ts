@@ -29,6 +29,24 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.153',
+    date: '2026-09-01',
+    bullets: [
+      {
+        text: 'First Unlock replaces leftover YouTube / News / Markets on a MacBook',
+        to: '/youtube',
+      },
+      {
+        text: 'Mini’s channels, tags, and watchlist win until extras have landed',
+        to: '/settings#sync',
+      },
+      {
+        text: 'Later pulls still union so a channel added on MacBook reaches Mini',
+        to: '/youtube',
+      },
+    ],
+  },
+  {
     version: '1.2.152',
     date: '2026-09-01',
     bullets: [
