@@ -29,6 +29,24 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.152',
+    date: '2026-09-01',
+    bullets: [
+      {
+        text: 'MacBook does not invent factory News / Markets lists before Unlock',
+        to: '/youtube',
+      },
+      {
+        text: 'Unlock still pulls Mini’s tags, watchlist, prices, and book',
+        to: '/settings#sync',
+      },
+      {
+        text: 'Mini keeps the usual starter News / Markets set',
+        to: '/markets',
+      },
+    ],
+  },
+  {
     version: '1.2.151',
     date: '2026-09-01',
     bullets: [

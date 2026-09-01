@@ -4,15 +4,21 @@
 **Live (production):** `https://mydspv1.dave-perry.workers.dev`  
 **Current `main` preview (use this until Live is promoted):** `https://main-mydspv1.dave-perry.workers.dev`
 
-The folder may move. Do not assume `~/AI_Projects/MyDSP`. Find it or clone:
+The folder may move. **Do not `cd` to `~/AI_Projects/MyDSP`.** If Terminal says `no such file`, `not a git repository`, or `Missing script: "deploy"`, you are in `~`, not MyDSP. Always use `~/MyDSP`:
 
 ```bash
-mdfind -name wrangler.jsonc
-# or a fresh copy:
 cd ~
-git clone https://github.com/perrda/MyDSP.git
-cd MyDSP
+if [ -d "$HOME/MyDSP/.git" ]; then
+  cd "$HOME/MyDSP"
+  git pull origin main
+else
+  rm -rf "$HOME/MyDSP"
+  git clone https://github.com/perrda/MyDSP.git ~/MyDSP
+  cd ~/MyDSP
+fi
 ```
+
+Find an old copy: Spotlight (`Cmd+Space`) → `wrangler.jsonc`, or `mdfind -name wrangler.jsonc`.
 
 ## Run
 

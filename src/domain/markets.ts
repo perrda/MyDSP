@@ -194,6 +194,16 @@ export const INDEX_ALIASES: Record<string, { symbol: string; name: string }> = {
   '^FTSE': { symbol: '^FTSE', name: 'FTSE 100' },
 }
 
+export function createBlankMarketsState(): MarketsState {
+  return {
+    version: 1,
+    tickers: [],
+    collapsed: { ...DEFAULT_COLLAPSED },
+    sectionOrder: [...DEFAULT_SECTION_ORDER],
+    timeframe: '24H',
+  }
+}
+
 export function createEmptyMarketsState(): MarketsState {
   const now = new Date().toISOString()
   return {

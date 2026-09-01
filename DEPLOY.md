@@ -12,26 +12,36 @@ MyDSP is a static Vite SPA. **GitHub Pages** is the recommended permanent host (
 
 Requires `wrangler login` once on your machine, **or** repo secret `CLOUDFLARE_API_TOKEN` and GitHub Action **Deploy Live mydspv1** (Actions → Run workflow). This cloud agent cannot hold your CF token.
 
-The repo folder may move. From any Terminal:
+**Do not `cd` to `~/AI_Projects/MyDSP`.** That path is gone. If Terminal says `cd: no such file`, `fatal: not a git repository`, `npm ci` needs a lockfile, or `Missing script: "deploy"`, you are in your **home folder** (`~`), not inside MyDSP.
+
+Paste this **whole block** from any folder. It always uses `~/MyDSP`:
 
 ```bash
-# Find an existing copy (look for …/MyDSP/wrangler.jsonc)
-mdfind -name wrangler.jsonc
-
-# Or get a fresh copy of main
 cd ~
-git clone https://github.com/perrda/MyDSP.git
-cd MyDSP
-```
-
-Then, inside that MyDSP folder:
-
-```bash
-git checkout main
-git pull origin main
+if [ -d "$HOME/MyDSP/.git" ]; then
+  cd "$HOME/MyDSP"
+  git fetch origin main
+  git checkout main
+  git pull origin main
+else
+  rm -rf "$HOME/MyDSP"
+  git clone https://github.com/perrda/MyDSP.git ~/MyDSP
+  cd ~/MyDSP
+fi
 npm ci
 npm run deploy           # build + verify + wrangler deploy → mydspv1
-# optional:
+```
+
+Optional — find an old copy you moved (does not deploy):
+
+```bash
+mdfind -name wrangler.jsonc
+# or Spotlight (Cmd+Space) → type wrangler.jsonc → Open Enclosing Folder
+```
+
+Optional extras, still inside `~/MyDSP`:
+
+```bash
 npm run deploy:sync      # sync-endpoint Worker
 npm run deploy:quote     # Markets/News/YouTube proxy → mydsp-quote
 # Success must print Worker name mydsp-quote (NOT mydspv1)
