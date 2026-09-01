@@ -1224,6 +1224,27 @@ export async function applyMergePreview(
 }
 
 /**
+ * Advanced / conflict / file apply: satellites REPLACE Mini’s book (never union leftovers).
+ * Mini (book) still reviews and unions via applyMergePreview.
+ */
+export async function applyReviewedPull(
+  preview: MergePreview,
+  resolutions: Record<string, ConflictChoice> = {},
+): Promise<{ merged: number; conflicts: SyncConflict[]; removedDupes: number }> {
+  if (!isBookDevice()) {
+    const result = await applyRemoteAsBook(preview)
+    try {
+      const { refreshLiveMarksAfterUnlock } = await import('../marketsQuotes')
+      await refreshLiveMarksAfterUnlock()
+    } catch {
+      /* live marks must not fail the replace */
+    }
+    return result
+  }
+  return applyMergePreview(preview, resolutions)
+}
+
+/**
  * Pull remote envelope. Review-first: when conflicts exist and are not fully
  * resolved, returns conflicts without writing. Otherwise applies the merge.
  */
@@ -1238,7 +1259,7 @@ export async function pullAndMerge(
     await applyWorkspaceExtrasFromPreview(preview)
     return { merged: 0, conflicts: preview.conflicts, preview }
   }
-  const result = await applyMergePreview(preview, resolutions)
+  const result = await applyReviewedPull(preview, resolutions)
   return { ...result, preview }
 }
 
@@ -1255,7 +1276,7 @@ export async function importEncryptedFile(
     await applyWorkspaceExtrasFromPreview(preview)
     return { merged: 0, conflicts: preview.conflicts, preview }
   }
-  const result = await applyMergePreview(preview, resolutions)
+  const result = await applyReviewedPull(preview, resolutions)
   return { ...result, preview }
 }
 

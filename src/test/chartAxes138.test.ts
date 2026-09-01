@@ -19,14 +19,14 @@ describe('MyDSP 1.2.141 chart axes follow display CCY', () => {
 
   it('package + release notes tip', () => {
     const pkg = JSON.parse(read('../../package.json'))
-    expect(pkg.version).toBe('1.2.157')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.157')
+    expect(pkg.version).toBe('1.2.158')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.158')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.158',
       '1.2.157',
       '1.2.156',
       '1.2.155',
       '1.2.154',
-      '1.2.153',
     ])
     const changelog = read('../../CHANGELOG.md')
     const section = changelog.match(/## \[1\.2\.141\][\s\S]*?(?=## \[)/)?.[0] ?? ''

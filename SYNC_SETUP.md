@@ -148,7 +148,7 @@ That’s it. Edits push about **4 seconds** after you change data (and pull firs
 | Every ~30 seconds while open | Background check |
 | Same item edited on two devices | By default **prefer cloud** on pull (toggle in Settings) |
 
-Manual **Push** / **Pull & merge** remain available as overrides.
+Manual **Push** / **Pull & merge** remain available as overrides. On a satellite, Advanced Pull / Apply / file import replace Mini’s book (they do not union leftover holdings).
 
 ---
 

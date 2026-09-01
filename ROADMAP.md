@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.157**
+**Current version: 1.2.158**
 
-## Completed (through v1.2.157)
+## Completed (through v1.2.158)
 
+- Satellite Advanced Pull REPLACE (v1.2.158): Settings Advanced Pull / Apply / file import and the conflict sheet use `applyReviewedPull` → `applyRemoteAsBook` on satellites so leftover holdings never union then push over Mini · Mini still reviews/unions · `#F7931A` + Mini-as-book kept
 - Mini boot extras push (v1.2.157): book + passphrase + URL `pushSync` on app start even when Automatic is off · satellites still pull-only · `#F7931A` + Mini-as-book kept
 - Leftover News headlines + Mini go-live (v1.2.156): first Unlock replaces News article cache · `scripts/go-live.sh` promotes Live from any folder · `#F7931A` + Mini-as-book kept
 - What’s new satellite wording (v1.2.155): leftover tip says every satellite (MacBook / iPhone / iPad), not MacBook-only · News / Markets What’s new opens `/news` not `/youtube` · `#F7931A` + Mini-as-book kept

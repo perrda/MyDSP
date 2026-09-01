@@ -21,7 +21,7 @@ import {
 } from '../services/sync/conflicts'
 import { buildConflictSummaryText, shareConflictSummary } from '../services/sync/conflictExport'
 import {
-  applyMergePreview,
+  applyReviewedPull,
   captureMergeUndoSnapshot,
   loadSyncConfig,
   restoreMergeUndoSnapshot,
@@ -172,7 +172,7 @@ export function SyncConflictSheet() {
         const highlights = collectSyncHighlights(
           activePreview.portfolios.map((p) => ({ local: p.local, remote: p.remote })),
         )
-        const result = await applyMergePreview(activePreview, resolutions)
+        const result = await applyReviewedPull(activePreview, resolutions)
         clearPendingAutoSyncConflicts()
         setPreview(null)
         setDismissed(false)

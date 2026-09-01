@@ -97,7 +97,7 @@ import {
 } from '../domain/marketsTagYieldPref'
 import {
   allConflictsResolved,
-  applyMergePreview,
+  applyReviewedPull,
   applyWorkspaceExtrasFromPreview,
   captureMergeUndoSnapshot,
   downloadEncryptedBackup,
@@ -1060,8 +1060,8 @@ export function SettingsPage() {
                 className="text-sm text-text-muted font-light mb-4"
                 data-testid="sync-satellite-copy"
               >
-                This device pulls the book. Sync and pull-to-refresh replace local portfolios with
-                Mini — they will not push a leftover DAVID over it.
+                This device pulls the book. Sync, pull-to-refresh, and Advanced Pull replace local
+                portfolios with Mini — they will not push a leftover DAVID over it.
               </p>
             ) : (
               <p className="text-sm text-text-muted font-light mb-4" data-testid="sync-book-copy">
@@ -2046,7 +2046,7 @@ export function SettingsPage() {
                         `YouTube/News/Markets pulled${extrasSummary ? ` · ${extrasSummary}` : ''} · review ${preview.conflicts.length} portfolio conflict(s) — pick Keep local/remote, then Apply merge.`,
                       )
                     } else {
-                      const r = await applyMergePreview(preview, {})
+                      const r = await applyReviewedPull(preview, {})
                       reload()
                       setPendingMerge(null)
                       setConflictChoices({})
@@ -2073,7 +2073,7 @@ export function SettingsPage() {
                           ? ' · cleaned duplicate names'
                           : ''
                       flash(
-                        `Pulled & merged ${r.merged} portfolios${blobNote}${cleaned}${
+                        `${isBookDevice(syncCfg) ? 'Pulled & merged' : 'Pulled Mini’s book'} ${r.merged} portfolios${blobNote}${cleaned}${
                           extrasSummary ? ` · ${extrasSummary}` : ''
                         }.`,
                       )
@@ -2089,7 +2089,7 @@ export function SettingsPage() {
                 })()
               }}
             >
-              Pull & merge
+              {isBookDevice(syncCfg) ? 'Pull & merge' : 'Pull book from Mini'}
             </button>
             <button
               type="button"
@@ -2185,7 +2185,7 @@ export function SettingsPage() {
                     const appliedPreview = pendingMerge
                     const appliedChoices = { ...conflictChoices }
                     const undoSnapshot = captureMergeUndoSnapshot(appliedPreview)
-                    const r = await applyMergePreview(appliedPreview, appliedChoices)
+                    const r = await applyReviewedPull(appliedPreview, appliedChoices)
                     reload()
                     setPendingMerge(null)
                     setConflicts([])
@@ -2242,7 +2242,7 @@ export function SettingsPage() {
                 })()
               }}
             >
-              Apply merge
+              {isBookDevice(syncCfg) ? 'Apply merge' : 'Apply Mini’s book'}
             </button>
             <button type="button" className="btn-ghost" onClick={() => void testSyncEndpoint()}>
               Test endpoint
@@ -2290,7 +2290,7 @@ export function SettingsPage() {
                         `YouTube/News/Markets imported · review ${preview.conflicts.length} portfolio conflict(s) — pick Keep local/remote, then Apply merge.`,
                       )
                     } else {
-                      const r = await applyMergePreview(preview, {})
+                      const r = await applyReviewedPull(preview, {})
                       reload()
                       setPendingMerge(null)
                       setConflictChoices({})
@@ -2305,7 +2305,9 @@ export function SettingsPage() {
                       }
                       setSyncCfg(next)
                       saveSyncConfig(next)
-                      flash(`Imported & merged ${r.merged} portfolios.`)
+                      flash(
+                        `${isBookDevice(syncCfg) ? 'Imported & merged' : 'Imported Mini’s book'} ${r.merged} portfolios.`,
+                      )
                     }
                   } catch (err) {
                     flash(err instanceof Error ? err.message : 'Import failed')

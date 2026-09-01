@@ -81,7 +81,7 @@ describe('next25f sync / security items 1-5', () => {
     expect(settings).toMatch(/formatSyncPayloadBytes/)
 
     const sheet = readFileSync(resolve(__dirname, '../components/SyncConflictSheet.tsx'), 'utf8')
-    expect(sheet).toMatch(/applyMergePreview/)
+    expect(sheet).toMatch(/applyReviewedPull/)
     expect(sheet).toMatch(/clearPendingAutoSyncConflicts/)
     expect(sheet).toMatch(/bulkChoice/)
   })

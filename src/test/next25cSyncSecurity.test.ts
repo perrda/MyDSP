@@ -69,6 +69,7 @@ describe('next25c sync / security', () => {
     const dryHandler = settings.slice(start, end)
     expect(dryHandler).toMatch(/previewPull/)
     expect(dryHandler).not.toMatch(/applyMergePreview\(/)
+    expect(dryHandler).not.toMatch(/applyReviewedPull\(/)
   })
 
   it('2: device nickname persists and is used as deviceHint', () => {
@@ -207,6 +208,6 @@ describe('next25c sync / security', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8')) as {
       version: string
     }
-    expect(pkg.version).toBe('1.2.157')
+    expect(pkg.version).toBe('1.2.158')
   })
 })

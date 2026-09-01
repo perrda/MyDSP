@@ -1,5 +1,12 @@
 # MyDSP Changelog
 
+## [1.2.158] - 2026-09-01
+
+### Fixed — satellite Advanced Pull replaces leftover holdings
+- **Why leftovers could still overwrite Mini:** Unlock / boot / main Sync already REPLACE on a satellite. Settings Advanced **Pull & merge**, **Apply merge**, `.enc.json` import, and the conflict sheet still called `applyMergePreview`, which unions leftover DAVID / extra portfolios. After `lastSyncAt` the next satellite push could send that mix back to Mini.
+- **Replace:** those paths call `applyReviewedPull` — satellites `applyRemoteAsBook` (drop leftover holdings and extra books) then refresh live FX / marks. Mini (book) still reviews and unions. Button on a satellite reads **Pull book from Mini**.
+- **Keep:** Mini boot extras push (1.2.157), leftover headline replace (1.2.156), Mini-as-book, `#F7931A`. Service worker cache is `mydsp-v1.2.158`.
+
 ## [1.2.157] - 2026-09-01
 
 ### Fixed — Mini boot pushes extras with Automatic off

@@ -29,6 +29,24 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.158',
+    date: '2026-09-01',
+    bullets: [
+      {
+        text: 'Advanced Pull on a MacBook / iPhone / iPad replaces leftover holdings with Mini’s book',
+        to: '/settings#sync',
+      },
+      {
+        text: 'Apply merge and file import on a satellite no longer mix leftover DAVID into Mini',
+        to: '/settings#sync',
+      },
+      {
+        text: 'Unlock and boot stay pull-only; Mini remains the book',
+        to: '/settings#sync',
+      },
+    ],
+  },
+  {
     version: '1.2.157',
     date: '2026-09-01',
     bullets: [
