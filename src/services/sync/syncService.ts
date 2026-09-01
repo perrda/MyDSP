@@ -1314,6 +1314,34 @@ export function stampLastPulledHoldings(): void {
   saveSyncConfig({ ...loadSyncConfig(), lastPulledHoldingIds: ids })
 }
 
+export function snapshotSatelliteCreatedBooks(): Array<{
+  meta: PortfolioMeta
+  data: PortfolioData
+}> {
+  const pulled = loadSyncConfig().lastPulledHoldingIds ?? {}
+  return listPortfolios()
+    .filter((p) => !pulled[p.id])
+    .map((p) => ({ meta: p, data: loadPortfolio(p.id) }))
+}
+
+export function restoreSatelliteCreatedBooks(
+  created: Array<{ meta: PortfolioMeta; data: PortfolioData }>,
+): void {
+  if (created.length === 0) return
+  const list = listPortfolios()
+  const have = new Set(list.map((p) => p.id))
+  const next = [...list]
+  for (const book of created) {
+    if (have.has(book.meta.id)) continue
+    next.push(book.meta)
+    savePortfolioImmediate(book.data, book.meta.id)
+    have.add(book.meta.id)
+  }
+  if (next.length !== list.length) {
+    localStorage.setItem(STORAGE.PORTFOLIOS, JSON.stringify(next))
+  }
+}
+
 export function overlayDirtyLocalHoldings(preview: MergePreview): void {
   const lastPulled = loadSyncConfig().lastPulledHoldingIds ?? {}
   for (const plan of preview.portfolios) {

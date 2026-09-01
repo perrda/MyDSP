@@ -18,7 +18,12 @@ import {
 } from '../services/sync/syncService'
 import { addMarketTicker, listMarketTickers } from '../storage/marketsStore'
 import { addNewsTag, loadNewsState } from '../storage/newsStore'
-import { listPortfolios, loadPortfolio, savePortfolioImmediate } from '../storage/portfolioStore'
+import {
+  createPortfolio,
+  listPortfolios,
+  loadPortfolio,
+  savePortfolioImmediate,
+} from '../storage/portfolioStore'
 import { addYoutubeChannel, listYoutubeChannels } from '../storage/youtubeStore'
 import { refreshLiveMarksAfterUnlock } from '../services/marketsQuotes'
 
@@ -533,6 +538,70 @@ describe('Mini ↔ satellite extras Worker round-trip (1.2.158)', () => {
         .find((p) => p.portfolioId === 'default')
         ?.remote.crypto.map((h) => h.symbol),
     ).toEqual(['BTC'])
+  })
+
+  it('Mini boot/Backup pushSync absorbs a portfolio created on the satellite after Unlock', async () => {
+    const cloud = installMockSyncCloud()
+
+    localStorage.setItem('mydsp_device_id', 'dev_mini')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    setSessionSyncPassphrase(PASS, { remember: true })
+    seedPortfolio('default', 'David', miniBook())
+    await pushSync(URL, PASS)
+    const miniSnap = snapshotStorage()
+
+    localStorage.clear()
+    clearSessionSyncPassphrase()
+    localStorage.setItem('mydsp_device_id', 'dev_macbook')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: false,
+    })
+    seedPortfolio('default', 'David', leftoverBook())
+    await unlockAndPullFromCloud(PASS)
+    const kids = createPortfolio('Kids', { empty: true })
+    const kidsBook = loadPortfolio(kids.id)
+    kidsBook.crypto = [
+      { id: 1, symbol: 'BTC', name: 'Bitcoin', qty: 0.5, price: 85_000, cost: 20_000 },
+    ]
+    savePortfolioImmediate(kidsBook, kids.id)
+    vi.useFakeTimers({ toFake: ['setTimeout', 'setInterval'] })
+    markLocalDataChanged()
+    await vi.advanceTimersByTimeAsync(4_000)
+    vi.useRealTimers()
+    await vi.waitFor(() => {
+      expect(
+        cloud.fetchMock.mock.calls.filter((c) => String(c[1]?.method ?? 'GET').toUpperCase() === 'PUT')
+          .length,
+      ).toBeGreaterThan(1)
+    })
+    expect(listPortfolios().map((p) => p.name).sort()).toEqual(['David', 'Kids'])
+
+    stopAutoSync()
+    restoreStorage(miniSnap)
+    setSessionSyncPassphrase(PASS, { remember: true })
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    expect(listPortfolios().map((p) => p.name)).toEqual(['David'])
+
+    await pushSync(URL, PASS)
+    expect(listPortfolios().map((p) => p.name).sort()).toEqual(['David', 'Kids'])
+    const kidsId = listPortfolios().find((p) => p.name === 'Kids')?.id
+    expect(kidsId).toBeTruthy()
+    expect(loadPortfolio(kidsId!).crypto.find((h) => h.symbol === 'BTC')?.qty).toBe(0.5)
+
+    const afterMini = await previewPull(URL, PASS)
+    expect(afterMini.registryPortfolios.map((p) => p.name).sort()).toEqual(['David', 'Kids'])
   })
 
   it('Mini open + Automatic off absorbs a satellite channel on the interval cycle', async () => {
