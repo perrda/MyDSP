@@ -59,6 +59,6 @@ describe('MyDSP 1.2.149 YouTube channels unlock-and-pull across devices', () => 
     const backup = read('../storage/backupStore.ts')
     expect(backup).toMatch(/source === 'auto' \|\| source === 'manual'|!opts\?\.skipAutoSync/)
     expect(backup).toMatch(/Satellites never push/)
-    expect(backup).toMatch(/_isBookDeviceLazy/)
+    expect(backup).toMatch(/thisDeviceIsTheBook !== true/)
   })
 })

@@ -184,15 +184,13 @@ let _pushSyncLazy: ((url: string, pass: string) => Promise<unknown>) | null = nu
 let _loadSyncConfigLazy: (() => { remoteUrl: string; enabled: boolean; thisDeviceIsTheBook?: boolean } | null) | null =
   null
 let _getSessionPassphraseLazy: (() => string | null) | null = null
-let _isBookDeviceLazy: ((cfg?: { thisDeviceIsTheBook?: boolean } | null) => boolean) | null = null
 
 async function lazyLoadSync() {
-  if (_pushSyncLazy && _loadSyncConfigLazy && _getSessionPassphraseLazy && _isBookDeviceLazy) return
+  if (_pushSyncLazy && _loadSyncConfigLazy && _getSessionPassphraseLazy) return
   try {
     const mod = await import('../services/sync/syncService')
     _pushSyncLazy = mod.pushSync
     _loadSyncConfigLazy = mod.loadSyncConfig
-    _isBookDeviceLazy = mod.isBookDevice
     const sessionMod = await import('../services/sync/sessionPassphrase')
     _getSessionPassphraseLazy = sessionMod.getSessionSyncPassphrase
   } catch {
@@ -1165,7 +1163,7 @@ async function attemptAutoSync(): Promise<void> {
 
   const cfg = _loadSyncConfigLazy()
   if (!cfg || !cfg.enabled || !cfg.remoteUrl) return
-  if (_isBookDeviceLazy && !_isBookDeviceLazy(cfg)) return
+  if (cfg.thisDeviceIsTheBook !== true) return
 
   const pass = _getSessionPassphraseLazy()
   if (!pass) return
