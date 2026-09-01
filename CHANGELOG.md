@@ -5,7 +5,7 @@
 ### Fixed — satellite auto-pull keeps live marks
 - **Why sizes snapped back:** Unlock already fetches live FX + Markets marks. The 60s / focus satellite `doPull` then imported Mini’s last envelope quotes and stopped. Portfolio sizes could return to yesterday’s prints without tapping Refresh.
 - **After book REPLACE:** satellite `doPull` calls `refreshLiveMarksAfterUnlock` (same as Unlock / Advanced Pull). Quote failures never fail the pull. Still pull-only.
-- **Advanced Pull / import:** leftover DAVID always creates conflicts. A satellite no longer parks the conflict sheet and skip REPLACE — `Pull book from Mini` and `.enc.json` import call `applyReviewedPull` even when `conflicts.length > 0`. Mini still reviews. Settings media pull refreshes live marks after extras.
+- **Advanced Pull / import:** leftover DAVID always creates conflicts. A satellite no longer parks the conflict sheet and skip REPLACE — `Pull book from Mini`, `.enc.json` import, `pullAndMerge`, and `importEncryptedFile` call `applyReviewedPull` even when `conflicts.length > 0`. Mini still reviews. Settings media pull refreshes live marks after extras.
 - **Unlock banner:** a media-only extras stamp (`lastWorkspaceExtrasSyncAt`) no longer hides Unlock. Leftover holdings still need `lastSyncAt` from a full book pull.
 - **Keep:** Advanced Pull REPLACE (1.2.158), Mini boot extras push (1.2.157), Mini-as-book, `#F7931A`. Service worker cache is `mydsp-v1.2.159`.
 

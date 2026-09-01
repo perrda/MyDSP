@@ -57,6 +57,17 @@ describe('MyDSP 1.2.159 satellite auto-pull keeps live marks', () => {
     const settings = read('../pages/SettingsPage.tsx')
     expect(settings).toMatch(/isBookDevice\(syncCfg\) && preview\.conflicts\.length > 0/)
     expect(settings).toMatch(/refreshLiveMarksAfterUnlock/)
+    const sync = read('../services/sync/syncService.ts')
+    const pullAndMerge = sync.slice(
+      sync.indexOf('export async function pullAndMerge'),
+      sync.indexOf('export async function importEncryptedFile'),
+    )
+    expect(pullAndMerge).toMatch(/isBookDevice\(\)/)
+    expect(pullAndMerge).toMatch(/applyReviewedPull/)
+    const importEnc = sync.slice(sync.indexOf('export async function importEncryptedFile'))
+    expect(importEnc).toMatch(/isBookDevice\(\)/)
+    expect(importEnc).toMatch(/applyReviewedPull/)
+    expect(section).toMatch(/pullAndMerge/)
     expect(read('../../.cursor/rules/media-cross-device-sync.mdc')).toMatch(/satellite auto-pull/)
     expect(read('../../.cursor/rules/media-cross-device-sync.mdc')).toMatch(
       /leftover DAVID always conflicts/,
