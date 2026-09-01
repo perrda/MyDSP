@@ -18,6 +18,7 @@ import {
 } from '../domain/sparklineSeries'
 import {
   ensureFxRates,
+  fetchFxRates,
   usdToGbp,
   type FxRates,
 } from './fx'
@@ -264,10 +265,13 @@ export interface CryptoPriceUpdate {
 export async function fetchCryptoPricesGbp(
   symbols: string[],
   manualOverrides: Record<string, number> = {},
+  rates?: FxRates,
 ): Promise<CryptoPriceUpdate[]> {
   const quotes = await fetchCryptoMarketQuotesGbp(
     symbols.map((symbol) => ({ symbol })),
     manualOverrides,
+    DEFAULT_MARKET_TF,
+    rates,
   )
   return quotes.map((q) => ({
     symbol: q.symbol,
@@ -734,6 +738,7 @@ export async function fetchCryptoMarketQuotesGbp(
   items: Array<{ symbol: string; coingeckoId?: string }>,
   manualOverrides: Record<string, number> = {},
   timeframe: MarketTimeframe = DEFAULT_MARKET_TF,
+  rates?: FxRates,
 ): Promise<CryptoMarketQuoteGbp[]> {
   const unique = new Map<string, string | undefined>()
   for (const item of items) {
@@ -785,7 +790,8 @@ export async function fetchCryptoMarketQuotesGbp(
     }
   }
 
-  const fx = await ensureFxRates()
+  // Live FX on Refresh / Markets — do not convert Yahoo USD leftovers with a 20h cache.
+  const fx = rates ?? (await fetchFxRates())
   const missing = [...unique.keys()].filter((s) => !bySym.has(s))
 
   // Parallel multi-source fallback for CoinGecko misses (Yahoo + CoinCap + Coinbase)

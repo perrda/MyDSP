@@ -37,7 +37,7 @@ export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
         to: '/equities',
       },
       {
-        text: 'Still-£0 lines fill from last-synced Markets marks',
+        text: 'Markets watchlist refreshes with that FX even off the Markets page; still-£0 lines fill from last-synced marks',
         to: '/markets',
       },
       {

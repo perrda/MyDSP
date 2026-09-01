@@ -400,15 +400,22 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      const cryptoUpdates = await fetchCryptoPricesGbp(
-        [...cryptoSymbols],
-        snapshot.settings.manualCryptoPrices ?? {},
-      )
-      const equityMap = await fetchEquityPrices(
-        [...equitySymbols],
-        snapshot.settings.finnhubKey || localStorage.getItem('finnhub_key') || '',
-        rates,
-      )
+      const finnhubKey =
+        snapshot.settings.finnhubKey || localStorage.getItem('finnhub_key') || ''
+      // Markets cache must refresh even when the Markets page is not mounted,
+      // so last-synced can fill any still-£0 holding from this tick’s marks.
+      const [cryptoUpdates, equityMap] = await Promise.all([
+        fetchCryptoPricesGbp(
+          [...cryptoSymbols],
+          snapshot.settings.manualCryptoPrices ?? {},
+          rates,
+        ),
+        fetchEquityPrices([...equitySymbols], finnhubKey, rates),
+        refreshLiveQuotesForBookDevice({
+          finnhubKey,
+          manualCryptoPrices: snapshot.settings.manualCryptoPrices,
+        }),
+      ])
 
       if (activeIdRef.current !== startedOn) {
         return { crypto: 0, equities: 0, quotes: [] }

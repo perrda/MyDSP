@@ -17,7 +17,7 @@ import {
   setMarketsLastRefresh,
   updateMarketTicker,
 } from '../storage/marketsStore'
-import { ensureFxRates, usdToGbp } from './fx'
+import { fetchFxRates, usdToGbp, type FxRates } from './fx'
 import {
   fetchCommodityMarketQuote,
   fetchCryptoCrossQuote,
@@ -101,13 +101,15 @@ export async function refreshMarketQuotes(
     finnhubKey?: string
     manualCryptoPrices?: Record<string, number>
     timeframe?: MarketTimeframe
+    /** Fresh rates from header Refresh; otherwise fetch live FX (not the 20h cache). */
+    fx?: FxRates
   },
 ): Promise<Map<string, MarketQuote>> {
   const out = new Map<string, MarketQuote>()
   const now = new Date().toISOString()
   const finnhubKey = opts?.finnhubKey ?? ''
   const timeframe = opts?.timeframe ?? '24H'
-  const fx = await ensureFxRates()
+  const fx = opts?.fx ?? (await fetchFxRates())
 
   const cryptos = tickers.filter((t) => t.kind === 'crypto')
   const equities = tickers.filter((t) => t.kind === 'equity')
@@ -121,6 +123,7 @@ export async function refreshMarketQuotes(
       cryptos.map((t) => ({ symbol: t.symbol, coingeckoId: t.coingeckoId })),
       opts?.manualCryptoPrices ?? {},
       timeframe,
+      fx,
     )
     const bySym = new Map(quotes.map((q) => [q.symbol.toUpperCase(), q]))
     persistResolvedGeckoIds(cryptos, bySym)

@@ -3797,7 +3797,8 @@ export function SettingsPage() {
           <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
             Markets, holdings refresh, and Compare all share this cascade. Header Refresh (and
             pull-to-refresh) pulls live equity / crypto marks and fresh GBP FX — not a day-old
-            cache — then fills any still-£0 line from last-synced Markets quotes. Finnhub covers
+            cache — updates the Markets watchlist even if you are not on Markets, then fills any
+            still-£0 line from last-synced Markets quotes. Finnhub covers
             24H / 1W / 1M / 12M equity windows when the key works. Cloudflare Workers Paid is
             hosting only; it is not a price feed.
           </p>

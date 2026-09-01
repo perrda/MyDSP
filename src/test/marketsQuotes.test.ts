@@ -155,10 +155,16 @@ vi.mock('../services/fx', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../services/fx')>()
   return {
     ...actual,
+    fetchFxRates: vi.fn(async () => ({
+      GBP: 1,
+      USD: 1.27,
+      BTC: 1 / 85_000,
+      EUR: 1.17,
+      THB: 46,
+    })),
     ensureFxRates: vi.fn(async () => ({
-      rates: { GBP: 1, USD: 1.27 },
-      asOf: new Date().toISOString(),
-      source: 'cache' as const,
+      GBP: 1,
+      USD: 1.27,
     })),
     usdToGbp: (n: number) => n / 1.27,
   }
