@@ -38,7 +38,7 @@ export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
       },
       {
         text: 'YouTube / News / Markets extras still absorb first, then the book sizes',
-        to: '/youtube',
+        to: '/settings#sync',
       },
       {
         text: 'If Mini and a satellite both edited the same holding, Sync waits for a review instead of overwriting',

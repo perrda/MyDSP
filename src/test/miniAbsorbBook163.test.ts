@@ -1,7 +1,12 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { RELEASE_NOTES, releaseNotesArchive } from '../domain/releaseNotes'
+import {
+  RELEASE_NOTES,
+  releaseBulletHref,
+  releaseBulletText,
+  releaseNotesArchive,
+} from '../domain/releaseNotes'
 
 const read = (rel: string) => readFileSync(resolve(__dirname, rel), 'utf8')
 
@@ -35,6 +40,16 @@ describe('MyDSP 1.2.163 Mini absorbs satellite holding sizes before book push', 
     const notes = read('../domain/releaseNotes.ts')
     expect(notes).toMatch(/MacBook \/ iPhone \/ iPad size change/)
     expect(notes).toMatch(/never revert/)
+    const tip = RELEASE_NOTES[0]!
+    const sizeChange = tip.bullets[0]
+    expect(releaseBulletText(sizeChange)).toMatch(/MacBook \/ iPhone \/ iPad size change/)
+    expect(releaseBulletHref(sizeChange)).toBe('/settings#sync')
+    const extrasAbsorb = tip.bullets.find((b) =>
+      /extras still absorb first, then the book sizes/.test(releaseBulletText(b)),
+    )
+    expect(extrasAbsorb).toBeTruthy()
+    expect(releaseBulletHref(extrasAbsorb!)).toBe('/settings#sync')
+    expect(releaseBulletHref(extrasAbsorb!)).not.toBe('/youtube')
   })
 
   it('absorb merges satellite holdings when Mini is not dirty; parks when both edited', () => {
