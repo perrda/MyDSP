@@ -169,9 +169,14 @@ describe('MyDSP 1.2.158 satellite Advanced Pull replaces leftover holdings', () 
     expect(
       isDraftWorkerPreview('cursor-satellite-advanced-replace-6f30-mydspv1.dave-perry.workers.dev'),
     ).toBe(true)
+    expect(
+      isDraftWorkerPreview('cursor-mini-absorb-extras-6f30-mydsp.dave-perry.workers.dev'),
+    ).toBe(true)
+    expect(isDraftWorkerPreview('047722a6-mydspv1.dave-perry.workers.dev')).toBe(true)
     expect(isDraftWorkerPreview('main-mydspv1.dave-perry.workers.dev')).toBe(false)
     expect(isDraftWorkerPreview('mydspv1.dave-perry.workers.dev')).toBe(false)
     expect(isDraftWorkerPreview('localhost')).toBe(false)
+    expect(isDraftWorkerPreview('mydsp-sync.dave-perry.workers.dev')).toBe(false)
   })
 
   it('Mini book Advanced apply still unions via applyMergePreview', async () => {

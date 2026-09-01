@@ -394,16 +394,30 @@ export function isBookDevice(cfg: SyncConfig = loadSyncConfig()): boolean {
   return cfg.thisDeviceIsTheBook === true
 }
 
+const ALLOWED_APP_PUSH_HOSTS = new Set([
+  'mydspv1.dave-perry.workers.dev',
+  'main-mydspv1.dave-perry.workers.dev',
+  'localhost',
+  '127.0.0.1',
+])
+
 /**
- * Cloudflare branch previews (`cursor-*-mydspv1…`) are a new origin with empty
+ * Cloudflare branch / commit / leftover previews are a new origin with empty
  * localStorage. Pushing from them would overwrite Mini’s cloud book.
  * Live (`mydspv1…`) and main preview (`main-mydspv1…`) are allowed.
+ * Block `cursor-*-mydspv1`, leftover `cursor-*-mydsp` (no v1), and
+ * commit previews like `047722a6-mydspv1…`.
  */
 export function isDraftWorkerPreview(hostname?: string): boolean {
-  const host =
+  const host = (
     hostname ??
     (typeof window !== 'undefined' && window.location?.hostname ? window.location.hostname : '')
-  return host.startsWith('cursor-') && host.includes('-mydspv1.')
+  )
+    .trim()
+    .toLowerCase()
+  if (!host || ALLOWED_APP_PUSH_HOSTS.has(host)) return false
+  if (host.startsWith('mydsp-sync.') || host.startsWith('mydsp-quote.')) return false
+  return host.includes('mydsp') && host.endsWith('.workers.dev')
 }
 
 /**
@@ -923,8 +937,9 @@ export async function previewPull(url: string, passphrase: string): Promise<Merg
   const text = await res.text()
   const bytes = responseContentLength(res) ?? estimateSyncPayloadBytes(text)
   const envelope = JSON.parse(text) as SyncEnvelope
+  // Do not stamp lastRemoteExportedAt until apply succeeds — otherwise a
+  // failed apply makes interval/focus skip the same envelope forever.
   rememberSyncPayloadStats({
-    lastRemoteExportedAt: envelope.exportedAt,
     lastRemoteBlobBytes: bytes,
     lastPullBytes: bytes,
   })

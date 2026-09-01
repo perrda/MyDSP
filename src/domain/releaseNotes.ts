@@ -48,6 +48,10 @@ export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
         text: 'Mini still absorbs a satellite channel before every book push',
         to: '/settings#sync',
       },
+      {
+        text: 'Draft preview addresses (including leftover cursor-*-mydsp and commit URLs) still cannot push over Mini',
+        to: '/settings#sync',
+      },
     ],
   },
   {

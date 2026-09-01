@@ -5,6 +5,7 @@
 ### Fixed — sitting satellite pulls extras with Automatic off
 - **Why a Mini channel could sit unseen:** Mini open + Automatic off already absorbs (1.2.160). A MacBook / iPhone / iPad left open with Automatic off skipped the 60s / focus cycle (`shouldRunSyncCycle` stays quiet — 1.2.150). Mini’s new YouTube channel, News tag, or Markets ticker waited for reload / Unlock / Refresh.
 - **Pull only:** focus / interval / online on a satellite still `doPull` via `maybePullSatelliteExtras` when the passphrase is unlocked — extras + book REPLACE, then `refreshLiveMarksAfterUnlock`. Never push from this path. Automatic off is not an excuse. Mini absorb (1.2.160) unchanged.
+- **Draft hosts:** `pushSync` is blocked on leftover `cursor-*-mydsp` (no v1) and commit previews like `047722a6-mydspv1…`, not only `cursor-*-mydspv1`. Live and `main-mydspv1` still push. A failed preview apply no longer stamps `lastRemoteExportedAt` so the next minute can retry.
 - **Keep:** live-price trust (1.2.161), Mini absorb extras (1.2.160), satellite auto-pull live marks (1.2.159), Mini-as-book, `#F7931A`. Draft only — do not Promote / wrangler / merge #206. Service worker cache is `mydsp-v1.2.162`.
 
 ## [1.2.161] - 2026-09-01

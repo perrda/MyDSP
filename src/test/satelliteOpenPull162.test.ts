@@ -3,6 +3,7 @@ import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { RELEASE_NOTES, releaseNotesArchive } from '../domain/releaseNotes'
 import { shouldRunSyncCycle } from '../services/sync/autoSyncService'
+import { isDraftWorkerPreview } from '../services/sync/syncService'
 
 const read = (rel: string) => readFileSync(resolve(__dirname, rel), 'utf8')
 
@@ -24,6 +25,8 @@ describe('MyDSP 1.2.162 sitting satellite pulls extras with Automatic off', () =
     expect(section).toMatch(/doPull/)
     expect(section).toMatch(/MacBook \/ iPhone \/ iPad/)
     expect(section).toMatch(/Never push/)
+    expect(section).toMatch(/cursor-\*-mydsp/)
+    expect(section).toMatch(/047722a6-mydspv1/)
     expect(section).toMatch(/refreshLiveMarksAfterUnlock/)
     expect(section).toMatch(/#F7931A/)
     expect(section).not.toMatch(/SYNC_KEY/)
@@ -62,6 +65,23 @@ describe('MyDSP 1.2.162 sitting satellite pulls extras with Automatic off', () =
     expect(rule).toMatch(/maybePullSatelliteExtras/)
     expect(rule).toMatch(/While a satellite stays open/)
     expect(rule).toMatch(/While Mini stays open/)
+  })
+
+  it('blocks leftover cursor-*-mydsp and commit previews from pushing', () => {
+    expect(
+      isDraftWorkerPreview('cursor-satellite-open-pull-6f30-mydspv1.dave-perry.workers.dev'),
+    ).toBe(true)
+    expect(isDraftWorkerPreview('cursor-leftover-mydsp.dave-perry.workers.dev')).toBe(true)
+    expect(isDraftWorkerPreview('047722a6-mydspv1.dave-perry.workers.dev')).toBe(true)
+    expect(isDraftWorkerPreview('main-mydspv1.dave-perry.workers.dev')).toBe(false)
+    expect(isDraftWorkerPreview('mydspv1.dave-perry.workers.dev')).toBe(false)
+    const sync = read('../services/sync/syncService.ts')
+    const previewStart = sync.indexOf('export async function previewPull')
+    const preview = sync.slice(previewStart, sync.indexOf('export async function previewImport'))
+    expect(preview).not.toMatch(/lastRemoteExportedAt: envelope\.exportedAt/)
+    expect(read('../../.cursor/rules/media-cross-device-sync.mdc')).toMatch(
+      /leftover `cursor-\*-mydsp/,
+    )
   })
 
   it('does not revert Mini absorb extras or live-price trust', () => {
