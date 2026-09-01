@@ -1,6 +1,6 @@
 /** CoinGecko + Finnhub + Yahoo live price refresh (MyDSP-native). */
 
-import { equityNeedsUsdToGbp } from '../domain/equityCurrency'
+import { equityNeedsUsdToGbp, yahooVenueEquitySymbol } from '../domain/equityCurrency'
 import { commodityYahooFallbacks } from '../domain/commodities'
 import {
   DEFAULT_MARKET_TF,
@@ -617,7 +617,7 @@ export function normalizeYahooEquitySymbol(symbol: string): string {
   }
   if (aliases[raw]) return aliases[raw]
   if (raw.startsWith('^')) return raw
-  return raw
+  return yahooVenueEquitySymbol(raw)
 }
 
 async function fetchYahooSparkline(

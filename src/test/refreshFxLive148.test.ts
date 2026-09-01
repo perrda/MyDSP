@@ -26,6 +26,7 @@ describe('MyDSP 1.2.148 Refresh fetches live FX with prices', () => {
     expect(section).toMatch(/Finnhub/)
     expect(section).toMatch(/Cloudflare/)
     expect(section).toMatch(/not a price feed/)
+    expect(section).toMatch(/VWRL/)
     expect(section).toMatch(/#F7931A/)
     expect(section).not.toMatch(/SYNC_KEY/)
     expect(read('../../ROADMAP.md')).toMatch(/Refresh fetches live FX \(v1\.2\.148\)/)
@@ -51,6 +52,8 @@ describe('MyDSP 1.2.148 Refresh fetches live FX with prices', () => {
     expect(read('../services/prices.ts')).toMatch(/rates \?\? \(await fetchFxRates\(\)\)/)
     expect(read('../services/prices.ts')).not.toMatch(/ensureFxRates/)
     expect(read('../services/fx.ts')).toMatch(/let fxInFlight/)
+    expect(read('../domain/equityCurrency.ts')).toMatch(/VWRL\.L/)
+    expect(read('../services/prices.ts')).toMatch(/yahooVenueEquitySymbol/)
   })
 
   it('Settings Prices copy: Refresh pulls FX; Cloudflare is not a feed', () => {

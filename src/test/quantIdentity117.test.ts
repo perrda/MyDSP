@@ -3,7 +3,7 @@ import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { calcBreakdown, calcCash, calcNetWorth, goalCurrent } from '../domain/calc'
 import { createEmptyPortfolio, createSamplePortfolio } from '../domain/defaults'
-import { equityNativeCurrency, equityNeedsUsdToGbp } from '../domain/equityCurrency'
+import { equityNativeCurrency, equityNeedsUsdToGbp, yahooVenueEquitySymbol } from '../domain/equityCurrency'
 import { estimateMonthlySurplus } from '../domain/goalProjectedDate'
 import { normalizePortfolio } from '../domain/normalize'
 
@@ -66,6 +66,15 @@ describe('quant identity (v1.2.117)', () => {
     expect(equityNeedsUsdToGbp('VWRL')).toBe(false)
     expect(equityNeedsUsdToGbp('TSLA')).toBe(true)
     expect(equityNativeCurrency('VOD.L')).toBe('GBP')
+  })
+
+  it('maps seed VWRL / VUSA to Yahoo London suffixes so Refresh can quote them', () => {
+    expect(yahooVenueEquitySymbol('VWRL')).toBe('VWRL.L')
+    expect(yahooVenueEquitySymbol('VUSA')).toBe('VUSA.L')
+    expect(yahooVenueEquitySymbol('VWRL.L')).toBe('VWRL.L')
+    expect(yahooVenueEquitySymbol('TSLA')).toBe('TSLA')
+    const prices = readFileSync(resolve(__dirname, '../services/prices.ts'), 'utf8')
+    expect(prices).toMatch(/yahooVenueEquitySymbol/)
   })
 
   it('uses cashflow leftover for monthly surplus — not Settings income', () => {
