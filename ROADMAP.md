@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.153**
+**Current version: 1.2.154**
 
-## Completed (through v1.2.153)
+## Completed (through v1.2.154)
 
+- What’s new satellite wording (v1.2.154): leftover tip says every satellite (MacBook / iPhone / iPad), not MacBook-only · News / Markets What’s new opens `/news` not `/youtube` · 1.2.128 Mini-as-book + satellite REPLACE kept · draft only — live stays 1.2.147
 - First satellite extras replace leftovers (v1.2.153): Unlock drops leftover MacBook YouTube / News / Markets until `lastWorkspaceExtrasSyncAt` · later pulls union + tombstones · Markets import does not refill factory tickers on replace · `#F7931A` + Mini-as-book kept
 - Satellite blank News/Markets seed (v1.2.152): MacBook with a Remote URL and no lastSyncAt does not silent-seed factory BTC/ETH/TSLA tags or default tickers · Unlock lands Mini’s list · Mini factory seed unchanged · deploy from `~/MyDSP` (not `AI_Projects`) · `#F7931A` + Mini-as-book kept
 - Satellite extras heal (v1.2.151): if YouTube / News / Markets never stamped lastWorkspaceExtrasSyncAt, the next pull downloads Mini again instead of skipping a matching envelope · Unlock stays pull-only · `#F7931A` + Mini-as-book kept

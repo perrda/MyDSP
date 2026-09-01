@@ -8,14 +8,14 @@ const read = (rel: string) => readFileSync(resolve(__dirname, rel), 'utf8')
 describe('MyDSP 1.2.148 Refresh fetches live FX with prices', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(read('../../package.json'))
-    expect(pkg.version).toBe('1.2.153')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.153')
+    expect(pkg.version).toBe('1.2.154')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.154')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.154',
       '1.2.153',
       '1.2.152',
       '1.2.151',
       '1.2.150',
-      '1.2.149',
     ])
     const changelog = read('../../CHANGELOG.md')
     const section = changelog.match(/## \[1\.2\.148\][\s\S]*?(?=## \[)/)?.[0] ?? ''
@@ -30,7 +30,7 @@ describe('MyDSP 1.2.148 Refresh fetches live FX with prices', () => {
     expect(section).toMatch(/#F7931A/)
     expect(section).not.toMatch(/SYNC_KEY/)
     expect(read('../../ROADMAP.md')).toMatch(/Refresh fetches live FX \(v1\.2\.148\)/)
-    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.153/)
+    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.154/)
     expect(read('../services/fx.ts')).toMatch(/Header Refresh always calls fetchFxRates/)
   })
 

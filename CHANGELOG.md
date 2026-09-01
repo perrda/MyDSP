@@ -1,5 +1,13 @@
 # MyDSP Changelog
 
+## [1.2.154] - 2026-09-01
+
+### Fixed — What’s new satellite wording + News / Markets opens News
+- **Why Designer SOURCE-FAIL:** the leftover What’s new tip said “MacBook” as if only one device pulls Mini. The same Unlock / blank-seed / replace path is every satellite — MacBook, iPhone, and iPad.
+- **News / Markets destination:** the News / Markets bullet linked to `/youtube`. It now opens `/news`. YouTube bullets still use `/youtube`.
+- **Keep:** first extras replace (1.2.153), blank factory seed (1.2.152), Mini-as-book / satellite REPLACE / origin-lock / no merge-local-first / no client access key (1.2.128), `#F7931A`. Service worker cache is `mydsp-v1.2.154`.
+- **Draft only:** do not promote. Do not wrangler production. Live mydspv1 stays 1.2.147 / `index-38SekjZy.js`. Do not recut leftover previews `index-BOJ0oF72.js` / `DcqbsL5s` / `DDHIfr7A`.
+
 ## [1.2.153] - 2026-09-01
 
 ### Fixed — first satellite extras apply replaces leftover lists

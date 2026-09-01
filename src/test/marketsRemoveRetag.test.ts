@@ -6,14 +6,14 @@ import { RELEASE_NOTES, releaseNotesArchive } from '../domain/releaseNotes'
 describe('Markets remove Retag row action (v1.2.101)', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.153')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.153')
+    expect(pkg.version).toBe('1.2.154')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.154')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.154',
       '1.2.153',
       '1.2.152',
       '1.2.151',
       '1.2.150',
-      '1.2.149',
     ])
   })
 
