@@ -958,7 +958,9 @@ export async function applyWorkspaceExtrasFromPreview(
     importNewsFromBackup(preview.workspaceExtras.news, { replace: replaceLeftovers })
   }
   if (preview.workspaceExtras?.newsArticles != null) {
-    importNewsArticlesFromBackup(preview.workspaceExtras.newsArticles)
+    importNewsArticlesFromBackup(preview.workspaceExtras.newsArticles, {
+      replace: replaceLeftovers,
+    })
   }
   if (preview.workspaceExtras?.youtube != null) {
     importYoutubeFromBackup(preview.workspaceExtras.youtube, { replace: replaceLeftovers })

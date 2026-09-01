@@ -4,6 +4,8 @@
 **Live (production):** `https://mydspv1.dave-perry.workers.dev`  
 **Current `main` preview (use this until Live is promoted):** `https://main-mydspv1.dave-perry.workers.dev`
 
+Promote Live from any folder: `curl -fsSL https://raw.githubusercontent.com/perrda/MyDSP/main/scripts/go-live.sh | bash`
+
 The folder may move. **Do not `cd` to `~/AI_Projects/MyDSP`.** If Terminal says `no such file`, `not a git repository`, or `Missing script: "deploy"`, you are in `~`, not MyDSP. Always use `~/MyDSP`:
 
 ```bash

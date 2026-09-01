@@ -29,6 +29,24 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.156',
+    date: '2026-09-01',
+    bullets: [
+      {
+        text: 'First Unlock also replaces leftover News headlines, not only tags',
+        to: '/news',
+      },
+      {
+        text: 'Mini can promote Live from any folder with one Terminal line',
+        to: '/settings#sync',
+      },
+      {
+        text: 'Unlock still pulls Mini’s lists, live FX, and book — pull-only',
+        to: '/settings#sync',
+      },
+    ],
+  },
+  {
     version: '1.2.155',
     date: '2026-09-01',
     bullets: [

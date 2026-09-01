@@ -14,7 +14,13 @@ Requires `wrangler login` once on your machine, **or** repo secret `CLOUDFLARE_A
 
 **Do not `cd` to `~/AI_Projects/MyDSP`.** That path is gone. If Terminal says `cd: no such file`, `fatal: not a git repository`, `npm ci` needs a lockfile, or `Missing script: "deploy"`, you are in your **home folder** (`~`), not inside MyDSP.
 
-Paste this **whole block** from any folder. It always uses `~/MyDSP`:
+One line from any folder (after this script is on `main`):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/perrda/MyDSP/main/scripts/go-live.sh | bash
+```
+
+Or paste this **whole block**. It always uses `~/MyDSP`:
 
 ```bash
 cd ~
