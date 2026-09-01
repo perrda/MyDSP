@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.155**
+**Current version: 1.2.156**
 
-## Completed (through v1.2.155)
+## Completed (through v1.2.156)
 
+- Leftover News headlines + Mini go-live (v1.2.156): first Unlock replaces News article cache · `scripts/go-live.sh` promotes Live from any folder · `#F7931A` + Mini-as-book kept
 - What’s new satellite wording (v1.2.155): leftover tip says every satellite (MacBook / iPhone / iPad), not MacBook-only · News / Markets What’s new opens `/news` not `/youtube` · `#F7931A` + Mini-as-book kept
 - Unlock live FX and marks (v1.2.154): after extras + book land, satellite fetches live FX + Markets quotes and force-refreshes holdings · Unlock stays pull-only · `#F7931A` + Mini-as-book kept
 - First satellite extras replace leftovers (v1.2.153): Unlock drops leftover MacBook YouTube / News / Markets until `lastWorkspaceExtrasSyncAt` · later pulls union + tombstones · Markets import does not refill factory tickers on replace · `#F7931A` + Mini-as-book kept

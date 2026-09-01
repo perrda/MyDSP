@@ -510,9 +510,22 @@ export function newsUnreadFromCache(): number {
 }
 
 /** Merge remote last-good headlines (prefer newer fetchedAt; union Top 10). */
-export function importNewsArticlesFromBackup(raw: unknown): void {
+export function importNewsArticlesFromBackup(raw: unknown, opts?: { replace?: boolean }): void {
   if (!raw || typeof raw !== 'object') return
   const remote = raw as NewsArticlesCache
+  if (opts?.replace) {
+    saveNewsArticlesCache({
+      top: Array.isArray(remote.top) ? remote.top.slice(0, 30) : [],
+      byTag: remote.byTag && typeof remote.byTag === 'object' ? remote.byTag : {},
+      fetchedAt: remote.fetchedAt,
+    })
+    try {
+      window.dispatchEvent(new CustomEvent('mydsp-news-articles'))
+    } catch {
+      /* ignore */
+    }
+    return
+  }
   const local = loadNewsArticlesCache()
   const remoteAt = Date.parse(remote.fetchedAt || '') || 0
   const localAt = Date.parse(local.fetchedAt || '') || 0

@@ -16,14 +16,14 @@ const read = (rel: string) => readFileSync(resolve(__dirname, rel), 'utf8')
 describe('MyDSP 1.2.132 Today layout + left-nav order', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(read('../../package.json'))
-    expect(pkg.version).toBe('1.2.155')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.155')
+    expect(pkg.version).toBe('1.2.156')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.156')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.156',
       '1.2.155',
       '1.2.154',
       '1.2.153',
       '1.2.152',
-      '1.2.151',
     ])
     const changelog = read('../../CHANGELOG.md')
     const section = changelog.match(/## \[1\.2\.132\][\s\S]*?(?=## \[)/)?.[0] ?? ''

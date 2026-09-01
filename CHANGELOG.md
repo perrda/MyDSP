@@ -1,5 +1,12 @@
 # MyDSP Changelog
 
+## [1.2.156] - 2026-09-01
+
+### Fixed — leftover News headlines replace + Mini one-line Live promote
+- **Headlines:** first extras apply on a satellite now replaces last-good News headlines (`newsArticles`) with Mini’s cache, same as tags / YouTube / Markets. Leftover tagged stories from the 8 local channels do not linger.
+- **Mini Live:** `scripts/go-live.sh` clones or pulls `~/MyDSP` and runs `npm ci` + `npm run deploy`. From any folder: `curl -fsSL https://raw.githubusercontent.com/perrda/MyDSP/main/scripts/go-live.sh | bash` (needs `wrangler login` once). Do not `cd` to `~/AI_Projects/MyDSP`.
+- **Keep:** Unlock live marks (1.2.154), first extras replace (1.2.153), Mini-as-book, `#F7931A`. Service worker cache is `mydsp-v1.2.156`.
+
 ## [1.2.155] - 2026-09-01
 
 ### Fixed — What’s new says every satellite; News / Markets opens News
