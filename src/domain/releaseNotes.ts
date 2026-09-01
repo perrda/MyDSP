@@ -33,7 +33,7 @@ export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
     date: '2026-09-01',
     bullets: [
       {
-        text: 'Mini Backup / boot / Sync reads YouTube / News / Markets from the cloud first — a channel added on MacBook or iPhone is not wiped',
+        text: 'Mini Backup / boot / Sync reads YouTube / News / Markets from the cloud first — a channel added on MacBook / iPhone / iPad is not wiped',
         to: '/settings#sync',
       },
       {
