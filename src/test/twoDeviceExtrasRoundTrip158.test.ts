@@ -20,6 +20,7 @@ import { addMarketTicker, listMarketTickers } from '../storage/marketsStore'
 import { addNewsTag, loadNewsState } from '../storage/newsStore'
 import { listPortfolios, loadPortfolio, savePortfolioImmediate } from '../storage/portfolioStore'
 import { addYoutubeChannel, listYoutubeChannels } from '../storage/youtubeStore'
+import { refreshLiveMarksAfterUnlock } from '../services/marketsQuotes'
 
 vi.mock('../services/marketsQuotes', () => ({
   refreshLiveMarksAfterUnlock: vi.fn(async () => undefined),
@@ -421,6 +422,7 @@ describe('Mini ↔ satellite extras Worker round-trip (1.2.158)', () => {
     })
     addNewsTag({ tag: 'MININEW', label: 'Mini while satellite open' })
     addMarketTicker({ kind: 'crypto', symbol: 'AVAX', name: 'Avalanche' })
+    saveCachedFxRates({ GBP: 1, USD: 1.41, THB: 44.1, BTC: 1 / 92_000 }, 1_725_000_100_000)
     await pushSync(URL, PASS)
     const putsAfterMini = cloud.fetchMock.mock.calls.filter(
       (c) => String(c[1]?.method ?? 'GET').toUpperCase() === 'PUT',
@@ -436,7 +438,9 @@ describe('Mini ↔ satellite extras Worker round-trip (1.2.158)', () => {
       thisDeviceIsTheBook: false,
     })
     expect(listYoutubeChannels().map((c) => c.title)).toEqual(['MoneyZG'])
+    expect(loadCachedFxRates().USD).toBe(1.34)
 
+    vi.mocked(refreshLiveMarksAfterUnlock).mockClear()
     await runAutoSyncCycle('interval')
     expect(listYoutubeChannels().map((c) => c.title).sort()).toEqual([
       'Added on Mini while MacBook stayed open',
@@ -445,6 +449,8 @@ describe('Mini ↔ satellite extras Worker round-trip (1.2.158)', () => {
     expect(loadNewsState().tags.map((t) => t.tag)).toContain('MININEW')
     expect(listMarketTickers().map((t) => t.symbol)).toContain('AVAX')
     expect(loadPortfolio('default').crypto.find((h) => h.symbol === 'BTC')?.qty).toBe(12.5)
+    expect(loadCachedFxRates().USD).toBe(1.41)
+    expect(refreshLiveMarksAfterUnlock).toHaveBeenCalled()
     const putsAfterPull = cloud.fetchMock.mock.calls.filter(
       (c) => String(c[1]?.method ?? 'GET').toUpperCase() === 'PUT',
     ).length
