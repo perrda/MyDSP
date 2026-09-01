@@ -13,14 +13,14 @@ const read = (rel: string) => readFileSync(resolve(__dirname, rel), 'utf8')
 describe('MyDSP 1.2.155 What’s new satellite wording + News destination', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(read('../../package.json'))
-    expect(pkg.version).toBe('1.2.156')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.156')
+    expect(pkg.version).toBe('1.2.157')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.157')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.157',
       '1.2.156',
       '1.2.155',
       '1.2.154',
       '1.2.153',
-      '1.2.152',
     ])
     const changelog = read('../../CHANGELOG.md')
     const section = changelog.match(/## \[1\.2\.155\][\s\S]*?(?=## \[)/)?.[0] ?? ''
@@ -29,7 +29,7 @@ describe('MyDSP 1.2.155 What’s new satellite wording + News destination', () =
     expect(section).toMatch(/#F7931A/)
     expect(section).not.toMatch(/SYNC_KEY/)
     expect(read('../../ROADMAP.md')).toMatch(/What’s new satellite wording \(v1\.2\.155\)/)
-    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.156/)
+    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.157/)
   })
 
   it('1.2.155 tip News/Markets line is every satellite and opens /news', () => {
