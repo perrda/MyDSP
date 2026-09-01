@@ -771,10 +771,7 @@ async function maybePullSatelliteExtras(cfg: SyncConfig, reason: CycleReason): P
     emit({ state: 'disabled', message: 'Automatic sync is off' })
     return
   }
-  if (busy) {
-    if (dirty) schedulePush()
-    return
-  }
+  if (busy) return
   busy = true
   try {
     await doPull(cfg, pass, reason)
@@ -787,7 +784,6 @@ async function maybePullSatelliteExtras(cfg: SyncConfig, reason: CycleReason): P
     emit({ state: 'error', message: msg, lastAt: status.lastAt })
   } finally {
     busy = false
-    if (dirty && !pushTimer) schedulePush()
   }
 }
 
@@ -990,16 +986,21 @@ export function startAutoSync(): void {
 }
 
 export function stopAutoSync(): void {
+  lastPullAttempt = 0
+  dirty = false
+  dirtyWhileApplying = false
+  busy = false
+  if (pushTimer) {
+    clearTimeout(pushTimer)
+    pushTimer = null
+  }
   if (!started) return
   started = false
   document.removeEventListener('visibilitychange', onVisibility)
   window.removeEventListener('focus', onFocus)
   window.removeEventListener('online', onOnline)
-  if (pushTimer) clearTimeout(pushTimer)
-  pushTimer = null
   if (periodicTimer) clearInterval(periodicTimer)
   periodicTimer = null
-  lastPullAttempt = 0
   clearPauseTimers()
 }
 

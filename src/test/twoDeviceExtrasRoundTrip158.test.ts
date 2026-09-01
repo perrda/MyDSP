@@ -421,16 +421,14 @@ describe('Mini ↔ satellite extras Worker round-trip (1.2.158)', () => {
     })
     addNewsTag({ tag: 'MININEW', label: 'Mini while satellite open' })
     addMarketTicker({ kind: 'crypto', symbol: 'AVAX', name: 'Avalanche' })
-    const putsBefore = cloud.fetchMock.mock.calls.filter(
+    await pushSync(URL, PASS)
+    const putsAfterMini = cloud.fetchMock.mock.calls.filter(
       (c) => String(c[1]?.method ?? 'GET').toUpperCase() === 'PUT',
     ).length
-    await pushSync(URL, PASS)
-    expect(
-      cloud.fetchMock.mock.calls.filter((c) => String(c[1]?.method ?? 'GET').toUpperCase() === 'PUT')
-        .length,
-    ).toBeGreaterThan(putsBefore)
+    expect(putsAfterMini).toBeGreaterThan(0)
 
     restoreStorage(satelliteSnap)
+    stopAutoSync()
     setSessionSyncPassphrase(PASS, { remember: true })
     saveSyncConfig({
       remoteUrl: URL,
@@ -450,6 +448,6 @@ describe('Mini ↔ satellite extras Worker round-trip (1.2.158)', () => {
     const putsAfterPull = cloud.fetchMock.mock.calls.filter(
       (c) => String(c[1]?.method ?? 'GET').toUpperCase() === 'PUT',
     ).length
-    expect(putsAfterPull).toBe(putsBefore + 1)
+    expect(putsAfterPull).toBe(putsAfterMini)
   })
 })
