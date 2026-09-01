@@ -29,6 +29,28 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.162',
+    date: '2026-09-01',
+    bullets: [
+      {
+        text: 'MacBook / iPhone / iPad can stay open with Automatic off — a Mini channel still lands on focus or the next minute',
+        to: '/youtube',
+      },
+      {
+        text: 'That sitting pull is pull-only — leftover lists never overwrite Mini',
+        to: '/settings#sync',
+      },
+      {
+        text: 'After the pull, live FX and Markets marks still refresh so sizes do not snap back',
+        to: '/settings#sync',
+      },
+      {
+        text: 'Mini still absorbs a satellite channel before every book push',
+        to: '/settings#sync',
+      },
+    ],
+  },
+  {
     version: '1.2.161',
     date: '2026-09-01',
     bullets: [

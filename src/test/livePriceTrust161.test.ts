@@ -36,14 +36,14 @@ function quote(
 describe('MyDSP 1.2.161 live-price trust leftover', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(read('../../package.json'))
-    expect(pkg.version).toBe('1.2.161')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.161')
+    expect(pkg.version).toBe('1.2.162')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.162')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.162',
       '1.2.161',
       '1.2.160',
       '1.2.159',
       '1.2.158',
-      '1.2.157',
     ])
     const changelog = read('../../CHANGELOG.md')
     const section = changelog.match(/## \[1\.2\.161\][\s\S]*?(?=## \[)/)?.[0] ?? ''
@@ -57,7 +57,7 @@ describe('MyDSP 1.2.161 live-price trust leftover', () => {
     expect(section).not.toMatch(/wrangler deploy/)
     expect(section).toMatch(/draft only|Draft only/)
     expect(read('../../ROADMAP.md')).toMatch(/[Ll]ive-price trust leftover \(v1\.2\.161\)/)
-    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.161/)
+    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.162/)
     expect(read('../domain/releaseNotes.ts')).not.toMatch(/SYNC_KEY/)
   })
 

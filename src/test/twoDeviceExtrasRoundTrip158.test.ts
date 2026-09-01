@@ -365,4 +365,91 @@ describe('Mini ↔ satellite extras Worker round-trip (1.2.158)', () => {
       'MoneyZG',
     ])
   })
+
+  it('satellite open + Automatic off pulls Mini extras on the interval cycle', async () => {
+    const cloud = installMockSyncCloud()
+
+    localStorage.setItem('mydsp_device_id', 'dev_mini')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    setSessionSyncPassphrase(PASS, { remember: true })
+    seedPortfolio('default', 'David', miniBook())
+    addYoutubeChannel({
+      channelId: 'UC_mini_1',
+      title: 'MoneyZG',
+      url: 'https://www.youtube.com/@MoneyZG',
+    })
+    await pushSync(URL, PASS)
+
+    localStorage.clear()
+    clearSessionSyncPassphrase()
+    localStorage.setItem('mydsp_device_id', 'dev_macbook')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: false,
+    })
+    seedPortfolio('default', 'David', leftoverBook())
+    await unlockAndPullFromCloud(PASS)
+    expect(listYoutubeChannels().map((c) => c.title)).toEqual(['MoneyZG'])
+    const satelliteSnap = snapshotStorage()
+
+    localStorage.clear()
+    clearSessionSyncPassphrase()
+    localStorage.setItem('mydsp_device_id', 'dev_mini')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    setSessionSyncPassphrase(PASS, { remember: true })
+    seedPortfolio('default', 'David', miniBook())
+    addYoutubeChannel({
+      channelId: 'UC_mini_1',
+      title: 'MoneyZG',
+      url: 'https://www.youtube.com/@MoneyZG',
+    })
+    addYoutubeChannel({
+      channelId: 'UC_mini_new',
+      title: 'Added on Mini while MacBook stayed open',
+      url: 'https://www.youtube.com/@mini-open',
+    })
+    addNewsTag({ tag: 'MININEW', label: 'Mini while satellite open' })
+    addMarketTicker({ kind: 'crypto', symbol: 'AVAX', name: 'Avalanche' })
+    const putsBefore = cloud.fetchMock.mock.calls.filter(
+      (c) => String(c[1]?.method ?? 'GET').toUpperCase() === 'PUT',
+    ).length
+    await pushSync(URL, PASS)
+    expect(
+      cloud.fetchMock.mock.calls.filter((c) => String(c[1]?.method ?? 'GET').toUpperCase() === 'PUT')
+        .length,
+    ).toBeGreaterThan(putsBefore)
+
+    restoreStorage(satelliteSnap)
+    setSessionSyncPassphrase(PASS, { remember: true })
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: false,
+    })
+    expect(listYoutubeChannels().map((c) => c.title)).toEqual(['MoneyZG'])
+
+    await runAutoSyncCycle('interval')
+    expect(listYoutubeChannels().map((c) => c.title).sort()).toEqual([
+      'Added on Mini while MacBook stayed open',
+      'MoneyZG',
+    ])
+    expect(loadNewsState().tags.map((t) => t.tag)).toContain('MININEW')
+    expect(listMarketTickers().map((t) => t.symbol)).toContain('AVAX')
+    expect(loadPortfolio('default').crypto.find((h) => h.symbol === 'BTC')?.qty).toBe(12.5)
+    const putsAfterPull = cloud.fetchMock.mock.calls.filter(
+      (c) => String(c[1]?.method ?? 'GET').toUpperCase() === 'PUT',
+    ).length
+    expect(putsAfterPull).toBe(putsBefore + 1)
+  })
 })

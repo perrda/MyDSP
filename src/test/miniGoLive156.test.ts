@@ -18,14 +18,14 @@ describe('MyDSP 1.2.156 leftover headlines replace + Mini go-live', () => {
 
   it('package + release notes tip', () => {
     const pkg = JSON.parse(read('../../package.json'))
-    expect(pkg.version).toBe('1.2.161')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.161')
+    expect(pkg.version).toBe('1.2.162')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.162')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.162',
       '1.2.161',
       '1.2.160',
       '1.2.159',
       '1.2.158',
-      '1.2.157',
     ])
     const changelog = read('../../CHANGELOG.md')
     const section = changelog.match(/## \[1\.2\.156\][\s\S]*?(?=## \[)/)?.[0] ?? ''
@@ -34,7 +34,7 @@ describe('MyDSP 1.2.156 leftover headlines replace + Mini go-live', () => {
     expect(section).toMatch(/#F7931A/)
     expect(section).not.toMatch(/SYNC_KEY/)
     expect(read('../../ROADMAP.md')).toMatch(/Leftover News headlines \+ Mini go-live \(v1\.2\.156\)/)
-    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.161/)
+    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.162/)
     expect(read('../../scripts/go-live.sh')).toMatch(/git clone https:\/\/github.com\/perrda\/MyDSP.git/)
     expect(read('../../scripts/go-live.sh')).toMatch(/npm run deploy/)
     expect(read('../../scripts/go-live.sh')).toMatch(/npx wrangler whoami/)
