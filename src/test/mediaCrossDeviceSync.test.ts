@@ -43,14 +43,14 @@ describe('Media cross-device sync (v1.2.95)', () => {
 
   it('package + release notes tip', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.147')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.147')
+    expect(pkg.version).toBe('1.2.149')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.149')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.149',
+      '1.2.148',
       '1.2.147',
       '1.2.146',
       '1.2.145',
-      '1.2.144',
-      '1.2.143',
     ])
   })
 
@@ -188,9 +188,15 @@ describe('Media cross-device sync (v1.2.95)', () => {
 
   it('YouTube page surfaces unlock-sync banner when passphrase needed', () => {
     const page = readFileSync(resolve(__dirname, '../pages/YouTubePage.tsx'), 'utf8')
-    expect(page).toMatch(/data-testid="youtube-unlock-sync-banner"/)
-    expect(page).toMatch(/needs-passphrase/)
+    expect(page).toMatch(/youtube-unlock-sync-banner/)
+    expect(page).toMatch(/satelliteNeedsMediaUnlock/)
     expect(page).toMatch(/Unlock sync to pull favourite channels/)
+    expect(page).toMatch(/UnlockSyncMediaBanner/)
+    const banner = readFileSync(resolve(__dirname, '../components/UnlockSyncMediaBanner.tsx'), 'utf8')
+    expect(banner).toMatch(/unlockAndPullFromCloud/)
+    expect(banner).not.toMatch(/runOneButtonSync/)
+    expect(banner).toMatch(/Unlock & pull/)
+    expect(banner).toMatch(/Same passphrase as Mini/)
   })
 
   it('Cursor rule + smoke docs lock media cross-device sync', () => {
@@ -202,10 +208,16 @@ describe('Media cross-device sync (v1.2.95)', () => {
     expect(rule).toMatch(/silent:\s*true/)
     expect(rule).toMatch(/web, tablet, and mobile/)
     expect(rule).toMatch(/applyWorkspaceExtrasFromPreview/)
+    expect(rule).toMatch(/Unlock applies extras/)
+    expect(rule).toMatch(/unlockAndPullFromCloud/)
+    expect(rule).toMatch(/fxRates/)
+    expect(rule).toMatch(/Backup on Mini is not device-local only/)
     const smoke = readFileSync(resolve(__dirname, '../../scripts/SYNC_SMOKE.md'), 'utf8')
     expect(smoke).toMatch(/deletion tombstones/)
     expect(smoke).toMatch(/web \/ tablet \/ mobile/)
+    expect(smoke).toMatch(/Backup now/)
     const setup = readFileSync(resolve(__dirname, '../../SYNC_SETUP.md'), 'utf8')
     expect(setup).toMatch(/deletion tombstones \+ seenAt LWW/)
+    expect(setup).toMatch(/Backup now/)
   })
 })

@@ -24,6 +24,8 @@ import {
   type AutoSyncStatus,
 } from '../services/sync/autoSyncService'
 import { loadSyncConfig } from '../services/sync/syncService'
+import { satelliteNeedsMediaUnlock } from '../services/sync/mediaUnlock'
+import { UnlockSyncMediaBanner } from '../components/UnlockSyncMediaBanner'
 import {
   addYoutubeChannel,
   getYoutubeSeenAt,
@@ -79,13 +81,10 @@ function textHasSymbol(text: string, symbol: string): boolean {
 
 export function YouTubePage() {
   const { data } = usePortfolio()
-  const { showToast } = useToasts()
+  const { showToast, success } = useToasts()
   const [syncStatus, setSyncStatus] = useState<AutoSyncStatus>(() => getAutoSyncStatus())
-  const [syncConfigured, setSyncConfigured] = useState(() => {
-    const cfg = loadSyncConfig()
-    return Boolean(cfg.enabled && cfg.remoteUrl.trim())
-  })
-  const needsSyncUnlock = syncConfigured && syncStatus.state === 'needs-passphrase'
+  const [syncCfg, setSyncCfg] = useState(() => loadSyncConfig())
+  const needsSyncUnlock = satelliteNeedsMediaUnlock(syncCfg, syncStatus)
   const [channels, setChannels] = useState(() => listYoutubeChannels())
   const [videos, setVideos] = useState<YoutubeVideo[]>(() => loadYoutubeVideosCache().videos)
   const [selectedVideo, setSelectedVideo] = useState<YoutubeVideo | null>(null)
@@ -118,7 +117,7 @@ export function YouTubePage() {
     return subscribeAutoSync((s) => {
       setSyncStatus(s)
       const cfg = loadSyncConfig()
-      setSyncConfigured(Boolean(cfg.enabled && cfg.remoteUrl.trim()))
+      setSyncCfg(cfg)
     })
   }, [])
 
@@ -441,21 +440,16 @@ export function YouTubePage() {
       ) : null}
 
       {needsSyncUnlock ? (
-        <div
-          className="youtube-unlock-sync-banner mb-4 px-3 py-2.5 text-sm border border-amber-500/45 bg-amber-500/10 text-amber-900 dark:text-amber-100 rounded-lg md:rounded-none"
-          role="status"
-          aria-live="polite"
-          data-testid="youtube-unlock-sync-banner"
-        >
-          <p className="font-semibold">Unlock sync to pull favourite channels</p>
-          <p className="text-xs mt-0.5 opacity-90">
-            Cloud sync is waiting for your passphrase. Channels on your iPad / other devices stay encrypted
-            until you unlock — then they appear here automatically.
-          </p>
-          <Link to="/settings#sync" className="btn-secondary btn-sm mt-2 inline-flex min-h-11">
-            Unlock in Settings → Sync
-          </Link>
-        </div>
+        <UnlockSyncMediaBanner
+          testId="youtube-unlock-sync-banner"
+          title="Unlock sync to pull favourite channels"
+          body="These channels are only on this Mac until you unlock. Mini’s list stays encrypted in the cloud — enter the same passphrase to pull YouTube, News, Markets, prices, and the portfolio book here."
+          onUnlocked={() => {
+            setChannels(listYoutubeChannels())
+            setVideos(loadYoutubeVideosCache().videos)
+            success('Pulled favourite channels from Mini.')
+          }}
+        />
       ) : null}
 
       {cachedWithoutChannels ? (

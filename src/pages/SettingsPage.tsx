@@ -209,7 +209,11 @@ import {
   downloadSyncSetupUrl,
   drawSyncSetupCard,
 } from '../services/sync/syncSetupExport'
-import { runOneButtonSync } from '../services/sync/oneButtonSync'
+import {
+  flushQueuedSyncPush,
+  runOneButtonSync,
+  unlockAndPullFromCloud,
+} from '../services/sync/oneButtonSync'
 import {
   loadRecentSettingsJumps,
   rankSettingsSections,
@@ -1147,7 +1151,9 @@ export function SettingsPage() {
                     setSessionSyncPassphrase(pass, { remember: true })
                     setSyncBusy(true)
                     try {
-                      const result = await runOneButtonSync(pass)
+                      const result = isBookDevice(syncCfg)
+                        ? await runOneButtonSync(pass)
+                        : await unlockAndPullFromCloud(pass)
                       setSyncCfg(loadSyncConfig())
                       if (result.preview && result.action === 'conflict') {
                         setPendingMerge(result.preview)
@@ -1948,13 +1954,25 @@ export function SettingsPage() {
                   if (!isOnline()) {
                     enqueueOfflineJob('sync_push', {
                       remoteUrl,
-                      note: 'Will push when online using session passphrase',
+                      note: isBookDevice(syncCfg)
+                        ? 'Will push when online using session passphrase'
+                        : 'Will pull Mini when online using session passphrase',
                     })
                     setQueue(loadOfflineQueue())
-                    flash('Offline — push queued. Come online and press Flush queue.')
+                    flash(
+                      isBookDevice(syncCfg)
+                        ? 'Offline — push queued. Come online and press Flush queue.'
+                        : 'Offline — pull queued. Come online and press Flush queue.',
+                    )
                     return
                   }
                   try {
+                    if (!isBookDevice(syncCfg)) {
+                      const pulled = await unlockAndPullFromCloud(syncPass)
+                      setSyncCfg(loadSyncConfig())
+                      flash(pulled.message)
+                      return
+                    }
                     const pushed = await pushSync(remoteUrl, syncPass)
                     const next = {
                       ...syncCfg,
@@ -2443,7 +2461,7 @@ export function SettingsPage() {
                               break
                             }
                             try {
-                              await pushSync(job.remoteUrl, pass)
+                              await flushQueuedSyncPush(job.remoteUrl, pass)
                               removeOfflineJob(job.id)
                               flushed++
                             } catch (e) {
@@ -3795,9 +3813,12 @@ export function SettingsPage() {
             </li>
           </ul>
           <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
-            Markets, holdings refresh, and Compare all share this cascade. Use the header Refresh
-            (or pull-to-refresh on Today / Markets / Equities / Crypto / News) to pull the latest.
-            Finnhub covers 24H / 1W / 1M / 12M equity windows when the key works.
+            Markets, holdings refresh, and Compare all share this cascade. Header Refresh (and
+            pull-to-refresh) pulls live equity / crypto marks and fresh GBP FX — not a day-old
+            cache — updates the Markets watchlist even if you are not on Markets, then fills any
+            still-£0 line from last-synced Markets quotes. Finnhub covers
+            24H / 1W / 1M / 12M equity windows when the key works. Cloudflare Workers Paid is
+            hosting only; it is not a price feed.
           </p>
 
           <div className="surface-nested p-4 mb-6 max-w-2xl">
@@ -4216,7 +4237,10 @@ export function SettingsPage() {
           <p className="text-sm text-text-muted font-light mb-4 max-w-2xl">
             Snapshots <strong className="text-text">every portfolio</strong> automatically once per
             day (keeps the last {MAX_BACKUPS}). You can also back up manually, download a file, or
-            restore. Active-portfolio JSON export remains below for single-workspace copies.
+            restore. On Mini (this device is the book), Backup now also pushes YouTube channels,
+            News, Markets, prices, FX, and the portfolio book to the cloud when the passphrase
+            is unlocked — Automatic sync can be off. Satellites never push from Backup.
+            Active-portfolio JSON export remains below for single-workspace copies.
           </p>
           <div className="flex flex-wrap gap-3 mb-6">
             <button

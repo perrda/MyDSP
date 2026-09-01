@@ -366,7 +366,15 @@ export function markLocalDataChanged(): void {
   }
   const cfg = loadSyncConfig()
   if (!cfg.enabled || !cfg.remoteUrl) return
-  if (!isBookDevice(cfg)) return
+  // Satellites do not push a leftover book. After a successful unlock/pull
+  // (lastSyncAt), YouTube / News / Markets edits still flush so a channel
+  // added on MacBook / iPad reaches Mini.
+  if (!isBookDevice(cfg)) {
+    if (!cfg.lastSyncAt) return
+    dirty = true
+    schedulePush()
+    return
+  }
   dirty = true
   schedulePush()
 }
@@ -627,6 +635,19 @@ async function doPush(cfg: SyncConfig, pass: string): Promise<void> {
     return
   }
 
+  // Satellite must not seed an empty store with leftover DAVID / YouTube.
+  if (!isBookDevice(cfg)) {
+    const meta = await fetchRemoteMeta(cfg.remoteUrl).catch(() => null)
+    if (!meta) {
+      emit({
+        state: 'idle',
+        message: 'Cloud empty — waiting for Mini',
+        lastAt: status.lastAt,
+      })
+      return
+    }
+  }
+
   const pushStarted = Date.now()
   emit({ state: 'pushing', message: 'Pushing to cloud…', lastAt: status.lastAt })
   try {
@@ -705,8 +726,12 @@ export async function runAutoSyncCycle(reason: CycleReason = 'manual'): Promise<
   busy = true
   try {
     if (!isBookDevice(cfg)) {
-      await doPull(cfg, pass, reason)
-      if (status.state === 'pulling' || status.state === 'pushing') {
+      // Force a pull when extras are dirty so REPLACE happens before any push.
+      await doPull(cfg, pass, dirty ? 'manual' : reason)
+      const unlocked = Boolean(loadSyncConfig().lastSyncAt)
+      if (dirty && status.state !== 'error' && unlocked) {
+        await doPush(loadSyncConfig(), pass)
+      } else if (status.state === 'pulling' || status.state === 'pushing') {
         emit({ state: 'idle', lastAt: loadSyncConfig().lastSyncAt })
       }
       return
@@ -768,9 +793,22 @@ export function startAutoSync(): void {
     void runAutoSyncCycle('interval')
   }, PERIODIC_MS)
 
-  // Initial pull/push after UI settles
+  // Initial pull/push after UI settles. Satellites pull Mini even when
+  // Automatic sync is off (remembered passphrase + Remote URL).
   window.setTimeout(() => {
-    void runAutoSyncCycle('start')
+    void (async () => {
+      const cfg = loadSyncConfig()
+      const pass = getSessionSyncPassphrase()
+      if (!isBookDevice(cfg) && pass && cfg.remoteUrl.trim()) {
+        try {
+          const { unlockAndPullFromCloud } = await import('./oneButtonSync')
+          await unlockAndPullFromCloud(pass)
+        } catch {
+          /* banner / Settings still available */
+        }
+      }
+      void runAutoSyncCycle('start')
+    })()
   }, 2_000)
 }
 

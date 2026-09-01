@@ -17,6 +17,7 @@ import {
   importMarketQuotesFromBackup,
   importMarketsFromBackup,
 } from './marketsStore'
+import { exportFxRatesForBackup, importFxRatesFromBackup } from '../services/fx'
 import {
   exportNewsArticlesForBackup,
   exportNewsForBackup,
@@ -181,7 +182,8 @@ import {
 
 // Lazy import to avoid circular deps - sync service imports backupStore
 let _pushSyncLazy: ((url: string, pass: string) => Promise<unknown>) | null = null
-let _loadSyncConfigLazy: (() => { remoteUrl: string; enabled: boolean } | null) | null = null
+let _loadSyncConfigLazy: (() => { remoteUrl: string; enabled: boolean; thisDeviceIsTheBook?: boolean } | null) | null =
+  null
 let _getSessionPassphraseLazy: (() => string | null) | null = null
 
 async function lazyLoadSync() {
@@ -222,6 +224,8 @@ export interface FullBackupRecord extends FullBackupMeta {
   markets?: unknown
   /** Optional last-good Markets quotes (by ticker id) — syncs live prints across devices */
   marketQuotes?: unknown
+  /** Optional last-good display FX (GBP/USD/THB/BTC) — satellites land Mini’s rates */
+  fxRates?: unknown
   /** Optional News tags / feed prefs (workspace-level) */
   news?: unknown
   /** Optional last-good News headlines cache (Top + By ticker) */
@@ -320,6 +324,7 @@ function backupCanonical(record: Pick<
   | 'blobs'
   | 'markets'
   | 'marketQuotes'
+  | 'fxRates'
   | 'news'
   | 'newsArticles'
   | 'youtube'
@@ -370,6 +375,7 @@ function backupCanonical(record: Pick<
     blobs: record.blobs,
     markets: record.markets ?? null,
     marketQuotes: record.marketQuotes ?? null,
+    fxRates: record.fxRates ?? null,
     news: record.news ?? null,
     newsArticles: record.newsArticles ?? null,
     youtube: record.youtube ?? null,
@@ -425,6 +431,7 @@ export async function computeFullBackupChecksum(
     | 'blobs'
     | 'markets'
     | 'marketQuotes'
+    | 'fxRates'
     | 'news'
     | 'newsArticles'
     | 'youtube'
@@ -518,6 +525,7 @@ export function captureFullWorkspace(): Omit<
     blobs,
     markets: exportMarketsForBackup(),
     marketQuotes: exportMarketQuotesForBackup(),
+    fxRates: exportFxRatesForBackup(),
     news: exportNewsForBackup(),
     newsArticles: exportNewsArticlesForBackup(),
     youtube: exportYoutubeForBackup(),
@@ -638,8 +646,9 @@ export async function createFullBackup(
     /* ignore */
   }
 
-  // Auto-sync after backup if enabled (unless explicitly skipped)
-  if (!opts?.skipAutoSync && source === 'auto') {
+  // Book device: daily + manual Backup also push the encrypted envelope
+  // (YouTube / News / Markets / portfolios). Satellites never push from Backup.
+  if (!opts?.skipAutoSync) {
     void attemptAutoSync().catch(() => {
       /* Sync errors should not fail the backup */
     })
@@ -746,6 +755,9 @@ export async function restoreFullWorkspace(record: FullBackupRecord): Promise<vo
   }
   if (record.marketQuotes) {
     importMarketQuotesFromBackup(record.marketQuotes)
+  }
+  if (record.fxRates) {
+    importFxRatesFromBackup(record.fxRates)
   }
   if (record.news) {
     importNewsFromBackup(record.news)
@@ -895,6 +907,7 @@ function fullBackupPayload(record: FullBackupRecord) {
       : {}),
     ...(record.markets ? { markets: record.markets } : {}),
     ...(record.marketQuotes ? { marketQuotes: record.marketQuotes } : {}),
+    ...(record.fxRates ? { fxRates: record.fxRates } : {}),
     ...(record.news ? { news: record.news } : {}),
     ...(record.newsArticles ? { newsArticles: record.newsArticles } : {}),
     ...(record.youtube ? { youtube: record.youtube } : {}),
@@ -1098,8 +1111,12 @@ export function parseFullBackupFile(raw: unknown): FullBackupRecord | null {
       ? (o.documentBlobsSkipped as number[])
       : undefined,
     markets: o.markets,
+    marketQuotes: o.marketQuotes,
+    fxRates: o.fxRates,
     news: o.news,
+    newsArticles: o.newsArticles,
     youtube: o.youtube,
+    youtubeVideos: o.youtubeVideos,
     digestHighlights: o.digestHighlights,
     compareSelection: o.compareSelection,
     recurringSort: o.recurringSort,
@@ -1151,7 +1168,22 @@ export async function ensureDailyBackup(): Promise<FullBackupMeta | null> {
 }
 
 /**
- * Attempt auto-sync push after daily backup.
+ * Mini Backup now / daily must PUT even when Automatic sync is off.
+ * Satellites never push from Backup. Passphrase must already be unlocked.
+ */
+export function shouldPushCloudAfterBackup(
+  cfg: { remoteUrl?: string; thisDeviceIsTheBook?: boolean } | null | undefined,
+  pass: string | null | undefined,
+): boolean {
+  if (!cfg?.remoteUrl?.trim()) return false
+  if (cfg.thisDeviceIsTheBook !== true) return false
+  return Boolean(pass && pass.length >= 8)
+}
+
+/**
+ * Attempt auto-sync push after backup (daily or Backup now).
+ * Book device only — a satellite leftover must not overwrite Mini.
+ * Automatic sync can be off — Backup is explicit user intent on Mini.
  * Silent — errors logged but not thrown.
  */
 async function attemptAutoSync(): Promise<void> {
@@ -1159,15 +1191,13 @@ async function attemptAutoSync(): Promise<void> {
   if (!_loadSyncConfigLazy || !_pushSyncLazy || !_getSessionPassphraseLazy) return
 
   const cfg = _loadSyncConfigLazy()
-  if (!cfg || !cfg.enabled || !cfg.remoteUrl) return
-
   const pass = _getSessionPassphraseLazy()
-  if (!pass) return
+  if (!cfg || !shouldPushCloudAfterBackup(cfg, pass) || !pass) return
 
   try {
     await _pushSyncLazy(cfg.remoteUrl, pass)
   } catch (err) {
-    console.warn('[auto-sync] Push failed after daily backup:', err)
+    console.warn('[auto-sync] Push failed after backup:', err)
   }
 }
 

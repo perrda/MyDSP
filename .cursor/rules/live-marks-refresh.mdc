@@ -1,0 +1,17 @@
+# Live marks on every Refresh (owner lock — 1 Sep 2026)
+
+Refresh prices, Markets marks, and FX must be **live / this-tick** on every header Refresh. Stale FX or a £0 holding when a live mark exists makes the book untrustworthy.
+
+## Do
+
+- Header Refresh (`#F7931A`) calls `fetchFxRates` (exchangerate-api GBP + CoinGecko BTC) — **not** the ~20h `ensureFxRates` cache.
+- Markets watchlist (`refreshMarketQuotes`) and Yahoo crypto USD leftovers convert with that same live FX.
+- Refresh updates the Markets cache even when the Markets page is not open (`refreshLiveQuotesForBookDevice`), then last-synced fills any still-£0 holding.
+- Prefer the existing cascade: **Finnhub free key** (equities) → Yahoo via `mydsp-quote`; **CoinGecko** (crypto) → Yahoo / CoinCap / Coinbase. Flag stale / unpriced.
+
+## Never
+
+- Do **not** treat Cloudflare Workers Paid ($5) as a price feed — it is hosting only.
+- Do **not** reuse `ensureFxRates` on a user-initiated Refresh / Markets refresh for GBP conversion.
+- Do **not** leave a holding at £0 when a last-synced Markets mark exists.
+- Do **not** recode Polygon / Alpha Vantage / paid Finnhub unless free-tier 429s are proven.

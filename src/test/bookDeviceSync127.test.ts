@@ -16,14 +16,14 @@ const read = (rel: string) => readFileSync(resolve(__dirname, rel), 'utf8')
 describe('MyDSP 1.2.127 book device + satellite pull + origin-lock', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(read('../../package.json'))
-    expect(pkg.version).toBe('1.2.147')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.147')
+    expect(pkg.version).toBe('1.2.149')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.149')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.149',
+      '1.2.148',
       '1.2.147',
       '1.2.146',
       '1.2.145',
-      '1.2.144',
-      '1.2.143',
     ])
     const notes127 = RELEASE_NOTES.find((e) => e.version === '1.2.127')
     const tip = notes127?.bullets.map((b) => (typeof b === 'string' ? b : b.text)).join(' ')
@@ -80,7 +80,8 @@ describe('MyDSP 1.2.127 book device + satellite pull + origin-lock', () => {
     expect(one).not.toMatch(/this book was kept/)
     const auto = read('../services/sync/autoSyncService.ts')
     expect(auto).toMatch(/applyRemoteAsBook/)
-    expect(auto).toMatch(/if \(!isBookDevice\(cfg\)\) return/)
+    expect(auto).toMatch(/if \(!isBookDevice\(cfg\)\) \{/)
+    expect(auto).toMatch(/if \(!cfg\.lastSyncAt\) return/)
     const shell = read('../components/layout/AppShell.tsx')
     expect(shell).toMatch(/runOneButtonSync/)
     expect(shell).toMatch(/isBookDevice/)

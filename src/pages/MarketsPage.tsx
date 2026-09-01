@@ -86,8 +86,15 @@ import { formatChartQuoteYTick, padLabeledSeriesFromValues } from '../domain/cha
 import { sparklineTrendFromSeries } from '../domain/sparklineSeries'
 import { refreshMarketQuotes } from '../services/marketsQuotes'
 import { getMarketsProviderHealth } from '../services/marketsProviderHealth'
-import { syncNow } from '../services/sync/autoSyncService'
+import {
+  getAutoSyncStatus,
+  subscribeAutoSync,
+  syncNow,
+  type AutoSyncStatus,
+} from '../services/sync/autoSyncService'
 import { loadSyncConfig } from '../services/sync/syncService'
+import { satelliteNeedsMediaUnlock } from '../services/sync/mediaUnlock'
+import { UnlockSyncMediaBanner } from '../components/UnlockSyncMediaBanner'
 import { KNOWN_CRYPTO_SYMBOLS } from '../services/prices'
 import {
   bootMarketsTimeframe,
@@ -519,6 +526,9 @@ export function MarketsPage() {
   const { data, privacy, setData } = usePortfolio()
   const { success: toastSuccess, error: toastError, showToast } = useToasts()
   const [searchParams, setSearchParams] = useSearchParams()
+  const [syncStatus, setSyncStatus] = useState<AutoSyncStatus>(() => getAutoSyncStatus())
+  const [syncCfg, setSyncCfg] = useState(() => loadSyncConfig())
+  const needsSyncUnlock = satelliteNeedsMediaUnlock(syncCfg, syncStatus)
   const [undoRemove, setUndoRemove] = useState<MarketTicker | null>(null)
   const undoTimer = useRef<number | null>(null)
   const [undoFx, setUndoFx] = useState<{
@@ -1271,6 +1281,13 @@ export function MarketsPage() {
     window.addEventListener('mydsp-markets-changed', onChanged)
     return () => window.removeEventListener('mydsp-markets-changed', onChanged)
   }, [reloadList])
+
+  useEffect(() => {
+    return subscribeAutoSync((s) => {
+      setSyncStatus(s)
+      setSyncCfg(loadSyncConfig())
+    })
+  }, [])
 
   useEffect(() => {
     const onGlobal = () => void syncPricesNow()
@@ -2182,6 +2199,21 @@ export function MarketsPage() {
           />
         }
       />
+
+      {needsSyncUnlock ? (
+        <UnlockSyncMediaBanner
+          testId="markets-unlock-sync-banner"
+          title="Unlock sync to pull watchlist and prices"
+          body="Mini’s Markets list, last prints, and FX stay encrypted until you unlock. Enter the same passphrase to pull Markets, YouTube, News, and the portfolio book."
+          onUnlocked={() => {
+            setTickers(listMarketTickers())
+            setQuotes(
+              seedQuotesFromPortfolio(listMarketTickers(), data, loadMarketQuotesCache()),
+            )
+            toastSuccess('Pulled Markets, prices, and FX from Mini.')
+          }}
+        />
+      ) : null}
 
       {refreshBanner ? (
         <div

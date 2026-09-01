@@ -1,5 +1,23 @@
 # MyDSP Changelog
 
+## [1.2.149] - 2026-09-01
+
+### Fixed — YouTube channels unlock-and-pull across devices
+- **Why MacBook missed Mini’s channels:** Live showed Unlock sync. Favourite channels stay encrypted until the satellite enters Mini’s passphrase. Backup on Mini was this-Mac-only, so Sync on MacBook had nothing new to pull — the 8 channels on that Mac are local-only.
+- **Unlock on Today / YouTube / News / Markets:** enter the same passphrase and tap Unlock & pull. That runs `unlockAndPullFromCloud` (pull only — never push a leftover MacBook list over Mini) so YouTube favourites, News tags, Markets watchlist + last prints, FX, and the portfolio book land. Settings Sync and header Refresh on a satellite use the same pull-only path. Banner shows whenever the satellite has a sync footprint and no passphrase (Automatic off is fine). Remember passphrase stays on.
+- **Add on any device:** after unlock, a satellite YouTube / News / Markets edit pull-then-pushes extras so Mini receives them. Mini Backup now / daily backup also pushes the envelope when the passphrase is unlocked — Automatic sync can be off. Satellites never push from Backup.
+- **Remembered passphrase is not a pull:** Unlock banner stays until `lastSyncAt`. App start on a MacBook / iPad with the passphrase remembered pulls Mini even if Automatic is off. Advanced Push and offline-queue flush on a satellite pull only. A satellite never seeds an empty cloud. Markets same-symbol rows last-write-wins so Mini notes land.
+- **Prices / FX in the envelope:** last-good Markets quotes already travelled; display FX (`fxRates` GBP/USD/THB/BTC) now does too. Unlock on a satellite lands Mini’s last rates. Mini keeps a newer live fetch.
+- **Refresh stays live:** 1.2.148’s `fetchFxRates` before quotes, Markets cache on Refresh, LSE `.L`, and quote-worker-first land in this tip so Mini and satellites share the same live marks after unlock.
+- **Keep:** Mini-as-book sync, Today one-column + Assets hero, utilities under YouTube, `#F7931A`, 1.2.148 live FX Refresh, 1.2.147 Andrew sleeves. Service worker cache is `mydsp-v1.2.149`.
+
+## [1.2.148] - 2026-09-01
+
+### Fixed — Header Refresh fetches live FX with prices
+- **Why marks could drift:** Refresh converted TSLA / MSTR USD prints with GBP FX cached up to ~20 hours. Display CCY and last-synced fills then disagreed with a stale pound rate.
+- **On every Refresh:** `fetchFxRates` (exchangerate-api GBP + CoinGecko BTC) runs before equity/crypto quotes. Markets watchlist (TSLA / MSTR / commodities) and Yahoo crypto USD leftovers convert with that same live FX — not the 20h cache. Header Refresh updates the Markets cache even when you are not on Markets, then last-synced fills any still-£0 line. A Markets fetch failure does not abort holdings quotes. Seed LSE lines (VWRL / VUSA) query Yahoo as VWRL.L / VUSA.L so they are not left £0. Quote Worker is tried first (not a 10-way race that 429s); empty/0 Yahoo prints are ignored. Finnhub remains the equity key; CoinGecko the crypto path; Yahoo via `mydsp-quote` is fallback. Cloudflare Workers Paid is hosting only — not a price feed.
+- **Keep:** Mini-as-book sync, Today one-column + Assets hero, utilities under YouTube, `#F7931A`, 1.2.147 Andrew sleeves. Service worker cache is `mydsp-v1.2.148`.
+
 ## [1.2.147] - 2026-08-31
 
 ### Fixed — Andrew gifted shares and prices land

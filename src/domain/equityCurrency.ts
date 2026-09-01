@@ -36,3 +36,15 @@ export function equityNativeCurrency(symbol: string): 'USD' | 'GBP' {
 export function equityNeedsUsdToGbp(symbol: string): boolean {
   return equityNativeCurrency(symbol) === 'USD'
 }
+
+/**
+ * Yahoo / Finnhub venue symbol. Seed book stores LSE UCITS as VWRL / VUSA
+ * without `.L` — Refresh must query VWRL.L / VUSA.L or the line stays £0.
+ */
+export function yahooVenueEquitySymbol(symbol: string): string {
+  const s = symbol.trim().toUpperCase()
+  if (!s) return s
+  if (GBP_EQUITY_SUFFIXES.some((suf) => s.endsWith(suf))) return s
+  if (GBP_EQUITY_SYMBOLS.has(s)) return `${s}.L`
+  return s
+}

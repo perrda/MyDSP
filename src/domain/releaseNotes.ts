@@ -29,6 +29,58 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.149',
+    date: '2026-09-01',
+    bullets: [
+      {
+        text: 'Unlock on YouTube / News / Markets pulls Mini’s list — same passphrase',
+        to: '/youtube',
+      },
+      {
+        text: 'News / Markets / portfolio book land on that same Unlock & pull',
+        to: '/settings#sync',
+      },
+      {
+        text: 'Channels on this Mac stay local until you unlock — they are not the full Mini list',
+        to: '/youtube',
+      },
+      {
+        text: 'Add a channel on any unlocked device — Mini Backup now also pushes the list',
+        to: '/settings#sync',
+      },
+      {
+        text: 'Backup on Mini pushes even if Automatic sync is off — same passphrase',
+        to: '/settings#sync',
+      },
+      {
+        text: 'MacBook Settings Sync / Refresh pull Mini — they never overwrite the book',
+        to: '/settings#sync',
+      },
+      {
+        text: 'Unlock also lands Mini’s last FX rates with the channel list',
+        to: '/settings#sync',
+      },
+    ],
+  },
+  {
+    version: '1.2.148',
+    date: '2026-09-01',
+    bullets: [
+      {
+        text: 'Refresh pulls live FX with TSLA / MSTR / BTC / ADA — not a day-old rate',
+        to: '/equities',
+      },
+      {
+        text: 'Markets watchlist refreshes with that FX even off the Markets page; still-£0 lines fill from last-synced marks',
+        to: '/markets',
+      },
+      {
+        text: 'Finnhub + CoinGecko stay the feeds — Cloudflare is hosting only',
+        to: '/settings#prices',
+      },
+    ],
+  },
+  {
     version: '1.2.147',
     date: '2026-08-31',
     bullets: [
