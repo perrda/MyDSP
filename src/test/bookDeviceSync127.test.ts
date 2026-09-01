@@ -16,14 +16,14 @@ const read = (rel: string) => readFileSync(resolve(__dirname, rel), 'utf8')
 describe('MyDSP 1.2.127 book device + satellite pull + origin-lock', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(read('../../package.json'))
-    expect(pkg.version).toBe('1.2.154')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.154')
+    expect(pkg.version).toBe('1.2.155')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.155')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.155',
       '1.2.154',
       '1.2.153',
       '1.2.152',
       '1.2.151',
-      '1.2.150',
     ])
     const notes127 = RELEASE_NOTES.find((e) => e.version === '1.2.127')
     const tip = notes127?.bullets.map((b) => (typeof b === 'string' ? b : b.text)).join(' ')
