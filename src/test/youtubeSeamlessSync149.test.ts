@@ -89,7 +89,7 @@ describe('Markets same-symbol rows last-write-wins from Mini', () => {
 
   it('satellite leftover notes lose to a newer Mini row', () => {
     loadMarketsState()
-    const localBtc = listMarketTickers('crypto').find((t) => t.symbol === 'BTC')
+    const localBtc = listMarketTickers('crypto')[0]
     expect(localBtc).toBeTruthy()
     importMarketsFromBackup({
       version: 1,
@@ -97,7 +97,7 @@ describe('Markets same-symbol rows last-write-wins from Mini', () => {
         {
           ...localBtc!,
           notes: 'Mini sleeve note',
-          updatedAt: '2026-09-01T16:00:00.000Z',
+          updatedAt: '2099-01-01T00:00:00.000Z',
           createdAt: localBtc!.createdAt,
         },
       ],
@@ -111,7 +111,9 @@ describe('Markets same-symbol rows last-write-wins from Mini', () => {
       },
       deletedTickers: [],
     })
-    expect(listMarketTickers('crypto').find((t) => t.symbol === 'BTC')?.notes).toBe('Mini sleeve note')
+    expect(listMarketTickers('crypto').find((t) => t.symbol === localBtc!.symbol)?.notes).toBe(
+      'Mini sleeve note',
+    )
   })
 })
 

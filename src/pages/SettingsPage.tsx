@@ -1032,6 +1032,12 @@ export function SettingsPage() {
                 checked={isBookDevice(syncCfg)}
                 onChange={(e) => {
                   const on = e.target.checked
+                  if (on && !isBookDevice(syncCfg)) {
+                    const ok = window.confirm(
+                      'Only the Mini should be the book. Turning this on lets this Mac overwrite Mini’s YouTube list and portfolio. Continue?',
+                    )
+                    if (!ok) return
+                  }
                   const next = { ...syncCfg, thisDeviceIsTheBook: on }
                   setSyncCfg(next)
                   saveSyncConfig(next)
@@ -1059,8 +1065,8 @@ export function SettingsPage() {
               </p>
             ) : (
               <p className="text-sm text-text-muted font-light mb-4" data-testid="sync-book-copy">
-                This device is the book. Sync always pushes Mini DAVID. Automatic sync turns on
-                after the first successful push.
+                This device is the book. Sync always pushes Mini DAVID. A channel or holding
+                edit also pushes when the passphrase is unlocked — Automatic can be off.
               </p>
             )}
             {!(hasSessionSyncPassphrase() || hasRememberedSyncPassphrase()) ? (
