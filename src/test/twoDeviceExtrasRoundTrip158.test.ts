@@ -409,7 +409,9 @@ describe('Mini ↔ satellite extras Worker round-trip (1.2.158)', () => {
       rememberPassphrase: true,
     })
     setSessionSyncPassphrase(PASS, { remember: true })
-    seedPortfolio('default', 'David', miniBook())
+    const grown = miniBook()
+    grown.crypto[0] = { ...grown.crypto[0], qty: 13.25, cost: 420_000 }
+    seedPortfolio('default', 'David', grown)
     addYoutubeChannel({
       channelId: 'UC_mini_1',
       title: 'MoneyZG',
@@ -438,6 +440,7 @@ describe('Mini ↔ satellite extras Worker round-trip (1.2.158)', () => {
       thisDeviceIsTheBook: false,
     })
     expect(listYoutubeChannels().map((c) => c.title)).toEqual(['MoneyZG'])
+    expect(loadPortfolio('default').crypto.find((h) => h.symbol === 'BTC')?.qty).toBe(12.5)
 
     vi.mocked(refreshLiveMarksAfterUnlock).mockClear()
     await runAutoSyncCycle('interval')
@@ -447,7 +450,8 @@ describe('Mini ↔ satellite extras Worker round-trip (1.2.158)', () => {
     ])
     expect(loadNewsState().tags.map((t) => t.tag)).toContain('MININEW')
     expect(listMarketTickers().map((t) => t.symbol)).toContain('AVAX')
-    expect(loadPortfolio('default').crypto.find((h) => h.symbol === 'BTC')?.qty).toBe(12.5)
+    expect(loadPortfolio('default').crypto.find((h) => h.symbol === 'BTC')?.qty).toBe(13.25)
+    expect(loadPortfolio('default').crypto.find((h) => h.symbol === 'BTC')?.cost).toBe(420_000)
     expect(loadCachedFxRates().USD).toBe(1.41)
     expect(refreshLiveMarksAfterUnlock).toHaveBeenCalled()
     const putsAfterPull = cloud.fetchMock.mock.calls.filter(
