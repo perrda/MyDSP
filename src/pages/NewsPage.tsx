@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import {
   ChevronDown,
   ChevronUp,
@@ -24,6 +24,7 @@ import {
   type AutoSyncStatus,
 } from '../services/sync/autoSyncService'
 import { loadSyncConfig } from '../services/sync/syncService'
+import { UnlockSyncMediaBanner } from '../components/UnlockSyncMediaBanner'
 import {
   addNewsTag,
   getSavedNewsArticles,
@@ -555,20 +556,16 @@ export function NewsPage() {
       </p>
 
       {needsSyncUnlock ? (
-        <div
-          className="news-unlock-sync-banner mb-4 px-3 py-2.5 text-sm border border-amber-500/45 bg-amber-500/10 text-amber-900 dark:text-amber-100 rounded-lg md:rounded-none"
-          role="status"
-          aria-live="polite"
-          data-testid="news-unlock-sync-banner"
-        >
-          <p className="font-semibold">Unlock sync to pull saved tickers and headlines</p>
-          <p className="text-xs mt-0.5 opacity-90">
-            Cloud sync is waiting for your passphrase. News tags and last-good headlines from your
-            iPad / other devices stay encrypted until you unlock sync in Settings.
-          </p>
-          <Link to="/settings#sync" className="btn-secondary btn-sm mt-2 inline-flex min-h-11">
-            Unlock in Settings → Sync
-          </Link>
+        <div data-testid="news-unlock-sync-banner">
+          <UnlockSyncMediaBanner
+            testId="news-unlock-sync-form"
+            title="Unlock sync to pull saved tickers and headlines"
+            body="News tags on this Mac stay local until you unlock. Mini’s tags and headlines stay encrypted — enter the same passphrase to pull them here."
+            onUnlocked={() => {
+              reloadList()
+              applyCacheToState()
+            }}
+          />
         </div>
       ) : null}
 
