@@ -218,7 +218,11 @@ function proxyCandidatesFor(url: string): string[] {
  * Race proxy + direct candidates; first valid JSON wins.
  * Avoids sequential stalls when one relay hangs or returns HTML.
  */
-async function fetchViaProxies<T>(url: string, timeoutMs = 10000): Promise<T | null> {
+async function fetchViaProxies<T>(
+  url: string,
+  timeoutMs = 10000,
+  accept?: (data: T) => boolean,
+): Promise<T | null> {
   const candidates = proxyCandidatesFor(url)
   return new Promise((resolve) => {
     let remaining = candidates.length
@@ -230,7 +234,11 @@ async function fetchViaProxies<T>(url: string, timeoutMs = 10000): Promise<T | n
     for (const candidate of candidates) {
       void fetchJson<T>(candidate, timeoutMs).then(({ data }) => {
         if (settled) return
-        if (data && typeof data === 'object') {
+        const ok =
+          data &&
+          typeof data === 'object' &&
+          (!accept || accept(data))
+        if (ok) {
           settled = true
           resolve(data)
           return
@@ -525,7 +533,10 @@ async function fetchYahooChartRaw(
   const yahoo = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=${encodeURIComponent(interval)}&range=${encodeURIComponent(range)}`
   const data = await fetchViaProxies<{
     chart?: { result?: YahooChartResult[] }
-  }>(yahoo)
+  }>(yahoo, 10000, (payload) => {
+    const price = payload?.chart?.result?.[0]?.meta?.regularMarketPrice
+    return typeof price === 'number' && price > 0
+  })
   return data?.chart?.result?.[0] ?? null
 }
 
