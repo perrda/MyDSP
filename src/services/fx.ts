@@ -26,7 +26,7 @@ export const DISPLAY_CURRENCIES = [
 ] as const
 
 const CACHE_KEY = 'mydsp_fx_rates'
-/** Refresh FX about once per day (and on every price refresh via ensureFxRates). */
+/** Background / boot may reuse FX for this long. Header Refresh always calls fetchFxRates. */
 export const FX_STALE_MS = 20 * 60 * 60 * 1000
 
 export function loadCachedFxRates(): FxRates {

@@ -21,7 +21,6 @@ import {
   removeOfflineJob,
 } from '../services/offlineQueue'
 import {
-  ensureFxRates,
   fetchFxRates,
   loadCachedFxRates,
   type FxRates,
@@ -382,7 +381,9 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
     setRefreshing(true)
     setLastPriceError(null)
     try {
-      const rates = await ensureFxRates()
+      // Fresh GBP/USD/THB/BTC on every Refresh so US listings convert with today’s FX,
+      // not a ~20h cache. Last-synced marks still fill any line that stays £0.
+      const rates = await fetchFxRates()
       setFxRates(rates)
       setDisplayCurrency(dataRef.current.settings.currency || 'GBP', rates)
 

@@ -3795,9 +3795,11 @@ export function SettingsPage() {
             </li>
           </ul>
           <p className="text-sm text-text-muted font-light mb-6 max-w-2xl">
-            Markets, holdings refresh, and Compare all share this cascade. Use the header Refresh
-            (or pull-to-refresh on Today / Markets / Equities / Crypto / News) to pull the latest.
-            Finnhub covers 24H / 1W / 1M / 12M equity windows when the key works.
+            Markets, holdings refresh, and Compare all share this cascade. Header Refresh (and
+            pull-to-refresh) pulls live equity / crypto marks and fresh GBP FX — not a day-old
+            cache — then fills any still-£0 line from last-synced Markets quotes. Finnhub covers
+            24H / 1W / 1M / 12M equity windows when the key works. Cloudflare Workers Paid is
+            hosting only; it is not a price feed.
           </p>
 
           <div className="surface-nested p-4 mb-6 max-w-2xl">

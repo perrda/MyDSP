@@ -1,5 +1,12 @@
 # MyDSP Changelog
 
+## [1.2.148] - 2026-09-01
+
+### Fixed — Header Refresh fetches live FX with prices
+- **Why marks could drift:** Refresh converted TSLA / MSTR USD prints with GBP FX cached up to ~20 hours. Display CCY and last-synced fills then disagreed with a stale pound rate.
+- **On every Refresh:** `fetchFxRates` (exchangerate-api GBP + CoinGecko BTC) runs before equity/crypto quotes. Last-synced Markets marks still fill any line that stays £0. Finnhub remains the equity key; CoinGecko the crypto path; Yahoo via `mydsp-quote` is fallback. Cloudflare Workers Paid is hosting only — not a price feed.
+- **Keep:** Mini-as-book sync, Today one-column + Assets hero, utilities under YouTube, `#F7931A`, 1.2.147 Andrew sleeves. Service worker cache is `mydsp-v1.2.148`.
+
 ## [1.2.147] - 2026-08-31
 
 ### Fixed — Andrew gifted shares and prices land
