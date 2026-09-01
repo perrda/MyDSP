@@ -353,6 +353,7 @@ describe('Mini ↔ satellite extras Worker round-trip (1.2.158)', () => {
       ).toBeGreaterThan(1)
     })
 
+    stopAutoSync()
     restoreStorage(miniSnap)
     setSessionSyncPassphrase(PASS, { remember: true })
     saveSyncConfig({

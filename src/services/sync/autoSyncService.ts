@@ -15,6 +15,7 @@ import {
   applyMergePreview,
   applyWorkspaceExtrasFromPreview,
   applyRemoteAsBook,
+  overlayDirtyLocalHoldings,
   fetchRemoteMeta,
   getLocalDeviceId,
   isBookDevice,
@@ -541,6 +542,7 @@ async function doPull(cfg: SyncConfig, pass: string, reason: CycleReason): Promi
     try {
       await applyWorkspaceExtrasFromPreview(preview)
       const result = await applyRemoteAsBook(preview)
+      if (dirty) overlayDirtyLocalHoldings(preview)
       const at = new Date().toISOString()
       const pullMs = Date.now() - pullStarted
       updateCfg({

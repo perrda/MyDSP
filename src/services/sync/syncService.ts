@@ -1273,6 +1273,31 @@ export async function applyRemoteAsBook(
   return { merged, conflicts: preview.conflicts, removedDupes: removed.length }
 }
 
+/**
+ * After a satellite REPLACE, put back holdings this device edited (dirty)
+ * so pull-then-push does not wipe a BTC qty change and then upload Mini’s
+ * older size.
+ */
+export function overlayDirtyLocalHoldings(preview: MergePreview): void {
+  for (const plan of preview.portfolios) {
+    if (!plan.local || plan.conflicts.length === 0) continue
+    let next = loadPortfolio(plan.portfolioId)
+    let changed = false
+    for (const c of plan.conflicts) {
+      const locArr = plan.local[c.collection] as { id: number }[] | undefined
+      const locRow = locArr?.find((row) => row.id === c.id)
+      if (!locRow) continue
+      const arr = [...((next[c.collection] as { id: number }[]) ?? [])]
+      const idx = arr.findIndex((row) => row.id === c.id)
+      if (idx >= 0) arr[idx] = locRow
+      else arr.push(locRow)
+      next = { ...next, [c.collection]: arr }
+      changed = true
+    }
+    if (changed) savePortfolioImmediate(next, plan.portfolioId)
+  }
+}
+
 /** Persist a reviewed merge plan. Uses resolutions for same-id conflicts. */
 export async function applyMergePreview(
   preview: MergePreview,
