@@ -54,7 +54,13 @@ describe('MyDSP 1.2.159 satellite auto-pull keeps live marks', () => {
     const unlock = read('../services/sync/mediaUnlock.ts')
     expect(unlock).toMatch(/const pulled = Boolean\(cfg\.lastSyncAt\)/)
     expect(unlock).not.toMatch(/lastWorkspaceExtrasSyncAt/)
+    const settings = read('../pages/SettingsPage.tsx')
+    expect(settings).toMatch(/isBookDevice\(syncCfg\) && preview\.conflicts\.length > 0/)
+    expect(settings).toMatch(/refreshLiveMarksAfterUnlock/)
     expect(read('../../.cursor/rules/media-cross-device-sync.mdc')).toMatch(/satellite auto-pull/)
+    expect(read('../../.cursor/rules/media-cross-device-sync.mdc')).toMatch(
+      /leftover DAVID always conflicts/,
+    )
   })
 
   it('Unlock banner stays up after media-only extras stamp', () => {

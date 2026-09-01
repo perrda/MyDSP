@@ -41,6 +41,10 @@ export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
         to: '/youtube',
       },
       {
+        text: 'Pull book from Mini replaces leftover holdings even when rows conflict',
+        to: '/settings#sync',
+      },
+      {
         text: 'Unlock still pulls only — leftover lists never overwrite Mini',
         to: '/youtube',
       },

@@ -617,6 +617,12 @@ export function SettingsPage() {
       setConflicts(preview.conflicts)
       setConflictChoices({})
       await applyWorkspaceExtrasFromPreview(preview)
+      try {
+        const { refreshLiveMarksAfterUnlock } = await import('../services/marketsQuotes')
+        await refreshLiveMarksAfterUnlock()
+      } catch {
+        /* extras already landed */
+      }
       const extrasSummary = summarizeWorkspaceExtras(
         workspaceExtrasFlagsFromPreview(preview.workspaceExtras),
       )
@@ -2063,7 +2069,7 @@ export function SettingsPage() {
                     const extrasSummary = summarizeWorkspaceExtras(
                       workspaceExtrasFlagsFromPreview(preview.workspaceExtras),
                     )
-                    if (preview.conflicts.length > 0) {
+                    if (isBookDevice(syncCfg) && preview.conflicts.length > 0) {
                       flash(
                         `YouTube/News/Markets pulled${extrasSummary ? ` · ${extrasSummary}` : ''} · review ${preview.conflicts.length} portfolio conflict(s) — pick Keep local/remote, then Apply merge.`,
                       )
@@ -2307,7 +2313,7 @@ export function SettingsPage() {
                     setPendingMerge(preview)
                     setConflicts(preview.conflicts)
                     await applyWorkspaceExtrasFromPreview(preview)
-                    if (preview.conflicts.length > 0) {
+                    if (isBookDevice(syncCfg) && preview.conflicts.length > 0) {
                       flash(
                         `YouTube/News/Markets imported · review ${preview.conflicts.length} portfolio conflict(s) — pick Keep local/remote, then Apply merge.`,
                       )
