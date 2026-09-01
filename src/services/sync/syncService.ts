@@ -28,6 +28,7 @@ import {
   savePortfolioImmediate,
   setActivePortfolioId,
   dedupePortfoliosByName,
+  deletePortfolio,
   portfolioNameKey,
   hasDuplicatePortfolioNames,
   MAX_PORTFOLIOS,
@@ -1322,6 +1323,22 @@ export function snapshotSatelliteCreatedBooks(): Array<{
   return listPortfolios()
     .filter((p) => !pulled[p.id])
     .map((p) => ({ meta: p, data: loadPortfolio(p.id) }))
+}
+
+/** After REPLACE, drop books this satellite deleted (still in last-pulled). */
+export function dropSatelliteDeletedBooks(localIdsBefore: string[]): void {
+  const pulled = loadSyncConfig().lastPulledHoldingIds ?? {}
+  const have = new Set(localIdsBefore)
+  for (const id of Object.keys(pulled)) {
+    if (id === 'default' || have.has(id)) continue
+    if (listPortfolios().some((p) => p.id === id)) {
+      try {
+        deletePortfolio(id)
+      } catch {
+        /* default / last book */
+      }
+    }
+  }
 }
 
 export function restoreSatelliteCreatedBooks(

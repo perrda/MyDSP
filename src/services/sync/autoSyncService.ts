@@ -10,12 +10,14 @@
  */
 
 import { enqueueOfflineJob } from '../offlineQueue'
+import { listPortfolios } from '../../storage/portfolioStore'
 import {
   allConflictsResolved,
   applyMergePreview,
   applyWorkspaceExtrasFromPreview,
   applyRemoteAsBook,
   overlayDirtyLocalHoldings,
+  dropSatelliteDeletedBooks,
   restoreSatelliteCreatedBooks,
   snapshotSatelliteCreatedBooks,
   stampLastPulledHoldings,
@@ -545,10 +547,12 @@ async function doPull(cfg: SyncConfig, pass: string, reason: CycleReason): Promi
     try {
       await applyWorkspaceExtrasFromPreview(preview)
       const createdBooks = dirty ? snapshotSatelliteCreatedBooks() : []
+      const localIdsBefore = dirty ? listPortfolios().map((p) => p.id) : []
       const result = await applyRemoteAsBook(preview, { stampHoldings: false })
       if (dirty) {
         overlayDirtyLocalHoldings(preview)
         restoreSatelliteCreatedBooks(createdBooks)
+        dropSatelliteDeletedBooks(localIdsBefore)
       }
       stampLastPulledHoldings()
       const at = new Date().toISOString()
