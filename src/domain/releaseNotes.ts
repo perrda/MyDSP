@@ -29,6 +29,24 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.154',
+    date: '2026-09-01',
+    bullets: [
+      {
+        text: 'Unlock also fetches live FX and Markets marks, not only Mini’s last prints',
+        to: '/markets',
+      },
+      {
+        text: 'Holdings sizes and changes refresh after Unlock without tapping Refresh',
+        to: '/settings#sync',
+      },
+      {
+        text: 'Unlock stays pull-only — leftover MacBook lists still never overwrite Mini',
+        to: '/youtube',
+      },
+    ],
+  },
+  {
     version: '1.2.153',
     date: '2026-09-01',
     bullets: [

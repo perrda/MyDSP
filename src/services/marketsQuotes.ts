@@ -393,6 +393,31 @@ export async function refreshLiveQuotesForBookDevice(opts?: {
   return bookLiveInFlight
 }
 
+/**
+ * After satellite Unlock, Mini’s last prints are already in extras.
+ * Kick live FX + Markets marks so sizes/changes are not stuck on yesterday.
+ * Never throws — Unlock must still succeed if a feed is down.
+ */
+export async function refreshLiveMarksAfterUnlock(): Promise<void> {
+  try {
+    window.dispatchEvent(new CustomEvent('mydsp-global-refresh'))
+    window.dispatchEvent(new CustomEvent('mydsp-unlock-live-marks'))
+  } catch {
+    /* ignore */
+  }
+  try {
+    const rates = await fetchFxRates()
+    const list = listMarketTickers()
+    if (list.length === 0) return
+    const next = await refreshMarketQuotes(list, { fx: rates })
+    const merged = mergeMarketQuotes(loadMarketQuotesCache(), next)
+    saveMarketQuotesCache(merged, { fromSync: true })
+    setMarketsLastRefresh(new Date().toISOString())
+  } catch {
+    /* extras already landed */
+  }
+}
+
 /** Light prefetch for nav hover/focus — warms quote cache without blocking UI. */
 let prefetchInFlight: Promise<void> | null = null
 

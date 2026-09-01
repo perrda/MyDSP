@@ -1,5 +1,12 @@
 # MyDSP Changelog
 
+## [1.2.154] - 2026-09-01
+
+### Fixed — Unlock fetches live FX and marks after extras land
+- **Why sizes looked stale after Unlock:** extras apply Mini’s last-good quotes and FX, but the satellite did not fetch live marks. Portfolio and Markets sat on `sync:` prints until the user tapped header Refresh.
+- **After pull:** `unlockAndPullFromCloud` calls `refreshLiveMarksAfterUnlock` (live `fetchFxRates` + Markets quotes, `fromSync` so it does not dirty-push). Fires `mydsp-unlock-live-marks` so holdings `refreshPrices({ force: true })` bypasses the throttle. Quote failures never fail Unlock. Still pull-only.
+- **Keep:** first extras replace leftovers (1.2.153), Mini-as-book, `#F7931A`. Service worker cache is `mydsp-v1.2.154`.
+
 ## [1.2.153] - 2026-09-01
 
 ### Fixed — first satellite extras apply replaces leftover lists

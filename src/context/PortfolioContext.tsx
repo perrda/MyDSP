@@ -92,7 +92,7 @@ interface PortfolioContextValue {
   privacy: boolean
   setPrivacy: (v: boolean) => void
   refreshing: boolean
-  refreshPrices: () => Promise<{
+  refreshPrices: (opts?: { force?: boolean }) => Promise<{
     crypto: number
     equities: number
     skipped?: string
@@ -359,7 +359,7 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
     [setData],
   )
 
-  const refreshPrices = useCallback(async () => {
+  const refreshPrices = useCallback(async (opts?: { force?: boolean }) => {
     const snapshot = dataRef.current
     if (snapshot.settings.privacy) {
       setLastPriceError('Price refresh blocked while privacy mode is on.')
@@ -371,7 +371,7 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
       return { crypto: 0, equities: 0, skipped: 'offline', quotes: [] }
     }
     const nowMs = Date.now()
-    if (nowMs - lastRefreshAtRef.current < PRICE_THROTTLE_MS) {
+    if (!opts?.force && nowMs - lastRefreshAtRef.current < PRICE_THROTTLE_MS) {
       const until = lastRefreshAtRef.current + PRICE_THROTTLE_MS
       setLastPriceThrottleUntil(until)
       setLastPriceError(`Wait ${Math.ceil((until - nowMs) / 1000)}s before refreshing again.`)
@@ -562,6 +562,16 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
         (typeof localStorage !== 'undefined' ? localStorage.getItem('finnhub_key') || '' : ''),
       manualCryptoPrices: dataRef.current.settings.manualCryptoPrices,
     })
+  }, [refreshPrices])
+
+  // Unlock landed Mini’s last prints — force live FX + holdings so satellites
+  // are not stuck on sync-tagged quotes until the user taps Refresh.
+  useEffect(() => {
+    const onUnlockLive = () => {
+      void refreshPrices({ force: true })
+    }
+    window.addEventListener('mydsp-unlock-live-marks', onUnlockLive)
+    return () => window.removeEventListener('mydsp-unlock-live-marks', onUnlockLive)
   }, [refreshPrices])
 
   // Automatic Cloudflare sync: pull on resume, push after local edits
