@@ -1,11 +1,21 @@
 # MyDSP
 
-**Sole build home:** `/Users/davidperry/AI_Projects/MyDSP`
+**Repo:** `https://github.com/perrda/MyDSP` · Live Worker: `https://mydspv1.dave-perry.workers.dev`
+
+The folder may move. Do not assume `~/AI_Projects/MyDSP`. Find it or clone:
+
+```bash
+mdfind -name wrangler.jsonc
+# or a fresh copy:
+cd ~
+git clone https://github.com/perrda/MyDSP.git
+cd MyDSP
+```
 
 ## Run
 
 ```bash
-cd /Users/davidperry/AI_Projects/MyDSP
+cd /path/to/MyDSP
 npm install
 npm run dev       # http://localhost:5173 (+ LAN for phone)
 npm run build
