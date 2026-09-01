@@ -9,7 +9,7 @@ MyDSP is a static Vite SPA. **GitHub Pages** is the recommended permanent host (
 
 ## Cloudflare Worker deploy (primary for this repo)
 
-Requires `wrangler login` once on your machine (this cloud agent cannot hold your CF token).
+Requires `wrangler login` once on your machine, **or** repo secret `CLOUDFLARE_API_TOKEN` and GitHub Action **Deploy Live mydspv1** (Actions → Run workflow). This cloud agent cannot hold your CF token.
 
 The repo folder may move. From any Terminal:
 
