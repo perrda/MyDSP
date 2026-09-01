@@ -1195,6 +1195,7 @@ async function attemptAutoSync(): Promise<void> {
   if (!cfg || !shouldPushCloudAfterBackup(cfg, pass) || !pass) return
 
   try {
+    // pushSync absorbs satellite extras first so Backup never reverts them.
     await _pushSyncLazy(cfg.remoteUrl, pass)
   } catch (err) {
     console.warn('[auto-sync] Push failed after backup:', err)

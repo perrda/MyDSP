@@ -9,14 +9,14 @@ const read = (rel: string) => readFileSync(resolve(__dirname, rel), 'utf8')
 describe('MyDSP 1.2.151 satellite extras heal', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(read('../../package.json'))
-    expect(pkg.version).toBe('1.2.159')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.159')
+    expect(pkg.version).toBe('1.2.160')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.160')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.160',
       '1.2.159',
       '1.2.158',
       '1.2.157',
       '1.2.156',
-      '1.2.155',
     ])
     const changelog = read('../../CHANGELOG.md')
     const section = changelog.match(/## \[1\.2\.151\][\s\S]*?(?=## \[)/)?.[0] ?? ''
@@ -25,7 +25,7 @@ describe('MyDSP 1.2.151 satellite extras heal', () => {
     expect(section).toMatch(/#F7931A/)
     expect(section).not.toMatch(/SYNC_KEY/)
     expect(read('../../ROADMAP.md')).toMatch(/Satellite extras heal \(v1\.2\.151\)/)
-    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.159/)
+    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.160/)
   })
 
   it('satellites without an extras stamp re-download; Mini does not', () => {

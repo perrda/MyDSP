@@ -629,6 +629,34 @@ export async function buildEnvelope(
   }
 }
 
+/**
+ * Mini (book) unions YouTube / News / Markets from the cloud before any PUT.
+ * A MacBook / iPhone / iPad extras push must not be wiped by Mini boot,
+ * Backup, or Sync. Empty cloud (404) is a no-op so Mini can still seed.
+ * Same-device last writer skips the download (already our extras).
+ * Network / decrypt failures throw — never push a stale extras list over a
+ * newer satellite envelope.
+ */
+export async function absorbRemoteWorkspaceExtrasBeforePush(
+  url: string,
+  passphrase: string,
+): Promise<boolean> {
+  if (!isBookDevice()) return false
+  const remote = normalizeSyncRemoteUrl(url)
+  let meta: RemoteSyncMeta | null
+  try {
+    meta = await fetchRemoteMeta(remote)
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'Remote check failed'
+    throw new Error(`Could not check cloud extras before push: ${msg}`)
+  }
+  if (!meta) return false
+  if (meta.deviceId && meta.deviceId === getLocalDeviceId()) return false
+  const preview = await previewPull(remote, passphrase)
+  await applyWorkspaceExtrasFromPreview(preview)
+  return true
+}
+
 export async function pushSync(url: string, passphrase: string): Promise<SyncPushResult> {
   if (isDraftWorkerPreview()) {
     throw new Error(
@@ -637,6 +665,9 @@ export async function pushSync(url: string, passphrase: string): Promise<SyncPus
   }
   setSessionSyncPassphrase(passphrase)
   const remote = normalizeSyncRemoteUrl(url)
+  if (isBookDevice()) {
+    await absorbRemoteWorkspaceExtrasBeforePush(remote, passphrase)
+  }
   const envelope = await buildEnvelope(passphrase, { includeFullArchive: true })
   const body = JSON.stringify(envelope)
   const bytes = estimateSyncPayloadBytes(body)
