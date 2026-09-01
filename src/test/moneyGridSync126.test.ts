@@ -20,14 +20,14 @@ const read = (rel: string) => readFileSync(resolve(__dirname, rel), 'utf8')
 describe('MyDSP 1.2.126 Money directory + one-button Sync', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(read('../../package.json'))
-    expect(pkg.version).toBe('1.2.153')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.153')
+    expect(pkg.version).toBe('1.2.154')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.154')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.154',
       '1.2.153',
       '1.2.152',
       '1.2.151',
       '1.2.150',
-      '1.2.149',
     ])
     const moneyTip = RELEASE_NOTES.find((e) => e.version === '1.2.126')
     expect(moneyTip?.bullets.map((b) => (typeof b === 'string' ? b : b.text)).join(' ')).toMatch(

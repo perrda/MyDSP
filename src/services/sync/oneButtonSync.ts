@@ -21,6 +21,7 @@ import {
 } from './syncService'
 import { setSessionSyncPassphrase } from './sessionPassphrase'
 import { noteSuccessfulUnlock } from './autoSyncService'
+import { refreshLiveMarksAfterUnlock } from '../marketsQuotes'
 
 export type OneButtonSyncResult = {
   action: 'push' | 'pull' | 'conflict'
@@ -170,6 +171,7 @@ export async function unlockAndPullFromCloud(passphrase: string): Promise<OneBut
       thisDeviceIsTheBook: false,
     })
     noteSuccessfulUnlock()
+    await refreshLiveMarksAfterUnlock()
     return {
       action: 'pull',
       message: `Pulled Mini’s book — ${result.merged} portfolio(s) · YouTube / News / Markets applied.`,
@@ -184,6 +186,7 @@ export async function unlockAndPullFromCloud(passphrase: string): Promise<OneBut
     enabled: true,
   })
   noteSuccessfulUnlock()
+  await refreshLiveMarksAfterUnlock()
   return {
     action: 'pull',
     message: 'Pulled YouTube / News / Markets extras. Mini stays the book.',
