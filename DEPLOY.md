@@ -5,7 +5,8 @@ MyDSP is a static Vite SPA. **GitHub Pages** is the recommended permanent host (
 ## Live URL (after setup)
 
 - **GitHub Pages:** `https://perrda.github.io/MyDSP/`
-- **Cloudflare Worker (current prod):** `https://mydspv1.dave-perry.workers.dev`
+- **Cloudflare Worker (production):** `https://mydspv1.dave-perry.workers.dev`
+- **Current `main` preview:** `https://main-mydspv1.dave-perry.workers.dev` — same Worker family; use this on Mini / MacBook when production is behind `main` (YouTube Unlock & pull, extras sync). Promote production with `npm run deploy` or Actions → **Deploy Live mydspv1**.
 
 ## Cloudflare Worker deploy (primary for this repo)
 

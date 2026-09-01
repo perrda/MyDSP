@@ -1,6 +1,8 @@
 # MyDSP
 
-**Repo:** `https://github.com/perrda/MyDSP` · Live Worker: `https://mydspv1.dave-perry.workers.dev`
+**Repo:** `https://github.com/perrda/MyDSP`  
+**Live (production):** `https://mydspv1.dave-perry.workers.dev`  
+**Current `main` preview (use this until Live is promoted):** `https://main-mydspv1.dave-perry.workers.dev`
 
 The folder may move. Do not assume `~/AI_Projects/MyDSP`. Find it or clone:
 
