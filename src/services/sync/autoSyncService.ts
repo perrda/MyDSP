@@ -821,12 +821,20 @@ export function startAutoSync(): void {
     void (async () => {
       const cfg = loadSyncConfig()
       const pass = getSessionSyncPassphrase()
-      if (!isBookDevice(cfg) && pass && cfg.remoteUrl.trim()) {
+      if (pass && cfg.remoteUrl.trim()) {
         try {
-          const { unlockAndPullFromCloud } = await import('./oneButtonSync')
-          await unlockAndPullFromCloud(pass)
+          if (isBookDevice(cfg)) {
+            const { shouldPushCloudAfterBackup } = await import('../../storage/backupStore')
+            if (shouldPushCloudAfterBackup(cfg, pass)) {
+              const { pushSync } = await import('./syncService')
+              await pushSync(cfg.remoteUrl, pass)
+            }
+          } else {
+            const { unlockAndPullFromCloud } = await import('./oneButtonSync')
+            await unlockAndPullFromCloud(pass)
+          }
         } catch {
-          /* banner / Settings still available */
+          /* banner / Settings / Backup still available */
         }
       }
       void runAutoSyncCycle('start')
