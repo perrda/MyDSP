@@ -33,7 +33,7 @@ export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
     date: '2026-09-01',
     bullets: [
       {
-        text: 'Unlock on YouTube pulls Mini’s favourite channels — same passphrase',
+        text: 'Unlock on YouTube / News / Markets pulls Mini’s list — same passphrase',
         to: '/youtube',
       },
       {
