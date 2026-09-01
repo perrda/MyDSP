@@ -1,5 +1,5 @@
 /* MyDSP offline shell — network-first for HTML, cache-first for hashed assets + todo reminders */
-const CACHE = 'mydsp-v1.2.150'
+const CACHE = 'mydsp-v1.2.151'
 const REMINDER_DB = 'mydsp_sw_reminders'
 const REMINDER_STORE = 'schedule'
 const FIRED_STORE = 'fired'

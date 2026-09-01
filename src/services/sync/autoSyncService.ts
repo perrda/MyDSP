@@ -359,6 +359,14 @@ export function isApplyingRemote(): boolean {
   return applyingRemote
 }
 
+/** Satellite must re-download Mini extras if they never stamped lastWorkspaceExtrasSyncAt. */
+export function satelliteShouldHealExtrasPull(cfg: {
+  thisDeviceIsTheBook?: boolean
+  lastWorkspaceExtrasSyncAt?: string
+}): boolean {
+  return cfg.thisDeviceIsTheBook !== true && !cfg.lastWorkspaceExtrasSyncAt
+}
+
 /** Edits + explicit Sync still run when Automatic is off (passphrase + URL). */
 export function shouldRunSyncCycle(
   cfg: { enabled?: boolean; remoteUrl?: string },
@@ -466,10 +474,13 @@ async function doPull(cfg: SyncConfig, pass: string, reason: CycleReason): Promi
   const remoteNewer =
     !cfg.lastSyncAt || new Date(meta.exportedAt).getTime() > new Date(cfg.lastSyncAt).getTime()
 
-  // Skip download when we already applied this envelope (or we pushed it ourselves)
-  if (seenThis && !fromOther) return false
-  if (!fromOther && !remoteNewer && reason !== 'manual') return false
-  if (fromOther && seenThis && reason !== 'manual') return false
+  // Skip download when we already applied this envelope (or we pushed it ourselves).
+  // Satellite with no extras stamp must still download — lastRemoteExportedAt can
+  // match after a book-only pull while YouTube / News / Markets never landed.
+  const extrasNeverLanded = satelliteShouldHealExtrasPull(cfg)
+  if (seenThis && !fromOther && !extrasNeverLanded) return false
+  if (!fromOther && !remoteNewer && reason !== 'manual' && !extrasNeverLanded) return false
+  if (fromOther && seenThis && reason !== 'manual' && !extrasNeverLanded) return false
 
   emit({ state: 'pulling', message: 'Pulling from cloud…', lastAt: status.lastAt })
 
