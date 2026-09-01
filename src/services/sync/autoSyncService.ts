@@ -716,9 +716,70 @@ async function doPush(cfg: SyncConfig, pass: string): Promise<void> {
   }
 }
 
+/**
+ * Mini stays open with Automatic off. Boot already PUTs (1.2.157).
+ * Focus / 60s / online must still absorb a satellite extras push — otherwise
+ * a MacBook channel sits in the cloud until someone reloads Mini.
+ * Same-device last writer + nothing dirty → no empty PUT.
+ */
+async function maybeAbsorbAndPushBookExtras(cfg: SyncConfig): Promise<void> {
+  if (!isBookDevice(cfg)) return
+  if (isAutoSyncPaused(cfg)) {
+    emit({
+      state: 'idle',
+      message: `Auto-sync paused until ${new Date(cfg.pausedUntil!).toLocaleString()}`,
+      lastAt: cfg.lastSyncAt ?? status.lastAt,
+    })
+    return
+  }
+  hydrateSessionSyncPassphrase()
+  const pass = getSessionSyncPassphrase()
+  const { shouldPushCloudAfterBackup } = await import('../../storage/backupStore')
+  if (!shouldPushCloudAfterBackup(cfg, pass) || !pass) {
+    emit({ state: 'disabled', message: 'Automatic sync is off' })
+    return
+  }
+  if (busy) {
+    if (dirty) schedulePush()
+    return
+  }
+  busy = true
+  try {
+    const { absorbRemoteWorkspaceExtrasBeforePush, pushSync } = await import('./syncService')
+    const absorbed = await absorbRemoteWorkspaceExtrasBeforePush(cfg.remoteUrl, pass)
+    if (!absorbed && !dirty) {
+      emit({
+        state: 'idle',
+        message: 'Automatic sync is off',
+        lastAt: cfg.lastSyncAt ?? status.lastAt,
+      })
+      return
+    }
+    await pushSync(cfg.remoteUrl, pass)
+    dirty = false
+    const at = new Date().toISOString()
+    updateCfg({ lastSyncAt: at, lastSyncError: undefined })
+    emit({ state: 'idle', message: 'Synced', lastAt: at })
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'Push failed'
+    updateCfg({ lastSyncError: msg })
+    emit({ state: 'error', message: msg, lastAt: status.lastAt })
+  } finally {
+    busy = false
+    if (dirty && !pushTimer) schedulePush()
+  }
+}
+
 export async function runAutoSyncCycle(reason: CycleReason = 'manual'): Promise<void> {
   const cfg = loadSyncConfig()
   if (!shouldRunSyncCycle(cfg, reason, dirty)) {
+    if (
+      isBookDevice(cfg) &&
+      (reason === 'focus' || reason === 'interval' || reason === 'online')
+    ) {
+      await maybeAbsorbAndPushBookExtras(cfg)
+      return
+    }
     emit({ state: 'disabled', message: 'Automatic sync is off' })
     return
   }

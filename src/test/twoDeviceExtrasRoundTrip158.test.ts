@@ -8,7 +8,7 @@ import { createEmptyPortfolio } from '../domain/defaults'
 import type { PortfolioData } from '../domain/types'
 import { saveCachedFxRates, loadCachedFxRates } from '../services/fx'
 import { unlockAndPullFromCloud } from '../services/sync/oneButtonSync'
-import { markLocalDataChanged, stopAutoSync } from '../services/sync/autoSyncService'
+import { markLocalDataChanged, runAutoSyncCycle, stopAutoSync } from '../services/sync/autoSyncService'
 import { clearSessionSyncPassphrase, setSessionSyncPassphrase } from '../services/sync/sessionPassphrase'
 import {
   applyWorkspaceExtrasFromPreview,
@@ -299,6 +299,69 @@ describe('Mini ↔ satellite extras Worker round-trip (1.2.158)', () => {
     await applyWorkspaceExtrasFromPreview(afterMini)
     expect(listYoutubeChannels().map((c) => c.title).sort()).toEqual([
       'Added on MacBook after Unlock',
+      'MoneyZG',
+    ])
+  })
+
+  it('Mini open + Automatic off absorbs a satellite channel on the interval cycle', async () => {
+    const cloud = installMockSyncCloud()
+
+    localStorage.setItem('mydsp_device_id', 'dev_mini')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    setSessionSyncPassphrase(PASS, { remember: true })
+    seedPortfolio('default', 'David', miniBook())
+    addYoutubeChannel({
+      channelId: 'UC_mini_1',
+      title: 'MoneyZG',
+      url: 'https://www.youtube.com/@MoneyZG',
+    })
+    await pushSync(URL, PASS)
+    const miniSnap = snapshotStorage()
+
+    localStorage.clear()
+    clearSessionSyncPassphrase()
+    localStorage.setItem('mydsp_device_id', 'dev_macbook')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: false,
+    })
+    seedPortfolio('default', 'David', leftoverBook())
+    await unlockAndPullFromCloud(PASS)
+    addYoutubeChannel({
+      channelId: 'UC_interval',
+      title: 'Added while Mini stayed open',
+      url: 'https://www.youtube.com/@interval',
+    })
+    vi.useFakeTimers({ toFake: ['setTimeout', 'setInterval'] })
+    markLocalDataChanged()
+    await vi.advanceTimersByTimeAsync(4_000)
+    vi.useRealTimers()
+    await vi.waitFor(() => {
+      expect(
+        cloud.fetchMock.mock.calls.filter((c) => String(c[1]?.method ?? 'GET').toUpperCase() === 'PUT')
+          .length,
+      ).toBeGreaterThan(1)
+    })
+
+    restoreStorage(miniSnap)
+    setSessionSyncPassphrase(PASS, { remember: true })
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    expect(listYoutubeChannels().map((c) => c.title)).toEqual(['MoneyZG'])
+
+    await runAutoSyncCycle('interval')
+    expect(listYoutubeChannels().map((c) => c.title).sort()).toEqual([
+      'Added while Mini stayed open',
       'MoneyZG',
     ])
   })

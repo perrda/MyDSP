@@ -37,6 +37,10 @@ export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
         to: '/settings#sync',
       },
       {
+        text: 'Mini can stay open with Automatic off — a MacBook channel still lands on focus or the next minute',
+        to: '/settings#sync',
+      },
+      {
         text: 'Unlock on a satellite still pulls only — leftover lists never overwrite Mini',
         to: '/youtube',
       },
