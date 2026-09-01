@@ -2,9 +2,13 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import {
   formatMarketsProviderHealthHint,
   getMarketsProviderHealth,
+  hasLiveListedProviderHit,
+  isMarketsBookDegraded,
   pingAllMarketsProviders,
   providerFromQuoteSource,
   recordMarketsRefreshHealth,
+  recordProviderFailure,
+  recordProviderSuccess,
   resetMarketsProviderHealth,
 } from './marketsProviderHealth'
 
@@ -157,6 +161,53 @@ describe('marketsProviderHealth', () => {
     const yahoo = getMarketsProviderHealth().find((p) => p.id === 'yahoo')!
     expect(yahoo.lastSuccessAt).toBeUndefined()
     expect(yahoo.consecutiveFailures).toBe(0)
+  })
+
+  it('Finnhub-only 429 does not paint the book when Yahoo already has a live hit', () => {
+    recordProviderSuccess('yahoo')
+    recordProviderFailure('finnhub', '429 rate limit / quota')
+    recordProviderFailure('finnhub', '429 rate limit / quota')
+    expect(hasLiveListedProviderHit()).toBe(true)
+    expect(isMarketsBookDegraded()).toBe(false)
+    expect(formatMarketsProviderHealthHint()).toBeNull()
+    expect(getMarketsProviderHealth().find((p) => p.id === 'finnhub')!.consecutiveFailures).toBe(2)
+  })
+
+  it('Finnhub-only 429 still degrades the book when no listed provider has a live hit', () => {
+    recordProviderFailure('finnhub', '429 rate limit / quota')
+    recordProviderFailure('finnhub', '429 rate limit / quota')
+    expect(hasLiveListedProviderHit()).toBe(false)
+    expect(isMarketsBookDegraded()).toBe(true)
+    expect(formatMarketsProviderHealthHint()).toMatch(/Finnhub 2× fail/)
+  })
+
+  it('Yahoo 2× fail still degrades the book even when CoinGecko is live', () => {
+    recordProviderSuccess('coingecko')
+    recordProviderFailure('yahoo', 'Yahoo empty quote')
+    recordProviderFailure('yahoo', 'Yahoo empty quote')
+    expect(hasLiveListedProviderHit()).toBe(true)
+    expect(isMarketsBookDegraded()).toBe(true)
+    expect(formatMarketsProviderHealthHint()).toMatch(/Yahoo 2× fail/)
+  })
+
+  it('Finnhub 429 probe is a skip, not a failure storm', async () => {
+    const outcomes = await pingAllMarketsProviders({
+      finnhubKey: 'present-key',
+      probes: {
+        finnhub: async () => ({ ok: false, skipped: true, detail: '429 rate limit / quota' }),
+        yahoo: async () => ({ ok: true }),
+        coingecko: async () => ({ ok: true }),
+        coincap: async () => ({ ok: true }),
+        coinbase: async () => ({ ok: true }),
+        fx: async () => ({ ok: true }),
+      },
+    })
+    expect(outcomes.finnhub).toBe('skip')
+    expect(outcomes.yahoo).toBe('ok')
+    const finnhub = getMarketsProviderHealth().find((p) => p.id === 'finnhub')!
+    expect(finnhub.consecutiveFailures).toBe(0)
+    expect(finnhub.lastSuccessAt).toBeUndefined()
+    expect(isMarketsBookDegraded()).toBe(false)
   })
 
   it('ping-all records existing fail(s) copy on a down provider', async () => {

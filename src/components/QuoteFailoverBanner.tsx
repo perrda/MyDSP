@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   formatMarketsProviderHealthHint,
-  getMarketsProviderHealth,
+  isMarketsBookDegraded,
 } from '../services/marketsProviderHealth'
 
 export function QuoteFailoverBanner() {
@@ -14,15 +14,16 @@ export function QuoteFailoverBanner() {
   useEffect(() => {
     const refresh = () => {
       setHint(formatMarketsProviderHealthHint())
-      const rows = getMarketsProviderHealth()
-      setSevere(rows.some((r) => r.consecutiveFailures >= 3))
+      setSevere(isMarketsBookDegraded(3))
     }
     refresh()
     const t = window.setInterval(refresh, 15_000)
     window.addEventListener('mydsp-global-refresh', refresh)
+    window.addEventListener('mydsp-markets-quotes', refresh)
     return () => {
       window.clearInterval(t)
       window.removeEventListener('mydsp-global-refresh', refresh)
+      window.removeEventListener('mydsp-markets-quotes', refresh)
     }
   }, [])
 

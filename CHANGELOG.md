@@ -1,5 +1,13 @@
 # MyDSP Changelog
 
+## [1.2.161] - 2026-09-01
+
+### Fixed — live-price trust leftover
+- **Why Today looked untrustworthy:** header Refresh probes Finnhub when `localStorage finnhub_key` is set. A Finnhub 429 twice painted the whole book “Markets feeds degraded — Finnhub 2× fail” even after Yahoo (or another listed provider) already had a live hit. Last-good copy sat over live marks. A later failed client cycle left the red Sync error chip up after Mini’s live PUT (GET 200 / envelope still good).
+- **Book degraded:** Finnhub-only 429 is a skip (same as CoinGecko backoff), not a 2× fail. The degraded chip stays until a live listed-provider hit — but Finnhub-only 429 must not paint the book when Yahoo (or another listed provider) is already live. Last-good is allowed only when no live provider hit, and it stays labelled `stale:`.
+- **Sync chip:** a live mydsp-sync GET 200 or successful PUT clears `lastSyncError` and heals a stale Sync error chip. Boot Mini PUT stamps Synced. A real current error still shows.
+- **Keep:** Mini absorb extras (1.2.160), satellite auto-pull live marks (`refreshLiveMarksAfterUnlock`, 1.2.159), header Refresh samples listed providers, missing Finnhub key is not OK, Mini-as-book, `#F7931A`. Draft only — do not Promote / wrangler / merge #206. Service worker cache is `mydsp-v1.2.161`.
+
 ## [1.2.160] - 2026-09-01
 
 ### Fixed — Mini absorbs extras before every book push

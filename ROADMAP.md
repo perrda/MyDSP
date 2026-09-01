@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.160**
+**Current version: 1.2.161**
 
-## Completed (through v1.2.160)
+## Completed (through v1.2.161)
 
+- Live-price trust leftover (v1.2.161): Finnhub-only 429 does not paint the book degraded when Yahoo (or another listed provider) already has a live hit · last-good stays labelled and only when no live hit · stale Sync error chip clears on the next live 200 / PUT · header Refresh still samples listed providers · missing Finnhub key is not OK · `refreshLiveMarksAfterUnlock` kept · `#F7931A` + Mini-as-book kept
 - Mini absorb extras before push (v1.2.160): book `pushSync` unions cloud YouTube / News / Markets before PUT so Mini boot / Backup / Sync never revert a satellite extras push · Mini open + Automatic off still absorbs on focus / 60s · Unlock stays pull-only · `#F7931A` + Mini-as-book kept
 - Satellite auto-pull live marks (v1.2.159): satellite `doPull` calls `refreshLiveMarksAfterUnlock` so envelope quotes do not snap sizes back · Unlock banner stays until `lastSyncAt` (media-only extras stamp is not enough) · `#F7931A` + Mini-as-book kept
 - Satellite Advanced Pull REPLACE (v1.2.158): Settings Advanced Pull / Apply / file import and the conflict sheet use `applyReviewedPull` → `applyRemoteAsBook` on satellites so leftover holdings never union then push over Mini · Rotate passphrase is Mini-only · draft `cursor-*-mydspv1` previews cannot push · `go-live.sh` prints Live SW version · `#F7931A` + Mini-as-book kept

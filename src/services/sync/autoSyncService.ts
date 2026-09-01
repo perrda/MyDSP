@@ -280,14 +280,44 @@ export function emitHydratedAutoSyncStatus(): void {
 }
 
 /**
+ * A live 200 from mydsp-sync (GET meta or PUT) clears a stale Sync error chip.
+ * Does not invent lastSyncAt — only heals after a real worker contact.
+ */
+export function noteSuccessfulCloudContact(opts?: { lastAt?: string; emitIdle?: boolean }): void {
+  const cfg = loadSyncConfig()
+  const at = opts?.lastAt ?? cfg.lastSyncAt ?? status.lastAt
+  updateCfg({
+    lastSyncError: undefined,
+    ...(opts?.lastAt ? { lastSyncAt: opts.lastAt } : {}),
+  })
+  if (status.state === 'error' || opts?.emitIdle) {
+    emit({
+      state: 'idle',
+      message: 'Synced',
+      lastAt: at,
+    })
+  }
+}
+
+/**
  * Header chip / Today line: never show Unlock when a remembered passphrase
  * exists. Opening Settings must not be required to dismiss Unlock.
+ * A stale Sync error (lastSyncError already cleared by a live 200) shows Synced.
  */
 export function displayAutoSyncStatus(s: AutoSyncStatus = status): AutoSyncStatus {
   hydrateSessionSyncPassphrase()
+  const cfg = loadSyncConfig()
+  // Stale chip: last successful PUT/GET already cleared lastSyncError.
+  if (s.state === 'error' && !cfg.lastSyncError && cfg.lastSyncAt) {
+    return {
+      ...s,
+      state: 'idle',
+      message: 'Synced',
+      lastAt: s.lastAt ?? cfg.lastSyncAt,
+    }
+  }
   if (s.state !== 'needs-passphrase') return s
   if (!getSessionSyncPassphrase() && !hasRememberedSyncPassphrase()) return s
-  const cfg = loadSyncConfig()
   if (!cfg.enabled || !cfg.remoteUrl.trim()) {
     return {
       ...s,
@@ -467,6 +497,9 @@ async function doPull(cfg: SyncConfig, pass: string, reason: CycleReason): Promi
     emit({ state: 'idle', message: 'Cloud empty — will push local data', lastAt: status.lastAt })
     return false
   }
+
+  // Live GET 200 — do not keep a stale Sync error from a later failed cycle.
+  noteSuccessfulCloudContact({ lastAt: cfg.lastSyncAt ?? status.lastAt })
 
   const localDevice = getLocalDeviceId()
   const seenThis = cfg.lastRemoteExportedAt === meta.exportedAt
@@ -898,6 +931,7 @@ export function startAutoSync(): void {
               // pushSync absorbs satellite extras first — never revert a channel.
               const { pushSync } = await import('./syncService')
               await pushSync(cfg.remoteUrl, pass)
+              noteSuccessfulCloudContact({ lastAt: new Date().toISOString(), emitIdle: true })
             }
           } else {
             const { unlockAndPullFromCloud } = await import('./oneButtonSync')

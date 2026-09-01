@@ -64,14 +64,14 @@ describe('next25t — sync / Markets / Today polish tip (1–25 → v1.2.87)', (
 
   it('25: package + release notes are 1.2.87', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.160')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.160')
+    expect(pkg.version).toBe('1.2.161')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.161')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.161',
       '1.2.160',
       '1.2.159',
       '1.2.158',
       '1.2.157',
-      '1.2.156',
     ])
   })
 

@@ -456,14 +456,15 @@ export async function fetchEquityMarketQuote(
 /** Lightweight Finnhub key probe — AAPL quote; records success/failure for Provider health. */
 export async function probeFinnhubKey(
   finnhubKey: string,
-): Promise<{ ok: boolean; detail: string }> {
+): Promise<{ ok: boolean; detail: string; skipped?: boolean }> {
   const key = finnhubKey.trim()
   if (!key) return { ok: false, detail: 'No Finnhub key' }
   try {
     const url = `https://finnhub.io/api/v1/quote?symbol=AAPL&token=${encodeURIComponent(key)}`
     const { data, status } = await fetchJson<{ c?: number; error?: string }>(url)
     if (status === 429) {
-      return { ok: false, detail: '429 rate limit / quota' }
+      // Same as CoinGecko 429 — skip, do not pile 2× fail onto a cooling-down feed.
+      return { ok: false, skipped: true, detail: '429 rate limit / quota' }
     }
     if (status === 401 || status === 403) {
       return { ok: false, detail: 'Finnhub rejected key (401/403)' }
