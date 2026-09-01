@@ -1638,8 +1638,9 @@ export function SettingsPage() {
                 <div>
                   <p className="text-sm font-medium text-text">Rotate sync passphrase</p>
                   <p className="text-xs text-text-muted font-light">
-                    Re-encrypt local data and push it. After a successful push, the remote uses the
-                    new passphrase; update your other devices before they sync again.
+                    {isBookDevice(syncCfg)
+                      ? 'Re-encrypt local data and push it. After a successful push, the remote uses the new passphrase; update your other devices before they sync again.'
+                      : 'Rotate the passphrase on the Mini (book) only. This device pulls — it will not push leftover YouTube or DAVID over Mini.'}
                   </p>
                 </div>
                 <button
@@ -1679,6 +1680,12 @@ export function SettingsPage() {
                           }
                           if (!rotatePass || rotatePass.trim().length < 8) {
                             flash('Use a new passphrase of at least 8 characters.')
+                            return
+                          }
+                          if (!isBookDevice(syncCfg)) {
+                            flash(
+                              'Rotate the passphrase on the Mini (book) only. This device will not push leftovers.',
+                            )
                             return
                           }
                           if (!isOnline()) {

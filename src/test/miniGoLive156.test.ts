@@ -37,6 +37,8 @@ describe('MyDSP 1.2.156 leftover headlines replace + Mini go-live', () => {
     expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.158/)
     expect(read('../../scripts/go-live.sh')).toMatch(/git clone https:\/\/github.com\/perrda\/MyDSP.git/)
     expect(read('../../scripts/go-live.sh')).toMatch(/npm run deploy/)
+    expect(read('../../scripts/go-live.sh')).toMatch(/npx wrangler whoami/)
+    expect(read('../../scripts/go-live.sh')).toMatch(/Live service worker/)
     expect(read('../../DEPLOY.md')).toMatch(/scripts\/go-live\.sh/)
     expect(read('../services/sync/syncService.ts')).toMatch(/importNewsArticlesFromBackup/)
     expect(read('../services/sync/syncService.ts')).toMatch(/replace: replaceLeftovers/)

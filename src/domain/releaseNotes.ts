@@ -41,7 +41,7 @@ export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
         to: '/settings#sync',
       },
       {
-        text: 'Unlock and boot stay pull-only; Mini remains the book',
+        text: 'Rotate passphrase stays on Mini — a MacBook will not push leftovers under a new key',
         to: '/settings#sync',
       },
     ],
