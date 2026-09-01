@@ -56,14 +56,14 @@ function replacePreview(): MergePreview {
 describe('MyDSP 1.2.146 family sleeves land on live after Mini REPLACE', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(read('../../package.json'))
-    expect(pkg.version).toBe('1.2.156')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.156')
+    expect(pkg.version).toBe('1.2.157')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.157')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.157',
       '1.2.156',
       '1.2.155',
       '1.2.154',
       '1.2.153',
-      '1.2.152',
     ])
     const changelog = read('../../CHANGELOG.md')
     const section = changelog.match(/## \[1\.2\.146\][\s\S]*?(?=## \[)/)?.[0] ?? ''
@@ -81,7 +81,7 @@ describe('MyDSP 1.2.146 family sleeves land on live after Mini REPLACE', () => {
     expect(section).not.toMatch(/SYNC_KEY/)
     expect(read('../../ROADMAP.md')).toMatch(/Family sleeves land on live \(v1\.2\.146\)/)
     expect(read('../domain/familyHoldingSleeves.ts')).toMatch(/FAMILY_SLEEVES_APPLIED_VERSION = 'v3'/)
-    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.156/)
+    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.157/)
     expect(read('../services/sync/syncService.ts')).toMatch(/applyFamilyHoldingsToNamedBooks\(\)/)
     expect(read('../context/PortfolioContext.tsx')).toMatch(/familyHoldingSleeveFor/)
   })

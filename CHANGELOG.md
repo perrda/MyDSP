@@ -1,5 +1,12 @@
 # MyDSP Changelog
 
+## [1.2.157] - 2026-09-01
+
+### Fixed — What’s new archive names every satellite; News dest not YouTube
+- **Archive heal:** 1.2.152–1.2.154 (and the leftover 1.2.155 union line) now say every satellite — MacBook / iPhone / iPad — not MacBook-only. Mini stays the book.
+- **Destinations:** News / Markets and leftover-list / pull-only lines open `/news`, `/markets`, or `/settings#sync`. They do not deep-link to `/youtube`. Genuine YouTube-channel lines may still open YouTube.
+- **Keep:** leftover headlines + Mini go-live (1.2.156), What’s new satellite tip (1.2.155), Mini-as-book, `#F7931A`. Service worker cache is `mydsp-v1.2.157`.
+
 ## [1.2.156] - 2026-09-01
 
 ### Fixed — leftover News headlines replace + Mini one-line Live promote
