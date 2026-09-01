@@ -1,5 +1,12 @@
 # MyDSP Changelog
 
+## [1.2.160] - 2026-09-01
+
+### Fixed — Mini absorbs extras before every book push
+- **Why a MacBook channel could vanish:** Mini boot (1.2.157), Backup, and Settings Sync called `pushSync` without reading the cloud first. If iPhone / iPad / MacBook had already pushed a new YouTube channel, News tag, or Markets ticker, Mini’s PUT wrote yesterday’s extras and reverted them.
+- **Absorb first:** when this device is the book, `pushSync` calls `absorbRemoteWorkspaceExtrasBeforePush` — union YouTube / News / Markets from the other device, then PUT the book + unioned extras. Empty cloud (404) still seeds. Same-device last writer skips the download. Network or decrypt failure throws — never revert a newer satellite envelope with a stale list. Satellites stay pull-only on Unlock.
+- **Keep:** satellite auto-pull live marks (1.2.159), Advanced Pull REPLACE (1.2.158), Mini boot extras push (1.2.157), Mini-as-book, `#F7931A`. Service worker cache is `mydsp-v1.2.160`.
+
 ## [1.2.159] - 2026-09-01
 
 ### Fixed — satellite auto-pull keeps live marks

@@ -834,6 +834,7 @@ export function startAutoSync(): void {
           if (isBookDevice(cfg)) {
             const { shouldPushCloudAfterBackup } = await import('../../storage/backupStore')
             if (shouldPushCloudAfterBackup(cfg, pass)) {
+              // pushSync absorbs satellite extras first — never revert a channel.
               const { pushSync } = await import('./syncService')
               await pushSync(cfg.remoteUrl, pass)
             }

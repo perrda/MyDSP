@@ -29,6 +29,24 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.160',
+    date: '2026-09-01',
+    bullets: [
+      {
+        text: 'Mini Backup / boot / Sync reads YouTube / News / Markets from the cloud first — a channel added on MacBook or iPhone is not wiped',
+        to: '/settings#sync',
+      },
+      {
+        text: 'Unlock on a satellite still pulls only — leftover lists never overwrite Mini',
+        to: '/youtube',
+      },
+      {
+        text: 'Live sizes still refresh after a pull so prints do not snap back',
+        to: '/settings#sync',
+      },
+    ],
+  },
+  {
     version: '1.2.159',
     date: '2026-09-01',
     bullets: [

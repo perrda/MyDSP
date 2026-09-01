@@ -226,4 +226,80 @@ describe('Mini ↔ satellite extras Worker round-trip (1.2.158)', () => {
     expect(loadPortfolio('default').crypto.find((h) => h.symbol === 'BTC')?.qty).toBe(12.5)
     expect(loadCachedFxRates().USD).toBe(1.34)
   })
+
+  it('Mini boot/Backup pushSync absorbs satellite extras — never reverts a MacBook channel', async () => {
+    const cloud = installMockSyncCloud()
+
+    localStorage.setItem('mydsp_device_id', 'dev_mini')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    setSessionSyncPassphrase(PASS, { remember: true })
+    seedPortfolio('default', 'David', miniBook())
+    addYoutubeChannel({
+      channelId: 'UC_mini_1',
+      title: 'MoneyZG',
+      url: 'https://www.youtube.com/@MoneyZG',
+    })
+    await pushSync(URL, PASS)
+    const miniSnap = snapshotStorage()
+
+    localStorage.clear()
+    clearSessionSyncPassphrase()
+    localStorage.setItem('mydsp_device_id', 'dev_macbook')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: false,
+    })
+    seedPortfolio('default', 'David', leftoverBook())
+    await unlockAndPullFromCloud(PASS)
+    addYoutubeChannel({
+      channelId: 'UC_after',
+      title: 'Added on MacBook after Unlock',
+      url: 'https://www.youtube.com/@after',
+    })
+    addNewsTag({ tag: 'SOL', label: 'Solana news' })
+    addMarketTicker({ kind: 'crypto', symbol: 'LINK', name: 'Chainlink' })
+    vi.useFakeTimers({ toFake: ['setTimeout', 'setInterval'] })
+    markLocalDataChanged()
+    await vi.advanceTimersByTimeAsync(4_000)
+    vi.useRealTimers()
+    await vi.waitFor(() => {
+      expect(
+        cloud.fetchMock.mock.calls.filter((c) => String(c[1]?.method ?? 'GET').toUpperCase() === 'PUT')
+          .length,
+      ).toBeGreaterThan(1)
+    })
+
+    restoreStorage(miniSnap)
+    setSessionSyncPassphrase(PASS, { remember: true })
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    expect(listYoutubeChannels().map((c) => c.title)).toEqual(['MoneyZG'])
+
+    // Mini boot / Backup / Settings Sync — same pushSync. Must absorb first.
+    await pushSync(URL, PASS)
+    expect(listYoutubeChannels().map((c) => c.title).sort()).toEqual([
+      'Added on MacBook after Unlock',
+      'MoneyZG',
+    ])
+    expect(loadNewsState().tags.map((t) => t.tag)).toContain('SOL')
+    expect(listMarketTickers().map((t) => t.symbol)).toContain('LINK')
+    expect(loadPortfolio('default').crypto.find((h) => h.symbol === 'BTC')?.qty).toBe(12.5)
+
+    const afterMini = await previewPull(URL, PASS)
+    await applyWorkspaceExtrasFromPreview(afterMini)
+    expect(listYoutubeChannels().map((c) => c.title).sort()).toEqual([
+      'Added on MacBook after Unlock',
+      'MoneyZG',
+    ])
+  })
 })
