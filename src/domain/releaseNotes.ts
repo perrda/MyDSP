@@ -29,6 +29,32 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.163',
+    date: '2026-09-01',
+    bullets: [
+      {
+        text: 'A MacBook / iPhone / iPad size change still lands on Mini boot, Backup, or the next minute — Mini never reverts it',
+        to: '/settings#sync',
+      },
+      {
+        text: 'YouTube / News / Markets extras still absorb first, then the book sizes',
+        to: '/youtube',
+      },
+      {
+        text: 'If Mini and a satellite both edited the same holding, Sync waits for a review instead of overwriting',
+        to: '/settings#sync',
+      },
+      {
+        text: 'MacBook / iPhone / iPad can stay open with Automatic off — a Mini channel still lands pull-only',
+        to: '/youtube',
+      },
+      {
+        text: 'Draft preview addresses still cannot push over Mini',
+        to: '/settings#sync',
+      },
+    ],
+  },
+  {
     version: '1.2.162',
     date: '2026-09-01',
     bullets: [

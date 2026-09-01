@@ -208,6 +208,6 @@ describe('next25c sync / security', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8')) as {
       version: string
     }
-    expect(pkg.version).toBe('1.2.162')
+    expect(pkg.version).toBe('1.2.163')
   })
 })

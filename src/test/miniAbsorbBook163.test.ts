@@ -1,0 +1,68 @@
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+import { describe, expect, it } from 'vitest'
+import { RELEASE_NOTES, releaseNotesArchive } from '../domain/releaseNotes'
+
+const read = (rel: string) => readFileSync(resolve(__dirname, rel), 'utf8')
+
+describe('MyDSP 1.2.163 Mini absorbs satellite holding sizes before book push', () => {
+  it('package + release notes tip', () => {
+    const pkg = JSON.parse(read('../../package.json'))
+    expect(pkg.version).toBe('1.2.163')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.163')
+    expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.163',
+      '1.2.162',
+      '1.2.161',
+      '1.2.160',
+      '1.2.159',
+    ])
+    const changelog = read('../../CHANGELOG.md')
+    const section = changelog.match(/## \[1\.2\.163\][\s\S]*?(?=## \[)/)?.[0] ?? ''
+    expect(section).toMatch(/absorbRemoteWorkspaceExtrasBeforePush/)
+    expect(section).toMatch(/applyMergePreview/)
+    expect(section).toMatch(/holding/)
+    expect(section).toMatch(/never revert/)
+    expect(section).toMatch(/MacBook \/ iPhone \/ iPad/)
+    expect(section).toMatch(/parked/)
+    expect(section).toMatch(/#F7931A/)
+    expect(section).not.toMatch(/SYNC_KEY/)
+    expect(section).not.toMatch(/wrangler deploy/)
+    expect(read('../../ROADMAP.md')).toMatch(/Mini absorb holding sizes \(v1\.2\.163\)/)
+    expect(read('../../public/sw.js')).toMatch(/mydsp-v1.2.163/)
+    const notes = read('../domain/releaseNotes.ts')
+    expect(notes).toMatch(/MacBook \/ iPhone \/ iPad size change/)
+    expect(notes).toMatch(/never revert/)
+  })
+
+  it('absorb merges satellite holdings when Mini is not dirty; parks when both edited', () => {
+    const sync = read('../services/sync/syncService.ts')
+    const start = sync.indexOf('export async function absorbRemoteWorkspaceExtrasBeforePush')
+    const push = sync.indexOf('export async function pushSync')
+    expect(start).toBeGreaterThan(0)
+    expect(push).toBeGreaterThan(start)
+    const absorbFn = sync.slice(start, push)
+    expect(absorbFn).toMatch(/applyMergePreview/)
+    expect(absorbFn).toMatch(/isLocalSyncDirty/)
+    expect(absorbFn).toMatch(/parked/)
+    expect(absorbFn).toMatch(/'remote'/)
+    const pushFn = sync.slice(push, sync.indexOf('async function decryptEnvelope'))
+    expect(pushFn).toMatch(/absorbRemoteWorkspaceExtrasBeforePush/)
+    expect(pushFn).toMatch(/parked/)
+    expect(read('../services/sync/autoSyncService.ts')).toMatch(/export function isLocalSyncDirty/)
+    expect(read('../services/sync/autoSyncService.ts')).toMatch(/absorbed === 'parked'/)
+    const rule = read('../../.cursor/rules/media-cross-device-sync.mdc')
+    expect(rule).toMatch(/holding size/)
+    expect(rule).toMatch(/parked/)
+  })
+
+  it('does not revert sitting satellite pull or live-price trust', () => {
+    const changelog = read('../../CHANGELOG.md')
+    expect(changelog).toMatch(/## \[1\.2\.162\]/)
+    expect(changelog).toMatch(/## \[1\.2\.161\]/)
+    expect(changelog).toMatch(/## \[1\.2\.160\]/)
+    expect(changelog).toMatch(/maybePullSatelliteExtras/)
+    expect(read('../services/sync/autoSyncService.ts')).toMatch(/maybePullSatelliteExtras/)
+    expect(read('../services/sync/autoSyncService.ts')).toMatch(/refreshLiveMarksAfterUnlock/)
+  })
+})

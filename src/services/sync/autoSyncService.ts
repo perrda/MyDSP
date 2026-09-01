@@ -408,6 +408,11 @@ export function shouldRunSyncCycle(
   return isDirty || reason === 'edit' || reason === 'hide' || reason === 'manual'
 }
 
+/** True when a local extras / book edit is waiting to flush. */
+export function isLocalSyncDirty(): boolean {
+  return dirty
+}
+
 export function markLocalDataChanged(): void {
   if (applyingRemote) {
     dirtyWhileApplying = true
@@ -818,6 +823,14 @@ async function maybeAbsorbAndPushBookExtras(cfg: SyncConfig): Promise<void> {
   try {
     const { absorbRemoteWorkspaceExtrasBeforePush, pushSync } = await import('./syncService')
     const absorbed = await absorbRemoteWorkspaceExtrasBeforePush(cfg.remoteUrl, pass)
+    if (absorbed === 'parked') {
+      emit({
+        state: 'conflict',
+        message: 'Holding changes from another device — open Settings → Sync',
+        lastAt: cfg.lastSyncAt ?? status.lastAt,
+      })
+      return
+    }
     if (!absorbed && !dirty) {
       emit({
         state: 'idle',
@@ -968,6 +981,7 @@ export function startAutoSync(): void {
             const { shouldPushCloudAfterBackup } = await import('../../storage/backupStore')
             if (shouldPushCloudAfterBackup(cfg, pass)) {
               // pushSync absorbs satellite extras first — never revert a channel.
+              // 1.2.163 also merges satellite holding sizes before that PUT.
               const { pushSync } = await import('./syncService')
               await pushSync(cfg.remoteUrl, pass)
               noteSuccessfulCloudContact({ lastAt: new Date().toISOString(), emitIdle: true })

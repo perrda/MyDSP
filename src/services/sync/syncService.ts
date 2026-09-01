@@ -644,17 +644,21 @@ export async function buildEnvelope(
 }
 
 /**
- * Mini (book) unions YouTube / News / Markets from the cloud before any PUT.
- * A MacBook / iPhone / iPad extras push must not be wiped by Mini boot,
- * Backup, or Sync. Empty cloud (404) is a no-op so Mini can still seed.
- * Same-device last writer skips the download (already our extras).
- * Network / decrypt failures throw — never push a stale extras list over a
- * newer satellite envelope.
+ * Mini (book) unions YouTube / News / Markets from the cloud before any PUT,
+ * and takes satellite holding size/qty changes when Mini has not edited the
+ * same rows. A MacBook / iPhone / iPad extras or book push must not be wiped
+ * by Mini boot, Backup, or Sync. Empty cloud (404) is a no-op so Mini can
+ * still seed. Same-device last writer skips the download.
+ * Network / decrypt failures throw — never push a stale extras list or Mini
+ * qty over a newer satellite envelope.
+ * Returns `parked` when Mini is dirty and the same holdings also changed on
+ * the satellite — extras still apply; the PUT is skipped so neither side
+ * silently reverts.
  */
 export async function absorbRemoteWorkspaceExtrasBeforePush(
   url: string,
   passphrase: string,
-): Promise<boolean> {
+): Promise<boolean | 'parked'> {
   if (!isBookDevice()) return false
   const remote = normalizeSyncRemoteUrl(url)
   let meta: RemoteSyncMeta | null
@@ -667,7 +671,27 @@ export async function absorbRemoteWorkspaceExtrasBeforePush(
   if (!meta) return false
   if (meta.deviceId && meta.deviceId === getLocalDeviceId()) return false
   const preview = await previewPull(remote, passphrase)
-  await applyWorkspaceExtrasFromPreview(preview)
+
+  let wasDirty = false
+  try {
+    const { isLocalSyncDirty } = await import('./autoSyncService')
+    wasDirty = isLocalSyncDirty()
+  } catch {
+    /* cycle import during isolated tests */
+  }
+
+  if (preview.conflicts.length > 0 && wasDirty) {
+    await applyWorkspaceExtrasFromPreview(preview)
+    return 'parked'
+  }
+
+  const resolutions: Record<string, ConflictChoice> = {}
+  if (preview.conflicts.length > 0) {
+    for (const c of preview.conflicts) {
+      resolutions[conflictKey(c)] = 'remote'
+    }
+  }
+  await applyMergePreview(preview, resolutions)
   return true
 }
 
@@ -680,7 +704,13 @@ export async function pushSync(url: string, passphrase: string): Promise<SyncPus
   setSessionSyncPassphrase(passphrase)
   const remote = normalizeSyncRemoteUrl(url)
   if (isBookDevice()) {
-    await absorbRemoteWorkspaceExtrasBeforePush(remote, passphrase)
+    const absorbed = await absorbRemoteWorkspaceExtrasBeforePush(remote, passphrase)
+    if (absorbed === 'parked') {
+      return {
+        exportedAt: loadSyncConfig().lastRemoteExportedAt ?? new Date().toISOString(),
+        bytes: 0,
+      }
+    }
   }
   const envelope = await buildEnvelope(passphrase, { includeFullArchive: true })
   const body = JSON.stringify(envelope)

@@ -1,5 +1,13 @@
 # MyDSP Changelog
 
+## [1.2.163] - 2026-09-01
+
+### Fixed — Mini absorbs satellite holding sizes before book push
+- **Why a MacBook size change could vanish:** Mini boot / Backup / sitting absorb (1.2.160) unioned YouTube / News / Markets, then PUT Mini’s local book. A BTC qty or cost edited on MacBook / iPhone / iPad after Unlock reached the cloud, then Mini’s next PUT wrote yesterday’s 12.5 and reverted it.
+- **Absorb the book too:** `absorbRemoteWorkspaceExtrasBeforePush` still unions extras, then `applyMergePreview` takes satellite holding size/qty changes when Mini has not edited the same rows (remote-wins those conflicts). Mini open + Automatic off uses the same path on focus / 60s / online.
+- **Both sides edited:** if Mini is dirty and the same holdings also changed on the satellite, extras still apply and the PUT is skipped (`parked`) — never silently revert either book. Open Settings → Sync to review.
+- **Keep:** sitting satellite extras pull (1.2.162), live-price trust (1.2.161), Mini absorb extras (1.2.160), Mini-as-book, `#F7931A`. Draft only — do not Promote / wrangler / merge #206. Service worker cache is `mydsp-v1.2.163`.
+
 ## [1.2.162] - 2026-09-01
 
 ### Fixed — sitting satellite pulls extras with Automatic off

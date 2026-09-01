@@ -304,6 +304,88 @@ describe('Mini ↔ satellite extras Worker round-trip (1.2.158)', () => {
     ])
   })
 
+  it('Mini boot/Backup pushSync absorbs satellite holding size — never reverts BTC qty', async () => {
+    const cloud = installMockSyncCloud()
+
+    localStorage.setItem('mydsp_device_id', 'dev_mini')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    setSessionSyncPassphrase(PASS, { remember: true })
+    seedPortfolio('default', 'David', miniBook())
+    addYoutubeChannel({
+      channelId: 'UC_mini_1',
+      title: 'MoneyZG',
+      url: 'https://www.youtube.com/@MoneyZG',
+    })
+    await pushSync(URL, PASS)
+    const miniSnap = snapshotStorage()
+
+    localStorage.clear()
+    clearSessionSyncPassphrase()
+    localStorage.setItem('mydsp_device_id', 'dev_macbook')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: false,
+    })
+    seedPortfolio('default', 'David', leftoverBook())
+    await unlockAndPullFromCloud(PASS)
+    const grown = loadPortfolio('default')
+    grown.crypto[0] = { ...grown.crypto[0], qty: 13.25, cost: 420_000 }
+    savePortfolioImmediate(grown, 'default')
+    addYoutubeChannel({
+      channelId: 'UC_size',
+      title: 'Added with size change',
+      url: 'https://www.youtube.com/@size',
+    })
+    vi.useFakeTimers({ toFake: ['setTimeout', 'setInterval'] })
+    markLocalDataChanged()
+    await vi.advanceTimersByTimeAsync(4_000)
+    vi.useRealTimers()
+    await vi.waitFor(() => {
+      expect(
+        cloud.fetchMock.mock.calls.filter((c) => String(c[1]?.method ?? 'GET').toUpperCase() === 'PUT')
+          .length,
+      ).toBeGreaterThan(1)
+    })
+
+    restoreStorage(miniSnap)
+    setSessionSyncPassphrase(PASS, { remember: true })
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    expect(loadPortfolio('default').crypto.find((h) => h.symbol === 'BTC')?.qty).toBe(12.5)
+
+    const putsBefore = cloud.fetchMock.mock.calls.filter(
+      (c) => String(c[1]?.method ?? 'GET').toUpperCase() === 'PUT',
+    ).length
+    await pushSync(URL, PASS)
+    expect(loadPortfolio('default').crypto.find((h) => h.symbol === 'BTC')?.qty).toBe(13.25)
+    expect(loadPortfolio('default').crypto.find((h) => h.symbol === 'BTC')?.cost).toBe(420_000)
+    expect(listYoutubeChannels().map((c) => c.title).sort()).toEqual([
+      'Added with size change',
+      'MoneyZG',
+    ])
+
+    const afterMini = await previewPull(URL, PASS)
+    const remoteBtc = afterMini.portfolios
+      .find((p) => p.portfolioId === 'default')
+      ?.remote.crypto.find((h) => h.symbol === 'BTC')
+    expect(remoteBtc?.qty).toBe(13.25)
+    expect(remoteBtc?.cost).toBe(420_000)
+    const putsAfter = cloud.fetchMock.mock.calls.filter(
+      (c) => String(c[1]?.method ?? 'GET').toUpperCase() === 'PUT',
+    ).length
+    expect(putsAfter).toBeGreaterThan(putsBefore)
+  })
+
   it('Mini open + Automatic off absorbs a satellite channel on the interval cycle', async () => {
     const cloud = installMockSyncCloud()
 
