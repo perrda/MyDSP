@@ -11,14 +11,28 @@ MyDSP is a static Vite SPA. **GitHub Pages** is the recommended permanent host (
 
 Requires `wrangler login` once on your machine (this cloud agent cannot hold your CF token).
 
+The repo folder may move. From any Terminal:
+
 ```bash
-cd ~/AI_Projects/MyDSP   # or this repo
+# Find an existing copy (look for …/MyDSP/wrangler.jsonc)
+mdfind -name wrangler.jsonc
+
+# Or get a fresh copy of main
+cd ~
+git clone https://github.com/perrda/MyDSP.git
+cd MyDSP
+```
+
+Then, inside that MyDSP folder:
+
+```bash
+git checkout main
 git pull origin main
 npm ci
 npm run deploy           # build + verify + wrangler deploy → mydspv1
 # optional:
 npm run deploy:sync      # sync-endpoint Worker
-npm run deploy:quote   # Markets/News/YouTube proxy → mydsp-quote
+npm run deploy:quote     # Markets/News/YouTube proxy → mydsp-quote
 # Success must print Worker name mydsp-quote (NOT mydspv1)
 npm run deploy:check     # build + verify only (no auth needed)
 ```
@@ -33,7 +47,7 @@ After deploy: hard-refresh the PWA / re-open from Home Screen so SW picks up the
 ### 1. Sign in to GitHub in Terminal (one time)
 
 ```bash
-cd ~/AI_Projects/MyDSP
+cd /path/to/MyDSP
 gh auth login
 ```
 
@@ -42,7 +56,7 @@ Choose: **GitHub.com** → **HTTPS** → **Login with a web browser** → follow
 ### 2. Create the MyDSP repo and push
 
 ```bash
-cd ~/AI_Projects/MyDSP
+cd /path/to/MyDSP
 git add -A
 git status
 git commit -m "Initial MyDSP app for GitHub Pages"
@@ -69,7 +83,7 @@ Delete any old **localhost** shortcuts.
 ## Later updates
 
 ```bash
-cd ~/AI_Projects/MyDSP
+cd /path/to/MyDSP
 git add -A
 git commit -m "Describe your change"
 git push

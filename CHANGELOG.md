@@ -1,5 +1,13 @@
 # MyDSP Changelog
 
+## [1.2.150] - 2026-09-01
+
+### Fixed — Mini channel and book edits push with Automatic off
+- **Why a Mini add could stay local:** Unlock-and-pull (1.2.149) pushed Backup without Automatic, but a YouTube / News / Markets / holding edit on Mini still required Automatic sync on before the ~4s push. Automatic off + add channel + no Sync tap left the cloud stale — MacBook Unlock pulled yesterday’s list.
+- **Edits push when the passphrase is unlocked:** `markLocalDataChanged` no longer bails on Automatic off. Mini (book) edits always schedule a push. A satellite still waits for `lastSyncAt` (never leftover DAVID). Interval / focus background pulls stay quiet when Automatic is off.
+- **Book checkbox:** turning “This device is the book” on asks to confirm — only Mini should be the book.
+- **Keep:** Mini-as-book, Unlock & pull on Today / YouTube / News / Markets, Backup now without Automatic, `#F7931A`, 1.2.149 extras envelope + 1.2.148 live FX. Service worker cache is `mydsp-v1.2.150`.
+
 ## [1.2.149] - 2026-09-01
 
 ### Fixed — YouTube channels unlock-and-pull across devices

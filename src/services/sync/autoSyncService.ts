@@ -359,16 +359,27 @@ export function isApplyingRemote(): boolean {
   return applyingRemote
 }
 
+/** Edits + explicit Sync still run when Automatic is off (passphrase + URL). */
+export function shouldRunSyncCycle(
+  cfg: { enabled?: boolean; remoteUrl?: string },
+  reason: CycleReason,
+  isDirty: boolean,
+): boolean {
+  if (!cfg.remoteUrl?.trim()) return false
+  if (cfg.enabled) return true
+  return isDirty || reason === 'edit' || reason === 'hide' || reason === 'manual'
+}
+
 export function markLocalDataChanged(): void {
   if (applyingRemote) {
     dirtyWhileApplying = true
     return
   }
   const cfg = loadSyncConfig()
-  if (!cfg.enabled || !cfg.remoteUrl) return
+  if (!cfg.remoteUrl) return
   // Satellites do not push a leftover book. After a successful unlock/pull
-  // (lastSyncAt), YouTube / News / Markets edits still flush so a channel
-  // added on MacBook / iPad reaches Mini.
+  // (lastSyncAt), YouTube / News / Markets / portfolio edits still flush so a
+  // channel or holding added on MacBook / iPad reaches Mini. Automatic can be off.
   if (!isBookDevice(cfg)) {
     if (!cfg.lastSyncAt) return
     dirty = true
@@ -688,7 +699,7 @@ async function doPush(cfg: SyncConfig, pass: string): Promise<void> {
 
 export async function runAutoSyncCycle(reason: CycleReason = 'manual'): Promise<void> {
   const cfg = loadSyncConfig()
-  if (!cfg.enabled || !cfg.remoteUrl.trim()) {
+  if (!shouldRunSyncCycle(cfg, reason, dirty)) {
     emit({ state: 'disabled', message: 'Automatic sync is off' })
     return
   }

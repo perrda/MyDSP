@@ -10,14 +10,14 @@ const read = (rel: string) => readFileSync(resolve(__dirname, rel), 'utf8')
 describe('MyDSP 1.2.129 nav + header chrome', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(read('../../package.json'))
-    expect(pkg.version).toBe('1.2.149')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.149')
+    expect(pkg.version).toBe('1.2.150')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.150')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.150',
       '1.2.149',
       '1.2.148',
       '1.2.147',
       '1.2.146',
-      '1.2.145',
     ])
   })
 

@@ -29,6 +29,24 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.150',
+    date: '2026-09-01',
+    bullets: [
+      {
+        text: 'Add a YouTube channel or holding on Mini — it pushes even if Automatic sync is off',
+        to: '/settings#sync',
+      },
+      {
+        text: 'MacBook still pulls only until Unlock — it cannot overwrite Mini',
+        to: '/youtube',
+      },
+      {
+        text: 'Turning on “This device is the book” asks first — only Mini should be the book',
+        to: '/settings#sync',
+      },
+    ],
+  },
+  {
     version: '1.2.149',
     date: '2026-09-01',
     bullets: [
