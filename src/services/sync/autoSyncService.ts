@@ -527,6 +527,14 @@ async function doPull(cfg: SyncConfig, pass: string, reason: CycleReason): Promi
     } finally {
       endApplyingRemote()
     }
+    // Envelope quotes can be Mini’s last PUT (hours old). Fetch live marks
+    // so sizes/FX do not snap back to yesterday after a 60s auto-pull.
+    try {
+      const { refreshLiveMarksAfterUnlock } = await import('../marketsQuotes')
+      await refreshLiveMarksAfterUnlock()
+    } catch {
+      /* extras + book already landed */
+    }
     return true
   }
 

@@ -1271,7 +1271,11 @@ export async function pullAndMerge(
   resolutions: Record<string, ConflictChoice> = {},
 ): Promise<{ merged: number; conflicts: SyncConflict[]; preview?: MergePreview }> {
   const preview = await previewPull(url, passphrase)
-  if (preview.conflicts.length > 0 && !allConflictsResolved(preview.conflicts, resolutions)) {
+  if (
+    isBookDevice() &&
+    preview.conflicts.length > 0 &&
+    !allConflictsResolved(preview.conflicts, resolutions)
+  ) {
     // Portfolio conflicts must not block YouTube / News / Markets extras
     await applyWorkspaceExtrasFromPreview(preview)
     return { merged: 0, conflicts: preview.conflicts, preview }
@@ -1289,7 +1293,11 @@ export async function importEncryptedFile(
   resolutions: Record<string, ConflictChoice> = {},
 ): Promise<{ merged: number; conflicts: SyncConflict[]; preview?: MergePreview }> {
   const preview = await previewImport(file, passphrase)
-  if (preview.conflicts.length > 0 && !allConflictsResolved(preview.conflicts, resolutions)) {
+  if (
+    isBookDevice() &&
+    preview.conflicts.length > 0 &&
+    !allConflictsResolved(preview.conflicts, resolutions)
+  ) {
     await applyWorkspaceExtrasFromPreview(preview)
     return { merged: 0, conflicts: preview.conflicts, preview }
   }

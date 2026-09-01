@@ -43,14 +43,14 @@ describe('Media cross-device sync (v1.2.95)', () => {
 
   it('package + release notes tip', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.158')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.158')
+    expect(pkg.version).toBe('1.2.159')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.159')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.159',
       '1.2.158',
       '1.2.157',
       '1.2.156',
       '1.2.155',
-      '1.2.154',
     ])
   })
 
@@ -182,6 +182,7 @@ describe('Media cross-device sync (v1.2.95)', () => {
     expect(sync).toMatch(/Portfolio conflicts must not block YouTube/)
     expect(auto).toMatch(/applyWorkspaceExtrasFromPreview\(preview\)/)
     expect(auto).toMatch(/Portfolio conflicts must not block YouTube/)
+    expect(auto).toMatch(/refreshLiveMarksAfterUnlock/)
     expect(settings).toMatch(/applyWorkspaceExtrasFromPreview\(preview\)/)
     expect(settings).toMatch(/YouTube\/News\/Markets pulled/)
   })
