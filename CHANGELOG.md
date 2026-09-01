@@ -1,5 +1,12 @@
 # MyDSP Changelog
 
+## [1.2.157] - 2026-09-01
+
+### Fixed — Mini boot pushes extras with Automatic off
+- **Why MacBook Unlock could still see yesterday:** satellite boot already pulled. Mini boot only ran `runAutoSyncCycle('start')`, which is a no-op when Automatic is off. Opening preview / Live on Mini did not PUT YouTube / News / Markets until someone tapped Sync or Backup.
+- **Boot push:** if this device is the book, passphrase unlocked, and Remote URL set, `startAutoSync` `pushSync`s after 2s. Same gate as Backup (`shouldPushCloudAfterBackup`). Satellites still `unlockAndPullFromCloud` only.
+- **Keep:** leftover headline replace + go-live (1.2.156), Unlock live marks (1.2.154), Mini-as-book, `#F7931A`. Service worker cache is `mydsp-v1.2.157`.
+
 ## [1.2.156] - 2026-09-01
 
 ### Fixed — leftover News headlines replace + Mini one-line Live promote

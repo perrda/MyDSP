@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.156**
+**Current version: 1.2.157**
 
-## Completed (through v1.2.156)
+## Completed (through v1.2.157)
 
+- Mini boot extras push (v1.2.157): book + passphrase + URL `pushSync` on app start even when Automatic is off · satellites still pull-only · `#F7931A` + Mini-as-book kept
 - Leftover News headlines + Mini go-live (v1.2.156): first Unlock replaces News article cache · `scripts/go-live.sh` promotes Live from any folder · `#F7931A` + Mini-as-book kept
 - What’s new satellite wording (v1.2.155): leftover tip says every satellite (MacBook / iPhone / iPad), not MacBook-only · News / Markets What’s new opens `/news` not `/youtube` · `#F7931A` + Mini-as-book kept
 - Unlock live FX and marks (v1.2.154): after extras + book land, satellite fetches live FX + Markets quotes and force-refreshes holdings · Unlock stays pull-only · `#F7931A` + Mini-as-book kept
