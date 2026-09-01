@@ -19,14 +19,14 @@ describe('MyDSP 1.2.154 Unlock fetches live FX and marks', () => {
 
   it('package + release notes tip', () => {
     const pkg = JSON.parse(read('../../package.json'))
-    expect(pkg.version).toBe('1.2.154')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.154')
+    expect(pkg.version).toBe('1.2.155')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.155')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.155',
       '1.2.154',
       '1.2.153',
       '1.2.152',
       '1.2.151',
-      '1.2.150',
     ])
     const changelog = read('../../CHANGELOG.md')
     const section = changelog.match(/## \[1\.2\.154\][\s\S]*?(?=## \[)/)?.[0] ?? ''
@@ -36,7 +36,7 @@ describe('MyDSP 1.2.154 Unlock fetches live FX and marks', () => {
     expect(section).toMatch(/#F7931A/)
     expect(section).not.toMatch(/SYNC_KEY/)
     expect(read('../../ROADMAP.md')).toMatch(/Unlock live FX and marks \(v1\.2\.154\)/)
-    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.154/)
+    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.155/)
     expect(read('../services/sync/oneButtonSync.ts')).toMatch(/refreshLiveMarksAfterUnlock/)
     const unlock = read('../services/sync/oneButtonSync.ts')
     const start = unlock.indexOf('export async function unlockAndPullFromCloud')

@@ -1,5 +1,12 @@
 # MyDSP Changelog
 
+## [1.2.155] - 2026-09-01
+
+### Fixed — What’s new says every satellite; News / Markets opens News
+- **Why it read MacBook-only:** leftover What’s new said “MacBook” as if only one device pulls Mini. The same Unlock / blank-seed / replace path is every satellite — MacBook, iPhone, and iPad.
+- **News / Markets destination:** the News / Markets What’s new line opens `/news`. YouTube bullets still use `/youtube`.
+- **Keep:** Unlock live marks (1.2.154), first extras replace (1.2.153), Mini-as-book, `#F7931A`. Service worker cache is `mydsp-v1.2.155`.
+
 ## [1.2.154] - 2026-09-01
 
 ### Fixed — Unlock fetches live FX and marks after extras land
