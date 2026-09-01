@@ -12,14 +12,14 @@ const read = (rel: string) => readFileSync(resolve(__dirname, rel), 'utf8')
 describe('MyDSP 1.2.121 UX pack', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(read('../../package.json'))
-    expect(pkg.version).toBe('1.2.152')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.152')
+    expect(pkg.version).toBe('1.2.153')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.153')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.153',
       '1.2.152',
       '1.2.151',
       '1.2.150',
       '1.2.149',
-      '1.2.148',
     ])
   })
 

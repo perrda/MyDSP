@@ -28,7 +28,10 @@ import {
   mergeQuotesForSync,
   parseMarketQuotesBackup,
 } from '../domain/marketQuotesSync'
-import { satelliteAwaitingFirstPull } from '../services/sync/satelliteFactorySeed'
+import {
+  satelliteAwaitingFirstPull,
+  satelliteMustNotRefillFactoryTickers,
+} from '../services/sync/satelliteFactorySeed'
 
 function touchPrefs(state: MarketsState): void {
   state.prefsUpdatedAt = new Date().toISOString()
@@ -159,7 +162,7 @@ export function loadMarketsState(): MarketsState {
         : '24H',
       screener: normalizeMarketsScreener(existing.screener),
     }
-    if (satelliteAwaitingFirstPull()) {
+    if (satelliteAwaitingFirstPull() || satelliteMustNotRefillFactoryTickers()) {
       if (hadLegacyHeatDensity) writeState(normalized, { silent: true })
       return normalized
     }
@@ -520,10 +523,47 @@ export function importMarketQuotesFromBackup(raw: unknown): void {
   saveMarketQuotesCache(merged, { fromSync: true })
 }
 
-export function importMarketsFromBackup(raw: unknown): void {
+export function importMarketsFromBackup(raw: unknown, opts?: { replace?: boolean }): void {
   if (!raw || typeof raw !== 'object') return
   const parsed = raw as MarketsState
   if (parsed.version !== 1 || !Array.isArray(parsed.tickers)) return
+
+  if (opts?.replace) {
+    const deletedTickers = (parsed.deletedTickers ?? []).filter(
+      (d) => d && typeof d.key === 'string' && typeof d.deletedAt === 'string',
+    )
+    writeState(
+      {
+        version: 1,
+        tickers: parsed.tickers.map(normalizeTicker),
+        collapsed: {
+          crypto: Boolean(parsed.collapsed?.crypto),
+          equities: Boolean(parsed.collapsed?.equities),
+          commodities: Boolean((parsed.collapsed as MarketsCollapsed | undefined)?.commodities),
+          indices: Boolean((parsed.collapsed as MarketsCollapsed | undefined)?.indices),
+          fx: Boolean((parsed.collapsed as MarketsCollapsed | undefined)?.fx),
+          crosses: Boolean((parsed.collapsed as MarketsCollapsed | undefined)?.crosses),
+        },
+        sectionOrder: normalizeSectionOrder(parsed.sectionOrder),
+        density: parsed.density === 'compact' ? 'compact' : 'comfortable',
+        timeframe: isMarketTimeframe(parsed.timeframe) ? parsed.timeframe : '24H',
+        tagFilter:
+          parsed.tagFilter === 'Core' ||
+          parsed.tagFilter === 'Speculative' ||
+          parsed.tagFilter === 'Income' ||
+          parsed.tagFilter === 'Other' ||
+          parsed.tagFilter === 'All'
+            ? parsed.tagFilter
+            : 'All',
+        yieldSort: Boolean(parsed.yieldSort),
+        screener: normalizeMarketsScreener(parsed.screener),
+        prefsUpdatedAt: parsed.prefsUpdatedAt,
+        deletedTickers,
+      },
+      { fromSync: true },
+    )
+    return
+  }
 
   const local = readRaw()
   const remoteTickers = parsed.tickers.map(normalizeTicker)
@@ -634,8 +674,8 @@ export function importMarketsFromBackup(raw: unknown): void {
       ? (parsed as MarketsState).prefsUpdatedAt || (local as MarketsState | null)?.prefsUpdatedAt
       : (local as MarketsState | null)?.prefsUpdatedAt || (parsed as MarketsState).prefsUpdatedAt
 
-  const { state } = mergeDefaultTickers({
-    version: 1,
+  const merged = {
+    version: 1 as const,
     tickers: [...byKey.values()],
     collapsed,
     sectionOrder,
@@ -646,6 +686,9 @@ export function importMarketsFromBackup(raw: unknown): void {
     screener,
     prefsUpdatedAt,
     deletedTickers: [...tombByKey.entries()].map(([key, deletedAt]) => ({ key, deletedAt })),
-  })
+  }
+  const { state } = satelliteMustNotRefillFactoryTickers()
+    ? { state: merged }
+    : mergeDefaultTickers(merged)
   writeState(state, { fromSync: true })
 }

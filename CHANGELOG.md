@@ -1,5 +1,12 @@
 # MyDSP Changelog
 
+## [1.2.153] - 2026-09-01
+
+### Fixed — first satellite extras apply replaces leftover lists
+- **Why the 8 local YouTube channels stayed:** Unlock unioned MacBook leftovers with Mini’s favourites. After `lastSyncAt` the next extras push sent those leftovers to Mini. Same hole for leftover News tags and Markets tickers. `importMarketsFromBackup` also ran `mergeDefaultTickers`, which could refill factory FX/index rows onto Mini’s watchlist.
+- **Replace once:** a satellite with a Remote URL and no `lastWorkspaceExtrasSyncAt` takes Mini’s YouTube / News / Markets (and video cache) as-is. After extras stamp, later pulls union + tombstones so a channel added on MacBook still reaches Mini. Mini (book) and file restore stay union. A satellite never runs `mergeDefaultTickers` on load or import (Unlock’s `lastSyncAt` used to refill factory FX/index onto Mini’s list).
+- **Keep:** blank factory seed (1.2.152), extras heal (1.2.151), Mini-as-book, Unlock pull-only, `#F7931A`. Service worker cache is `mydsp-v1.2.153`.
+
 ## [1.2.152] - 2026-09-01
 
 ### Fixed — satellite does not seed factory News / Markets before Unlock

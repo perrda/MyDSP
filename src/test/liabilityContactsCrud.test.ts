@@ -7,14 +7,14 @@ import { normalizePortfolio } from '../domain/normalize'
 describe('Liability lender contacts CRUD (v1.2.99)', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.152')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.152')
+    expect(pkg.version).toBe('1.2.153')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.153')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.153',
       '1.2.152',
       '1.2.151',
       '1.2.150',
       '1.2.149',
-      '1.2.148',
     ])
   })
 

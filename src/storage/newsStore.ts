@@ -334,10 +334,33 @@ export function exportNewsForBackup(): NewsState {
   return loadNewsState()
 }
 
-export function importNewsFromBackup(raw: unknown): void {
+export function importNewsFromBackup(raw: unknown, opts?: { replace?: boolean }): void {
   if (!raw || typeof raw !== 'object') return
   const parsed = raw as NewsState
   if (parsed.version !== 1 || !Array.isArray(parsed.tags)) return
+  if (opts?.replace) {
+    const deletedTags = (parsed.deletedTags ?? []).filter(
+      (d) => d && typeof d.tag === 'string' && typeof d.deletedAt === 'string',
+    )
+    writeState(
+      {
+        version: 1,
+        tags: parsed.tags.map(normalizeTag),
+        deletedTags,
+        savedArticles: Array.isArray(parsed.savedArticles) ? parsed.savedArticles : [],
+        savedArticleChanges: parsed.savedArticleChanges,
+        collapsed: {
+          top: Boolean(parsed.collapsed?.top),
+          tagged: Boolean(parsed.collapsed?.tagged),
+        },
+        lastRefreshAt: parsed.lastRefreshAt,
+        seenAt: typeof parsed.seenAt === 'string' ? parsed.seenAt : undefined,
+        prefsUpdatedAt: parsed.prefsUpdatedAt,
+      },
+      { fromSync: true },
+    )
+    return
+  }
   const local = loadNewsState()
   const remotePrefsAt = Date.parse(parsed.prefsUpdatedAt || '') || 0
   const localPrefsAt = Date.parse(local.prefsUpdatedAt || '') || 0
