@@ -62,6 +62,19 @@ describe('satelliteNeedsMediaUnlock', () => {
       ),
     ).toBe(false)
   })
+
+  it('still shows after a media-only extras stamp — leftover holdings have not REPLACE’d', () => {
+    expect(
+      satelliteNeedsMediaUnlock(
+        cfg({
+          remoteUrl: 'https://mydsp-sync.dave-perry.workers.dev',
+          lastWorkspaceExtrasSyncAt: '2026-09-01T16:00:00.000Z',
+        }),
+        { state: 'idle' },
+        true,
+      ),
+    ).toBe(true)
+  })
 })
 
 describe('unlockAndPullFromCloud never PUTs', () => {

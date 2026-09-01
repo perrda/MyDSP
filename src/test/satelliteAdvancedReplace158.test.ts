@@ -99,14 +99,14 @@ describe('MyDSP 1.2.158 satellite Advanced Pull replaces leftover holdings', () 
 
   it('package + release notes tip', () => {
     const pkg = JSON.parse(read('../../package.json'))
-    expect(pkg.version).toBe('1.2.158')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.158')
+    expect(pkg.version).toBe('1.2.159')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.159')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.159',
       '1.2.158',
       '1.2.157',
       '1.2.156',
       '1.2.155',
-      '1.2.154',
     ])
     const changelog = read('../../CHANGELOG.md')
     const section = changelog.match(/## \[1\.2\.158\][\s\S]*?(?=## \[)/)?.[0] ?? ''
@@ -120,7 +120,7 @@ describe('MyDSP 1.2.158 satellite Advanced Pull replaces leftover holdings', () 
     expect(section).toMatch(/#F7931A/)
     expect(section).not.toMatch(/SYNC_KEY/)
     expect(read('../../ROADMAP.md')).toMatch(/Satellite Advanced Pull REPLACE \(v1\.2\.158\)/)
-    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.158/)
+    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.159/)
     const sync = read('../services/sync/syncService.ts')
     expect(sync).toMatch(/export async function applyReviewedPull/)
     expect(sync).toMatch(/applyRemoteAsBook\(preview\)/)

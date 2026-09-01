@@ -26,14 +26,14 @@ function monthlyHistory(fromY: number, toY: number): HistoryPoint[] {
 describe('MyDSP 1.2.140 Today TREND 6m + YTD', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(read('../../package.json'))
-    expect(pkg.version).toBe('1.2.158')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.158')
+    expect(pkg.version).toBe('1.2.159')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.159')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.159',
       '1.2.158',
       '1.2.157',
       '1.2.156',
       '1.2.155',
-      '1.2.154',
     ])
     const changelog = read('../../CHANGELOG.md')
     const section = changelog.match(/## \[1\.2\.140\][\s\S]*?(?=## \[)/)?.[0] ?? ''

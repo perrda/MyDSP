@@ -1,9 +1,10 @@
 # MyDSP Development Roadmap
 
-**Current version: 1.2.158**
+**Current version: 1.2.159**
 
-## Completed (through v1.2.158)
+## Completed (through v1.2.159)
 
+- Satellite auto-pull live marks (v1.2.159): satellite `doPull` calls `refreshLiveMarksAfterUnlock` so envelope quotes do not snap sizes back · Unlock banner stays until `lastSyncAt` (media-only extras stamp is not enough) · `#F7931A` + Mini-as-book kept
 - Satellite Advanced Pull REPLACE (v1.2.158): Settings Advanced Pull / Apply / file import and the conflict sheet use `applyReviewedPull` → `applyRemoteAsBook` on satellites so leftover holdings never union then push over Mini · Rotate passphrase is Mini-only · draft `cursor-*-mydspv1` previews cannot push · `go-live.sh` prints Live SW version · `#F7931A` + Mini-as-book kept
 - Mini boot extras push (v1.2.157): book + passphrase + URL `pushSync` on app start even when Automatic is off · satellites still pull-only · `#F7931A` + Mini-as-book kept
 - Leftover News headlines + Mini go-live (v1.2.156): first Unlock replaces News article cache · `scripts/go-live.sh` promotes Live from any folder · `#F7931A` + Mini-as-book kept
