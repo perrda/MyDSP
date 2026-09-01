@@ -54,6 +54,8 @@ import {
   type AutoSyncStatus,
 } from '../services/sync/autoSyncService'
 import { loadSyncConfig, pushSync } from '../services/sync/syncService'
+import { satelliteNeedsMediaUnlock } from '../services/sync/mediaUnlock'
+import { UnlockSyncMediaBanner } from '../components/UnlockSyncMediaBanner'
 import {
   loadOfflineQueue,
   removeOfflineJob,
@@ -291,7 +293,7 @@ function TodayAccordionSection({
 }
 
 export function Dashboard() {
-  const { data, breakdown, privacy, setData, goalProgress, refreshPrices } =
+  const { data, breakdown, privacy, setData, goalProgress, refreshPrices, reload } =
     usePortfolio()
   const { netWorth, assets, liabilities, crypto, equity } = breakdown
   const { reminders } = useSmartReminders()
@@ -1175,7 +1177,7 @@ export function Dashboard() {
     : !syncEnabled
     ? 'Cloud sync off — enable in Settings'
     : displayAutoSyncStatus(syncStatus).state === 'needs-passphrase'
-      ? 'Cloud sync locked — unlock in Settings'
+      ? 'Cloud sync locked — unlock below to pull Mini'
     : syncStatus.state === 'pulling' || syncStatus.state === 'pushing'
       ? syncStatus.state === 'pulling'
         ? 'Syncing from other devices…'
@@ -1353,6 +1355,18 @@ export function Dashboard() {
             Retry now
           </button>
         </p>
+      ) : null}
+
+      {satelliteNeedsMediaUnlock(loadSyncConfig(), displayAutoSyncStatus(syncStatus)) ? (
+        <UnlockSyncMediaBanner
+          testId="today-unlock-sync-banner"
+          title="Unlock sync to pull Mini’s book"
+          body="YouTube channels, Markets, prices, FX, and portfolio sizes stay encrypted until you unlock. Enter the same passphrase as Mini — this Mac pulls only and will not overwrite the book."
+          onUnlocked={() => {
+            reload()
+            toastSuccess('Pulled Mini’s book, YouTube, Markets, and FX.')
+          }}
+        />
       ) : null}
 
       <div className="today-main-column w-full min-w-0">

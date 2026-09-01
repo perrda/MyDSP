@@ -110,7 +110,7 @@ export function SyncStatusChip({ compact = false }: SyncStatusChipProps) {
 
   const detailParts = [
     shown.state === 'needs-passphrase'
-      ? 'Cloud sync is waiting for your passphrase — Markets prices still work. Tap to unlock in Settings → Sync.'
+      ? 'Cloud sync is waiting for your passphrase — Markets prices still work. Unlock & pull on Today, YouTube, News, or Markets — or open Settings → Sync.'
       : shown.message,
     shown.lastAt ? `Last sync ${new Date(shown.lastAt).toLocaleString()}` : null,
     queueLen > 0 ? `${queueLen} offline job(s)` : null,
