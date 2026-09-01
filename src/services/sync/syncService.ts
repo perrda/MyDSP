@@ -36,6 +36,7 @@ import { STORAGE } from '../../storage/keys'
 import { checksum, decryptJson, encryptJson, type EncryptedBlob } from './crypto'
 import { setSessionSyncPassphrase } from './sessionPassphrase'
 import {
+  COLLECTIONS,
   conflictKey,
   detectConflicts,
   mergeWithResolutions,
@@ -1275,24 +1276,36 @@ export async function applyRemoteAsBook(
 
 /**
  * After a satellite REPLACE, put back holdings this device edited (dirty)
- * so pull-then-push does not wipe a BTC qty change and then upload Mini’s
- * older size.
+ * so pull-then-push does not wipe a BTC qty change — or a newly added
+ * ETH row — and then upload Mini’s older book.
  */
 export function overlayDirtyLocalHoldings(preview: MergePreview): void {
   for (const plan of preview.portfolios) {
-    if (!plan.local || plan.conflicts.length === 0) continue
+    if (!plan.local) continue
     let next = loadPortfolio(plan.portfolioId)
     let changed = false
+    const putRow = (collection: (typeof COLLECTIONS)[number], locRow: { id: number }) => {
+      const arr = [...((next[collection] as { id: number }[]) ?? [])]
+      const idx = arr.findIndex((row) => row.id === locRow.id)
+      if (idx >= 0) arr[idx] = locRow
+      else arr.push(locRow)
+      next = { ...next, [collection]: arr }
+      changed = true
+    }
     for (const c of plan.conflicts) {
       const locArr = plan.local[c.collection] as { id: number }[] | undefined
       const locRow = locArr?.find((row) => row.id === c.id)
-      if (!locRow) continue
-      const arr = [...((next[c.collection] as { id: number }[]) ?? [])]
-      const idx = arr.findIndex((row) => row.id === c.id)
-      if (idx >= 0) arr[idx] = locRow
-      else arr.push(locRow)
-      next = { ...next, [c.collection]: arr }
-      changed = true
+      if (locRow) putRow(c.collection, locRow)
+    }
+    for (const collection of COLLECTIONS) {
+      const locArr = (plan.local[collection] as { id: number }[] | undefined) ?? []
+      const remIds = new Set(
+        ((plan.remote[collection] as { id: number }[] | undefined) ?? []).map((row) => row.id),
+      )
+      for (const locRow of locArr) {
+        if (remIds.has(locRow.id)) continue
+        putRow(collection, locRow)
+      }
     }
     if (changed) savePortfolioImmediate(next, plan.portfolioId)
   }

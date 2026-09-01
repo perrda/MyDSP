@@ -89,7 +89,7 @@ export function diffFields(local: Record<string, unknown>, remote: Record<string
   return diffs.slice(0, 12)
 }
 
-const COLLECTIONS: ConflictCollection[] = [
+export const COLLECTIONS: ConflictCollection[] = [
   'crypto',
   'equities',
   'creditCards',

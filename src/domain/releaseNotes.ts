@@ -33,7 +33,7 @@ export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
     date: '2026-09-01',
     bullets: [
       {
-        text: 'A MacBook / iPhone / iPad size change still lands on Mini boot, Backup, or the next minute — Mini never reverts it',
+        text: 'A MacBook / iPhone / iPad size change or new holding still lands on Mini boot, Backup, or the next minute — Mini never reverts it',
         to: '/settings#sync',
       },
       {
