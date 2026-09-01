@@ -29,6 +29,28 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.161',
+    date: '2026-09-01',
+    bullets: [
+      {
+        text: 'Finnhub-only 429 no longer paints the whole book degraded when Yahoo already has a live hit',
+        to: '/markets',
+      },
+      {
+        text: 'Last-good prices stay labelled and only show when no live provider hit',
+        to: '/markets',
+      },
+      {
+        text: 'Stale Sync error clears on the next live cloud 200 — Mini’s last PUT is not a dead worker',
+        to: '/settings#sync',
+      },
+      {
+        text: 'After a pull, live FX and Markets marks still refresh so sizes do not snap back',
+        to: '/settings#sync',
+      },
+    ],
+  },
+  {
     version: '1.2.160',
     date: '2026-09-01',
     bullets: [

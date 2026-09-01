@@ -165,7 +165,7 @@ export type ProviderPingOutcome = 'ok' | 'fail' | 'skip'
 export type MarketsProviderProbes = {
   coingecko: () => Promise<{ ok: boolean; skipped?: boolean; detail?: string }>
   yahoo: () => Promise<{ ok: boolean; detail?: string }>
-  finnhub: (key: string) => Promise<{ ok: boolean; detail: string }>
+  finnhub: (key: string) => Promise<{ ok: boolean; detail: string; skipped?: boolean }>
   coincap: () => Promise<{ ok: boolean; detail?: string }>
   coinbase: () => Promise<{ ok: boolean; detail?: string }>
   fx: () => Promise<{ ok: boolean; detail?: string }>
@@ -278,10 +278,32 @@ export async function pingAllMarketsProviders(opts?: {
   return outcomes
 }
 
-/** One-line status for Markets page when providers are degraded. */
+function isRateLimitDetail(err?: string): boolean {
+  return /429|rate limit|quota/i.test(err ?? '')
+}
+
+/** Any listed provider with a this-session live hit (not last-good / not failing). */
+export function hasLiveListedProviderHit(): boolean {
+  return getMarketsProviderHealth().some((p) => Boolean(p.lastSuccessAt) && p.consecutiveFailures === 0)
+}
+
+/**
+ * Book-wide degraded: some provider is failing AND either nobody has a live hit,
+ * or a non-Finnhub-429 relay is failing. Finnhub-only 429 must not paint the
+ * whole book when Yahoo (or another listed provider) already has a live hit.
+ */
+export function isMarketsBookDegraded(minFailures = 2): boolean {
+  const rows = getMarketsProviderHealth()
+  const bad = rows.filter((p) => p.consecutiveFailures >= minFailures)
+  if (bad.length === 0) return false
+  if (!hasLiveListedProviderHit()) return true
+  return bad.some((p) => p.id !== 'finnhub' || !isRateLimitDetail(p.lastError))
+}
+
+/** One-line status for Markets / Today when the book is degraded. */
 export function formatMarketsProviderHealthHint(minFailures = 2): string | null {
+  if (!isMarketsBookDegraded(minFailures)) return null
   const bad = getMarketsProviderHealth().filter((p) => p.consecutiveFailures >= minFailures)
-  if (bad.length === 0) return null
   const parts = bad.map((p) => {
     const when = p.lastSuccessAt
       ? ` last OK ${new Date(p.lastSuccessAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`
