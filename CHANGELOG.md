@@ -5,6 +5,7 @@
 ### Fixed — satellite does not seed factory News / Markets before Unlock
 - **Why Mini’s list could mix with leftovers:** a MacBook with the sync URL but no `lastSyncAt` silently seeded factory News tags (BTC/ETH/TSLA…) and Markets tickers. After Unlock those defaults unioned, then the next extras push sent them to Mini.
 - **Blank seed until pull:** satellites waiting for the first pull get empty News tags and an empty Markets watchlist (silent). Mini and first-run devices still get the factory set. `mergeDefaultTickers` does not refill a waiting satellite.
+- **Mini deploy path:** do not `cd` to `~/AI_Projects/MyDSP` (moved). Clone or pull `~/MyDSP`, then `npm ci` and `npm run deploy`. Home-folder `npm` is why you saw missing lockfile / Missing script deploy.
 - **Keep:** Mini-as-book, Unlock pull-only, Automatic-off Mini edit push, extras heal (1.2.151), `#F7931A`. Service worker cache is `mydsp-v1.2.152`.
 
 ## [1.2.151] - 2026-09-01

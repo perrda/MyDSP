@@ -33,6 +33,7 @@ describe('MyDSP 1.2.152 satellite blank News/Markets seed', () => {
     const section = changelog.match(/## \[1\.2\.152\][\s\S]*?(?=## \[)/)?.[0] ?? ''
     expect(section).toMatch(/factory/)
     expect(section).toMatch(/lastSyncAt/)
+    expect(section).toMatch(/~\/MyDSP/)
     expect(section).toMatch(/#F7931A/)
     expect(section).not.toMatch(/SYNC_KEY/)
     expect(read('../../ROADMAP.md')).toMatch(/Satellite blank News\/Markets seed \(v1\.2\.152\)/)
