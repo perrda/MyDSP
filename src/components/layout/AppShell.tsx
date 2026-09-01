@@ -12,7 +12,7 @@ import {
   getSessionSyncPassphrase,
   hydrateSessionSyncPassphrase,
 } from '../../services/sync/sessionPassphrase'
-import { runOneButtonSync } from '../../services/sync/oneButtonSync'
+import { runOneButtonSync, unlockAndPullFromCloud } from '../../services/sync/oneButtonSync'
 import {
   checkTodoReminders,
   markReminderFired,
@@ -219,7 +219,8 @@ export function AppShell() {
         if (cfg.enabled) await syncNow()
         else await runOneButtonSync(pass)
       } else {
-        await runOneButtonSync(pass)
+        // Satellite Unlock / Refresh: pull only — never push leftover YouTube over Mini.
+        await unlockAndPullFromCloud(pass)
       }
       setSyncCfg(loadSyncConfig())
       return 'ok'

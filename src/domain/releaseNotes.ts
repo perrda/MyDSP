@@ -48,6 +48,10 @@ export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
         text: 'Add a channel on any unlocked device — Mini Backup now also pushes the list',
         to: '/settings#sync',
       },
+      {
+        text: 'MacBook Settings Sync / Refresh pull Mini — they never overwrite the book',
+        to: '/settings#sync',
+      },
     ],
   },
   {

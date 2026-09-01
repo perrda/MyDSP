@@ -59,7 +59,7 @@ describe('Sync trust UX', () => {
     expect(settings).toMatch(/data-testid="sync-last-media-at"/)
     expect(settings).toMatch(/Last media \/ favourites sync/)
     expect(news).toMatch(/data-testid="news-unlock-sync-banner"/)
-    expect(news).toMatch(/needs-passphrase/)
+    expect(news).toMatch(/satelliteNeedsMediaUnlock/)
     expect(news).toMatch(/Unlock sync to pull saved tickers and headlines/)
   })
 })

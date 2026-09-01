@@ -24,6 +24,7 @@ import {
   type AutoSyncStatus,
 } from '../services/sync/autoSyncService'
 import { loadSyncConfig } from '../services/sync/syncService'
+import { satelliteNeedsMediaUnlock } from '../services/sync/mediaUnlock'
 import { UnlockSyncMediaBanner } from '../components/UnlockSyncMediaBanner'
 import {
   addYoutubeChannel,
@@ -82,11 +83,8 @@ export function YouTubePage() {
   const { data } = usePortfolio()
   const { showToast, success } = useToasts()
   const [syncStatus, setSyncStatus] = useState<AutoSyncStatus>(() => getAutoSyncStatus())
-  const [syncConfigured, setSyncConfigured] = useState(() => {
-    const cfg = loadSyncConfig()
-    return Boolean(cfg.enabled && cfg.remoteUrl.trim())
-  })
-  const needsSyncUnlock = syncConfigured && syncStatus.state === 'needs-passphrase'
+  const [syncCfg, setSyncCfg] = useState(() => loadSyncConfig())
+  const needsSyncUnlock = satelliteNeedsMediaUnlock(syncCfg, syncStatus)
   const [channels, setChannels] = useState(() => listYoutubeChannels())
   const [videos, setVideos] = useState<YoutubeVideo[]>(() => loadYoutubeVideosCache().videos)
   const [selectedVideo, setSelectedVideo] = useState<YoutubeVideo | null>(null)
@@ -119,7 +117,7 @@ export function YouTubePage() {
     return subscribeAutoSync((s) => {
       setSyncStatus(s)
       const cfg = loadSyncConfig()
-      setSyncConfigured(Boolean(cfg.enabled && cfg.remoteUrl.trim()))
+      setSyncCfg(cfg)
     })
   }, [])
 

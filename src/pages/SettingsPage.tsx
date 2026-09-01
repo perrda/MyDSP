@@ -209,7 +209,7 @@ import {
   downloadSyncSetupUrl,
   drawSyncSetupCard,
 } from '../services/sync/syncSetupExport'
-import { runOneButtonSync } from '../services/sync/oneButtonSync'
+import { runOneButtonSync, unlockAndPullFromCloud } from '../services/sync/oneButtonSync'
 import {
   loadRecentSettingsJumps,
   rankSettingsSections,
@@ -1147,7 +1147,9 @@ export function SettingsPage() {
                     setSessionSyncPassphrase(pass, { remember: true })
                     setSyncBusy(true)
                     try {
-                      const result = await runOneButtonSync(pass)
+                      const result = isBookDevice(syncCfg)
+                        ? await runOneButtonSync(pass)
+                        : await unlockAndPullFromCloud(pass)
                       setSyncCfg(loadSyncConfig())
                       if (result.preview && result.action === 'conflict') {
                         setPendingMerge(result.preview)

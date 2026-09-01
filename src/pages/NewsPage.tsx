@@ -24,6 +24,7 @@ import {
   type AutoSyncStatus,
 } from '../services/sync/autoSyncService'
 import { loadSyncConfig } from '../services/sync/syncService'
+import { satelliteNeedsMediaUnlock } from '../services/sync/mediaUnlock'
 import { UnlockSyncMediaBanner } from '../components/UnlockSyncMediaBanner'
 import {
   addNewsTag,
@@ -186,11 +187,8 @@ export function NewsPage() {
   const { showToast } = useToasts()
   const [searchParams, setSearchParams] = useSearchParams()
   const [syncStatus, setSyncStatus] = useState<AutoSyncStatus>(() => getAutoSyncStatus())
-  const [syncConfigured, setSyncConfigured] = useState(() => {
-    const cfg = loadSyncConfig()
-    return Boolean(cfg.enabled && cfg.remoteUrl.trim())
-  })
-  const needsSyncUnlock = syncConfigured && syncStatus.state === 'needs-passphrase'
+  const [syncCfg, setSyncCfg] = useState(() => loadSyncConfig())
+  const needsSyncUnlock = satelliteNeedsMediaUnlock(syncCfg, syncStatus)
   const [cachedArticles] = useState(loadNewsArticlesCache)
   const [tags, setTags] = useState(() => listNewsTags())
   const [collapsed, setCollapsed] = useState(() => loadNewsState().collapsed)
@@ -233,7 +231,7 @@ export function NewsPage() {
     return subscribeAutoSync((s) => {
       setSyncStatus(s)
       const cfg = loadSyncConfig()
-      setSyncConfigured(Boolean(cfg.enabled && cfg.remoteUrl.trim()))
+      setSyncCfg(cfg)
     })
   }, [])
 

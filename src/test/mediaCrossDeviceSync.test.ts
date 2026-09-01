@@ -189,7 +189,7 @@ describe('Media cross-device sync (v1.2.95)', () => {
   it('YouTube page surfaces unlock-sync banner when passphrase needed', () => {
     const page = readFileSync(resolve(__dirname, '../pages/YouTubePage.tsx'), 'utf8')
     expect(page).toMatch(/youtube-unlock-sync-banner/)
-    expect(page).toMatch(/needs-passphrase/)
+    expect(page).toMatch(/satelliteNeedsMediaUnlock/)
     expect(page).toMatch(/Unlock sync to pull favourite channels/)
     expect(page).toMatch(/UnlockSyncMediaBanner/)
     const banner = readFileSync(resolve(__dirname, '../components/UnlockSyncMediaBanner.tsx'), 'utf8')
