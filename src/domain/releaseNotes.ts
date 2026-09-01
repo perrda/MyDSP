@@ -59,6 +59,24 @@ export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
     ],
   },
   {
+    version: '1.2.148',
+    date: '2026-09-01',
+    bullets: [
+      {
+        text: 'Refresh pulls live FX with TSLA / MSTR / BTC / ADA — not a day-old rate',
+        to: '/equities',
+      },
+      {
+        text: 'Markets watchlist refreshes with that FX even off the Markets page; still-£0 lines fill from last-synced marks',
+        to: '/markets',
+      },
+      {
+        text: 'Finnhub + CoinGecko stay the feeds — Cloudflare is hosting only',
+        to: '/settings#prices',
+      },
+    ],
+  },
+  {
     version: '1.2.147',
     date: '2026-08-31',
     bullets: [

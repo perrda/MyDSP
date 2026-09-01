@@ -21,7 +21,6 @@ import {
   removeOfflineJob,
 } from '../services/offlineQueue'
 import {
-  ensureFxRates,
   fetchFxRates,
   loadCachedFxRates,
   type FxRates,
@@ -382,7 +381,9 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
     setRefreshing(true)
     setLastPriceError(null)
     try {
-      const rates = await ensureFxRates()
+      // Fresh GBP/USD/THB/BTC on every Refresh so US listings convert with today’s FX,
+      // not a ~20h cache. Last-synced marks still fill any line that stays £0.
+      const rates = await fetchFxRates()
       setFxRates(rates)
       setDisplayCurrency(dataRef.current.settings.currency || 'GBP', rates)
 
@@ -399,15 +400,23 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      const cryptoUpdates = await fetchCryptoPricesGbp(
-        [...cryptoSymbols],
-        snapshot.settings.manualCryptoPrices ?? {},
-      )
-      const equityMap = await fetchEquityPrices(
-        [...equitySymbols],
-        snapshot.settings.finnhubKey || localStorage.getItem('finnhub_key') || '',
-        rates,
-      )
+      const finnhubKey =
+        snapshot.settings.finnhubKey || localStorage.getItem('finnhub_key') || ''
+      // Markets cache must refresh even when the Markets page is not mounted,
+      // so last-synced can fill any still-£0 holding from this tick’s marks.
+      const [cryptoUpdates, equityMap] = await Promise.all([
+        fetchCryptoPricesGbp(
+          [...cryptoSymbols],
+          snapshot.settings.manualCryptoPrices ?? {},
+          rates,
+        ),
+        fetchEquityPrices([...equitySymbols], finnhubKey, rates),
+        refreshLiveQuotesForBookDevice({
+          finnhubKey,
+          manualCryptoPrices: snapshot.settings.manualCryptoPrices,
+          fx: rates,
+        }),
+      ])
 
       if (activeIdRef.current !== startedOn) {
         return { crypto: 0, equities: 0, quotes: [] }

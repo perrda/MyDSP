@@ -14,10 +14,10 @@ describe('next10 priorities wave (retained in v1.2.110 tip)', () => {
     expect(RELEASE_NOTES.some((e) => e.version === '1.2.109')).toBe(true)
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
       '1.2.149',
+      '1.2.148',
       '1.2.147',
       '1.2.146',
       '1.2.145',
-      '1.2.144',
     ])
   })
 

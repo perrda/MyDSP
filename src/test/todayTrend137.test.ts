@@ -19,10 +19,10 @@ describe('MyDSP 1.2.137 Today trend axes', () => {
     expect(RELEASE_NOTES[0]?.version).toBe('1.2.149')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
       '1.2.149',
+      '1.2.148',
       '1.2.147',
       '1.2.146',
       '1.2.145',
-      '1.2.144',
     ])
     const changelog = read('../../CHANGELOG.md')
     const section = changelog.match(/## \[1\.2\.137\][\s\S]*?(?=## \[)/)?.[0] ?? ''

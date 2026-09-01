@@ -232,4 +232,54 @@ describe('applyLastSyncedQuotesToHoldings', () => {
     expect(result.crypto).toBe(1)
     expect(result.data.crypto[0]?.price).toBe(50000)
   })
+
+  it('fills £0 equity livePrice from Markets quote cache and leaves a priced line alone', async () => {
+    const store = await import('../storage/marketsStore')
+    const markets = await import('../domain/markets')
+    store.loadMarketsState()
+    const tsla = store.listMarketTickers('equity').find((t) => t.symbol === 'TSLA')
+    expect(tsla).toBeTruthy()
+    const quote: markets.MarketQuote = {
+      symbol: 'TSLA',
+      kind: 'equity',
+      last: 264.98,
+      changeAbs: 1.2,
+      changePct: 0.45,
+      sparkline: [260, 264.98],
+      unit: 'GBP',
+      decimals: 2,
+      source: 'finnhub',
+      updatedAt: new Date().toISOString(),
+    }
+    store.saveMarketQuotesCache(new Map([[tsla!.id, quote]]))
+
+    const data = createEmptyPortfolio()
+    data.equities = [
+      {
+        id: 1,
+        symbol: 'TSLA',
+        name: 'Tesla',
+        shares: 10,
+        avgCost: 200,
+        livePrice: 0,
+        includeInPortfolio: true,
+        sortOrder: 0,
+      },
+      {
+        id: 2,
+        symbol: 'MSTR',
+        name: 'MicroStrategy',
+        shares: 5,
+        avgCost: 300,
+        livePrice: 180,
+        includeInPortfolio: true,
+        sortOrder: 1,
+      },
+    ]
+
+    const result = applyLastSyncedQuotesToHoldings(data, { overwrite: false })
+    expect(result.equities).toBe(1)
+    expect(result.data.equities[0]?.livePrice).toBe(264.98)
+    expect(result.data.equities[1]?.livePrice).toBe(180)
+  })
 })

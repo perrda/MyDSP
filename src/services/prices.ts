@@ -1,6 +1,6 @@
 /** CoinGecko + Finnhub + Yahoo live price refresh (MyDSP-native). */
 
-import { equityNeedsUsdToGbp } from '../domain/equityCurrency'
+import { equityNeedsUsdToGbp, yahooVenueEquitySymbol } from '../domain/equityCurrency'
 import { commodityYahooFallbacks } from '../domain/commodities'
 import {
   DEFAULT_MARKET_TF,
@@ -17,7 +17,7 @@ import {
   takeLastSparklinePoints,
 } from '../domain/sparklineSeries'
 import {
-  ensureFxRates,
+  fetchFxRates,
   usdToGbp,
   type FxRates,
 } from './fx'
@@ -214,23 +214,43 @@ function proxyCandidatesFor(url: string): string[] {
   return out
 }
 
+function proxyPayloadOk<T>(data: T | null, accept?: (data: T) => boolean): data is T {
+  return Boolean(data && typeof data === 'object' && (!accept || accept(data)))
+}
+
+function isQuoteWorkerCandidate(url: string): boolean {
+  return url.includes('mydsp-quote') || url.includes('/api/quote?')
+}
+
 /**
- * Race proxy + direct candidates; first valid JSON wins.
- * Avoids sequential stalls when one relay hangs or returns HTML.
+ * Prefer the dedicated quote Worker (sequential — avoids 429 from a 10-way race),
+ * then race public CORS relays. First valid JSON that passes `accept` wins.
  */
-async function fetchViaProxies<T>(url: string, timeoutMs = 10000): Promise<T | null> {
+async function fetchViaProxies<T>(
+  url: string,
+  timeoutMs = 10000,
+  accept?: (data: T) => boolean,
+): Promise<T | null> {
   const candidates = proxyCandidatesFor(url)
+  const workerFirst = candidates.filter(isQuoteWorkerCandidate)
+  const rest = candidates.filter((c) => !isQuoteWorkerCandidate(c))
+
+  for (const candidate of workerFirst) {
+    const { data } = await fetchJson<T>(candidate, timeoutMs)
+    if (proxyPayloadOk(data, accept)) return data
+  }
+
   return new Promise((resolve) => {
-    let remaining = candidates.length
+    let remaining = rest.length
     let settled = false
     if (remaining === 0) {
       resolve(null)
       return
     }
-    for (const candidate of candidates) {
+    for (const candidate of rest) {
       void fetchJson<T>(candidate, timeoutMs).then(({ data }) => {
         if (settled) return
-        if (data && typeof data === 'object') {
+        if (proxyPayloadOk(data, accept)) {
           settled = true
           resolve(data)
           return
@@ -264,10 +284,13 @@ export interface CryptoPriceUpdate {
 export async function fetchCryptoPricesGbp(
   symbols: string[],
   manualOverrides: Record<string, number> = {},
+  rates?: FxRates,
 ): Promise<CryptoPriceUpdate[]> {
   const quotes = await fetchCryptoMarketQuotesGbp(
     symbols.map((symbol) => ({ symbol })),
     manualOverrides,
+    DEFAULT_MARKET_TF,
+    rates,
   )
   return quotes.map((q) => ({
     symbol: q.symbol,
@@ -306,7 +329,7 @@ export async function fetchEquityPrices(
   finnhubKey: string,
   rates?: FxRates,
 ): Promise<Record<string, number>> {
-  const fx = rates ?? (await ensureFxRates())
+  const fx = rates ?? (await fetchFxRates())
   const out: Record<string, number> = {}
   await Promise.all(
     symbols.map(async (symbol) => {
@@ -522,7 +545,10 @@ async function fetchYahooChartRaw(
   const yahoo = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=${encodeURIComponent(interval)}&range=${encodeURIComponent(range)}`
   const data = await fetchViaProxies<{
     chart?: { result?: YahooChartResult[] }
-  }>(yahoo)
+  }>(yahoo, 10000, (payload) => {
+    const price = payload?.chart?.result?.[0]?.meta?.regularMarketPrice
+    return typeof price === 'number' && price > 0
+  })
   return data?.chart?.result?.[0] ?? null
 }
 
@@ -614,7 +640,7 @@ export function normalizeYahooEquitySymbol(symbol: string): string {
   }
   if (aliases[raw]) return aliases[raw]
   if (raw.startsWith('^')) return raw
-  return raw
+  return yahooVenueEquitySymbol(raw)
 }
 
 async function fetchYahooSparkline(
@@ -690,7 +716,7 @@ export async function fetchCryptoYahooQuoteGbp(
   rates?: FxRates,
   timeframe: MarketTimeframe = DEFAULT_MARKET_TF,
 ): Promise<CryptoMarketQuoteGbp | null> {
-  const fx = rates ?? (await ensureFxRates())
+  const fx = rates ?? (await fetchFxRates())
   const ySym = yahooCryptoSymbol(symbol)
   const params = yahooChartParamsForTimeframe(timeframe)
   let result = await fetchYahooChartRaw(ySym, params.range, params.interval)
@@ -734,6 +760,7 @@ export async function fetchCryptoMarketQuotesGbp(
   items: Array<{ symbol: string; coingeckoId?: string }>,
   manualOverrides: Record<string, number> = {},
   timeframe: MarketTimeframe = DEFAULT_MARKET_TF,
+  rates?: FxRates,
 ): Promise<CryptoMarketQuoteGbp[]> {
   const unique = new Map<string, string | undefined>()
   for (const item of items) {
@@ -785,7 +812,8 @@ export async function fetchCryptoMarketQuotesGbp(
     }
   }
 
-  const fx = await ensureFxRates()
+  // Live FX on Refresh / Markets — do not convert Yahoo USD leftovers with a 20h cache.
+  const fx = rates ?? (await fetchFxRates())
   const missing = [...unique.keys()].filter((s) => !bySym.has(s))
 
   // Parallel multi-source fallback for CoinGecko misses (Yahoo + CoinCap + Coinbase)
