@@ -1,0 +1,38 @@
+# Manual promote of https://mydspv1.dave-perry.workers.dev
+# Requires repo secrets CLOUDFLARE_API_TOKEN (Workers Scripts Edit) and
+# optional CLOUDFLARE_ACCOUNT_ID. Does not run on every push — preview
+# Workers Builds must not become Live by accident.
+name: Deploy Live mydspv1
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: live-mydspv1
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Require Cloudflare token
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "Add repo secret CLOUDFLARE_API_TOKEN (Workers Edit on mydspv1), then re-run this workflow."
+            exit 1
+          fi
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      - run: npm ci
+      - run: npm run deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
