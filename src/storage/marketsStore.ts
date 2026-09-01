@@ -1,6 +1,7 @@
 /** Persist Markets watchlist (workspace-level). */
 
 import {
+  createBlankMarketsState,
   createEmptyMarketsState,
   DEFAULT_MARKETS_SCREENER,
   defaultNameForPair,
@@ -27,6 +28,7 @@ import {
   mergeQuotesForSync,
   parseMarketQuotesBackup,
 } from '../domain/marketQuotesSync'
+import { satelliteAwaitingFirstPull } from '../services/sync/satelliteFactorySeed'
 
 function touchPrefs(state: MarketsState): void {
   state.prefsUpdatedAt = new Date().toISOString()
@@ -157,6 +159,10 @@ export function loadMarketsState(): MarketsState {
         : '24H',
       screener: normalizeMarketsScreener(existing.screener),
     }
+    if (satelliteAwaitingFirstPull()) {
+      if (hadLegacyHeatDensity) writeState(normalized, { silent: true })
+      return normalized
+    }
     const { state, added } = mergeDefaultTickers(normalized)
     const hadNoSectionOrder = !Array.isArray((existing as MarketsState).sectionOrder)
     if (added.length > 0 || hadLegacyHeatDensity || hadNoSectionOrder) {
@@ -166,7 +172,9 @@ export function loadMarketsState(): MarketsState {
   }
   // Silent seed — nav chrome may load Markets before the first pull; never mark
   // sync dirty or a fresh device can push an empty watchlist over the cloud.
-  const seeded = createEmptyMarketsState()
+  const seeded = satelliteAwaitingFirstPull()
+    ? createBlankMarketsState()
+    : createEmptyMarketsState()
   writeState(seeded, { silent: true })
   return seeded
 }

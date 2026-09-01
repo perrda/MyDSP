@@ -1,6 +1,7 @@
 /** Persist News watchlist + tags (workspace-level). */
 
 import {
+  createBlankNewsState,
   createEmptyNewsState,
   newNewsTagId,
   normalizeNewsTag,
@@ -9,6 +10,7 @@ import {
   type NewsState,
   type NewsTag,
 } from '../domain/news'
+import { satelliteAwaitingFirstPull } from '../services/sync/satelliteFactorySeed'
 
 const KEY = 'mydsp_news_v1'
 /** Legacy page-local key — migrated into NewsState.seenAt on first load. */
@@ -146,7 +148,9 @@ export function loadNewsState(): NewsState {
   }
   // Silent seed — unread badges call load on every open; never mark sync dirty
   // or a fresh web/mobile device can push empty tags over the cloud.
-  const seeded = migrateLegacySeenAt(createEmptyNewsState())
+  const seeded = migrateLegacySeenAt(
+    satelliteAwaitingFirstPull() ? createBlankNewsState() : createEmptyNewsState(),
+  )
   writeState(seeded, { silent: true })
   return seeded
 }

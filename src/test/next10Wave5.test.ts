@@ -16,14 +16,14 @@ const readPage = (name: string) =>
 describe('next10 wave 5 tip harness (v1.2.114)', () => {
   it('0: package + release notes tip', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.151')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.151')
+    expect(pkg.version).toBe('1.2.152')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.152')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.152',
       '1.2.151',
       '1.2.150',
       '1.2.149',
       '1.2.148',
-      '1.2.147',
     ])
   })
 

@@ -65,6 +65,15 @@ export function newNewsTagId(tag: string): string {
   return `news_${key}_${Math.random().toString(36).slice(2, 8)}`
 }
 
+export function createBlankNewsState(): NewsState {
+  return {
+    version: 1,
+    tags: [],
+    collapsed: { ...DEFAULT_NEWS_COLLAPSED },
+    savedArticles: [],
+  }
+}
+
 export function createEmptyNewsState(): NewsState {
   const now = new Date().toISOString()
   return {
