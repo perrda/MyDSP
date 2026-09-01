@@ -47,7 +47,10 @@ describe('MyDSP 1.2.148 Refresh fetches live FX with prices', () => {
     expect(read('../components/layout/AppShell.tsx')).toMatch(/if \(!r\.skipped\) await refreshFx\(\)/)
     expect(read('../services/marketsQuotes.ts')).toMatch(/opts\?\.fx \?\? \(await fetchFxRates\(\)\)/)
     expect(read('../services/marketsQuotes.ts')).not.toMatch(/await ensureFxRates\(/)
+    expect(read('../services/marketsQuotes.ts')).toMatch(/holdings Refresh must still apply/)
     expect(read('../services/prices.ts')).toMatch(/rates \?\? \(await fetchFxRates\(\)\)/)
+    expect(read('../services/prices.ts')).not.toMatch(/ensureFxRates/)
+    expect(read('../services/fx.ts')).toMatch(/let fxInFlight/)
   })
 
   it('Settings Prices copy: Refresh pulls FX; Cloudflare is not a feed', () => {

@@ -414,6 +414,7 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
         refreshLiveQuotesForBookDevice({
           finnhubKey,
           manualCryptoPrices: snapshot.settings.manualCryptoPrices,
+          fx: rates,
         }),
       ])
 

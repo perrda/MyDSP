@@ -17,7 +17,6 @@ import {
   takeLastSparklinePoints,
 } from '../domain/sparklineSeries'
 import {
-  ensureFxRates,
   fetchFxRates,
   usdToGbp,
   type FxRates,
@@ -310,7 +309,7 @@ export async function fetchEquityPrices(
   finnhubKey: string,
   rates?: FxRates,
 ): Promise<Record<string, number>> {
-  const fx = rates ?? (await ensureFxRates())
+  const fx = rates ?? (await fetchFxRates())
   const out: Record<string, number> = {}
   await Promise.all(
     symbols.map(async (symbol) => {
@@ -694,7 +693,7 @@ export async function fetchCryptoYahooQuoteGbp(
   rates?: FxRates,
   timeframe: MarketTimeframe = DEFAULT_MARKET_TF,
 ): Promise<CryptoMarketQuoteGbp | null> {
-  const fx = rates ?? (await ensureFxRates())
+  const fx = rates ?? (await fetchFxRates())
   const ySym = yahooCryptoSymbol(symbol)
   const params = yahooChartParamsForTimeframe(timeframe)
   let result = await fetchYahooChartRaw(ySym, params.range, params.interval)

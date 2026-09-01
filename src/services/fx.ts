@@ -102,31 +102,41 @@ async function fetchBtcPerGbp(): Promise<number | null> {
   return null
 }
 
+let fxInFlight: Promise<FxRates> | null = null
+
 export async function fetchFxRates(): Promise<FxRates> {
-  const rates: FxRates = { GBP: 1 }
+  if (fxInFlight) return fxInFlight
+  fxInFlight = (async () => {
+    const rates: FxRates = { GBP: 1 }
 
-  try {
-    const res = await fetch('https://api.exchangerate-api.com/v4/latest/GBP')
-    if (res.ok) {
-      const json = (await res.json()) as { rates?: Record<string, number> }
-      for (const c of DISPLAY_CURRENCIES) {
-        if (c.code === 'GBP' || c.code === 'BTC') continue
-        const r = json.rates?.[c.code]
-        if (typeof r === 'number' && r > 0) rates[c.code] = r
+    try {
+      const res = await fetch('https://api.exchangerate-api.com/v4/latest/GBP')
+      if (res.ok) {
+        const json = (await res.json()) as { rates?: Record<string, number> }
+        for (const c of DISPLAY_CURRENCIES) {
+          if (c.code === 'GBP' || c.code === 'BTC') continue
+          const r = json.rates?.[c.code]
+          if (typeof r === 'number' && r > 0) rates[c.code] = r
+        }
+        const usd = json.rates?.USD
+        if (typeof usd === 'number' && usd > 0) rates.USD = usd
       }
-      const usd = json.rates?.USD
-      if (typeof usd === 'number' && usd > 0) rates.USD = usd
+    } catch {
+      /* keep defaults below */
     }
-  } catch {
-    /* keep defaults below */
+
+    const btc = await fetchBtcPerGbp()
+    if (btc != null) rates.BTC = btc
+
+    const merged = { ...DEFAULT_FX_RATES, ...rates, GBP: 1 }
+    saveCachedFxRates(merged)
+    return merged
+  })()
+  try {
+    return await fxInFlight
+  } finally {
+    fxInFlight = null
   }
-
-  const btc = await fetchBtcPerGbp()
-  if (btc != null) rates.BTC = btc
-
-  const merged = { ...DEFAULT_FX_RATES, ...rates, GBP: 1 }
-  saveCachedFxRates(merged)
-  return merged
 }
 
 /** Return cached rates if fresh; otherwise fetch (falls back to cache on failure). */

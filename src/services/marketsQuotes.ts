@@ -373,6 +373,7 @@ let bookLiveInFlight: Promise<void> | null = null
 export async function refreshLiveQuotesForBookDevice(opts?: {
   finnhubKey?: string
   manualCryptoPrices?: Record<string, number>
+  fx?: FxRates
 }): Promise<void> {
   if (bookLiveInFlight) return bookLiveInFlight
   const list = listMarketTickers()
@@ -383,6 +384,8 @@ export async function refreshLiveQuotesForBookDevice(opts?: {
       const merged = mergeMarketQuotes(loadMarketQuotesCache(), next)
       saveMarketQuotesCache(merged, { markDirty: true })
       setMarketsLastRefresh(new Date().toISOString())
+    } catch {
+      /* holdings Refresh must still apply quotes + last-synced fills */
     } finally {
       bookLiveInFlight = null
     }
