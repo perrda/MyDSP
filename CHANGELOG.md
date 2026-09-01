@@ -3,8 +3,9 @@
 ## [1.2.149] - 2026-09-01
 
 ### Fixed — YouTube channels unlock-and-pull across devices
-- **Why MacBook missed Mini’s channels:** Live showed Unlock sync. Favourite channels stay encrypted until the satellite enters Mini’s passphrase. Backup on Mini + Sync on MacBook does nothing while the chip says Unlock — the 8 channels on that Mac are local-only.
-- **Unlock on YouTube / News:** enter the same passphrase and tap Unlock & pull. That runs `runOneButtonSync` so YouTube favourites, News tags, Markets, prices, and the portfolio book land. Remember passphrase stays on.
+- **Why MacBook missed Mini’s channels:** Live showed Unlock sync. Favourite channels stay encrypted until the satellite enters Mini’s passphrase. Backup on Mini was this-Mac-only, so Sync on MacBook had nothing new to pull — the 8 channels on that Mac are local-only.
+- **Unlock on YouTube / News:** enter the same passphrase and tap Unlock & pull. That runs `unlockAndPullFromCloud` (pull only — never push a leftover MacBook list over Mini) so YouTube favourites, News tags, Markets, prices, and the portfolio book land. Remember passphrase stays on.
+- **Add on any device:** after unlock, a satellite YouTube / News / Markets edit pull-then-pushes extras so Mini receives them. Mini Backup now / daily backup also pushes the envelope when Sync is unlocked. Satellites never push from Backup.
 - **Keep:** Mini-as-book sync, Today one-column + Assets hero, utilities under YouTube, `#F7931A`, 1.2.147 Andrew sleeves. Service worker cache is `mydsp-v1.2.149`.
 
 ## [1.2.147] - 2026-08-31

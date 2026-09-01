@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Field } from './ui/Modal'
-import { runOneButtonSync } from '../services/sync/oneButtonSync'
+import { unlockAndPullFromCloud } from '../services/sync/oneButtonSync'
 
 export function UnlockSyncMediaBanner({
   testId,
@@ -29,7 +29,7 @@ export function UnlockSyncMediaBanner({
     setBusy(true)
     setError(null)
     try {
-      const result = await runOneButtonSync(passphrase)
+      const result = await unlockAndPullFromCloud(passphrase)
       setPass('')
       onUnlocked?.()
       window.dispatchEvent(new CustomEvent('mydsp-youtube-changed'))

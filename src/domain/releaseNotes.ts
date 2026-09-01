@@ -44,6 +44,10 @@ export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
         text: 'Channels on this Mac stay local until you unlock — they are not the full Mini list',
         to: '/youtube',
       },
+      {
+        text: 'Add a channel on any unlocked device — Mini Backup now also pushes the list',
+        to: '/settings#sync',
+      },
     ],
   },
   {

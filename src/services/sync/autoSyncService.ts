@@ -366,7 +366,15 @@ export function markLocalDataChanged(): void {
   }
   const cfg = loadSyncConfig()
   if (!cfg.enabled || !cfg.remoteUrl) return
-  if (!isBookDevice(cfg)) return
+  // Satellites do not push a leftover book. After a successful unlock/pull
+  // (lastSyncAt), YouTube / News / Markets edits still flush so a channel
+  // added on MacBook / iPad reaches Mini.
+  if (!isBookDevice(cfg)) {
+    if (!cfg.lastSyncAt) return
+    dirty = true
+    schedulePush()
+    return
+  }
   dirty = true
   schedulePush()
 }
@@ -705,8 +713,12 @@ export async function runAutoSyncCycle(reason: CycleReason = 'manual'): Promise<
   busy = true
   try {
     if (!isBookDevice(cfg)) {
-      await doPull(cfg, pass, reason)
-      if (status.state === 'pulling' || status.state === 'pushing') {
+      // Force a pull when extras are dirty so REPLACE happens before any push.
+      await doPull(cfg, pass, dirty ? 'manual' : reason)
+      const unlocked = Boolean(loadSyncConfig().lastSyncAt)
+      if (dirty && status.state !== 'error' && unlocked) {
+        await doPush(loadSyncConfig(), pass)
+      } else if (status.state === 'pulling' || status.state === 'pushing') {
         emit({ state: 'idle', lastAt: loadSyncConfig().lastSyncAt })
       }
       return

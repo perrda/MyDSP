@@ -144,6 +144,53 @@ export async function runOneButtonSync(passphrase: string): Promise<OneButtonSyn
   }
 }
 
+/**
+ * Satellite Unlock on YouTube / News: always pull extras + book.
+ * Never push — a MacBook leftover must not overwrite Mini’s channels.
+ */
+export async function unlockAndPullFromCloud(passphrase: string): Promise<OneButtonSyncResult> {
+  if (!passphrase || passphrase.trim().length < 8) {
+    throw new Error('Use a passphrase of at least 8 characters.')
+  }
+  setSessionSyncPassphrase(passphrase, { remember: true })
+  const url = resolveSyncRemoteUrl(loadSyncConfig().remoteUrl)
+  persistUrl(url)
+
+  const preview = await previewPull(url, passphrase)
+  await applyWorkspaceExtrasFromPreview(preview)
+
+  if (!isBookDevice()) {
+    const result = await applyRemoteAsBook(preview)
+    rememberPassAndMaybeAuto({
+      remoteUrl: url,
+      lastSyncAt: new Date().toISOString(),
+      lastSyncError: undefined,
+      lastMergeCount: result.merged,
+      enabled: true,
+      thisDeviceIsTheBook: false,
+    })
+    noteSuccessfulUnlock()
+    return {
+      action: 'pull',
+      message: `Pulled Mini’s book — ${result.merged} portfolio(s) · YouTube / News / Markets applied.`,
+      preview,
+    }
+  }
+
+  rememberPassAndMaybeAuto({
+    remoteUrl: url,
+    lastSyncAt: new Date().toISOString(),
+    lastSyncError: undefined,
+    enabled: true,
+  })
+  noteSuccessfulUnlock()
+  return {
+    action: 'pull',
+    message: 'Pulled YouTube / News / Markets extras. Mini stays the book.',
+    preview,
+  }
+}
+
 export {
   chooseSyncAction,
   chooseFirstSyncAction,

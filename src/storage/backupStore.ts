@@ -181,15 +181,18 @@ import {
 
 // Lazy import to avoid circular deps - sync service imports backupStore
 let _pushSyncLazy: ((url: string, pass: string) => Promise<unknown>) | null = null
-let _loadSyncConfigLazy: (() => { remoteUrl: string; enabled: boolean } | null) | null = null
+let _loadSyncConfigLazy: (() => { remoteUrl: string; enabled: boolean; thisDeviceIsTheBook?: boolean } | null) | null =
+  null
 let _getSessionPassphraseLazy: (() => string | null) | null = null
+let _isBookDeviceLazy: ((cfg?: { thisDeviceIsTheBook?: boolean } | null) => boolean) | null = null
 
 async function lazyLoadSync() {
-  if (_pushSyncLazy && _loadSyncConfigLazy && _getSessionPassphraseLazy) return
+  if (_pushSyncLazy && _loadSyncConfigLazy && _getSessionPassphraseLazy && _isBookDeviceLazy) return
   try {
     const mod = await import('../services/sync/syncService')
     _pushSyncLazy = mod.pushSync
     _loadSyncConfigLazy = mod.loadSyncConfig
+    _isBookDeviceLazy = mod.isBookDevice
     const sessionMod = await import('../services/sync/sessionPassphrase')
     _getSessionPassphraseLazy = sessionMod.getSessionSyncPassphrase
   } catch {
@@ -638,8 +641,9 @@ export async function createFullBackup(
     /* ignore */
   }
 
-  // Auto-sync after backup if enabled (unless explicitly skipped)
-  if (!opts?.skipAutoSync && source === 'auto') {
+  // Book device: daily + manual Backup also push the encrypted envelope
+  // (YouTube / News / Markets / portfolios). Satellites never push from Backup.
+  if (!opts?.skipAutoSync) {
     void attemptAutoSync().catch(() => {
       /* Sync errors should not fail the backup */
     })
@@ -1151,7 +1155,8 @@ export async function ensureDailyBackup(): Promise<FullBackupMeta | null> {
 }
 
 /**
- * Attempt auto-sync push after daily backup.
+ * Attempt auto-sync push after backup (daily or Backup now).
+ * Book device only — a satellite leftover must not overwrite Mini.
  * Silent — errors logged but not thrown.
  */
 async function attemptAutoSync(): Promise<void> {
@@ -1160,6 +1165,7 @@ async function attemptAutoSync(): Promise<void> {
 
   const cfg = _loadSyncConfigLazy()
   if (!cfg || !cfg.enabled || !cfg.remoteUrl) return
+  if (_isBookDeviceLazy && !_isBookDeviceLazy(cfg)) return
 
   const pass = _getSessionPassphraseLazy()
   if (!pass) return
@@ -1167,7 +1173,7 @@ async function attemptAutoSync(): Promise<void> {
   try {
     await _pushSyncLazy(cfg.remoteUrl, pass)
   } catch (err) {
-    console.warn('[auto-sync] Push failed after daily backup:', err)
+    console.warn('[auto-sync] Push failed after backup:', err)
   }
 }
 

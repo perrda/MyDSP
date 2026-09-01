@@ -4216,7 +4216,9 @@ export function SettingsPage() {
           <p className="text-sm text-text-muted font-light mb-4 max-w-2xl">
             Snapshots <strong className="text-text">every portfolio</strong> automatically once per
             day (keeps the last {MAX_BACKUPS}). You can also back up manually, download a file, or
-            restore. Active-portfolio JSON export remains below for single-workspace copies.
+            restore. On Mini (this device is the book), Backup now also pushes YouTube channels,
+            News, Markets, prices, and the portfolio book to the cloud when Sync is unlocked.
+            Active-portfolio JSON export remains below for single-workspace copies.
           </p>
           <div className="flex flex-wrap gap-3 mb-6">
             <button

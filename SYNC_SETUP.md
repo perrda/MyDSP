@@ -72,8 +72,8 @@ npx wrangler deploy
 4. Enable:
    - **Automatic sync**
    - **Remember passphrase on this device** (required so sync works after you close the tab)
-5. On the **first** device (source of truth): click **Push** or **Sync now**.
-6. On **phone / iPad / other browsers**: same URL + passphrase + both toggles. Open the app — it **pulls automatically**.
+5. On the **first** device (source of truth): click **Push** or **Sync now**. **Backup now** on Mini also pushes YouTube / News / Markets / the book when Sync is unlocked.
+6. On **phone / iPad / other browsers**: same URL + passphrase + both toggles. Open the app — it **pulls automatically**. If YouTube shows **Unlock sync**, use **Unlock & pull** on that page (pull only). After unlock, adding a channel on the satellite reaches Mini.
 
 That’s it. Edits push about **4 seconds** after you change data (and pull first if another device updated cloud). Opening the app, returning to the tab, pull-to-refresh, or about **every 30 seconds** while open pulls newer cloud data.
 
