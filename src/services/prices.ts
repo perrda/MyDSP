@@ -214,9 +214,17 @@ function proxyCandidatesFor(url: string): string[] {
   return out
 }
 
+function proxyPayloadOk<T>(data: T | null, accept?: (data: T) => boolean): data is T {
+  return Boolean(data && typeof data === 'object' && (!accept || accept(data)))
+}
+
+function isQuoteWorkerCandidate(url: string): boolean {
+  return url.includes('mydsp-quote') || url.includes('/api/quote?')
+}
+
 /**
- * Race proxy + direct candidates; first valid JSON wins.
- * Avoids sequential stalls when one relay hangs or returns HTML.
+ * Prefer the dedicated quote Worker (sequential — avoids 429 from a 10-way race),
+ * then race public CORS relays. First valid JSON that passes `accept` wins.
  */
 async function fetchViaProxies<T>(
   url: string,
@@ -224,21 +232,25 @@ async function fetchViaProxies<T>(
   accept?: (data: T) => boolean,
 ): Promise<T | null> {
   const candidates = proxyCandidatesFor(url)
+  const workerFirst = candidates.filter(isQuoteWorkerCandidate)
+  const rest = candidates.filter((c) => !isQuoteWorkerCandidate(c))
+
+  for (const candidate of workerFirst) {
+    const { data } = await fetchJson<T>(candidate, timeoutMs)
+    if (proxyPayloadOk(data, accept)) return data
+  }
+
   return new Promise((resolve) => {
-    let remaining = candidates.length
+    let remaining = rest.length
     let settled = false
     if (remaining === 0) {
       resolve(null)
       return
     }
-    for (const candidate of candidates) {
+    for (const candidate of rest) {
       void fetchJson<T>(candidate, timeoutMs).then(({ data }) => {
         if (settled) return
-        const ok =
-          data &&
-          typeof data === 'object' &&
-          (!accept || accept(data))
-        if (ok) {
+        if (proxyPayloadOk(data, accept)) {
           settled = true
           resolve(data)
           return

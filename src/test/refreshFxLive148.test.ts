@@ -56,6 +56,8 @@ describe('MyDSP 1.2.148 Refresh fetches live FX with prices', () => {
     expect(read('../services/prices.ts')).toMatch(/yahooVenueEquitySymbol/)
     expect(read('../services/prices.ts')).toMatch(/regularMarketPrice/)
     expect(read('../services/prices.ts')).toMatch(/accept\?: \(data: T\) => boolean/)
+    expect(read('../services/prices.ts')).toMatch(/isQuoteWorkerCandidate/)
+    expect(read('../services/prices.ts')).toMatch(/workerFirst/)
   })
 
   it('Settings Prices copy: Refresh pulls FX; Cloudflare is not a feed', () => {
