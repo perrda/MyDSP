@@ -750,6 +750,44 @@ async function doPush(cfg: SyncConfig, pass: string): Promise<void> {
 }
 
 /**
+ * Satellite stays open with Automatic off. Boot already pulls (1.2.149).
+ * Focus / 60s / online must still doPull Mini extras — otherwise a channel
+ * added on Mini sits in the cloud until someone reloads the MacBook / iPhone / iPad.
+ * Pull only — never push leftovers from this path.
+ */
+async function maybePullSatelliteExtras(cfg: SyncConfig, reason: CycleReason): Promise<void> {
+  if (isBookDevice(cfg)) return
+  if (isAutoSyncPaused(cfg)) {
+    emit({
+      state: 'idle',
+      message: `Auto-sync paused until ${new Date(cfg.pausedUntil!).toLocaleString()}`,
+      lastAt: cfg.lastSyncAt ?? status.lastAt,
+    })
+    return
+  }
+  hydrateSessionSyncPassphrase()
+  const pass = getSessionSyncPassphrase()
+  if (!pass || !cfg.remoteUrl.trim()) {
+    emit({ state: 'disabled', message: 'Automatic sync is off' })
+    return
+  }
+  if (busy) return
+  busy = true
+  try {
+    await doPull(cfg, pass, reason)
+    if (status.state === 'pulling' || status.state === 'pushing') {
+      emit({ state: 'idle', lastAt: loadSyncConfig().lastSyncAt })
+    }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'Pull failed'
+    updateCfg({ lastSyncError: msg })
+    emit({ state: 'error', message: msg, lastAt: status.lastAt })
+  } finally {
+    busy = false
+  }
+}
+
+/**
  * Mini stays open with Automatic off. Boot already PUTs (1.2.157).
  * Focus / 60s / online must still absorb a satellite extras push — otherwise
  * a MacBook channel sits in the cloud until someone reloads Mini.
@@ -806,11 +844,12 @@ async function maybeAbsorbAndPushBookExtras(cfg: SyncConfig): Promise<void> {
 export async function runAutoSyncCycle(reason: CycleReason = 'manual'): Promise<void> {
   const cfg = loadSyncConfig()
   if (!shouldRunSyncCycle(cfg, reason, dirty)) {
-    if (
-      isBookDevice(cfg) &&
-      (reason === 'focus' || reason === 'interval' || reason === 'online')
-    ) {
-      await maybeAbsorbAndPushBookExtras(cfg)
+    if (reason === 'focus' || reason === 'interval' || reason === 'online') {
+      if (isBookDevice(cfg)) {
+        await maybeAbsorbAndPushBookExtras(cfg)
+        return
+      }
+      await maybePullSatelliteExtras(cfg, reason)
       return
     }
     emit({ state: 'disabled', message: 'Automatic sync is off' })
@@ -947,13 +986,19 @@ export function startAutoSync(): void {
 }
 
 export function stopAutoSync(): void {
+  lastPullAttempt = 0
+  dirty = false
+  dirtyWhileApplying = false
+  busy = false
+  if (pushTimer) {
+    clearTimeout(pushTimer)
+    pushTimer = null
+  }
   if (!started) return
   started = false
   document.removeEventListener('visibilitychange', onVisibility)
   window.removeEventListener('focus', onFocus)
   window.removeEventListener('online', onOnline)
-  if (pushTimer) clearTimeout(pushTimer)
-  pushTimer = null
   if (periodicTimer) clearInterval(periodicTimer)
   periodicTimer = null
   clearPauseTimers()

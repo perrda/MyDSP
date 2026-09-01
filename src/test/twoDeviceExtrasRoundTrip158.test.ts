@@ -20,6 +20,7 @@ import { addMarketTicker, listMarketTickers } from '../storage/marketsStore'
 import { addNewsTag, loadNewsState } from '../storage/newsStore'
 import { listPortfolios, loadPortfolio, savePortfolioImmediate } from '../storage/portfolioStore'
 import { addYoutubeChannel, listYoutubeChannels } from '../storage/youtubeStore'
+import { refreshLiveMarksAfterUnlock } from '../services/marketsQuotes'
 
 vi.mock('../services/marketsQuotes', () => ({
   refreshLiveMarksAfterUnlock: vi.fn(async () => undefined),
@@ -364,5 +365,98 @@ describe('Mini ↔ satellite extras Worker round-trip (1.2.158)', () => {
       'Added while Mini stayed open',
       'MoneyZG',
     ])
+  })
+
+  it('satellite open + Automatic off pulls Mini extras on the interval cycle', async () => {
+    const cloud = installMockSyncCloud()
+
+    localStorage.setItem('mydsp_device_id', 'dev_mini')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    setSessionSyncPassphrase(PASS, { remember: true })
+    seedPortfolio('default', 'David', miniBook())
+    addYoutubeChannel({
+      channelId: 'UC_mini_1',
+      title: 'MoneyZG',
+      url: 'https://www.youtube.com/@MoneyZG',
+    })
+    await pushSync(URL, PASS)
+
+    localStorage.clear()
+    clearSessionSyncPassphrase()
+    localStorage.setItem('mydsp_device_id', 'dev_macbook')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: false,
+    })
+    seedPortfolio('default', 'David', leftoverBook())
+    await unlockAndPullFromCloud(PASS)
+    expect(listYoutubeChannels().map((c) => c.title)).toEqual(['MoneyZG'])
+    const satelliteSnap = snapshotStorage()
+
+    localStorage.clear()
+    clearSessionSyncPassphrase()
+    localStorage.setItem('mydsp_device_id', 'dev_mini')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    setSessionSyncPassphrase(PASS, { remember: true })
+    const grown = miniBook()
+    grown.crypto[0] = { ...grown.crypto[0], qty: 13.25, cost: 420_000 }
+    seedPortfolio('default', 'David', grown)
+    addYoutubeChannel({
+      channelId: 'UC_mini_1',
+      title: 'MoneyZG',
+      url: 'https://www.youtube.com/@MoneyZG',
+    })
+    addYoutubeChannel({
+      channelId: 'UC_mini_new',
+      title: 'Added on Mini while MacBook stayed open',
+      url: 'https://www.youtube.com/@mini-open',
+    })
+    addNewsTag({ tag: 'MININEW', label: 'Mini while satellite open' })
+    addMarketTicker({ kind: 'crypto', symbol: 'AVAX', name: 'Avalanche' })
+    saveCachedFxRates({ GBP: 1, USD: 1.41, THB: 44.1, BTC: 1 / 92_000 }, Date.now() + 60_000)
+    await pushSync(URL, PASS)
+    const putsAfterMini = cloud.fetchMock.mock.calls.filter(
+      (c) => String(c[1]?.method ?? 'GET').toUpperCase() === 'PUT',
+    ).length
+    expect(putsAfterMini).toBeGreaterThan(0)
+
+    restoreStorage(satelliteSnap)
+    stopAutoSync()
+    setSessionSyncPassphrase(PASS, { remember: true })
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: false,
+    })
+    expect(listYoutubeChannels().map((c) => c.title)).toEqual(['MoneyZG'])
+    expect(loadPortfolio('default').crypto.find((h) => h.symbol === 'BTC')?.qty).toBe(12.5)
+
+    vi.mocked(refreshLiveMarksAfterUnlock).mockClear()
+    await runAutoSyncCycle('interval')
+    expect(listYoutubeChannels().map((c) => c.title).sort()).toEqual([
+      'Added on Mini while MacBook stayed open',
+      'MoneyZG',
+    ])
+    expect(loadNewsState().tags.map((t) => t.tag)).toContain('MININEW')
+    expect(listMarketTickers().map((t) => t.symbol)).toContain('AVAX')
+    expect(loadPortfolio('default').crypto.find((h) => h.symbol === 'BTC')?.qty).toBe(13.25)
+    expect(loadPortfolio('default').crypto.find((h) => h.symbol === 'BTC')?.cost).toBe(420_000)
+    expect(loadCachedFxRates().USD).toBe(1.41)
+    expect(refreshLiveMarksAfterUnlock).toHaveBeenCalled()
+    const putsAfterPull = cloud.fetchMock.mock.calls.filter(
+      (c) => String(c[1]?.method ?? 'GET').toUpperCase() === 'PUT',
+    ).length
+    expect(putsAfterPull).toBe(putsAfterMini)
   })
 })

@@ -99,14 +99,14 @@ describe('MyDSP 1.2.158 satellite Advanced Pull replaces leftover holdings', () 
 
   it('package + release notes tip', () => {
     const pkg = JSON.parse(read('../../package.json'))
-    expect(pkg.version).toBe('1.2.161')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.161')
+    expect(pkg.version).toBe('1.2.162')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.162')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.162',
       '1.2.161',
       '1.2.160',
       '1.2.159',
       '1.2.158',
-      '1.2.157',
     ])
     const changelog = read('../../CHANGELOG.md')
     const section = changelog.match(/## \[1\.2\.158\][\s\S]*?(?=## \[)/)?.[0] ?? ''
@@ -120,7 +120,7 @@ describe('MyDSP 1.2.158 satellite Advanced Pull replaces leftover holdings', () 
     expect(section).toMatch(/#F7931A/)
     expect(section).not.toMatch(/SYNC_KEY/)
     expect(read('../../ROADMAP.md')).toMatch(/Satellite Advanced Pull REPLACE \(v1\.2\.158\)/)
-    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.161/)
+    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.162/)
     const sync = read('../services/sync/syncService.ts')
     expect(sync).toMatch(/export async function applyReviewedPull/)
     expect(sync).toMatch(/applyRemoteAsBook\(preview\)/)
@@ -169,9 +169,14 @@ describe('MyDSP 1.2.158 satellite Advanced Pull replaces leftover holdings', () 
     expect(
       isDraftWorkerPreview('cursor-satellite-advanced-replace-6f30-mydspv1.dave-perry.workers.dev'),
     ).toBe(true)
+    expect(
+      isDraftWorkerPreview('cursor-mini-absorb-extras-6f30-mydsp.dave-perry.workers.dev'),
+    ).toBe(true)
+    expect(isDraftWorkerPreview('047722a6-mydspv1.dave-perry.workers.dev')).toBe(true)
     expect(isDraftWorkerPreview('main-mydspv1.dave-perry.workers.dev')).toBe(false)
     expect(isDraftWorkerPreview('mydspv1.dave-perry.workers.dev')).toBe(false)
     expect(isDraftWorkerPreview('localhost')).toBe(false)
+    expect(isDraftWorkerPreview('mydsp-sync.dave-perry.workers.dev')).toBe(false)
   })
 
   it('Mini book Advanced apply still unions via applyMergePreview', async () => {
