@@ -97,7 +97,7 @@ import {
 } from '../domain/marketsTagYieldPref'
 import {
   allConflictsResolved,
-  applyMergePreview,
+  applyReviewedPull,
   applyWorkspaceExtrasFromPreview,
   captureMergeUndoSnapshot,
   downloadEncryptedBackup,
@@ -106,6 +106,7 @@ import {
   DEFAULT_SYNC_REMOTE_URL,
   getSyncRemoteUrlWarning,
   isBookDevice,
+  isDraftWorkerPreview,
   loadSyncConfig,
   normalizeSyncRemoteUrl,
   previewImport,
@@ -1024,6 +1025,20 @@ export function SettingsPage() {
             </p>
           ) : null}
           <div className="sync-simple mb-6" data-testid="sync-simple">
+            {isDraftWorkerPreview() ? (
+              <p
+                className="text-sm text-amber-700 dark:text-amber-400 mb-4"
+                data-testid="sync-draft-preview-warn"
+                role="status"
+              >
+                This address is a draft copy with its own empty book. It will not push over Mini.
+                Stay on{' '}
+                <a className="underline" href="https://main-mydspv1.dave-perry.workers.dev">
+                  main-mydspv1.dave-perry.workers.dev
+                </a>{' '}
+                or Live until this change is merged.
+              </p>
+            ) : null}
             <label className="flex items-start gap-3 cursor-pointer mb-4">
               <input
                 type="checkbox"
@@ -1060,8 +1075,8 @@ export function SettingsPage() {
                 className="text-sm text-text-muted font-light mb-4"
                 data-testid="sync-satellite-copy"
               >
-                This device pulls the book. Sync and pull-to-refresh replace local portfolios with
-                Mini — they will not push a leftover DAVID over it.
+                This device pulls the book. Sync, pull-to-refresh, and Advanced Pull replace local
+                portfolios with Mini — they will not push a leftover DAVID over it.
               </p>
             ) : (
               <p className="text-sm text-text-muted font-light mb-4" data-testid="sync-book-copy">
@@ -1638,8 +1653,9 @@ export function SettingsPage() {
                 <div>
                   <p className="text-sm font-medium text-text">Rotate sync passphrase</p>
                   <p className="text-xs text-text-muted font-light">
-                    Re-encrypt local data and push it. After a successful push, the remote uses the
-                    new passphrase; update your other devices before they sync again.
+                    {isBookDevice(syncCfg)
+                      ? 'Re-encrypt local data and push it. After a successful push, the remote uses the new passphrase; update your other devices before they sync again.'
+                      : 'Rotate the passphrase on the Mini (book) only. This device pulls — it will not push leftover YouTube or DAVID over Mini.'}
                   </p>
                 </div>
                 <button
@@ -1679,6 +1695,12 @@ export function SettingsPage() {
                           }
                           if (!rotatePass || rotatePass.trim().length < 8) {
                             flash('Use a new passphrase of at least 8 characters.')
+                            return
+                          }
+                          if (!isBookDevice(syncCfg)) {
+                            flash(
+                              'Rotate the passphrase on the Mini (book) only. This device will not push leftovers.',
+                            )
                             return
                           }
                           if (!isOnline()) {
@@ -2046,7 +2068,7 @@ export function SettingsPage() {
                         `YouTube/News/Markets pulled${extrasSummary ? ` · ${extrasSummary}` : ''} · review ${preview.conflicts.length} portfolio conflict(s) — pick Keep local/remote, then Apply merge.`,
                       )
                     } else {
-                      const r = await applyMergePreview(preview, {})
+                      const r = await applyReviewedPull(preview, {})
                       reload()
                       setPendingMerge(null)
                       setConflictChoices({})
@@ -2073,7 +2095,7 @@ export function SettingsPage() {
                           ? ' · cleaned duplicate names'
                           : ''
                       flash(
-                        `Pulled & merged ${r.merged} portfolios${blobNote}${cleaned}${
+                        `${isBookDevice(syncCfg) ? 'Pulled & merged' : 'Pulled Mini’s book'} ${r.merged} portfolios${blobNote}${cleaned}${
                           extrasSummary ? ` · ${extrasSummary}` : ''
                         }.`,
                       )
@@ -2089,7 +2111,7 @@ export function SettingsPage() {
                 })()
               }}
             >
-              Pull & merge
+              {isBookDevice(syncCfg) ? 'Pull & merge' : 'Pull book from Mini'}
             </button>
             <button
               type="button"
@@ -2185,7 +2207,7 @@ export function SettingsPage() {
                     const appliedPreview = pendingMerge
                     const appliedChoices = { ...conflictChoices }
                     const undoSnapshot = captureMergeUndoSnapshot(appliedPreview)
-                    const r = await applyMergePreview(appliedPreview, appliedChoices)
+                    const r = await applyReviewedPull(appliedPreview, appliedChoices)
                     reload()
                     setPendingMerge(null)
                     setConflicts([])
@@ -2242,7 +2264,7 @@ export function SettingsPage() {
                 })()
               }}
             >
-              Apply merge
+              {isBookDevice(syncCfg) ? 'Apply merge' : 'Apply Mini’s book'}
             </button>
             <button type="button" className="btn-ghost" onClick={() => void testSyncEndpoint()}>
               Test endpoint
@@ -2290,7 +2312,7 @@ export function SettingsPage() {
                         `YouTube/News/Markets imported · review ${preview.conflicts.length} portfolio conflict(s) — pick Keep local/remote, then Apply merge.`,
                       )
                     } else {
-                      const r = await applyMergePreview(preview, {})
+                      const r = await applyReviewedPull(preview, {})
                       reload()
                       setPendingMerge(null)
                       setConflictChoices({})
@@ -2305,7 +2327,9 @@ export function SettingsPage() {
                       }
                       setSyncCfg(next)
                       saveSyncConfig(next)
-                      flash(`Imported & merged ${r.merged} portfolios.`)
+                      flash(
+                        `${isBookDevice(syncCfg) ? 'Imported & merged' : 'Imported Mini’s book'} ${r.merged} portfolios.`,
+                      )
                     }
                   } catch (err) {
                     flash(err instanceof Error ? err.message : 'Import failed')

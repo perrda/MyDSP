@@ -43,14 +43,14 @@ describe('Media cross-device sync (v1.2.95)', () => {
 
   it('package + release notes tip', () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8'))
-    expect(pkg.version).toBe('1.2.157')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.157')
+    expect(pkg.version).toBe('1.2.158')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.158')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.158',
       '1.2.157',
       '1.2.156',
       '1.2.155',
       '1.2.154',
-      '1.2.153',
     ])
   })
 
@@ -215,6 +215,8 @@ describe('Media cross-device sync (v1.2.95)', () => {
     expect(rule).toMatch(/First extras apply replaces leftovers/)
     expect(rule).toMatch(/refreshLiveMarksAfterUnlock/)
     expect(rule).toMatch(/Mini boot push/)
+    expect(rule).toMatch(/applyReviewedPull/)
+    expect(rule).toMatch(/Draft Worker previews/)
     const smoke = readFileSync(resolve(__dirname, '../../scripts/SYNC_SMOKE.md'), 'utf8')
     expect(smoke).toMatch(/deletion tombstones/)
     expect(smoke).toMatch(/web \/ tablet \/ mobile/)

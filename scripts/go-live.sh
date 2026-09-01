@@ -15,6 +15,15 @@ else
   git clone https://github.com/perrda/MyDSP.git "$HOME/MyDSP"
   cd "$HOME/MyDSP"
 fi
+echo "Working in $PWD (not ~/AI_Projects/MyDSP)"
+if ! npx wrangler whoami >/dev/null 2>&1; then
+  echo "Cloudflare login required once. Paste:"
+  echo "  cd ~/MyDSP && npx wrangler login"
+  echo "Then paste the go-live line again."
+  exit 1
+fi
 npm ci
 npm run deploy
-echo "Live should now match main. Hard-refresh https://mydspv1.dave-perry.workers.dev"
+LIVE_SW="$(curl -fsSL https://mydspv1.dave-perry.workers.dev/sw.js | grep -o 'mydsp-v[0-9.]*' | head -1 || true)"
+echo "Live service worker: ${LIVE_SW:-unknown — hard-refresh and check again}"
+echo "Hard-refresh https://mydspv1.dave-perry.workers.dev"

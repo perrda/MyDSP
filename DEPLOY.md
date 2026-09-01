@@ -20,6 +20,8 @@ One line from any folder (after this script is on `main`):
 curl -fsSL https://raw.githubusercontent.com/perrda/MyDSP/main/scripts/go-live.sh | bash
 ```
 
+The script uses `~/MyDSP` (never `~/AI_Projects/MyDSP`). It stops with `npx wrangler login` if Cloudflare is not signed in, then prints the Live service-worker version (`mydsp-v1.2.xxx`).
+
 Or paste this **whole block**. It always uses `~/MyDSP`:
 
 ```bash

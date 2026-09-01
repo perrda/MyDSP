@@ -395,6 +395,18 @@ export function isBookDevice(cfg: SyncConfig = loadSyncConfig()): boolean {
 }
 
 /**
+ * Cloudflare branch previews (`cursor-*-mydspv1…`) are a new origin with empty
+ * localStorage. Pushing from them would overwrite Mini’s cloud book.
+ * Live (`mydspv1…`) and main preview (`main-mydspv1…`) are allowed.
+ */
+export function isDraftWorkerPreview(hostname?: string): boolean {
+  const host =
+    hostname ??
+    (typeof window !== 'undefined' && window.location?.hostname ? window.location.hostname : '')
+  return host.startsWith('cursor-') && host.includes('-mydspv1.')
+}
+
+/**
  * Ensure Remote URL is absolute https. Without a scheme, browsers treat it as a
  * path on the app host → Push hits mydspv1…/mydsp-sync… and returns 405.
  */
@@ -618,6 +630,11 @@ export async function buildEnvelope(
 }
 
 export async function pushSync(url: string, passphrase: string): Promise<SyncPushResult> {
+  if (isDraftWorkerPreview()) {
+    throw new Error(
+      'This draft preview will not push over Mini. Use https://main-mydspv1.dave-perry.workers.dev or Live.',
+    )
+  }
   setSessionSyncPassphrase(passphrase)
   const remote = normalizeSyncRemoteUrl(url)
   const envelope = await buildEnvelope(passphrase, { includeFullArchive: true })
@@ -1224,6 +1241,27 @@ export async function applyMergePreview(
 }
 
 /**
+ * Advanced / conflict / file apply: satellites REPLACE Mini’s book (never union leftovers).
+ * Mini (book) still reviews and unions via applyMergePreview.
+ */
+export async function applyReviewedPull(
+  preview: MergePreview,
+  resolutions: Record<string, ConflictChoice> = {},
+): Promise<{ merged: number; conflicts: SyncConflict[]; removedDupes: number }> {
+  if (!isBookDevice()) {
+    const result = await applyRemoteAsBook(preview)
+    try {
+      const { refreshLiveMarksAfterUnlock } = await import('../marketsQuotes')
+      await refreshLiveMarksAfterUnlock()
+    } catch {
+      /* live marks must not fail the replace */
+    }
+    return result
+  }
+  return applyMergePreview(preview, resolutions)
+}
+
+/**
  * Pull remote envelope. Review-first: when conflicts exist and are not fully
  * resolved, returns conflicts without writing. Otherwise applies the merge.
  */
@@ -1238,7 +1276,7 @@ export async function pullAndMerge(
     await applyWorkspaceExtrasFromPreview(preview)
     return { merged: 0, conflicts: preview.conflicts, preview }
   }
-  const result = await applyMergePreview(preview, resolutions)
+  const result = await applyReviewedPull(preview, resolutions)
   return { ...result, preview }
 }
 
@@ -1255,7 +1293,7 @@ export async function importEncryptedFile(
     await applyWorkspaceExtrasFromPreview(preview)
     return { merged: 0, conflicts: preview.conflicts, preview }
   }
-  const result = await applyMergePreview(preview, resolutions)
+  const result = await applyReviewedPull(preview, resolutions)
   return { ...result, preview }
 }
 
