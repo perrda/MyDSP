@@ -4,7 +4,7 @@
 
 ## Completed (through v1.2.149)
 
-- YouTube channels unlock-and-pull (v1.2.149): satellite Unlock & pull on YouTube / News runs `unlockAndPullFromCloud` (pull only) · Mini Backup now also pushes extras · unlocked satellite extras pull-then-push · Mini favourites + book land · passphrase remembered · `#F7931A` + Mini-as-book kept
+- YouTube channels unlock-and-pull (v1.2.149): satellite Unlock & pull on YouTube / News runs `unlockAndPullFromCloud` (pull only) · Mini Backup now also pushes extras · unlocked satellite extras pull-then-push · display FX in the envelope · Mini favourites + book land · passphrase remembered · `#F7931A` + Mini-as-book kept
 - Andrew gifted figures land (v1.2.147): v3 one-shot refills Andrew after a leftover v2 empty stamp · SIPP + Fund & Share TSLA/MSTR + 14,285 ADA · last-synced marks on every named book including already-stamped · switch profile does not wipe Andrew · Reset after v3 stays empty · David unchanged
 - Family sleeves land on live (v1.2.146): v2 one-shot refills Mum / Andrew / Thomas / Rebecca / James King after Mini REPLACE or leftover Reset ate the v1 flag · Andrew SIPP + Fund & Share TSLA/MSTR + 14,285 ADA · BTC 0 · Refresh prices every named book · SW cache `mydsp-v1.2.146` · Reset after v2 stays empty · David unchanged
 - Holdings ⋯ Edit (v1.2.145): list ⋯ portals above swipe overflow · Edit + Delete only · Edit sheet has Edit / Buy / Sell plus qty, price, date, commentary · Equities and Crypto · draft only — live stays 1.2.144

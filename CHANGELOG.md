@@ -6,6 +6,7 @@
 - **Why MacBook missed Mini’s channels:** Live showed Unlock sync. Favourite channels stay encrypted until the satellite enters Mini’s passphrase. Backup on Mini was this-Mac-only, so Sync on MacBook had nothing new to pull — the 8 channels on that Mac are local-only.
 - **Unlock on YouTube / News:** enter the same passphrase and tap Unlock & pull. That runs `unlockAndPullFromCloud` (pull only — never push a leftover MacBook list over Mini) so YouTube favourites, News tags, Markets, prices, and the portfolio book land. Settings Sync and header Refresh on a satellite use the same pull-only path. Banner shows whenever the satellite has a sync footprint and no passphrase (Automatic off is fine). Remember passphrase stays on.
 - **Add on any device:** after unlock, a satellite YouTube / News / Markets edit pull-then-pushes extras so Mini receives them. Mini Backup now / daily backup also pushes the envelope when Sync is unlocked. Satellites never push from Backup.
+- **Prices / FX in the envelope:** last-good Markets quotes already travelled; display FX (`fxRates` GBP/USD/THB/BTC) now does too. Unlock on a satellite lands Mini’s last rates. Mini keeps a newer live fetch.
 - **Keep:** Mini-as-book sync, Today one-column + Assets hero, utilities under YouTube, `#F7931A`, 1.2.147 Andrew sleeves. Service worker cache is `mydsp-v1.2.149`.
 
 ## [1.2.147] - 2026-08-31

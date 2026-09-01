@@ -52,16 +52,41 @@ export function fxCacheUpdatedAt(): number | null {
   }
 }
 
-export function saveCachedFxRates(rates: FxRates): void {
+export function saveCachedFxRates(rates: FxRates, updatedAt: number = Date.now()): void {
   try {
     const { updatedAt: _drop, ...clean } = rates as FxRates & { updatedAt?: number }
     localStorage.setItem(
       CACHE_KEY,
-      JSON.stringify({ ...clean, GBP: 1, updatedAt: Date.now() }),
+      JSON.stringify({ ...clean, GBP: 1, updatedAt }),
     )
   } catch {
     /* ignore */
   }
+}
+
+export type FxRatesBackup = { rates: FxRates; updatedAt: number | null }
+
+export function exportFxRatesForBackup(): FxRatesBackup {
+  return {
+    rates: loadCachedFxRates(),
+    updatedAt: fxCacheUpdatedAt(),
+  }
+}
+
+/** LWW by updatedAt so Mini’s newer live fetch is not overwritten by a stale satellite. */
+export function importFxRatesFromBackup(raw: unknown): void {
+  if (!raw || typeof raw !== 'object') return
+  const o = raw as Partial<FxRatesBackup>
+  if (!o.rates || typeof o.rates !== 'object') return
+  const remoteAt = typeof o.updatedAt === 'number' ? o.updatedAt : 0
+  const localAt = fxCacheUpdatedAt() ?? 0
+  if (remoteAt < localAt) return
+  const clean: FxRates = { ...DEFAULT_FX_RATES }
+  for (const [k, v] of Object.entries(o.rates)) {
+    if (typeof v === 'number' && Number.isFinite(v) && v > 0) clean[k] = v
+  }
+  clean.GBP = 1
+  saveCachedFxRates(clean, remoteAt || Date.now())
 }
 
 /** Convert GBP amount to display currency. */

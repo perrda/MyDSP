@@ -74,6 +74,7 @@ describe('next25b sync / backup trust', () => {
       blobs: record.blobs,
       markets: null,
       marketQuotes: null,
+      fxRates: null,
       news: null,
       newsArticles: null,
       youtube: null,

@@ -52,6 +52,10 @@ export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
         text: 'MacBook Settings Sync / Refresh pull Mini — they never overwrite the book',
         to: '/settings#sync',
       },
+      {
+        text: 'Unlock also lands Mini’s last FX rates with the channel list',
+        to: '/settings#sync',
+      },
     ],
   },
   {

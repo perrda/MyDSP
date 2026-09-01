@@ -114,6 +114,7 @@ export function firstSyncHighlightHref(ids: SyncHighlightMap | null | undefined)
 /** Human labels for workspace extras applied on pull (quotes, media caches, ISA, …). */
 export type WorkspaceExtrasFlags = {
   marketQuotes?: boolean
+  fxRates?: boolean
   newsArticles?: boolean
   youtubeVideos?: boolean
   isaRemaining?: boolean
@@ -160,6 +161,7 @@ export type WorkspaceExtrasFlags = {
 
 const EXTRAS_LABELS: Array<[keyof WorkspaceExtrasFlags, string]> = [
   ['marketQuotes', 'Markets quotes'],
+  ['fxRates', 'FX rates'],
   ['newsArticles', 'News headlines'],
   ['youtubeVideos', 'YouTube videos'],
   ['isaRemaining', 'ISA override'],
@@ -218,6 +220,7 @@ export function summarizeWorkspaceExtras(
 
 export function workspaceExtrasFlagsFromPreview(extras: {
   marketQuotes?: unknown
+  fxRates?: unknown
   newsArticles?: unknown
   youtubeVideos?: unknown
   isaRemaining?: unknown
@@ -264,6 +267,7 @@ export function workspaceExtrasFlagsFromPreview(extras: {
   if (!extras) return {}
   return {
     marketQuotes: extras.marketQuotes != null,
+    fxRates: extras.fxRates != null,
     newsArticles: extras.newsArticles != null,
     youtubeVideos: extras.youtubeVideos != null,
     isaRemaining: extras.isaRemaining != null,

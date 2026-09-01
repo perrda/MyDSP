@@ -8,6 +8,7 @@ import {
   importMarketsFromBackup,
 } from '../../storage/marketsStore'
 import { shouldImportSyncedMarketQuotes } from '../../domain/marketQuotesSync'
+import { importFxRatesFromBackup } from '../fx'
 import {
   importNewsArticlesFromBackup,
   importNewsFromBackup,
@@ -253,6 +254,8 @@ export interface MergePreview {
     markets?: unknown
     /** Last-good Markets quotes (by ticker id) */
     marketQuotes?: unknown
+    /** Last-good display FX (GBP/USD/THB/BTC) */
+    fxRates?: unknown
     news?: unknown
     /** Last-good News headlines cache */
     newsArticles?: unknown
@@ -708,6 +711,7 @@ async function decryptEnvelope(
     if (a.navLayout != null) extras.navLayout = a.navLayout
     if (a.markets != null) extras.markets = a.markets
     if (a.marketQuotes != null) extras.marketQuotes = a.marketQuotes
+    if (a.fxRates != null) extras.fxRates = a.fxRates
     if (a.news != null) extras.news = a.news
     if (a.newsArticles != null) extras.newsArticles = a.newsArticles
     if (a.youtube != null) extras.youtube = a.youtube
@@ -911,6 +915,7 @@ export async function applyWorkspaceExtrasFromPreview(
   const shouldStampMediaSync = Boolean(
     preview.workspaceExtras?.markets != null ||
       preview.workspaceExtras?.marketQuotes != null ||
+      preview.workspaceExtras?.fxRates != null ||
       preview.workspaceExtras?.news != null ||
       preview.workspaceExtras?.newsArticles != null ||
       preview.workspaceExtras?.youtube != null ||
@@ -940,6 +945,12 @@ export async function applyWorkspaceExtrasFromPreview(
     shouldImportSyncedMarketQuotes(isBookDevice())
   ) {
     importMarketQuotesFromBackup(preview.workspaceExtras.marketQuotes)
+  }
+  if (
+    preview.workspaceExtras?.fxRates != null &&
+    shouldImportSyncedMarketQuotes(isBookDevice())
+  ) {
+    importFxRatesFromBackup(preview.workspaceExtras.fxRates)
   }
   if (preview.workspaceExtras?.news != null) {
     importNewsFromBackup(preview.workspaceExtras.news)

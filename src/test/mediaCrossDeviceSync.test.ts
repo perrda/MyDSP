@@ -210,6 +210,7 @@ describe('Media cross-device sync (v1.2.95)', () => {
     expect(rule).toMatch(/applyWorkspaceExtrasFromPreview/)
     expect(rule).toMatch(/Unlock applies extras/)
     expect(rule).toMatch(/unlockAndPullFromCloud/)
+    expect(rule).toMatch(/fxRates/)
     expect(rule).toMatch(/Backup on Mini is not device-local only/)
     const smoke = readFileSync(resolve(__dirname, '../../scripts/SYNC_SMOKE.md'), 'utf8')
     expect(smoke).toMatch(/deletion tombstones/)
