@@ -1238,6 +1238,7 @@ export async function applyWorkspaceExtrasFromPreview(
  */
 export async function applyRemoteAsBook(
   preview: MergePreview,
+  opts?: { stampHoldings?: boolean },
 ): Promise<{ merged: number; conflicts: SyncConflict[]; removedDupes: number }> {
   const localIds = listPortfolios().map((p) => p.id)
   const keepIds = new Set<string>()
@@ -1286,6 +1287,8 @@ export async function applyRemoteAsBook(
 
   await applyWorkspaceExtrasFromPreview(preview)
   applyFamilyHoldingsToNamedBooks()
+
+  if (opts?.stampHoldings !== false) stampLastPulledHoldings()
 
   return { merged, conflicts: preview.conflicts, removedDupes: removed.length }
 }

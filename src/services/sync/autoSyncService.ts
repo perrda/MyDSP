@@ -542,7 +542,7 @@ async function doPull(cfg: SyncConfig, pass: string, reason: CycleReason): Promi
     beginApplyingRemote()
     try {
       await applyWorkspaceExtrasFromPreview(preview)
-      const result = await applyRemoteAsBook(preview)
+      const result = await applyRemoteAsBook(preview, { stampHoldings: false })
       if (dirty) overlayDirtyLocalHoldings(preview)
       stampLastPulledHoldings()
       const at = new Date().toISOString()
