@@ -84,6 +84,11 @@ export interface SyncConfig {
   lastPushBytes?: number
   /** When set (ISO), auto-sync cycles are skipped until this time */
   pausedUntil?: string
+  /**
+   * Holding ids present after the last successful satellite book pull.
+   * Dirty overlay uses this to tell a satellite delete from a Mini add.
+   */
+  lastPulledHoldingIds?: Record<string, Partial<Record<string, number[]>>>
 }
 
 export interface SyncEnvelope {
@@ -380,6 +385,10 @@ export function loadSyncConfig(): SyncConfig {
       lastPullBytes: optionalFiniteNumber(parsed.lastPullBytes),
       lastPushBytes: optionalFiniteNumber(parsed.lastPushBytes),
       pausedUntil: typeof parsed.pausedUntil === 'string' ? parsed.pausedUntil : undefined,
+      lastPulledHoldingIds:
+        parsed.lastPulledHoldingIds && typeof parsed.lastPulledHoldingIds === 'object'
+          ? parsed.lastPulledHoldingIds
+          : undefined,
     }
   } catch {
     return { remoteUrl: '', enabled: false, autoResolveConflicts: false }
@@ -684,6 +693,13 @@ export async function absorbRemoteWorkspaceExtrasBeforePush(
   if (preview.conflicts.length > 0 && wasDirty) {
     await applyWorkspaceExtrasFromPreview(preview)
     return 'parked'
+  }
+
+  if (!wasDirty) {
+    // Mini has not edited — take the satellite book as-is so a deleted
+    // SOL / changed qty / new ETH is not unioned back to yesterday.
+    await applyRemoteAsBook(preview)
+    return true
   }
 
   const resolutions: Record<string, ConflictChoice> = {}
@@ -1275,37 +1291,41 @@ export async function applyRemoteAsBook(
 }
 
 /**
- * After a satellite REPLACE, put back holdings this device edited (dirty)
- * so pull-then-push does not wipe a BTC qty change — or a newly added
- * ETH row — and then upload Mini’s older book.
+ * After a satellite REPLACE, restore this device’s dirty book rows:
+ * qty edits, newly added holdings, and deletes. Remote-only ids (Mini
+ * added while this device was editing) stay so pull-then-push does not
+ * revert Mini. Then upload that mix — never Mini’s older book alone.
  */
+export function stampLastPulledHoldings(): void {
+  const ids: NonNullable<SyncConfig['lastPulledHoldingIds']> = {}
+  for (const p of listPortfolios()) {
+    const data = loadPortfolio(p.id)
+    const cols: Record<string, number[]> = {}
+    for (const collection of COLLECTIONS) {
+      cols[collection] = ((data[collection] as { id: number }[] | undefined) ?? []).map(
+        (row) => row.id,
+      )
+    }
+    ids[p.id] = cols
+  }
+  saveSyncConfig({ ...loadSyncConfig(), lastPulledHoldingIds: ids })
+}
+
 export function overlayDirtyLocalHoldings(preview: MergePreview): void {
+  const lastPulled = loadSyncConfig().lastPulledHoldingIds ?? {}
   for (const plan of preview.portfolios) {
     if (!plan.local) continue
     let next = loadPortfolio(plan.portfolioId)
     let changed = false
-    const putRow = (collection: (typeof COLLECTIONS)[number], locRow: { id: number }) => {
-      const arr = [...((next[collection] as { id: number }[]) ?? [])]
-      const idx = arr.findIndex((row) => row.id === locRow.id)
-      if (idx >= 0) arr[idx] = locRow
-      else arr.push(locRow)
-      next = { ...next, [collection]: arr }
-      changed = true
-    }
-    for (const c of plan.conflicts) {
-      const locArr = plan.local[c.collection] as { id: number }[] | undefined
-      const locRow = locArr?.find((row) => row.id === c.id)
-      if (locRow) putRow(c.collection, locRow)
-    }
+    const pulled = lastPulled[plan.portfolioId] ?? {}
     for (const collection of COLLECTIONS) {
       const locArr = (plan.local[collection] as { id: number }[] | undefined) ?? []
-      const remIds = new Set(
-        ((plan.remote[collection] as { id: number }[] | undefined) ?? []).map((row) => row.id),
-      )
-      for (const locRow of locArr) {
-        if (remIds.has(locRow.id)) continue
-        putRow(collection, locRow)
-      }
+      const remArr = (plan.remote[collection] as { id: number }[] | undefined) ?? []
+      const locIds = new Set(locArr.map((row) => row.id))
+      const known = new Set(pulled[collection] ?? [])
+      const remOnly = remArr.filter((row) => !locIds.has(row.id) && !known.has(row.id))
+      next = { ...next, [collection]: [...locArr, ...remOnly] }
+      changed = true
     }
     if (changed) savePortfolioImmediate(next, plan.portfolioId)
   }

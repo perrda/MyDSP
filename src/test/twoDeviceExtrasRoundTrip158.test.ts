@@ -463,6 +463,78 @@ describe('Mini ↔ satellite extras Worker round-trip (1.2.158)', () => {
     ).toEqual(['BTC', 'ETH'])
   })
 
+  it('Mini boot/Backup pushSync absorbs a holding deleted on the satellite after Unlock', async () => {
+    const cloud = installMockSyncCloud()
+    const two = miniBook()
+    two.crypto.push({
+      id: 2,
+      symbol: 'SOL',
+      name: 'Solana',
+      qty: 10,
+      price: 140,
+      cost: 1_000,
+    })
+
+    localStorage.setItem('mydsp_device_id', 'dev_mini')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    setSessionSyncPassphrase(PASS, { remember: true })
+    seedPortfolio('default', 'David', two)
+    await pushSync(URL, PASS)
+    const miniSnap = snapshotStorage()
+
+    localStorage.clear()
+    clearSessionSyncPassphrase()
+    localStorage.setItem('mydsp_device_id', 'dev_macbook')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: false,
+    })
+    seedPortfolio('default', 'David', leftoverBook())
+    await unlockAndPullFromCloud(PASS)
+    expect(loadPortfolio('default').crypto.map((h) => h.symbol).sort()).toEqual(['BTC', 'SOL'])
+    const trimmed = loadPortfolio('default')
+    trimmed.crypto = trimmed.crypto.filter((h) => h.symbol !== 'SOL')
+    savePortfolioImmediate(trimmed, 'default')
+    vi.useFakeTimers({ toFake: ['setTimeout', 'setInterval'] })
+    markLocalDataChanged()
+    await vi.advanceTimersByTimeAsync(4_000)
+    vi.useRealTimers()
+    await vi.waitFor(() => {
+      expect(
+        cloud.fetchMock.mock.calls.filter((c) => String(c[1]?.method ?? 'GET').toUpperCase() === 'PUT')
+          .length,
+      ).toBeGreaterThan(1)
+    })
+    expect(loadPortfolio('default').crypto.map((h) => h.symbol)).toEqual(['BTC'])
+
+    stopAutoSync()
+    restoreStorage(miniSnap)
+    setSessionSyncPassphrase(PASS, { remember: true })
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    expect(loadPortfolio('default').crypto.map((h) => h.symbol).sort()).toEqual(['BTC', 'SOL'])
+
+    await pushSync(URL, PASS)
+    expect(loadPortfolio('default').crypto.map((h) => h.symbol)).toEqual(['BTC'])
+
+    const afterMini = await previewPull(URL, PASS)
+    expect(
+      afterMini.portfolios
+        .find((p) => p.portfolioId === 'default')
+        ?.remote.crypto.map((h) => h.symbol),
+    ).toEqual(['BTC'])
+  })
+
   it('Mini open + Automatic off absorbs a satellite channel on the interval cycle', async () => {
     const cloud = installMockSyncCloud()
 
