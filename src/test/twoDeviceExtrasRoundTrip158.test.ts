@@ -421,7 +421,7 @@ describe('Mini ↔ satellite extras Worker round-trip (1.2.158)', () => {
     seedPortfolio('default', 'David', leftoverBook())
     await unlockAndPullFromCloud(PASS)
     const grown = loadPortfolio('default')
-    grown.crypto[0] = { ...grown.crypto[0], qty: 13.25, cost: 420_000 }
+    grown.crypto[0] = { ...grown.crypto[0], qty: 13.25, cost: 420_000, price: 80_000 }
     savePortfolioImmediate(grown, 'default')
     addYoutubeChannel({
       channelId: 'UC_size',
@@ -456,6 +456,7 @@ describe('Mini ↔ satellite extras Worker round-trip (1.2.158)', () => {
     await pushSync(URL, PASS)
     expect(loadPortfolio('default').crypto.find((h) => h.symbol === 'BTC')?.qty).toBe(13.25)
     expect(loadPortfolio('default').crypto.find((h) => h.symbol === 'BTC')?.cost).toBe(420_000)
+    expect(loadPortfolio('default').crypto.find((h) => h.symbol === 'BTC')?.price).toBe(85_000)
     expect(listYoutubeChannels().map((c) => c.title).sort()).toEqual([
       'Added with size change',
       'MoneyZG',
@@ -467,6 +468,7 @@ describe('Mini ↔ satellite extras Worker round-trip (1.2.158)', () => {
       ?.remote.crypto.find((h) => h.symbol === 'BTC')
     expect(remoteBtc?.qty).toBe(13.25)
     expect(remoteBtc?.cost).toBe(420_000)
+    expect(remoteBtc?.price).toBe(85_000)
     const putsAfter = cloud.fetchMock.mock.calls.filter(
       (c) => String(c[1]?.method ?? 'GET').toUpperCase() === 'PUT',
     ).length

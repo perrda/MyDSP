@@ -872,6 +872,7 @@ export async function absorbRemoteWorkspaceExtrasBeforePush(
   const takeSatelliteBookKeepMiniRegistry = async () => {
     await applyRemoteAsBook(preview)
     overlayMiniBookAfterRemoteReplace(createdBooks, metasBefore, booksBefore)
+    await refreshMiniMarksAfterAbsorb()
     stampLastBookHoldingHashes()
     return true as const
   }
@@ -896,11 +897,15 @@ export async function absorbRemoteWorkspaceExtrasBeforePush(
       resolutions[conflictKey(c)] = conflictRowSide(c, preview) === 'satellite' ? 'remote' : 'local'
     }
     await applyMergePreview(preview, resolutions)
+    overlayMiniLiveMarks(booksBefore)
+    await refreshMiniMarksAfterAbsorb()
     stampLastBookHoldingHashes()
     return true
   }
 
   await applyMergePreview(preview, {})
+  overlayMiniLiveMarks(booksBefore)
+  await refreshMiniMarksAfterAbsorb()
   stampLastBookHoldingHashes()
   return true
 }
@@ -1684,6 +1689,45 @@ export function overlaySatelliteNonCollectionFields(
   overlayNonCollectionFields(before, loadLastPulledScalarHashes())
 }
 
+/**
+ * After Mini absorb REPLACE / merge, keep Mini’s live crypto `price` and
+ * equity `livePrice` on rows Mini already had. Satellite qty / cost still
+ * win. New satellite-only rows keep the remote mark until live refresh.
+ */
+export function overlayMiniLiveMarks(
+  before: Array<{ id: string; data: PortfolioData }>,
+): void {
+  for (const { id, data } of before) {
+    if (!listPortfolios().some((p) => p.id === id)) continue
+    let next = loadPortfolio(id)
+    let changed = false
+    const prevCrypto = new Map((data.crypto ?? []).map((h) => [h.id, h]))
+    const prevEq = new Map((data.equities ?? []).map((h) => [h.id, h]))
+    const crypto = (next.crypto ?? []).map((h) => {
+      const prev = prevCrypto.get(h.id)
+      if (!prev || prev.price === h.price) return h
+      changed = true
+      return { ...h, price: prev.price }
+    })
+    const equities = (next.equities ?? []).map((h) => {
+      const prev = prevEq.get(h.id)
+      if (!prev || prev.livePrice === h.livePrice) return h
+      changed = true
+      return { ...h, livePrice: prev.livePrice }
+    })
+    if (changed) savePortfolioImmediate({ ...next, crypto, equities }, id)
+  }
+}
+
+async function refreshMiniMarksAfterAbsorb(): Promise<void> {
+  try {
+    const { refreshLiveMarksAfterUnlock } = await import('../marketsQuotes')
+    await refreshLiveMarksAfterUnlock()
+  } catch {
+    /* live marks must not fail absorb */
+  }
+}
+
 /** Mini absorb REPLACE must not wipe Mini registry ops or edited scalars. */
 export function overlayMiniBookAfterRemoteReplace(
   created: Array<{ meta: PortfolioMeta; data: PortfolioData }>,
@@ -1694,6 +1738,7 @@ export function overlayMiniBookAfterRemoteReplace(
   dropMiniDeletedBooks(metasBefore.map((p) => p.id))
   restoreMiniRenamedBooks(metasBefore)
   overlayMiniNonCollectionFields(booksBefore)
+  overlayMiniLiveMarks(booksBefore)
 }
 
 export function overlayDirtyLocalHoldings(preview: MergePreview): void {

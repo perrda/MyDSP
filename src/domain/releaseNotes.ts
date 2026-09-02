@@ -37,7 +37,7 @@ export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
         to: '/settings#sync',
       },
       {
-        text: 'Staking, FIRE, and budget edits on Mini or a MacBook / iPhone / iPad survive absorb and dirty pull — a Mini-deleted holding stays gone',
+        text: 'Staking, FIRE, and budget edits survive absorb and dirty pull — Mini live prices stay, a Mini-deleted holding stays gone',
         to: '/settings#sync',
       },
       {
