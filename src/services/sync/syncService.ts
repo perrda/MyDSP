@@ -54,6 +54,7 @@ const DEVICE_KEY = 'mydsp_device_id'
 const BOOK_HASH_KEY = 'mydsp_last_book_holding_hashes'
 const BOOK_SCALAR_KEY = 'mydsp_last_book_scalar_hashes'
 const BOOK_REGISTRY_KEY = 'mydsp_last_book_registry_names'
+const PULLED_SCALAR_KEY = 'mydsp_last_pulled_scalar_hashes'
 
 /** Portfolio fields Mini absorb REPLACE would wipe — not in COLLECTIONS. */
 export const BOOK_SCALAR_FIELDS = [
@@ -1505,6 +1506,35 @@ export function stampLastPulledHoldings(): void {
     ids[p.id] = cols
   }
   saveSyncConfig({ ...loadSyncConfig(), lastPulledHoldingIds: ids })
+  stampLastPulledScalarHashes()
+}
+
+function loadLastPulledScalarHashes(): BookScalarHashes | null {
+  try {
+    const raw = localStorage.getItem(PULLED_SCALAR_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as BookScalarHashes
+    return parsed && typeof parsed === 'object' ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+function stampLastPulledScalarHashes(): void {
+  const ids: BookScalarHashes = {}
+  for (const p of listPortfolios()) {
+    const data = loadPortfolio(p.id)
+    const fields: BookScalarHashes[string] = {}
+    for (const key of BOOK_SCALAR_FIELDS) {
+      fields[key] = stableHash(data[key])
+    }
+    ids[p.id] = fields
+  }
+  try {
+    localStorage.setItem(PULLED_SCALAR_KEY, JSON.stringify(ids))
+  } catch {
+    /* quota */
+  }
 }
 
 export function snapshotSatelliteCreatedBooks(): Array<{
@@ -1619,10 +1649,10 @@ export function dropMiniDeletedBooks(localIdsBefore: string[]): void {
  * After Mini absorb REPLACE, put back staking / FIRE / budgets Mini edited
  * vs the last stamp. Satellite qty still wins (COLLECTIONS came from remote).
  */
-export function overlayMiniNonCollectionFields(
+function overlayNonCollectionFields(
   before: Array<{ id: string; data: PortfolioData }>,
+  stamp: BookScalarHashes | null,
 ): void {
-  const stamp = loadLastBookScalarHashes()
   if (!stamp) return
   for (const { id, data } of before) {
     if (!listPortfolios().some((p) => p.id === id)) continue
@@ -1639,6 +1669,19 @@ export function overlayMiniNonCollectionFields(
     }
     if (changed) savePortfolioImmediate(next, id)
   }
+}
+
+export function overlayMiniNonCollectionFields(
+  before: Array<{ id: string; data: PortfolioData }>,
+): void {
+  overlayNonCollectionFields(before, loadLastBookScalarHashes())
+}
+
+/** After satellite dirty REPLACE, keep staking / FIRE this device edited vs last pull. */
+export function overlaySatelliteNonCollectionFields(
+  before: Array<{ id: string; data: PortfolioData }>,
+): void {
+  overlayNonCollectionFields(before, loadLastPulledScalarHashes())
 }
 
 /** Mini absorb REPLACE must not wipe Mini registry ops or edited scalars. */

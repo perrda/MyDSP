@@ -1417,4 +1417,79 @@ describe('Mini ↔ satellite extras Worker round-trip (1.2.158)', () => {
     expect(remote?.monthlyIncome).toBe(8_400)
     expect(remote?.crypto.find((h) => h.symbol === 'BTC')?.qty).toBe(13.25)
   })
+
+  it('satellite dirty pull-then-push keeps an iPad staking reward and Mini absorbs it', async () => {
+    const cloud = installMockSyncCloud()
+
+    localStorage.setItem('mydsp_device_id', 'dev_mini')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    setSessionSyncPassphrase(PASS, { remember: true })
+    seedPortfolio('default', 'David', miniBook())
+    await pushSync(URL, PASS)
+    const miniSnap = snapshotStorage()
+
+    localStorage.clear()
+    clearSessionSyncPassphrase()
+    localStorage.setItem('mydsp_device_id', 'dev_macbook')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: false,
+    })
+    seedPortfolio('default', 'David', leftoverBook())
+    await unlockAndPullFromCloud(PASS)
+    expect(loadPortfolio('default').crypto.find((h) => h.symbol === 'BTC')?.qty).toBe(12.5)
+    const sat = loadPortfolio('default')
+    sat.staking = {
+      ...sat.staking,
+      rewards: [
+        ...(sat.staking.rewards ?? []),
+        { epoch: 513, amount: 3.25, date: '2026-09-02', notes: 'iPad reward' },
+      ],
+    }
+    sat.monthlyIncome = 9_100
+    savePortfolioImmediate(sat, 'default')
+    addYoutubeChannel({
+      channelId: 'UC_sat_stake',
+      title: 'Satellite staking',
+      url: 'https://www.youtube.com/@satstake',
+    })
+    vi.useFakeTimers({ toFake: ['setTimeout', 'setInterval'] })
+    markLocalDataChanged()
+    await vi.advanceTimersByTimeAsync(4_000)
+    vi.useRealTimers()
+    await vi.waitFor(() => {
+      expect(
+        cloud.fetchMock.mock.calls.filter((c) => String(c[1]?.method ?? 'GET').toUpperCase() === 'PUT')
+          .length,
+      ).toBeGreaterThan(1)
+    })
+    expect(loadPortfolio('default').staking.rewards.some((r) => r.epoch === 513)).toBe(true)
+    expect(loadPortfolio('default').monthlyIncome).toBe(9_100)
+    expect(loadPortfolio('default').crypto.find((h) => h.symbol === 'BTC')?.qty).toBe(12.5)
+
+    stopAutoSync()
+    restoreStorage(miniSnap)
+    setSessionSyncPassphrase(PASS, { remember: true })
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    await pushSync(URL, PASS)
+    expect(loadPortfolio('default').staking.rewards.some((r) => r.epoch === 513)).toBe(true)
+    expect(loadPortfolio('default').monthlyIncome).toBe(9_100)
+    expect(listYoutubeChannels().map((c) => c.title)).toContain('Satellite staking')
+
+    const afterMini = await previewPull(URL, PASS)
+    const remote = afterMini.portfolios.find((p) => p.portfolioId === 'default')?.remote
+    expect(remote?.staking.rewards.some((r) => r.epoch === 513)).toBe(true)
+    expect(remote?.monthlyIncome).toBe(9_100)
+  })
 })

@@ -37,7 +37,7 @@ export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
         to: '/settings#sync',
       },
       {
-        text: 'Staking, FIRE, and budget edits on Mini survive the same absorb — satellite qty still wins',
+        text: 'Staking, FIRE, and budget edits on Mini or a MacBook / iPhone / iPad survive absorb and dirty pull — satellite qty still wins',
         to: '/settings#sync',
       },
       {
