@@ -63,6 +63,7 @@ const BOOK_REGISTRY_KEY = 'mydsp_last_book_registry_names'
 const PULLED_SCALAR_KEY = 'mydsp_last_pulled_scalar_hashes'
 const PULLED_HASH_KEY = 'mydsp_last_pulled_holding_hashes'
 const PULLED_REGISTRY_KEY = 'mydsp_last_pulled_registry_names'
+const PULLED_IDS_KEY = 'mydsp_last_pulled_holding_ids'
 const PULLED_EXTRAS_KEY = 'mydsp_last_pulled_extras_hash'
 
 /** Portfolio fields Mini absorb REPLACE would wipe — not in COLLECTIONS. */
@@ -662,7 +663,7 @@ export async function buildEnvelope(
   let fullArchive: EncryptedBlob | undefined
   let archivePlain: unknown
   if (includeFull) {
-    const lastPulled = loadSyncConfig().lastPulledHoldingIds
+    const lastPulled = loadLastPulledHoldingIds() ?? undefined
     const pulledBookIds = Object.keys(lastPulled ?? {})
     const lastPulledScalars = loadLastPulledScalarHashes()
     const lastPulledNames = loadLastPulledRegistryNames()
@@ -797,7 +798,7 @@ function lastKnownBookIds(): string[] {
   if (names && Object.keys(names).length > 0) return Object.keys(names)
   const hashes = loadLastBookHoldingHashes()
   if (hashes && Object.keys(hashes).length > 0) return Object.keys(hashes)
-  return Object.keys(loadSyncConfig().lastPulledHoldingIds ?? {})
+  return Object.keys(loadLastPulledHoldingIds() ?? {})
 }
 
 function loadLastBookRegistryNames(): Record<string, string> | null {
@@ -886,7 +887,7 @@ export function satelliteBookDivergedFromLastPull(): boolean {
   if (!hashes && !scalars && !names) {
     // 1.2.163 Unlock stamped lastPulledHoldingIds only. An unpushed qty
     // would REPLACE back to Mini on the first 1.2.164 Unlock without this.
-    const pulledIds = loadSyncConfig().lastPulledHoldingIds
+    const pulledIds = loadLastPulledHoldingIds()
     return Boolean(pulledIds && Object.keys(pulledIds).length > 0)
   }
   if (hashes && !holdingsMatchStamp(hashes)) return true
@@ -1735,6 +1736,29 @@ export function stampLastPulledBookBaseline(): void {
   stampLastPulledRegistryNames()
 }
 
+export function loadLastPulledHoldingIds(): NonNullable<SyncConfig['lastPulledHoldingIds']> | null {
+  try {
+    const raw = localStorage.getItem(PULLED_IDS_KEY)
+    if (raw) {
+      const parsed = JSON.parse(raw) as SyncConfig['lastPulledHoldingIds']
+      if (parsed && typeof parsed === 'object') return parsed
+    }
+  } catch {
+    /* ignore */
+  }
+  const fromCfg = loadSyncConfig().lastPulledHoldingIds
+  return fromCfg && typeof fromCfg === 'object' ? fromCfg : null
+}
+
+function persistLastPulledHoldingIds(ids: NonNullable<SyncConfig['lastPulledHoldingIds']>): void {
+  try {
+    localStorage.setItem(PULLED_IDS_KEY, JSON.stringify(ids))
+  } catch {
+    /* quota */
+  }
+  saveSyncConfig({ ...loadSyncConfig(), lastPulledHoldingIds: ids })
+}
+
 export function stampLastPulledHoldingIds(): void {
   const ids: NonNullable<SyncConfig['lastPulledHoldingIds']> = {}
   for (const p of listPortfolios()) {
@@ -1747,7 +1771,7 @@ export function stampLastPulledHoldingIds(): void {
     }
     ids[p.id] = cols
   }
-  saveSyncConfig({ ...loadSyncConfig(), lastPulledHoldingIds: ids })
+  persistLastPulledHoldingIds(ids)
 }
 
 /**
@@ -1768,7 +1792,7 @@ export function stampLastPulledHoldingIdsFromRemote(preview: MergePreview): void
     }
     ids[plan.portfolioId] = cols
   }
-  saveSyncConfig({ ...loadSyncConfig(), lastPulledHoldingIds: ids })
+  persistLastPulledHoldingIds(ids)
 }
 
 export function stampLastPulledHoldings(): void {
@@ -1861,7 +1885,7 @@ export function snapshotSatelliteCreatedBooks(): Array<{
   meta: PortfolioMeta
   data: PortfolioData
 }> {
-  const pulled = loadSyncConfig().lastPulledHoldingIds ?? {}
+  const pulled = loadLastPulledHoldingIds() ?? {}
   return listPortfolios()
     .filter((p) => !pulled[p.id])
     .map((p) => ({ meta: p, data: loadPortfolio(p.id) }))
@@ -1869,7 +1893,7 @@ export function snapshotSatelliteCreatedBooks(): Array<{
 
 /** After REPLACE, drop books this satellite deleted (still in last-pulled). */
 export function dropSatelliteDeletedBooks(localIdsBefore: string[]): void {
-  const pulled = loadSyncConfig().lastPulledHoldingIds ?? {}
+  const pulled = loadLastPulledHoldingIds() ?? {}
   const have = new Set(localIdsBefore)
   for (const id of Object.keys(pulled)) {
     if (id === 'default' || have.has(id)) continue
@@ -2277,7 +2301,7 @@ export function overlaySatelliteBookAfterRemoteReplace(
 }
 
 export function overlayDirtyLocalHoldings(preview: MergePreview): void {
-  const lastPulled = loadSyncConfig().lastPulledHoldingIds ?? {}
+  const lastPulled = loadLastPulledHoldingIds() ?? {}
   for (const plan of preview.portfolios) {
     if (!plan.local) continue
     let next = loadPortfolio(plan.portfolioId)

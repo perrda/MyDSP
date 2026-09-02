@@ -1442,6 +1442,85 @@ describe('Mini ↔ satellite extras Worker round-trip (1.2.158)', () => {
     ).toBe(13.25)
   })
 
+  it('Mini already-pushed ETH survives a Settings save that wipes SyncConfig lastPulledHoldingIds', async () => {
+    installMockSyncCloud()
+
+    localStorage.setItem('mydsp_device_id', 'dev_mini')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    setSessionSyncPassphrase(PASS, { remember: true })
+    seedPortfolio('default', 'David', miniBook())
+    await pushSync(URL, PASS)
+    const miniBeforeEth = snapshotStorage()
+
+    localStorage.clear()
+    clearSessionSyncPassphrase()
+    localStorage.setItem('mydsp_device_id', 'dev_macbook')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: false,
+    })
+    seedPortfolio('default', 'David', leftoverBook())
+    await unlockAndPullFromCloud(PASS)
+    const macAfterUnlock = snapshotStorage()
+    stopAutoSync()
+
+    restoreStorage(miniBeforeEth)
+    setSessionSyncPassphrase(PASS, { remember: true })
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    const withEth = loadPortfolio('default')
+    withEth.crypto.push({
+      id: 2,
+      symbol: 'ETH',
+      name: 'Ethereum',
+      qty: 3.5,
+      price: 3_000,
+      cost: 7_000,
+    })
+    savePortfolioImmediate(withEth, 'default')
+    await pushSync(URL, PASS)
+    const miniWithEth = snapshotStorage()
+
+    restoreStorage(macAfterUnlock)
+    stopAutoSync()
+    setSessionSyncPassphrase(PASS, { remember: true })
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: false,
+    })
+    expect(loadSyncConfig().lastPulledHoldingIds).toBeUndefined()
+    addYoutubeChannel({
+      channelId: 'UC_settings_wipe',
+      title: 'Settings wiped lastPulledHoldingIds',
+      url: 'https://www.youtube.com/@settingswipe',
+    })
+    await pushSync(URL, PASS)
+
+    restoreStorage(miniWithEth)
+    stopAutoSync()
+    setSessionSyncPassphrase(PASS, { remember: true })
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    await pushSync(URL, PASS)
+    expect(loadPortfolio('default').crypto.map((h) => h.symbol).sort()).toEqual(['BTC', 'ETH'])
+    expect(listYoutubeChannels().map((c) => c.title)).toContain('Settings wiped lastPulledHoldingIds')
+  })
+
   it('Mini already-pushed staking survives a stale MacBook extras PUT', async () => {
     installMockSyncCloud()
 
