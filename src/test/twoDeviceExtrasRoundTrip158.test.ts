@@ -13,6 +13,7 @@ import { clearSessionSyncPassphrase, setSessionSyncPassphrase } from '../service
 import {
   applyReviewedPull,
   applyWorkspaceExtrasFromPreview,
+  loadSyncConfig,
   previewPull,
   pushSync,
   saveSyncConfig,
@@ -1249,6 +1250,96 @@ describe('Mini ↔ satellite extras Worker round-trip (1.2.158)', () => {
       afterMini.portfolios.find((p) => p.portfolioId === 'default')?.remote.crypto.find((h) => h.symbol === 'BTC')
         ?.qty,
     ).toBe(13.25)
+  })
+
+  it('Mini already-pushed Kids survives a stale MacBook extras PUT', async () => {
+    installMockSyncCloud()
+
+    localStorage.setItem('mydsp_device_id', 'dev_mini')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    setSessionSyncPassphrase(PASS, { remember: true })
+    seedPortfolio('default', 'David', miniBook())
+    await pushSync(URL, PASS)
+    const miniBeforeKids = snapshotStorage()
+
+    localStorage.clear()
+    clearSessionSyncPassphrase()
+    localStorage.setItem('mydsp_device_id', 'dev_macbook')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: false,
+    })
+    seedPortfolio('default', 'David', leftoverBook())
+    await unlockAndPullFromCloud(PASS)
+    const macBeforeKids = snapshotStorage()
+    stopAutoSync()
+
+    restoreStorage(miniBeforeKids)
+    setSessionSyncPassphrase(PASS, { remember: true })
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    const kids = createPortfolio('Kids', { empty: true })
+    const kidsBook = loadPortfolio(kids.id)
+    kidsBook.crypto = [{ id: 1, symbol: 'BTC', name: 'Bitcoin', qty: 0.5, price: 85_000, cost: 20_000 }]
+    savePortfolioImmediate(kidsBook, kids.id)
+    await pushSync(URL, PASS)
+    expect(listPortfolios().map((p) => p.name).sort()).toEqual(['David', 'Kids'])
+    const miniWithKids = snapshotStorage()
+
+    restoreStorage(macBeforeKids)
+    stopAutoSync()
+    setSessionSyncPassphrase(PASS, { remember: true })
+    const macCfg = loadSyncConfig()
+    saveSyncConfig({
+      ...macCfg,
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: false,
+    })
+    expect(Object.keys(loadSyncConfig().lastPulledHoldingIds ?? {})).toEqual(['default'])
+    expect(listPortfolios().map((p) => p.name)).toEqual(['David'])
+    addYoutubeChannel({
+      channelId: 'UC_stale_kids',
+      title: 'Stale MacBook after Mini Kids',
+      url: 'https://www.youtube.com/@stalekids',
+    })
+    const grown = loadPortfolio('default')
+    grown.crypto[0] = { ...grown.crypto[0], qty: 13.25, cost: 420_000 }
+    savePortfolioImmediate(grown, 'default')
+    await pushSync(URL, PASS)
+
+    restoreStorage(miniWithKids)
+    stopAutoSync()
+    setSessionSyncPassphrase(PASS, { remember: true })
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    await pushSync(URL, PASS)
+    expect(listPortfolios().map((p) => p.name).sort()).toEqual(['David', 'Kids'])
+    expect(listPortfolios().some((p) => p.id === kids.id)).toBe(true)
+    expect(loadPortfolio(kids.id).crypto.find((h) => h.symbol === 'BTC')?.qty).toBe(0.5)
+    expect(loadPortfolio('default').crypto.find((h) => h.symbol === 'BTC')?.qty).toBe(13.25)
+    expect(listYoutubeChannels().map((c) => c.title)).toContain('Stale MacBook after Mini Kids')
+
+    const afterMini = await previewPull(URL, PASS)
+    expect(afterMini.registryPortfolios.map((p) => p.name).sort()).toEqual(['David', 'Kids'])
+    expect(
+      afterMini.portfolios.find((p) => p.portfolioId === kids.id)?.remote.crypto.find((h) => h.symbol === 'BTC')
+        ?.qty,
+    ).toBe(0.5)
   })
 
   it('Mini delete Kids + satellite qty — absorb keeps the delete and the MacBook size', async () => {

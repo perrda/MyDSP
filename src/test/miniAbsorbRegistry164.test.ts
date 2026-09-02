@@ -26,6 +26,9 @@ describe('MyDSP 1.2.164 Mini absorb keeps Mini family books and staking', () => 
     const section = changelog.match(/## \[1\.2\.164\][\s\S]*?(?=## \[)/)?.[0] ?? ''
     expect(section).toMatch(/overlayMiniBookAfterRemoteReplace/)
     expect(section).toMatch(/snapshotMiniCreatedBooks/)
+    expect(section).toMatch(/restoreMiniKeptBooks/)
+    expect(section).toMatch(/already-pushed/)
+    expect(section).toMatch(/lastPulledBookIds/)
     expect(section).toMatch(/dropMiniDeletedBooks/)
     expect(section).toMatch(/restoreMiniRenamedBooks/)
     expect(section).toMatch(/mydsp_last_book_scalar_hashes/)
@@ -57,6 +60,7 @@ describe('MyDSP 1.2.164 Mini absorb keeps Mini family books and staking', () => 
     expect(read('../../public/sw.js')).toMatch(/mydsp-v1.2.164/)
     const notes = read('../domain/releaseNotes.ts')
     expect(notes).toMatch(/Kids book created, renamed, or deleted on Mini/)
+    expect(notes).toMatch(/already pushed/)
     expect(notes).toMatch(/Staking, FIRE, and budget edits survive absorb/)
     expect(notes).toMatch(/Mini live prices stay/)
     expect(notes).toMatch(/deleted holding stays gone/)
@@ -72,6 +76,7 @@ describe('MyDSP 1.2.164 Mini absorb keeps Mini family books and staking', () => 
     const tip = RELEASE_NOTES[0]!
     const kids = tip.bullets[0]
     expect(releaseBulletText(kids)).toMatch(/Kids book created, renamed, or deleted on Mini/)
+    expect(releaseBulletText(kids)).toMatch(/already pushed/)
     expect(releaseBulletHref(kids)).toBe('/settings#sync')
     const staking = tip.bullets.find((b) => /Staking, FIRE/.test(releaseBulletText(b)))
     expect(staking).toBeTruthy()
@@ -97,10 +102,13 @@ describe('MyDSP 1.2.164 Mini absorb keeps Mini family books and staking', () => 
     expect(absorbFn).toMatch(/dropUneditedRowsDeletedOnRemote/)
     expect(absorbFn).toMatch(/dropMiniDeletedHoldings/)
     expect(absorbFn).toMatch(/snapshotMiniCreatedBooks/)
+    expect(absorbFn).toMatch(/lastPulledBookIds/)
+    expect(read('../services/sync/syncService.ts')).toMatch(/restoreMiniKeptBooks/)
     expect(absorbFn).toMatch(/applyRemoteAsBook/)
     expect(absorbFn).toMatch(/bookHoldingsMatchLastStamp/)
     expect(read('../services/sync/syncService.ts')).toMatch(/export function overlayMiniBookAfterRemoteReplace/)
     expect(read('../services/sync/syncService.ts')).toMatch(/export function snapshotMiniCreatedBooks/)
+    expect(read('../services/sync/syncService.ts')).toMatch(/export function restoreMiniKeptBooks/)
     expect(read('../services/sync/syncService.ts')).toMatch(/export function dropMiniDeletedBooks/)
     expect(read('../services/sync/syncService.ts')).toMatch(/export function restoreMiniRenamedBooks/)
     expect(read('../services/sync/syncService.ts')).toMatch(/export function dropUneditedRowsDeletedOnRemote/)
@@ -127,6 +135,8 @@ describe('MyDSP 1.2.164 Mini absorb keeps Mini family books and staking', () => 
     const rule = read('../../.cursor/rules/media-cross-device-sync.mdc')
     expect(rule).toMatch(/overlayMiniBookAfterRemoteReplace/)
     expect(rule).toMatch(/Kids create/)
+    expect(rule).toMatch(/restoreMiniKeptBooks/)
+    expect(read('../services/sync/syncService.ts')).toMatch(/restoreMiniKeptBooks\(metasBefore, booksBefore/)
   })
 
   it('does not revert 163 holding absorb or sitting satellite pull', () => {

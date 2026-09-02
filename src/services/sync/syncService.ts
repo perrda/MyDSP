@@ -342,6 +342,12 @@ export interface MergePreview {
     themePref?: unknown
     a11yPrefs?: unknown
     notificationSettings?: unknown
+    /**
+     * Book ids this satellite last pulled (Unlock / doPull). Mini absorb uses
+     * this to keep an already-pushed Kids a stale PUT omitted, without undoing
+     * a Kids the satellite actually pulled and deleted.
+     */
+    lastPulledBookIds?: string[]
   }
 }
 
@@ -640,7 +646,11 @@ export async function buildEnvelope(
   let fullArchive: EncryptedBlob | undefined
   let archivePlain: unknown
   if (includeFull) {
-    archivePlain = captureFullWorkspace()
+    const pulledBookIds = Object.keys(loadSyncConfig().lastPulledHoldingIds ?? {})
+    archivePlain = {
+      ...captureFullWorkspace(),
+      ...(pulledBookIds.length > 0 ? { lastPulledBookIds: pulledBookIds } : {}),
+    }
     fullArchive = await encryptJson(archivePlain, passphrase)
   }
 
@@ -949,7 +959,8 @@ function conflictRowSide(
  * `applyRemoteAsBook` so a satellite qty / delete is not parked and Mini’s
  * new channel still PUTs. After that REPLACE, overlay Mini-only new books,
  * Mini deletes / renames, and Mini-edited scalars (staking / FIRE / budgets)
- * so a MacBook size change never wipes a Mini Kids create or staking edit.
+ * so a MacBook size change never wipes a Mini Kids create (including one
+ * Mini already pushed) or staking edit.
  */
 export async function absorbRemoteWorkspaceExtrasBeforePush(
   url: string,
@@ -983,7 +994,12 @@ export async function absorbRemoteWorkspaceExtrasBeforePush(
 
   const takeSatelliteBookKeepMiniRegistry = async () => {
     await applyRemoteAsBook(preview)
-    overlayMiniBookAfterRemoteReplace(createdBooks, metasBefore, booksBefore)
+    overlayMiniBookAfterRemoteReplace(
+      createdBooks,
+      metasBefore,
+      booksBefore,
+      preview.workspaceExtras?.lastPulledBookIds,
+    )
     await refreshMiniMarksAfterAbsorb()
     stampLastBookHoldingHashes()
     return true as const
@@ -1178,6 +1194,11 @@ async function decryptEnvelope(
     if (a.themePref != null) extras.themePref = a.themePref
     if (a.a11yPrefs != null) extras.a11yPrefs = a.a11yPrefs
     if (a.notificationSettings != null) extras.notificationSettings = a.notificationSettings
+    if (Array.isArray(a.lastPulledBookIds)) {
+      extras.lastPulledBookIds = a.lastPulledBookIds.filter(
+        (id): id is string => typeof id === 'string' && id.length > 0,
+      )
+    }
     if (Object.keys(extras).length > 0) workspaceExtras = extras
   }
 
@@ -1850,6 +1871,28 @@ export function snapshotMiniCreatedBooks(): Array<{
     .map((p) => ({ meta: p, data: loadPortfolio(p.id) }))
 }
 
+/**
+ * After Mini absorb REPLACE, put back Mini books a stale satellite never
+ * pulled. `remotePulledBookIds` is the satellite’s last Unlock/doPull
+ * registry (from the envelope). Missing + never pulled → restore (already-
+ * pushed Kids). Missing + pulled → satellite deleted it — leave it gone.
+ * 1.2.163 envelopes omit the field; keep honoring the remote registry.
+ */
+export function restoreMiniKeptBooks(
+  metasBefore: PortfolioMeta[],
+  booksBefore: Array<{ id: string; data: PortfolioData }>,
+  remotePulledBookIds?: string[],
+): void {
+  if (remotePulledBookIds === undefined) return
+  const pulled = new Set(remotePulledBookIds)
+  const kept = booksBefore.flatMap(({ id, data }) => {
+    if (pulled.has(id)) return []
+    const meta = metasBefore.find((m) => m.id === id)
+    return meta ? [{ meta, data }] : []
+  })
+  restoreSatelliteCreatedBooks(kept)
+}
+
 /** After Mini absorb REPLACE, drop books Mini deleted (still in the last stamp). */
 export function dropMiniDeletedBooks(localIdsBefore: string[]): void {
   const known = lastKnownBookIds()
@@ -2041,8 +2084,10 @@ export function overlayMiniBookAfterRemoteReplace(
   created: Array<{ meta: PortfolioMeta; data: PortfolioData }>,
   metasBefore: PortfolioMeta[],
   booksBefore: Array<{ id: string; data: PortfolioData }>,
+  remotePulledBookIds?: string[],
 ): void {
   restoreSatelliteCreatedBooks(created)
+  restoreMiniKeptBooks(metasBefore, booksBefore, remotePulledBookIds)
   dropMiniDeletedBooks(metasBefore.map((p) => p.id))
   restoreMiniRenamedBooks(metasBefore)
   overlayMiniNonCollectionFields(booksBefore)
