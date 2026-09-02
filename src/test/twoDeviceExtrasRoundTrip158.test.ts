@@ -2063,4 +2063,71 @@ describe('Mini ↔ satellite extras Worker round-trip (1.2.158)', () => {
     await pushSync(URL, PASS)
     expect(loadPortfolio('default').crypto.find((h) => h.symbol === 'BTC')?.qty).toBe(13.25)
   })
+
+  it('1.2.163 Unlock with no scalar hash still keeps an iPad staking reward', async () => {
+    const cloud = installMockSyncCloud()
+
+    localStorage.setItem('mydsp_device_id', 'dev_mini')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    setSessionSyncPassphrase(PASS, { remember: true })
+    seedPortfolio('default', 'David', miniBook())
+    await pushSync(URL, PASS)
+    const miniSnap = snapshotStorage()
+
+    localStorage.clear()
+    clearSessionSyncPassphrase()
+    localStorage.setItem('mydsp_device_id', 'dev_macbook')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: false,
+    })
+    seedPortfolio('default', 'David', leftoverBook())
+    await unlockAndPullFromCloud(PASS)
+
+    localStorage.removeItem('mydsp_last_pulled_holding_hashes')
+    localStorage.removeItem('mydsp_last_pulled_scalar_hashes')
+    localStorage.removeItem('mydsp_last_pulled_registry_names')
+    const sat = loadPortfolio('default')
+    sat.staking = {
+      ...sat.staking,
+      rewards: [
+        ...(sat.staking.rewards ?? []),
+        { epoch: 514, amount: 4.5, date: '2026-09-02', notes: '163 upgrade reward' },
+      ],
+    }
+    sat.monthlyIncome = 9_200
+    savePortfolioImmediate(sat, 'default')
+    stopAutoSync()
+
+    await unlockAndPullFromCloud(PASS)
+    expect(loadPortfolio('default').staking.rewards.some((r) => r.epoch === 514)).toBe(true)
+    expect(loadPortfolio('default').monthlyIncome).toBe(9_200)
+
+    await runAutoSyncCycle('start')
+    await vi.waitFor(() => {
+      expect(
+        cloud.fetchMock.mock.calls.filter((c) => String(c[1]?.method ?? 'GET').toUpperCase() === 'PUT')
+          .length,
+      ).toBeGreaterThan(1)
+    })
+
+    stopAutoSync()
+    restoreStorage(miniSnap)
+    setSessionSyncPassphrase(PASS, { remember: true })
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    await pushSync(URL, PASS)
+    expect(loadPortfolio('default').staking.rewards.some((r) => r.epoch === 514)).toBe(true)
+    expect(loadPortfolio('default').monthlyIncome).toBe(9_200)
+  })
 })

@@ -63,6 +63,7 @@ describe('MyDSP 1.2.164 Mini absorb keeps Mini family books and staking', () => 
     expect(notes).toMatch(/1\.2\.163 upgrade/)
     expect(notes).toMatch(/lastPulledHoldingIds/)
     expect(section).toMatch(/lastPulledHoldingIds/)
+    expect(section).toMatch(/mydsp_last_pulled_scalar_hashes/)
     const tip = RELEASE_NOTES[0]!
     const kids = tip.bullets[0]
     expect(releaseBulletText(kids)).toMatch(/Kids book created, renamed, or deleted on Mini/)
@@ -102,6 +103,14 @@ describe('MyDSP 1.2.164 Mini absorb keeps Mini family books and staking', () => 
     expect(read('../services/sync/syncService.ts')).toMatch(/export function overlayMiniLiveMarks/)
     expect(read('../services/sync/syncService.ts')).toMatch(/export function overlayMiniNonCollectionFields/)
     expect(read('../services/sync/syncService.ts')).toMatch(/export function overlaySatelliteNonCollectionFields/)
+    const satOverlay = read('../services/sync/syncService.ts')
+    const satFn = satOverlay.slice(
+      satOverlay.indexOf('export function overlaySatelliteNonCollectionFields'),
+      satOverlay.indexOf('export function overlayMiniLiveMarks') > satOverlay.indexOf('export function overlaySatelliteNonCollectionFields')
+        ? satOverlay.indexOf('export function overlayMiniLiveMarks')
+        : satOverlay.indexOf('async function refreshMiniMarksAfterAbsorb'),
+    )
+    expect(satFn).toMatch(/1\.2\.163/)
     expect(read('../services/sync/syncService.ts')).toMatch(/mydsp_last_book_scalar_hashes/)
     expect(read('../services/sync/syncService.ts')).toMatch(/mydsp_last_pulled_scalar_hashes/)
     expect(read('../services/sync/autoSyncService.ts')).toMatch(/overlaySatelliteBookAfterRemoteReplace/)

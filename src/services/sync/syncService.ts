@@ -1871,7 +1871,24 @@ export function overlayMiniNonCollectionFields(
 export function overlaySatelliteNonCollectionFields(
   before: Array<{ id: string; data: PortfolioData }>,
 ): void {
-  overlayNonCollectionFields(before, loadLastPulledScalarHashes())
+  const stamp = loadLastPulledScalarHashes()
+  if (!stamp) {
+    // 1.2.163 had no pulled scalar hashes. REPLACE would wipe an unpushed
+    // iPad staking / FIRE reward, then push Mini’s empty list.
+    for (const { id, data } of before) {
+      if (!listPortfolios().some((p) => p.id === id)) continue
+      let next = loadPortfolio(id)
+      let changed = false
+      for (const key of BOOK_SCALAR_FIELDS) {
+        if (stableHash(data[key]) === stableHash(next[key])) continue
+        next = { ...next, [key]: data[key] }
+        changed = true
+      }
+      if (changed) savePortfolioImmediate(next, id)
+    }
+    return
+  }
+  overlayNonCollectionFields(before, stamp)
 }
 
 /**
