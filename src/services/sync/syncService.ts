@@ -52,6 +52,27 @@ const CONFIG_KEY = 'mydsp_sync_config'
 const DEVICE_KEY = 'mydsp_device_id'
 /** Last Mini book row hashes after absorb/PUT. Separate from sync config so a Settings save cannot wipe the stamp. */
 const BOOK_HASH_KEY = 'mydsp_last_book_holding_hashes'
+const BOOK_SCALAR_KEY = 'mydsp_last_book_scalar_hashes'
+
+/** Portfolio fields Mini absorb REPLACE would wipe — not in COLLECTIONS. */
+export const BOOK_SCALAR_FIELDS = [
+  'staking',
+  'family',
+  'fireInputs',
+  'monthlyIncome',
+  'monthlyExpenses',
+  'budgetGoals',
+  'paidOff',
+  'recurringTransactions',
+  'trips',
+  'splitSettings',
+  'targetAllocations',
+  'merchantRules',
+  'history',
+  'customCategories',
+  'settings',
+  'extras',
+] as const
 
 export interface SyncConfig {
   remoteUrl: string
@@ -692,6 +713,44 @@ export function stampLastBookHoldingHashes(): void {
   } catch {
     /* quota */
   }
+  stampLastBookScalarHashes()
+}
+
+type BookScalarHashes = Record<string, Partial<Record<(typeof BOOK_SCALAR_FIELDS)[number], string>>>
+
+function loadLastBookScalarHashes(): BookScalarHashes | null {
+  try {
+    const raw = localStorage.getItem(BOOK_SCALAR_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as BookScalarHashes
+    return parsed && typeof parsed === 'object' ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+function stampLastBookScalarHashes(): void {
+  if (!isBookDevice()) return
+  const ids: BookScalarHashes = {}
+  for (const p of listPortfolios()) {
+    const data = loadPortfolio(p.id)
+    const fields: BookScalarHashes[string] = {}
+    for (const key of BOOK_SCALAR_FIELDS) {
+      fields[key] = stableHash(data[key])
+    }
+    ids[p.id] = fields
+  }
+  try {
+    localStorage.setItem(BOOK_SCALAR_KEY, JSON.stringify(ids))
+  } catch {
+    /* quota */
+  }
+}
+
+function lastKnownBookIds(): string[] {
+  const hashes = loadLastBookHoldingHashes()
+  if (hashes && Object.keys(hashes).length > 0) return Object.keys(hashes)
+  return Object.keys(loadSyncConfig().lastPulledHoldingIds ?? {})
 }
 
 /** True when Mini’s holdings still match the last absorbed/PUT book (extras-only dirty). */
@@ -749,7 +808,9 @@ function conflictRowSide(
  * rows from Mini’s last book stamp — extras still apply; the PUT is skipped.
  * Extras-only Mini dirty (holdings still match the stamp) still
  * `applyRemoteAsBook` so a satellite qty / delete is not parked and Mini’s
- * new channel still PUTs.
+ * new channel still PUTs. After that REPLACE, overlay Mini-only new books,
+ * Mini deletes / renames, and Mini-edited scalars (staking / FIRE / budgets)
+ * so a MacBook size change never wipes a Mini Kids create or staking edit.
  */
 export async function absorbRemoteWorkspaceExtrasBeforePush(
   url: string,
@@ -777,12 +838,21 @@ export async function absorbRemoteWorkspaceExtrasBeforePush(
   }
 
   const extrasOnly = !wasDirty || bookHoldingsMatchLastStamp()
+  const metasBefore = listPortfolios()
+  const createdBooks = snapshotMiniCreatedBooks()
+  const booksBefore = metasBefore.map((p) => ({ id: p.id, data: loadPortfolio(p.id) }))
+
+  const takeSatelliteBookKeepMiniRegistry = async () => {
+    await applyRemoteAsBook(preview)
+    overlayMiniBookAfterRemoteReplace(createdBooks, metasBefore, booksBefore)
+    stampLastBookHoldingHashes()
+    return true as const
+  }
+
   if (extrasOnly) {
     // Mini has not edited holdings — take the satellite book as-is so a
     // deleted SOL / changed qty / new ETH is not unioned or parked.
-    await applyRemoteAsBook(preview)
-    stampLastBookHoldingHashes()
-    return true
+    return takeSatelliteBookKeepMiniRegistry()
   }
 
   if (preview.conflicts.length > 0) {
@@ -792,9 +862,7 @@ export async function absorbRemoteWorkspaceExtrasBeforePush(
       return 'parked'
     }
     if (sides.every((s) => s === 'satellite')) {
-      await applyRemoteAsBook(preview)
-      stampLastBookHoldingHashes()
-      return true
+      return takeSatelliteBookKeepMiniRegistry()
     }
     const resolutions: Record<string, ConflictChoice> = {}
     for (const c of preview.conflicts) {
@@ -1470,6 +1538,71 @@ export function restoreSatelliteCreatedBooks(
   if (next.length !== list.length) {
     localStorage.setItem(STORAGE.PORTFOLIOS, JSON.stringify(next))
   }
+}
+
+/** Mini-only books since the last absorb/PUT stamp (Kids created on the book). */
+export function snapshotMiniCreatedBooks(): Array<{
+  meta: PortfolioMeta
+  data: PortfolioData
+}> {
+  const known = new Set(lastKnownBookIds())
+  return listPortfolios()
+    .filter((p) => !known.has(p.id))
+    .map((p) => ({ meta: p, data: loadPortfolio(p.id) }))
+}
+
+/** After Mini absorb REPLACE, drop books Mini deleted (still in the last stamp). */
+export function dropMiniDeletedBooks(localIdsBefore: string[]): void {
+  const known = lastKnownBookIds()
+  const have = new Set(localIdsBefore)
+  for (const id of known) {
+    if (id === 'default' || have.has(id)) continue
+    if (listPortfolios().some((p) => p.id === id)) {
+      try {
+        deletePortfolio(id)
+      } catch {
+        /* default / last book */
+      }
+    }
+  }
+}
+
+/**
+ * After Mini absorb REPLACE, put back staking / FIRE / budgets Mini edited
+ * vs the last stamp. Satellite qty still wins (COLLECTIONS came from remote).
+ */
+export function overlayMiniNonCollectionFields(
+  before: Array<{ id: string; data: PortfolioData }>,
+): void {
+  const stamp = loadLastBookScalarHashes()
+  if (!stamp) return
+  for (const { id, data } of before) {
+    if (!listPortfolios().some((p) => p.id === id)) continue
+    const stamped = stamp[id]
+    if (!stamped) continue
+    let next = loadPortfolio(id)
+    let changed = false
+    for (const key of BOOK_SCALAR_FIELDS) {
+      const prevHash = stamped[key]
+      if (prevHash === undefined) continue
+      if (stableHash(data[key]) === prevHash) continue
+      next = { ...next, [key]: data[key] }
+      changed = true
+    }
+    if (changed) savePortfolioImmediate(next, id)
+  }
+}
+
+/** Mini absorb REPLACE must not wipe Mini registry ops or edited scalars. */
+export function overlayMiniBookAfterRemoteReplace(
+  created: Array<{ meta: PortfolioMeta; data: PortfolioData }>,
+  metasBefore: PortfolioMeta[],
+  booksBefore: Array<{ id: string; data: PortfolioData }>,
+): void {
+  restoreSatelliteCreatedBooks(created)
+  dropMiniDeletedBooks(metasBefore.map((p) => p.id))
+  restoreSatelliteRenamedBooks(metasBefore)
+  overlayMiniNonCollectionFields(booksBefore)
 }
 
 export function overlayDirtyLocalHoldings(preview: MergePreview): void {

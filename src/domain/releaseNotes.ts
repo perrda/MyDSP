@@ -29,6 +29,32 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.164',
+    date: '2026-09-02',
+    bullets: [
+      {
+        text: 'A Kids book created, renamed, or deleted on Mini still lands when a MacBook size or channel changes — Mini never reverts it',
+        to: '/settings#sync',
+      },
+      {
+        text: 'Staking, FIRE, and budget edits on Mini survive the same absorb — satellite qty still wins',
+        to: '/settings#sync',
+      },
+      {
+        text: 'YouTube / News / Markets extras still absorb first, then the book sizes',
+        to: '/settings#sync',
+      },
+      {
+        text: 'MacBook / iPhone / iPad can stay open with Automatic off — a Mini channel still lands pull-only',
+        to: '/youtube',
+      },
+      {
+        text: 'Draft preview addresses still cannot push over Mini',
+        to: '/settings#sync',
+      },
+    ],
+  },
+  {
     version: '1.2.163',
     date: '2026-09-01',
     bullets: [

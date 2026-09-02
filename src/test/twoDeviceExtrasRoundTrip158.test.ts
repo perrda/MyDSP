@@ -1191,4 +1191,230 @@ describe('Mini ↔ satellite extras Worker round-trip (1.2.158)', () => {
     ).length
     expect(putsAfterPull).toBe(putsAfterMini)
   })
+
+  it('Mini create Kids + satellite qty — absorb keeps Kids and the MacBook size', async () => {
+    installMockSyncCloud()
+
+    localStorage.setItem('mydsp_device_id', 'dev_mini')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    setSessionSyncPassphrase(PASS, { remember: true })
+    seedPortfolio('default', 'David', miniBook())
+    await pushSync(URL, PASS)
+    const miniSnap = snapshotStorage()
+
+    localStorage.clear()
+    clearSessionSyncPassphrase()
+    localStorage.setItem('mydsp_device_id', 'dev_macbook')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: false,
+    })
+    seedPortfolio('default', 'David', leftoverBook())
+    await unlockAndPullFromCloud(PASS)
+    const grown = loadPortfolio('default')
+    grown.crypto[0] = { ...grown.crypto[0], qty: 13.25, cost: 420_000 }
+    savePortfolioImmediate(grown, 'default')
+    await pushSync(URL, PASS)
+
+    stopAutoSync()
+    restoreStorage(miniSnap)
+    setSessionSyncPassphrase(PASS, { remember: true })
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    const kids = createPortfolio('Kids', { empty: true })
+    expect(listPortfolios().map((p) => p.name).sort()).toEqual(['David', 'Kids'])
+
+    await pushSync(URL, PASS)
+    expect(listPortfolios().map((p) => p.name).sort()).toEqual(['David', 'Kids'])
+    expect(listPortfolios().some((p) => p.id === kids.id)).toBe(true)
+    expect(loadPortfolio('default').crypto.find((h) => h.symbol === 'BTC')?.qty).toBe(13.25)
+    expect(loadPortfolio(kids.id).crypto).toEqual([])
+
+    const afterMini = await previewPull(URL, PASS)
+    expect(afterMini.registryPortfolios.map((p) => p.name).sort()).toEqual(['David', 'Kids'])
+    expect(
+      afterMini.portfolios.find((p) => p.portfolioId === 'default')?.remote.crypto.find((h) => h.symbol === 'BTC')
+        ?.qty,
+    ).toBe(13.25)
+  })
+
+  it('Mini delete Kids + satellite qty — absorb keeps the delete and the MacBook size', async () => {
+    installMockSyncCloud()
+
+    localStorage.setItem('mydsp_device_id', 'dev_mini')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    setSessionSyncPassphrase(PASS, { remember: true })
+    seedPortfolio('default', 'David', miniBook())
+    const kids = createPortfolio('Kids', { empty: true })
+    await pushSync(URL, PASS)
+    const miniSnap = snapshotStorage()
+
+    localStorage.clear()
+    clearSessionSyncPassphrase()
+    localStorage.setItem('mydsp_device_id', 'dev_macbook')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: false,
+    })
+    seedPortfolio('default', 'David', leftoverBook())
+    await unlockAndPullFromCloud(PASS)
+    expect(listPortfolios().map((p) => p.name).sort()).toEqual(['David', 'Kids'])
+    const grown = loadPortfolio('default')
+    grown.crypto[0] = { ...grown.crypto[0], qty: 13.25, cost: 420_000 }
+    savePortfolioImmediate(grown, 'default')
+    await pushSync(URL, PASS)
+
+    stopAutoSync()
+    restoreStorage(miniSnap)
+    setSessionSyncPassphrase(PASS, { remember: true })
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    deletePortfolio(kids.id)
+    expect(listPortfolios().map((p) => p.name)).toEqual(['David'])
+
+    await pushSync(URL, PASS)
+    expect(listPortfolios().map((p) => p.name)).toEqual(['David'])
+    expect(loadPortfolio('default').crypto.find((h) => h.symbol === 'BTC')?.qty).toBe(13.25)
+
+    const afterMini = await previewPull(URL, PASS)
+    expect(afterMini.registryPortfolios.map((p) => p.name)).toEqual(['David'])
+  })
+
+  it('Mini rename Kids + satellite extras — absorb keeps Children and the MacBook channel', async () => {
+    installMockSyncCloud()
+
+    localStorage.setItem('mydsp_device_id', 'dev_mini')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    setSessionSyncPassphrase(PASS, { remember: true })
+    seedPortfolio('default', 'David', miniBook())
+    createPortfolio('Kids', { empty: true })
+    await pushSync(URL, PASS)
+    const miniSnap = snapshotStorage()
+
+    localStorage.clear()
+    clearSessionSyncPassphrase()
+    localStorage.setItem('mydsp_device_id', 'dev_macbook')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: false,
+    })
+    seedPortfolio('default', 'David', leftoverBook())
+    await unlockAndPullFromCloud(PASS)
+    addYoutubeChannel({
+      channelId: 'UC_sat_kids',
+      title: 'Satellite with Mini rename',
+      url: 'https://www.youtube.com/@satkids',
+    })
+    await pushSync(URL, PASS)
+
+    stopAutoSync()
+    restoreStorage(miniSnap)
+    setSessionSyncPassphrase(PASS, { remember: true })
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    const kidsId = listPortfolios().find((p) => p.name === 'Kids')?.id
+    expect(kidsId).toBeTruthy()
+    renamePortfolio(kidsId!, 'Children')
+    expect(listPortfolios().map((p) => p.name).sort()).toEqual(['Children', 'David'])
+
+    await pushSync(URL, PASS)
+    expect(listPortfolios().map((p) => p.name).sort()).toEqual(['Children', 'David'])
+    expect(listYoutubeChannels().map((c) => c.title)).toContain('Satellite with Mini rename')
+    expect(loadPortfolio('default').crypto.find((h) => h.symbol === 'BTC')?.qty).toBe(12.5)
+
+    const afterMini = await previewPull(URL, PASS)
+    expect(afterMini.registryPortfolios.map((p) => p.name).sort()).toEqual(['Children', 'David'])
+  })
+
+  it('Mini staking edit + satellite qty — absorb keeps the reward and the MacBook size', async () => {
+    installMockSyncCloud()
+
+    localStorage.setItem('mydsp_device_id', 'dev_mini')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    setSessionSyncPassphrase(PASS, { remember: true })
+    seedPortfolio('default', 'David', miniBook())
+    await pushSync(URL, PASS)
+    const miniSnap = snapshotStorage()
+
+    localStorage.clear()
+    clearSessionSyncPassphrase()
+    localStorage.setItem('mydsp_device_id', 'dev_macbook')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: false,
+    })
+    seedPortfolio('default', 'David', leftoverBook())
+    await unlockAndPullFromCloud(PASS)
+    const grown = loadPortfolio('default')
+    grown.crypto[0] = { ...grown.crypto[0], qty: 13.25, cost: 420_000 }
+    savePortfolioImmediate(grown, 'default')
+    await pushSync(URL, PASS)
+
+    stopAutoSync()
+    restoreStorage(miniSnap)
+    setSessionSyncPassphrase(PASS, { remember: true })
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    const book = loadPortfolio('default')
+    book.staking = {
+      ...book.staking,
+      rewards: [
+        ...(book.staking.rewards ?? []),
+        { epoch: 512, amount: 12.5, date: '2026-09-02', notes: 'Mini reward' },
+      ],
+    }
+    book.monthlyIncome = 8_400
+    savePortfolioImmediate(book, 'default')
+
+    await pushSync(URL, PASS)
+    expect(loadPortfolio('default').staking.rewards.some((r) => r.epoch === 512)).toBe(true)
+    expect(loadPortfolio('default').monthlyIncome).toBe(8_400)
+    expect(loadPortfolio('default').crypto.find((h) => h.symbol === 'BTC')?.qty).toBe(13.25)
+
+    const afterMini = await previewPull(URL, PASS)
+    const remote = afterMini.portfolios.find((p) => p.portfolioId === 'default')?.remote
+    expect(remote?.staking.rewards.some((r) => r.epoch === 512)).toBe(true)
+    expect(remote?.monthlyIncome).toBe(8_400)
+    expect(remote?.crypto.find((h) => h.symbol === 'BTC')?.qty).toBe(13.25)
+  })
 })

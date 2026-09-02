@@ -13,14 +13,14 @@ const read = (rel: string) => readFileSync(resolve(__dirname, rel), 'utf8')
 describe('MyDSP 1.2.163 Mini absorbs satellite holding sizes before book push', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(read('../../package.json'))
-    expect(pkg.version).toBe('1.2.163')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.163')
+    expect(pkg.version).toBe('1.2.164')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.164')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.164',
       '1.2.163',
       '1.2.162',
       '1.2.161',
       '1.2.160',
-      '1.2.159',
     ])
     const changelog = read('../../CHANGELOG.md')
     const section = changelog.match(/## \[1\.2\.163\][\s\S]*?(?=## \[)/)?.[0] ?? ''
@@ -42,12 +42,12 @@ describe('MyDSP 1.2.163 Mini absorbs satellite holding sizes before book push', 
     expect(section).not.toMatch(/SYNC_KEY/)
     expect(section).not.toMatch(/wrangler deploy/)
     expect(read('../../ROADMAP.md')).toMatch(/Mini absorb holding sizes \(v1\.2\.163\)/)
-    expect(read('../../public/sw.js')).toMatch(/mydsp-v1.2.163/)
+    expect(read('../../public/sw.js')).toMatch(/mydsp-v1.2.164/)
     const notes = read('../domain/releaseNotes.ts')
     expect(notes).toMatch(/MacBook \/ iPhone \/ iPad size change/)
     expect(notes).toMatch(/does not park a MacBook size change/)
     expect(notes).toMatch(/never revert/)
-    const tip = RELEASE_NOTES[0]!
+    const tip = RELEASE_NOTES.find((e) => e.version === '1.2.163')!
     const sizeChange = tip.bullets[0]
     expect(releaseBulletText(sizeChange)).toMatch(/MacBook \/ iPhone \/ iPad size change/)
     expect(releaseBulletHref(sizeChange)).toBe('/settings#sync')
