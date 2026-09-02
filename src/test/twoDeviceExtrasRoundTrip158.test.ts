@@ -1442,6 +1442,177 @@ describe('Mini ↔ satellite extras Worker round-trip (1.2.158)', () => {
     ).toBe(13.25)
   })
 
+  it('Mini already-pushed staking survives a stale MacBook extras PUT', async () => {
+    installMockSyncCloud()
+
+    localStorage.setItem('mydsp_device_id', 'dev_mini')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    setSessionSyncPassphrase(PASS, { remember: true })
+    seedPortfolio('default', 'David', miniBook())
+    await pushSync(URL, PASS)
+    const miniBeforeStake = snapshotStorage()
+
+    localStorage.clear()
+    clearSessionSyncPassphrase()
+    localStorage.setItem('mydsp_device_id', 'dev_macbook')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: false,
+    })
+    seedPortfolio('default', 'David', leftoverBook())
+    await unlockAndPullFromCloud(PASS)
+    const macBeforeStake = snapshotStorage()
+    stopAutoSync()
+
+    restoreStorage(miniBeforeStake)
+    setSessionSyncPassphrase(PASS, { remember: true })
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    const staked = loadPortfolio('default')
+    staked.staking = {
+      ...staked.staking,
+      rewards: [
+        ...(staked.staking.rewards ?? []),
+        { epoch: 520, amount: 9.25, date: '2026-09-02', notes: 'Already-pushed Mini reward' },
+      ],
+    }
+    staked.monthlyIncome = 11_200
+    savePortfolioImmediate(staked, 'default')
+    await pushSync(URL, PASS)
+    expect(loadPortfolio('default').staking.rewards.some((r) => r.epoch === 520)).toBe(true)
+    const miniWithStake = snapshotStorage()
+
+    restoreStorage(macBeforeStake)
+    stopAutoSync()
+    setSessionSyncPassphrase(PASS, { remember: true })
+    const macCfg = loadSyncConfig()
+    saveSyncConfig({
+      ...macCfg,
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: false,
+    })
+    addYoutubeChannel({
+      channelId: 'UC_stale_stake',
+      title: 'Stale MacBook after Mini staking',
+      url: 'https://www.youtube.com/@stalestake',
+    })
+    const grown = loadPortfolio('default')
+    grown.crypto[0] = { ...grown.crypto[0], qty: 13.25, cost: 420_000 }
+    savePortfolioImmediate(grown, 'default')
+    expect(loadPortfolio('default').staking.rewards.some((r) => r.epoch === 520)).toBe(false)
+    await pushSync(URL, PASS)
+
+    restoreStorage(miniWithStake)
+    stopAutoSync()
+    setSessionSyncPassphrase(PASS, { remember: true })
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    await pushSync(URL, PASS)
+    expect(loadPortfolio('default').staking.rewards.some((r) => r.epoch === 520)).toBe(true)
+    expect(loadPortfolio('default').monthlyIncome).toBe(11_200)
+    expect(loadPortfolio('default').crypto.find((h) => h.symbol === 'BTC')?.qty).toBe(13.25)
+    expect(listYoutubeChannels().map((c) => c.title)).toContain('Stale MacBook after Mini staking')
+
+    const afterMini = await previewPull(URL, PASS)
+    const remote = afterMini.portfolios.find((p) => p.portfolioId === 'default')?.remote
+    expect(remote?.staking.rewards.some((r) => r.epoch === 520)).toBe(true)
+    expect(remote?.monthlyIncome).toBe(11_200)
+    expect(remote?.crypto.find((h) => h.symbol === 'BTC')?.qty).toBe(13.25)
+  })
+
+  it('Mini already-pushed Kids rename survives a stale MacBook extras PUT', async () => {
+    installMockSyncCloud()
+
+    localStorage.setItem('mydsp_device_id', 'dev_mini')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    setSessionSyncPassphrase(PASS, { remember: true })
+    seedPortfolio('default', 'David', miniBook())
+    const kids = createPortfolio('Kids', { empty: true })
+    await pushSync(URL, PASS)
+    const miniWithKids = snapshotStorage()
+
+    localStorage.clear()
+    clearSessionSyncPassphrase()
+    localStorage.setItem('mydsp_device_id', 'dev_macbook')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: false,
+    })
+    seedPortfolio('default', 'David', leftoverBook())
+    await unlockAndPullFromCloud(PASS)
+    expect(listPortfolios().map((p) => p.name).sort()).toEqual(['David', 'Kids'])
+    const macAfterKids = snapshotStorage()
+    stopAutoSync()
+
+    restoreStorage(miniWithKids)
+    setSessionSyncPassphrase(PASS, { remember: true })
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    renamePortfolio(kids.id, 'Children')
+    await pushSync(URL, PASS)
+    expect(listPortfolios().map((p) => p.name).sort()).toEqual(['Children', 'David'])
+    const miniRenamed = snapshotStorage()
+
+    restoreStorage(macAfterKids)
+    stopAutoSync()
+    setSessionSyncPassphrase(PASS, { remember: true })
+    const macCfg = loadSyncConfig()
+    saveSyncConfig({
+      ...macCfg,
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: false,
+    })
+    expect(listPortfolios().map((p) => p.name).sort()).toEqual(['David', 'Kids'])
+    addYoutubeChannel({
+      channelId: 'UC_stale_rename',
+      title: 'Stale MacBook after Mini rename',
+      url: 'https://www.youtube.com/@stalerename',
+    })
+    await pushSync(URL, PASS)
+
+    restoreStorage(miniRenamed)
+    stopAutoSync()
+    setSessionSyncPassphrase(PASS, { remember: true })
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    await pushSync(URL, PASS)
+    expect(listPortfolios().map((p) => p.name).sort()).toEqual(['Children', 'David'])
+    expect(listYoutubeChannels().map((c) => c.title)).toContain('Stale MacBook after Mini rename')
+
+    const afterMini = await previewPull(URL, PASS)
+    expect(afterMini.registryPortfolios.map((p) => p.name).sort()).toEqual(['Children', 'David'])
+  })
+
   it('Mini delete Kids + satellite qty — absorb keeps the delete and the MacBook size', async () => {
     installMockSyncCloud()
 
