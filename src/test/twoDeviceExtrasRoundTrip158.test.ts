@@ -2453,4 +2453,137 @@ describe('Mini ↔ satellite extras Worker round-trip (1.2.158)', () => {
     expect(loadPortfolio('default').staking.rewards.some((r) => r.epoch === 514)).toBe(true)
     expect(loadPortfolio('default').monthlyIncome).toBe(9_200)
   })
+
+  it('Mini + MacBook + iPad sizes, extras, and FX land both ways', async () => {
+    const cloud = installMockSyncCloud()
+
+    localStorage.setItem('mydsp_device_id', 'dev_mini')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    setSessionSyncPassphrase(PASS, { remember: true })
+    seedPortfolio('default', 'David', miniBook())
+    addYoutubeChannel({
+      channelId: 'UC_mini_1',
+      title: 'MoneyZG',
+      url: 'https://www.youtube.com/@MoneyZG',
+    })
+    saveCachedFxRates({ GBP: 1, USD: 1.34, THB: 43.2, BTC: 1 / 90_000 }, 1_725_000_000_000)
+    await pushSync(URL, PASS)
+    const miniSnap = snapshotStorage()
+
+    localStorage.clear()
+    clearSessionSyncPassphrase()
+    localStorage.setItem('mydsp_device_id', 'dev_macbook')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: false,
+    })
+    seedPortfolio('default', 'David', leftoverBook())
+    await unlockAndPullFromCloud(PASS)
+    expect(loadCachedFxRates().USD).toBe(1.34)
+    const grown = loadPortfolio('default')
+    grown.crypto.push({
+      id: 2,
+      symbol: 'ETH',
+      name: 'Ethereum',
+      qty: 4,
+      price: 3_000,
+      cost: 8_000,
+    })
+    savePortfolioImmediate(grown, 'default')
+    addYoutubeChannel({
+      channelId: 'UC_mac',
+      title: 'Added on MacBook',
+      url: 'https://www.youtube.com/@mac',
+    })
+    stopAutoSync()
+    await unlockAndPullFromCloud(PASS)
+    await runAutoSyncCycle('start')
+    await vi.waitFor(() => {
+      expect(
+        cloud.fetchMock.mock.calls.filter((c) => String(c[1]?.method ?? 'GET').toUpperCase() === 'PUT')
+          .length,
+      ).toBeGreaterThan(1)
+    })
+    const macSnap = snapshotStorage()
+    stopAutoSync()
+
+    restoreStorage(miniSnap)
+    setSessionSyncPassphrase(PASS, { remember: true })
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    await pushSync(URL, PASS)
+    expect(loadPortfolio('default').crypto.map((h) => h.symbol).sort()).toEqual(['BTC', 'ETH'])
+    expect(listYoutubeChannels().map((c) => c.title).sort()).toEqual(['Added on MacBook', 'MoneyZG'])
+    const miniSnap2 = snapshotStorage()
+
+    localStorage.clear()
+    clearSessionSyncPassphrase()
+    localStorage.setItem('mydsp_device_id', 'dev_ipad')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: false,
+    })
+    seedPortfolio('default', 'David', leftoverBook())
+    addYoutubeChannel({
+      channelId: 'UC_leftover',
+      title: 'Leftover only on iPad',
+      url: 'https://www.youtube.com/@leftover',
+    })
+    await unlockAndPullFromCloud(PASS)
+    expect(loadPortfolio('default').crypto.find((h) => h.symbol === 'BTC')?.qty).toBe(12.5)
+    expect(loadPortfolio('default').crypto.map((h) => h.symbol).sort()).toEqual(['BTC', 'ETH'])
+    expect(listYoutubeChannels().map((c) => c.title).sort()).toEqual(['Added on MacBook', 'MoneyZG'])
+    expect(listYoutubeChannels().map((c) => c.title)).not.toContain('Leftover only on iPad')
+    expect(loadCachedFxRates().USD).toBe(1.34)
+    addNewsTag({ tag: 'IPAD', label: 'Added on iPad' })
+    addMarketTicker({ kind: 'crypto', symbol: 'AVAX', name: 'Avalanche' })
+    stopAutoSync()
+    await unlockAndPullFromCloud(PASS)
+    await runAutoSyncCycle('start')
+    await vi.waitFor(() => {
+      expect(
+        cloud.fetchMock.mock.calls.filter((c) => String(c[1]?.method ?? 'GET').toUpperCase() === 'PUT')
+          .length,
+      ).toBeGreaterThan(2)
+    })
+    stopAutoSync()
+
+    restoreStorage(miniSnap2)
+    setSessionSyncPassphrase(PASS, { remember: true })
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    await pushSync(URL, PASS)
+    expect(loadNewsState().tags.map((t) => t.tag)).toContain('IPAD')
+    expect(listMarketTickers().map((t) => t.symbol)).toContain('AVAX')
+    expect(loadPortfolio('default').crypto.map((h) => h.symbol).sort()).toEqual(['BTC', 'ETH'])
+
+    restoreStorage(macSnap)
+    stopAutoSync()
+    setSessionSyncPassphrase(PASS, { remember: true })
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: false,
+    })
+    expect(loadNewsState().tags.map((t) => t.tag)).not.toContain('IPAD')
+    await runAutoSyncCycle('interval')
+    expect(loadNewsState().tags.map((t) => t.tag)).toContain('IPAD')
+    expect(listMarketTickers().map((t) => t.symbol)).toContain('AVAX')
+    expect(loadPortfolio('default').crypto.map((h) => h.symbol).sort()).toEqual(['BTC', 'ETH'])
+  })
 })
