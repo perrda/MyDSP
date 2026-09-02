@@ -56,7 +56,7 @@ describe('MyDSP 1.2.153 first extras apply replaces leftovers', () => {
     expect(section).toMatch(/#F7931A/)
     expect(section).not.toMatch(/SYNC_KEY/)
     expect(read('../../ROADMAP.md')).toMatch(/First satellite extras replace leftovers \(v1\.2\.153\)/)
-    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.163/)
+    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.164/)
     expect(read('../services/sync/satelliteFactorySeed.ts')).toMatch(
       /satelliteShouldReplaceExtrasOnImport/,
     )

@@ -36,7 +36,7 @@ describe('MyDSP 1.2.154 Unlock fetches live FX and marks', () => {
     expect(section).toMatch(/#F7931A/)
     expect(section).not.toMatch(/SYNC_KEY/)
     expect(read('../../ROADMAP.md')).toMatch(/Unlock live FX and marks \(v1\.2\.154\)/)
-    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.163/)
+    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.164/)
     expect(read('../services/sync/oneButtonSync.ts')).toMatch(/refreshLiveMarksAfterUnlock/)
     const unlock = read('../services/sync/oneButtonSync.ts')
     const start = unlock.indexOf('export async function unlockAndPullFromCloud')

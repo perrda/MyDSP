@@ -28,7 +28,7 @@ describe('MyDSP 1.2.149 YouTube channels unlock-and-pull across devices', () => 
     expect(section).toMatch(/#F7931A/)
     expect(section).not.toMatch(/SYNC_KEY/)
     expect(read('../../ROADMAP.md')).toMatch(/YouTube channels unlock-and-pull \(v1\.2\.149\)/)
-    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.163/)
+    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.164/)
   })
 
   it('YouTube and News unlock banners pull extras without Settings-only', () => {

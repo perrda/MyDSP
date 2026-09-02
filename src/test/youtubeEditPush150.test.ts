@@ -26,7 +26,7 @@ describe('MyDSP 1.2.150 Mini edits push with Automatic off', () => {
     expect(section).toMatch(/#F7931A/)
     expect(section).not.toMatch(/SYNC_KEY/)
     expect(read('../../ROADMAP.md')).toMatch(/Mini edits push with Automatic off \(v1\.2\.150\)/)
-    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.163/)
+    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.164/)
     expect(read('../../DEPLOY.md')).toMatch(/git clone https:\/\/github.com\/perrda\/MyDSP.git ~\/MyDSP/)
     expect(read('../../DEPLOY.md')).toMatch(/scripts\/go-live\.sh/)
     expect(read('../../DEPLOY.md')).toMatch(/cd ~\/MyDSP/)

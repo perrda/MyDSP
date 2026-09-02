@@ -97,7 +97,7 @@ describe('MyDSP 1.2.147 Andrew gifted figures land', () => {
     expect(section).not.toMatch(/SYNC_KEY/)
     expect(read('../../ROADMAP.md')).toMatch(/Andrew gifted figures land \(v1\.2\.147\)/)
     expect(read('../domain/familyHoldingSleeves.ts')).toMatch(/FAMILY_SLEEVES_APPLIED_VERSION = 'v3'/)
-    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.163/)
+    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.164/)
     expect(read('../storage/portfolioStore.ts')).toMatch(/savePortfolioPreservingFamilySleeve/)
     expect(read('../context/PortfolioContext.tsx')).toMatch(/savePortfolioPreservingFamilySleeve/)
     expect(read('../context/PortfolioContext.tsx')).toMatch(/priceNamedFamilyBooksFromLastSynced/)

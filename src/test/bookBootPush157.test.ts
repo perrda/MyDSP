@@ -26,7 +26,7 @@ describe('MyDSP 1.2.157 Mini boot pushes extras with Automatic off', () => {
     expect(section).toMatch(/#F7931A/)
     expect(section).not.toMatch(/SYNC_KEY/)
     expect(read('../../ROADMAP.md')).toMatch(/Mini boot extras push \(v1\.2\.157\)/)
-    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.163/)
+    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.164/)
     const auto = read('../services/sync/autoSyncService.ts')
     const boot = auto.slice(auto.indexOf('export function startAutoSync'))
     expect(boot).toMatch(/shouldPushCloudAfterBackup/)

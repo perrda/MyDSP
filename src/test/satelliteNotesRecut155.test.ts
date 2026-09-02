@@ -29,7 +29,7 @@ describe('MyDSP 1.2.155 What’s new satellite wording + News destination', () =
     expect(section).toMatch(/#F7931A/)
     expect(section).not.toMatch(/SYNC_KEY/)
     expect(read('../../ROADMAP.md')).toMatch(/What’s new satellite wording \(v1\.2\.155\)/)
-    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.163/)
+    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.164/)
   })
 
   it('1.2.155 tip News/Markets line is every satellite and opens /news', () => {

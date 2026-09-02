@@ -44,7 +44,7 @@ describe('MyDSP 1.2.159 satellite auto-pull keeps live marks', () => {
     expect(section).toMatch(/#F7931A/)
     expect(section).not.toMatch(/SYNC_KEY/)
     expect(read('../../ROADMAP.md')).toMatch(/Satellite auto-pull live marks \(v1\.2\.159\)/)
-    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.163/)
+    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.164/)
     const auto = read('../services/sync/autoSyncService.ts')
     const start = auto.indexOf('if (satellite) {')
     const body = auto.slice(start, auto.indexOf('if (preview.conflicts.length > 0)'))
