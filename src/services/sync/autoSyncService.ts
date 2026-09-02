@@ -18,6 +18,8 @@ import {
   applyRemoteAsBook,
   overlaySatelliteBookAfterRemoteReplace,
   satelliteBookDivergedFromLastPull,
+  satelliteExtrasDivergedFromLastPull,
+  satelliteLocalStateDivergedFromLastPull,
   snapshotSatelliteCreatedBooks,
   stampLastPulledHoldings,
   fetchRemoteMeta,
@@ -544,10 +546,11 @@ async function doPull(cfg: SyncConfig, pass: string, reason: CycleReason): Promi
   if (satellite) {
     beginApplyingRemote()
     try {
+      const extrasDiverged = satelliteExtrasDivergedFromLastPull()
       await applyWorkspaceExtrasFromPreview(preview)
       // In-memory dirty is lost on reload. Last-pulled hashes keep an
-      // unpushed qty / staking / Kids book through Unlock and sitting pull.
-      const overlay = dirty || satelliteBookDivergedFromLastPull()
+      // unpushed qty / staking / Kids book / channel through Unlock and sitting pull.
+      const overlay = dirty || satelliteBookDivergedFromLastPull() || extrasDiverged
       if (overlay) dirty = true
       const createdBooks = overlay ? snapshotSatelliteCreatedBooks() : []
       const metasBefore = overlay ? listPortfolios() : []
@@ -876,7 +879,7 @@ export async function runAutoSyncCycle(reason: CycleReason = 'manual'): Promise<
   const cfg = loadSyncConfig()
   // Reload drops in-memory dirty. An unpushed satellite qty must still
   // pull-overlay then push so Mini absorb can take it.
-  if (!isBookDevice(cfg) && satelliteBookDivergedFromLastPull()) dirty = true
+  if (!isBookDevice(cfg) && satelliteLocalStateDivergedFromLastPull()) dirty = true
   if (!shouldRunSyncCycle(cfg, reason, dirty)) {
     if (reason === 'focus' || reason === 'interval' || reason === 'online') {
       if (isBookDevice(cfg)) {

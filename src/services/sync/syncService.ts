@@ -4,19 +4,25 @@ import { normalizePortfolio, toStorageShape } from '../../domain/normalize'
 import type { PortfolioData, PortfolioMeta } from '../../domain/types'
 import { captureFullWorkspace } from '../../storage/backupStore'
 import {
+  exportMarketsForBackup,
   importMarketQuotesFromBackup,
   importMarketsFromBackup,
 } from '../../storage/marketsStore'
 import { shouldImportSyncedMarketQuotes } from '../../domain/marketQuotesSync'
 import { importFxRatesFromBackup } from '../fx'
 import {
+  exportNewsForBackup,
   importNewsArticlesFromBackup,
   importNewsFromBackup,
 } from '../../storage/newsStore'
 import { importIsaRemainingFromBackup } from '../../domain/isaPrefs'
 import { importPriceAlertThresholdsFromBackup } from '../../domain/priceAlerts'
 import { importNavLayoutFromBackup } from '../../storage/navOrder'
-import { importYoutubeFromBackup, importYoutubeVideosFromBackup } from '../../storage/youtubeStore'
+import {
+  exportYoutubeForBackup,
+  importYoutubeFromBackup,
+  importYoutubeVideosFromBackup,
+} from '../../storage/youtubeStore'
 import { satelliteShouldReplaceExtrasOnImport } from './satelliteFactorySeed'
 import {
   applyFamilyHoldingsToNamedBooks,
@@ -57,6 +63,7 @@ const BOOK_REGISTRY_KEY = 'mydsp_last_book_registry_names'
 const PULLED_SCALAR_KEY = 'mydsp_last_pulled_scalar_hashes'
 const PULLED_HASH_KEY = 'mydsp_last_pulled_holding_hashes'
 const PULLED_REGISTRY_KEY = 'mydsp_last_pulled_registry_names'
+const PULLED_EXTRAS_KEY = 'mydsp_last_pulled_extras_hash'
 
 /** Portfolio fields Mini absorb REPLACE would wipe — not in COLLECTIONS. */
 export const BOOK_SCALAR_FIELDS = [
@@ -850,6 +857,56 @@ export function satelliteBookDivergedFromLastPull(): boolean {
   return false
 }
 
+function currentSatelliteExtrasFingerprint(): unknown {
+  const yt = exportYoutubeForBackup()
+  const news = exportNewsForBackup()
+  const mk = exportMarketsForBackup()
+  return {
+    youtube: {
+      channels: (yt.channels ?? []).map((c) => c.channelId).sort(),
+      deleted: (yt.deletedChannels ?? []).map((d) => d.channelId).sort(),
+    },
+    news: {
+      tags: (news.tags ?? []).map((t) => t.tag).sort(),
+      deleted: (news.deletedTags ?? []).map((d) => d.tag).sort(),
+    },
+    markets: {
+      tickers: (mk.tickers ?? []).map((t) => `${t.kind}:${t.symbol}`).sort(),
+      deleted: (mk.deletedTickers ?? []).map((d) => d.key).sort(),
+    },
+  }
+}
+
+/** After extras apply on a satellite — lists only, not quotes / videos / seenAt. */
+export function stampLastPulledExtrasHash(): void {
+  if (isBookDevice()) return
+  try {
+    localStorage.setItem(PULLED_EXTRAS_KEY, stableHash(currentSatelliteExtrasFingerprint()))
+  } catch {
+    /* quota */
+  }
+}
+
+/**
+ * Satellite YouTube / News / Markets lists differ from the last pull stamp.
+ * Reload drops in-memory dirty — this is what still flushes an unpushed channel.
+ * No stamp yet (first Unlock) is not diverged, so leftover 8 channels still REPLACE.
+ */
+export function satelliteExtrasDivergedFromLastPull(): boolean {
+  if (isBookDevice()) return false
+  try {
+    const raw = localStorage.getItem(PULLED_EXTRAS_KEY)
+    if (!raw) return false
+    return raw !== stableHash(currentSatelliteExtrasFingerprint())
+  } catch {
+    return false
+  }
+}
+
+export function satelliteLocalStateDivergedFromLastPull(): boolean {
+  return satelliteBookDivergedFromLastPull() || satelliteExtrasDivergedFromLastPull()
+}
+
 function conflictRowSide(
   c: SyncConflict,
   preview: MergePreview,
@@ -1478,6 +1535,7 @@ export async function applyWorkspaceExtrasFromPreview(
   }
   if (shouldStampMediaSync) {
     rememberSyncPayloadStats({ lastWorkspaceExtrasSyncAt: new Date().toISOString() })
+    stampLastPulledExtrasHash()
   }
 }
 

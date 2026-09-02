@@ -12,6 +12,7 @@ import {
   applyWorkspaceExtrasFromPreview,
   overlaySatelliteBookAfterRemoteReplace,
   satelliteBookDivergedFromLastPull,
+  satelliteExtrasDivergedFromLastPull,
   snapshotSatelliteCreatedBooks,
   stampLastPulledHoldings,
   isBookDevice,
@@ -163,6 +164,7 @@ export async function unlockAndPullFromCloud(passphrase: string): Promise<OneBut
   persistUrl(url)
 
   const preview = await previewPull(url, passphrase)
+  const extrasDiverged = !isBookDevice() && satelliteExtrasDivergedFromLastPull()
   await applyWorkspaceExtrasFromPreview(preview)
 
   if (!isBookDevice()) {
@@ -186,8 +188,8 @@ export async function unlockAndPullFromCloud(passphrase: string): Promise<OneBut
       thisDeviceIsTheBook: false,
     })
     noteSuccessfulUnlock()
-    // Unlock stays pull-only. Mark dirty so the kept qty still flushes to Mini.
-    if (overlay) markLocalDataChanged()
+    // Unlock stays pull-only. Mark dirty so the kept qty / channel still flushes to Mini.
+    if (overlay || extrasDiverged) markLocalDataChanged()
     await refreshLiveMarksAfterUnlock()
     return {
       action: 'pull',

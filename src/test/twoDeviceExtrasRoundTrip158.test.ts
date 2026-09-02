@@ -1785,4 +1785,85 @@ describe('Mini ↔ satellite extras Worker round-trip (1.2.158)', () => {
     await pushSync(URL, PASS)
     expect(loadPortfolio('default').crypto.find((h) => h.symbol === 'BTC')?.qty).toBe(13.25)
   })
+
+  it('satellite Unlock after reload keeps an unpushed YouTube channel and still drops leftovers', async () => {
+    const cloud = installMockSyncCloud()
+
+    localStorage.setItem('mydsp_device_id', 'dev_mini')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    setSessionSyncPassphrase(PASS, { remember: true })
+    seedPortfolio('default', 'David', miniBook())
+    addYoutubeChannel({
+      channelId: 'UC_mini_1',
+      title: 'MoneyZG',
+      url: 'https://www.youtube.com/@MoneyZG',
+    })
+    await pushSync(URL, PASS)
+    const miniSnap = snapshotStorage()
+
+    localStorage.clear()
+    clearSessionSyncPassphrase()
+    localStorage.setItem('mydsp_device_id', 'dev_macbook')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: false,
+    })
+    seedPortfolio('default', 'David', leftoverBook())
+    addYoutubeChannel({
+      channelId: 'UC_leftover',
+      title: 'Leftover only on MacBook',
+      url: 'https://www.youtube.com/@leftover',
+    })
+    await unlockAndPullFromCloud(PASS)
+    expect(listYoutubeChannels().map((c) => c.title)).toEqual(['MoneyZG'])
+    expect(listYoutubeChannels().map((c) => c.title)).not.toContain('Leftover only on MacBook')
+
+    addYoutubeChannel({
+      channelId: 'UC_after_reload',
+      title: 'Added then reloaded',
+      url: 'https://www.youtube.com/@reload',
+    })
+    addNewsTag({ tag: 'RELOAD', label: 'Added then reloaded' })
+    addMarketTicker({ kind: 'crypto', symbol: 'LINK', name: 'Chainlink' })
+    stopAutoSync()
+
+    await unlockAndPullFromCloud(PASS)
+    expect(listYoutubeChannels().map((c) => c.title).sort()).toEqual([
+      'Added then reloaded',
+      'MoneyZG',
+    ])
+    expect(loadNewsState().tags.map((t) => t.tag)).toContain('RELOAD')
+    expect(listMarketTickers().map((t) => t.symbol)).toContain('LINK')
+
+    await runAutoSyncCycle('start')
+    await vi.waitFor(() => {
+      expect(
+        cloud.fetchMock.mock.calls.filter((c) => String(c[1]?.method ?? 'GET').toUpperCase() === 'PUT')
+          .length,
+      ).toBeGreaterThan(1)
+    })
+
+    stopAutoSync()
+    restoreStorage(miniSnap)
+    setSessionSyncPassphrase(PASS, { remember: true })
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    await pushSync(URL, PASS)
+    expect(listYoutubeChannels().map((c) => c.title).sort()).toEqual([
+      'Added then reloaded',
+      'MoneyZG',
+    ])
+    expect(loadNewsState().tags.map((t) => t.tag)).toContain('RELOAD')
+    expect(listMarketTickers().map((t) => t.symbol)).toContain('LINK')
+  })
 })

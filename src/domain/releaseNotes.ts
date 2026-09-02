@@ -41,7 +41,7 @@ export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
         to: '/settings#sync',
       },
       {
-        text: 'Unlock or reload on MacBook / iPhone / iPad keeps an unpushed size — first Unlock still drops leftovers',
+        text: 'Unlock or reload on MacBook / iPhone / iPad keeps an unpushed size or channel — first Unlock still drops leftovers',
         to: '/settings#sync',
       },
       {
