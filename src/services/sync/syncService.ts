@@ -4,19 +4,25 @@ import { normalizePortfolio, toStorageShape } from '../../domain/normalize'
 import type { PortfolioData, PortfolioMeta } from '../../domain/types'
 import { captureFullWorkspace } from '../../storage/backupStore'
 import {
+  exportMarketsForBackup,
   importMarketQuotesFromBackup,
   importMarketsFromBackup,
 } from '../../storage/marketsStore'
 import { shouldImportSyncedMarketQuotes } from '../../domain/marketQuotesSync'
 import { importFxRatesFromBackup } from '../fx'
 import {
+  exportNewsForBackup,
   importNewsArticlesFromBackup,
   importNewsFromBackup,
 } from '../../storage/newsStore'
 import { importIsaRemainingFromBackup } from '../../domain/isaPrefs'
 import { importPriceAlertThresholdsFromBackup } from '../../domain/priceAlerts'
 import { importNavLayoutFromBackup } from '../../storage/navOrder'
-import { importYoutubeFromBackup, importYoutubeVideosFromBackup } from '../../storage/youtubeStore'
+import {
+  exportYoutubeForBackup,
+  importYoutubeFromBackup,
+  importYoutubeVideosFromBackup,
+} from '../../storage/youtubeStore'
 import { satelliteShouldReplaceExtrasOnImport } from './satelliteFactorySeed'
 import {
   applyFamilyHoldingsToNamedBooks,
@@ -52,6 +58,33 @@ const CONFIG_KEY = 'mydsp_sync_config'
 const DEVICE_KEY = 'mydsp_device_id'
 /** Last Mini book row hashes after absorb/PUT. Separate from sync config so a Settings save cannot wipe the stamp. */
 const BOOK_HASH_KEY = 'mydsp_last_book_holding_hashes'
+const BOOK_SCALAR_KEY = 'mydsp_last_book_scalar_hashes'
+const BOOK_REGISTRY_KEY = 'mydsp_last_book_registry_names'
+const PULLED_SCALAR_KEY = 'mydsp_last_pulled_scalar_hashes'
+const PULLED_HASH_KEY = 'mydsp_last_pulled_holding_hashes'
+const PULLED_REGISTRY_KEY = 'mydsp_last_pulled_registry_names'
+const PULLED_IDS_KEY = 'mydsp_last_pulled_holding_ids'
+const PULLED_EXTRAS_KEY = 'mydsp_last_pulled_extras_hash'
+
+/** Portfolio fields Mini absorb REPLACE would wipe — not in COLLECTIONS. */
+export const BOOK_SCALAR_FIELDS = [
+  'staking',
+  'family',
+  'fireInputs',
+  'monthlyIncome',
+  'monthlyExpenses',
+  'budgetGoals',
+  'paidOff',
+  'recurringTransactions',
+  'trips',
+  'splitSettings',
+  'targetAllocations',
+  'merchantRules',
+  'history',
+  'customCategories',
+  'settings',
+  'extras',
+] as const
 
 export interface SyncConfig {
   remoteUrl: string
@@ -310,6 +343,28 @@ export interface MergePreview {
     themePref?: unknown
     a11yPrefs?: unknown
     notificationSettings?: unknown
+    /**
+     * Book ids this satellite last pulled (Unlock / doPull). Mini absorb uses
+     * this to keep an already-pushed Kids a stale PUT omitted, without undoing
+     * a Kids the satellite actually pulled and deleted.
+     */
+    lastPulledBookIds?: string[]
+    /**
+     * Holding ids per book this satellite last pulled. Mini absorb uses this
+     * to keep an already-pushed ETH a stale PUT omitted, without undoing a
+     * SOL the satellite actually pulled and deleted.
+     */
+    lastPulledHoldings?: Record<string, Partial<Record<string, number[]>>>
+    /**
+     * Scalar hashes this satellite last pulled. Mini absorb keeps already-
+     * pushed staking / FIRE when the MacBook never edited those fields.
+     */
+    lastPulledScalarHashes?: Record<string, Partial<Record<string, string>>>
+    /**
+     * Registry names this satellite last pulled. Mini absorb keeps an
+     * already-pushed Kids → Children rename when the MacBook still has Kids.
+     */
+    lastPulledRegistryNames?: Record<string, string>
   }
 }
 
@@ -608,7 +663,18 @@ export async function buildEnvelope(
   let fullArchive: EncryptedBlob | undefined
   let archivePlain: unknown
   if (includeFull) {
-    archivePlain = captureFullWorkspace()
+    const lastPulled = loadLastPulledHoldingIds() ?? undefined
+    const pulledBookIds = Object.keys(lastPulled ?? {})
+    const lastPulledScalars = loadLastPulledScalarHashes()
+    const lastPulledNames = loadLastPulledRegistryNames()
+    archivePlain = {
+      ...captureFullWorkspace(),
+      ...(pulledBookIds.length > 0
+        ? { lastPulledBookIds: pulledBookIds, lastPulledHoldings: lastPulled }
+        : {}),
+      ...(lastPulledScalars ? { lastPulledScalarHashes: lastPulledScalars } : {}),
+      ...(lastPulledNames ? { lastPulledRegistryNames: lastPulledNames } : {}),
+    }
     fullArchive = await encryptJson(archivePlain, passphrase)
   }
 
@@ -692,11 +758,72 @@ export function stampLastBookHoldingHashes(): void {
   } catch {
     /* quota */
   }
+  stampLastBookScalarHashes()
+  stampLastBookRegistryNames()
 }
 
-/** True when Mini’s holdings still match the last absorbed/PUT book (extras-only dirty). */
-export function bookHoldingsMatchLastStamp(): boolean {
-  const baseline = loadLastBookHoldingHashes()
+type BookScalarHashes = Record<string, Partial<Record<(typeof BOOK_SCALAR_FIELDS)[number], string>>>
+
+function loadLastBookScalarHashes(): BookScalarHashes | null {
+  try {
+    const raw = localStorage.getItem(BOOK_SCALAR_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as BookScalarHashes
+    return parsed && typeof parsed === 'object' ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+function stampLastBookScalarHashes(): void {
+  if (!isBookDevice()) return
+  const ids: BookScalarHashes = {}
+  for (const p of listPortfolios()) {
+    const data = loadPortfolio(p.id)
+    const fields: BookScalarHashes[string] = {}
+    for (const key of BOOK_SCALAR_FIELDS) {
+      fields[key] = stableHash(data[key])
+    }
+    ids[p.id] = fields
+  }
+  try {
+    localStorage.setItem(BOOK_SCALAR_KEY, JSON.stringify(ids))
+  } catch {
+    /* quota */
+  }
+}
+
+function lastKnownBookIds(): string[] {
+  const names = loadLastBookRegistryNames()
+  if (names && Object.keys(names).length > 0) return Object.keys(names)
+  const hashes = loadLastBookHoldingHashes()
+  if (hashes && Object.keys(hashes).length > 0) return Object.keys(hashes)
+  return Object.keys(loadLastPulledHoldingIds() ?? {})
+}
+
+function loadLastBookRegistryNames(): Record<string, string> | null {
+  try {
+    const raw = localStorage.getItem(BOOK_REGISTRY_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as Record<string, string>
+    return parsed && typeof parsed === 'object' ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+function stampLastBookRegistryNames(): void {
+  if (!isBookDevice()) return
+  const names: Record<string, string> = {}
+  for (const p of listPortfolios()) names[p.id] = p.name
+  try {
+    localStorage.setItem(BOOK_REGISTRY_KEY, JSON.stringify(names))
+  } catch {
+    /* quota */
+  }
+}
+
+function holdingsMatchStamp(baseline: BookHoldingHashes | null): boolean {
   if (!baseline) return false
   const list = listPortfolios()
   const baseIds = Object.keys(baseline)
@@ -715,6 +842,111 @@ export function bookHoldingsMatchLastStamp(): boolean {
     }
   }
   return true
+}
+
+function scalarsMatchStamp(stamp: BookScalarHashes | null): boolean {
+  if (!stamp) return false
+  const list = listPortfolios()
+  if (list.length !== Object.keys(stamp).length) return false
+  for (const p of list) {
+    const stamped = stamp[p.id]
+    if (!stamped) return false
+    const data = loadPortfolio(p.id)
+    for (const key of BOOK_SCALAR_FIELDS) {
+      if (stamped[key] !== stableHash(data[key])) return false
+    }
+  }
+  return true
+}
+
+function registryMatchStamp(stamped: Record<string, string> | null): boolean {
+  if (!stamped) return false
+  const list = listPortfolios()
+  if (list.length !== Object.keys(stamped).length) return false
+  for (const p of list) {
+    if (stamped[p.id] !== p.name) return false
+  }
+  return true
+}
+
+/** True when Mini’s holdings still match the last absorbed/PUT book (extras-only dirty). */
+export function bookHoldingsMatchLastStamp(): boolean {
+  return holdingsMatchStamp(loadLastBookHoldingHashes())
+}
+
+/**
+ * Satellite local book/scalars/names differ from the last Unlock/pull stamp.
+ * In-memory `dirty` is lost on reload — this is what keeps an unpushed qty.
+ * No stamp yet (first Unlock) is not diverged, so leftovers still REPLACE.
+ */
+export function satelliteBookDivergedFromLastPull(): boolean {
+  if (isBookDevice()) return false
+  const hashes = loadLastPulledHoldingHashes()
+  const scalars = loadLastPulledScalarHashes()
+  const names = loadLastPulledRegistryNames()
+  if (!hashes && !scalars && !names) {
+    // 1.2.163 Unlock stamped lastPulledHoldingIds only. An unpushed qty
+    // would REPLACE back to Mini on the first 1.2.164 Unlock without this.
+    const pulledIds = loadLastPulledHoldingIds()
+    return Boolean(pulledIds && Object.keys(pulledIds).length > 0)
+  }
+  if (hashes && !holdingsMatchStamp(hashes)) return true
+  if (scalars && !scalarsMatchStamp(scalars)) return true
+  if (names && !registryMatchStamp(names)) return true
+  return false
+}
+
+function currentSatelliteExtrasFingerprint(): unknown {
+  const yt = exportYoutubeForBackup()
+  const news = exportNewsForBackup()
+  const mk = exportMarketsForBackup()
+  return {
+    youtube: {
+      channels: (yt.channels ?? []).map((c) => c.channelId).sort(),
+      deleted: (yt.deletedChannels ?? []).map((d) => d.channelId).sort(),
+    },
+    news: {
+      tags: (news.tags ?? []).map((t) => t.tag).sort(),
+      deleted: (news.deletedTags ?? []).map((d) => d.tag).sort(),
+    },
+    markets: {
+      tickers: (mk.tickers ?? []).map((t) => `${t.kind}:${t.symbol}`).sort(),
+      deleted: (mk.deletedTickers ?? []).map((d) => d.key).sort(),
+    },
+  }
+}
+
+/** After extras apply on a satellite — lists only, not quotes / videos / seenAt. */
+export function stampLastPulledExtrasHash(): void {
+  if (isBookDevice()) return
+  try {
+    localStorage.setItem(PULLED_EXTRAS_KEY, stableHash(currentSatelliteExtrasFingerprint()))
+  } catch {
+    /* quota */
+  }
+}
+
+/**
+ * Satellite YouTube / News / Markets lists differ from the last pull stamp.
+ * Reload drops in-memory dirty — this is what still flushes an unpushed channel.
+ * No extras apply yet (first Unlock, no lastWorkspaceExtrasSyncAt) is not
+ * diverged, so leftover 8 channels still REPLACE. A 1.2.163 satellite already
+ * stamped extras time but has no list hash — treat as diverged so an unpushed
+ * channel still flushes on the first 1.2.164 Unlock.
+ */
+export function satelliteExtrasDivergedFromLastPull(): boolean {
+  if (isBookDevice()) return false
+  try {
+    const raw = localStorage.getItem(PULLED_EXTRAS_KEY)
+    if (!raw) return Boolean(loadSyncConfig().lastWorkspaceExtrasSyncAt)
+    return raw !== stableHash(currentSatelliteExtrasFingerprint())
+  } catch {
+    return false
+  }
+}
+
+export function satelliteLocalStateDivergedFromLastPull(): boolean {
+  return satelliteBookDivergedFromLastPull() || satelliteExtrasDivergedFromLastPull()
 }
 
 function conflictRowSide(
@@ -749,7 +981,11 @@ function conflictRowSide(
  * rows from Mini’s last book stamp — extras still apply; the PUT is skipped.
  * Extras-only Mini dirty (holdings still match the stamp) still
  * `applyRemoteAsBook` so a satellite qty / delete is not parked and Mini’s
- * new channel still PUTs.
+ * new channel still PUTs. After that REPLACE, overlay Mini-only new books,
+ * Mini deletes / renames, and Mini-edited scalars (staking / FIRE / budgets)
+ * so a MacBook size change never wipes a Mini Kids create, ETH add,
+ * staking reward, or Kids → Children rename (including ones Mini already
+ * pushed).
  */
 export async function absorbRemoteWorkspaceExtrasBeforePush(
   url: string,
@@ -777,12 +1013,30 @@ export async function absorbRemoteWorkspaceExtrasBeforePush(
   }
 
   const extrasOnly = !wasDirty || bookHoldingsMatchLastStamp()
+  const metasBefore = listPortfolios()
+  const createdBooks = snapshotMiniCreatedBooks()
+  const booksBefore = metasBefore.map((p) => ({ id: p.id, data: loadPortfolio(p.id) }))
+
+  const takeSatelliteBookKeepMiniRegistry = async () => {
+    await applyRemoteAsBook(preview)
+    overlayMiniBookAfterRemoteReplace(
+      createdBooks,
+      metasBefore,
+      booksBefore,
+      preview.workspaceExtras?.lastPulledBookIds,
+      preview.workspaceExtras?.lastPulledHoldings,
+      preview.workspaceExtras?.lastPulledScalarHashes,
+      preview.workspaceExtras?.lastPulledRegistryNames,
+    )
+    await refreshMiniMarksAfterAbsorb()
+    stampLastBookHoldingHashes()
+    return true as const
+  }
+
   if (extrasOnly) {
     // Mini has not edited holdings — take the satellite book as-is so a
     // deleted SOL / changed qty / new ETH is not unioned or parked.
-    await applyRemoteAsBook(preview)
-    stampLastBookHoldingHashes()
-    return true
+    return takeSatelliteBookKeepMiniRegistry()
   }
 
   if (preview.conflicts.length > 0) {
@@ -792,20 +1046,26 @@ export async function absorbRemoteWorkspaceExtrasBeforePush(
       return 'parked'
     }
     if (sides.every((s) => s === 'satellite')) {
-      await applyRemoteAsBook(preview)
-      stampLastBookHoldingHashes()
-      return true
+      return takeSatelliteBookKeepMiniRegistry()
     }
     const resolutions: Record<string, ConflictChoice> = {}
     for (const c of preview.conflicts) {
       resolutions[conflictKey(c)] = conflictRowSide(c, preview) === 'satellite' ? 'remote' : 'local'
     }
     await applyMergePreview(preview, resolutions)
+    dropUneditedRowsDeletedOnRemote(booksBefore, preview)
+    dropMiniDeletedHoldings(booksBefore)
+    overlayMiniLiveMarks(booksBefore)
+    await refreshMiniMarksAfterAbsorb()
     stampLastBookHoldingHashes()
     return true
   }
 
   await applyMergePreview(preview, {})
+  dropUneditedRowsDeletedOnRemote(booksBefore, preview)
+  dropMiniDeletedHoldings(booksBefore)
+  overlayMiniLiveMarks(booksBefore)
+  await refreshMiniMarksAfterAbsorb()
   stampLastBookHoldingHashes()
   return true
 }
@@ -851,6 +1111,48 @@ export async function pushSync(url: string, passphrase: string): Promise<SyncPus
   })
   stampLastBookHoldingHashes()
   return { exportedAt: envelope.exportedAt, bytes }
+}
+
+function parseLastPulledHoldings(
+  raw: unknown,
+): Record<string, Partial<Record<string, number[]>>> | undefined {
+  if (!raw || typeof raw !== 'object') return undefined
+  const out: Record<string, Partial<Record<string, number[]>>> = {}
+  for (const [bookId, cols] of Object.entries(raw as Record<string, unknown>)) {
+    if (!bookId || !cols || typeof cols !== 'object') continue
+    const mapped: Partial<Record<string, number[]>> = {}
+    for (const [collection, ids] of Object.entries(cols as Record<string, unknown>)) {
+      if (!Array.isArray(ids)) continue
+      mapped[collection] = ids.filter((id): id is number => typeof id === 'number' && Number.isFinite(id))
+    }
+    out[bookId] = mapped
+  }
+  return Object.keys(out).length > 0 ? out : undefined
+}
+
+function parseLastPulledScalarHashes(
+  raw: unknown,
+): Record<string, Partial<Record<string, string>>> | undefined {
+  if (!raw || typeof raw !== 'object') return undefined
+  const out: Record<string, Partial<Record<string, string>>> = {}
+  for (const [bookId, fields] of Object.entries(raw as Record<string, unknown>)) {
+    if (!bookId || !fields || typeof fields !== 'object') continue
+    const mapped: Partial<Record<string, string>> = {}
+    for (const [key, hash] of Object.entries(fields as Record<string, unknown>)) {
+      if (typeof hash === 'string' && hash.length > 0) mapped[key] = hash
+    }
+    out[bookId] = mapped
+  }
+  return Object.keys(out).length > 0 ? out : undefined
+}
+
+function parseLastPulledRegistryNames(raw: unknown): Record<string, string> | undefined {
+  if (!raw || typeof raw !== 'object') return undefined
+  const out: Record<string, string> = {}
+  for (const [bookId, name] of Object.entries(raw as Record<string, unknown>)) {
+    if (bookId && typeof name === 'string' && name.length > 0) out[bookId] = name
+  }
+  return Object.keys(out).length > 0 ? out : undefined
 }
 
 async function decryptEnvelope(
@@ -962,6 +1264,20 @@ async function decryptEnvelope(
     if (a.themePref != null) extras.themePref = a.themePref
     if (a.a11yPrefs != null) extras.a11yPrefs = a.a11yPrefs
     if (a.notificationSettings != null) extras.notificationSettings = a.notificationSettings
+    if (Array.isArray(a.lastPulledBookIds)) {
+      extras.lastPulledBookIds = a.lastPulledBookIds.filter(
+        (id): id is string => typeof id === 'string' && id.length > 0,
+      )
+    }
+    const pulledHoldings = parseLastPulledHoldings(a.lastPulledHoldings)
+    if (pulledHoldings) extras.lastPulledHoldings = pulledHoldings
+    if (!extras.lastPulledBookIds && pulledHoldings) {
+      extras.lastPulledBookIds = Object.keys(pulledHoldings)
+    }
+    const pulledScalars = parseLastPulledScalarHashes(a.lastPulledScalarHashes)
+    if (pulledScalars) extras.lastPulledScalarHashes = pulledScalars
+    const pulledNames = parseLastPulledRegistryNames(a.lastPulledRegistryNames)
+    if (pulledNames) extras.lastPulledRegistryNames = pulledNames
     if (Object.keys(extras).length > 0) workspaceExtras = extras
   }
 
@@ -1122,6 +1438,7 @@ export async function previewImport(file: File, passphrase: string): Promise<Mer
 export async function applyWorkspaceExtrasFromPreview(
   preview: MergePreview,
 ): Promise<void> {
+  const extrasDiverged = satelliteExtrasDivergedFromLastPull()
   const shouldStampMediaSync = Boolean(
     preview.workspaceExtras?.markets != null ||
       preview.workspaceExtras?.marketQuotes != null ||
@@ -1327,6 +1644,19 @@ export async function applyWorkspaceExtrasFromPreview(
   }
   if (shouldStampMediaSync) {
     rememberSyncPayloadStats({ lastWorkspaceExtrasSyncAt: new Date().toISOString() })
+    stampLastPulledExtrasHash()
+  }
+  // Reload drops in-memory dirty. If this satellite already had a list stamp
+  // and local YouTube / News / Markets differed, keep a flush so Mini absorb
+  // still gets the channel. First Unlock (no stamp) must not mark leftover
+  // DAVID / 8 local channels dirty.
+  if (extrasDiverged) {
+    try {
+      const { markLocalDataChanged } = await import('./autoSyncService')
+      markLocalDataChanged()
+    } catch {
+      /* cycle import during isolated tests */
+    }
   }
 }
 
@@ -1398,7 +1728,38 @@ export async function applyRemoteAsBook(
  * added while this device was editing) stay so pull-then-push does not
  * revert Mini. Then upload that mix — never Mini’s older book alone.
  */
-export function stampLastPulledHoldings(): void {
+/** Mini’s book after REPLACE — hashes only. Do not refresh lastPulledHoldingIds
+ * yet: overlay still needs the previous ids to drop a Mini-deleted SOL. */
+export function stampLastPulledBookBaseline(): void {
+  stampLastPulledScalarHashes()
+  stampLastPulledHoldingHashes()
+  stampLastPulledRegistryNames()
+}
+
+export function loadLastPulledHoldingIds(): NonNullable<SyncConfig['lastPulledHoldingIds']> | null {
+  try {
+    const raw = localStorage.getItem(PULLED_IDS_KEY)
+    if (raw) {
+      const parsed = JSON.parse(raw) as SyncConfig['lastPulledHoldingIds']
+      if (parsed && typeof parsed === 'object') return parsed
+    }
+  } catch {
+    /* ignore */
+  }
+  const fromCfg = loadSyncConfig().lastPulledHoldingIds
+  return fromCfg && typeof fromCfg === 'object' ? fromCfg : null
+}
+
+function persistLastPulledHoldingIds(ids: NonNullable<SyncConfig['lastPulledHoldingIds']>): void {
+  try {
+    localStorage.setItem(PULLED_IDS_KEY, JSON.stringify(ids))
+  } catch {
+    /* quota */
+  }
+  saveSyncConfig({ ...loadSyncConfig(), lastPulledHoldingIds: ids })
+}
+
+export function stampLastPulledHoldingIds(): void {
   const ids: NonNullable<SyncConfig['lastPulledHoldingIds']> = {}
   for (const p of listPortfolios()) {
     const data = loadPortfolio(p.id)
@@ -1410,14 +1771,121 @@ export function stampLastPulledHoldings(): void {
     }
     ids[p.id] = cols
   }
-  saveSyncConfig({ ...loadSyncConfig(), lastPulledHoldingIds: ids })
+  persistLastPulledHoldingIds(ids)
+}
+
+/**
+ * Mini’s remote ids — not the overlaid local book. Overlay uses the previous
+ * stamp so a Mini-deleted SOL still drops. Stamping the overlaid ETH / missing
+ * SOL made the next pull-then-push treat an unpushed add as Mini-deleted and
+ * put SOL back as a Mini-only row.
+ */
+export function stampLastPulledHoldingIdsFromRemote(preview: MergePreview): void {
+  if (isBookDevice()) return
+  const ids: NonNullable<SyncConfig['lastPulledHoldingIds']> = {}
+  for (const plan of preview.portfolios) {
+    const cols: Record<string, number[]> = {}
+    for (const collection of COLLECTIONS) {
+      cols[collection] = ((plan.remote[collection] as { id: number }[] | undefined) ?? []).map(
+        (row) => row.id,
+      )
+    }
+    ids[plan.portfolioId] = cols
+  }
+  persistLastPulledHoldingIds(ids)
+}
+
+export function stampLastPulledHoldings(): void {
+  stampLastPulledHoldingIds()
+  stampLastPulledBookBaseline()
+}
+
+function loadLastPulledScalarHashes(): BookScalarHashes | null {
+  try {
+    const raw = localStorage.getItem(PULLED_SCALAR_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as BookScalarHashes
+    return parsed && typeof parsed === 'object' ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+function stampLastPulledScalarHashes(): void {
+  const ids: BookScalarHashes = {}
+  for (const p of listPortfolios()) {
+    const data = loadPortfolio(p.id)
+    const fields: BookScalarHashes[string] = {}
+    for (const key of BOOK_SCALAR_FIELDS) {
+      fields[key] = stableHash(data[key])
+    }
+    ids[p.id] = fields
+  }
+  try {
+    localStorage.setItem(PULLED_SCALAR_KEY, JSON.stringify(ids))
+  } catch {
+    /* quota */
+  }
+}
+
+function loadLastPulledHoldingHashes(): BookHoldingHashes | null {
+  try {
+    const raw = localStorage.getItem(PULLED_HASH_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as BookHoldingHashes
+    return parsed && typeof parsed === 'object' ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+function stampLastPulledHoldingHashes(): void {
+  const ids: BookHoldingHashes = {}
+  for (const p of listPortfolios()) {
+    const data = loadPortfolio(p.id)
+    const cols: Record<string, Record<string, string>> = {}
+    for (const collection of COLLECTIONS) {
+      const map: Record<string, string> = {}
+      for (const row of (data[collection] as { id: number }[] | undefined) ?? []) {
+        map[String(row.id)] = stableHash(row)
+      }
+      cols[collection] = map
+    }
+    ids[p.id] = cols
+  }
+  try {
+    localStorage.setItem(PULLED_HASH_KEY, JSON.stringify(ids))
+  } catch {
+    /* quota */
+  }
+}
+
+function loadLastPulledRegistryNames(): Record<string, string> | null {
+  try {
+    const raw = localStorage.getItem(PULLED_REGISTRY_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as Record<string, string>
+    return parsed && typeof parsed === 'object' ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+function stampLastPulledRegistryNames(): void {
+  const names: Record<string, string> = {}
+  for (const p of listPortfolios()) names[p.id] = p.name
+  try {
+    localStorage.setItem(PULLED_REGISTRY_KEY, JSON.stringify(names))
+  } catch {
+    /* quota */
+  }
 }
 
 export function snapshotSatelliteCreatedBooks(): Array<{
   meta: PortfolioMeta
   data: PortfolioData
 }> {
-  const pulled = loadSyncConfig().lastPulledHoldingIds ?? {}
+  const pulled = loadLastPulledHoldingIds() ?? {}
   return listPortfolios()
     .filter((p) => !pulled[p.id])
     .map((p) => ({ meta: p, data: loadPortfolio(p.id) }))
@@ -1425,7 +1893,7 @@ export function snapshotSatelliteCreatedBooks(): Array<{
 
 /** After REPLACE, drop books this satellite deleted (still in last-pulled). */
 export function dropSatelliteDeletedBooks(localIdsBefore: string[]): void {
-  const pulled = loadSyncConfig().lastPulledHoldingIds ?? {}
+  const pulled = loadLastPulledHoldingIds() ?? {}
   const have = new Set(localIdsBefore)
   for (const id of Object.keys(pulled)) {
     if (id === 'default' || have.has(id)) continue
@@ -1454,6 +1922,28 @@ export function restoreSatelliteRenamedBooks(before: PortfolioMeta[]): void {
   if (changed) localStorage.setItem(STORAGE.PORTFOLIOS, JSON.stringify(next))
 }
 
+/**
+ * After Mini absorb REPLACE, keep a Mini rename (Kids → Children) without
+ * undoing a satellite rename Mini never made.
+ */
+export function restoreMiniRenamedBooks(before: PortfolioMeta[]): void {
+  if (before.length === 0) return
+  const stamped = loadLastBookRegistryNames()
+  if (!stamped) return
+  const byId = new Map(before.map((p) => [p.id, p]))
+  const list = listPortfolios()
+  let changed = false
+  const next = list.map((p) => {
+    const prev = byId.get(p.id)
+    if (!prev || prev.name === p.name) return p
+    const lastName = stamped[p.id]
+    if (!lastName || prev.name === lastName) return p
+    changed = true
+    return { ...p, name: prev.name }
+  })
+  if (changed) localStorage.setItem(STORAGE.PORTFOLIOS, JSON.stringify(next))
+}
+
 export function restoreSatelliteCreatedBooks(
   created: Array<{ meta: PortfolioMeta; data: PortfolioData }>,
 ): void {
@@ -1472,8 +1962,346 @@ export function restoreSatelliteCreatedBooks(
   }
 }
 
+/** Mini-only books since the last absorb/PUT stamp (Kids created on the book). */
+export function snapshotMiniCreatedBooks(): Array<{
+  meta: PortfolioMeta
+  data: PortfolioData
+}> {
+  const known = new Set(lastKnownBookIds())
+  return listPortfolios()
+    .filter((p) => !known.has(p.id))
+    .map((p) => ({ meta: p, data: loadPortfolio(p.id) }))
+}
+
+/**
+ * After Mini absorb REPLACE, put back Mini books a stale satellite never
+ * pulled. `remotePulledBookIds` is the satellite’s last Unlock/doPull
+ * registry (from the envelope). Missing + never pulled → restore (already-
+ * pushed Kids). Missing + pulled → satellite deleted it — leave it gone.
+ * 1.2.163 envelopes omit the field; keep honoring the remote registry.
+ */
+export function restoreMiniKeptBooks(
+  metasBefore: PortfolioMeta[],
+  booksBefore: Array<{ id: string; data: PortfolioData }>,
+  remotePulledBookIds?: string[],
+): void {
+  if (remotePulledBookIds === undefined) return
+  const pulled = new Set(remotePulledBookIds)
+  const kept = booksBefore.flatMap(({ id, data }) => {
+    if (pulled.has(id)) return []
+    const meta = metasBefore.find((m) => m.id === id)
+    return meta ? [{ meta, data }] : []
+  })
+  restoreSatelliteCreatedBooks(kept)
+}
+
+/**
+ * After Mini absorb REPLACE, put back Mini holdings a stale satellite never
+ * pulled. Missing + never pulled → restore (already-pushed ETH). Missing +
+ * pulled → satellite deleted it — leave it gone. 1.2.163 envelopes omit
+ * `lastPulledHoldings`; keep honoring the remote book.
+ */
+export function restoreMiniKeptHoldings(
+  booksBefore: Array<{ id: string; data: PortfolioData }>,
+  remotePulledHoldings?: Record<string, Partial<Record<string, number[]>>>,
+): void {
+  if (!remotePulledHoldings) return
+  for (const { id, data } of booksBefore) {
+    if (!listPortfolios().some((p) => p.id === id)) continue
+    const pulled = remotePulledHoldings[id]
+    if (!pulled) continue
+    let next = loadPortfolio(id)
+    let changed = false
+    for (const collection of COLLECTIONS) {
+      const remRows = ((next[collection] as { id: number }[] | undefined) ?? [])
+      const remIds = new Set(remRows.map((row) => row.id))
+      const known = new Set(pulled[collection] ?? [])
+      const prevRows = ((data[collection] as { id: number }[] | undefined) ?? [])
+      const extra = prevRows.filter((row) => !remIds.has(row.id) && !known.has(row.id))
+      if (extra.length === 0) continue
+      next = { ...next, [collection]: [...remRows, ...extra] }
+      changed = true
+    }
+    if (changed) savePortfolioImmediate(next, id)
+  }
+}
+
+/**
+ * After Mini absorb REPLACE, put back Mini scalars a stale satellite never
+ * edited. Remote still matches the last pull → restore Mini staking / FIRE.
+ * Remote differs → satellite edited — leave it. 1.2.163 omits the field.
+ */
+export function restoreMiniKeptScalars(
+  booksBefore: Array<{ id: string; data: PortfolioData }>,
+  remotePulledScalars?: Record<string, Partial<Record<string, string>>>,
+): void {
+  if (!remotePulledScalars) return
+  for (const { id, data } of booksBefore) {
+    if (!listPortfolios().some((p) => p.id === id)) continue
+    const pulled = remotePulledScalars[id]
+    if (!pulled) continue
+    let next = loadPortfolio(id)
+    let changed = false
+    for (const key of BOOK_SCALAR_FIELDS) {
+      const pulledHash = pulled[key]
+      if (pulledHash === undefined) continue
+      if (stableHash(next[key]) !== pulledHash) continue
+      if (stableHash(data[key]) === pulledHash) continue
+      next = { ...next, [key]: data[key] }
+      changed = true
+    }
+    if (changed) savePortfolioImmediate(next, id)
+  }
+}
+
+/**
+ * After Mini absorb REPLACE, put back a Mini rename a stale satellite never
+ * made. Remote name still matches the last pull → restore Children.
+ * Remote differs → satellite renamed — leave it. 1.2.163 omits the field.
+ */
+export function restoreMiniKeptNames(
+  metasBefore: PortfolioMeta[],
+  remotePulledNames?: Record<string, string>,
+): void {
+  if (!remotePulledNames) return
+  const byId = new Map(metasBefore.map((p) => [p.id, p]))
+  const list = listPortfolios()
+  let changed = false
+  const next = list.map((p) => {
+    const prev = byId.get(p.id)
+    if (!prev || prev.name === p.name) return p
+    const pulledName = remotePulledNames[p.id]
+    if (pulledName === undefined || p.name !== pulledName) return p
+    changed = true
+    return { ...p, name: prev.name }
+  })
+  if (changed) localStorage.setItem(STORAGE.PORTFOLIOS, JSON.stringify(next))
+}
+
+/** After Mini absorb REPLACE, drop books Mini deleted (still in the last stamp). */
+export function dropMiniDeletedBooks(localIdsBefore: string[]): void {
+  const known = lastKnownBookIds()
+  const have = new Set(localIdsBefore)
+  for (const id of known) {
+    if (id === 'default' || have.has(id)) continue
+    if (listPortfolios().some((p) => p.id === id)) {
+      try {
+        deletePortfolio(id)
+      } catch {
+        /* default / last book */
+      }
+    }
+  }
+}
+
+/**
+ * After Mini absorb REPLACE, put back staking / FIRE / budgets Mini edited
+ * vs the last stamp. Satellite qty still wins (COLLECTIONS came from remote).
+ */
+function overlayNonCollectionFields(
+  before: Array<{ id: string; data: PortfolioData }>,
+  stamp: BookScalarHashes | null,
+): void {
+  if (!stamp) return
+  for (const { id, data } of before) {
+    if (!listPortfolios().some((p) => p.id === id)) continue
+    const stamped = stamp[id]
+    if (!stamped) continue
+    let next = loadPortfolio(id)
+    let changed = false
+    for (const key of BOOK_SCALAR_FIELDS) {
+      const prevHash = stamped[key]
+      if (prevHash === undefined) continue
+      if (stableHash(data[key]) === prevHash) continue
+      next = { ...next, [key]: data[key] }
+      changed = true
+    }
+    if (changed) savePortfolioImmediate(next, id)
+  }
+}
+
+export function overlayMiniNonCollectionFields(
+  before: Array<{ id: string; data: PortfolioData }>,
+): void {
+  overlayNonCollectionFields(before, loadLastBookScalarHashes())
+}
+
+/** After satellite dirty REPLACE, keep staking / FIRE this device edited vs last pull. */
+export function overlaySatelliteNonCollectionFields(
+  before: Array<{ id: string; data: PortfolioData }>,
+): void {
+  const stamp = loadLastPulledScalarHashes()
+  if (!stamp) {
+    // 1.2.163 had no pulled scalar hashes. REPLACE would wipe an unpushed
+    // iPad staking / FIRE reward, then push Mini’s empty list.
+    for (const { id, data } of before) {
+      if (!listPortfolios().some((p) => p.id === id)) continue
+      let next = loadPortfolio(id)
+      let changed = false
+      for (const key of BOOK_SCALAR_FIELDS) {
+        if (stableHash(data[key]) === stableHash(next[key])) continue
+        next = { ...next, [key]: data[key] }
+        changed = true
+      }
+      if (changed) savePortfolioImmediate(next, id)
+    }
+    return
+  }
+  overlayNonCollectionFields(before, stamp)
+}
+
+/**
+ * After Mini absorb REPLACE / merge, keep Mini’s live crypto `price` and
+ * equity `livePrice` on rows Mini already had. Satellite qty / cost still
+ * win. New satellite-only rows keep the remote mark until live refresh.
+ */
+/**
+ * applyMergePreview is local-first pickById — a satellite SOL delete is
+ * not a same-id conflict and would be unioned back. Drop rows Mini has
+ * not edited vs the last stamp that are gone from remote.
+ */
+export function dropUneditedRowsDeletedOnRemote(
+  before: Array<{ id: string; data: PortfolioData }>,
+  preview: MergePreview,
+): void {
+  const stamp = loadLastBookHoldingHashes()
+  if (!stamp) return
+  for (const plan of preview.portfolios) {
+    const stamped = stamp[plan.portfolioId]
+    if (!stamped) continue
+    if (!listPortfolios().some((p) => p.id === plan.portfolioId)) continue
+    let next = loadPortfolio(plan.portfolioId)
+    let changed = false
+    const beforeData = before.find((b) => b.id === plan.portfolioId)?.data
+    for (const collection of COLLECTIONS) {
+      const remIds = new Set(
+        ((plan.remote[collection] as { id: number }[] | undefined) ?? []).map((row) => row.id),
+      )
+      const prevRows = (beforeData?.[collection] as { id: number }[] | undefined) ?? []
+      const rows = ((next[collection] as { id: number }[] | undefined) ?? []).filter((row) => {
+        if (remIds.has(row.id)) return true
+        const stampHash = stamped[collection]?.[String(row.id)]
+        if (!stampHash) return true
+        const prev = prevRows.find((r) => r.id === row.id)
+        if (prev && stableHash(prev) !== stampHash) return true
+        changed = true
+        return false
+      })
+      next = { ...next, [collection]: rows }
+    }
+    if (changed) savePortfolioImmediate(next, plan.portfolioId)
+  }
+}
+
+/**
+ * REPLACE / local-first merge can put back a SOL Mini already deleted
+ * (in the last stamp, gone from Mini before absorb). Drop those ids.
+ * Satellite-only new rows are not in the stamp and stay.
+ */
+export function dropMiniDeletedHoldings(
+  before: Array<{ id: string; data: PortfolioData }>,
+): void {
+  const stamp = loadLastBookHoldingHashes()
+  if (!stamp) return
+  for (const { id, data } of before) {
+    const stamped = stamp[id]
+    if (!stamped) continue
+    if (!listPortfolios().some((p) => p.id === id)) continue
+    let next = loadPortfolio(id)
+    let changed = false
+    for (const collection of COLLECTIONS) {
+      const beforeIds = new Set(
+        ((data[collection] as { id: number }[] | undefined) ?? []).map((row) => row.id),
+      )
+      const deleted = new Set(
+        Object.keys(stamped[collection] ?? {})
+          .map((key) => Number(key))
+          .filter((rowId) => !Number.isNaN(rowId) && !beforeIds.has(rowId)),
+      )
+      if (deleted.size === 0) continue
+      const rows = ((next[collection] as { id: number }[] | undefined) ?? []).filter((row) => {
+        if (!deleted.has(row.id)) return true
+        changed = true
+        return false
+      })
+      next = { ...next, [collection]: rows }
+    }
+    if (changed) savePortfolioImmediate(next, id)
+  }
+}
+
+export function overlayMiniLiveMarks(
+  before: Array<{ id: string; data: PortfolioData }>,
+): void {
+  for (const { id, data } of before) {
+    if (!listPortfolios().some((p) => p.id === id)) continue
+    let next = loadPortfolio(id)
+    let changed = false
+    const prevCrypto = new Map((data.crypto ?? []).map((h) => [h.id, h]))
+    const prevEq = new Map((data.equities ?? []).map((h) => [h.id, h]))
+    const crypto = (next.crypto ?? []).map((h) => {
+      const prev = prevCrypto.get(h.id)
+      if (!prev || prev.price === h.price) return h
+      changed = true
+      return { ...h, price: prev.price }
+    })
+    const equities = (next.equities ?? []).map((h) => {
+      const prev = prevEq.get(h.id)
+      if (!prev || prev.livePrice === h.livePrice) return h
+      changed = true
+      return { ...h, livePrice: prev.livePrice }
+    })
+    if (changed) savePortfolioImmediate({ ...next, crypto, equities }, id)
+  }
+}
+
+async function refreshMiniMarksAfterAbsorb(): Promise<void> {
+  try {
+    const { refreshLiveMarksAfterUnlock } = await import('../marketsQuotes')
+    await refreshLiveMarksAfterUnlock()
+  } catch {
+    /* live marks must not fail absorb */
+  }
+}
+
+/** Mini absorb REPLACE must not wipe Mini registry ops or edited scalars. */
+export function overlayMiniBookAfterRemoteReplace(
+  created: Array<{ meta: PortfolioMeta; data: PortfolioData }>,
+  metasBefore: PortfolioMeta[],
+  booksBefore: Array<{ id: string; data: PortfolioData }>,
+  remotePulledBookIds?: string[],
+  remotePulledHoldings?: Record<string, Partial<Record<string, number[]>>>,
+  remotePulledScalars?: Record<string, Partial<Record<string, string>>>,
+  remotePulledNames?: Record<string, string>,
+): void {
+  restoreSatelliteCreatedBooks(created)
+  restoreMiniKeptBooks(metasBefore, booksBefore, remotePulledBookIds)
+  restoreMiniKeptHoldings(booksBefore, remotePulledHoldings)
+  dropMiniDeletedBooks(metasBefore.map((p) => p.id))
+  restoreMiniRenamedBooks(metasBefore)
+  restoreMiniKeptNames(metasBefore, remotePulledNames)
+  overlayMiniNonCollectionFields(booksBefore)
+  restoreMiniKeptScalars(booksBefore, remotePulledScalars)
+  dropMiniDeletedHoldings(booksBefore)
+  overlayMiniLiveMarks(booksBefore)
+}
+
+/** After satellite REPLACE, restore this device’s unpushed book vs last pull. */
+export function overlaySatelliteBookAfterRemoteReplace(
+  preview: MergePreview,
+  created: Array<{ meta: PortfolioMeta; data: PortfolioData }>,
+  metasBefore: PortfolioMeta[],
+  booksBefore: Array<{ id: string; data: PortfolioData }>,
+): void {
+  overlayDirtyLocalHoldings(preview)
+  restoreSatelliteCreatedBooks(created)
+  dropSatelliteDeletedBooks(metasBefore.map((p) => p.id))
+  restoreSatelliteRenamedBooks(metasBefore)
+  overlaySatelliteNonCollectionFields(booksBefore)
+}
+
 export function overlayDirtyLocalHoldings(preview: MergePreview): void {
-  const lastPulled = loadSyncConfig().lastPulledHoldingIds ?? {}
+  const lastPulled = loadLastPulledHoldingIds() ?? {}
   for (const plan of preview.portfolios) {
     if (!plan.local) continue
     let next = loadPortfolio(plan.portfolioId)
@@ -1483,9 +2311,14 @@ export function overlayDirtyLocalHoldings(preview: MergePreview): void {
       const locArr = (plan.local[collection] as { id: number }[] | undefined) ?? []
       const remArr = (plan.remote[collection] as { id: number }[] | undefined) ?? []
       const locIds = new Set(locArr.map((row) => row.id))
+      const remIds = new Set(remArr.map((row) => row.id))
       const known = new Set(pulled[collection] ?? [])
+      // Keep local qty / satellite-only adds. Drop rows Mini deleted
+      // (present on last pull, gone from remote) so pull-then-push
+      // does not resurrect SOL.
+      const locKept = locArr.filter((row) => remIds.has(row.id) || !known.has(row.id))
       const remOnly = remArr.filter((row) => !locIds.has(row.id) && !known.has(row.id))
-      next = { ...next, [collection]: [...locArr, ...remOnly] }
+      next = { ...next, [collection]: [...locKept, ...remOnly] }
       changed = true
     }
     if (changed) savePortfolioImmediate(next, plan.portfolioId)
@@ -1537,14 +2370,35 @@ export async function applyMergePreview(
 
 /**
  * Advanced / conflict / file apply: satellites REPLACE Mini’s book (never union leftovers).
- * Mini (book) still reviews and unions via applyMergePreview.
+ * Same overlay + remote-id stamp as Unlock / doPull so an unpushed ETH / Kids /
+ * SOL delete is not wiped then pushed. Mini still reviews via applyMergePreview.
  */
 export async function applyReviewedPull(
   preview: MergePreview,
   resolutions: Record<string, ConflictChoice> = {},
 ): Promise<{ merged: number; conflicts: SyncConflict[]; removedDupes: number }> {
   if (!isBookDevice()) {
-    const result = await applyRemoteAsBook(preview)
+    const extrasDiverged = satelliteExtrasDivergedFromLastPull()
+    const overlay = satelliteBookDivergedFromLastPull() || extrasDiverged
+    const createdBooks = overlay ? snapshotSatelliteCreatedBooks() : []
+    const metasBefore = overlay ? listPortfolios() : []
+    const booksBefore = overlay
+      ? metasBefore.map((p) => ({ id: p.id, data: loadPortfolio(p.id) }))
+      : []
+    const result = await applyRemoteAsBook(preview, { stampHoldings: false })
+    stampLastPulledBookBaseline()
+    if (overlay) {
+      overlaySatelliteBookAfterRemoteReplace(preview, createdBooks, metasBefore, booksBefore)
+    }
+    stampLastPulledHoldingIdsFromRemote(preview)
+    if (overlay || extrasDiverged) {
+      try {
+        const { markLocalDataChanged } = await import('./autoSyncService')
+        markLocalDataChanged()
+      } catch {
+        /* cycle import during isolated tests */
+      }
+    }
     try {
       const { refreshLiveMarksAfterUnlock } = await import('../marketsQuotes')
       await refreshLiveMarksAfterUnlock()

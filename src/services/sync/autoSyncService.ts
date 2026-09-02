@@ -10,18 +10,21 @@
  */
 
 import { enqueueOfflineJob } from '../offlineQueue'
-import { listPortfolios } from '../../storage/portfolioStore'
+import { listPortfolios, loadPortfolio } from '../../storage/portfolioStore'
 import {
   allConflictsResolved,
   applyMergePreview,
   applyWorkspaceExtrasFromPreview,
   applyRemoteAsBook,
-  overlayDirtyLocalHoldings,
-  dropSatelliteDeletedBooks,
-  restoreSatelliteCreatedBooks,
-  restoreSatelliteRenamedBooks,
+  overlaySatelliteBookAfterRemoteReplace,
+  satelliteBookDivergedFromLastPull,
+  satelliteExtrasDivergedFromLastPull,
+  satelliteLocalStateDivergedFromLastPull,
   snapshotSatelliteCreatedBooks,
+  stampLastPulledBookBaseline,
+  stampLastPulledHoldingIdsFromRemote,
   stampLastPulledHoldings,
+  stampLastPulledExtrasHash,
   fetchRemoteMeta,
   getLocalDeviceId,
   isBookDevice,
@@ -546,17 +549,23 @@ async function doPull(cfg: SyncConfig, pass: string, reason: CycleReason): Promi
   if (satellite) {
     beginApplyingRemote()
     try {
+      const extrasDiverged = satelliteExtrasDivergedFromLastPull()
       await applyWorkspaceExtrasFromPreview(preview)
-      const createdBooks = dirty ? snapshotSatelliteCreatedBooks() : []
-      const metasBefore = dirty ? listPortfolios() : []
+      // In-memory dirty is lost on reload. Last-pulled hashes keep an
+      // unpushed qty / staking / Kids book / channel through Unlock and sitting pull.
+      const overlay = dirty || satelliteBookDivergedFromLastPull() || extrasDiverged
+      if (overlay) dirty = true
+      const createdBooks = overlay ? snapshotSatelliteCreatedBooks() : []
+      const metasBefore = overlay ? listPortfolios() : []
+      const booksBefore = overlay
+        ? metasBefore.map((p) => ({ id: p.id, data: loadPortfolio(p.id) }))
+        : []
       const result = await applyRemoteAsBook(preview, { stampHoldings: false })
-      if (dirty) {
-        overlayDirtyLocalHoldings(preview)
-        restoreSatelliteCreatedBooks(createdBooks)
-        dropSatelliteDeletedBooks(metasBefore.map((p) => p.id))
-        restoreSatelliteRenamedBooks(metasBefore)
+      stampLastPulledBookBaseline()
+      if (overlay) {
+        overlaySatelliteBookAfterRemoteReplace(preview, createdBooks, metasBefore, booksBefore)
       }
-      stampLastPulledHoldings()
+      stampLastPulledHoldingIdsFromRemote(preview)
       const at = new Date().toISOString()
       const pullMs = Date.now() - pullStarted
       updateCfg({
@@ -737,6 +746,10 @@ async function doPush(cfg: SyncConfig, pass: string): Promise<void> {
   try {
     const pushed = await pushSync(cfg.remoteUrl, pass)
     dirty = false
+    if (!isBookDevice(cfg)) {
+      stampLastPulledHoldings()
+      stampLastPulledExtrasHash()
+    }
     const at = new Date().toISOString()
     const pushMs = Date.now() - pushStarted
     // After push, remote matches us — record so we don't immediately re-pull ourselves
@@ -872,6 +885,9 @@ async function maybeAbsorbAndPushBookExtras(cfg: SyncConfig): Promise<void> {
 
 export async function runAutoSyncCycle(reason: CycleReason = 'manual'): Promise<void> {
   const cfg = loadSyncConfig()
+  // Reload drops in-memory dirty. An unpushed satellite qty must still
+  // pull-overlay then push so Mini absorb can take it.
+  if (!isBookDevice(cfg) && satelliteLocalStateDivergedFromLastPull()) dirty = true
   if (!shouldRunSyncCycle(cfg, reason, dirty)) {
     if (reason === 'focus' || reason === 'interval' || reason === 'online') {
       if (isBookDevice(cfg)) {

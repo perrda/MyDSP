@@ -9,14 +9,14 @@ const read = (rel: string) => readFileSync(resolve(__dirname, rel), 'utf8')
 describe('MyDSP 1.2.150 Mini edits push with Automatic off', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(read('../../package.json'))
-    expect(pkg.version).toBe('1.2.163')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.163')
+    expect(pkg.version).toBe('1.2.164')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.164')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.164',
       '1.2.163',
       '1.2.162',
       '1.2.161',
       '1.2.160',
-      '1.2.159',
     ])
     const changelog = read('../../CHANGELOG.md')
     const section = changelog.match(/## \[1\.2\.150\][\s\S]*?(?=## \[)/)?.[0] ?? ''
@@ -26,7 +26,7 @@ describe('MyDSP 1.2.150 Mini edits push with Automatic off', () => {
     expect(section).toMatch(/#F7931A/)
     expect(section).not.toMatch(/SYNC_KEY/)
     expect(read('../../ROADMAP.md')).toMatch(/Mini edits push with Automatic off \(v1\.2\.150\)/)
-    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.163/)
+    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.164/)
     expect(read('../../DEPLOY.md')).toMatch(/git clone https:\/\/github.com\/perrda\/MyDSP.git ~\/MyDSP/)
     expect(read('../../DEPLOY.md')).toMatch(/scripts\/go-live\.sh/)
     expect(read('../../DEPLOY.md')).toMatch(/cd ~\/MyDSP/)

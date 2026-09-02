@@ -10,7 +10,12 @@ import { chooseFirstSyncAction, localBookIsSourceOfTruth, mayPushOnEmptyCloud } 
 import {
   applyRemoteAsBook,
   applyWorkspaceExtrasFromPreview,
-  stampLastPulledHoldings,
+  overlaySatelliteBookAfterRemoteReplace,
+  satelliteBookDivergedFromLastPull,
+  satelliteExtrasDivergedFromLastPull,
+  snapshotSatelliteCreatedBooks,
+  stampLastPulledBookBaseline,
+  stampLastPulledHoldingIdsFromRemote,
   isBookDevice,
   loadSyncConfig,
   previewPull,
@@ -20,8 +25,9 @@ import {
   type MergePreview,
   type SyncConfig,
 } from './syncService'
+import { listPortfolios, loadPortfolio } from '../../storage/portfolioStore'
 import { setSessionSyncPassphrase } from './sessionPassphrase'
-import { noteSuccessfulUnlock } from './autoSyncService'
+import { markLocalDataChanged, noteSuccessfulUnlock } from './autoSyncService'
 import { refreshLiveMarksAfterUnlock } from '../marketsQuotes'
 
 export type OneButtonSyncResult = {
@@ -85,6 +91,19 @@ export async function runOneButtonSync(passphrase: string): Promise<OneButtonSyn
   persistUrl(url)
 
   const book = isBookDevice()
+  if (!book) {
+    try {
+      return await unlockAndPullFromCloud(passphrase)
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Pull failed'
+      if (/404/.test(msg)) {
+        throw new Error(
+          'Cloud empty — leftover book was not uploaded. Only Mini (This device is the book) may push a real book.',
+        )
+      }
+      throw e
+    }
+  }
   const localHasBook = localBookIsSourceOfTruth()
   const action = chooseFirstSyncAction({
     localHasBook,
@@ -159,10 +178,26 @@ export async function unlockAndPullFromCloud(passphrase: string): Promise<OneBut
   persistUrl(url)
 
   const preview = await previewPull(url, passphrase)
+  const extrasDiverged = !isBookDevice() && satelliteExtrasDivergedFromLastPull()
   await applyWorkspaceExtrasFromPreview(preview)
 
   if (!isBookDevice()) {
-    const result = await applyRemoteAsBook(preview)
+    const overlay = satelliteBookDivergedFromLastPull()
+    const createdBooks = overlay ? snapshotSatelliteCreatedBooks() : []
+    const metasBefore = overlay ? listPortfolios() : []
+    const booksBefore = overlay
+      ? metasBefore.map((p) => ({ id: p.id, data: loadPortfolio(p.id) }))
+      : []
+    const result = await applyRemoteAsBook(preview, { stampHoldings: false })
+    // Hashes = Mini’s book so staking/qty still look diverged. Overlay
+    // still reads the previous lastPulledHoldingIds so a Mini-deleted SOL
+    // drops. Then stamp Mini’s remote ids — not the overlaid ETH / Kids
+    // — so the next pull-then-push does not revert an unpushed add.
+    stampLastPulledBookBaseline()
+    if (overlay) {
+      overlaySatelliteBookAfterRemoteReplace(preview, createdBooks, metasBefore, booksBefore)
+    }
+    stampLastPulledHoldingIdsFromRemote(preview)
     rememberPassAndMaybeAuto({
       remoteUrl: url,
       lastSyncAt: new Date().toISOString(),
@@ -171,8 +206,9 @@ export async function unlockAndPullFromCloud(passphrase: string): Promise<OneBut
       enabled: true,
       thisDeviceIsTheBook: false,
     })
-    stampLastPulledHoldings()
     noteSuccessfulUnlock()
+    // Unlock stays pull-only. Mark dirty so the kept qty / channel still flushes to Mini.
+    if (overlay || extrasDiverged) markLocalDataChanged()
     await refreshLiveMarksAfterUnlock()
     return {
       action: 'pull',

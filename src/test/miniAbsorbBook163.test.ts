@@ -13,14 +13,14 @@ const read = (rel: string) => readFileSync(resolve(__dirname, rel), 'utf8')
 describe('MyDSP 1.2.163 Mini absorbs satellite holding sizes before book push', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(read('../../package.json'))
-    expect(pkg.version).toBe('1.2.163')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.163')
+    expect(pkg.version).toBe('1.2.164')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.164')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.164',
       '1.2.163',
       '1.2.162',
       '1.2.161',
       '1.2.160',
-      '1.2.159',
     ])
     const changelog = read('../../CHANGELOG.md')
     const section = changelog.match(/## \[1\.2\.163\][\s\S]*?(?=## \[)/)?.[0] ?? ''
@@ -42,12 +42,12 @@ describe('MyDSP 1.2.163 Mini absorbs satellite holding sizes before book push', 
     expect(section).not.toMatch(/SYNC_KEY/)
     expect(section).not.toMatch(/wrangler deploy/)
     expect(read('../../ROADMAP.md')).toMatch(/Mini absorb holding sizes \(v1\.2\.163\)/)
-    expect(read('../../public/sw.js')).toMatch(/mydsp-v1.2.163/)
+    expect(read('../../public/sw.js')).toMatch(/mydsp-v1.2.164/)
     const notes = read('../domain/releaseNotes.ts')
     expect(notes).toMatch(/MacBook \/ iPhone \/ iPad size change/)
     expect(notes).toMatch(/does not park a MacBook size change/)
     expect(notes).toMatch(/never revert/)
-    const tip = RELEASE_NOTES[0]!
+    const tip = RELEASE_NOTES.find((e) => e.version === '1.2.163')!
     const sizeChange = tip.bullets[0]
     expect(releaseBulletText(sizeChange)).toMatch(/MacBook \/ iPhone \/ iPad size change/)
     expect(releaseBulletHref(sizeChange)).toBe('/settings#sync')
@@ -78,10 +78,12 @@ describe('MyDSP 1.2.163 Mini absorbs satellite holding sizes before book push', 
     expect(pushFn).toMatch(/parked/)
     expect(read('../services/sync/autoSyncService.ts')).toMatch(/export function isLocalSyncDirty/)
     expect(read('../services/sync/autoSyncService.ts')).toMatch(/absorbed === 'parked'/)
-    expect(read('../services/sync/autoSyncService.ts')).toMatch(/overlayDirtyLocalHoldings/)
-    expect(read('../services/sync/autoSyncService.ts')).toMatch(/restoreSatelliteCreatedBooks/)
-    expect(read('../services/sync/autoSyncService.ts')).toMatch(/dropSatelliteDeletedBooks/)
-    expect(read('../services/sync/autoSyncService.ts')).toMatch(/restoreSatelliteRenamedBooks/)
+    expect(read('../services/sync/autoSyncService.ts')).toMatch(/overlaySatelliteBookAfterRemoteReplace/)
+    expect(read('../services/sync/autoSyncService.ts')).toMatch(/snapshotSatelliteCreatedBooks/)
+    expect(read('../services/sync/autoSyncService.ts')).toMatch(/satelliteBookDivergedFromLastPull/)
+    expect(read('../services/sync/syncService.ts')).toMatch(/export function overlayDirtyLocalHoldings/)
+    expect(read('../services/sync/syncService.ts')).toMatch(/export function dropSatelliteDeletedBooks/)
+    expect(read('../services/sync/syncService.ts')).toMatch(/export function restoreSatelliteRenamedBooks/)
     expect(read('../services/sync/syncService.ts')).toMatch(/export function snapshotSatelliteCreatedBooks/)
     expect(absorbFn).toMatch(/applyMergePreview/)
     const rule = read('../../.cursor/rules/media-cross-device-sync.mdc')
@@ -106,6 +108,6 @@ describe('MyDSP 1.2.163 Mini absorbs satellite holding sizes before book push', 
     expect(read('../services/sync/syncService.ts')).toMatch(/stampHoldings/)
     const sync = read('../services/sync/syncService.ts')
     const reviewed = sync.slice(sync.indexOf('export async function applyReviewedPull'))
-    expect(reviewed).toMatch(/applyRemoteAsBook\(preview\)/)
+    expect(reviewed).toMatch(/applyRemoteAsBook\(preview/)
   })
 })

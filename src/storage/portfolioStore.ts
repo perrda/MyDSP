@@ -469,6 +469,7 @@ export function renamePortfolio(id: string, name: string): void {
   }
   const list = listPortfolios().map((p) => (p.id === id ? { ...p, name: trimmed } : p))
   writeJson(STORAGE.PORTFOLIOS, list)
+  notifyDataChanged()
 }
 
 /** David / default is the primary book — it can be reset, never deleted. */
