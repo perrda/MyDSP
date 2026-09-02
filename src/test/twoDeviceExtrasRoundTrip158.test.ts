@@ -1866,4 +1866,72 @@ describe('Mini ↔ satellite extras Worker round-trip (1.2.158)', () => {
     expect(loadNewsState().tags.map((t) => t.tag)).toContain('RELOAD')
     expect(listMarketTickers().map((t) => t.symbol)).toContain('LINK')
   })
+
+  it('Settings media pull after reload still flushes an unpushed MacBook channel', async () => {
+    const cloud = installMockSyncCloud()
+
+    localStorage.setItem('mydsp_device_id', 'dev_mini')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    setSessionSyncPassphrase(PASS, { remember: true })
+    seedPortfolio('default', 'David', miniBook())
+    addYoutubeChannel({
+      channelId: 'UC_mini_1',
+      title: 'MoneyZG',
+      url: 'https://www.youtube.com/@MoneyZG',
+    })
+    await pushSync(URL, PASS)
+    const miniSnap = snapshotStorage()
+
+    localStorage.clear()
+    clearSessionSyncPassphrase()
+    localStorage.setItem('mydsp_device_id', 'dev_macbook')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: false,
+    })
+    seedPortfolio('default', 'David', leftoverBook())
+    await unlockAndPullFromCloud(PASS)
+    addYoutubeChannel({
+      channelId: 'UC_settings_pull',
+      title: 'Added then Settings pull',
+      url: 'https://www.youtube.com/@settings-pull',
+    })
+    stopAutoSync()
+
+    const preview = await previewPull(URL, PASS)
+    await applyWorkspaceExtrasFromPreview(preview)
+    expect(listYoutubeChannels().map((c) => c.title).sort()).toEqual([
+      'Added then Settings pull',
+      'MoneyZG',
+    ])
+
+    await runAutoSyncCycle('start')
+    await vi.waitFor(() => {
+      expect(
+        cloud.fetchMock.mock.calls.filter((c) => String(c[1]?.method ?? 'GET').toUpperCase() === 'PUT')
+          .length,
+      ).toBeGreaterThan(1)
+    })
+
+    stopAutoSync()
+    restoreStorage(miniSnap)
+    setSessionSyncPassphrase(PASS, { remember: true })
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    await pushSync(URL, PASS)
+    expect(listYoutubeChannels().map((c) => c.title).sort()).toEqual([
+      'Added then Settings pull',
+      'MoneyZG',
+    ])
+  })
 })

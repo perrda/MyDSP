@@ -1330,6 +1330,7 @@ export async function previewImport(file: File, passphrase: string): Promise<Mer
 export async function applyWorkspaceExtrasFromPreview(
   preview: MergePreview,
 ): Promise<void> {
+  const extrasDiverged = satelliteExtrasDivergedFromLastPull()
   const shouldStampMediaSync = Boolean(
     preview.workspaceExtras?.markets != null ||
       preview.workspaceExtras?.marketQuotes != null ||
@@ -1536,6 +1537,18 @@ export async function applyWorkspaceExtrasFromPreview(
   if (shouldStampMediaSync) {
     rememberSyncPayloadStats({ lastWorkspaceExtrasSyncAt: new Date().toISOString() })
     stampLastPulledExtrasHash()
+  }
+  // Reload drops in-memory dirty. If this satellite already had a list stamp
+  // and local YouTube / News / Markets differed, keep a flush so Mini absorb
+  // still gets the channel. First Unlock (no stamp) must not mark leftover
+  // DAVID / 8 local channels dirty.
+  if (extrasDiverged) {
+    try {
+      const { markLocalDataChanged } = await import('./autoSyncService')
+      markLocalDataChanged()
+    } catch {
+      /* cycle import during isolated tests */
+    }
   }
 }
 

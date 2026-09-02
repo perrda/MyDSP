@@ -35,6 +35,7 @@ describe('MyDSP 1.2.164 Mini absorb keeps Mini family books and staking', () => 
     expect(section).toMatch(/satelliteBookDivergedFromLastPull/)
     expect(section).toMatch(/satelliteExtrasDivergedFromLastPull/)
     expect(section).toMatch(/mydsp_last_pulled_extras_hash/)
+    expect(section).toMatch(/applyWorkspaceExtrasFromPreview/)
     expect(section).toMatch(/overlaySatelliteBookAfterRemoteReplace/)
     expect(section).toMatch(/overlayDirtyLocalHoldings/)
     expect(section).toMatch(/resurrect/)
@@ -127,6 +128,13 @@ describe('MyDSP 1.2.164 Mini absorb keeps Mini family books and staking', () => 
     expect(read('../services/sync/syncService.ts')).toMatch(/export function satelliteBookDivergedFromLastPull/)
     expect(read('../services/sync/syncService.ts')).toMatch(/export function satelliteExtrasDivergedFromLastPull/)
     expect(read('../services/sync/syncService.ts')).toMatch(/export function stampLastPulledExtrasHash/)
+    const extrasApply = read('../services/sync/syncService.ts')
+    const extrasFn = extrasApply.slice(
+      extrasApply.indexOf('export async function applyWorkspaceExtrasFromPreview'),
+      extrasApply.indexOf('export async function applyRemoteAsBook'),
+    )
+    expect(extrasFn).toMatch(/satelliteExtrasDivergedFromLastPull/)
+    expect(extrasFn).toMatch(/markLocalDataChanged/)
     expect(read('../services/sync/oneButtonSync.ts')).toMatch(/satelliteBookDivergedFromLastPull/)
     expect(read('../services/sync/oneButtonSync.ts')).toMatch(/satelliteExtrasDivergedFromLastPull/)
     expect(read('../services/sync/oneButtonSync.ts')).toMatch(/overlaySatelliteBookAfterRemoteReplace/)
