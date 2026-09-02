@@ -35,6 +35,7 @@ describe('MyDSP 1.2.164 Mini absorb keeps Mini family books and staking', () => 
     expect(section).toMatch(/resurrect/)
     expect(section).toMatch(/overlayMiniLiveMarks/)
     expect(section).toMatch(/refreshLiveMarksAfterUnlock/)
+    expect(section).toMatch(/dropUneditedRowsDeletedOnRemote/)
     expect(section).toMatch(/applyRemoteAsBook/)
     expect(section).toMatch(/Kids/)
     expect(section).toMatch(/staking/)
@@ -49,7 +50,7 @@ describe('MyDSP 1.2.164 Mini absorb keeps Mini family books and staking', () => 
     expect(notes).toMatch(/Kids book created, renamed, or deleted on Mini/)
     expect(notes).toMatch(/Staking, FIRE, and budget edits survive absorb/)
     expect(notes).toMatch(/Mini live prices stay/)
-    expect(notes).toMatch(/Mini-deleted holding stays gone/)
+    expect(notes).toMatch(/deleted holding stays gone/)
     const tip = RELEASE_NOTES[0]!
     const kids = tip.bullets[0]
     expect(releaseBulletText(kids)).toMatch(/Kids book created, renamed, or deleted on Mini/)
@@ -68,6 +69,7 @@ describe('MyDSP 1.2.164 Mini absorb keeps Mini family books and staking', () => 
     const absorbFn = sync.slice(start, push)
     expect(absorbFn).toMatch(/overlayMiniBookAfterRemoteReplace/)
     expect(absorbFn).toMatch(/refreshMiniMarksAfterAbsorb/)
+    expect(absorbFn).toMatch(/dropUneditedRowsDeletedOnRemote/)
     expect(absorbFn).toMatch(/snapshotMiniCreatedBooks/)
     expect(absorbFn).toMatch(/applyRemoteAsBook/)
     expect(absorbFn).toMatch(/bookHoldingsMatchLastStamp/)
@@ -75,6 +77,7 @@ describe('MyDSP 1.2.164 Mini absorb keeps Mini family books and staking', () => 
     expect(read('../services/sync/syncService.ts')).toMatch(/export function snapshotMiniCreatedBooks/)
     expect(read('../services/sync/syncService.ts')).toMatch(/export function dropMiniDeletedBooks/)
     expect(read('../services/sync/syncService.ts')).toMatch(/export function restoreMiniRenamedBooks/)
+    expect(read('../services/sync/syncService.ts')).toMatch(/export function dropUneditedRowsDeletedOnRemote/)
     expect(read('../services/sync/syncService.ts')).toMatch(/export function overlayMiniLiveMarks/)
     expect(read('../services/sync/syncService.ts')).toMatch(/export function overlayMiniNonCollectionFields/)
     expect(read('../services/sync/syncService.ts')).toMatch(/export function overlaySatelliteNonCollectionFields/)

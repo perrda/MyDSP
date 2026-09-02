@@ -897,6 +897,7 @@ export async function absorbRemoteWorkspaceExtrasBeforePush(
       resolutions[conflictKey(c)] = conflictRowSide(c, preview) === 'satellite' ? 'remote' : 'local'
     }
     await applyMergePreview(preview, resolutions)
+    dropUneditedRowsDeletedOnRemote(booksBefore, preview)
     overlayMiniLiveMarks(booksBefore)
     await refreshMiniMarksAfterAbsorb()
     stampLastBookHoldingHashes()
@@ -904,6 +905,7 @@ export async function absorbRemoteWorkspaceExtrasBeforePush(
   }
 
   await applyMergePreview(preview, {})
+  dropUneditedRowsDeletedOnRemote(booksBefore, preview)
   overlayMiniLiveMarks(booksBefore)
   await refreshMiniMarksAfterAbsorb()
   stampLastBookHoldingHashes()
@@ -1694,6 +1696,44 @@ export function overlaySatelliteNonCollectionFields(
  * equity `livePrice` on rows Mini already had. Satellite qty / cost still
  * win. New satellite-only rows keep the remote mark until live refresh.
  */
+/**
+ * applyMergePreview is local-first pickById — a satellite SOL delete is
+ * not a same-id conflict and would be unioned back. Drop rows Mini has
+ * not edited vs the last stamp that are gone from remote.
+ */
+export function dropUneditedRowsDeletedOnRemote(
+  before: Array<{ id: string; data: PortfolioData }>,
+  preview: MergePreview,
+): void {
+  const stamp = loadLastBookHoldingHashes()
+  if (!stamp) return
+  for (const plan of preview.portfolios) {
+    const stamped = stamp[plan.portfolioId]
+    if (!stamped) continue
+    if (!listPortfolios().some((p) => p.id === plan.portfolioId)) continue
+    let next = loadPortfolio(plan.portfolioId)
+    let changed = false
+    const beforeData = before.find((b) => b.id === plan.portfolioId)?.data
+    for (const collection of COLLECTIONS) {
+      const remIds = new Set(
+        ((plan.remote[collection] as { id: number }[] | undefined) ?? []).map((row) => row.id),
+      )
+      const prevRows = (beforeData?.[collection] as { id: number }[] | undefined) ?? []
+      const rows = ((next[collection] as { id: number }[] | undefined) ?? []).filter((row) => {
+        if (remIds.has(row.id)) return true
+        const stampHash = stamped[collection]?.[String(row.id)]
+        if (!stampHash) return true
+        const prev = prevRows.find((r) => r.id === row.id)
+        if (prev && stableHash(prev) !== stampHash) return true
+        changed = true
+        return false
+      })
+      next = { ...next, [collection]: rows }
+    }
+    if (changed) savePortfolioImmediate(next, plan.portfolioId)
+  }
+}
+
 export function overlayMiniLiveMarks(
   before: Array<{ id: string; data: PortfolioData }>,
 ): void {
