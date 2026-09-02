@@ -898,6 +898,7 @@ export async function absorbRemoteWorkspaceExtrasBeforePush(
     }
     await applyMergePreview(preview, resolutions)
     dropUneditedRowsDeletedOnRemote(booksBefore, preview)
+    dropMiniDeletedHoldings(booksBefore)
     overlayMiniLiveMarks(booksBefore)
     await refreshMiniMarksAfterAbsorb()
     stampLastBookHoldingHashes()
@@ -906,6 +907,7 @@ export async function absorbRemoteWorkspaceExtrasBeforePush(
 
   await applyMergePreview(preview, {})
   dropUneditedRowsDeletedOnRemote(booksBefore, preview)
+  dropMiniDeletedHoldings(booksBefore)
   overlayMiniLiveMarks(booksBefore)
   await refreshMiniMarksAfterAbsorb()
   stampLastBookHoldingHashes()
@@ -1734,6 +1736,43 @@ export function dropUneditedRowsDeletedOnRemote(
   }
 }
 
+/**
+ * REPLACE / local-first merge can put back a SOL Mini already deleted
+ * (in the last stamp, gone from Mini before absorb). Drop those ids.
+ * Satellite-only new rows are not in the stamp and stay.
+ */
+export function dropMiniDeletedHoldings(
+  before: Array<{ id: string; data: PortfolioData }>,
+): void {
+  const stamp = loadLastBookHoldingHashes()
+  if (!stamp) return
+  for (const { id, data } of before) {
+    const stamped = stamp[id]
+    if (!stamped) continue
+    if (!listPortfolios().some((p) => p.id === id)) continue
+    let next = loadPortfolio(id)
+    let changed = false
+    for (const collection of COLLECTIONS) {
+      const beforeIds = new Set(
+        ((data[collection] as { id: number }[] | undefined) ?? []).map((row) => row.id),
+      )
+      const deleted = new Set(
+        Object.keys(stamped[collection] ?? {})
+          .map((key) => Number(key))
+          .filter((rowId) => !Number.isNaN(rowId) && !beforeIds.has(rowId)),
+      )
+      if (deleted.size === 0) continue
+      const rows = ((next[collection] as { id: number }[] | undefined) ?? []).filter((row) => {
+        if (!deleted.has(row.id)) return true
+        changed = true
+        return false
+      })
+      next = { ...next, [collection]: rows }
+    }
+    if (changed) savePortfolioImmediate(next, id)
+  }
+}
+
 export function overlayMiniLiveMarks(
   before: Array<{ id: string; data: PortfolioData }>,
 ): void {
@@ -1778,6 +1817,7 @@ export function overlayMiniBookAfterRemoteReplace(
   dropMiniDeletedBooks(metasBefore.map((p) => p.id))
   restoreMiniRenamedBooks(metasBefore)
   overlayMiniNonCollectionFields(booksBefore)
+  dropMiniDeletedHoldings(booksBefore)
   overlayMiniLiveMarks(booksBefore)
 }
 

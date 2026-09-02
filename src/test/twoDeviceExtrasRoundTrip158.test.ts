@@ -1658,4 +1658,73 @@ describe('Mini ↔ satellite extras Worker round-trip (1.2.158)', () => {
         ?.qty,
     ).toBe(13.25)
   })
+
+  it('Mini deleted SOL + satellite qty — absorb keeps the delete and the MacBook size', async () => {
+    installMockSyncCloud()
+    const two = miniBook()
+    two.crypto.push({
+      id: 2,
+      symbol: 'SOL',
+      name: 'Solana',
+      qty: 10,
+      price: 140,
+      cost: 1_000,
+    })
+
+    localStorage.setItem('mydsp_device_id', 'dev_mini')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    setSessionSyncPassphrase(PASS, { remember: true })
+    seedPortfolio('default', 'David', two)
+    await pushSync(URL, PASS)
+    const miniSnap = snapshotStorage()
+
+    localStorage.clear()
+    clearSessionSyncPassphrase()
+    localStorage.setItem('mydsp_device_id', 'dev_macbook')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: false,
+    })
+    seedPortfolio('default', 'David', leftoverBook())
+    await unlockAndPullFromCloud(PASS)
+    const grown = loadPortfolio('default')
+    grown.crypto[0] = { ...grown.crypto[0], qty: 13.25, cost: 420_000 }
+    savePortfolioImmediate(grown, 'default')
+    await pushSync(URL, PASS)
+
+    stopAutoSync()
+    restoreStorage(miniSnap)
+    setSessionSyncPassphrase(PASS, { remember: true })
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    const trimmed = loadPortfolio('default')
+    trimmed.crypto = trimmed.crypto.filter((h) => h.symbol !== 'SOL')
+    savePortfolioImmediate(trimmed, 'default')
+    markLocalDataChanged()
+
+    await pushSync(URL, PASS)
+    expect(loadPortfolio('default').crypto.map((h) => h.symbol)).toEqual(['BTC'])
+    expect(loadPortfolio('default').crypto.find((h) => h.symbol === 'BTC')?.qty).toBe(13.25)
+
+    const afterMini = await previewPull(URL, PASS)
+    expect(
+      afterMini.portfolios
+        .find((p) => p.portfolioId === 'default')
+        ?.remote.crypto.map((h) => h.symbol),
+    ).toEqual(['BTC'])
+    expect(
+      afterMini.portfolios.find((p) => p.portfolioId === 'default')?.remote.crypto.find((h) => h.symbol === 'BTC')
+        ?.qty,
+    ).toBe(13.25)
+  })
 })
