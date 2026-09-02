@@ -53,6 +53,7 @@ const DEVICE_KEY = 'mydsp_device_id'
 /** Last Mini book row hashes after absorb/PUT. Separate from sync config so a Settings save cannot wipe the stamp. */
 const BOOK_HASH_KEY = 'mydsp_last_book_holding_hashes'
 const BOOK_SCALAR_KEY = 'mydsp_last_book_scalar_hashes'
+const BOOK_REGISTRY_KEY = 'mydsp_last_book_registry_names'
 
 /** Portfolio fields Mini absorb REPLACE would wipe — not in COLLECTIONS. */
 export const BOOK_SCALAR_FIELDS = [
@@ -714,6 +715,7 @@ export function stampLastBookHoldingHashes(): void {
     /* quota */
   }
   stampLastBookScalarHashes()
+  stampLastBookRegistryNames()
 }
 
 type BookScalarHashes = Record<string, Partial<Record<(typeof BOOK_SCALAR_FIELDS)[number], string>>>
@@ -748,9 +750,33 @@ function stampLastBookScalarHashes(): void {
 }
 
 function lastKnownBookIds(): string[] {
+  const names = loadLastBookRegistryNames()
+  if (names && Object.keys(names).length > 0) return Object.keys(names)
   const hashes = loadLastBookHoldingHashes()
   if (hashes && Object.keys(hashes).length > 0) return Object.keys(hashes)
   return Object.keys(loadSyncConfig().lastPulledHoldingIds ?? {})
+}
+
+function loadLastBookRegistryNames(): Record<string, string> | null {
+  try {
+    const raw = localStorage.getItem(BOOK_REGISTRY_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as Record<string, string>
+    return parsed && typeof parsed === 'object' ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+function stampLastBookRegistryNames(): void {
+  if (!isBookDevice()) return
+  const names: Record<string, string> = {}
+  for (const p of listPortfolios()) names[p.id] = p.name
+  try {
+    localStorage.setItem(BOOK_REGISTRY_KEY, JSON.stringify(names))
+  } catch {
+    /* quota */
+  }
 }
 
 /** True when Mini’s holdings still match the last absorbed/PUT book (extras-only dirty). */
@@ -1522,6 +1548,28 @@ export function restoreSatelliteRenamedBooks(before: PortfolioMeta[]): void {
   if (changed) localStorage.setItem(STORAGE.PORTFOLIOS, JSON.stringify(next))
 }
 
+/**
+ * After Mini absorb REPLACE, keep a Mini rename (Kids → Children) without
+ * undoing a satellite rename Mini never made.
+ */
+export function restoreMiniRenamedBooks(before: PortfolioMeta[]): void {
+  if (before.length === 0) return
+  const stamped = loadLastBookRegistryNames()
+  if (!stamped) return
+  const byId = new Map(before.map((p) => [p.id, p]))
+  const list = listPortfolios()
+  let changed = false
+  const next = list.map((p) => {
+    const prev = byId.get(p.id)
+    if (!prev || prev.name === p.name) return p
+    const lastName = stamped[p.id]
+    if (!lastName || prev.name === lastName) return p
+    changed = true
+    return { ...p, name: prev.name }
+  })
+  if (changed) localStorage.setItem(STORAGE.PORTFOLIOS, JSON.stringify(next))
+}
+
 export function restoreSatelliteCreatedBooks(
   created: Array<{ meta: PortfolioMeta; data: PortfolioData }>,
 ): void {
@@ -1601,7 +1649,7 @@ export function overlayMiniBookAfterRemoteReplace(
 ): void {
   restoreSatelliteCreatedBooks(created)
   dropMiniDeletedBooks(metasBefore.map((p) => p.id))
-  restoreSatelliteRenamedBooks(metasBefore)
+  restoreMiniRenamedBooks(metasBefore)
   overlayMiniNonCollectionFields(booksBefore)
 }
 
