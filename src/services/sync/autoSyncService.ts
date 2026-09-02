@@ -22,6 +22,7 @@ import {
   satelliteLocalStateDivergedFromLastPull,
   snapshotSatelliteCreatedBooks,
   stampLastPulledHoldings,
+  stampLastPulledExtrasHash,
   fetchRemoteMeta,
   getLocalDeviceId,
   isBookDevice,
@@ -558,10 +559,10 @@ async function doPull(cfg: SyncConfig, pass: string, reason: CycleReason): Promi
         ? metasBefore.map((p) => ({ id: p.id, data: loadPortfolio(p.id) }))
         : []
       const result = await applyRemoteAsBook(preview, { stampHoldings: false })
+      stampLastPulledHoldings()
       if (overlay) {
         overlaySatelliteBookAfterRemoteReplace(preview, createdBooks, metasBefore, booksBefore)
       }
-      stampLastPulledHoldings()
       const at = new Date().toISOString()
       const pullMs = Date.now() - pullStarted
       updateCfg({
@@ -742,6 +743,10 @@ async function doPush(cfg: SyncConfig, pass: string): Promise<void> {
   try {
     const pushed = await pushSync(cfg.remoteUrl, pass)
     dirty = false
+    if (!isBookDevice(cfg)) {
+      stampLastPulledHoldings()
+      stampLastPulledExtrasHash()
+    }
     const at = new Date().toISOString()
     const pushMs = Date.now() - pushStarted
     // After push, remote matches us — record so we don't immediately re-pull ourselves

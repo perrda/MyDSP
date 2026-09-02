@@ -175,10 +175,12 @@ export async function unlockAndPullFromCloud(passphrase: string): Promise<OneBut
       ? metasBefore.map((p) => ({ id: p.id, data: loadPortfolio(p.id) }))
       : []
     const result = await applyRemoteAsBook(preview, { stampHoldings: false })
+    // Stamp Mini’s book before overlay so a later pull-before-push still
+    // sees an unpushed staking / qty as diverged (not already “pulled”).
+    stampLastPulledHoldings()
     if (overlay) {
       overlaySatelliteBookAfterRemoteReplace(preview, createdBooks, metasBefore, booksBefore)
     }
-    stampLastPulledHoldings()
     rememberPassAndMaybeAuto({
       remoteUrl: url,
       lastSyncAt: new Date().toISOString(),
