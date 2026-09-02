@@ -473,6 +473,238 @@ describe('Mini ↔ satellite extras Worker round-trip (1.2.158)', () => {
     expect(putsAfter).toBeGreaterThan(putsBefore)
   })
 
+  it('Mini extras-only dirty still absorbs satellite qty — new channel PUTs, never parks', async () => {
+    const cloud = installMockSyncCloud()
+
+    localStorage.setItem('mydsp_device_id', 'dev_mini')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    setSessionSyncPassphrase(PASS, { remember: true })
+    seedPortfolio('default', 'David', miniBook())
+    addYoutubeChannel({
+      channelId: 'UC_mini_1',
+      title: 'MoneyZG',
+      url: 'https://www.youtube.com/@MoneyZG',
+    })
+    await pushSync(URL, PASS)
+    const miniSnap = snapshotStorage()
+
+    localStorage.clear()
+    clearSessionSyncPassphrase()
+    localStorage.setItem('mydsp_device_id', 'dev_macbook')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: false,
+    })
+    seedPortfolio('default', 'David', leftoverBook())
+    await unlockAndPullFromCloud(PASS)
+    const grown = loadPortfolio('default')
+    grown.crypto[0] = { ...grown.crypto[0], qty: 13.25, cost: 420_000 }
+    savePortfolioImmediate(grown, 'default')
+    vi.useFakeTimers({ toFake: ['setTimeout', 'setInterval'] })
+    markLocalDataChanged()
+    await vi.advanceTimersByTimeAsync(4_000)
+    vi.useRealTimers()
+    await vi.waitFor(() => {
+      expect(
+        cloud.fetchMock.mock.calls.filter((c) => String(c[1]?.method ?? 'GET').toUpperCase() === 'PUT')
+          .length,
+      ).toBeGreaterThan(1)
+    })
+
+    stopAutoSync()
+    restoreStorage(miniSnap)
+    setSessionSyncPassphrase(PASS, { remember: true })
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    addYoutubeChannel({
+      channelId: 'UC_mini_dirty',
+      title: 'Added on Mini while MacBook changed size',
+      url: 'https://www.youtube.com/@mini-dirty',
+    })
+    markLocalDataChanged()
+    expect(loadPortfolio('default').crypto.find((h) => h.symbol === 'BTC')?.qty).toBe(12.5)
+
+    const putsBefore = cloud.fetchMock.mock.calls.filter(
+      (c) => String(c[1]?.method ?? 'GET').toUpperCase() === 'PUT',
+    ).length
+    const result = await pushSync(URL, PASS)
+    expect(result.bytes).toBeGreaterThan(0)
+    expect(loadPortfolio('default').crypto.find((h) => h.symbol === 'BTC')?.qty).toBe(13.25)
+    expect(listYoutubeChannels().map((c) => c.title).sort()).toEqual([
+      'Added on Mini while MacBook changed size',
+      'MoneyZG',
+    ])
+
+    const afterMini = await previewPull(URL, PASS)
+    expect(
+      afterMini.portfolios.find((p) => p.portfolioId === 'default')?.remote.crypto.find((h) => h.symbol === 'BTC')
+        ?.qty,
+    ).toBe(13.25)
+    const remoteYoutube = afterMini.workspaceExtras?.youtube as { channels?: { title: string }[] } | undefined
+    expect(remoteYoutube?.channels?.map((c) => c.title).sort()).toEqual([
+      'Added on Mini while MacBook changed size',
+      'MoneyZG',
+    ])
+    const putsAfter = cloud.fetchMock.mock.calls.filter(
+      (c) => String(c[1]?.method ?? 'GET').toUpperCase() === 'PUT',
+    ).length
+    expect(putsAfter).toBeGreaterThan(putsBefore)
+  })
+
+  it('Mini qty dirty + satellite extras-only keeps Mini size and absorbs the channel', async () => {
+    const cloud = installMockSyncCloud()
+
+    localStorage.setItem('mydsp_device_id', 'dev_mini')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    setSessionSyncPassphrase(PASS, { remember: true })
+    seedPortfolio('default', 'David', miniBook())
+    addYoutubeChannel({
+      channelId: 'UC_mini_1',
+      title: 'MoneyZG',
+      url: 'https://www.youtube.com/@MoneyZG',
+    })
+    await pushSync(URL, PASS)
+    const miniSnap = snapshotStorage()
+
+    localStorage.clear()
+    clearSessionSyncPassphrase()
+    localStorage.setItem('mydsp_device_id', 'dev_macbook')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: false,
+    })
+    seedPortfolio('default', 'David', leftoverBook())
+    await unlockAndPullFromCloud(PASS)
+    addYoutubeChannel({
+      channelId: 'UC_sat_ch',
+      title: 'Added on MacBook only',
+      url: 'https://www.youtube.com/@sat-only',
+    })
+    vi.useFakeTimers({ toFake: ['setTimeout', 'setInterval'] })
+    markLocalDataChanged()
+    await vi.advanceTimersByTimeAsync(4_000)
+    vi.useRealTimers()
+    await vi.waitFor(() => {
+      expect(
+        cloud.fetchMock.mock.calls.filter((c) => String(c[1]?.method ?? 'GET').toUpperCase() === 'PUT')
+          .length,
+      ).toBeGreaterThan(1)
+    })
+
+    stopAutoSync()
+    restoreStorage(miniSnap)
+    setSessionSyncPassphrase(PASS, { remember: true })
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    const grown = loadPortfolio('default')
+    grown.crypto[0] = { ...grown.crypto[0], qty: 13.25, cost: 420_000 }
+    savePortfolioImmediate(grown, 'default')
+    markLocalDataChanged()
+
+    const result = await pushSync(URL, PASS)
+    expect(result.bytes).toBeGreaterThan(0)
+    expect(loadPortfolio('default').crypto.find((h) => h.symbol === 'BTC')?.qty).toBe(13.25)
+    expect(listYoutubeChannels().map((c) => c.title).sort()).toEqual([
+      'Added on MacBook only',
+      'MoneyZG',
+    ])
+    const afterMini = await previewPull(URL, PASS)
+    expect(
+      afterMini.portfolios.find((p) => p.portfolioId === 'default')?.remote.crypto.find((h) => h.symbol === 'BTC')
+        ?.qty,
+    ).toBe(13.25)
+  })
+
+  it('parks only when Mini and satellite both changed the same holding from the last stamp', async () => {
+    const cloud = installMockSyncCloud()
+
+    localStorage.setItem('mydsp_device_id', 'dev_mini')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    setSessionSyncPassphrase(PASS, { remember: true })
+    seedPortfolio('default', 'David', miniBook())
+    await pushSync(URL, PASS)
+    const miniSnap = snapshotStorage()
+
+    localStorage.clear()
+    clearSessionSyncPassphrase()
+    localStorage.setItem('mydsp_device_id', 'dev_macbook')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: false,
+    })
+    seedPortfolio('default', 'David', leftoverBook())
+    await unlockAndPullFromCloud(PASS)
+    const sat = loadPortfolio('default')
+    sat.crypto[0] = { ...sat.crypto[0], qty: 14, cost: 450_000 }
+    savePortfolioImmediate(sat, 'default')
+    vi.useFakeTimers({ toFake: ['setTimeout', 'setInterval'] })
+    markLocalDataChanged()
+    await vi.advanceTimersByTimeAsync(4_000)
+    vi.useRealTimers()
+    await vi.waitFor(() => {
+      expect(
+        cloud.fetchMock.mock.calls.filter((c) => String(c[1]?.method ?? 'GET').toUpperCase() === 'PUT')
+          .length,
+      ).toBeGreaterThan(1)
+    })
+
+    stopAutoSync()
+    restoreStorage(miniSnap)
+    setSessionSyncPassphrase(PASS, { remember: true })
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    const mini = loadPortfolio('default')
+    mini.crypto[0] = { ...mini.crypto[0], qty: 13, cost: 410_000 }
+    savePortfolioImmediate(mini, 'default')
+    markLocalDataChanged()
+
+    const putsBefore = cloud.fetchMock.mock.calls.filter(
+      (c) => String(c[1]?.method ?? 'GET').toUpperCase() === 'PUT',
+    ).length
+    const result = await pushSync(URL, PASS)
+    expect(result.bytes).toBe(0)
+    expect(loadPortfolio('default').crypto.find((h) => h.symbol === 'BTC')?.qty).toBe(13)
+    const after = await previewPull(URL, PASS)
+    expect(
+      after.portfolios.find((p) => p.portfolioId === 'default')?.remote.crypto.find((h) => h.symbol === 'BTC')
+        ?.qty,
+    ).toBe(14)
+    const putsAfter = cloud.fetchMock.mock.calls.filter(
+      (c) => String(c[1]?.method ?? 'GET').toUpperCase() === 'PUT',
+    ).length
+    expect(putsAfter).toBe(putsBefore)
+  })
+
   it('Mini boot/Backup pushSync absorbs a holding added on the satellite after Unlock', async () => {
     const cloud = installMockSyncCloud()
 

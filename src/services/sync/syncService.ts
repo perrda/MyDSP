@@ -41,13 +41,17 @@ import {
   conflictKey,
   detectConflicts,
   mergeWithResolutions,
+  stableHash,
   type ConflictChoice,
+  type ConflictCollection,
   type SyncConflict,
 } from './conflicts'
 import type { DocumentBlobPayload } from '../../storage/documentBlobStore'
 
 const CONFIG_KEY = 'mydsp_sync_config'
 const DEVICE_KEY = 'mydsp_device_id'
+/** Last Mini book row hashes after absorb/PUT. Separate from sync config so a Settings save cannot wipe the stamp. */
+const BOOK_HASH_KEY = 'mydsp_last_book_holding_hashes'
 
 export interface SyncConfig {
   remoteUrl: string
@@ -654,6 +658,85 @@ export async function buildEnvelope(
   }
 }
 
+type BookHoldingHashes = Record<string, Partial<Record<string, Record<string, string>>>>
+
+function loadLastBookHoldingHashes(): BookHoldingHashes | null {
+  try {
+    const raw = localStorage.getItem(BOOK_HASH_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as BookHoldingHashes
+    return parsed && typeof parsed === 'object' ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+/** After Mini absorb or PUT, remember this book so extras-only dirty is not treated as a holding fight. */
+export function stampLastBookHoldingHashes(): void {
+  if (!isBookDevice()) return
+  const ids: BookHoldingHashes = {}
+  for (const p of listPortfolios()) {
+    const data = loadPortfolio(p.id)
+    const cols: Record<string, Record<string, string>> = {}
+    for (const collection of COLLECTIONS) {
+      const map: Record<string, string> = {}
+      for (const row of (data[collection] as { id: number }[] | undefined) ?? []) {
+        map[String(row.id)] = stableHash(row)
+      }
+      cols[collection] = map
+    }
+    ids[p.id] = cols
+  }
+  try {
+    localStorage.setItem(BOOK_HASH_KEY, JSON.stringify(ids))
+  } catch {
+    /* quota */
+  }
+}
+
+/** True when Mini’s holdings still match the last absorbed/PUT book (extras-only dirty). */
+export function bookHoldingsMatchLastStamp(): boolean {
+  const baseline = loadLastBookHoldingHashes()
+  if (!baseline) return false
+  const list = listPortfolios()
+  const baseIds = Object.keys(baseline)
+  if (list.length !== baseIds.length) return false
+  for (const p of list) {
+    const cols = baseline[p.id]
+    if (!cols) return false
+    const data = loadPortfolio(p.id)
+    for (const collection of COLLECTIONS) {
+      const rows = (data[collection] as { id: number }[] | undefined) ?? []
+      const stamped = cols[collection] ?? {}
+      if (rows.length !== Object.keys(stamped).length) return false
+      for (const row of rows) {
+        if (stamped[String(row.id)] !== stableHash(row)) return false
+      }
+    }
+  }
+  return true
+}
+
+function conflictRowSide(
+  c: SyncConflict,
+  preview: MergePreview,
+): 'mini' | 'satellite' | 'both' | 'unknown' {
+  const baseline = loadLastBookHoldingHashes()
+  const baseHash = baseline?.[c.portfolioId]?.[c.collection]?.[String(c.id)]
+  const plan = preview.portfolios.find((p) => p.portfolioId === c.portfolioId)
+  const locArr = plan?.local?.[c.collection as ConflictCollection] as { id: number }[] | undefined
+  const remArr = plan?.remote?.[c.collection as ConflictCollection] as { id: number }[] | undefined
+  const loc = locArr?.find((row) => row.id === c.id)
+  const rem = remArr?.find((row) => row.id === c.id)
+  if (!loc || !rem || !baseHash) return 'unknown'
+  const miniChanged = stableHash(loc) !== baseHash
+  const satChanged = stableHash(rem) !== baseHash
+  if (miniChanged && satChanged) return 'both'
+  if (satChanged) return 'satellite'
+  if (miniChanged) return 'mini'
+  return 'unknown'
+}
+
 /**
  * Mini (book) unions YouTube / News / Markets from the cloud before any PUT,
  * and takes satellite holding size/qty changes when Mini has not edited the
@@ -662,9 +745,11 @@ export async function buildEnvelope(
  * still seed. Same-device last writer skips the download.
  * Network / decrypt failures throw — never push a stale extras list or Mini
  * qty over a newer satellite envelope.
- * Returns `parked` when Mini is dirty and the same holdings also changed on
- * the satellite — extras still apply; the PUT is skipped so neither side
- * silently reverts.
+ * Returns `parked` only when Mini and the satellite both changed the same
+ * rows from Mini’s last book stamp — extras still apply; the PUT is skipped.
+ * Extras-only Mini dirty (holdings still match the stamp) still
+ * `applyRemoteAsBook` so a satellite qty / delete is not parked and Mini’s
+ * new channel still PUTs.
  */
 export async function absorbRemoteWorkspaceExtrasBeforePush(
   url: string,
@@ -691,25 +776,37 @@ export async function absorbRemoteWorkspaceExtrasBeforePush(
     /* cycle import during isolated tests */
   }
 
-  if (preview.conflicts.length > 0 && wasDirty) {
-    await applyWorkspaceExtrasFromPreview(preview)
-    return 'parked'
-  }
-
-  if (!wasDirty) {
-    // Mini has not edited — take the satellite book as-is so a deleted
-    // SOL / changed qty / new ETH is not unioned back to yesterday.
+  const extrasOnly = !wasDirty || bookHoldingsMatchLastStamp()
+  if (extrasOnly) {
+    // Mini has not edited holdings — take the satellite book as-is so a
+    // deleted SOL / changed qty / new ETH is not unioned or parked.
     await applyRemoteAsBook(preview)
+    stampLastBookHoldingHashes()
     return true
   }
 
-  const resolutions: Record<string, ConflictChoice> = {}
   if (preview.conflicts.length > 0) {
-    for (const c of preview.conflicts) {
-      resolutions[conflictKey(c)] = 'remote'
+    const sides = preview.conflicts.map((c) => conflictRowSide(c, preview))
+    if (sides.some((s) => s === 'both' || s === 'unknown')) {
+      await applyWorkspaceExtrasFromPreview(preview)
+      return 'parked'
     }
+    if (sides.every((s) => s === 'satellite')) {
+      await applyRemoteAsBook(preview)
+      stampLastBookHoldingHashes()
+      return true
+    }
+    const resolutions: Record<string, ConflictChoice> = {}
+    for (const c of preview.conflicts) {
+      resolutions[conflictKey(c)] = conflictRowSide(c, preview) === 'satellite' ? 'remote' : 'local'
+    }
+    await applyMergePreview(preview, resolutions)
+    stampLastBookHoldingHashes()
+    return true
   }
-  await applyMergePreview(preview, resolutions)
+
+  await applyMergePreview(preview, {})
+  stampLastBookHoldingHashes()
   return true
 }
 
@@ -752,6 +849,7 @@ export async function pushSync(url: string, passphrase: string): Promise<SyncPus
     lastRemoteBlobBytes: bytes,
     lastPushBytes: bytes,
   })
+  stampLastBookHoldingHashes()
   return { exportedAt: envelope.exportedAt, bytes }
 }
 

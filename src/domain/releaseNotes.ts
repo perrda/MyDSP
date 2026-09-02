@@ -41,7 +41,7 @@ export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
         to: '/settings#sync',
       },
       {
-        text: 'If Mini and a satellite both edited the same holding, Sync waits for a review instead of overwriting',
+        text: 'A YouTube / News / Markets edit on Mini does not park a MacBook size change — both land. Sync waits only when both devices edited the same holding',
         to: '/settings#sync',
       },
       {

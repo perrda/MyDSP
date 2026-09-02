@@ -35,7 +35,7 @@ export interface SyncConflict {
 
 export type ConflictChoice = 'local' | 'remote'
 
-function stableHash(value: unknown): string {
+export function stableHash(value: unknown): string {
   const s = value === undefined ? 'undefined' : JSON.stringify(value) ?? 'null'
   let h = 2166136261
   for (let i = 0; i < s.length; i++) {

@@ -45,6 +45,7 @@ describe('MyDSP 1.2.163 Mini absorbs satellite holding sizes before book push', 
     expect(read('../../public/sw.js')).toMatch(/mydsp-v1.2.163/)
     const notes = read('../domain/releaseNotes.ts')
     expect(notes).toMatch(/MacBook \/ iPhone \/ iPad size change/)
+    expect(notes).toMatch(/does not park a MacBook size change/)
     expect(notes).toMatch(/never revert/)
     const tip = RELEASE_NOTES[0]!
     const sizeChange = tip.bullets[0]
@@ -68,6 +69,8 @@ describe('MyDSP 1.2.163 Mini absorbs satellite holding sizes before book push', 
     expect(absorbFn).toMatch(/applyMergePreview/)
     expect(absorbFn).toMatch(/applyRemoteAsBook/)
     expect(absorbFn).toMatch(/isLocalSyncDirty/)
+    expect(absorbFn).toMatch(/bookHoldingsMatchLastStamp/)
+    expect(absorbFn).toMatch(/stampLastBookHoldingHashes/)
     expect(absorbFn).toMatch(/parked/)
     expect(absorbFn).toMatch(/'remote'/)
     const pushFn = sync.slice(push, sync.indexOf('async function decryptEnvelope'))
@@ -96,6 +99,9 @@ describe('MyDSP 1.2.163 Mini absorbs satellite holding sizes before book push', 
     expect(read('../services/sync/autoSyncService.ts')).toMatch(/refreshLiveMarksAfterUnlock/)
     expect(read('../services/sync/syncService.ts')).toMatch(/export function overlayDirtyLocalHoldings/)
     expect(read('../services/sync/syncService.ts')).toMatch(/export function stampLastPulledHoldings/)
+    expect(read('../services/sync/syncService.ts')).toMatch(/export function stampLastBookHoldingHashes/)
+    expect(read('../services/sync/syncService.ts')).toMatch(/export function bookHoldingsMatchLastStamp/)
+    expect(read('../services/sync/syncService.ts')).toMatch(/mydsp_last_book_holding_hashes/)
     expect(read('../services/sync/syncService.ts')).toMatch(/lastPulledHoldingIds/)
     expect(read('../services/sync/syncService.ts')).toMatch(/stampHoldings/)
     const sync = read('../services/sync/syncService.ts')
