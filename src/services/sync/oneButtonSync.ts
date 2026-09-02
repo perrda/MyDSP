@@ -10,6 +10,9 @@ import { chooseFirstSyncAction, localBookIsSourceOfTruth, mayPushOnEmptyCloud } 
 import {
   applyRemoteAsBook,
   applyWorkspaceExtrasFromPreview,
+  overlaySatelliteBookAfterRemoteReplace,
+  satelliteBookDivergedFromLastPull,
+  snapshotSatelliteCreatedBooks,
   stampLastPulledHoldings,
   isBookDevice,
   loadSyncConfig,
@@ -20,8 +23,9 @@ import {
   type MergePreview,
   type SyncConfig,
 } from './syncService'
+import { listPortfolios, loadPortfolio } from '../../storage/portfolioStore'
 import { setSessionSyncPassphrase } from './sessionPassphrase'
-import { noteSuccessfulUnlock } from './autoSyncService'
+import { markLocalDataChanged, noteSuccessfulUnlock } from './autoSyncService'
 import { refreshLiveMarksAfterUnlock } from '../marketsQuotes'
 
 export type OneButtonSyncResult = {
@@ -162,7 +166,17 @@ export async function unlockAndPullFromCloud(passphrase: string): Promise<OneBut
   await applyWorkspaceExtrasFromPreview(preview)
 
   if (!isBookDevice()) {
-    const result = await applyRemoteAsBook(preview)
+    const overlay = satelliteBookDivergedFromLastPull()
+    const createdBooks = overlay ? snapshotSatelliteCreatedBooks() : []
+    const metasBefore = overlay ? listPortfolios() : []
+    const booksBefore = overlay
+      ? metasBefore.map((p) => ({ id: p.id, data: loadPortfolio(p.id) }))
+      : []
+    const result = await applyRemoteAsBook(preview, { stampHoldings: false })
+    if (overlay) {
+      overlaySatelliteBookAfterRemoteReplace(preview, createdBooks, metasBefore, booksBefore)
+    }
+    stampLastPulledHoldings()
     rememberPassAndMaybeAuto({
       remoteUrl: url,
       lastSyncAt: new Date().toISOString(),
@@ -171,8 +185,9 @@ export async function unlockAndPullFromCloud(passphrase: string): Promise<OneBut
       enabled: true,
       thisDeviceIsTheBook: false,
     })
-    stampLastPulledHoldings()
     noteSuccessfulUnlock()
+    // Unlock stays pull-only. Mark dirty so the kept qty still flushes to Mini.
+    if (overlay) markLocalDataChanged()
     await refreshLiveMarksAfterUnlock()
     return {
       action: 'pull',

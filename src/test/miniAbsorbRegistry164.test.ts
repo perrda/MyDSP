@@ -31,6 +31,9 @@ describe('MyDSP 1.2.164 Mini absorb keeps Mini family books and staking', () => 
     expect(section).toMatch(/mydsp_last_book_scalar_hashes/)
     expect(section).toMatch(/overlaySatelliteNonCollectionFields/)
     expect(section).toMatch(/mydsp_last_pulled_scalar_hashes/)
+    expect(section).toMatch(/mydsp_last_pulled_holding_hashes/)
+    expect(section).toMatch(/satelliteBookDivergedFromLastPull/)
+    expect(section).toMatch(/overlaySatelliteBookAfterRemoteReplace/)
     expect(section).toMatch(/overlayDirtyLocalHoldings/)
     expect(section).toMatch(/resurrect/)
     expect(section).toMatch(/overlayMiniLiveMarks/)
@@ -52,6 +55,7 @@ describe('MyDSP 1.2.164 Mini absorb keeps Mini family books and staking', () => 
     expect(notes).toMatch(/Staking, FIRE, and budget edits survive absorb/)
     expect(notes).toMatch(/Mini live prices stay/)
     expect(notes).toMatch(/deleted holding stays gone/)
+    expect(notes).toMatch(/Unlock or reload on MacBook \/ iPhone \/ iPad keeps an unpushed size/)
     const tip = RELEASE_NOTES[0]!
     const kids = tip.bullets[0]
     expect(releaseBulletText(kids)).toMatch(/Kids book created, renamed, or deleted on Mini/)
@@ -59,6 +63,13 @@ describe('MyDSP 1.2.164 Mini absorb keeps Mini family books and staking', () => 
     const staking = tip.bullets.find((b) => /Staking, FIRE/.test(releaseBulletText(b)))
     expect(staking).toBeTruthy()
     expect(releaseBulletHref(staking!)).toBe('/settings#sync')
+    const unlockKeep = tip.bullets.find((b) =>
+      /Unlock or reload on MacBook \/ iPhone \/ iPad keeps an unpushed size/.test(
+        releaseBulletText(b),
+      ),
+    )
+    expect(unlockKeep).toBeTruthy()
+    expect(releaseBulletHref(unlockKeep!)).toBe('/settings#sync')
   })
 
   it('absorb REPLACE overlays Mini registry and scalars', () => {
@@ -86,7 +97,8 @@ describe('MyDSP 1.2.164 Mini absorb keeps Mini family books and staking', () => 
     expect(read('../services/sync/syncService.ts')).toMatch(/export function overlaySatelliteNonCollectionFields/)
     expect(read('../services/sync/syncService.ts')).toMatch(/mydsp_last_book_scalar_hashes/)
     expect(read('../services/sync/syncService.ts')).toMatch(/mydsp_last_pulled_scalar_hashes/)
-    expect(read('../services/sync/autoSyncService.ts')).toMatch(/overlaySatelliteNonCollectionFields/)
+    expect(read('../services/sync/autoSyncService.ts')).toMatch(/overlaySatelliteBookAfterRemoteReplace/)
+    expect(read('../services/sync/autoSyncService.ts')).toMatch(/satelliteBookDivergedFromLastPull/)
     expect(read('../storage/portfolioStore.ts')).toMatch(/notifyDataChanged\(\)/)
     const rename = read('../storage/portfolioStore.ts')
     const renameFn = rename.slice(rename.indexOf('export function renamePortfolio'))
@@ -103,8 +115,14 @@ describe('MyDSP 1.2.164 Mini absorb keeps Mini family books and staking', () => 
     expect(changelog).toMatch(/absorbRemoteWorkspaceExtrasBeforePush/)
     expect(changelog).toMatch(/maybePullSatelliteExtras/)
     expect(read('../services/sync/autoSyncService.ts')).toMatch(/maybePullSatelliteExtras/)
-    expect(read('../services/sync/autoSyncService.ts')).toMatch(/overlayDirtyLocalHoldings/)
-    expect(read('../services/sync/autoSyncService.ts')).toMatch(/overlaySatelliteNonCollectionFields/)
+    expect(read('../services/sync/autoSyncService.ts')).toMatch(/overlaySatelliteBookAfterRemoteReplace/)
+    expect(read('../services/sync/autoSyncService.ts')).toMatch(/satelliteBookDivergedFromLastPull/)
+    expect(read('../services/sync/syncService.ts')).toMatch(/export function overlayDirtyLocalHoldings/)
+    expect(read('../services/sync/syncService.ts')).toMatch(/export function overlaySatelliteNonCollectionFields/)
+    expect(read('../services/sync/syncService.ts')).toMatch(/export function overlaySatelliteBookAfterRemoteReplace/)
+    expect(read('../services/sync/syncService.ts')).toMatch(/export function satelliteBookDivergedFromLastPull/)
+    expect(read('../services/sync/oneButtonSync.ts')).toMatch(/satelliteBookDivergedFromLastPull/)
+    expect(read('../services/sync/oneButtonSync.ts')).toMatch(/overlaySatelliteBookAfterRemoteReplace/)
     expect(read('../services/sync/syncService.ts')).toMatch(/export function stampLastBookHoldingHashes/)
     expect(read('../services/sync/syncService.ts')).toMatch(/export function bookHoldingsMatchLastStamp/)
   })

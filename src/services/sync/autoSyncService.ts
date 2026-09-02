@@ -16,11 +16,8 @@ import {
   applyMergePreview,
   applyWorkspaceExtrasFromPreview,
   applyRemoteAsBook,
-  overlayDirtyLocalHoldings,
-  overlaySatelliteNonCollectionFields,
-  dropSatelliteDeletedBooks,
-  restoreSatelliteCreatedBooks,
-  restoreSatelliteRenamedBooks,
+  overlaySatelliteBookAfterRemoteReplace,
+  satelliteBookDivergedFromLastPull,
   snapshotSatelliteCreatedBooks,
   stampLastPulledHoldings,
   fetchRemoteMeta,
@@ -548,18 +545,18 @@ async function doPull(cfg: SyncConfig, pass: string, reason: CycleReason): Promi
     beginApplyingRemote()
     try {
       await applyWorkspaceExtrasFromPreview(preview)
-      const createdBooks = dirty ? snapshotSatelliteCreatedBooks() : []
-      const metasBefore = dirty ? listPortfolios() : []
-      const booksBefore = dirty
+      // In-memory dirty is lost on reload. Last-pulled hashes keep an
+      // unpushed qty / staking / Kids book through Unlock and sitting pull.
+      const overlay = dirty || satelliteBookDivergedFromLastPull()
+      if (overlay) dirty = true
+      const createdBooks = overlay ? snapshotSatelliteCreatedBooks() : []
+      const metasBefore = overlay ? listPortfolios() : []
+      const booksBefore = overlay
         ? metasBefore.map((p) => ({ id: p.id, data: loadPortfolio(p.id) }))
         : []
       const result = await applyRemoteAsBook(preview, { stampHoldings: false })
-      if (dirty) {
-        overlayDirtyLocalHoldings(preview)
-        restoreSatelliteCreatedBooks(createdBooks)
-        dropSatelliteDeletedBooks(metasBefore.map((p) => p.id))
-        restoreSatelliteRenamedBooks(metasBefore)
-        overlaySatelliteNonCollectionFields(booksBefore)
+      if (overlay) {
+        overlaySatelliteBookAfterRemoteReplace(preview, createdBooks, metasBefore, booksBefore)
       }
       stampLastPulledHoldings()
       const at = new Date().toISOString()
@@ -877,6 +874,9 @@ async function maybeAbsorbAndPushBookExtras(cfg: SyncConfig): Promise<void> {
 
 export async function runAutoSyncCycle(reason: CycleReason = 'manual'): Promise<void> {
   const cfg = loadSyncConfig()
+  // Reload drops in-memory dirty. An unpushed satellite qty must still
+  // pull-overlay then push so Mini absorb can take it.
+  if (!isBookDevice(cfg) && satelliteBookDivergedFromLastPull()) dirty = true
   if (!shouldRunSyncCycle(cfg, reason, dirty)) {
     if (reason === 'focus' || reason === 'interval' || reason === 'online') {
       if (isBookDevice(cfg)) {

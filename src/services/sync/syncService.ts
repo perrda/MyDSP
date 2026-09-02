@@ -55,6 +55,8 @@ const BOOK_HASH_KEY = 'mydsp_last_book_holding_hashes'
 const BOOK_SCALAR_KEY = 'mydsp_last_book_scalar_hashes'
 const BOOK_REGISTRY_KEY = 'mydsp_last_book_registry_names'
 const PULLED_SCALAR_KEY = 'mydsp_last_pulled_scalar_hashes'
+const PULLED_HASH_KEY = 'mydsp_last_pulled_holding_hashes'
+const PULLED_REGISTRY_KEY = 'mydsp_last_pulled_registry_names'
 
 /** Portfolio fields Mini absorb REPLACE would wipe — not in COLLECTIONS. */
 export const BOOK_SCALAR_FIELDS = [
@@ -780,9 +782,7 @@ function stampLastBookRegistryNames(): void {
   }
 }
 
-/** True when Mini’s holdings still match the last absorbed/PUT book (extras-only dirty). */
-export function bookHoldingsMatchLastStamp(): boolean {
-  const baseline = loadLastBookHoldingHashes()
+function holdingsMatchStamp(baseline: BookHoldingHashes | null): boolean {
   if (!baseline) return false
   const list = listPortfolios()
   const baseIds = Object.keys(baseline)
@@ -801,6 +801,53 @@ export function bookHoldingsMatchLastStamp(): boolean {
     }
   }
   return true
+}
+
+function scalarsMatchStamp(stamp: BookScalarHashes | null): boolean {
+  if (!stamp) return false
+  const list = listPortfolios()
+  if (list.length !== Object.keys(stamp).length) return false
+  for (const p of list) {
+    const stamped = stamp[p.id]
+    if (!stamped) return false
+    const data = loadPortfolio(p.id)
+    for (const key of BOOK_SCALAR_FIELDS) {
+      if (stamped[key] !== stableHash(data[key])) return false
+    }
+  }
+  return true
+}
+
+function registryMatchStamp(stamped: Record<string, string> | null): boolean {
+  if (!stamped) return false
+  const list = listPortfolios()
+  if (list.length !== Object.keys(stamped).length) return false
+  for (const p of list) {
+    if (stamped[p.id] !== p.name) return false
+  }
+  return true
+}
+
+/** True when Mini’s holdings still match the last absorbed/PUT book (extras-only dirty). */
+export function bookHoldingsMatchLastStamp(): boolean {
+  return holdingsMatchStamp(loadLastBookHoldingHashes())
+}
+
+/**
+ * Satellite local book/scalars/names differ from the last Unlock/pull stamp.
+ * In-memory `dirty` is lost on reload — this is what keeps an unpushed qty.
+ * No stamp yet (first Unlock) is not diverged, so leftovers still REPLACE.
+ */
+export function satelliteBookDivergedFromLastPull(): boolean {
+  if (isBookDevice()) return false
+  const hashes = loadLastPulledHoldingHashes()
+  const scalars = loadLastPulledScalarHashes()
+  const names = loadLastPulledRegistryNames()
+  if (!hashes && !scalars && !names) return false
+  if (hashes && !holdingsMatchStamp(hashes)) return true
+  if (scalars && !scalarsMatchStamp(scalars)) return true
+  if (names && !registryMatchStamp(names)) return true
+  return false
 }
 
 function conflictRowSide(
@@ -1516,6 +1563,8 @@ export function stampLastPulledHoldings(): void {
   }
   saveSyncConfig({ ...loadSyncConfig(), lastPulledHoldingIds: ids })
   stampLastPulledScalarHashes()
+  stampLastPulledHoldingHashes()
+  stampLastPulledRegistryNames()
 }
 
 function loadLastPulledScalarHashes(): BookScalarHashes | null {
@@ -1541,6 +1590,59 @@ function stampLastPulledScalarHashes(): void {
   }
   try {
     localStorage.setItem(PULLED_SCALAR_KEY, JSON.stringify(ids))
+  } catch {
+    /* quota */
+  }
+}
+
+function loadLastPulledHoldingHashes(): BookHoldingHashes | null {
+  try {
+    const raw = localStorage.getItem(PULLED_HASH_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as BookHoldingHashes
+    return parsed && typeof parsed === 'object' ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+function stampLastPulledHoldingHashes(): void {
+  const ids: BookHoldingHashes = {}
+  for (const p of listPortfolios()) {
+    const data = loadPortfolio(p.id)
+    const cols: Record<string, Record<string, string>> = {}
+    for (const collection of COLLECTIONS) {
+      const map: Record<string, string> = {}
+      for (const row of (data[collection] as { id: number }[] | undefined) ?? []) {
+        map[String(row.id)] = stableHash(row)
+      }
+      cols[collection] = map
+    }
+    ids[p.id] = cols
+  }
+  try {
+    localStorage.setItem(PULLED_HASH_KEY, JSON.stringify(ids))
+  } catch {
+    /* quota */
+  }
+}
+
+function loadLastPulledRegistryNames(): Record<string, string> | null {
+  try {
+    const raw = localStorage.getItem(PULLED_REGISTRY_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as Record<string, string>
+    return parsed && typeof parsed === 'object' ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+function stampLastPulledRegistryNames(): void {
+  const names: Record<string, string> = {}
+  for (const p of listPortfolios()) names[p.id] = p.name
+  try {
+    localStorage.setItem(PULLED_REGISTRY_KEY, JSON.stringify(names))
   } catch {
     /* quota */
   }
@@ -1819,6 +1921,20 @@ export function overlayMiniBookAfterRemoteReplace(
   overlayMiniNonCollectionFields(booksBefore)
   dropMiniDeletedHoldings(booksBefore)
   overlayMiniLiveMarks(booksBefore)
+}
+
+/** After satellite REPLACE, restore this device’s unpushed book vs last pull. */
+export function overlaySatelliteBookAfterRemoteReplace(
+  preview: MergePreview,
+  created: Array<{ meta: PortfolioMeta; data: PortfolioData }>,
+  metasBefore: PortfolioMeta[],
+  booksBefore: Array<{ id: string; data: PortfolioData }>,
+): void {
+  overlayDirtyLocalHoldings(preview)
+  restoreSatelliteCreatedBooks(created)
+  dropSatelliteDeletedBooks(metasBefore.map((p) => p.id))
+  restoreSatelliteRenamedBooks(metasBefore)
+  overlaySatelliteNonCollectionFields(booksBefore)
 }
 
 export function overlayDirtyLocalHoldings(preview: MergePreview): void {
