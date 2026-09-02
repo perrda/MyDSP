@@ -1342,6 +1342,106 @@ describe('Mini ↔ satellite extras Worker round-trip (1.2.158)', () => {
     ).toBe(0.5)
   })
 
+  it('Mini already-pushed ETH survives a stale MacBook extras PUT', async () => {
+    installMockSyncCloud()
+
+    localStorage.setItem('mydsp_device_id', 'dev_mini')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    setSessionSyncPassphrase(PASS, { remember: true })
+    seedPortfolio('default', 'David', miniBook())
+    await pushSync(URL, PASS)
+    const miniBeforeEth = snapshotStorage()
+
+    localStorage.clear()
+    clearSessionSyncPassphrase()
+    localStorage.setItem('mydsp_device_id', 'dev_macbook')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: false,
+    })
+    seedPortfolio('default', 'David', leftoverBook())
+    await unlockAndPullFromCloud(PASS)
+    const macBeforeEth = snapshotStorage()
+    stopAutoSync()
+
+    restoreStorage(miniBeforeEth)
+    setSessionSyncPassphrase(PASS, { remember: true })
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    const withEth = loadPortfolio('default')
+    withEth.crypto.push({
+      id: 2,
+      symbol: 'ETH',
+      name: 'Ethereum',
+      qty: 3.5,
+      price: 3_000,
+      cost: 7_000,
+    })
+    savePortfolioImmediate(withEth, 'default')
+    await pushSync(URL, PASS)
+    expect(loadPortfolio('default').crypto.map((h) => h.symbol).sort()).toEqual(['BTC', 'ETH'])
+    const miniWithEth = snapshotStorage()
+
+    restoreStorage(macBeforeEth)
+    stopAutoSync()
+    setSessionSyncPassphrase(PASS, { remember: true })
+    const macCfg = loadSyncConfig()
+    saveSyncConfig({
+      ...macCfg,
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: false,
+    })
+    expect(loadSyncConfig().lastPulledHoldingIds?.default?.crypto).toEqual([1])
+    addYoutubeChannel({
+      channelId: 'UC_stale_eth',
+      title: 'Stale MacBook after Mini ETH',
+      url: 'https://www.youtube.com/@staleeth',
+    })
+    const grown = loadPortfolio('default')
+    grown.crypto[0] = { ...grown.crypto[0], qty: 13.25, cost: 420_000 }
+    savePortfolioImmediate(grown, 'default')
+    expect(loadPortfolio('default').crypto.map((h) => h.symbol)).toEqual(['BTC'])
+    await pushSync(URL, PASS)
+
+    restoreStorage(miniWithEth)
+    stopAutoSync()
+    setSessionSyncPassphrase(PASS, { remember: true })
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    await pushSync(URL, PASS)
+    expect(loadPortfolio('default').crypto.map((h) => h.symbol).sort()).toEqual(['BTC', 'ETH'])
+    expect(loadPortfolio('default').crypto.find((h) => h.symbol === 'ETH')?.qty).toBe(3.5)
+    expect(loadPortfolio('default').crypto.find((h) => h.symbol === 'BTC')?.qty).toBe(13.25)
+    expect(listYoutubeChannels().map((c) => c.title)).toContain('Stale MacBook after Mini ETH')
+
+    const afterMini = await previewPull(URL, PASS)
+    expect(
+      afterMini.portfolios
+        .find((p) => p.portfolioId === 'default')
+        ?.remote.crypto.map((h) => h.symbol)
+        .sort(),
+    ).toEqual(['BTC', 'ETH'])
+    expect(
+      afterMini.portfolios.find((p) => p.portfolioId === 'default')?.remote.crypto.find((h) => h.symbol === 'BTC')
+        ?.qty,
+    ).toBe(13.25)
+  })
+
   it('Mini delete Kids + satellite qty — absorb keeps the delete and the MacBook size', async () => {
     installMockSyncCloud()
 

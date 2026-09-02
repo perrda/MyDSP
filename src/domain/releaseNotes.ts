@@ -33,7 +33,7 @@ export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
     date: '2026-09-02',
     bullets: [
       {
-        text: 'A Kids book created, renamed, or deleted on Mini still lands when a MacBook size or channel changes — including one Mini already pushed; Mini never reverts it',
+        text: 'A Kids book created, renamed, or deleted on Mini still lands when a MacBook size or channel changes — including a Kids or ETH Mini already pushed; Mini never reverts it',
         to: '/settings#sync',
       },
       {

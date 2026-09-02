@@ -348,6 +348,12 @@ export interface MergePreview {
      * a Kids the satellite actually pulled and deleted.
      */
     lastPulledBookIds?: string[]
+    /**
+     * Holding ids per book this satellite last pulled. Mini absorb uses this
+     * to keep an already-pushed ETH a stale PUT omitted, without undoing a
+     * SOL the satellite actually pulled and deleted.
+     */
+    lastPulledHoldings?: Record<string, Partial<Record<string, number[]>>>
   }
 }
 
@@ -646,10 +652,13 @@ export async function buildEnvelope(
   let fullArchive: EncryptedBlob | undefined
   let archivePlain: unknown
   if (includeFull) {
-    const pulledBookIds = Object.keys(loadSyncConfig().lastPulledHoldingIds ?? {})
+    const lastPulled = loadSyncConfig().lastPulledHoldingIds
+    const pulledBookIds = Object.keys(lastPulled ?? {})
     archivePlain = {
       ...captureFullWorkspace(),
-      ...(pulledBookIds.length > 0 ? { lastPulledBookIds: pulledBookIds } : {}),
+      ...(pulledBookIds.length > 0
+        ? { lastPulledBookIds: pulledBookIds, lastPulledHoldings: lastPulled }
+        : {}),
     }
     fullArchive = await encryptJson(archivePlain, passphrase)
   }
@@ -959,8 +968,8 @@ function conflictRowSide(
  * `applyRemoteAsBook` so a satellite qty / delete is not parked and Mini’s
  * new channel still PUTs. After that REPLACE, overlay Mini-only new books,
  * Mini deletes / renames, and Mini-edited scalars (staking / FIRE / budgets)
- * so a MacBook size change never wipes a Mini Kids create (including one
- * Mini already pushed) or staking edit.
+ * so a MacBook size change never wipes a Mini Kids create or ETH add
+ * (including ones Mini already pushed) or staking edit.
  */
 export async function absorbRemoteWorkspaceExtrasBeforePush(
   url: string,
@@ -999,6 +1008,7 @@ export async function absorbRemoteWorkspaceExtrasBeforePush(
       metasBefore,
       booksBefore,
       preview.workspaceExtras?.lastPulledBookIds,
+      preview.workspaceExtras?.lastPulledHoldings,
     )
     await refreshMiniMarksAfterAbsorb()
     stampLastBookHoldingHashes()
@@ -1083,6 +1093,23 @@ export async function pushSync(url: string, passphrase: string): Promise<SyncPus
   })
   stampLastBookHoldingHashes()
   return { exportedAt: envelope.exportedAt, bytes }
+}
+
+function parseLastPulledHoldings(
+  raw: unknown,
+): Record<string, Partial<Record<string, number[]>>> | undefined {
+  if (!raw || typeof raw !== 'object') return undefined
+  const out: Record<string, Partial<Record<string, number[]>>> = {}
+  for (const [bookId, cols] of Object.entries(raw as Record<string, unknown>)) {
+    if (!bookId || !cols || typeof cols !== 'object') continue
+    const mapped: Partial<Record<string, number[]>> = {}
+    for (const [collection, ids] of Object.entries(cols as Record<string, unknown>)) {
+      if (!Array.isArray(ids)) continue
+      mapped[collection] = ids.filter((id): id is number => typeof id === 'number' && Number.isFinite(id))
+    }
+    out[bookId] = mapped
+  }
+  return Object.keys(out).length > 0 ? out : undefined
 }
 
 async function decryptEnvelope(
@@ -1198,6 +1225,11 @@ async function decryptEnvelope(
       extras.lastPulledBookIds = a.lastPulledBookIds.filter(
         (id): id is string => typeof id === 'string' && id.length > 0,
       )
+    }
+    const pulledHoldings = parseLastPulledHoldings(a.lastPulledHoldings)
+    if (pulledHoldings) extras.lastPulledHoldings = pulledHoldings
+    if (!extras.lastPulledBookIds && pulledHoldings) {
+      extras.lastPulledBookIds = Object.keys(pulledHoldings)
     }
     if (Object.keys(extras).length > 0) workspaceExtras = extras
   }
@@ -1893,6 +1925,37 @@ export function restoreMiniKeptBooks(
   restoreSatelliteCreatedBooks(kept)
 }
 
+/**
+ * After Mini absorb REPLACE, put back Mini holdings a stale satellite never
+ * pulled. Missing + never pulled → restore (already-pushed ETH). Missing +
+ * pulled → satellite deleted it — leave it gone. 1.2.163 envelopes omit
+ * `lastPulledHoldings`; keep honoring the remote book.
+ */
+export function restoreMiniKeptHoldings(
+  booksBefore: Array<{ id: string; data: PortfolioData }>,
+  remotePulledHoldings?: Record<string, Partial<Record<string, number[]>>>,
+): void {
+  if (!remotePulledHoldings) return
+  for (const { id, data } of booksBefore) {
+    if (!listPortfolios().some((p) => p.id === id)) continue
+    const pulled = remotePulledHoldings[id]
+    if (!pulled) continue
+    let next = loadPortfolio(id)
+    let changed = false
+    for (const collection of COLLECTIONS) {
+      const remRows = ((next[collection] as { id: number }[] | undefined) ?? [])
+      const remIds = new Set(remRows.map((row) => row.id))
+      const known = new Set(pulled[collection] ?? [])
+      const prevRows = ((data[collection] as { id: number }[] | undefined) ?? [])
+      const extra = prevRows.filter((row) => !remIds.has(row.id) && !known.has(row.id))
+      if (extra.length === 0) continue
+      next = { ...next, [collection]: [...remRows, ...extra] }
+      changed = true
+    }
+    if (changed) savePortfolioImmediate(next, id)
+  }
+}
+
 /** After Mini absorb REPLACE, drop books Mini deleted (still in the last stamp). */
 export function dropMiniDeletedBooks(localIdsBefore: string[]): void {
   const known = lastKnownBookIds()
@@ -2085,9 +2148,11 @@ export function overlayMiniBookAfterRemoteReplace(
   metasBefore: PortfolioMeta[],
   booksBefore: Array<{ id: string; data: PortfolioData }>,
   remotePulledBookIds?: string[],
+  remotePulledHoldings?: Record<string, Partial<Record<string, number[]>>>,
 ): void {
   restoreSatelliteCreatedBooks(created)
   restoreMiniKeptBooks(metasBefore, booksBefore, remotePulledBookIds)
+  restoreMiniKeptHoldings(booksBefore, remotePulledHoldings)
   dropMiniDeletedBooks(metasBefore.map((p) => p.id))
   restoreMiniRenamedBooks(metasBefore)
   overlayMiniNonCollectionFields(booksBefore)
