@@ -16,7 +16,6 @@ import {
   snapshotSatelliteCreatedBooks,
   stampLastPulledBookBaseline,
   stampLastPulledHoldingIds,
-  stampLastPulledHoldings,
   isBookDevice,
   loadSyncConfig,
   previewPull,
