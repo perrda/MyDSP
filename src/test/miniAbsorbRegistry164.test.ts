@@ -30,7 +30,7 @@ describe('MyDSP 1.2.164 Mini absorb keeps Mini family books and staking', () => 
     expect(section).toMatch(/restoreMiniRenamedBooks/)
     expect(section).toMatch(/mydsp_last_book_scalar_hashes/)
     expect(section).toMatch(/overlaySatelliteNonCollectionFields/)
-    expect(section).toMatch(/before overlay/)
+    expect(section).toMatch(/hashes before overlay/)
     expect(section).toMatch(/mydsp_last_pulled_scalar_hashes/)
     expect(section).toMatch(/mydsp_last_pulled_holding_hashes/)
     expect(section).toMatch(/satelliteBookDivergedFromLastPull/)
@@ -167,13 +167,19 @@ describe('MyDSP 1.2.164 Mini absorb keeps Mini family books and staking', () => 
       unlock.indexOf('export async function unlockAndPullFromCloud'),
       unlock.indexOf('export async function flushQueuedSyncPush'),
     )
-    expect(unlockFn.indexOf('stampLastPulledHoldings()')).toBeLessThan(
+    expect(unlockFn.indexOf('stampLastPulledBookBaseline()')).toBeLessThan(
       unlockFn.indexOf('overlaySatelliteBookAfterRemoteReplace'),
+    )
+    expect(unlockFn.indexOf('overlaySatelliteBookAfterRemoteReplace')).toBeLessThan(
+      unlockFn.indexOf('stampLastPulledHoldingIds()'),
     )
     const auto = read('../services/sync/autoSyncService.ts')
     const doPull = auto.slice(auto.indexOf('async function doPull'), auto.indexOf('async function doPush'))
-    expect(doPull.indexOf('stampLastPulledHoldings()')).toBeLessThan(
+    expect(doPull.indexOf('stampLastPulledBookBaseline()')).toBeLessThan(
       doPull.lastIndexOf('overlaySatelliteBookAfterRemoteReplace'),
+    )
+    expect(doPull.lastIndexOf('overlaySatelliteBookAfterRemoteReplace')).toBeLessThan(
+      doPull.indexOf('stampLastPulledHoldingIds()'),
     )
     expect(auto.slice(auto.indexOf('async function doPush'))).toMatch(/stampLastPulledExtrasHash/)
     expect(read('../services/sync/syncService.ts')).toMatch(/export function stampLastBookHoldingHashes/)

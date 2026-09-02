@@ -1628,7 +1628,15 @@ export async function applyRemoteAsBook(
  * added while this device was editing) stay so pull-then-push does not
  * revert Mini. Then upload that mix — never Mini’s older book alone.
  */
-export function stampLastPulledHoldings(): void {
+/** Mini’s book after REPLACE — hashes only. Do not refresh lastPulledHoldingIds
+ * yet: overlay still needs the previous ids to drop a Mini-deleted SOL. */
+export function stampLastPulledBookBaseline(): void {
+  stampLastPulledScalarHashes()
+  stampLastPulledHoldingHashes()
+  stampLastPulledRegistryNames()
+}
+
+export function stampLastPulledHoldingIds(): void {
   const ids: NonNullable<SyncConfig['lastPulledHoldingIds']> = {}
   for (const p of listPortfolios()) {
     const data = loadPortfolio(p.id)
@@ -1641,9 +1649,11 @@ export function stampLastPulledHoldings(): void {
     ids[p.id] = cols
   }
   saveSyncConfig({ ...loadSyncConfig(), lastPulledHoldingIds: ids })
-  stampLastPulledScalarHashes()
-  stampLastPulledHoldingHashes()
-  stampLastPulledRegistryNames()
+}
+
+export function stampLastPulledHoldings(): void {
+  stampLastPulledHoldingIds()
+  stampLastPulledBookBaseline()
 }
 
 function loadLastPulledScalarHashes(): BookScalarHashes | null {

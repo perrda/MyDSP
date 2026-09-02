@@ -14,6 +14,8 @@ import {
   satelliteBookDivergedFromLastPull,
   satelliteExtrasDivergedFromLastPull,
   snapshotSatelliteCreatedBooks,
+  stampLastPulledBookBaseline,
+  stampLastPulledHoldingIds,
   stampLastPulledHoldings,
   isBookDevice,
   loadSyncConfig,
@@ -175,12 +177,13 @@ export async function unlockAndPullFromCloud(passphrase: string): Promise<OneBut
       ? metasBefore.map((p) => ({ id: p.id, data: loadPortfolio(p.id) }))
       : []
     const result = await applyRemoteAsBook(preview, { stampHoldings: false })
-    // Stamp Mini’s book before overlay so a later pull-before-push still
-    // sees an unpushed staking / qty as diverged (not already “pulled”).
-    stampLastPulledHoldings()
+    // Hashes = Mini’s book so staking/qty still look diverged. Ids stay
+    // the previous pull until after overlay so a Mini-deleted SOL drops.
+    stampLastPulledBookBaseline()
     if (overlay) {
       overlaySatelliteBookAfterRemoteReplace(preview, createdBooks, metasBefore, booksBefore)
     }
+    stampLastPulledHoldingIds()
     rememberPassAndMaybeAuto({
       remoteUrl: url,
       lastSyncAt: new Date().toISOString(),

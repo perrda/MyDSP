@@ -21,6 +21,8 @@ import {
   satelliteExtrasDivergedFromLastPull,
   satelliteLocalStateDivergedFromLastPull,
   snapshotSatelliteCreatedBooks,
+  stampLastPulledBookBaseline,
+  stampLastPulledHoldingIds,
   stampLastPulledHoldings,
   stampLastPulledExtrasHash,
   fetchRemoteMeta,
@@ -559,10 +561,11 @@ async function doPull(cfg: SyncConfig, pass: string, reason: CycleReason): Promi
         ? metasBefore.map((p) => ({ id: p.id, data: loadPortfolio(p.id) }))
         : []
       const result = await applyRemoteAsBook(preview, { stampHoldings: false })
-      stampLastPulledHoldings()
+      stampLastPulledBookBaseline()
       if (overlay) {
         overlaySatelliteBookAfterRemoteReplace(preview, createdBooks, metasBefore, booksBefore)
       }
+      stampLastPulledHoldingIds()
       const at = new Date().toISOString()
       const pullMs = Date.now() - pullStarted
       updateCfg({
