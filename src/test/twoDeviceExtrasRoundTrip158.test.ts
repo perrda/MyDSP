@@ -1934,4 +1934,74 @@ describe('Mini ↔ satellite extras Worker round-trip (1.2.158)', () => {
       'MoneyZG',
     ])
   })
+
+  it('1.2.163 extras timestamp with no list hash still flushes an unpushed channel', async () => {
+    const cloud = installMockSyncCloud()
+
+    localStorage.setItem('mydsp_device_id', 'dev_mini')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    setSessionSyncPassphrase(PASS, { remember: true })
+    seedPortfolio('default', 'David', miniBook())
+    addYoutubeChannel({
+      channelId: 'UC_mini_1',
+      title: 'MoneyZG',
+      url: 'https://www.youtube.com/@MoneyZG',
+    })
+    await pushSync(URL, PASS)
+    const miniSnap = snapshotStorage()
+
+    localStorage.clear()
+    clearSessionSyncPassphrase()
+    localStorage.setItem('mydsp_device_id', 'dev_macbook')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: false,
+    })
+    seedPortfolio('default', 'David', leftoverBook())
+    await unlockAndPullFromCloud(PASS)
+    expect(listYoutubeChannels().map((c) => c.title)).toEqual(['MoneyZG'])
+
+    localStorage.removeItem('mydsp_last_pulled_extras_hash')
+    addYoutubeChannel({
+      channelId: 'UC_from_163',
+      title: 'Unpushed on 1.2.163',
+      url: 'https://www.youtube.com/@from163',
+    })
+    stopAutoSync()
+
+    await unlockAndPullFromCloud(PASS)
+    expect(listYoutubeChannels().map((c) => c.title).sort()).toEqual([
+      'MoneyZG',
+      'Unpushed on 1.2.163',
+    ])
+
+    await runAutoSyncCycle('start')
+    await vi.waitFor(() => {
+      expect(
+        cloud.fetchMock.mock.calls.filter((c) => String(c[1]?.method ?? 'GET').toUpperCase() === 'PUT')
+          .length,
+      ).toBeGreaterThan(1)
+    })
+
+    stopAutoSync()
+    restoreStorage(miniSnap)
+    setSessionSyncPassphrase(PASS, { remember: true })
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    await pushSync(URL, PASS)
+    expect(listYoutubeChannels().map((c) => c.title).sort()).toEqual([
+      'MoneyZG',
+      'Unpushed on 1.2.163',
+    ])
+  })
 })

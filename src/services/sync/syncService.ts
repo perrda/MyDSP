@@ -890,13 +890,16 @@ export function stampLastPulledExtrasHash(): void {
 /**
  * Satellite YouTube / News / Markets lists differ from the last pull stamp.
  * Reload drops in-memory dirty — this is what still flushes an unpushed channel.
- * No stamp yet (first Unlock) is not diverged, so leftover 8 channels still REPLACE.
+ * No extras apply yet (first Unlock, no lastWorkspaceExtrasSyncAt) is not
+ * diverged, so leftover 8 channels still REPLACE. A 1.2.163 satellite already
+ * stamped extras time but has no list hash — treat as diverged so an unpushed
+ * channel still flushes on the first 1.2.164 Unlock.
  */
 export function satelliteExtrasDivergedFromLastPull(): boolean {
   if (isBookDevice()) return false
   try {
     const raw = localStorage.getItem(PULLED_EXTRAS_KEY)
-    if (!raw) return false
+    if (!raw) return Boolean(loadSyncConfig().lastWorkspaceExtrasSyncAt)
     return raw !== stableHash(currentSatelliteExtrasFingerprint())
   } catch {
     return false

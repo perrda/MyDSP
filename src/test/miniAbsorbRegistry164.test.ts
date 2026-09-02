@@ -36,6 +36,7 @@ describe('MyDSP 1.2.164 Mini absorb keeps Mini family books and staking', () => 
     expect(section).toMatch(/satelliteExtrasDivergedFromLastPull/)
     expect(section).toMatch(/mydsp_last_pulled_extras_hash/)
     expect(section).toMatch(/applyWorkspaceExtrasFromPreview/)
+    expect(section).toMatch(/lastWorkspaceExtrasSyncAt/)
     expect(section).toMatch(/overlaySatelliteBookAfterRemoteReplace/)
     expect(section).toMatch(/overlayDirtyLocalHoldings/)
     expect(section).toMatch(/resurrect/)
@@ -59,6 +60,7 @@ describe('MyDSP 1.2.164 Mini absorb keeps Mini family books and staking', () => 
     expect(notes).toMatch(/Mini live prices stay/)
     expect(notes).toMatch(/deleted holding stays gone/)
     expect(notes).toMatch(/Unlock or reload on MacBook \/ iPhone \/ iPad keeps an unpushed size or channel/)
+    expect(notes).toMatch(/1\.2\.163 upgrade/)
     const tip = RELEASE_NOTES[0]!
     const kids = tip.bullets[0]
     expect(releaseBulletText(kids)).toMatch(/Kids book created, renamed, or deleted on Mini/)
@@ -127,14 +129,20 @@ describe('MyDSP 1.2.164 Mini absorb keeps Mini family books and staking', () => 
     expect(read('../services/sync/syncService.ts')).toMatch(/export function overlaySatelliteBookAfterRemoteReplace/)
     expect(read('../services/sync/syncService.ts')).toMatch(/export function satelliteBookDivergedFromLastPull/)
     expect(read('../services/sync/syncService.ts')).toMatch(/export function satelliteExtrasDivergedFromLastPull/)
+    const extrasFn = read('../services/sync/syncService.ts')
+    const diverge = extrasFn.slice(
+      extrasFn.indexOf('export function satelliteExtrasDivergedFromLastPull'),
+      extrasFn.indexOf('export function satelliteLocalStateDivergedFromLastPull'),
+    )
+    expect(diverge).toMatch(/lastWorkspaceExtrasSyncAt/)
     expect(read('../services/sync/syncService.ts')).toMatch(/export function stampLastPulledExtrasHash/)
     const extrasApply = read('../services/sync/syncService.ts')
-    const extrasFn = extrasApply.slice(
+    const extrasApplyFn = extrasApply.slice(
       extrasApply.indexOf('export async function applyWorkspaceExtrasFromPreview'),
       extrasApply.indexOf('export async function applyRemoteAsBook'),
     )
-    expect(extrasFn).toMatch(/satelliteExtrasDivergedFromLastPull/)
-    expect(extrasFn).toMatch(/markLocalDataChanged/)
+    expect(extrasApplyFn).toMatch(/satelliteExtrasDivergedFromLastPull/)
+    expect(extrasApplyFn).toMatch(/markLocalDataChanged/)
     expect(read('../services/sync/oneButtonSync.ts')).toMatch(/satelliteBookDivergedFromLastPull/)
     expect(read('../services/sync/oneButtonSync.ts')).toMatch(/satelliteExtrasDivergedFromLastPull/)
     expect(read('../services/sync/oneButtonSync.ts')).toMatch(/overlaySatelliteBookAfterRemoteReplace/)
