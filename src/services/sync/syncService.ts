@@ -1651,6 +1651,27 @@ export function stampLastPulledHoldingIds(): void {
   saveSyncConfig({ ...loadSyncConfig(), lastPulledHoldingIds: ids })
 }
 
+/**
+ * Mini’s remote ids — not the overlaid local book. Overlay uses the previous
+ * stamp so a Mini-deleted SOL still drops. Stamping the overlaid ETH / missing
+ * SOL made the next pull-then-push treat an unpushed add as Mini-deleted and
+ * put SOL back as a Mini-only row.
+ */
+export function stampLastPulledHoldingIdsFromRemote(preview: MergePreview): void {
+  if (isBookDevice()) return
+  const ids: NonNullable<SyncConfig['lastPulledHoldingIds']> = {}
+  for (const plan of preview.portfolios) {
+    const cols: Record<string, number[]> = {}
+    for (const collection of COLLECTIONS) {
+      cols[collection] = ((plan.remote[collection] as { id: number }[] | undefined) ?? []).map(
+        (row) => row.id,
+      )
+    }
+    ids[plan.portfolioId] = cols
+  }
+  saveSyncConfig({ ...loadSyncConfig(), lastPulledHoldingIds: ids })
+}
+
 export function stampLastPulledHoldings(): void {
   stampLastPulledHoldingIds()
   stampLastPulledBookBaseline()

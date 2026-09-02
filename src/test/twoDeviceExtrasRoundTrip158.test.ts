@@ -1786,6 +1786,200 @@ describe('Mini ↔ satellite extras Worker round-trip (1.2.158)', () => {
     expect(loadPortfolio('default').crypto.find((h) => h.symbol === 'BTC')?.qty).toBe(13.25)
   })
 
+  it('satellite Unlock after reload keeps an unpushed ETH add and still drops leftover qty', async () => {
+    const cloud = installMockSyncCloud()
+
+    localStorage.setItem('mydsp_device_id', 'dev_mini')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    setSessionSyncPassphrase(PASS, { remember: true })
+    seedPortfolio('default', 'David', miniBook())
+    await pushSync(URL, PASS)
+    const miniSnap = snapshotStorage()
+
+    localStorage.clear()
+    clearSessionSyncPassphrase()
+    localStorage.setItem('mydsp_device_id', 'dev_macbook')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: false,
+    })
+    seedPortfolio('default', 'David', leftoverBook())
+    await unlockAndPullFromCloud(PASS)
+    expect(loadPortfolio('default').crypto.map((h) => h.symbol)).toEqual(['BTC'])
+    expect(loadPortfolio('default').crypto.find((h) => h.symbol === 'BTC')?.qty).toBe(12.5)
+
+    const grown = loadPortfolio('default')
+    grown.crypto.push({
+      id: 2,
+      symbol: 'ETH',
+      name: 'Ethereum',
+      qty: 4,
+      price: 3_000,
+      cost: 8_000,
+    })
+    savePortfolioImmediate(grown, 'default')
+    stopAutoSync()
+
+    await unlockAndPullFromCloud(PASS)
+    expect(loadPortfolio('default').crypto.map((h) => h.symbol).sort()).toEqual(['BTC', 'ETH'])
+    expect(loadPortfolio('default').crypto.find((h) => h.symbol === 'ETH')?.qty).toBe(4)
+    expect(loadPortfolio('default').crypto.find((h) => h.symbol === 'BTC')?.qty).toBe(12.5)
+
+    await runAutoSyncCycle('start')
+    await vi.waitFor(() => {
+      expect(
+        cloud.fetchMock.mock.calls.filter((c) => String(c[1]?.method ?? 'GET').toUpperCase() === 'PUT')
+          .length,
+      ).toBeGreaterThan(1)
+    })
+
+    stopAutoSync()
+    restoreStorage(miniSnap)
+    setSessionSyncPassphrase(PASS, { remember: true })
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    await pushSync(URL, PASS)
+    expect(loadPortfolio('default').crypto.map((h) => h.symbol).sort()).toEqual(['BTC', 'ETH'])
+    expect(loadPortfolio('default').crypto.find((h) => h.symbol === 'ETH')?.qty).toBe(4)
+  })
+
+  it('satellite Unlock after reload keeps an unpushed Kids book', async () => {
+    const cloud = installMockSyncCloud()
+
+    localStorage.setItem('mydsp_device_id', 'dev_mini')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    setSessionSyncPassphrase(PASS, { remember: true })
+    seedPortfolio('default', 'David', miniBook())
+    await pushSync(URL, PASS)
+    const miniSnap = snapshotStorage()
+
+    localStorage.clear()
+    clearSessionSyncPassphrase()
+    localStorage.setItem('mydsp_device_id', 'dev_macbook')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: false,
+    })
+    seedPortfolio('default', 'David', leftoverBook())
+    await unlockAndPullFromCloud(PASS)
+    const kids = createPortfolio('Kids', { empty: true })
+    const kidsBook = loadPortfolio(kids.id)
+    kidsBook.crypto = [
+      { id: 1, symbol: 'BTC', name: 'Bitcoin', qty: 0.5, price: 85_000, cost: 20_000 },
+    ]
+    savePortfolioImmediate(kidsBook, kids.id)
+    stopAutoSync()
+
+    await unlockAndPullFromCloud(PASS)
+    expect(listPortfolios().map((p) => p.name).sort()).toEqual(['David', 'Kids'])
+    const kidsId = listPortfolios().find((p) => p.name === 'Kids')?.id
+    expect(kidsId).toBeTruthy()
+    expect(loadPortfolio(kidsId!).crypto.find((h) => h.symbol === 'BTC')?.qty).toBe(0.5)
+
+    await runAutoSyncCycle('start')
+    await vi.waitFor(() => {
+      expect(
+        cloud.fetchMock.mock.calls.filter((c) => String(c[1]?.method ?? 'GET').toUpperCase() === 'PUT')
+          .length,
+      ).toBeGreaterThan(1)
+    })
+
+    stopAutoSync()
+    restoreStorage(miniSnap)
+    setSessionSyncPassphrase(PASS, { remember: true })
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    await pushSync(URL, PASS)
+    expect(listPortfolios().map((p) => p.name).sort()).toEqual(['David', 'Kids'])
+    const afterKids = listPortfolios().find((p) => p.name === 'Kids')?.id
+    expect(loadPortfolio(afterKids!).crypto.find((h) => h.symbol === 'BTC')?.qty).toBe(0.5)
+  })
+
+  it('satellite Unlock after reload keeps an unpushed SOL delete', async () => {
+    const cloud = installMockSyncCloud()
+    const two = miniBook()
+    two.crypto.push({
+      id: 2,
+      symbol: 'SOL',
+      name: 'Solana',
+      qty: 10,
+      price: 140,
+      cost: 1_200,
+    })
+
+    localStorage.setItem('mydsp_device_id', 'dev_mini')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    setSessionSyncPassphrase(PASS, { remember: true })
+    seedPortfolio('default', 'David', two)
+    await pushSync(URL, PASS)
+    const miniSnap = snapshotStorage()
+
+    localStorage.clear()
+    clearSessionSyncPassphrase()
+    localStorage.setItem('mydsp_device_id', 'dev_macbook')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: false,
+    })
+    seedPortfolio('default', 'David', leftoverBook())
+    await unlockAndPullFromCloud(PASS)
+    expect(loadPortfolio('default').crypto.map((h) => h.symbol).sort()).toEqual(['BTC', 'SOL'])
+
+    const trimmed = loadPortfolio('default')
+    trimmed.crypto = trimmed.crypto.filter((h) => h.symbol !== 'SOL')
+    savePortfolioImmediate(trimmed, 'default')
+    stopAutoSync()
+
+    await unlockAndPullFromCloud(PASS)
+    expect(loadPortfolio('default').crypto.map((h) => h.symbol)).toEqual(['BTC'])
+
+    await runAutoSyncCycle('start')
+    await vi.waitFor(() => {
+      expect(
+        cloud.fetchMock.mock.calls.filter((c) => String(c[1]?.method ?? 'GET').toUpperCase() === 'PUT')
+          .length,
+      ).toBeGreaterThan(1)
+    })
+
+    stopAutoSync()
+    restoreStorage(miniSnap)
+    setSessionSyncPassphrase(PASS, { remember: true })
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    await pushSync(URL, PASS)
+    expect(loadPortfolio('default').crypto.map((h) => h.symbol)).toEqual(['BTC'])
+  })
+
   it('satellite Unlock after reload keeps an unpushed YouTube channel and still drops leftovers', async () => {
     const cloud = installMockSyncCloud()
 

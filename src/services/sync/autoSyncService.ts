@@ -22,7 +22,7 @@ import {
   satelliteLocalStateDivergedFromLastPull,
   snapshotSatelliteCreatedBooks,
   stampLastPulledBookBaseline,
-  stampLastPulledHoldingIds,
+  stampLastPulledHoldingIdsFromRemote,
   stampLastPulledHoldings,
   stampLastPulledExtrasHash,
   fetchRemoteMeta,
@@ -565,7 +565,7 @@ async function doPull(cfg: SyncConfig, pass: string, reason: CycleReason): Promi
       if (overlay) {
         overlaySatelliteBookAfterRemoteReplace(preview, createdBooks, metasBefore, booksBefore)
       }
-      stampLastPulledHoldingIds()
+      stampLastPulledHoldingIdsFromRemote(preview)
       const at = new Date().toISOString()
       const pullMs = Date.now() - pullStarted
       updateCfg({
