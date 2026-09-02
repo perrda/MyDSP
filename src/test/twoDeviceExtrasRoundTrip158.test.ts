@@ -16,8 +16,8 @@ import {
   pushSync,
   saveSyncConfig,
 } from '../services/sync/syncService'
-import { addMarketTicker, listMarketTickers } from '../storage/marketsStore'
-import { addNewsTag, loadNewsState } from '../storage/newsStore'
+import { addMarketTicker, listMarketTickers, removeMarketTicker } from '../storage/marketsStore'
+import { addNewsTag, loadNewsState, removeNewsTag } from '../storage/newsStore'
 import {
   createPortfolio,
   deletePortfolio,
@@ -26,7 +26,7 @@ import {
   renamePortfolio,
   savePortfolioImmediate,
 } from '../storage/portfolioStore'
-import { addYoutubeChannel, listYoutubeChannels } from '../storage/youtubeStore'
+import { addYoutubeChannel, listYoutubeChannels, removeYoutubeChannel } from '../storage/youtubeStore'
 import { refreshLiveMarksAfterUnlock } from '../services/marketsQuotes'
 
 vi.mock('../services/marketsQuotes', () => ({
@@ -309,6 +309,85 @@ describe('Mini ↔ satellite extras Worker round-trip (1.2.158)', () => {
       'Added on MacBook after Unlock',
       'MoneyZG',
     ])
+  })
+
+  it('Mini boot/Backup pushSync absorbs extras deletes from the satellite after Unlock', async () => {
+    const cloud = installMockSyncCloud()
+
+    localStorage.setItem('mydsp_device_id', 'dev_mini')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    setSessionSyncPassphrase(PASS, { remember: true })
+    seedPortfolio('default', 'David', miniBook())
+    addYoutubeChannel({
+      channelId: 'UC_mini_1',
+      title: 'MoneyZG',
+      url: 'https://www.youtube.com/@MoneyZG',
+    })
+    addYoutubeChannel({
+      channelId: 'UC_mini_2',
+      title: 'Simply Bitcoin',
+      url: 'https://www.youtube.com/@SimplyBitcoin',
+    })
+    addNewsTag({ tag: 'MINI', label: 'Mini-only tag' })
+    addNewsTag({ tag: 'DROP', label: 'Drop on satellite' })
+    addMarketTicker({ kind: 'crypto', symbol: 'SOL', name: 'Solana' })
+    addMarketTicker({ kind: 'crypto', symbol: 'DOGE', name: 'Dogecoin' })
+    await pushSync(URL, PASS)
+    const miniSnap = snapshotStorage()
+
+    localStorage.clear()
+    clearSessionSyncPassphrase()
+    localStorage.setItem('mydsp_device_id', 'dev_macbook')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: false,
+    })
+    seedPortfolio('default', 'David', leftoverBook())
+    await unlockAndPullFromCloud(PASS)
+    const simply = listYoutubeChannels().find((c) => c.title === 'Simply Bitcoin')
+    const dropTag = loadNewsState().tags.find((t) => t.tag === 'DROP')
+    const doge = listMarketTickers().find((t) => t.symbol === 'DOGE')
+    expect(simply && dropTag && doge).toBeTruthy()
+    removeYoutubeChannel(simply!.id)
+    removeNewsTag(dropTag!.id)
+    removeMarketTicker(doge!.id)
+    vi.useFakeTimers({ toFake: ['setTimeout', 'setInterval'] })
+    markLocalDataChanged()
+    await vi.advanceTimersByTimeAsync(4_000)
+    vi.useRealTimers()
+    await vi.waitFor(() => {
+      expect(
+        cloud.fetchMock.mock.calls.filter((c) => String(c[1]?.method ?? 'GET').toUpperCase() === 'PUT')
+          .length,
+      ).toBeGreaterThan(1)
+    })
+    expect(listYoutubeChannels().map((c) => c.title)).toEqual(['MoneyZG'])
+    expect(loadNewsState().tags.map((t) => t.tag)).not.toContain('DROP')
+    expect(listMarketTickers().map((t) => t.symbol)).not.toContain('DOGE')
+
+    stopAutoSync()
+    restoreStorage(miniSnap)
+    setSessionSyncPassphrase(PASS, { remember: true })
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    expect(listYoutubeChannels().map((c) => c.title).sort()).toEqual(['MoneyZG', 'Simply Bitcoin'])
+
+    await pushSync(URL, PASS)
+    expect(listYoutubeChannels().map((c) => c.title)).toEqual(['MoneyZG'])
+    expect(loadNewsState().tags.map((t) => t.tag)).toContain('MINI')
+    expect(loadNewsState().tags.map((t) => t.tag)).not.toContain('DROP')
+    expect(listMarketTickers().map((t) => t.symbol)).toContain('SOL')
+    expect(listMarketTickers().map((t) => t.symbol)).not.toContain('DOGE')
   })
 
   it('Mini boot/Backup pushSync absorbs satellite holding size — never reverts BTC qty', async () => {
