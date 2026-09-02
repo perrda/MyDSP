@@ -61,6 +61,8 @@ describe('MyDSP 1.2.164 Mini absorb keeps Mini family books and staking', () => 
     expect(notes).toMatch(/deleted holding stays gone/)
     expect(notes).toMatch(/Unlock or reload on MacBook \/ iPhone \/ iPad keeps an unpushed size or channel/)
     expect(notes).toMatch(/1\.2\.163 upgrade/)
+    expect(notes).toMatch(/lastPulledHoldingIds/)
+    expect(section).toMatch(/lastPulledHoldingIds/)
     const tip = RELEASE_NOTES[0]!
     const kids = tip.bullets[0]
     expect(releaseBulletText(kids)).toMatch(/Kids book created, renamed, or deleted on Mini/)
@@ -128,6 +130,12 @@ describe('MyDSP 1.2.164 Mini absorb keeps Mini family books and staking', () => 
     expect(read('../services/sync/syncService.ts')).toMatch(/export function overlaySatelliteNonCollectionFields/)
     expect(read('../services/sync/syncService.ts')).toMatch(/export function overlaySatelliteBookAfterRemoteReplace/)
     expect(read('../services/sync/syncService.ts')).toMatch(/export function satelliteBookDivergedFromLastPull/)
+    const bookDiverge = read('../services/sync/syncService.ts')
+    const bookFn = bookDiverge.slice(
+      bookDiverge.indexOf('export function satelliteBookDivergedFromLastPull'),
+      bookDiverge.indexOf('function currentSatelliteExtrasFingerprint'),
+    )
+    expect(bookFn).toMatch(/lastPulledHoldingIds/)
     expect(read('../services/sync/syncService.ts')).toMatch(/export function satelliteExtrasDivergedFromLastPull/)
     const extrasFn = read('../services/sync/syncService.ts')
     const diverge = extrasFn.slice(

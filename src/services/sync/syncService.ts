@@ -850,7 +850,12 @@ export function satelliteBookDivergedFromLastPull(): boolean {
   const hashes = loadLastPulledHoldingHashes()
   const scalars = loadLastPulledScalarHashes()
   const names = loadLastPulledRegistryNames()
-  if (!hashes && !scalars && !names) return false
+  if (!hashes && !scalars && !names) {
+    // 1.2.163 Unlock stamped lastPulledHoldingIds only. An unpushed qty
+    // would REPLACE back to Mini on the first 1.2.164 Unlock without this.
+    const pulledIds = loadSyncConfig().lastPulledHoldingIds
+    return Boolean(pulledIds && Object.keys(pulledIds).length > 0)
+  }
   if (hashes && !holdingsMatchStamp(hashes)) return true
   if (scalars && !scalarsMatchStamp(scalars)) return true
   if (names && !registryMatchStamp(names)) return true

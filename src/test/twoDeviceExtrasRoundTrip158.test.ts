@@ -2004,4 +2004,63 @@ describe('Mini ↔ satellite extras Worker round-trip (1.2.158)', () => {
       'Unpushed on 1.2.163',
     ])
   })
+
+  it('1.2.163 lastPulledHoldingIds with no hash still keeps an unpushed qty', async () => {
+    const cloud = installMockSyncCloud()
+
+    localStorage.setItem('mydsp_device_id', 'dev_mini')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    setSessionSyncPassphrase(PASS, { remember: true })
+    seedPortfolio('default', 'David', miniBook())
+    await pushSync(URL, PASS)
+    const miniSnap = snapshotStorage()
+
+    localStorage.clear()
+    clearSessionSyncPassphrase()
+    localStorage.setItem('mydsp_device_id', 'dev_macbook')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: false,
+    })
+    seedPortfolio('default', 'David', leftoverBook())
+    await unlockAndPullFromCloud(PASS)
+    expect(loadPortfolio('default').crypto.find((h) => h.symbol === 'BTC')?.qty).toBe(12.5)
+
+    localStorage.removeItem('mydsp_last_pulled_holding_hashes')
+    localStorage.removeItem('mydsp_last_pulled_scalar_hashes')
+    localStorage.removeItem('mydsp_last_pulled_registry_names')
+    const grown = loadPortfolio('default')
+    grown.crypto[0] = { ...grown.crypto[0], qty: 13.25, cost: 420_000 }
+    savePortfolioImmediate(grown, 'default')
+    stopAutoSync()
+
+    await unlockAndPullFromCloud(PASS)
+    expect(loadPortfolio('default').crypto.find((h) => h.symbol === 'BTC')?.qty).toBe(13.25)
+
+    await runAutoSyncCycle('start')
+    await vi.waitFor(() => {
+      expect(
+        cloud.fetchMock.mock.calls.filter((c) => String(c[1]?.method ?? 'GET').toUpperCase() === 'PUT')
+          .length,
+      ).toBeGreaterThan(1)
+    })
+
+    stopAutoSync()
+    restoreStorage(miniSnap)
+    setSessionSyncPassphrase(PASS, { remember: true })
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    await pushSync(URL, PASS)
+    expect(loadPortfolio('default').crypto.find((h) => h.symbol === 'BTC')?.qty).toBe(13.25)
+  })
 })
