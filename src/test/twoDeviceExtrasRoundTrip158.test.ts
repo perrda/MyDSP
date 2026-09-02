@@ -11,6 +11,7 @@ import { unlockAndPullFromCloud } from '../services/sync/oneButtonSync'
 import { markLocalDataChanged, runAutoSyncCycle, stopAutoSync } from '../services/sync/autoSyncService'
 import { clearSessionSyncPassphrase, setSessionSyncPassphrase } from '../services/sync/sessionPassphrase'
 import {
+  applyReviewedPull,
   applyWorkspaceExtrasFromPreview,
   previewPull,
   pushSync,
@@ -1830,6 +1831,70 @@ describe('Mini ↔ satellite extras Worker round-trip (1.2.158)', () => {
     expect(loadPortfolio('default').crypto.map((h) => h.symbol).sort()).toEqual(['BTC', 'ETH'])
     expect(loadPortfolio('default').crypto.find((h) => h.symbol === 'ETH')?.qty).toBe(4)
     expect(loadPortfolio('default').crypto.find((h) => h.symbol === 'BTC')?.qty).toBe(12.5)
+
+    await runAutoSyncCycle('start')
+    await vi.waitFor(() => {
+      expect(
+        cloud.fetchMock.mock.calls.filter((c) => String(c[1]?.method ?? 'GET').toUpperCase() === 'PUT')
+          .length,
+      ).toBeGreaterThan(1)
+    })
+
+    stopAutoSync()
+    restoreStorage(miniSnap)
+    setSessionSyncPassphrase(PASS, { remember: true })
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    await pushSync(URL, PASS)
+    expect(loadPortfolio('default').crypto.map((h) => h.symbol).sort()).toEqual(['BTC', 'ETH'])
+    expect(loadPortfolio('default').crypto.find((h) => h.symbol === 'ETH')?.qty).toBe(4)
+  })
+
+  it('satellite Advanced Pull after reload keeps an unpushed ETH add', async () => {
+    const cloud = installMockSyncCloud()
+
+    localStorage.setItem('mydsp_device_id', 'dev_mini')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    setSessionSyncPassphrase(PASS, { remember: true })
+    seedPortfolio('default', 'David', miniBook())
+    await pushSync(URL, PASS)
+    const miniSnap = snapshotStorage()
+
+    localStorage.clear()
+    clearSessionSyncPassphrase()
+    localStorage.setItem('mydsp_device_id', 'dev_macbook')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: false,
+    })
+    seedPortfolio('default', 'David', leftoverBook())
+    await unlockAndPullFromCloud(PASS)
+    const grown = loadPortfolio('default')
+    grown.crypto.push({
+      id: 2,
+      symbol: 'ETH',
+      name: 'Ethereum',
+      qty: 4,
+      price: 3_000,
+      cost: 8_000,
+    })
+    savePortfolioImmediate(grown, 'default')
+    stopAutoSync()
+
+    const preview = await previewPull(URL, PASS)
+    await applyReviewedPull(preview, {})
+    expect(loadPortfolio('default').crypto.map((h) => h.symbol).sort()).toEqual(['BTC', 'ETH'])
+    expect(loadPortfolio('default').crypto.find((h) => h.symbol === 'ETH')?.qty).toBe(4)
 
     await runAutoSyncCycle('start')
     await vi.waitFor(() => {

@@ -108,6 +108,6 @@ describe('MyDSP 1.2.163 Mini absorbs satellite holding sizes before book push', 
     expect(read('../services/sync/syncService.ts')).toMatch(/stampHoldings/)
     const sync = read('../services/sync/syncService.ts')
     const reviewed = sync.slice(sync.indexOf('export async function applyReviewedPull'))
-    expect(reviewed).toMatch(/applyRemoteAsBook\(preview\)/)
+    expect(reviewed).toMatch(/applyRemoteAsBook\(preview/)
   })
 })

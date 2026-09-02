@@ -60,11 +60,12 @@ describe('MyDSP 1.2.164 Mini absorb keeps Mini family books and staking', () => 
     expect(notes).toMatch(/Staking, FIRE, and budget edits survive absorb/)
     expect(notes).toMatch(/Mini live prices stay/)
     expect(notes).toMatch(/deleted holding stays gone/)
-    expect(notes).toMatch(/Unlock or reload on MacBook \/ iPhone \/ iPad keeps an unpushed size, new ETH, Kids book, SOL delete, or channel/)
+    expect(notes).toMatch(/Unlock, reload, or Pull book from Mini on MacBook \/ iPhone \/ iPad keeps an unpushed size, new ETH, Kids book, SOL delete, or channel/)
     expect(notes).toMatch(/1\.2\.163 upgrade/)
     expect(notes).toMatch(/lastPulledHoldingIds/)
     expect(section).toMatch(/lastPulledHoldingIds/)
     expect(section).toMatch(/stampLastPulledHoldingIdsFromRemote/)
+    expect(section).toMatch(/applyReviewedPull/)
     expect(section).toMatch(/mydsp_last_pulled_scalar_hashes/)
     const tip = RELEASE_NOTES[0]!
     const kids = tip.bullets[0]
@@ -74,7 +75,7 @@ describe('MyDSP 1.2.164 Mini absorb keeps Mini family books and staking', () => 
     expect(staking).toBeTruthy()
     expect(releaseBulletHref(staking!)).toBe('/settings#sync')
     const unlockKeep = tip.bullets.find((b) =>
-      /Unlock or reload on MacBook \/ iPhone \/ iPad keeps an unpushed size, new ETH, Kids book, SOL delete, or channel/.test(
+      /Unlock, reload, or Pull book from Mini on MacBook \/ iPhone \/ iPad keeps an unpushed size, new ETH, Kids book, SOL delete, or channel/.test(
         releaseBulletText(b),
       ),
     )
@@ -187,5 +188,10 @@ describe('MyDSP 1.2.164 Mini absorb keeps Mini family books and staking', () => 
     expect(auto.slice(auto.indexOf('async function doPush'))).toMatch(/stampLastPulledExtrasHash/)
     expect(read('../services/sync/syncService.ts')).toMatch(/export function stampLastBookHoldingHashes/)
     expect(read('../services/sync/syncService.ts')).toMatch(/export function bookHoldingsMatchLastStamp/)
+    const reviewed = read('../services/sync/syncService.ts')
+    const reviewedFn = reviewed.slice(reviewed.indexOf('export async function applyReviewedPull'))
+    expect(reviewedFn).toMatch(/overlaySatelliteBookAfterRemoteReplace/)
+    expect(reviewedFn).toMatch(/stampLastPulledHoldingIdsFromRemote/)
+    expect(reviewedFn).toMatch(/stampHoldings: false/)
   })
 })

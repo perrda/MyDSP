@@ -2134,14 +2134,35 @@ export async function applyMergePreview(
 
 /**
  * Advanced / conflict / file apply: satellites REPLACE Mini’s book (never union leftovers).
- * Mini (book) still reviews and unions via applyMergePreview.
+ * Same overlay + remote-id stamp as Unlock / doPull so an unpushed ETH / Kids /
+ * SOL delete is not wiped then pushed. Mini still reviews via applyMergePreview.
  */
 export async function applyReviewedPull(
   preview: MergePreview,
   resolutions: Record<string, ConflictChoice> = {},
 ): Promise<{ merged: number; conflicts: SyncConflict[]; removedDupes: number }> {
   if (!isBookDevice()) {
-    const result = await applyRemoteAsBook(preview)
+    const extrasDiverged = satelliteExtrasDivergedFromLastPull()
+    const overlay = satelliteBookDivergedFromLastPull() || extrasDiverged
+    const createdBooks = overlay ? snapshotSatelliteCreatedBooks() : []
+    const metasBefore = overlay ? listPortfolios() : []
+    const booksBefore = overlay
+      ? metasBefore.map((p) => ({ id: p.id, data: loadPortfolio(p.id) }))
+      : []
+    const result = await applyRemoteAsBook(preview, { stampHoldings: false })
+    stampLastPulledBookBaseline()
+    if (overlay) {
+      overlaySatelliteBookAfterRemoteReplace(preview, createdBooks, metasBefore, booksBefore)
+    }
+    stampLastPulledHoldingIdsFromRemote(preview)
+    if (overlay || extrasDiverged) {
+      try {
+        const { markLocalDataChanged } = await import('./autoSyncService')
+        markLocalDataChanged()
+      } catch {
+        /* cycle import during isolated tests */
+      }
+    }
     try {
       const { refreshLiveMarksAfterUnlock } = await import('../marketsQuotes')
       await refreshLiveMarksAfterUnlock()
