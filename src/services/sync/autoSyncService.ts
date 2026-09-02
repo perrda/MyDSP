@@ -10,11 +10,18 @@
  */
 
 import { enqueueOfflineJob } from '../offlineQueue'
+import { listPortfolios } from '../../storage/portfolioStore'
 import {
   allConflictsResolved,
   applyMergePreview,
   applyWorkspaceExtrasFromPreview,
   applyRemoteAsBook,
+  overlayDirtyLocalHoldings,
+  dropSatelliteDeletedBooks,
+  restoreSatelliteCreatedBooks,
+  restoreSatelliteRenamedBooks,
+  snapshotSatelliteCreatedBooks,
+  stampLastPulledHoldings,
   fetchRemoteMeta,
   getLocalDeviceId,
   isBookDevice,
@@ -408,6 +415,11 @@ export function shouldRunSyncCycle(
   return isDirty || reason === 'edit' || reason === 'hide' || reason === 'manual'
 }
 
+/** True when a local extras / book edit is waiting to flush. */
+export function isLocalSyncDirty(): boolean {
+  return dirty
+}
+
 export function markLocalDataChanged(): void {
   if (applyingRemote) {
     dirtyWhileApplying = true
@@ -535,7 +547,16 @@ async function doPull(cfg: SyncConfig, pass: string, reason: CycleReason): Promi
     beginApplyingRemote()
     try {
       await applyWorkspaceExtrasFromPreview(preview)
-      const result = await applyRemoteAsBook(preview)
+      const createdBooks = dirty ? snapshotSatelliteCreatedBooks() : []
+      const metasBefore = dirty ? listPortfolios() : []
+      const result = await applyRemoteAsBook(preview, { stampHoldings: false })
+      if (dirty) {
+        overlayDirtyLocalHoldings(preview)
+        restoreSatelliteCreatedBooks(createdBooks)
+        dropSatelliteDeletedBooks(metasBefore.map((p) => p.id))
+        restoreSatelliteRenamedBooks(metasBefore)
+      }
+      stampLastPulledHoldings()
       const at = new Date().toISOString()
       const pullMs = Date.now() - pullStarted
       updateCfg({
@@ -818,6 +839,14 @@ async function maybeAbsorbAndPushBookExtras(cfg: SyncConfig): Promise<void> {
   try {
     const { absorbRemoteWorkspaceExtrasBeforePush, pushSync } = await import('./syncService')
     const absorbed = await absorbRemoteWorkspaceExtrasBeforePush(cfg.remoteUrl, pass)
+    if (absorbed === 'parked') {
+      emit({
+        state: 'conflict',
+        message: 'Holding changes from another device — open Settings → Sync',
+        lastAt: cfg.lastSyncAt ?? status.lastAt,
+      })
+      return
+    }
     if (!absorbed && !dirty) {
       emit({
         state: 'idle',
@@ -968,6 +997,7 @@ export function startAutoSync(): void {
             const { shouldPushCloudAfterBackup } = await import('../../storage/backupStore')
             if (shouldPushCloudAfterBackup(cfg, pass)) {
               // pushSync absorbs satellite extras first — never revert a channel.
+              // 1.2.163 also merges satellite holding sizes before that PUT.
               const { pushSync } = await import('./syncService')
               await pushSync(cfg.remoteUrl, pass)
               noteSuccessfulCloudContact({ lastAt: new Date().toISOString(), emitIdle: true })

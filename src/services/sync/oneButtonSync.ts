@@ -10,6 +10,7 @@ import { chooseFirstSyncAction, localBookIsSourceOfTruth, mayPushOnEmptyCloud } 
 import {
   applyRemoteAsBook,
   applyWorkspaceExtrasFromPreview,
+  stampLastPulledHoldings,
   isBookDevice,
   loadSyncConfig,
   previewPull,
@@ -170,6 +171,7 @@ export async function unlockAndPullFromCloud(passphrase: string): Promise<OneBut
       enabled: true,
       thisDeviceIsTheBook: false,
     })
+    stampLastPulledHoldings()
     noteSuccessfulUnlock()
     await refreshLiveMarksAfterUnlock()
     return {

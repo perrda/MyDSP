@@ -1196,6 +1196,7 @@ async function attemptAutoSync(): Promise<void> {
 
   try {
     // pushSync absorbs satellite extras first so Backup never reverts them.
+    // 1.2.163 also absorbs satellite holding sizes before that PUT.
     await _pushSyncLazy(cfg.remoteUrl, pass)
   } catch (err) {
     console.warn('[auto-sync] Push failed after backup:', err)
