@@ -1492,4 +1492,99 @@ describe('Mini ↔ satellite extras Worker round-trip (1.2.158)', () => {
     expect(remote?.staking.rewards.some((r) => r.epoch === 513)).toBe(true)
     expect(remote?.monthlyIncome).toBe(9_100)
   })
+
+  it('satellite dirty pull-then-push does not resurrect a SOL Mini already deleted', async () => {
+    const cloud = installMockSyncCloud()
+    const two = miniBook()
+    two.crypto.push({
+      id: 2,
+      symbol: 'SOL',
+      name: 'Solana',
+      qty: 10,
+      price: 140,
+      cost: 1_000,
+    })
+
+    localStorage.setItem('mydsp_device_id', 'dev_mini')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    setSessionSyncPassphrase(PASS, { remember: true })
+    seedPortfolio('default', 'David', two)
+    await pushSync(URL, PASS)
+    const miniWithSol = snapshotStorage()
+
+    localStorage.clear()
+    clearSessionSyncPassphrase()
+    localStorage.setItem('mydsp_device_id', 'dev_macbook')
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: false,
+    })
+    seedPortfolio('default', 'David', leftoverBook())
+    await unlockAndPullFromCloud(PASS)
+    expect(loadPortfolio('default').crypto.map((h) => h.symbol).sort()).toEqual(['BTC', 'SOL'])
+    const satSnap = snapshotStorage()
+
+    stopAutoSync()
+    restoreStorage(miniWithSol)
+    setSessionSyncPassphrase(PASS, { remember: true })
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    const trimmed = loadPortfolio('default')
+    trimmed.crypto = trimmed.crypto.filter((h) => h.symbol !== 'SOL')
+    savePortfolioImmediate(trimmed, 'default')
+    await pushSync(URL, PASS)
+    expect(loadPortfolio('default').crypto.map((h) => h.symbol)).toEqual(['BTC'])
+    const miniNoSol = snapshotStorage()
+
+    stopAutoSync()
+    restoreStorage(satSnap)
+    setSessionSyncPassphrase(PASS)
+    addYoutubeChannel({
+      channelId: 'UC_resurrect',
+      title: 'Must not resurrect SOL',
+      url: 'https://www.youtube.com/@nosol',
+    })
+    vi.useFakeTimers({ toFake: ['setTimeout', 'setInterval'] })
+    markLocalDataChanged()
+    await vi.advanceTimersByTimeAsync(4_000)
+    vi.useRealTimers()
+    await vi.waitFor(() => {
+      expect(
+        cloud.fetchMock.mock.calls.filter((c) => String(c[1]?.method ?? 'GET').toUpperCase() === 'PUT')
+          .length,
+      ).toBeGreaterThan(2)
+    })
+    expect(loadPortfolio('default').crypto.map((h) => h.symbol)).toEqual(['BTC'])
+    expect(listYoutubeChannels().map((c) => c.title)).toContain('Must not resurrect SOL')
+
+    stopAutoSync()
+    restoreStorage(miniNoSol)
+    setSessionSyncPassphrase(PASS, { remember: true })
+    saveSyncConfig({
+      remoteUrl: URL,
+      enabled: false,
+      thisDeviceIsTheBook: true,
+      rememberPassphrase: true,
+    })
+    await pushSync(URL, PASS)
+    expect(loadPortfolio('default').crypto.map((h) => h.symbol)).toEqual(['BTC'])
+    expect(listYoutubeChannels().map((c) => c.title)).toContain('Must not resurrect SOL')
+
+    const afterMini = await previewPull(URL, PASS)
+    expect(
+      afterMini.portfolios
+        .find((p) => p.portfolioId === 'default')
+        ?.remote.crypto.map((h) => h.symbol),
+    ).toEqual(['BTC'])
+  })
 })

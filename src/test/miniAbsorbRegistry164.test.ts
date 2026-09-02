@@ -31,6 +31,8 @@ describe('MyDSP 1.2.164 Mini absorb keeps Mini family books and staking', () => 
     expect(section).toMatch(/mydsp_last_book_scalar_hashes/)
     expect(section).toMatch(/overlaySatelliteNonCollectionFields/)
     expect(section).toMatch(/mydsp_last_pulled_scalar_hashes/)
+    expect(section).toMatch(/overlayDirtyLocalHoldings/)
+    expect(section).toMatch(/resurrect/)
     expect(section).toMatch(/applyRemoteAsBook/)
     expect(section).toMatch(/Kids/)
     expect(section).toMatch(/staking/)
@@ -44,6 +46,7 @@ describe('MyDSP 1.2.164 Mini absorb keeps Mini family books and staking', () => 
     const notes = read('../domain/releaseNotes.ts')
     expect(notes).toMatch(/Kids book created, renamed, or deleted on Mini/)
     expect(notes).toMatch(/Staking, FIRE, and budget edits on Mini or a MacBook/)
+    expect(notes).toMatch(/Mini-deleted holding stays gone/)
     const tip = RELEASE_NOTES[0]!
     const kids = tip.bullets[0]
     expect(releaseBulletText(kids)).toMatch(/Kids book created, renamed, or deleted on Mini/)

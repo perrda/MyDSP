@@ -1707,9 +1707,14 @@ export function overlayDirtyLocalHoldings(preview: MergePreview): void {
       const locArr = (plan.local[collection] as { id: number }[] | undefined) ?? []
       const remArr = (plan.remote[collection] as { id: number }[] | undefined) ?? []
       const locIds = new Set(locArr.map((row) => row.id))
+      const remIds = new Set(remArr.map((row) => row.id))
       const known = new Set(pulled[collection] ?? [])
+      // Keep local qty / satellite-only adds. Drop rows Mini deleted
+      // (present on last pull, gone from remote) so pull-then-push
+      // does not resurrect SOL.
+      const locKept = locArr.filter((row) => remIds.has(row.id) || !known.has(row.id))
       const remOnly = remArr.filter((row) => !locIds.has(row.id) && !known.has(row.id))
-      next = { ...next, [collection]: [...locArr, ...remOnly] }
+      next = { ...next, [collection]: [...locKept, ...remOnly] }
       changed = true
     }
     if (changed) savePortfolioImmediate(next, plan.portfolioId)
