@@ -66,6 +66,7 @@ describe('MyDSP 1.2.164 Mini absorb keeps Mini family books and staking', () => 
     expect(section).toMatch(/lastPulledHoldingIds/)
     expect(section).toMatch(/stampLastPulledHoldingIdsFromRemote/)
     expect(section).toMatch(/applyReviewedPull/)
+    expect(section).toMatch(/runOneButtonSync/)
     expect(section).toMatch(/mydsp_last_pulled_scalar_hashes/)
     const tip = RELEASE_NOTES[0]!
     const kids = tip.bullets[0]
@@ -176,6 +177,13 @@ describe('MyDSP 1.2.164 Mini absorb keeps Mini family books and staking', () => 
     expect(unlockFn.indexOf('overlaySatelliteBookAfterRemoteReplace')).toBeLessThan(
       unlockFn.indexOf('stampLastPulledHoldingIdsFromRemote'),
     )
+    const oneButton = read('../services/sync/oneButtonSync.ts')
+    const oneFn = oneButton.slice(
+      oneButton.indexOf('export async function runOneButtonSync'),
+      oneButton.indexOf('export async function unlockAndPullFromCloud'),
+    )
+    expect(oneFn).toMatch(/unlockAndPullFromCloud\(passphrase\)/)
+    expect(oneFn).toMatch(/leftover book was not uploaded/)
     const auto = read('../services/sync/autoSyncService.ts')
     const doPull = auto.slice(auto.indexOf('async function doPull'), auto.indexOf('async function doPush'))
     expect(doPull).toMatch(/stampLastPulledHoldingIdsFromRemote\(preview\)/)

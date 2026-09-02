@@ -91,6 +91,19 @@ export async function runOneButtonSync(passphrase: string): Promise<OneButtonSyn
   persistUrl(url)
 
   const book = isBookDevice()
+  if (!book) {
+    try {
+      return await unlockAndPullFromCloud(passphrase)
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Pull failed'
+      if (/404/.test(msg)) {
+        throw new Error(
+          'Cloud empty — leftover book was not uploaded. Only Mini (This device is the book) may push a real book.',
+        )
+      }
+      throw e
+    }
+  }
   const localHasBook = localBookIsSourceOfTruth()
   const action = chooseFirstSyncAction({
     localHasBook,
