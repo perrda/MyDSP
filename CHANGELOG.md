@@ -3,7 +3,7 @@
 ## [1.2.165] - 2026-09-05
 
 ### Fixed — Landscape nav clearance, 44px header taps, CHARTS wrap
-- **Punch 1 — 844×390 landscape:** Fixed bottom nav covered SIPP/liabilities (Today), MIX (Equities), and Encrypted cloud sync (Settings). Short-landscape content uses **0.5rem top** (was 2rem leftover desktop inset) and **5.5rem + safe-area** bottom (was 3.75rem). `scroll-padding-bottom` on `html` and `.app-content` so in-page jumps clear the nav. Today hero padding tightens so the book rows sit above the bar. Tablet News/YouTube labels stay icon-only in short landscape so the bar does not grow.
+- **Punch 1 — 844×390 landscape:** Fixed bottom nav covered SIPP/liabilities (Today), MIX (Equities), and Encrypted cloud sync (Settings). Short landscape locks the shell to **100dvh** and reserves **4.25rem + 0.5rem + safe-area** (~76px ≥ measured 64.55px nav) as `.app-main` padding so the scrollport ends above the bar. `.app-content-with-bottom-nav` scrolls inside that inset. Tablet News/YouTube labels stay icon-only so the bar does not grow.
 - **Punch 2 — 390 header taps:** Menu / Refresh / More were 40×40 (`2.5rem`). Hit areas are **2.75rem (44×44)**. Refresh stays BTC orange `#F7931A`.
 - **Punch 3 — Today CHARTS at 390:** Jump chips wrap instead of a horizontal clip, so the CHARTS label is fully readable.
 - **Keep:** Mini-as-book, Cloud Sync protocol, `#F7931A`. Draft only — do not Promote / wrangler / merge #206. Service worker cache is `mydsp-v1.2.165`.

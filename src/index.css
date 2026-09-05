@@ -957,16 +957,37 @@ html.has-bottom-nav .floating-banner--toast {
   .bottom-nav-link--active::before {
     width: 1.25rem;
   }
-  /* 844×390: 2rem top padding plus the tablet-class bar covered the fold
-   * (SIPP/liabilities, MIX, Encrypted cloud sync). Drop the leftover desktop
-   * top inset and keep portrait bottom clearance. */
-  html.has-bottom-nav {
-    scroll-padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+  /* 844×390 PAINT-FAIL: document padding-bottom does not inset the first
+   * viewport, so liabilities / MIX / Encrypted cloud sync still painted
+   * under the fixed bar (y≈325, h≈64.55). Lock the shell to 100dvh and
+   * reserve ≥ nav height + gap + safe-area on the scrollport. */
+  html.has-bottom-nav,
+  html.has-bottom-nav body {
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+  }
+  html.has-bottom-nav .app-shell,
+  html.has-bottom-nav .app-main {
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+  }
+  html.has-bottom-nav .app-main {
+    box-sizing: border-box;
+    padding-bottom: calc(4.25rem + 0.5rem + env(safe-area-inset-bottom, 0px));
   }
   html.has-bottom-nav .app-content.app-content-with-bottom-nav {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     padding-top: 0.5rem;
-    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
-    scroll-padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+    padding-bottom: 0.75rem;
+    scroll-padding-bottom: 0.75rem;
+  }
+  html.has-bottom-nav {
+    scroll-padding-bottom: calc(4.25rem + 0.5rem + env(safe-area-inset-bottom, 0px));
   }
   .today-main-column > .surface {
     padding: 0.75rem 1.25rem;

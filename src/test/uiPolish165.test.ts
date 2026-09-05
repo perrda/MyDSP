@@ -19,7 +19,7 @@ describe('MyDSP 1.2.165 UI polish — nav clearance, 44px taps, CHARTS wrap', ()
     ])
     expect(read('../../public/sw.js')).toMatch(/mydsp-v1.2.165/)
     const section = read('../../CHANGELOG.md').match(/## \[1\.2\.165\][\s\S]*?(?=## \[)/)?.[0] ?? ''
-    expect(section).toMatch(/5\.5rem/)
+    expect(section).toMatch(/4\.25rem/)
     expect(section).toMatch(/44/)
     expect(section).toMatch(/CHARTS/)
     expect(section).toMatch(/#F7931A/)
@@ -30,7 +30,10 @@ describe('MyDSP 1.2.165 UI polish — nav clearance, 44px taps, CHARTS wrap', ()
   it('1: short landscape content clears the fixed bottom nav', () => {
     const css = read('../index.css')
     expect(css).toMatch(
-      /orientation: landscape\) and \(max-height: 500px\)[\s\S]*html\.has-bottom-nav \.app-content\.app-content-with-bottom-nav\s*\{[\s\S]*padding-top:\s*0\.5rem[\s\S]*padding-bottom:\s*calc\(5\.5rem \+ env\(safe-area-inset-bottom/s,
+      /orientation: landscape\) and \(max-height: 500px\)[\s\S]*html\.has-bottom-nav \.app-main\s*\{[\s\S]*padding-bottom:\s*calc\(4\.25rem \+ 0\.5rem \+ env\(safe-area-inset-bottom/s,
+    )
+    expect(css).toMatch(
+      /orientation: landscape\) and \(max-height: 500px\)[\s\S]*html\.has-bottom-nav \.app-content\.app-content-with-bottom-nav\s*\{[\s\S]*overflow-y:\s*auto/s,
     )
     expect(css).toMatch(
       /\.app-content\.app-content-with-bottom-nav\s*\{[\s\S]*scroll-padding-bottom:\s*calc\(5\.5rem/s,
