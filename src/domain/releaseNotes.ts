@@ -29,6 +29,24 @@ export function releaseBulletHref(b: ReleaseBullet): string | null {
 /** Newest first. Archive surfaces the first 5 entries. */
 export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
   {
+    version: '1.2.165',
+    date: '2026-09-05',
+    bullets: [
+      {
+        text: 'Short landscape: SIPP/liabilities, MIX, and Encrypted cloud sync scroll clear of the bottom nav',
+        to: '/',
+      },
+      {
+        text: 'Header menu, Refresh, and More are 44×44 tap targets — Refresh stays BTC orange',
+        to: '/',
+      },
+      {
+        text: 'Today jump chips wrap at phone width so CHARTS stays fully readable',
+        to: '/',
+      },
+    ],
+  },
+  {
     version: '1.2.164',
     date: '2026-09-02',
     bullets: [

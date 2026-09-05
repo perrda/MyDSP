@@ -13,14 +13,14 @@ const read = (rel: string) => readFileSync(resolve(__dirname, rel), 'utf8')
 describe('MyDSP 1.2.164 Mini absorb keeps Mini family books and staking', () => {
   it('package + release notes tip', () => {
     const pkg = JSON.parse(read('../../package.json'))
-    expect(pkg.version).toBe('1.2.164')
-    expect(RELEASE_NOTES[0]?.version).toBe('1.2.164')
+    expect(pkg.version).toBe('1.2.165')
+    expect(RELEASE_NOTES[0]?.version).toBe('1.2.165')
     expect(releaseNotesArchive(5).map((e) => e.version)).toEqual([
+      '1.2.165',
       '1.2.164',
       '1.2.163',
       '1.2.162',
       '1.2.161',
-      '1.2.160',
     ])
     const changelog = read('../../CHANGELOG.md')
     const section = changelog.match(/## \[1\.2\.164\][\s\S]*?(?=## \[)/)?.[0] ?? ''
@@ -64,7 +64,7 @@ describe('MyDSP 1.2.164 Mini absorb keeps Mini family books and staking', () => 
     expect(section).not.toMatch(/SYNC_KEY/)
     expect(section).not.toMatch(/wrangler deploy/)
     expect(read('../../ROADMAP.md')).toMatch(/Mini absorb registry \+ scalars \(v1\.2\.164\)/)
-    expect(read('../../public/sw.js')).toMatch(/mydsp-v1.2.164/)
+    expect(read('../../public/sw.js')).toMatch(/mydsp-v1.2.165/)
     const notes = read('../domain/releaseNotes.ts')
     expect(notes).toMatch(/Kids book created, renamed, or deleted on Mini/)
     expect(notes).toMatch(/already pushed/)
@@ -81,7 +81,7 @@ describe('MyDSP 1.2.164 Mini absorb keeps Mini family books and staking', () => 
     expect(section).toMatch(/runOneButtonSync/)
     expect(section).toMatch(/iPad/)
     expect(section).toMatch(/mydsp_last_pulled_scalar_hashes/)
-    const tip = RELEASE_NOTES[0]!
+    const tip = RELEASE_NOTES.find((e) => e.version === '1.2.164')!
     const kids = tip.bullets[0]
     expect(releaseBulletText(kids)).toMatch(/Kids book created, renamed, or deleted on Mini/)
     expect(releaseBulletText(kids)).toMatch(/already pushed/)

@@ -5,12 +5,12 @@ import { describe, expect, it } from 'vitest'
  * Menu + portfolio + currency + bell + more must fit without overflow clipping.
  */
 export const MOBILE_TOOLBAR_BUDGET = {
-  menuRem: 2.5,
+  menuRem: 2.75,
   portfolioMaxRem: 5.25,
   currencyRem: 4.75,
-  iconRem: 2.5,
+  iconRem: 2.75,
   gapRem: 0.25,
-  /** Two mobile icons: notifications + more */
+  /** Two mobile icons: refresh + more */
   mobileIconCount: 2,
   /** Horizontal padding on .app-header-row */
   rowPadRem: 0.75 * 2,
@@ -32,8 +32,8 @@ describe('mobile toolbar width budget', () => {
   })
 
   it('is leaner than the previous overflowing layout (~24.5rem)', () => {
-    // Old: 2.75 menu + 6.75 portfolio + 5.25 currency + 3×2.75 icons + gaps ≈ 24.5rem
-    expect(estimateMobileToolbarWidthRem()).toBeLessThanOrEqual(20)
+    // 2.75 menu + 5.25 portfolio + 4.75 currency + 2×2.75 icons + gaps ≈ 20.75rem
+    expect(estimateMobileToolbarWidthRem()).toBeLessThanOrEqual(21)
     expect(estimateMobileToolbarWidthRem()).toBeLessThan(24)
   })
 })
