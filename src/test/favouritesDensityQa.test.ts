@@ -36,12 +36,12 @@ describe('Favourites density / responsive QA', () => {
     )
   })
 
-  it('makes Today jump chips scroll on phones and caps daily plan rows', () => {
+  it('makes Today jump chips wrap on phones and caps daily plan rows', () => {
     const src = css()
     const dashboard = page('Dashboard.tsx')
 
     expect(src).toMatch(
-      /@media \(max-width: 639px\)[\s\S]*?\.today-section-jump-chips\s*\{[\s\S]*?flex-wrap:\s*nowrap[\s\S]*?overflow-x:\s*auto/s,
+      /@media \(max-width: 639px\)[\s\S]*?\.today-section-jump-chips\s*\{[\s\S]*?flex-wrap:\s*wrap[\s\S]*?overflow-x:\s*visible/s,
     )
     expect(src).toMatch(/\.today-daily-plan-row:nth-child\(n \+ 6\)\s*\{[\s\S]*?display:\s*none/s)
     expect(dashboard).toMatch(/DAILY_PLAN_PHONE_VISIBLE_ROWS = 5/)
