@@ -81,7 +81,7 @@ describe('MyDSP 1.2.146 family sleeves land on live after Mini REPLACE', () => {
     expect(section).not.toMatch(/SYNC_KEY/)
     expect(read('../../ROADMAP.md')).toMatch(/Family sleeves land on live \(v1\.2\.146\)/)
     expect(read('../domain/familyHoldingSleeves.ts')).toMatch(/FAMILY_SLEEVES_APPLIED_VERSION = 'v3'/)
-    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.164/)
+    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.165/)
     expect(read('../services/sync/syncService.ts')).toMatch(/applyFamilyHoldingsToNamedBooks\(\)/)
     expect(read('../context/PortfolioContext.tsx')).toMatch(/familyHoldingSleeveFor/)
   })

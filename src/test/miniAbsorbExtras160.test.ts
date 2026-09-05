@@ -26,7 +26,7 @@ describe('MyDSP 1.2.160 Mini absorbs extras before book push', () => {
     expect(section).toMatch(/#F7931A/)
     expect(section).not.toMatch(/SYNC_KEY/)
     expect(read('../../ROADMAP.md')).toMatch(/Mini absorb extras before push \(v1\.2\.160\)/)
-    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.164/)
+    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.165/)
     const sync = read('../services/sync/syncService.ts')
     const start = sync.indexOf('export async function absorbRemoteWorkspaceExtrasBeforePush')
     const push = sync.indexOf('export async function pushSync')

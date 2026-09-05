@@ -32,7 +32,7 @@ describe('MyDSP 1.2.162 sitting satellite pulls extras with Automatic off', () =
     expect(section).not.toMatch(/SYNC_KEY/)
     expect(section).not.toMatch(/wrangler deploy/)
     expect(read('../../ROADMAP.md')).toMatch(/Sitting satellite extras pull \(v1\.2\.162\)/)
-    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.164/)
+    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.165/)
     const notes = read('../domain/releaseNotes.ts')
     expect(notes).toMatch(/MacBook \/ iPhone \/ iPad can stay open with Automatic off/)
     expect(notes).toMatch(/pull-only/)

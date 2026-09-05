@@ -957,12 +957,19 @@ html.has-bottom-nav .floating-banner--toast {
   .bottom-nav-link--active::before {
     width: 1.25rem;
   }
-  /* 844×390 tablet-class nav is taller than the old 3.75rem icon-only guess.
-   * Keep portrait clearance so SIPP/liabilities, MIX, and Encrypted cloud sync
-   * can scroll fully above the fixed bar. */
+  /* 844×390: 2rem top padding plus the tablet-class bar covered the fold
+   * (SIPP/liabilities, MIX, Encrypted cloud sync). Drop the leftover desktop
+   * top inset and keep portrait bottom clearance. */
+  html.has-bottom-nav {
+    scroll-padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+  }
   html.has-bottom-nav .app-content.app-content-with-bottom-nav {
+    padding-top: 0.5rem;
     padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
     scroll-padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+  }
+  .today-main-column > .surface {
+    padding: 0.75rem 1.25rem;
   }
   /* Tablet media labels beat the landscape clip (0,3,0 vs 0,2,0) and grow the bar. */
   .bottom-nav--tablet .bottom-nav-media-link .bottom-nav-link-label {

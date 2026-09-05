@@ -34,7 +34,7 @@ describe('MyDSP 1.2.156 leftover headlines replace + Mini go-live', () => {
     expect(section).toMatch(/#F7931A/)
     expect(section).not.toMatch(/SYNC_KEY/)
     expect(read('../../ROADMAP.md')).toMatch(/Leftover News headlines \+ Mini go-live \(v1\.2\.156\)/)
-    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.164/)
+    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.165/)
     expect(read('../../scripts/go-live.sh')).toMatch(/git clone https:\/\/github.com\/perrda\/MyDSP.git/)
     expect(read('../../scripts/go-live.sh')).toMatch(/npm run deploy/)
     expect(read('../../scripts/go-live.sh')).toMatch(/npx wrangler whoami/)

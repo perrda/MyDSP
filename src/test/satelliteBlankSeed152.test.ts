@@ -37,7 +37,7 @@ describe('MyDSP 1.2.152 satellite blank News/Markets seed', () => {
     expect(section).toMatch(/#F7931A/)
     expect(section).not.toMatch(/SYNC_KEY/)
     expect(read('../../ROADMAP.md')).toMatch(/Satellite blank News\/Markets seed \(v1\.2\.152\)/)
-    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.164/)
+    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.165/)
   })
 
   it('waiting satellite seeds blank; Mini and first-run keep factory', () => {

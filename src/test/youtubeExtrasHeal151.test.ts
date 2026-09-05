@@ -25,7 +25,7 @@ describe('MyDSP 1.2.151 satellite extras heal', () => {
     expect(section).toMatch(/#F7931A/)
     expect(section).not.toMatch(/SYNC_KEY/)
     expect(read('../../ROADMAP.md')).toMatch(/Satellite extras heal \(v1\.2\.151\)/)
-    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.164/)
+    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.165/)
   })
 
   it('satellites without an extras stamp re-download; Mini does not', () => {

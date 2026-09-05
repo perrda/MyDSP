@@ -30,7 +30,7 @@ describe('MyDSP 1.2.165 UI polish — nav clearance, 44px taps, CHARTS wrap', ()
   it('1: short landscape content clears the fixed bottom nav', () => {
     const css = read('../index.css')
     expect(css).toMatch(
-      /orientation: landscape\) and \(max-height: 500px\)[\s\S]*html\.has-bottom-nav \.app-content\.app-content-with-bottom-nav\s*\{[\s\S]*padding-bottom:\s*calc\(5\.5rem \+ env\(safe-area-inset-bottom/s,
+      /orientation: landscape\) and \(max-height: 500px\)[\s\S]*html\.has-bottom-nav \.app-content\.app-content-with-bottom-nav\s*\{[\s\S]*padding-top:\s*0\.5rem[\s\S]*padding-bottom:\s*calc\(5\.5rem \+ env\(safe-area-inset-bottom/s,
     )
     expect(css).toMatch(
       /\.app-content\.app-content-with-bottom-nav\s*\{[\s\S]*scroll-padding-bottom:\s*calc\(5\.5rem/s,

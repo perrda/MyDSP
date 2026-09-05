@@ -30,7 +30,7 @@ describe('MyDSP 1.2.148 Refresh fetches live FX with prices', () => {
     expect(section).toMatch(/#F7931A/)
     expect(section).not.toMatch(/SYNC_KEY/)
     expect(read('../../ROADMAP.md')).toMatch(/Refresh fetches live FX \(v1\.2\.148\)/)
-    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.164/)
+    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.165/)
     expect(read('../services/fx.ts')).toMatch(/Header Refresh always calls fetchFxRates/)
   })
 

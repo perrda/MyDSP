@@ -57,7 +57,7 @@ describe('MyDSP 1.2.161 live-price trust leftover', () => {
     expect(section).not.toMatch(/wrangler deploy/)
     expect(section).toMatch(/draft only|Draft only/)
     expect(read('../../ROADMAP.md')).toMatch(/[Ll]ive-price trust leftover \(v1\.2\.161\)/)
-    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.164/)
+    expect(read('../../public/sw.js')).toMatch(/mydsp-v1\.2\.165/)
     expect(read('../domain/releaseNotes.ts')).not.toMatch(/SYNC_KEY/)
   })
 

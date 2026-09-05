@@ -81,7 +81,7 @@ describe('MyDSP 1.2.164 Mini absorb keeps Mini family books and staking', () => 
     expect(section).toMatch(/runOneButtonSync/)
     expect(section).toMatch(/iPad/)
     expect(section).toMatch(/mydsp_last_pulled_scalar_hashes/)
-    const tip = RELEASE_NOTES[0]!
+    const tip = RELEASE_NOTES.find((e) => e.version === '1.2.164')!
     const kids = tip.bullets[0]
     expect(releaseBulletText(kids)).toMatch(/Kids book created, renamed, or deleted on Mini/)
     expect(releaseBulletText(kids)).toMatch(/already pushed/)

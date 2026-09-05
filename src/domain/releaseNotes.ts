@@ -38,6 +38,7 @@ export const RELEASE_NOTES: readonly ReleaseNotesEntry[] = [
       },
       {
         text: 'Header menu, Refresh, and More are 44×44 tap targets — Refresh stays BTC orange',
+        to: '/',
       },
       {
         text: 'Today jump chips wrap at phone width so CHARTS stays fully readable',
